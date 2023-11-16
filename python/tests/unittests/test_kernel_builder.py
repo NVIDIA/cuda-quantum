@@ -595,7 +595,7 @@ def test_cswap_gate_ctrl_list(control_count):
     # in the |1> state. This check ensures that our controlled
     # SWAP's are performed if and only if all controls are in the
     # |1> state.
-    if (len(controls) != 1):
+    if (len(controls) > 1):
         random_index = random.randint(0, control_count - 1)
         kernel.x(controls[random_index])
         # Not all controls in the in |1>, no SWAP.

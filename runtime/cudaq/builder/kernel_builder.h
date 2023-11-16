@@ -585,25 +585,28 @@ public:
     const std::vector<QuakeValue> &qubits{first, second};
     details::swap(*opBuilder, empty, qubits);
   }
+
   /// @brief SWAP operation for performing a Fredkin gate between two qubits,
   /// based on the state of input `control` qubit/s.
   template <typename mod, typename = typename std::enable_if_t<
                               std::is_same_v<mod, cudaq::ctrl>>>
   void swap(const QuakeValue &control, const QuakeValue &first,
             const QuakeValue &second) {
-    const std::vector<QuakeValue> &ctrl{control};
-    const std::vector<QuakeValue> &targets{first, second};
+    const std::vector<QuakeValue> ctrl{control};
+    const std::vector<QuakeValue> targets{first, second};
     details::swap(*opBuilder, ctrl, targets);
   }
+
   /// @brief SWAP operation for performing a Fredkin gate between two qubits,
   /// based on the state of an input vector of `controls`.
   template <typename mod, typename = typename std::enable_if_t<
                               std::is_same_v<mod, cudaq::ctrl>>>
   void swap(const std::vector<QuakeValue> &controls, const QuakeValue &first,
             const QuakeValue &second) {
-    const std::vector<QuakeValue> &targets{first, second};
+    const std::vector<QuakeValue> targets{first, second};
     details::swap(*opBuilder, controls, targets);
   }
+
   /// @brief SWAP operation for performing a Fredkin gate between two qubits,
   /// based on the state of a variadic input of control qubits and registers.
   /// Note: the final two qubits in the variadic list will always be the qubits

@@ -662,7 +662,7 @@ Args:
       /// register of qubit/s.
       .def(
           "cswap",
-          [](kernel_builder<> &self, QuakeValue control,
+          [](kernel_builder<> &self, const QuakeValue &control,
              const QuakeValue &first, const QuakeValue &second) {
             return self.swap<cudaq::ctrl>(control, first, second);
           },
