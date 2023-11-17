@@ -108,6 +108,9 @@ public:
   /// Main entry point into SabreRouter routing algorithm
   void route(Block &block, ArrayRef<quake::NullWireOp> sources);
 
+  /// After routing, this contains the final values for all the qubits
+  ArrayRef<Value> getPhyToWire() { return phyToWire; }
+
 private:
   void visitUsers(ResultRange::user_range users,
                   SmallVectorImpl<VirtualOp> &layer,
@@ -679,20 +682,20 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // Remove any auxillary qubits that did not get used. Remove from the end
     // and stop once you hit a used one. If you removed from the middle, you
     // would renumber the qubits, which would invalidate the mapping indices.
+    unsigned numRemaining = numOrigQubits;
     for (unsigned i = sources.size() - 1; i >= numOrigQubits; i--) {
-      if (sources[i]->use_empty())
+      if (sources[i]->use_empty()) {
         sources[i]->erase();
-      else
+      } else {
+        numRemaining = i + 1;
         break;
+      }
     }
     // Add sinks where needed
-    auto wireType = builder.getType<quake::WireType>();
     builder.setInsertionPoint(block.getTerminator());
-    block.walk([&](Operation *op) {
-      for (auto r : op->getResults())
-        if (r.use_empty() && r.getType() == wireType)
-          builder.create<quake::SinkOp>(op->getLoc(), r);
-    });
+    auto phyToWire = router.getPhyToWire();
+    for (unsigned i = 0; i < numRemaining; i++)
+      builder.create<quake::SinkOp>(phyToWire[i].getLoc(), phyToWire[i]);
 
     // Populate mapping_v2p attribute on this function such that:
     // - mapping_v2p[v] contains the final physical qubit placement for virtual
