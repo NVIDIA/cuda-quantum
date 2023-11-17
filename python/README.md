@@ -35,32 +35,31 @@ simulators. The GPU-based simulators included in the CUDA Quantum Python wheels
 require an existing CUDA installation. Additionally, multi-GPU simulators
 require an existing MPI installation.
 
-In most cases, the CUDA and MPI dependencies can be installed via package
-manager. On Ubuntu 22.04, for example, the following commands install all
-optional CUDA dependencies:
+To install both CUDA and CUDA-aware MPI dependencies, we recommend
+installing the [NVIDIA HPC Software Development Kit (SDK)](https://developer.nvidia.com/hpc-sdk).
+Since CUDA Quantum requires CUDA version 11.x,
+please install the SDK bundle with CUDA 11 support.  
+
+On Ubuntu 22.04 (x86), for example, the following commands
+install the latest `NVHPC` SDK and set up the environment post installation
+to use CUDA 11.8 and CUDA-aware OpenMPI from the SDK.
 
 ```console
-arch=x86_64 # set this to sbsa for ARM processors
-sudo apt-get update && sudo apt-get install -y wget
-wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch/cuda-keyring_1.0-1_all.deb
-sudo dpkg -i cuda-keyring_1.0-1_all.deb && rm cuda-keyring_1.0-1_all.deb
-sudo apt-get update && sudo apt-get install -y cuda-toolkit-11.8
+curl https://developer.download.nvidia.com/hpc-sdk/ubuntu/DEB-GPG-KEY-NVIDIA-HPC-SDK | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg
+echo 'deb [signed-by=/usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg] https://developer.download.nvidia.com/hpc-sdk/ubuntu/amd64 /' | sudo tee /etc/apt/sources.list.d/nvhpc.list
+sudo apt-get update -y
+sudo apt-get install -y nvhpc-23-11-cuda-multi
+export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/comm_libs/11.8/openmpi4/openmpi-4.1.5/bin:$PATH
+export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/cuda/11.8/targets/x86_64-linux/lib/:/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/math_libs/11.8/targets/x86_64-linux/lib/${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 ```
 
-Detailed instructions for how to install the complete CUDA toolkit on different
-operating systems can be found in the [CUDA
-documentation](https://docs.nvidia.com/cuda/).
+Detailed instructions for how to install the
+[NVIDIA HPC Software Development Kit (SDK)](https://developer.nvidia.com/hpc-sdk)
+on different platforms and operating systems can be found in the
+[download page](https://developer.nvidia.com/nvidia-hpc-sdk-2311-downloads).
 
-If you have several GPUs available but no MPI installation yet, we recommend
-taking a look at the [OpenMPI documentation](https://docs.open-mpi.org/)
-and installing [mpi4py](https://mpi4py.readthedocs.io/).
-On Ubuntu 22.04, for example, the following commands install the necessary MPI
-libraries:
-
-```console
-sudo apt-get update && sudo apt-get install -y libopenmpi-dev libpython3-dev gcc
-python3 -m pip install mpi4py
-```
+If you want to develop MPI application with CUDA Quantum,
+we also recommend installing [mpi4py](https://mpi4py.readthedocs.io/).
 
 ## Running CUDA Quantum
 
