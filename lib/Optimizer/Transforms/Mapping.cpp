@@ -108,6 +108,9 @@ public:
   /// Main entry point into SabreRouter routing algorithm
   void route(Block &block, ArrayRef<quake::NullWireOp> sources);
 
+  /// After routing, this contains the final values for all the qubits
+  ArrayRef<Value> getPhyToWire() { return phyToWire; }
+
 private:
   void visitUsers(ResultRange::user_range users,
                   SmallVectorImpl<VirtualOp> &layer,
@@ -540,6 +543,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // Sanity checks and create a wire to virtual qubit mapping.
     Block &block = *blocks.begin();
     SmallVector<quake::NullWireOp> sources;
+    SmallVector<Operation *> sinksToRemove;
     DenseMap<Value, Placement::VirtualQ> wireToVirtualQ;
     for (Operation &op : block.getOperations()) {
       // If it's a measurement, make sure it has a name. Otherwise we will have
@@ -573,8 +577,10 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
         // Since `quake.sink` operations do not generate new wires, we don't
         // need to further analyze.
-        if (isa<quake::SinkOp>(op))
+        if (isa<quake::SinkOp>(op)) {
+          sinksToRemove.push_back(&op);
           continue;
+        }
 
         // Get the wire operands and check if the operators uses at most two
         // qubits. N.B: Measurements do not have this restriction.
@@ -644,6 +650,12 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       return;
     }
 
+    // We've made it past all the initial checks. Remove the sinks now. They
+    // will be added back in when the mapping is complete.
+    for (auto sink : sinksToRemove)
+      sink->erase();
+    sinksToRemove.clear();
+
     // Create auxillary qubits if needed. Place them after the last allocated
     // qubit
     unsigned numOrigQubits = sources.size();
@@ -670,12 +682,20 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     // Remove any auxillary qubits that did not get used. Remove from the end
     // and stop once you hit a used one. If you removed from the middle, you
     // would renumber the qubits, which would invalidate the mapping indices.
+    unsigned numRemaining = numOrigQubits;
     for (unsigned i = sources.size() - 1; i >= numOrigQubits; i--) {
-      if (sources[i]->getUsers().empty())
+      if (sources[i]->use_empty()) {
         sources[i]->erase();
-      else
+      } else {
+        numRemaining = i + 1;
         break;
+      }
     }
+    // Add sinks where needed
+    builder.setInsertionPoint(block.getTerminator());
+    auto phyToWire = router.getPhyToWire();
+    for (unsigned i = 0; i < numRemaining; i++)
+      builder.create<quake::SinkOp>(phyToWire[i].getLoc(), phyToWire[i]);
 
     // Populate mapping_v2p attribute on this function such that:
     // - mapping_v2p[v] contains the final physical qubit placement for virtual
