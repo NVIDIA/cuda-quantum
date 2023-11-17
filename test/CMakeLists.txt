@@ -22,12 +22,22 @@ configure_lit_site_cfg(
 set(NVQPP_TEST_PARAMS
   nvqpp_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py)
 
+# Gather all the runtime libraries to make sure they are up-to-date.
+# FIXME: These libraries should self-register to a CMake property so here we
+# can just use a macro instead of listing them.
+set(TEST_CUDAQ_LIBRARIES
+  cudaq cudaq-common cudaq-mlir-runtime cudaq-builder cudaq-ensmallen
+  cudaq-nlopt cudaq-spin
+  cudaq-em-default cudaq-em-photonics cudaq-platform-default
+  nvqir nvqir-qpp nvqir-dm)
+
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   set(NVQPP_TEST_DEPENDS
     cudaq-quake
     cudaq-opt
     cudaq-translate
     fixup-linkage
+    ${TEST_CUDAQ_LIBRARIES}
 
     CircuitCheck
     FileCheck)
