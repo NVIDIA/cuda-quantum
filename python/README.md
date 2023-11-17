@@ -45,13 +45,13 @@ install the latest `NVHPC` SDK and set up the environment post installation
 to use CUDA 11.8 and CUDA-aware OpenMPI from the SDK.
 
 ```console
-arch=amd64 # set this to arm64 for ARM processors
+sudo apt update && sudo apt install -y curl
 curl https://developer.download.nvidia.com/hpc-sdk/ubuntu/DEB-GPG-KEY-NVIDIA-HPC-SDK | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg
-echo 'deb [signed-by=/usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg] https://developer.download.nvidia.com/hpc-sdk/ubuntu/'$arch' /' | sudo tee /etc/apt/sources.list.d/nvhpc.list
-sudo apt-get update -y
-sudo apt-get install -y nvhpc-23-11-cuda-multi
-export PATH=/opt/nvidia/hpc_sdk/Linux_$(uname -m)/23.11/comm_libs/11.8/openmpi4/openmpi-4.1.5/bin:$PATH
-export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_$(uname -m)/23.11/cuda/11.8/targets/$(uname -m)-linux/lib/:/opt/nvidia/hpc_sdk/Linux_$(uname -m)/23.11/math_libs/11.8/targets/$(uname -m)-linux/lib/${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+download_link=https://developer.download.nvidia.com/hpc-sdk/ubuntu/$([ "$(uname -m)" == "aarch64" ] && echo arm64 || echo amd64)
+echo "deb [signed-by=/usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg] $download_link /" | sudo tee /etc/apt/sources.list.d/nvhpc.list
+sudo apt update && sudo apt install -y nvhpc-23-11-cuda-multi
+export PATH="/opt/nvidia/hpc_sdk/$(uname -s)_$(uname -m)/23.11/comm_libs/11.8/openmpi4/openmpi-4.1.5/bin:$PATH"
+export LD_LIBRARY_PATH="/opt/nvidia/hpc_sdk/$(uname -s)_$(uname -m)/23.11/cuda/11.8/targets/$(uname -m)-linux/lib/:/opt/nvidia/hpc_sdk/$(uname -s)_$(uname -m)/23.11/math_libs/11.8/targets/$(uname -m)-linux/lib/:$LD_LIBRARY_PATH"
 ```
 
 Detailed instructions for how to install the
