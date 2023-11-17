@@ -6,70 +6,99 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import glob, os, re, sys
+import glob
+import os
+import re
+import sys
 from pathlib import Path
 import subprocess
 from shutil import which
+
 if which('jupyter') is None:
     print("Please install jupyter, e.g. with `pip install notebook`.")
     exit(1)
 
-def available():
-    available_backends = sys.stdin.readlines()
-    if available_backends:
-        available_backends = [
-            available_backend.strip()
-            for available_backend in available_backends
-        ]
-        return available_backends
 
-def validate(notebook_filename):
+def read_available_backends():
+    available_backends = sys.stdin.readlines()
+    return [backend.strip() for backend in available_backends]
+
+
+def validate(notebook_filename, available_backends):
     with open(notebook_filename) as f:
         lines = f.readlines()
     for notebook_content in lines:
-        status = True
         match = re.search('set_target[\\\s\(]+"(.+)\\\\"[)]', notebook_content)
-        if match:
-            if (match.group(1) not in available_backends):
-                status = False
-                break
-    return status
+        if match and (match.group(1) not in available_backends):
+            return False
+    return True
 
-def execute(notebook_filename, run_path='.'):
+
+def execute(notebook_filename):
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')
-    success = True
     try:
-        subprocess.run(["jupyter", "nbconvert", "--to", "notebook", "--execute", notebook_filename], check = True)
+        subprocess.run([
+            "jupyter", "nbconvert", "--to", "notebook", "--execute",
+            notebook_filename
+        ],
+                       check=True)
         os.remove(notebook_filename_out)
+        return True
     except subprocess.CalledProcessError:
         print('Error executing the notebook "%s".\n\n' % notebook_filename)
-        success = False
-    return success
+        return False
+
+
+def print_results(success, failed, skipped=[]):
+    if success:
+        print("Success! The following notebook(s) executed successfully:\n" +
+              " ".join(success))
+
+    if failed:
+        print("Failed! The following notebook(s) raised errors:\n" +
+              " ".join(failed))
+
+    if skipped:
+        print("Skipped! The following notebook(s) skipped:\n" +
+              " ".join(skipped))
+
+    if not failed and not skipped:
+        print("Success! All the notebook(s) executed successfully.")
+        exit(1)
 
 
 if __name__ == "__main__":
-    available_backends = available()
     if len(sys.argv) > 1:
         notebook_filenames = sys.argv[1:]
-    else:
-        notebook_filenames = [
-            fn for fn in glob.glob(f"{Path(__file__).parent}/docs/**/*.ipynb", recursive=True) if not fn.endswith('.nbconvert.ipynb')]
-
-    if notebook_filenames:
-        notebooks_failed = []
+        notebooks_success, notebooks_failed = ([] for i in range(2))
         for notebook_filename in notebook_filenames:
-            if (validate(notebook_filename)):
-                notebooks_failed.append(notebook_filename)
+            if (execute(notebook_filename)):
+                notebooks_success.append(notebook_filename)
             else:
-                print(f"Skipped! Missing backends for {notebook_filename}")
-
-        if len(notebooks_failed) > 0:
-            print("Failed! The following notebook(s) raised errors:\n" +
-                  " ".join(notebooks_failed))
-            exit(1)
-        else:
-            print("Success! All the notebook(s) executed successfully.")
+                notebooks_failed.append(notebook_filename)
+        print_results(notebooks_success, notebooks_failed)
     else:
-        print('Failed! No notebook found in the current directory.')
-        exit(10)
+        available_backends = read_available_backends()
+        notebook_filenames = [
+            fn for fn in glob.glob(f"{Path(__file__).parent}/docs/**/*.ipynb",
+                                   recursive=True)
+            if not fn.endswith('.nbconvert.ipynb')
+        ]
+
+        if not notebook_filenames:
+            print('Failed! No notebook(s) found.')
+            exit(10)
+
+        notebooks_success, notebooks_skipped, notebooks_failed = (
+            [] for i in range(3))
+        for notebook_filename in notebook_filenames:
+            if (validate(notebook_filename, available_backends)):
+                if (execute(notebook_filename)):
+                    notebooks_success.append(notebook_filename)
+                else:
+                    notebooks_failed.append(notebook_filename)
+            else:
+                notebooks_skipped.append(notebook_filename)
+
+        print_results(notebooks_success, notebooks_failed, notebooks_skipped)
