@@ -12,15 +12,15 @@ cudaq.set_target('density-matrix-cpu')
 # our damping channel to.
 noise = cudaq.NoiseModel()
 
-# Amplitude damping channel with `1.0` probability of the qubit
+# We define an amplitude damping channel setting to `1.0` the probability of the qubit 
 # decaying to the ground state.
 amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
 # We will apply this channel to any Hadamard gate on the qubit.
-# Meaning, after each Hadamard on the qubit, there will be a
-# probability of `1.0` that the qubit decays back to ground.
+# In other words, after each Hadamard on the qubit, there will be a
+# probability of `1.0` that the qubit decays back to the ground state.
 noise.add_channel('h', [0], amplitude_damping)
 
-# Now we may define our simple kernel function and allocate a qubit.
+# Now we define our simple kernel function and allocate a qubit.
 kernel = cudaq.make_kernel()
 qubit = kernel.qalloc()
 
@@ -33,7 +33,7 @@ kernel.h(qubit)
 kernel.mz(qubit)
 
 # Now we're ready to run the noisy simulation of our kernel.
-# Note: We must pass the noise model to sample via key-word.
+# Note: We must pass the noise model to sample via keyword.
 noisy_result = cudaq.sample(kernel, noise_model=noise)
 noisy_result.dump()
 

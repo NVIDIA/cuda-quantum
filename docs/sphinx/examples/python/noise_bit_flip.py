@@ -12,13 +12,14 @@ cudaq.set_target('density-matrix-cpu')
 # these decoherence channels to.
 noise = cudaq.NoiseModel()
 
-# Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.
+# We define a bit-flip channel setting to `1.0` probability of the 
+# qubit flipping 180 degrees about the X axis.
 bit_flip = cudaq.BitFlipChannel(1.0)
 # We will apply this channel to any X gate on the qubit, giving each X-gate
 # a probability of `1.0` of undergoing an extra X-gate.
 noise.add_channel('x', [0], bit_flip)
 
-# Now we may define our simple kernel function and allocate a register
+# Now we define our simple kernel function and allocate a register
 # of qubits to it.
 kernel = cudaq.make_kernel()
 qubit = kernel.qalloc()
@@ -30,7 +31,7 @@ kernel.x(qubit)
 kernel.mz(qubit)
 
 # Now we're ready to run the noisy simulation of our kernel.
-# Note: We must pass the noise model to sample via key-word.
+# Note: We must pass the noise model to sample via keyword.
 noisy_result = cudaq.sample(kernel, noise_model=noise)
 noisy_result.dump()
 
