@@ -175,7 +175,7 @@ llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 
 IS_RELOCATABLE_INSTALL=@CUDAQ_RELOCATABLE_BOOL@
-INCLUDES=""
+INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
 
 # If we are a relocatable package, then we
 # want to re-divert llvm_install_dir to the install_dir
@@ -190,7 +190,7 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 	# the build directory for testing.
 	if [ "@CMAKE_BINARY_DIR@" -ef "${install_dir}" ]; then
 		CUDAQ_INCLUDE_PATH="@CMAKE_SOURCE_DIR@/runtime"
-		INCLUDES="-I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
+		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
 	else
 		error_exit "Invalid CUDA Quantum install configuration."
 	fi
