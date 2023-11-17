@@ -37,7 +37,7 @@ If all goes well, the state measured with the highest probability should be our 
 Variational Quantum Eigensolver
 --------------------------------
 
-The Variational Quantum Eigensolver algorithm, originally proposed in
+The Variational Quantum Eigensolver (VQE) algorithm, originally proposed in
 `this publication <https://arxiv.org/abs/1304.3061>`__, 
 is a hybrid algiorthm that can make use of both quantum and classical resources.
 
@@ -60,7 +60,7 @@ As an alternative to `cudaq.vqe`, we can also use the `cudaq.optimizers` suite o
 Quantum Approximate Optimization Algorithm
 -------------------------------------------
 
-Let's now see how we can implement the QAOA algorithm to compute the Max-Cut of a rectangular graphy by leveraging 
+Let's now see how we can implement the Quantum Approximate Optimization Algorithm (QAOA) to compute the Max-Cut of a rectangular graphy by leveraging 
 `cudaq:vqe`. For more on the QAOA algorithm and the Max-Cut problem, refer to 
 `this paper <https://arxiv.org/abs/1411.4028>`__.
 

@@ -1,6 +1,6 @@
 import cudaq
 
-# We begin by defining the `Kernel`to build our quantum program
+# We begin by defining the `Kernel`to build our quantum program.
 kernel = cudaq.make_kernel()
 
 # Next, we allocate qubits to the kernel via `qalloc(qubit_count)`.
