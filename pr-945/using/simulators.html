@@ -481,7 +481,7 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>If you installed CUDA Quantum via <code class="code docutils literal notranslate"><span class="pre">pip</span></code>, you will need to install the necessary CUDA-aware MPI dependencies separately;
+<p>If you installed CUDA Quantum via <code class="code docutils literal notranslate"><span class="pre">pip</span></code>, you will need to install the necessary MPI dependencies separately;
 please follow the instructions for installing dependencies in the <a class="reference external" href="https://pypi.org/project/cuda-quantum/#description">Project Description</a>.</p>
 </div>
 <p>In addition to using MPI in the simulator, you can use it in your application code by installing <a class="reference external" href="https://mpi4py.readthedocs.io/">mpi4py</a>, and
@@ -499,34 +499,6 @@ invoking the program with the command</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>If using MPI from <a class="reference external" href="https://developer.nvidia.com/networking/hpc-x/">NVIDIA HPC-X</a>, you may encounter runtime warnings related to
-<a class="reference external" href="https://docs.nvidia.com/networking/display/hpcxv217/hcoll/">HCOLL</a> since it is enabled by default with <code class="code docutils literal notranslate"><span class="pre">HPC-X</span></code> but might not be compatible with
-your machine.</p>
-<p>To disable <code class="code docutils literal notranslate"><span class="pre">HCOLL</span></code>, you can use the following <a class="reference external" href="https://docs.nvidia.com/networking/display/hpcxv217/hcoll#src-144709548_HCOLL-EnablingHCOLLinOpenMPI">MCA parameter</a></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>-mca<span class="w"> </span>coll_hcoll_enable<span class="w"> </span><span class="m">0</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia-mgpu
-</pre></div>
-</div>
-<p>Alternatively, the environment variable <code class="code docutils literal notranslate"><span class="pre">OMPI_MCA_coll_hcoll_enable</span></code> can also be used to disable <code class="code docutils literal notranslate"><span class="pre">HCOLL</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">OMPI_MCA_coll_hcoll_enable</span><span class="o">=</span><span class="m">0</span>
-</pre></div>
-</div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>When launching your application with <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code>, depending on your hardware locality support policy of your system or docker container, you may encounter warnings
-related to process binding, such as, “Open MPI tried to bind a process but failed”.</p>
-<p>This can be verified by checking the system hardware locality support:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>hwloc-info<span class="w"> </span>--support
-</pre></div>
-</div>
-<p>For example, if memory binding is not allowed (<code class="code docutils literal notranslate"><span class="pre">membind:set_proc_membind</span> <span class="pre">=</span> <span class="pre">0</span></code>) on the system, MPI will not be able to bind memory to processes appropriately.</p>
-<p>To disable process binding, you can use <code class="code docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">none</span></code> option when launching the application with <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code>, e.g.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>--bind-to<span class="w"> </span>none<span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia-mgpu
-</pre></div>
-</div>
 </div>
 </section>
 <section id="openmp-cpu-only">

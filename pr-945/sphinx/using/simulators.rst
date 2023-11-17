@@ -69,7 +69,7 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 
     .. note::
 
-      If you installed CUDA Quantum via :code:`pip`, you will need to install the necessary CUDA-aware MPI dependencies separately;
+      If you installed CUDA Quantum via :code:`pip`, you will need to install the necessary MPI dependencies separately;
       please follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cuda-quantum/#description>`__.
 
     In addition to using MPI in the simulator, you can use it in your application code by installing `mpi4py <https://mpi4py.readthedocs.io/>`__, and 
@@ -90,45 +90,6 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 .. note:: 
 
   This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
-
-.. note:: 
-  
-  If using MPI from `NVIDIA HPC-X <https://developer.nvidia.com/networking/hpc-x/>`__, you may encounter runtime warnings related to 
-  `HCOLL <https://docs.nvidia.com/networking/display/hpcxv217/hcoll/>`__ since it is enabled by default with `HPC-X` but might not be compatible with 
-  your machine. 
-
-  To disable `HCOLL`, you can use the following `MCA parameter <https://docs.nvidia.com/networking/display/hpcxv217/hcoll#src-144709548_HCOLL-EnablingHCOLLinOpenMPI>`__
-
-  .. code:: bash 
-    
-    mpiexec -np 2 -mca coll_hcoll_enable 0 python3 program.py [...] --target nvidia-mgpu
-
-  Alternatively, the environment variable `OMPI_MCA_coll_hcoll_enable` can also be used to disable `HCOLL`
-
-  .. code:: bash 
-    
-    export OMPI_MCA_coll_hcoll_enable=0
-
-
-.. note:: 
-  
-  When launching your application with `mpiexec`, depending on your hardware locality support policy of your system or docker container, you may encounter warnings
-  related to process binding, such as, "Open MPI tried to bind a process but failed". 
-
-  This can be verified by checking the system hardware locality support:  
-  
-  .. code:: bash   
-    
-    hwloc-info --support
-
-  For example, if memory binding is not allowed (`membind:set_proc_membind = 0`) on the system, MPI will not be able to bind memory to processes appropriately.
-  
-  To disable process binding, you can use `--bind-to none` option when launching the application with `mpiexec`, e.g.
-
-  .. code:: bash 
-    
-    mpiexec -np 2 --bind-to none python3 program.py [...] --target nvidia-mgpu
-    
 
 .. _OpenMP CPU-only:
 
