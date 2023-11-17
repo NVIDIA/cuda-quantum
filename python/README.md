@@ -51,7 +51,8 @@ Detailed instructions for how to install the complete CUDA toolkit on different
 operating systems can be found in the [CUDA
 documentation](https://docs.nvidia.com/cuda/).
 
-If you have several GPUs available but no MPI with CUDA support installation (CUDA-aware version of Open-MPI, MVAPICH, or MPICH) yet,
+If you have several GPUs available but no MPI with CUDA support installation
+(CUDA-aware version of Open-MPI, MVAPICH, or MPICH) yet,
 we recommend taking a look at the [NVIDIA HPC-X](https://developer.nvidia.com/networking/hpc-x/)
 and also installing [mpi4py](https://mpi4py.readthedocs.io/).
 
@@ -60,7 +61,8 @@ for example, please download the appropriate archive for your system OS,
 then follow the step described in its
 [documentation](https://docs.nvidia.com/networking/display/hpcxv217/installing+and+loading+hpc-x)
 to install the package.
-Typically, the installation simply involves extracting the package and executing the install script:
+Typically, the installation simply involves extracting the package
+and executing the install script:
 
 ```console
 tar -xvjf hpcx-xxx-xxx.tbz
