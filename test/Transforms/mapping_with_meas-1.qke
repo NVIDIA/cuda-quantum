@@ -38,8 +38,8 @@ module {
 // CHECK:           %[[VAL_8:.*]], %[[VAL_9:.*]] = quake.mz %[[VAL_7]]#0 name "q0result" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_10:.*]], %[[VAL_11:.*]] = quake.mz %[[VAL_6]]#0 name "q1result" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_12:.*]], %[[VAL_13:.*]] = quake.mz %[[VAL_7]]#1 name "q2result" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           quake.sink %[[VAL_9]] : !quake.wire
-// CHECK:           quake.sink %[[VAL_11]] : !quake.wire
-// CHECK:           quake.sink %[[VAL_13]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_9]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_11]] : !quake.wire
+// CHECK-DAG:       quake.sink %[[VAL_13]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
