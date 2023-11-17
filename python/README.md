@@ -5,7 +5,7 @@ CUDA Quantum is a comprehensive framework for quantum programming. It features:
 - A programming model which extends C++ and Python with quantum kernels,
   enabling high-level programming in familiar languages
 - A high-performance quantum compiler, NVQ++, based on the industry standard
-  low-level virtual machine (LLVM) toolchain
+  LLVM toolchain
 - Interoperability with all of the leading models and tools for accelerated
 computing, including CUDA, ISO standard parallelism, OpenMP, and OpenACC
 - The ability to utilize and seamlessly switch between different quantum
@@ -87,13 +87,13 @@ There are many ways in which you can get involved with CUDA Quantum. If you are
 interested in developing quantum applications with CUDA Quantum, our [GitHub
 repository][github_link] is a great place to get started! For more information
 about contributing to the CUDA Quantum platform, please take a look at
-[Contributing.md](../Contributing.md).
+[Contributing.md](https://github.com/NVIDIA/cuda-quantum/blob/main/Contributing.md).
 
 ## License
 
 CUDA Quantum is an open source project. The source code is available on
-[GitHub][github_link] and licensed under [Apache License 2.0](../LICENSE). CUDA
-Quantum makes use of the NVIDIA cuQuantum SDK to enable high-performance
+[GitHub][github_link] and licensed under [Apache License 2.0](https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE).
+CUDA Quantum makes use of the NVIDIA cuQuantum SDK to enable high-performance
 simulation, which is held to its own respective license.
 
 [github_link]: https://github.com/NVIDIA/cuda-quantum/

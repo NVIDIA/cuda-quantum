@@ -30,11 +30,6 @@ public:
   /// @brief Apply quantum gate
   void applyGate(const GateApplicationTask &task) override;
 
-  /// @brief Apply exp-pauli operation
-  void applyExpPauli(double theta, const std::vector<std::size_t> &controls,
-                     const std::vector<std::size_t> &qubitIds,
-                     const cudaq::spin_op &op) override;
-
   // Override base calculateStateDim (we don't instantiate full state vector in
   // the tensornet backend). When the user want to retrieve the state vector, we
   // check if it is feasible to do so.
