@@ -13,7 +13,11 @@ import subprocess
 # Install directory is wherever this script is and up one directory
 install_dir = Path(__file__).parent.parent.resolve()
 
-
+# [RFC]: 
+# This file should not be here; it is from an earlier version and has since been removed.
+# Double check that the content of the following PR is properly incorporated:
+# https://github.com/NVIDIA/cuda-quantum/pull/877
+# 
 def is_gpu_available():
     try:
         gpu_list = subprocess.check_output(["nvidia-smi", "-L"],

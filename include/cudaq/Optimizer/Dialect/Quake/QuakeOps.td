@@ -831,6 +831,8 @@ def ExpPauliOp : QuakeOp<"exp_pauli"> {
   }];
 }
 
+// [RFC]:
+// Applying arbitrary unitaries is a separate feature and needs to be removed from the prototype.
 def UnitaryOp : QuakeOp<"unitary", [AttrSizedOperandSegments]> {
   let summary = "General unitary operation specified by constant unitary matrix data";
   let description = [{

@@ -301,6 +301,7 @@ public:
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
     serverHelper->initialize(backendConfig);
+    serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
@@ -375,6 +376,10 @@ public:
         throw std::runtime_error(
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
             ").");
+      if (disableMLIRthreading || enablePrintMLIREachPass)
+        moduleOpIn.getContext()->disableMultithreading();
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
       if (failed(pm.run(moduleOpIn)))
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
@@ -470,6 +475,7 @@ public:
     cleanupContext(contextPtr);
     return codes;
   }
+
   /// @brief Launch the kernel. Extract the Quake code and lower to
   /// the representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as async or sync

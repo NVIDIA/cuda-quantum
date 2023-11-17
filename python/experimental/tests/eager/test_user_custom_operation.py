@@ -120,12 +120,12 @@ def test_parameterized_op3_givens():
 
     print(kernel)
     ss_01 = cudaq.get_state(kernel, angle, False)
-    assert np.isclose(ss_01[1], -s, 1e-3)
-    assert np.isclose(ss_01[2], c, 1e-3)
+    assert np.isclose(ss_01[1], -s, atol=1e-3)
+    assert np.isclose(ss_01[2], c, atol=1e-3)
 
     ss_10 = cudaq.get_state(kernel, angle, True)
-    assert np.isclose(ss_10[1], c, 1e-3)
-    assert np.isclose(ss_10[2], s, 1e-3)
+    assert np.isclose(ss_10[1], c, atol=1e-3)
+    assert np.isclose(ss_10[2], s, atol=1e-3)
 
 
 def test_parameterized_op4():

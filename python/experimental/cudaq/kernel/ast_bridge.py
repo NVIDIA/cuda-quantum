@@ -453,6 +453,8 @@ class PyASTBridge(ast.NodeVisitor):
             globalKernelRegistry[node.name] = f
             self.symbolTable.clear()
 
+    # [RFC]:
+    # Examine if we really want to extend Python with a dedicated syntax.
     def visit_Lambda(self, node):
         """
         Map a lambda expression in a CUDA Quantum kernel to a CC Lambda (a Value of `cc.callable` type 
@@ -813,9 +815,11 @@ class PyASTBridge(ast.NodeVisitor):
                 i1Ty = self.getIntegerType(1)
                 resTy = i1Ty if quake.RefType.isinstance(
                     qubit.type) else cc.StdvecType.get(self.ctx, i1Ty)
-                self.pushValue(
-                    opCtor(resTy, [], [qubit],
-                           registerName=self.currentAssignVariableName).result)
+                measTy = quake.MeasureType.get(self.ctx) if quake.RefType.isinstance(
+                    qubit.type) else cc.StdvecType.get(self.ctx, quake.MeasureType.get(self.ctx))
+                measureResult = opCtor(measTy, [], [qubit],
+                           registerName=self.currentAssignVariableName).result
+                self.pushValue(quake.DiscriminateOp(resTy, measureResult).result)
                 return
 
             if node.func.id == 'swap':

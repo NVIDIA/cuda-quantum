@@ -575,15 +575,17 @@ class PyKernel(object):
             i1Ty = IntegerType.get_signless(1, context=self.ctx)
             qubitTy = target.mlirValue.type
             retTy = i1Ty
+            measTy = quake.MeasureType.get(self.ctx)
             stdvecTy = cc.StdvecType.get(self.ctx, i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
-
+                measTy = cc.StdvecType.get(self.ctx, measTy)
             res = quake.MzOp(
-                retTy, [], [target.mlirValue],
+                measTy, [], [target.mlirValue],
                 registerName=StringAttr.get(regName, context=self.ctx)
                 if regName is not None else '')
-            return self.__createQuakeValue(res.result)
+            disc = quake.DiscriminateOp(retTy, res)
+            return self.__createQuakeValue(disc.result)
 
     def mx(self, target, regName=None):
         """
@@ -618,13 +620,17 @@ class PyKernel(object):
             i1Ty = IntegerType.get_signless(1, context=self.ctx)
             qubitTy = target.mlirValue.type
             retTy = i1Ty
+            measTy = quake.MeasureType.get(self.ctx)
             stdvecTy = cc.StdvecType.get(self.ctx, i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
-            res = quake.MxOp(retTy, [], [target.mlirValue],
-                             registerName=StrAttr.get(regName, context=self.ctx)
-                             if regName is not None else '')
-            return self.__createQuakeValue(res.result)
+                measTy = cc.StdvecType.get(self.ctx, measTy)
+            res = quake.MxOp(
+                measTy, [], [target.mlirValue],
+                registerName=StringAttr.get(regName, context=self.ctx)
+                if regName is not None else '')
+            disc = quake.DiscriminateOp(retTy, res)
+            return self.__createQuakeValue(disc.result)
 
     def my(self, target, regName=None):
         """
@@ -659,13 +665,17 @@ class PyKernel(object):
             i1Ty = IntegerType.get_signless(1, context=self.ctx)
             qubitTy = target.mlirValue.type
             retTy = i1Ty
+            measTy = quake.MeasureType.get(self.ctx)
             stdvecTy = cc.StdvecType.get(self.ctx, i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
-            res = quake.MyOp(retTy, [], [target.mlirValue],
-                             registerName=StrAttr.get(regName, context=self.ctx)
-                             if regName is not None else '')
-            return self.__createQuakeValue(res.result)
+                measTy = cc.StdvecType.get(self.ctx, measTy)
+            res = quake.MyOp(
+                measTy, [], [target.mlirValue],
+                registerName=StringAttr.get(regName, context=self.ctx)
+                if regName is not None else '')
+            disc = quake.DiscriminateOp(retTy, res)
+            return self.__createQuakeValue(disc.result)
 
     def adjoint(self, otherKernel, *args):
         """
@@ -798,6 +808,10 @@ class PyKernel(object):
             if not IntegerType.isinstance(conditional.type):
                 raise RuntimeError("c_if conditional must be an i1 type.")
 
+            # [RFC]: 
+            # The register names in the conditional.py tests need to be double checked; 
+            # The code here may need to be adjusted to reflect the additional
+            # quake.discriminate conversion of the measurement.
             if isinstance(conditional.owner.opview, quake.MzOp):
                 regName = StringAttr(
                     conditional.owner.attributes['registerName']).value

@@ -54,27 +54,28 @@ def test_kernel_conditional():
 # CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_6]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_6]] name "measurement_" : (!quake.ref) -> i1
-# CHECK:           cc.if(%[[VAL_8]]) {
+# CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_6]] name "measurement_" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_8]] : (!quake.measure) -> i1
+# CHECK:           cc.if(%[[VAL_9]]) {
 # CHECK:             quake.x %[[VAL_7]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_9:.*]] = quake.mz %[[VAL_7]] name "" : (!quake.ref) -> i1
+# CHECK:             %[[VAL_10:.*]] = quake.mz %[[VAL_7]] name "" : (!quake.ref) -> !quake.measure
 # CHECK:           }
-# CHECK:           %[[VAL_10:.*]] = cc.loop while ((%[[VAL_11:.*]] = %[[VAL_2]]) -> (i64)) {
-# CHECK:             %[[VAL_12:.*]] = arith.cmpi slt, %[[VAL_11]], %[[VAL_0]] : i64
-# CHECK:             cc.condition %[[VAL_12]](%[[VAL_11]] : i64)
+# CHECK:           %[[VAL_11:.*]] = cc.loop while ((%[[VAL_12:.*]] = %[[VAL_2]]) -> (i64)) {
+# CHECK:             %[[VAL_13:.*]] = arith.cmpi slt, %[[VAL_12]], %[[VAL_0]] : i64
+# CHECK:             cc.condition %[[VAL_13]](%[[VAL_12]] : i64)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_13:.*]]: i64):
-# CHECK:             %[[VAL_14:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_13]]] : (!quake.veq<2>, i64) -> !quake.ref
-# CHECK:             quake.x %[[VAL_14]] : (!quake.ref) -> ()
-# CHECK:             cc.continue %[[VAL_13]] : i64
+# CHECK:           ^bb0(%[[VAL_14:.*]]: i64):
+# CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_14]]] : (!quake.veq<2>, i64) -> !quake.ref
+# CHECK:             quake.x %[[VAL_15]] : (!quake.ref) -> ()
+# CHECK:             cc.continue %[[VAL_14]] : i64
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_15:.*]]: i64):
-# CHECK:             %[[VAL_16:.*]] = arith.addi %[[VAL_15]], %[[VAL_1]] : i64
-# CHECK:             cc.continue %[[VAL_16]] : i64
+# CHECK:           ^bb0(%[[VAL_16:.*]]: i64):
+# CHECK:             %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_1]] : i64
+# CHECK:             cc.continue %[[VAL_17]] : i64
 # CHECK:           } {invariant}
-# CHECK:           cc.if(%[[VAL_8]]) {
+# CHECK:           cc.if(%[[VAL_9]]) {
 # CHECK:             quake.x %[[VAL_7]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_17:.*]] = quake.mz %[[VAL_7]] name "" : (!quake.ref) -> i1
+# CHECK:             %[[VAL_18:.*]] = quake.mz %[[VAL_7]] name "" : (!quake.ref) -> !quake.measure
 # CHECK:           }
 # CHECK:           return
 # CHECK:         }
@@ -114,8 +115,9 @@ def test_kernel_conditional_with_sample():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "auto_register_0" : (!quake.ref) -> i1
-# CHECK:           cc.if(%[[VAL_1]]) {
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
+# CHECK:           cc.if(%[[VAL_2]]) {
 # CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           }
 # CHECK:           return

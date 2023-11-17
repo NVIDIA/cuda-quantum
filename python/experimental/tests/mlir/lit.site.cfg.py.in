@@ -30,4 +30,4 @@ import lit.llvm
 lit.llvm.initialize(lit_config, config)
 
 # Let the main config do the real work.
-lit_config.load_config(config, "@CUDAQ_SOURCE_DIR@/python/mlir/tests/mlir/lit.cfg.py")
+lit_config.load_config(config, "@CUDAQ_SOURCE_DIR@/python/experimental/tests/mlir/lit.cfg.py")

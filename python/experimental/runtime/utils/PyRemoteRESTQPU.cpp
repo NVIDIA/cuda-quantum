@@ -8,6 +8,11 @@
 #include "common/BaseRemoteRESTQPU.h"
 #include "common/RuntimeMLIRCommonImpl.h"
 
+// [RFC]:
+// The RemoteRESTQPU implementation that is now split across several files needs to be examined carefully.
+// What used to be in /runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp is now largely in 
+// the header /runtime/common/BaseRemoteRESTQPU.h [status 11/18/23], but some updates were missed;
+// The updatePassPipeline interface method in the ServerHelper, for example, was not invoked at all.
 using namespace mlir;
 
 extern "C" void deviceCodeHolderAdd(const char *, const char *);

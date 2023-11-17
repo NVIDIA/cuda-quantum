@@ -111,7 +111,7 @@ class quantum_operation(object):
 
             cudaq_runtime.applyQuantumOperation(opName, parameters,
                                                 [], qubitIds, False,
-                                                SpinOperator(), unitary)
+                                                SpinOperator())
             return
 
         # Not a custom unitary, handle basic quantum operation,
@@ -156,7 +156,7 @@ class quantum_operation(object):
 
         cudaq_runtime.applyQuantumOperation(opName, parameters,
                                             controls, targets, False,
-                                            SpinOperator(), unitary)
+                                            SpinOperator())
         for q in quantumArguments:
             if isinstance(q, qubit) and q.is_negated():
                 x()(q)
@@ -190,7 +190,7 @@ class quantum_operation(object):
             cudaq_runtime.applyQuantumOperation(opName,
                                                 [-1 * p for p in parameters],
                                                 [], qubitIds, False,
-                                                SpinOperator(), unitary)
+                                                SpinOperator())
             return
 
         # Not a custom unitary, handle basic quantum operation,
