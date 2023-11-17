@@ -33,9 +33,9 @@ CUDA Quantum can be used to compile and run quantum programs on a CPU-only
 system, but a GPU is highly recommended and necessary to use the some of the
 simulators. The GPU-based simulators included in the CUDA Quantum Python wheels
 require an existing CUDA installation. Additionally, multi-GPU simulators
-require an existing MPI installation.
+require an existing CUDA-aware MPI installation.
 
-In most cases, the CUDA and MPI dependencies can be installed via package
+In most cases, the CUDA dependencies can be installed via package
 manager. On Ubuntu 22.04, for example, the following commands install all
 optional CUDA dependencies:
 
@@ -51,16 +51,29 @@ Detailed instructions for how to install the complete CUDA toolkit on different
 operating systems can be found in the [CUDA
 documentation](https://docs.nvidia.com/cuda/).
 
-If you have several GPUs available but no MPI installation yet, we recommend
-taking a look at the [OpenMPI documentation](https://docs.open-mpi.org/)
-and installing [mpi4py](https://mpi4py.readthedocs.io/).
-On Ubuntu 22.04, for example, the following commands install the necessary MPI
-libraries:
+If you have several GPUs available but no MPI with CUDA support installation (CUDA-aware version of Open-MPI, MVAPICH, or MPICH) yet, 
+we recommend taking a look at the [NVIDIA HPC-X](https://developer.nvidia.com/networking/hpc-x/)
+and also installing [mpi4py](https://mpi4py.readthedocs.io/).
+
+To install [NVIDIA HPC-X](https://developer.nvidia.com/networking/hpc-x/), for example, please download
+the appropriate archive for your system OS, then follow the step described in its [documentation](https://docs.nvidia.com/networking/display/hpcxv217/installing+and+loading+hpc-x)
+to install the package. Typically, the installation simply involves extracting the package and executing the install script:
 
 ```console
-sudo apt-get update && sudo apt-get install -y libopenmpi-dev libpython3-dev gcc
+tar -xvjf hpcx-xxx-xxx.tbz
+cd hpcx-xxx-xxx
+source hpcx-init.sh
+hpcx_load
+```
+
+On Ubuntu 22.04, [mpi4py](https://mpi4py.readthedocs.io/) can be installed with:
+
+```console
+sudo apt-get update && sudo apt-get install -y libpython3-dev gcc
 python3 -m pip install mpi4py
 ```
+
+Additional information about using the multi-GPU simulator backend can be found in the [documentation](https://nvidia.github.io/cuda-quantum/latest/using/simulators.html#multi-node-multi-gpu).
 
 ## Running CUDA Quantum
 

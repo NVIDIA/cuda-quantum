@@ -83,6 +83,11 @@ if __name__ == '__main__':
                         required=False,
                         default='',
                         help='The target to execute the algorithm on.')
+    parser.add_argument('--seed',
+                        type=int,
+                        required=False,
+                        default=1,
+                        help='The random seed to generate the secret string.')
     args = parser.parse_args()
 
     # Depending on the available memory on your GPU, you can
@@ -94,6 +99,7 @@ if __name__ == '__main__':
     # a long time for the CPU-only backend to simulate 28+ qubits!
 
     qubit_count = args.size
+    random.seed(args.seed)
     if args.target and not args.target.isspace():
         cudaq.set_target(args.target)
 
