@@ -94,7 +94,7 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 .. note:: 
   
   If using MPI from `NVIDIA HPC-X <https://developer.nvidia.com/networking/hpc-x/>`__, you may encounter runtime warnings related to 
-  `HCOLL <https://docs.nvidia.com/networking/display/hpcxv217/hcoll/>`__ since it is enabled by default with HPC-X but might not be compatible with 
+  `HCOLL <https://docs.nvidia.com/networking/display/hpcxv217/hcoll/>`__ since it is enabled by default with `HPC-X` but might not be compatible with 
   your machine. 
 
   To disable `HCOLL`, you can use the following `MCA parameter <https://docs.nvidia.com/networking/display/hpcxv217/hcoll#src-144709548_HCOLL-EnablingHCOLLinOpenMPI>`__
