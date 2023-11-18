@@ -14,7 +14,7 @@ The latest version of CUDA Quantum is on the main branch of our `GitHub reposito
 
 With 0.5.0 we have added support for quantum kernel execution on OQC and IQM backends. For more information, see :doc:`using/hardware`.
 CUDA Quantum now allows to executing adaptive quantum kernels on quantum hardware backends that support it.
-The 0.5.0 release furthermore improves the tensor network simulation tools and adds a matrix product state simulator, see :doc:`<using/simulators>`.
+The 0.5.0 release furthermore improves the tensor network simulation tools and adds a matrix product state simulator, see :doc:`using/simulators`.
 
 Additionally, we are now publishing images for experimental features, which currently includes improved Python language support.
 Please take a look at :doc:`install` for more information about how to obtain them.
