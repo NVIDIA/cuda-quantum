@@ -53,7 +53,7 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 
       for (auto &&[newQuantumOp, quantumOp] : llvm::zip(
                quake::getQuantumResults(op), quake::getQuantumOperands(op)))
-        qubitMap[newQuantumOp] = qubitMap[quantumOp];
+        qubitMap.insert({newQuantumOp, qubitMap[quantumOp]});
 
       // When checking mapped circuits, we do a software swap, i.e., just change
       // the qubit mapping instead of applying the swap operation.
