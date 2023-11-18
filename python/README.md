@@ -33,34 +33,45 @@ CUDA Quantum can be used to compile and run quantum programs on a CPU-only
 system, but a GPU is highly recommended and necessary to use the some of the
 simulators. The GPU-based simulators included in the CUDA Quantum Python wheels
 require an existing CUDA installation. Additionally, multi-GPU simulators
-require an existing MPI installation.
+require an existing CUDA-aware MPI installation.
 
-To install both CUDA and CUDA-aware MPI dependencies, we recommend
-installing the [NVIDIA HPC Software Development Kit (SDK)](https://developer.nvidia.com/hpc-sdk).
-Since CUDA Quantum requires CUDA version 11.x,
-please install the SDK bundle with CUDA 11 support.  
-
-On Ubuntu 22.04, for example, the following commands
-install the latest `NVHPC` SDK and set up the environment post installation
-to use CUDA 11.8 and CUDA-aware OpenMPI from the SDK.
+To install the necessary dependencies, we recommend using 
+[Conda](https://docs.conda.io/en/latest/). If you are not already using Conda,
+you can install a minimal version following the instructions 
+[here](https://docs.conda.io/projects/miniconda/en/latest/index.html).
+The following commands will create and activate a complete environment for
+CUDA Quantum with all its dependencies:
 
 ```console
-sudo apt update && sudo apt install -y curl
-curl https://developer.download.nvidia.com/hpc-sdk/ubuntu/DEB-GPG-KEY-NVIDIA-HPC-SDK | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg
-download_link=https://developer.download.nvidia.com/hpc-sdk/ubuntu/$([ "$(uname -m)" == "aarch64" ] && echo arm64 || echo amd64)
-echo "deb [signed-by=/usr/share/keyrings/nvidia-hpcsdk-archive-keyring.gpg] $download_link /" | sudo tee /etc/apt/sources.list.d/nvhpc.list
-sudo apt update && sudo apt install -y nvhpc-23-11-cuda-multi
-export PATH="/opt/nvidia/hpc_sdk/$(uname -s)_$(uname -m)/23.11/comm_libs/11.8/openmpi4/openmpi-4.1.5/bin:$PATH"
-export LD_LIBRARY_PATH="/opt/nvidia/hpc_sdk/$(uname -s)_$(uname -m)/23.11/cuda/11.8/targets/$(uname -m)-linux/lib/:/opt/nvidia/hpc_sdk/$(uname -s)_$(uname -m)/23.11/math_libs/11.8/targets/$(uname -m)-linux/lib/:$LD_LIBRARY_PATH"
+    conda create -y -n cuda-quantum python==3.10 pip
+    conda install -y -n cuda-quantum -c "nvidia/label/cuda-11.8.0" cuda
+    conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi
+    conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib"
+    conda run -n cuda-quantum pip install cuda-quantum
+    conda activate cuda-quantum
 ```
 
-Detailed instructions for how to install the
-[NVIDIA HPC Software Development Kit (SDK)](https://developer.nvidia.com/hpc-sdk)
-on different platforms and operating systems can be found in the
-[download page](https://developer.nvidia.com/nvidia-hpc-sdk-2311-downloads).
+You must configure MPI by setting the following environment variables:
 
-If you want to develop MPI application with CUDA Quantum,
-we also recommend installing [mpi4py](https://mpi4py.readthedocs.io/).
+```console
+  export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
+```
+
+*If you do not set these variables you may encounter a segmentation fault.* 
+
+**Important**: It is *not* sufficient to set these variable within the conda
+environment, like the commands above do for `LD_LIBRARY_PATH`. 
+To avoid having to set them every time you launch a new 
+shell, we recommend adding them to `~/.profile` 
+(create the file if it does not exist). 
+
+MPI uses [SSH](https://en.wikipedia.org/wiki/Secure_Shell) or 
+[RSH](https://en.wikipedia.org/wiki/Remote_Shell) to communicate with
+each node unless another resource manager, such as 
+[SLURM](https://slurm.schedmd.com/overview.html), is used.
+If you are encountering an error "The value of the MCA parameter 
+`plm_rsh_agent` was set to a path that could not be found", 
+please make sure you have an SSH Client installed.
 
 ## Running CUDA Quantum
 
