@@ -32,7 +32,7 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Single Qubit Rotation" href="single_qubit_rotation.html" />
+    <link rel="next" title="Cost Minimization" href="cost_minimization.html" />
     <link rel="prev" title="CUDA Quantum Tutorials" href="../../../using/tutorials.html" /> 
 </head>
 
@@ -102,14 +102,29 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../install.html">   Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../install.html#docker-image">Docker Image</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../install.html#install-the-docker-image">Install the Docker Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../install.html#use-cuda-quantum-in-a-terminal">Use CUDA Quantum in a Terminal</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../install.html#use-cuda-quantum-in-vs-code">Use CUDA Quantum in VS Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#local-installation">Local Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#docker">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#singularity">Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#python-wheels">Python wheels</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../install.html#python-wheels">Python wheels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../install.html#building-from-source">Building from Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#development-with-vs-code">Development with VS Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#using-a-docker-container">Using a Docker container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#using-a-singularity-container">Using a Singularity container</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#dgx-cloud">DGX Cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#get-started">Get Started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#use-jupyterlab">Use JupyterLab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#use-vs-code">Use VS Code</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -173,7 +188,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#Observe">Observe</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="single_qubit_rotation.html">Single Qubit Rotation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
@@ -189,15 +204,17 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/simulators.html">   Simulator Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/simulators.html#cuquantum-single-gpu">cuQuantum single-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/simulators.html#cuquantum-multi-node-multi-gpu">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/simulators.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/simulators.html#id1">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/simulators.html#id2">Multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/simulators.html#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/hardware.html">   Hardware Backends</a><ul>
@@ -406,7 +423,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA Quantum Tutorials" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="single_qubit_rotation.html" class="btn btn-neutral float-right" title="Single Qubit Rotation" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -428,7 +445,7 @@
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span>
 
 <span class="c1"># Define the simulation target.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 
 <span class="c1"># Define a quantum kernel function.</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
@@ -474,7 +491,7 @@
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span>
 
 <span class="c1"># Define the simulation target.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 
 <span class="c1"># Define a quantum kernel function.</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
@@ -514,7 +531,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA Quantum Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="single_qubit_rotation.html" class="btn btn-neutral float-right" title="Single Qubit Rotation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
