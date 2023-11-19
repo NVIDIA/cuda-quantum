@@ -6,7 +6,7 @@ workflow:
         staged: "cuda-quantum-dev"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
       variables:
-        runner: os/linux-arm
+        runner: hostname/core-plab-e114-arm-glr02.nvidia.com
         staged: "cuda-quantum-devdeps"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
       variables:
@@ -102,7 +102,7 @@ MGMN SV Simulator:
   image: $CI_COMMIT_TITLE
   parallel:
     matrix:
-      - runner: [hostname/xpl-dvt-55, os/linux-arm]
+      - runner: [hostname/xpl-dvt-55, hostname/core-plab-e114-arm-glr02.nvidia.com]
   tags:
     - $runner
   interruptible: false
