@@ -113,6 +113,12 @@
 <li class="toctree-l3"><a class="reference internal" href="install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#dgx-cloud">DGX Cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#get-started">Get Started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#use-jupyterlab">Use JupyterLab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#use-vs-code">Use VS Code</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#next-steps">Next Steps</a></li>
@@ -193,15 +199,17 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/simulators.html">   Simulator Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="using/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#cuquantum-single-gpu">cuQuantum single-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#cuquantum-multi-node-multi-gpu">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="using/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#id1">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#id2">Multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="using/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/hardware.html">   Hardware Backends</a><ul>
@@ -422,15 +430,28 @@
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples">Examples</a></p></li>
 </ul>
-<p><strong>0.4.1</strong></p>
-<p>The 0.4.1 release adds support for ARM processors in the form of multi-platform Docker images and <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> Python wheels. Additionally, all GPU-based backends are now included in the Python wheels as well as in the Docker image.</p>
+<p><strong>0.5.0</strong></p>
+<p>With 0.5.0 we have added support for quantum kernel execution on OQC and IQM backends. For more information, see <a class="reference internal" href="using/hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.
+CUDA Quantum now allows to executing adaptive quantum kernels on quantum hardware backends that support it.
+The 0.5.0 release furthermore improves the tensor network simulation tools and adds a matrix product state simulator, see <a class="reference internal" href="using/simulators.html"><span class="doc">CUDA Quantum Simulation Backends</span></a>.</p>
+<p>Additionally, we are now publishing images for experimental features, which currently includes improved Python language support.
+Please take a look at <a class="reference internal" href="install.html"><span class="doc">Getting Started</span></a> for more information about how to obtain them.</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">Docker image</a></p></li>
 <li><p><a class="reference external" href="https://pypi.org/project/cuda-quantum/">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.5.0">Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.5.0/docs/sphinx/examples">Examples</a></p></li>
+</ul>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">here</a>.</p>
+<p><strong>0.4.1</strong></p>
+<p>The 0.4.1 release adds support for ARM processors in the form of multi-platform Docker images and <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> Python wheels. Additionally, all GPU-based backends are now included in the Python wheels as well as in the Docker image.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cuda-quantum/0.4.1">Python wheel</a></p></li>
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.4.1">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.4.1/docs/sphinx/examples">Examples</a></p></li>
 </ul>
-<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">here</a>.</p>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.4.1">here</a>.</p>
 <p><strong>0.4.0</strong></p>
 <p>CUDA Quantum is now available on PyPI!
 The 0.4.0 release adds support for quantum kernel execution on Quantinuum and IonQ backends. For more information, see <a class="reference internal" href="using/hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.</p>

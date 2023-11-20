@@ -115,6 +115,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#dgx-cloud">DGX Cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#get-started">Get Started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#use-jupyterlab">Use JupyterLab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#use-vs-code">Use VS Code</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#next-steps">Next Steps</a></li>
@@ -195,15 +201,17 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../simulators.html">   Simulator Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../simulators.html#cuquantum-single-gpu">cuQuantum single-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../simulators.html#cuquantum-multi-node-multi-gpu">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simulators.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../simulators.html#id1">cuQuantum multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simulators.html#id2">Multi-node multi-GPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../simulators.html#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../hardware.html">   Hardware Backends</a><ul>
@@ -422,20 +430,20 @@
   <section id="generic-library-functions">
 <h1>Generic Library Functions<a class="headerlink" href="#generic-library-functions" title="Permalink to this heading">¶</a></h1>
 <p>One of the primary goals of the CUDA Quantum platform is to build up a robust,
-widely-applicable, <code class="code docutils literal notranslate"><span class="pre">cudaq::</span></code> namespace of generic, algorithmic primitive
-functions. By generic, we mean that these functions are ultimately templated
+widely applicable namespace of generic, algorithmic primitive
+functions:  <code class="code docutils literal notranslate"><span class="pre">cudaq::</span></code>. By generic, we mean that these functions are ultimately templated
 on the input CUDA Quantum kernel expression, implying that algorithmic function
-definitions are applicable to a wide-range of input quantum code. This
+definitions are applicable to a wide range of input quantum code. This
 characteristic of quantum algorithm development is ubiquitous. One often
 designs algorithms that are general with regards to a quantum oracle, or a
 state-preparation step, just to name a few examples. CUDA Quantum enables this via
 generic <code class="code docutils literal notranslate"><span class="pre">cudaq::</span></code> functions that take any CUDA Quantum kernel expression as input.</p>
-<p>Let’s take a look at the first couple examples of this already implemented in CUDA Quantum.
+<p>Let’s take a look at the first couple examples of this.
 The first function we provide is <code class="code docutils literal notranslate"><span class="pre">cudaq::sample(...)</span></code>, which takes any
-kernel as input (with certain characteristics, see the Specification) and
-samples the kernel’s resultant state over a number of shots, returning a map
+kernel as input (with certain characteristics, see the <a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html"><span class="doc">specification</span></a>)
+and samples the kernel’s resultant state over a number of shots, returning a map
 of observed measurement bit strings to the corresponding number of times that
-configuration was observed. Using this function is straightforward:</p>
+configuration was observed.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">myFirstKernel_Toffoli_111_input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qspan</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">threeQubits</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Alias the 3 qubits</span>
 <span class="w">  </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">threeQubits</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
@@ -476,7 +484,7 @@ configuration was observed. Using this function is straightforward:</p>
 </div>
 <p>If your CUDA Quantum kernel takes classical data as input, then those runtime
 values must be provided to the <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code> function as trailing
-arguments</p>
+arguments.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">ghz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
 <span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
@@ -497,8 +505,8 @@ arguments</p>
 </div>
 <p>Another useful CUDA Quantum function in the variational context is
 <code class="code docutils literal notranslate"><span class="pre">cudaq::observe(...)</span></code>. This function takes any kernel expression
-(with suitable characteristics noted in the Specification), a user-provided
-<code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code> defining a general quantum mechanical spin operator, and
+(with suitable characteristics noted in the <a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html"><span class="doc">specification</span></a>),
+a user-provided <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code> defining a general quantum mechanical spin operator, and
 any kernel runtime arguments to return the expected value of the spin operator
 with respect to the kernel ansatz at the provided runtime parameters. It can be
 used in the following manner:</p>

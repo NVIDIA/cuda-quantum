@@ -30,13 +30,13 @@ the number of qudits contained and is defaulted to a special symbol in CUDA Quan
 qudits, very much akin to something like :code:`std::vector<T> v(N)` in 
 classical C++. One can alternatively specify this template parameter to pick 
 up :code:`std::array<T, N> a` like semantics whereby the size of the register is 
-known at compile time. The trade-off here is important - there may be quantum
+known at compile time. The trade-off here is important; there may be quantum
 circuit optimizations that can be enabled at compile time for CUDA Quantum kernels 
 solely employing compile-time-known :code:`cudaq::qreg` allocations. 
 
 These quantum memory types are specifically designed to throw compile-time errors 
 when they are incorrectly used. An example of this for quantum memory and 
-its underlying ownership model can be seen in this snippet 
+its underlying ownership model can be seen in this snippet. 
 
 .. code-block:: cpp 
 
