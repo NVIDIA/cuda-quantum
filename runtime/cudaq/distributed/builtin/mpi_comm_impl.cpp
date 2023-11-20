@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "distributed_capi.h"
+#include <deque>
 #include <mpi.h>
-
 namespace {
 bool initCalledByThis = false;
 MPI_Datatype convertType(DataType dataType) {
@@ -95,10 +95,13 @@ int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
                 cudaqDistributedCommunicator_t **newDupComm) {
   MPI_Comm dupComm;
   auto status = MPI_Comm_dup(unpackMpiCommunicator(comm), &dupComm);
-  auto newComm = new cudaqDistributedCommunicator_t;
-  newComm->commPtr = dupComm;
-  newComm->commSize = sizeof(dupComm);
-  *newDupComm = newComm;
+  // Use std::deque to make sure pointers to elements are valid.
+  static std::deque<cudaqDistributedCommunicator_t> dup_comms;
+  dup_comms.emplace_back(cudaqDistributedCommunicator_t());
+  auto &newComm = dup_comms.back();
+  newComm.commPtr = dupComm;
+  newComm.commSize = sizeof(dupComm);
+  *newDupComm = &newComm;
   return status;
 }
 
@@ -107,10 +110,13 @@ int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm, int32_t color,
   MPI_Comm splitComm;
   auto status =
       MPI_Comm_split(unpackMpiCommunicator(comm), color, key, &splitComm);
-  auto newComm = new cudaqDistributedCommunicator_t;
-  newComm->commPtr = splitComm;
-  newComm->commSize = sizeof(splitComm);
-  *newSplitComm = newComm;
+  // Use std::deque to make sure pointers to elements are valid.
+  static std::deque<cudaqDistributedCommunicator_t> split_comms;
+  split_comms.emplace_back(cudaqDistributedCommunicator_t());
+  auto &newComm = split_comms.back();
+  newComm.commPtr = splitComm;
+  newComm.commSize = sizeof(splitComm);
+  *newSplitComm = &newComm;
   return status;
 }
 

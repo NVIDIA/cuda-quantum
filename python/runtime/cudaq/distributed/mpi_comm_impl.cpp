@@ -218,14 +218,44 @@ int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
 
 int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
                 cudaqDistributedCommunicator_t **newDupComm) {
-  // TODO
-  return 0;
+  auto mpiMod = py::module::import("mpi4py.MPI");
+  auto pyComm = unpackMpiCommunicator(comm);
+  // Use std::deque to make sure pointers to elements are valid.
+  static std::deque<cudaqDistributedCommunicator_t> dup_comms;
+  try {
+    const auto dup = pyComm.attr("Dup")();
+    auto commPtr = (void *)(mpiMod.attr("_handleof")(dup).cast<int64_t>());
+    dup_comms.emplace_back(cudaqDistributedCommunicator_t());
+    auto &newComm = dup_comms.back();
+    newComm.commPtr = commPtr;
+    newComm.commSize = mpiMod.attr("_sizeof")(dup).cast<std::size_t>();
+    *newDupComm = &newComm;
+    return 0;
+  } catch (std::exception &e) {
+    std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
+    return 1;
+  }
 }
 
 int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm, int32_t color,
                   int32_t key, cudaqDistributedCommunicator_t **newSplitComm) {
-  // TODO
-  return 0;
+  auto mpiMod = py::module::import("mpi4py.MPI");
+  auto pyComm = unpackMpiCommunicator(comm);
+  // Use std::deque to make sure pointers to elements are valid.
+  static std::deque<cudaqDistributedCommunicator_t> split_comms;
+  try {
+    const auto split = pyComm.attr("Split")(color, key);
+    auto commPtr = (void *)(mpiMod.attr("_handleof")(split).cast<int64_t>());
+    split_comms.emplace_back(cudaqDistributedCommunicator_t());
+    auto &newComm = split_comms.back();
+    newComm.commPtr = commPtr;
+    newComm.commSize = mpiMod.attr("_sizeof")(split).cast<std::size_t>();
+    *newSplitComm = &newComm;
+    return 0;
+  } catch (std::exception &e) {
+    std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
+    return 1;
+  }
 }
 
 cudaqDistributedCommunicator_t *getMpiCommunicator() {
