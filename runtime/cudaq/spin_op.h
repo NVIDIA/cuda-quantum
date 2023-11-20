@@ -128,6 +128,7 @@ public:
                            _const_iter_type>;
     iterator(iterator &&) = default;
 
+    iterator(iterator const &other) : iter(other.iter) {}
     iterator(iter_type i) : iter(i) {}
     ~iterator() {
       for (auto &c : created) {
