@@ -18,7 +18,7 @@ module {
     quake.h %arg0 : (!quake.ref) -> ()
     call @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%arg0) : (!quake.ref) -> ()
     quake.h %arg0 : (!quake.ref) -> ()
-    %0 = quake.mz %arg0 : (!quake.ref) -> i1 {registerName = ""}
+    %0 = quake.mz %arg0 name "" : (!quake.ref) -> !quake.measure
     return
   }
   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127(%arg0: !quake.ref) {

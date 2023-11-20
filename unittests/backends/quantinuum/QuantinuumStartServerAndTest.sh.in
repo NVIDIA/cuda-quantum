@@ -12,7 +12,7 @@
 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/quantinuum/__init__.py &
 # we'll need the process id to kill it
 pid=$(echo "$!")
-sleep 1
+sleep 3
 # Run the tests
 ./test_quantinuum
 # Did they fail? 

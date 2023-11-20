@@ -50,6 +50,6 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_fancyCno
 // CHECK:         store i64 %[[VAL_17]], i64* %[[VAL_16]], align 8
 // CHECK:         %[[VAL_18:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_15]], i64 0, i64 1
 // CHECK:         store i64 0, i64* %[[VAL_18]], align 8
-// CHECK:         call void (i64, i64*, void (%[[VAL_1]]*, %[[VAL_4]]*)*, ...) @invokeWithControlRegisterOrQubits(i64 2, i64* nonnull %[[VAL_16]], void (%[[VAL_1]]*, %[[VAL_4]]*)* nonnull @__quantum__qis__x__ctl, %[[VAL_1]]* %[[VAL_12]], %[[VAL_4]]* %[[VAL_11]], %[[VAL_4]]* %[[VAL_8]])
+// CHECK:         call void (i64, i64*, i64, void (%[[VAL_1]]*, %[[VAL_4]]*)*, ...) @invokeWithControlRegisterOrQubits(i64 2, i64* nonnull %[[VAL_16]], i64 1, void (%[[VAL_1]]*, %[[VAL_4]]*)* nonnull @__quantum__qis__x__ctl, %[[VAL_1]]* %[[VAL_12]], %[[VAL_4]]* %[[VAL_11]], %[[VAL_4]]* %[[VAL_8]])
 // CHECK:         call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void

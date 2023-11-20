@@ -318,7 +318,7 @@ static LogicalResult emitOperation(Emitter &emitter, quake::MzOp op) {
       return op.emitError("cannot emmit measure on an unbounded veq");
     size = veq.getSize();
   }
-  auto bitsName = printClassicalAllocation(emitter, op.getBits(), size);
+  auto bitsName = printClassicalAllocation(emitter, op.getMeasOut(), size);
   emitter.os << "measure " << emitter.getOrAssignName(qrefOrVeq) << " -> "
              << bitsName << ";\n";
   return success();

@@ -22,8 +22,9 @@
 // CHECK:     %[[V3:.*]] = cc.load %[[V0]] : !cc.ptr<f64>
 // CHECK:     %[[V4:.*]] = arith.divf %[[V3]], %[[cst]] : f64
 // CHECK:     quake.ry (%[[V4]]) %[[V1]] : (f64,
-// CHECK:     %[[V5:.*]] = quake.mz %[[V1]] : (!quake.ref) -> i1
-// CHECK:     return %[[V5]] : i1
+// CHECK:     %[[V5:.*]] = quake.mz %[[V1]] : (!quake.ref) -> !quake.measure
+// CHECK:     %[[VAL_6:.*]] = quake.discriminate %[[V5]] :
+// CHECK:     return %[[VAL_6]] : i1
 // CHECK:   }
 // CHECK: }
 
