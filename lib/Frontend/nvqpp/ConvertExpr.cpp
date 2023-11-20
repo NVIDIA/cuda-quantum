@@ -463,7 +463,8 @@ bool QuakeBridgeVisitor::VisitFloatingLiteral(clang::FloatingLiteral *x) {
   auto bltTy = cast<clang::BuiltinType>(x->getType().getTypePtr());
   auto fltTy = cast<FloatType>(builtinTypeToType(bltTy));
   auto fltVal = x->getValue();
-  return pushValue(builder.create<arith::ConstantFloatOp>(loc, fltVal, fltTy));
+  return pushValue(
+      opt::factory::createFloatConstant(loc, builder, fltVal, fltTy));
 }
 
 bool QuakeBridgeVisitor::VisitCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr *x) {
@@ -541,9 +542,8 @@ bool QuakeBridgeVisitor::VisitUnaryOperator(clang::UnaryOperator *x) {
           getConstantInt(builder, loc, -1, resTy.getIntOrFloatBitWidth())));
 
     if (resTy.isa<FloatType>()) {
-      llvm::APFloat d(-1.0);
-      auto neg_one = builder.create<arith::ConstantFloatOp>(
-          loc, d, cast<FloatType>(resTy));
+      auto neg_one = opt::factory::createFloatConstant(loc, builder, -1.0,
+                                                       cast<FloatType>(resTy));
       return pushValue(builder.create<arith::MulFOp>(loc, subExpr, neg_one));
     }
     TODO_x(loc, x, mangler, "unknown type for unary minus");
@@ -684,8 +684,8 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
   }
   case clang::CastKind::CK_FloatingToBoolean: {
     auto last = popValue();
-    Value zero = builder.create<arith::ConstantFloatOp>(
-        loc, llvm::APFloat(0.0), cast<FloatType>(last.getType()));
+    Value zero = opt::factory::createFloatConstant(
+        loc, builder, 0.0, cast<FloatType>(last.getType()));
     return pushValue(builder.create<arith::CmpFOp>(
         loc, arith::CmpFPredicate::UNE, last, zero));
   }
@@ -1425,17 +1425,24 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     if (funcName.equals("mx") || funcName.equals("my") ||
         funcName.equals("mz")) {
       // Measurements always return a bool or a std::vector<bool>.
+      bool useStdvec =
+          (args.size() > 1) ||
+          (args.size() == 1 && args[0].getType().isa<quake::VeqType>());
+      auto measure = [&]() -> Value {
+        Type measTy = quake::MeasureType::get(builder.getContext());
+        if (useStdvec)
+          measTy = cc::StdvecType::get(measTy);
+        if (funcName.equals("mx"))
+          return builder.create<quake::MxOp>(loc, measTy, args).getMeasOut();
+        if (funcName.equals("my"))
+          return builder.create<quake::MyOp>(loc, measTy, args).getMeasOut();
+        return builder.create<quake::MzOp>(loc, measTy, args).getMeasOut();
+      }();
       Type resTy = builder.getI1Type();
-      if ((args.size() > 1) ||
-          (args.size() == 1 && args[0].getType().isa<quake::VeqType>()))
-        resTy = cc::StdvecType::get(builder.getI1Type());
-      if (funcName.equals("mx"))
-        return pushValue(
-            builder.create<quake::MxOp>(loc, resTy, args).getBits());
-      if (funcName.equals("my"))
-        return pushValue(
-            builder.create<quake::MyOp>(loc, resTy, args).getBits());
-      return pushValue(builder.create<quake::MzOp>(loc, resTy, args).getBits());
+      if (useStdvec)
+        resTy = cc::StdvecType::get(resTy);
+      return pushValue(
+          builder.create<quake::DiscriminateOp>(loc, resTy, measure));
     }
 
     // Handle the quantum gate set.

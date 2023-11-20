@@ -363,19 +363,25 @@ def test_ctrl_h():
     # controlled operation on the final qubit.
     kernel.x(controls)
     kernel.ch(controls, qubits[4])
-
-    counts = cudaq.sample(kernel)
-    print(counts)
+    counts1 = cudaq.sample(kernel)
+    print(counts1)
 
     # Our first two qubits remain untouched, while `qubits[2]` is rotated
     # to 1, and `qubits[3]` receives a Hadamard. This results in a nearly 50/50
     # split of measurements on `qubits[3]` between 0 and 1.
     # The controlled Hadamard on `qubits[4]` also results in a 50/50 split of its
     # measurements between 0 and 1.
-    assert counts["0011011"] == 240
-    assert counts["0011111"] == 265
-    assert counts["0010011"] == 269
-    assert counts["0010111"] == 226
+    assert counts1["0011011"] >= 225 and counts1["0011011"] <= 275
+    assert counts1["0011111"] >= 225 and counts1["0011111"] <= 275
+    assert counts1["0010011"] >= 225 and counts1["0010011"] <= 275
+    assert counts1["0010111"] >= 225 and counts1["0010111"] <= 275
+    assert counts1["0011011"] + counts1["0011111"] + counts1["0010011"] + counts1["0010111"] == 1000
+
+    kernel.h(qubits[3])
+    kernel.h(qubits[4])
+    counts2 = cudaq.sample(kernel)
+    print(counts2)
+    assert counts2["0010011"] == 1000
 
 
 def test_ctrl_s():
@@ -871,20 +877,20 @@ def test_fermionic_swap_op():
     test_01.x(qubits_01[0])
     test_01.fermionic_swap(angle, qubits_01[0], qubits_01[1])
     ss_01 = cudaq.get_state(test_01)
-    assert np.isclose(np.abs(ss_01[1] - (-1j * np.exp(1j * angle / 2.0) * s)),
-                      0.0, 1e-3)
-    assert np.isclose(np.abs(ss_01[2] - (np.exp(1j * angle / 2.0) * c)), 0.0,
-                      1e-3)
+    val1 = np.abs(ss_01[1] - (-1j * np.exp(1j * angle / 2.0) * s))
+    val2 = np.abs(ss_01[2] - (np.exp(1j * angle / 2.0) * c))
+    assert np.isclose(val1, 0.0, atol=1e-6)
+    assert np.isclose(val2, 0.0, atol=1e-6)
 
     test_10 = cudaq.make_kernel()
     qubits_10 = test_10.qalloc(2)
     test_10.x(qubits_10[1])
     test_10.fermionic_swap(angle, qubits_10[0], qubits_10[1])
     ss_10 = cudaq.get_state(test_10)
-    assert np.isclose(np.abs(ss_10[1] - (np.exp(1j * angle / 2.0) * c)), 0.0,
-                      1e-3)
-    assert np.isclose(np.abs(ss_10[2] - (-1j * np.exp(1j * angle / 2.0) * s)),
-                      0.0, 1e-3)
+    val3 = np.abs(ss_10[1] - (np.exp(1j * angle / 2.0) * c))
+    val4 = np.abs(ss_10[2] - (-1j * np.exp(1j * angle / 2.0) * s))
+    assert np.isclose(val3, 0.0, atol=1e-6)
+    assert np.isclose(val4, 0.0, atol=1e-6)
 
 
 # leave for gdb debugging

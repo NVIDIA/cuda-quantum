@@ -5,7 +5,7 @@ CUDA Quantum is a comprehensive framework for quantum programming. It features:
 - A programming model which extends C++ and Python with quantum kernels,
   enabling high-level programming in familiar languages
 - A high-performance quantum compiler, NVQ++, based on the industry standard
-  low-level virtual machine (LLVM) toolchain
+  LLVM toolchain
 - Interoperability with all of the leading models and tools for accelerated
 computing, including CUDA, ISO standard parallelism, OpenMP, and OpenACC
 - The ability to utilize and seamlessly switch between different quantum
@@ -33,34 +33,45 @@ CUDA Quantum can be used to compile and run quantum programs on a CPU-only
 system, but a GPU is highly recommended and necessary to use the some of the
 simulators. The GPU-based simulators included in the CUDA Quantum Python wheels
 require an existing CUDA installation. Additionally, multi-GPU simulators
-require an existing MPI installation.
+require an existing CUDA-aware MPI installation.
 
-In most cases, the CUDA and MPI dependencies can be installed via package
-manager. On Ubuntu 22.04, for example, the following commands install all
-optional CUDA dependencies:
-
-```console
-arch=x86_64 # set this to sbsa for ARM processors
-sudo apt-get update && sudo apt-get install -y wget
-wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch/cuda-keyring_1.0-1_all.deb
-sudo dpkg -i cuda-keyring_1.0-1_all.deb && rm cuda-keyring_1.0-1_all.deb
-sudo apt-get update && sudo apt-get install -y cuda-toolkit-11.8
-```
-
-Detailed instructions for how to install the complete CUDA toolkit on different
-operating systems can be found in the [CUDA
-documentation](https://docs.nvidia.com/cuda/).
-
-If you have several GPUs available but no MPI installation yet, we recommend
-taking a look at the [OpenMPI documentation](https://docs.open-mpi.org/)
-and installing [mpi4py](https://mpi4py.readthedocs.io/).
-On Ubuntu 22.04, for example, the following commands install the necessary MPI
-libraries:
+To install the necessary dependencies, we recommend using
+[Conda](https://docs.conda.io/en/latest/). If you are not already using Conda,
+you can install a minimal version following the instructions
+[here](https://docs.conda.io/projects/miniconda/en/latest/index.html).
+The following commands will create and activate a complete environment for
+CUDA Quantum with all its dependencies:
 
 ```console
-sudo apt-get update && sudo apt-get install -y libopenmpi-dev libpython3-dev gcc
-python3 -m pip install mpi4py
+    conda create -y -n cuda-quantum python==3.10 pip
+    conda install -y -n cuda-quantum -c "nvidia/label/cuda-11.8.0" cuda
+    conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi
+    conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib"
+    conda run -n cuda-quantum pip install cuda-quantum
+    conda activate cuda-quantum
 ```
+
+You must configure MPI by setting the following environment variables:
+
+```console
+  export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
+```
+
+*If you do not set these variables you may encounter a segmentation fault.*
+
+**Important**: It is *not* sufficient to set these variable within the conda
+environment, like the commands above do for `LD_LIBRARY_PATH`.
+To avoid having to set them every time you launch a new
+shell, we recommend adding them to `~/.profile`
+(create the file if it does not exist).
+
+MPI uses [SSH](https://en.wikipedia.org/wiki/Secure_Shell) or
+[RSH](https://en.wikipedia.org/wiki/Remote_Shell) to communicate with
+each node unless another resource manager, such as
+[SLURM](https://slurm.schedmd.com/overview.html), is used.
+If you are encountering an error "The value of the MCA parameter
+`plm_rsh_agent` was set to a path that could not be found",
+please make sure you have an SSH Client installed.
 
 ## Running CUDA Quantum
 
@@ -87,13 +98,13 @@ There are many ways in which you can get involved with CUDA Quantum. If you are
 interested in developing quantum applications with CUDA Quantum, our [GitHub
 repository][github_link] is a great place to get started! For more information
 about contributing to the CUDA Quantum platform, please take a look at
-[Contributing.md](../Contributing.md).
+[Contributing.md](https://github.com/NVIDIA/cuda-quantum/blob/main/Contributing.md).
 
 ## License
 
 CUDA Quantum is an open source project. The source code is available on
-[GitHub][github_link] and licensed under [Apache License 2.0](../LICENSE). CUDA
-Quantum makes use of the NVIDIA cuQuantum SDK to enable high-performance
+[GitHub][github_link] and licensed under [Apache License 2.0](https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE).
+CUDA Quantum makes use of the NVIDIA cuQuantum SDK to enable high-performance
 simulation, which is held to its own respective license.
 
 [github_link]: https://github.com/NVIDIA/cuda-quantum/

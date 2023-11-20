@@ -283,7 +283,7 @@ def test_sample_control_qubit_args():
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> i1
+# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> !quake.measure
 # CHECK:           return
 # CHECK:         }
 
@@ -348,7 +348,8 @@ def test_sample_control_qreg_args():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_12:.*]]: index):
 # CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_5]][%[[VAL_12]]] : (!quake.veq<2>, index) -> !quake.ref
-# CHECK:             %[[VAL_14:.*]] = quake.mz %[[VAL_13]] name "" : (!quake.ref) -> i1
+# CHECK:             %[[VAL_114:.*]] = quake.mz %[[VAL_13]] name "" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[VAL_14:.*]] = quake.discriminate %[[VAL_114]] :
 # CHECK:             %[[VAL_15:.*]] = arith.index_cast %[[VAL_12]] : index to i64
 # CHECK:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_8]][%[[VAL_15]]] : (!cc.ptr<!cc.array<i1 x 2>>, i64) -> !cc.ptr<i1>
 # CHECK:             cc.store %[[VAL_14]], %[[VAL_16]] : !cc.ptr<i1>
@@ -358,7 +359,7 @@ def test_sample_control_qreg_args():
 # CHECK:             %[[VAL_18:.*]] = arith.addi %[[VAL_17]], %[[VAL_2]] : index
 # CHECK:             cc.continue %[[VAL_18]] : index
 # CHECK:           } {invariant}
-# CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_6]] name "" : (!quake.ref) -> i1
+# CHECK:           %[[VAL_19:.*]] = quake.mz %[[VAL_6]] name "" : (!quake.ref) -> !quake.measure
 # CHECK:           return
 # CHECK:         }
 
@@ -414,7 +415,7 @@ def test_sample_apply_call_control():
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_1]]] %[[VAL_0]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> i1
+# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "" : (!quake.ref) -> !quake.measure
 # CHECK:           return
 # CHECK:         }
 
