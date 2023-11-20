@@ -30,6 +30,7 @@ public:
 
   LogicalResult matchAndRewrite(quake::ToControlOp toCtrl,
                                 PatternRewriter &rewriter) const override {
+    LLVM_DEBUG(llvm::dbgs() << "\n\n" << toCtrl << '\n');
     SmallVector<Operation *> users(toCtrl->getUsers().begin(),
                                    toCtrl->getUsers().end());
     auto numUsers = users.size();
@@ -71,6 +72,12 @@ public:
           }())
         orderedUsers.push_back(user);
     }
+    LLVM_DEBUG({
+      for (std::size_t i = 0, j = orderedUsers.size(); i != j; ++i) {
+        llvm::dbgs() << i << ' ';
+        orderedUsers[i]->dump();
+      }
+    });
 
     // 2. Thread the wire value to each successive user.
     Value wireDef = toCtrl.getQubit();
@@ -86,22 +93,28 @@ public:
       }
       const auto coarity = user->getResults().size();
       std::size_t position = 0; // Position of new wire in result tuple.
-      for (Value opnd : user->getOperands()) {
+      constexpr std::size_t Uninitialized = ~0;
+      std::size_t operandNumber = Uninitialized;
+      for (auto iter : llvm::enumerate(user->getOperands())) {
+        Value opnd = iter.value();
         if (isa<quake::WireType>(opnd.getType())) {
           position++;
           continue;
         }
-        if (auto x = opnd.getDefiningOp<quake::ToControlOp>()) {
-          if (x.getOperation() == toCtrl.getOperation())
+        if (auto x = opnd.getDefiningOp<quake::ToControlOp>())
+          if (x.getOperation() == toCtrl.getOperation()) {
+            operandNumber = iter.index();
             break;
-        }
+          }
       }
+      assert(operandNumber != Uninitialized);
+      LLVM_DEBUG(llvm::dbgs() << "position: " << position << '\n');
 
       // Add a !quake.wire to the return type of `user`.
       SmallVector<Type> wireTys{coarity + 1, wireTy};
       SmallVector<Value> operands = user->getOperands();
       // Replace the use of `toCtrl` with `wireDef` in `user`.
-      operands[position] = wireDef;
+      operands[operandNumber] = wireDef;
       auto attrs = user->getAttrs();
       auto name = user->getName().getIdentifier();
       auto loc = user->getLoc();

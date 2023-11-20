@@ -61,7 +61,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     // Trace the kernel function
     ExecutionContext context("tracer");
     auto &platform = get_platform();
-    platform.set_exec_ctx(&context);
+    platform.set_exec_ctx(&context, qpu_id);
     wrappedKernel();
     platform.reset_exec_ctx();
     // In trace mode, if we have a measure result

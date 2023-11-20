@@ -1,9 +1,9 @@
 Taking Advantage of the Underlying Quantum Platform
 ---------------------------------------------------
-The CUDA Quantum machine model elucidates the various devices considered in the
-broader quantum-classical compute node context. One will have one or many
+The CUDA Quantum machine model elucidates the various devices considered in the 
+broader quantum-classical compute node context. Programmers will have one or many 
 host CPUs, zero or many NVIDIA GPUs, a classical QPU control space, and the
-quantum register itself. Moreover, the `specification <https://nvidia.github.io/cuda-quantum/latest/specification/cudaq/platform.html>`__
+quantum register itself. Moreover, the :doc:`specification </specification/cudaq/platform>`
 notes that the underlying platform may expose multiple QPUs. In the near-term,
 this will be unlikely with physical QPU instantiations, but the availability of
 GPU-based circuit simulators on NVIDIA multi-GPU architectures does give one an
@@ -15,7 +15,7 @@ QPUs for asynchronous CUDA Quantum kernel and :code:`cudaq::` function invocatio
 Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.
 
-Here is a simple example demonstrating this
+Here is a simple example demonstrating this:
 
 .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/sample_async.cpp
     :language: cpp
@@ -25,7 +25,7 @@ Here is a simple example demonstrating this
 CUDA Quantum exposes asynchronous versions of the default :code:`cudaq::` algorithmic
 primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`cudaq::sample_async` function in the above code snippet).
 
-One can then specify the target multi-QPU architecture (:code:`nvidia-mqpu`) with the :code:`--target` flag:
+One can specify the target multi-QPU architecture (:code:`nvidia-mqpu`) with the :code:`--target` flag:
  
 .. code-block:: console
 
@@ -35,7 +35,7 @@ One can then specify the target multi-QPU architecture (:code:`nvidia-mqpu`) wit
 Depending on the number of GPUs available on the system, the :code:`nvidia-mqpu` platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
 
-The results might look like the following (4 different random samplings).
+The results might look like the following 4 different random samplings:
 
 .. code-block:: console
   
@@ -49,7 +49,7 @@ The results might look like the following (4 different random samplings).
 
   By default, the :code:`nvidia-mqpu` platform will utilize all available GPUs (number of QPUs instances is equal to the number of GPUs).
   To specify the number QPUs to be instantiated, one can set the :code:`CUDAQ_MQPU_NGPUS` environment variable.
-  For example, :code:`export CUDAQ_MQPU_NGPUS=2` to specify that only 2 QPUs (GPUs) are needed.
+  For example, use :code:`export CUDAQ_MQPU_NGPUS=2` to specify that only 2 QPUs (GPUs) are needed.
 
 
 An equivalent example in Python is as follows.
@@ -72,14 +72,14 @@ Here is an example.
     :end-before: [End Documentation]
 
 
-One can then target the :code:`nvidia-mqpu` platform by:
+One can then target the :code:`nvidia-mqpu` platform by executing the following commands:
 
 .. code-block:: console
 
     nvq++ observe_mqpu.cpp -target nvidia-mqpu
     ./a.out
 
-Equivalently, in Python
+Equivalently, in Python, we would use the following:
 
 .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu.py
     :language: python
@@ -102,7 +102,7 @@ For instance, if all GPUs are available on a single node, thread-based parallel 
 On the other hand, if one wants to distribute the tasks across GPUs on multiple nodes, e.g., on a compute cluster, MPI distribution mode
 should be used.
 
-An example of MPI distribution mode usage is as follows:
+An example of MPI distribution mode usage in both C++ and Python is given below:
 
 C++
 ^^^
@@ -129,8 +129,7 @@ Python
 
     mpirun -np <N> python3 file.py
 
-In the above examples, the parallel distribution mode was set to :code:`mpi` using :code:`cudaq::parallel::mpi` in C++ or :code:`cudaq.parallel.mpi` in Python.
-CUDA Quantum provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime.
-Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command,
-e.g., :code:`mpirun`, :code:`mpiexec`, :code:`srun`, etc. This may be seen in the console examples above, wherein
-we prepend both the C++ and Python file executions with :code:`mpirun -nP <N> ...`.
+In the above example, the parallel distribution mode was set to :code:`mpi` using :code:`cudaq::parallel::mpi` in C++ or :code:`cudaq.parallel.mpi` in Python.
+CUDA Quantum provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime. 
+Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
+e.g., :code:`mpirun`, :code:`mpiexec`, :code:`srun`, etc.

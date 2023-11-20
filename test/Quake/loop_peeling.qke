@@ -23,8 +23,9 @@ func.func @peel_do_while() {
     cc.store %4, %1 : !cc.ptr<i32>
     %5 = arith.extui %3 : i32 to i64
     %6 = quake.extract_ref %0[%5] : (!quake.veq<10>, i64) -> !quake.ref
-    %bits = quake.mz %6 : (!quake.ref) -> i1
-    cc.store %bits, %2 : !cc.ptr<i1>
+    %bits = quake.mz %6 : (!quake.ref) -> !quake.measure
+    %bit = quake.discriminate %bits : (!quake.measure) -> i1
+    cc.store %bit, %2 : !cc.ptr<i1>
     cc.continue
   } while {
     %3 = cc.load %2 : !cc.ptr<i1>
@@ -57,8 +58,9 @@ func.func @peel_do_while() {
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_9:.*]] = arith.extui %[[VAL_7]] : i32 to i64
 // CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_9]]] : (!quake.veq<10>, i64) -> !quake.ref
-// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_10]] : (!quake.ref) -> i1
-// CHECK:           cc.store %[[VAL_11]], %[[VAL_6]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_10]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_111:.*]] = quake.discriminate %[[VAL_11]] :
+// CHECK:           cc.store %[[VAL_111]], %[[VAL_6]] : !cc.ptr<i1>
 // CHECK:           cf.br ^bb2
 // CHECK:         ^bb2:
 // CHECK:           cc.loop while {
@@ -70,8 +72,9 @@ func.func @peel_do_while() {
 // CHECK:             cc.store %[[VAL_19]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_20:.*]] = arith.extui %[[VAL_18]] : i32 to i64
 // CHECK:             %[[VAL_21:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_20]]] : (!quake.veq<10>, i64) -> !quake.ref
-// CHECK:             %[[VAL_22:.*]] = quake.mz %[[VAL_21]] : (!quake.ref) -> i1
-// CHECK:             cc.store %[[VAL_22]], %[[VAL_6]] : !cc.ptr<i1>
+// CHECK:             %[[VAL_22:.*]] = quake.mz %[[VAL_21]] : (!quake.ref) -> !quake.measure
+// CHECK:             %[[VAL_122:.*]] = quake.discriminate %[[VAL_22]] :
+// CHECK:             cc.store %[[VAL_122]], %[[VAL_6]] : !cc.ptr<i1>
 // CHECK:             cc.continue
 // CHECK:           }
 // CHECK:           cf.br ^bb3
@@ -91,8 +94,9 @@ func.func @peel_do_while_with_args() {
     %4 = arith.addi %arg0, %c1_i32 : i32
     %5 = arith.extui %arg0 : i32 to i64
     %6 = quake.extract_ref %0[%5] : (!quake.veq<10>, i64) -> !quake.ref
-    %bits = quake.mz %6 : (!quake.ref) -> i1
-    cc.continue %4, %bits : i32, i1
+    %bits = quake.mz %6 : (!quake.ref) -> !quake.measure
+    %bit = quake.discriminate %bits : (!quake.measure) -> i1
+    cc.continue %4, %bit : i32, i1
   } while {
   ^bb0(%arg0: i32, %arg1: i1):
     %4 = arith.cmpi eq, %arg1, %false : i1
@@ -119,7 +123,8 @@ func.func @peel_do_while_with_args() {
 // CHECK:           %[[VAL_6:.*]] = arith.addi %[[VAL_5]], %[[VAL_0]] : i32
 // CHECK:           %[[VAL_7:.*]] = arith.extui %[[VAL_5]] : i32 to i64
 // CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_7]]] : (!quake.veq<10>, i64) -> !quake.ref
-// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_109:.*]] = quake.mz %[[VAL_8]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_109]] :
 // CHECK:           cf.br ^bb2(%[[VAL_6]], %[[VAL_9]] : i32, i1)
 // CHECK:         ^bb2(%[[VAL_10:.*]]: i32, %[[VAL_11:.*]]: i1):
 // CHECK:           %[[VAL_12:.*]]:2 = cc.loop while ((%[[VAL_13:.*]] = %[[VAL_10]], %[[VAL_14:.*]] = %[[VAL_11]]) -> (i32, i1)) {
@@ -136,7 +141,8 @@ func.func @peel_do_while_with_args() {
 // CHECK:             %[[VAL_21:.*]] = arith.addi %[[VAL_19]], %[[VAL_0]] : i32
 // CHECK:             %[[VAL_22:.*]] = arith.extui %[[VAL_19]] : i32 to i64
 // CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_22]]] : (!quake.veq<10>, i64) -> !quake.ref
-// CHECK:             %[[VAL_24:.*]] = quake.mz %[[VAL_23]] : (!quake.ref) -> i1
+// CHECK:             %[[VAL_124:.*]] = quake.mz %[[VAL_23]] : (!quake.ref) -> !quake.measure
+// CHECK:             %[[VAL_24:.*]] = quake.discriminate %[[VAL_124]] :
 // CHECK:             cc.continue %[[VAL_21]], %[[VAL_24]] : i32, i1
 // CHECK:           }
 // CHECK:           cf.br ^bb3

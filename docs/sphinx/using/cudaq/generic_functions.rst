@@ -1,22 +1,21 @@
 Generic Library Functions
 -------------------------
-One of the primary goals of the CUDA Quantum platform is to build up a robust,
-widely-applicable, :code:`cudaq::` namespace of generic, algorithmic primitive
-functions. By generic, we mean that these functions are ultimately templated
-on the input CUDA Quantum kernel expression, implying that algorithmic function
-definitions are applicable to a wide-range of input quantum code. This
+One of the primary goals of the CUDA Quantum platform is to build up a robust, 
+widely applicable namespace of generic, algorithmic primitive
+functions:  :code:`cudaq::`. By generic, we mean that these functions are ultimately templated 
+on the input CUDA Quantum kernel expression, implying that algorithmic function 
+definitions are applicable to a wide range of input quantum code. This
 characteristic of quantum algorithm development is ubiquitous. One often
 designs algorithms that are general with regards to a quantum oracle, or a
 state-preparation step, just to name a few examples. CUDA Quantum enables this via
 generic :code:`cudaq::` functions that take any CUDA Quantum kernel expression as input.
 
-Let's take a look at the first couple examples of this already implemented in CUDA Quantum.
-The first function we provide is :code:`cudaq::sample(...)`, which takes any
-kernel as input (with certain characteristics, see the `Specification
-<https://nvidia.github.io/cuda-quantum/latest/specification/cudaq/algorithmic_primitives.html#cudaq-sample>`__`)
+Let's take a look at the first couple examples of this. 
+The first function we provide is :code:`cudaq::sample(...)`, which takes any 
+kernel as input (with certain characteristics, see the :doc:`specification </specification/cudaq/algorithmic_primitives>`)
 and samples the kernel's resultant state over a number of shots, returning a map
 of observed measurement bit strings to the corresponding number of times that
-configuration was observed. Using this function is straightforward:
+configuration was observed. 
 
 .. code-block:: cpp
 
@@ -59,7 +58,7 @@ configuration was observed. Using this function is straightforward:
 
 If your CUDA Quantum kernel takes classical data as input, then those runtime
 values must be provided to the :code:`cudaq::sample` function as trailing
-arguments 
+arguments. 
 
 .. code-block:: cpp
 
@@ -82,7 +81,7 @@ arguments
 
 Another useful CUDA Quantum function in the variational context is
 :code:`cudaq::observe(...)`. This function takes any kernel expression
-(with suitable characteristics noted in the `Specification <https://nvidia.github.io/cuda-quantum/latest/specification/cudaq/algorithmic_primitives.html#cudaq-observe>`__),
+(with suitable characteristics noted in the :doc:`specification </specification/cudaq/algorithmic_primitives>`),
 a user-provided :code:`cudaq::spin_op` defining a general quantum mechanical spin operator, and
 any kernel runtime arguments to return the expected value of the spin operator
 with respect to the kernel ansatz at the provided runtime parameters. It can be

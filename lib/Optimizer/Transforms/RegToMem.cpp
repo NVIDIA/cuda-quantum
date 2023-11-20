@@ -233,7 +233,7 @@ public:
       auto nameAttr = op.getRegisterNameAttr();
       eraseWrapUsers(op);
       auto newOp = rewriter.create<OP>(
-          loc, ArrayRef<Type>{op.getBits().getType()}, args, nameAttr);
+          loc, ArrayRef<Type>{op.getMeasOut().getType()}, args, nameAttr);
       op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
       rewriter.eraseOp(op);
     } else if constexpr (std::is_same_v<OP, quake::ResetOp>) {

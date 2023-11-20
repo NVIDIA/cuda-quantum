@@ -1425,17 +1425,24 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     if (funcName.equals("mx") || funcName.equals("my") ||
         funcName.equals("mz")) {
       // Measurements always return a bool or a std::vector<bool>.
+      bool useStdvec =
+          (args.size() > 1) ||
+          (args.size() == 1 && args[0].getType().isa<quake::VeqType>());
+      auto measure = [&]() -> Value {
+        Type measTy = quake::MeasureType::get(builder.getContext());
+        if (useStdvec)
+          measTy = cc::StdvecType::get(measTy);
+        if (funcName.equals("mx"))
+          return builder.create<quake::MxOp>(loc, measTy, args).getMeasOut();
+        if (funcName.equals("my"))
+          return builder.create<quake::MyOp>(loc, measTy, args).getMeasOut();
+        return builder.create<quake::MzOp>(loc, measTy, args).getMeasOut();
+      }();
       Type resTy = builder.getI1Type();
-      if ((args.size() > 1) ||
-          (args.size() == 1 && args[0].getType().isa<quake::VeqType>()))
-        resTy = cc::StdvecType::get(builder.getI1Type());
-      if (funcName.equals("mx"))
-        return pushValue(
-            builder.create<quake::MxOp>(loc, resTy, args).getBits());
-      if (funcName.equals("my"))
-        return pushValue(
-            builder.create<quake::MyOp>(loc, resTy, args).getBits());
-      return pushValue(builder.create<quake::MzOp>(loc, resTy, args).getBits());
+      if (useStdvec)
+        resTy = cc::StdvecType::get(resTy);
+      return pushValue(
+          builder.create<quake::DiscriminateOp>(loc, resTy, measure));
     }
 
     // Handle the quantum gate set.

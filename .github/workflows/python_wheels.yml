@@ -192,7 +192,7 @@ jobs:
           else echo "Successfully imported cudaq module." >> /tmp/validation.out; fi
 
       - name: Run Python tests
-        uses: addnab/docker-run-action@v3
+        uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
           shell: bash
