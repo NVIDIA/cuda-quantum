@@ -24,7 +24,7 @@ namespace {
 
 namespace cudaq {
 MPIPlugin::MPIPlugin(const std::string &distributedInterfaceLib) {
-  if (!dlopen(distributedInterfaceLib.c_str(), RTLD_NOW)) {
+  if (!dlopen(distributedInterfaceLib.c_str(), RTLD_GLOBAL | RTLD_NOW)) {
     throw std::runtime_error("Unable to open distributed interface library '" +
                              distributedInterfaceLib + "'.");
   }
