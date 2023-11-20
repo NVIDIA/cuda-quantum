@@ -22,7 +22,7 @@ public:
       "getDistributedInterface";
   MPIPlugin(const std::string &distributedInterfaceLib);
   cudaqDistributedInterface_t *get() { return m_distributedInterface; }
-
+  cudaqDistributedCommunicator_t *getComm() { return m_comm; }
   void initialize();
 
   /// @brief Initialize MPI if available. This function

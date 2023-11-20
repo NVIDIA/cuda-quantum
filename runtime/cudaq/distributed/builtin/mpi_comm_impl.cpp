@@ -99,7 +99,7 @@ int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
   static std::deque<cudaqDistributedCommunicator_t> dup_comms;
   dup_comms.emplace_back(cudaqDistributedCommunicator_t());
   auto &newComm = dup_comms.back();
-  newComm.commPtr = dupComm;
+  newComm.commPtr = &dupComm;
   newComm.commSize = sizeof(dupComm);
   *newDupComm = &newComm;
   return status;
@@ -114,7 +114,7 @@ int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm, int32_t color,
   static std::deque<cudaqDistributedCommunicator_t> split_comms;
   split_comms.emplace_back(cudaqDistributedCommunicator_t());
   auto &newComm = split_comms.back();
-  newComm.commPtr = splitComm;
+  newComm.commPtr = &splitComm;
   newComm.commSize = sizeof(splitComm);
   *newSplitComm = &newComm;
   return status;

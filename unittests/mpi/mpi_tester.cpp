@@ -8,6 +8,10 @@
 #include <cudaq.h>
 #include <gtest/gtest.h>
 #include <random>
+#include "cudaq/distributed/mpi_plugin.h"
+namespace cudaq::mpi {
+cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false);
+} // namespace cudaq::mpi
 
 TEST(MPITester, checkInit) {
   EXPECT_TRUE(cudaq::mpi::is_initialized());
@@ -87,6 +91,46 @@ TEST(MPITester, checkAllGather) {
     EXPECT_EQ(gatherData[i], expectedGatherData[i])
         << "AllGather data is corrupted at index " << i;
   }
+}
+
+TEST(MPITester, checkCommDup) {
+  auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
+  EXPECT_TRUE(mpiPlugin != nullptr);
+  const int origSize = cudaq::mpi::num_ranks();
+  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  EXPECT_TRUE(mpiInterface != nullptr);
+  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
+  EXPECT_TRUE(comm != nullptr);
+  int initialized = 0;
+  EXPECT_EQ(mpiInterface->initialized(&initialized), 0);
+  EXPECT_EQ(initialized, 1);
+  cudaqDistributedCommunicator_t *dupComm = nullptr;
+  EXPECT_EQ(mpiInterface->CommDup(comm, &dupComm), 0);
+  EXPECT_TRUE(dupComm != nullptr);
+  int size = 0;
+  EXPECT_EQ(mpiInterface->getNumRanks(dupComm, &size), 0);
+  EXPECT_GT(size, 0);
+  EXPECT_EQ(size, origSize);
+}
+
+TEST(MPITester, checkCommSplit) {
+  auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
+  EXPECT_TRUE(mpiPlugin != nullptr);
+  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  EXPECT_TRUE(mpiInterface != nullptr);
+  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
+  EXPECT_TRUE(comm != nullptr);
+  int initialized = 0;
+  EXPECT_EQ(mpiInterface->initialized(&initialized), 0);
+  EXPECT_EQ(initialized, 1);
+  cudaqDistributedCommunicator_t *dupComm = nullptr;
+  EXPECT_EQ(mpiInterface->CommSplit(comm, /*color=*/cudaq::mpi::rank(),
+                                    /*key=*/0, &dupComm),
+            0);
+  EXPECT_TRUE(dupComm != nullptr);
+  int size = 0;
+  EXPECT_EQ(mpiInterface->getNumRanks(dupComm, &size), 0);
+  EXPECT_EQ(size, 1);
 }
 
 int main(int argc, char **argv) {

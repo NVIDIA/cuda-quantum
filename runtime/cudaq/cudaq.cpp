@@ -30,7 +30,7 @@ void setRandomSeed(std::size_t);
 
 namespace cudaq::mpi {
 
-static cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false) {
+cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false) {
   // Locate and load the MPI comm plugin.
   // Rationale: we don't want to explicitly link `libcudaq.so` against any
   // specific MPI implementation for compatibility. Rather, MPI functionalities
