@@ -164,12 +164,12 @@ do
     echo "============================="
 done
 
-echo "$available_backends" | python3 notebook_validation.py
-
 echo "============================="
 echo "$samples examples found."
 echo "Total passed: $passed"
 echo "Total failed: $failed"
 echo "Skipped: $skipped"
 echo "============================="
-if [ "$failed" -eq "0" ]; then exit 0; else exit 10; fi
+
+echo "$available_backends" | python3 notebook_validation.py
+if  [ $? -eq 0 ] && [ "$failed" -eq "0" ]; then exit 0; else exit 10; fi
