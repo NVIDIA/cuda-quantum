@@ -395,7 +395,8 @@ std::vector<sample_result> sample(QuantumKernel &&kernel,
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() {
-                     kernel(std::forward<Args>(singleIterParameters)...);
+                     kernel(std::forward<decltype(singleIterParameters)>(
+                         singleIterParameters)...);
                    },
                    platform, kernelName, shots, qpuId, nullptr, counter, N)
                    .value();
@@ -431,7 +432,8 @@ std::vector<sample_result> sample(std::size_t shots, QuantumKernel &&kernel,
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() {
-                     kernel(std::forward<Args>(singleIterParameters)...);
+                     kernel(std::forward<decltype(singleIterParameters)>(
+                         singleIterParameters)...);
                    },
                    platform, kernelName, shots, qpuId, nullptr, counter, N)
                    .value();
@@ -471,7 +473,8 @@ std::vector<sample_result> sample(const sample_options &options,
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() {
-                     kernel(std::forward<Args>(singleIterParameters)...);
+                     kernel(std::forward<decltype(singleIterParameters)>(
+                         singleIterParameters)...);
                    },
                    platform, kernelName, shots, qpuId, nullptr, counter, N)
                    .value();
@@ -510,7 +513,8 @@ sample_n(QuantumKernel &&kernel, ArgumentSet<Args...> &&params) {
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() {
-                     kernel(std::forward<Args>(singleIterParameters)...);
+                     kernel(std::forward<decltype(singleIterParameters)>(
+                         singleIterParameters)...);
                    },
                    platform, kernelName, shots, qpuId, nullptr, counter, N)
                    .value();
@@ -547,7 +551,8 @@ sample_n(std::size_t shots, QuantumKernel &&kernel,
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() {
-                     kernel(std::forward<Args>(singleIterParameters)...);
+                     kernel(std::forward<decltype(singleIterParameters)>(
+                         singleIterParameters)...);
                    },
                    platform, kernelName, shots, qpuId, nullptr, counter, N)
                    .value();
