@@ -5,22 +5,12 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "cudaq/distributed/mpi_plugin.h"
 #include "tensornet_utils.h"
+namespace cudaq::mpi {
+cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false);
+} // namespace cudaq::mpi
 
-#if defined CUDAQ_HAS_MPI
-#include <mpi.h>
-#define HANDLE_MPI_ERROR(x)                                                    \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != MPI_SUCCESS) {                                                  \
-      char error[MPI_MAX_ERROR_STRING];                                        \
-      int len;                                                                 \
-      MPI_Error_string(err, error, &len);                                      \
-      printf("MPI Error: %s in line %d\n", error, __LINE__);                   \
-      fflush(stdout);                                                          \
-      MPI_Abort(MPI_COMM_WORLD, err);                                          \
-    }                                                                          \
-  };
 void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
   // If the CUTENSORNET_COMM_LIB environment variable is not set, print a
   // warning message since cutensornet will likely to fail.
@@ -33,20 +23,38 @@ void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
     printf("[Warning] Enabling cuTensorNet MPI without environment variable "
            "CUTENSORNET_COMM_LIB.\nMPI parallelization inside cuTensorNet "
            "library may cause an error.\n");
-  MPI_Comm cutnComm;
+
   // duplicate MPI communicator to dedicate it to cuTensorNet
-  HANDLE_MPI_ERROR(MPI_Comm_dup(MPI_COMM_WORLD, &cutnComm));
+  auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
+  if (!mpiPlugin)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered when "
+                             "initializing cutensornet MPI");
+  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
+  if (!mpiInterface || !comm)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered when "
+                             "initializing cutensornet MPI");
+  cudaqDistributedCommunicator_t *dupComm = nullptr;
+  const auto dupStatus = mpiInterface->CommDup(comm, &dupComm);
+  if (dupStatus != 0 || dupComm == nullptr)
+    throw std::runtime_error("Failed to duplicate the MPI communicator when "
+                             "initializing cutensornet MPI");
+
   HANDLE_CUTN_ERROR(cutensornetDistributedResetConfiguration(
-      cutnHandle, &cutnComm, sizeof(cutnComm)));
+      cutnHandle, dupComm->commPtr, dupComm->commSize));
 }
 
 void resetCuTensornetComm(cutensornetHandle_t cutnHandle) {
+  auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
+  if (!mpiPlugin)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered when "
+                             "initializing cutensornet MPI");
+  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
+  if (!mpiInterface || !comm)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered when "
+                             "initializing cutensornet MPI");
   // Passing a nullptr to force a reset.
   HANDLE_CUTN_ERROR(cutensornetDistributedResetConfiguration(
-      cutnHandle, nullptr, sizeof(MPI_Comm)));
+      cutnHandle, nullptr, comm->commSize));
 }
-#else
-// Noop if we don't have MPI
-void initCuTensornetComm(cutensornetHandle_t cutnHandle) {}
-void resetCuTensornetComm(cutensornetHandle_t cutnHandle) {}
-#endif
