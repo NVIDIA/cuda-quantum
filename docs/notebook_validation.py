@@ -56,15 +56,16 @@ def print_results(success, failed, skipped=[]):
               " ".join(success))
 
     if failed:
-        print("Failed! The following notebook(s) raised errors:\n" +
+        print("::error::The following notebook(s) raised one or more errors:\n" +
               " ".join(failed))
 
     if skipped:
-        print("Skipped! The following notebook(s) skipped:\n" +
+        print("::warning::Skipped validation for the following notebook(s):\n" +
               " ".join(skipped))
 
     if not failed and not skipped:
         print("Success! All the notebook(s) executed successfully.")
+    elif failed:
         exit(1)
 
 
@@ -81,7 +82,7 @@ if __name__ == "__main__":
     else:
         available_backends = read_available_backends()
         notebook_filenames = [
-            fn for fn in glob.glob(f"{Path(__file__).parent}/docs/**/*.ipynb",
+            fn for fn in glob.glob(f"{Path(__file__).parent}/**/*.ipynb",
                                    recursive=True)
             if not fn.endswith('.nbconvert.ipynb')
         ]
