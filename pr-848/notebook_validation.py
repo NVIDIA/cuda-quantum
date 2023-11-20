@@ -56,7 +56,8 @@ def print_results(success, failed, skipped=[]):
               " ".join(success))
 
     if failed:
-        print("::error::The following notebook(s) raised one or more errors:\n" +
+        print(
+              "::error::The following notebook(s) raised one or more errors:\n" +
               " ".join(failed))
 
     if skipped:
