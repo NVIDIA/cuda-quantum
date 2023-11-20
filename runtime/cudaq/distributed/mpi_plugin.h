@@ -14,7 +14,7 @@ namespace cudaq {
 class MPIPlugin {
   cudaqDistributedInterface_t *m_distributedInterface;
   cudaqDistributedCommunicator_t *m_comm;
-
+  bool m_valid;
 public:
   static constexpr std::string_view COMM_GETTER_SYMBOL_NAME =
       "getMpiCommunicator";
@@ -50,10 +50,15 @@ public:
 
   void broadcast(std::vector<double> &data, int rootRank);
 
-  void all_reduce(std::vector<double> &global, const std::vector<double> &local);
+  void all_reduce(std::vector<double> &global, const std::vector<double> &local, ReduceOp op);
   /// @brief Finalize MPI. This function
   /// is a no-op if there CUDA Quantum has not been built
   /// against MPI.
   void finalize();
+
+  /// @brief Is the plugin valid?
+  // Due to external runtime dependencies, e.g. Python modules, a loaded plugin
+  // may not be valid and shouldn'd be used.
+  bool isValid() const { return m_valid; }
 };
 } // namespace cudaq

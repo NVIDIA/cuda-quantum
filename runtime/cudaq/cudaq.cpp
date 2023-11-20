@@ -72,9 +72,11 @@ static cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false) {
         cudaq::info("Try loading mpi4py MPI comm plugin from  at '{}'",
                     pyPluginLibFile.c_str());
         g_plugin = std::make_unique<cudaq::MPIPlugin>(pyPluginLibFile.c_str());
-        if (!g_plugin) {
+        if (!g_plugin->isValid()) {
           cudaq::info("Failed to load mpi4py MPI comm plugin (mpi4py is not "
                       "available).");
+          // Don't use it since mpi4py is not available.
+          g_plugin.reset();
         }
       }
     }
@@ -128,16 +130,31 @@ bool is_initialized() {
   return commPlugin->is_initialized();
 }
 
+namespace details {
+
+#define CUDAQ_ALL_REDUCE_IMPL(TYPE, BINARY, REDUCE_OP)                         \
+  TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
+    static_assert(std::is_floating_point<TYPE>::value,                         \
+                  "all_reduce argument must be a floating point number");      \
+    std::vector<double> result(1);                                             \
+    std::vector<double> localVec{static_cast<double>(local)};                  \
+    auto *commPlugin = getMpiPlugin();                                         \
+    commPlugin->all_reduce(result, localVec, REDUCE_OP);                       \
+    return static_cast<TYPE>(result.front());                                  \
+  }
+
+CUDAQ_ALL_REDUCE_IMPL(float, std::plus, SUM)
+CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies, PROD)
+
+CUDAQ_ALL_REDUCE_IMPL(double, std::plus, SUM)
+CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies, PROD)
+
+} // namespace details
+
 void all_gather(std::vector<double> &global, const std::vector<double> &local) {
   auto *commPlugin = getMpiPlugin();
   commPlugin->all_gather(global, local);
 }
-
-void all_reduce(std::vector<double> &global, const std::vector<double> &local) {
-  auto *commPlugin = getMpiPlugin();
-  commPlugin->all_reduce(global, local);
-}
-
 
 void broadcast(std::vector<double> &data, int rootRank) {
   auto *commPlugin = getMpiPlugin();

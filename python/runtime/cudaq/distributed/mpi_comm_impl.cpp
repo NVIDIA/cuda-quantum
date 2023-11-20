@@ -208,8 +208,8 @@ int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm, int32_t color,
 }
 
 cudaqDistributedCommunicator_t *getMpiCommunicator() {
+  static cudaqDistributedCommunicator_t commWorld;
   try {
-    static cudaqDistributedCommunicator_t commWorld;
     auto mpiMod = py::module::import("mpi4py.MPI");
     auto pyCommWorld = mpiMod.attr("COMM_WORLD");
     auto commPtr =
@@ -217,10 +217,12 @@ cudaqDistributedCommunicator_t *getMpiCommunicator() {
     commWorld.commPtr = commPtr;
     commWorld.commSize =
         mpiMod.attr("_sizeof")(pyCommWorld).cast<std::size_t>();
-    return &commWorld;
+
   } catch (std::exception &e) {
-    return nullptr;
+    commWorld.commPtr = nullptr;
+    commWorld.commSize = 0;
   }
+  return &commWorld;
 }
 
 cudaqDistributedInterface_t *getDistributedInterface() {

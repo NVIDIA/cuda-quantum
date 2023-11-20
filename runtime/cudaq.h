@@ -225,13 +225,28 @@ int num_ranks();
 
 /// @brief Return true if MPI is already initialized, false otherwise.
 bool is_initialized();
+namespace details {
+#define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
+  TYPE allReduce(const TYPE &, const BINARY<TYPE> &);
+
+CUDAQ_ALL_REDUCE_DEF(float, std::plus)
+CUDAQ_ALL_REDUCE_DEF(float, std::multiplies)
+
+CUDAQ_ALL_REDUCE_DEF(double, std::plus)
+CUDAQ_ALL_REDUCE_DEF(double, std::multiplies)
+
+} // namespace details
+
+/// @brief Reduce all values across ranks with the specified binary function.
+template <typename T, typename BinaryFunction>
+T all_reduce(const T &localValue, const BinaryFunction &function) {
+  return details::allReduce(localValue, function);
+}
 
 /// @brief Gather all vector data locally into the provided
 /// global vector. Global vector must be sized to fit all
 /// vector elements coming from individual ranks.
 void all_gather(std::vector<double> &global, const std::vector<double> &local);
-
-void all_reduce(std::vector<double> &global, const std::vector<double> &local);
 
 /// @brief Broadcast a vector from a process (rootRank) to all other processes.
 void broadcast(std::vector<double> &data, int rootRank);

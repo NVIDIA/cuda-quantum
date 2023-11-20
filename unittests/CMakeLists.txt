@@ -180,6 +180,26 @@ target_link_libraries(test_photonics
   gtest_main)
 gtest_discover_tests(test_photonics)
 
+# Create an executable for MPI UnitTests
+# (only if MPI was found, i.e., the builtin plugin is available)
+if (MPI_CXX_FOUND)
+  set(CUDAQ_MPI_TEST_SOURCES 
+    mpi/mpi_tester.cpp
+  )
+  add_executable(test_mpi ${CUDAQ_MPI_TEST_SOURCES})
+  set(NUM_PROCS 4)
+  target_compile_definitions(test_mpi PRIVATE -DNUM_PROCS=${NUM_PROCS})
+  target_link_libraries(test_mpi
+    PRIVATE 
+    cudaq
+    cudaq-platform-default
+    nvqir-qpp
+    gtest
+  )
+  target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
+  # Allow oversubscribe in case CI runner has very few cores.
+  add_test(NAME MPIApiTest COMMAND ${MPIEXEC} --allow-run-as-root --oversubscribe -np ${NUM_PROCS} bash ${CMAKE_BINARY_DIR}/unittests/test_mpi)
+endif()
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
