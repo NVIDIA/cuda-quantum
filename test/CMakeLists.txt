@@ -28,7 +28,7 @@ set(NVQPP_TEST_PARAMS
 set(TEST_CUDAQ_LIBRARIES
   cudaq cudaq-common cudaq-mlir-runtime cudaq-builder cudaq-ensmallen
   cudaq-nlopt cudaq-spin
-  cudaq-em-default cudaq-em-photonics cudaq-platform-default
+  cudaq-em-default cudaq-platform-default
   nvqir nvqir-qpp nvqir-dm)
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
