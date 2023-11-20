@@ -11,6 +11,7 @@
 #include "ObserveResult.h"
 #include "RestClient.h"
 #include "ServerHelper.h"
+#include <thread>
 
 namespace cudaq::details {
 
