@@ -39,7 +39,7 @@ Variational Quantum Eigensolver
 
 The Variational Quantum Eigensolver (VQE) algorithm, originally proposed in
 `this publication <https://arxiv.org/abs/1304.3061>`__, 
-is a hybrid algiorthm that can make use of both quantum and classical resources.
+is a hybrid algorithm that can make use of both quantum and classical resources.
 
 Let's take a look at how we can use CUDA Quantum's built-in `vqe` module to run our own custom VQE routines! 
 Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA Quantum's optimizers, 
@@ -60,7 +60,7 @@ As an alternative to `cudaq.vqe`, we can also use the `cudaq.optimizers` suite o
 Quantum Approximate Optimization Algorithm
 -------------------------------------------
 
-Let's now see how we can implement the Quantum Approximate Optimization Algorithm (QAOA) to compute the Max-Cut of a rectangular graphy by leveraging 
+Let's now see how we can implement the Quantum Approximate Optimization Algorithm (QAOA) to compute the Max-Cut of a rectangular graph by leveraging 
 `cudaq:vqe`. For more on the QAOA algorithm and the Max-Cut problem, refer to 
 `this paper <https://arxiv.org/abs/1411.4028>`__.
 
