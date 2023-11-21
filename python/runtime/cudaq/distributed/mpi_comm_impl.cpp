@@ -301,6 +301,7 @@ __attribute__((constructor)) void dllMain() {
   } catch (std::exception &e) {
     // mpi4py not installed
     mpi4pyFound = false;
+    return;
   }
   mpi4pyFound = true;
   // Disable auto init

@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "distributed_capi.h"
+#include <cstdio>
+#include <cstdlib>
 #include <deque>
 #include <mpi.h>
 namespace {
