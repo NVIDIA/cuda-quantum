@@ -95,12 +95,12 @@ int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
 }
 int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
                 cudaqDistributedCommunicator_t **newDupComm) {
-  MPI_Comm dupComm;
-  auto status = MPI_Comm_dup(unpackMpiCommunicator(comm), &dupComm);
   // Use std::deque to make sure pointers to elements are valid.
-  static std::deque<cudaqDistributedCommunicator_t> dup_comms;
-  dup_comms.emplace_back(cudaqDistributedCommunicator_t());
-  auto &newComm = dup_comms.back();
+  static std::deque<std::pair<MPI_Comm, cudaqDistributedCommunicator_t>>
+      dup_comms;
+  dup_comms.emplace_back(std::pair<MPI_Comm, cudaqDistributedCommunicator_t>());
+  auto &[dupComm, newComm] = dup_comms.back();
+  auto status = MPI_Comm_dup(unpackMpiCommunicator(comm), &dupComm);
   newComm.commPtr = &dupComm;
   newComm.commSize = sizeof(dupComm);
   *newDupComm = &newComm;
@@ -109,13 +109,15 @@ int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
 
 int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm, int32_t color,
                   int32_t key, cudaqDistributedCommunicator_t **newSplitComm) {
-  MPI_Comm splitComm;
+
+  // Use std::deque to make sure pointers to elements are valid.
+  static std::deque<std::pair<MPI_Comm, cudaqDistributedCommunicator_t>>
+      split_comms;
+  split_comms.emplace_back(
+      std::pair<MPI_Comm, cudaqDistributedCommunicator_t>());
+  auto &[splitComm, newComm] = split_comms.back();
   auto status =
       MPI_Comm_split(unpackMpiCommunicator(comm), color, key, &splitComm);
-  // Use std::deque to make sure pointers to elements are valid.
-  static std::deque<cudaqDistributedCommunicator_t> split_comms;
-  split_comms.emplace_back(cudaqDistributedCommunicator_t());
-  auto &newComm = split_comms.back();
   newComm.commPtr = &splitComm;
   newComm.commSize = sizeof(splitComm);
   *newSplitComm = &newComm;
