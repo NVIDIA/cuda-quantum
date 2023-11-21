@@ -36,6 +36,7 @@ MPIPlugin::MPIPlugin(const std::string &distributedInterfaceLib) {
   // getUniquePluginInstance should have thrown if cannot load.
   assert(m_distributedInterface && m_comm);
   m_valid = m_comm->commSize > 0;
+  m_libFile = distributedInterfaceLib;
 }
 
 void MPIPlugin::initialize() {

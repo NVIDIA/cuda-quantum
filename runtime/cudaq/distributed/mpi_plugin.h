@@ -15,6 +15,7 @@ class MPIPlugin {
   cudaqDistributedInterface_t *m_distributedInterface;
   cudaqDistributedCommunicator_t *m_comm;
   bool m_valid;
+  std::string m_libFile;
 public:
   static constexpr std::string_view COMM_GETTER_SYMBOL_NAME =
       "getMpiCommunicator";
@@ -23,6 +24,7 @@ public:
   MPIPlugin(const std::string &distributedInterfaceLib);
   cudaqDistributedInterface_t *get() { return m_distributedInterface; }
   cudaqDistributedCommunicator_t *getComm() { return m_comm; }
+  std::string getPluginPath() const { return m_libFile; }
   void initialize();
 
   /// @brief Initialize MPI if available. This function

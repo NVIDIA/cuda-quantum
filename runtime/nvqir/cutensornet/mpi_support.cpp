@@ -5,40 +5,90 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "common/Logger.h"
 #include "cudaq/distributed/mpi_plugin.h"
 #include "tensornet_utils.h"
+#include <cassert>
+#include <cutensornet.h>
+#include <dlfcn.h>
+#include <stdio.h>
+#include <stdlib.h>
+// Hook to query this shared lib file location at runtime.
+extern "C" {
+void getThisLibPath() { return; }
+}
+
 namespace cudaq::mpi {
 cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false);
 } // namespace cudaq::mpi
 
-void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
-  // If the CUTENSORNET_COMM_LIB environment variable is not set, print a
-  // warning message since cutensornet will likely to fail.
-  //
-  // Note: this initialization only happens when the user initializes
-  // MPI explicitly. In this case, the user will need to define the environment
-  // variable CUTENSORNET_COMM_LIB as described in the Getting Started section
-  // of the cuTensorNet library documentation (Installation and Compilation).
-  if (std::getenv("CUTENSORNET_COMM_LIB") == nullptr)
-    printf("[Warning] Enabling cuTensorNet MPI without environment variable "
-           "CUTENSORNET_COMM_LIB.\nMPI parallelization inside cuTensorNet "
-           "library may cause an error.\n");
+/// @brief Query the full path to the this lib.
+static const char *getThisSharedLibFilePath() {
+  static thread_local std::string LIB_PATH;
+  if (LIB_PATH.empty()) {
+    // Use dladdr query this .so file
+    void *needle = (void *)(intptr_t)getThisLibPath;
+    Dl_info DLInfo;
+    int err = dladdr(needle, &DLInfo);
+    if (err != 0) {
+      char link_path[PATH_MAX];
+      // If the filename is a symlink, we need to resolve and return the
+      // location of the actual .so file.
+      if (realpath(DLInfo.dli_fname, link_path))
+        LIB_PATH = link_path;
+    }
+  }
 
-  // duplicate MPI communicator to dedicate it to cuTensorNet
-  auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
+  return LIB_PATH.c_str();
+}
+
+static cudaqDistributedInterface_t *getMpiPluginInterface() {
+  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
   if (!mpiPlugin)
-    throw std::runtime_error("Invalid MPI distributed plugin encountered when "
-                             "initializing cutensornet MPI");
+    throw std::runtime_error("Failed to retrieve MPI plugin");
   cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  if (!mpiInterface)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered");
+  return mpiInterface;
+}
+
+static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
+  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
+  if (!mpiPlugin)
+    throw std::runtime_error("Failed to retrieve MPI plugin");
   cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
-  if (!mpiInterface || !comm)
-    throw std::runtime_error("Invalid MPI distributed plugin encountered when "
-                             "initializing cutensornet MPI");
+  if (!comm)
+    throw std::runtime_error("Invalid MPI distributed plugin encountered");
+  return comm;
+}
+
+static std::string getMpiPluginFilePath() {
+  auto mpiPlugin = cudaq::mpi::getMpiPlugin();
+  if (!mpiPlugin)
+    throw std::runtime_error("Failed to retrieve MPI plugin");
+
+  return mpiPlugin->getPluginPath();
+}
+
+void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
+  cudaqDistributedInterface_t *mpiInterface = getMpiPluginInterface();
+  cudaqDistributedCommunicator_t *comm = getMpiCommWrapper();
+  assert(mpiInterface && comm);
   cudaqDistributedCommunicator_t *dupComm = nullptr;
   const auto dupStatus = mpiInterface->CommDup(comm, &dupComm);
   if (dupStatus != 0 || dupComm == nullptr)
     throw std::runtime_error("Failed to duplicate the MPI communicator when "
                              "initializing cutensornet MPI");
+
+  // If CUTENSORNET_COMM_LIB environment variable is not set,
+  // use this builtin plugin shim (redirect MPI calls to CUDAQ plugin)
+  if (std::getenv("CUTENSORNET_COMM_LIB") == nullptr) {
+    cudaq::info("Enabling cuTensorNet MPI without environment variable "
+                "CUTENSORNET_COMM_LIB. \nUse the builtin cuTensorNet "
+                "communicator lib from '{}' - cuda quantum MPI plugin {}.",
+                getThisSharedLibFilePath(), getMpiPluginFilePath());
+    setenv("CUTENSORNET_COMM_LIB", getThisSharedLibFilePath(), 0);
+  }
 
   HANDLE_CUTN_ERROR(cutensornetDistributedResetConfiguration(
       cutnHandle, dupComm->commPtr, dupComm->commSize));
@@ -58,3 +108,158 @@ void resetCuTensornetComm(cutensornetHandle_t cutnHandle) {
   HANDLE_CUTN_ERROR(cutensornetDistributedResetConfiguration(
       cutnHandle, nullptr, comm->commSize));
 }
+
+// Converts CUDA data type to the corresponding CUDAQ shim type enum
+static DataType convertCudaToMpiDataType(const cudaDataType_t cudaDataType) {
+  switch (cudaDataType) {
+  case CUDA_R_8I:
+    return INT_8;
+  case CUDA_R_16I:
+    return INT_16;
+  case CUDA_R_32I:
+    return INT_32;
+  case CUDA_R_64I:
+    return INT_64;
+  case CUDA_R_32F:
+    return FLOAT_32;
+  case CUDA_R_64F:
+    return FLOAT_64;
+  case CUDA_C_32F:
+    return FLOAT_COMPLEX;
+  case CUDA_C_64F:
+    return DOUBLE_COMPLEX;
+  default:
+    throw std::runtime_error(
+        "Unsupported data type encountered in cutensornet communicator plugin");
+  }
+  __builtin_unreachable();
+}
+
+static cudaqDistributedCommunicator_t
+convertMpiCommunicator(const cutensornetDistributedCommunicator_t *cutnComm) {
+  cudaqDistributedCommunicator_t comm{cutnComm->commPtr, cutnComm->commSize};
+  return comm;
+}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+/** MPI_Comm_size wrapper */
+int cutensornetMpiCommSize(const cutensornetDistributedCommunicator_t *comm,
+                           int32_t *numRanks) {
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  auto cudaqComm = convertMpiCommunicator(comm);
+  return getMpiPluginInterface()->getNumRanks(&cudaqComm, numRanks);
+}
+
+/** Returns the size of the local subgroup of processes sharing node memory */
+int cutensornetMpiCommSizeShared(
+    const cutensornetDistributedCommunicator_t *comm, int32_t *numRanks) {
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  auto cudaqComm = convertMpiCommunicator(comm);
+  return getMpiPluginInterface()->getCommSizeShared(&cudaqComm, numRanks);
+}
+
+/** MPI_Comm_rank wrapper */
+int cutensornetMpiCommRank(const cutensornetDistributedCommunicator_t *comm,
+                           int32_t *procRank) {
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  auto cudaqComm = convertMpiCommunicator(comm);
+  return getMpiPluginInterface()->getProcRank(&cudaqComm, procRank);
+}
+
+/** MPI_Barrier wrapper */
+int cutensornetMpiBarrier(const cutensornetDistributedCommunicator_t *comm) {
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  auto cudaqComm = convertMpiCommunicator(comm);
+  return getMpiPluginInterface()->Barrier(&cudaqComm);
+}
+
+/** MPI_Bcast wrapper */
+int cutensornetMpiBcast(const cutensornetDistributedCommunicator_t *comm,
+                        void *buffer, int32_t count, cudaDataType_t datatype,
+                        int32_t root) {
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  auto cudaqComm = convertMpiCommunicator(comm);
+  return getMpiPluginInterface()->Bcast(
+      &cudaqComm, buffer, count, convertCudaToMpiDataType(datatype), root);
+}
+
+/** MPI_Allreduce wrapper */
+int cutensornetMpiAllreduce(const cutensornetDistributedCommunicator_t *comm,
+                            const void *bufferIn, void *bufferOut,
+                            int32_t count, cudaDataType_t datatype) {
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  // cutensornet expects MPI_SUM in this API
+  auto cudaqComm = convertMpiCommunicator(comm);
+  return getMpiPluginInterface()->Allreduce(
+      &cudaqComm, bufferIn, bufferOut, count,
+      convertCudaToMpiDataType(datatype), SUM);
+}
+
+/** MPI_Allreduce IN_PLACE wrapper */
+int cutensornetMpiAllreduceInPlace(
+    const cutensornetDistributedCommunicator_t *comm, void *buffer,
+    int32_t count, cudaDataType_t datatype) {
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  auto cudaqComm = convertMpiCommunicator(comm);
+  // cutensornet expects MPI_SUM in this API
+  return getMpiPluginInterface()->AllreduceInPlace(
+      &cudaqComm, buffer, count, convertCudaToMpiDataType(datatype), SUM);
+}
+
+/** MPI_Allreduce IN_PLACE MIN wrapper */
+int cutensornetMpiAllreduceInPlaceMin(
+    const cutensornetDistributedCommunicator_t *comm, void *buffer,
+    int32_t count, cudaDataType_t datatype) {
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  auto cudaqComm = convertMpiCommunicator(comm);
+  // cutensornet expects MPI_SUM in this API
+  return getMpiPluginInterface()->AllreduceInPlace(
+      &cudaqComm, buffer, count, convertCudaToMpiDataType(datatype), MIN);
+}
+
+/** MPI_Allreduce DOUBLE_INT MINLOC wrapper */
+int cutensornetMpiAllreduceDoubleIntMinloc(
+    const cutensornetDistributedCommunicator_t *comm,
+    const void *bufferIn, // *struct {double; int;}
+    void *bufferOut)      // *struct {double; int;}
+{
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  auto cudaqComm = convertMpiCommunicator(comm);
+  return getMpiPluginInterface()->Allreduce(&cudaqComm, bufferIn, bufferOut, 1,
+                                            FLOAT_64, MIN_LOC);
+}
+
+/** MPI_Allgather wrapper */
+int cutensornetMpiAllgather(const cutensornetDistributedCommunicator_t *comm,
+                            const void *bufferIn, void *bufferOut,
+                            int32_t count, cudaDataType_t datatype) {
+  cudaq::ScopedTrace trace(__FUNCTION__);
+  auto cudaqComm = convertMpiCommunicator(comm);
+  return getMpiPluginInterface()->Allgather(&cudaqComm, bufferIn, bufferOut,
+                                            count,
+                                            convertCudaToMpiDataType(datatype));
+}
+
+/**
+ * Distributed communication service API wrapper binding table (imported by
+ * cuTensorNet). The exposed C symbol must be named as
+ * "cutensornetCommInterface".
+ */
+cutensornetDistributedInterface_t cutensornetCommInterface = {
+    CUTENSORNET_DISTRIBUTED_INTERFACE_VERSION,
+    cutensornetMpiCommSize,
+    cutensornetMpiCommSizeShared,
+    cutensornetMpiCommRank,
+    cutensornetMpiBarrier,
+    cutensornetMpiBcast,
+    cutensornetMpiAllreduce,
+    cutensornetMpiAllreduceInPlace,
+    cutensornetMpiAllreduceInPlaceMin,
+    cutensornetMpiAllreduceDoubleIntMinloc,
+    cutensornetMpiAllgather};
+
+#ifdef __cplusplus
+} // extern "C"
+#endif

@@ -60,6 +60,7 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
   nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_register.cpp)
   add_library(tensornet-mpi-util OBJECT mpi_support.cpp)
   target_include_directories(tensornet-mpi-util PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/runtime)
+  target_link_libraries(tensornet-mpi-util PRIVATE cudaq-common fmt::fmt-header-only)
   # Note: only tensornet backend supports MPI at cutensornet level (distributed tensor computation)
   target_link_libraries(nvqir-tensornet PRIVATE tensornet-mpi-util)
   

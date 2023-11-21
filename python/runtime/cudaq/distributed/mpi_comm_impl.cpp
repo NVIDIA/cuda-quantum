@@ -255,21 +255,17 @@ int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
 int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
                   const void *sendBuffer, void *recvBuffer, int32_t count,
                   DataType dataType, ReduceOp opType) {
-  py::tuple sendBuf =
-      py::make_tuple(packData(sendBuffer, count, dataType, true), count,
-                     convertType(dataType));
+  
   
   auto pyComm = unpackMpiCommunicator(comm);
   try {
-    if (opType == MIN_LOC) {
-      py::tuple recvBuf = py::make_tuple(packData(recvBuffer, 1, INT_64), 1,
-                                         convertTypeMinLoc(dataType));
-      pyComm.attr("Allreduce")(sendBuf, recvBuf, convertType(opType));
-    } else {
-      py::tuple recvBuf = py::make_tuple(packData(recvBuffer, count, dataType),
-                                         count, convertType(dataType));
-      pyComm.attr("Allreduce")(sendBuf, recvBuf, convertType(opType));
-    }
+    py::tuple sendBuf = py::make_tuple(
+        packData(sendBuffer, count, dataType, true), count,
+        opType == MIN_LOC ? convertTypeMinLoc(dataType) : convertType(opType));
+    py::tuple recvBuf = py::make_tuple(
+        packData(recvBuffer, count, dataType), count,
+        opType == MIN_LOC ? convertTypeMinLoc(dataType) : convertType(opType));
+    pyComm.attr("Allreduce")(sendBuf, recvBuf, convertType(opType));
     return 0;
   } catch (std::exception &e) {
     std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
