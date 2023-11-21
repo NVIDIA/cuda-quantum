@@ -13,7 +13,7 @@ qubit = kernel.qalloc()
 # single qubit gates that are supported by CUDA Quantum.
 # In addition to the gates below, we could have also added
 # the gates representing the adjoint of these operators
-# (for example, `kernel.tdg(qubit)`). 
+# (for example, `kernel.tdg(qubit)`).
 kernel.h(qubit)
 kernel.x(qubit)
 kernel.y(qubit)
