@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import glob
 import os
 import re
 import sys
@@ -83,9 +82,9 @@ if __name__ == "__main__":
     else:
         available_backends = read_available_backends()
         notebook_filenames = [
-            fn for fn in glob.glob(f"{Path(__file__).parent}/**/*.ipynb",
-                                   recursive=True)
-            if not fn.endswith('.nbconvert.ipynb')
+            str(fn.relative_to(Path(__file__).parent))
+            for fn in Path(__file__).parent.rglob('*.ipynb')
+            if not fn.name.endswith('.nbconvert.ipynb')
         ]
 
         if not notebook_filenames:
