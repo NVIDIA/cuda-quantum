@@ -50,7 +50,7 @@ int main() {
   counts = cudaq::sample(xgate);
   counts.dump();
 
-  // Unset the noise model when done. This is not necessary in this case, but it is
-  // good practice in order to avoid interference with future simulations.
+  // Unset the noise model when done. This is not necessary in this case, but it
+  // is good practice in order to avoid interference with future simulations.
   cudaq::unset_noise();
 }
