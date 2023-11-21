@@ -19,10 +19,19 @@ typedef struct {
 
 // Data type that we need to support.
 // Plugin implementation need to convert it to MPI data type enum as needed.
-enum DataType { FLOAT_32, FLOAT_64 };
+enum DataType {
+  INT_8,
+  INT_16,
+  INT_32,
+  INT_64,
+  FLOAT_32,
+  FLOAT_64,
+  FLOAT_COMPLEX,
+  DOUBLE_COMPLEX
+};
 
 // Type of reduce ops
-enum ReduceOp { SUM, PROD };
+enum ReduceOp { SUM, PROD, MIN, MIN_LOC };
 
 typedef struct {
   int version;
@@ -32,11 +41,16 @@ typedef struct {
   int (*finalized)(int32_t *);
   int (*getNumRanks)(const cudaqDistributedCommunicator_t *, int32_t *);
   int (*getProcRank)(const cudaqDistributedCommunicator_t *, int32_t *);
+  // Returns the size of the local subgroup of processes sharing node memory
+  int (*getCommSizeShared)(const cudaqDistributedCommunicator_t *comm,
+                           int32_t *);
   int (*Barrier)(const cudaqDistributedCommunicator_t *);
   int (*Bcast)(const cudaqDistributedCommunicator_t *, void *, int32_t,
                DataType, int32_t);
   int (*Allreduce)(const cudaqDistributedCommunicator_t *, const void *, void *,
                    int32_t, DataType, ReduceOp);
+  int (*AllreduceInPlace)(const cudaqDistributedCommunicator_t *, void *,
+                          int32_t, DataType, ReduceOp);
   int (*Allgather)(const cudaqDistributedCommunicator_t *, const void *, void *,
                    int32_t, DataType);
   int (*CommDup)(const cudaqDistributedCommunicator_t *,

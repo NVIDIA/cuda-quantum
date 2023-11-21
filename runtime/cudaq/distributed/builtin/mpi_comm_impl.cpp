@@ -10,14 +10,40 @@
 #include <cstdlib>
 #include <deque>
 #include <mpi.h>
+#include <stdexcept>
+
 namespace {
 bool initCalledByThis = false;
 MPI_Datatype convertType(DataType dataType) {
   switch (dataType) {
+  case INT_8:
+    return MPI_INT8_T;
+  case INT_16:
+    return MPI_INT16_T;
+  case INT_32:
+    return MPI_INT32_T;
+  case INT_64:
+    return MPI_INT64_T;
   case FLOAT_32:
     return MPI_FLOAT;
   case FLOAT_64:
     return MPI_DOUBLE;
+  case FLOAT_COMPLEX:
+    return MPI_C_FLOAT_COMPLEX;
+  case DOUBLE_COMPLEX:
+    return MPI_C_DOUBLE_COMPLEX;
+  }
+  __builtin_unreachable();
+}
+
+MPI_Datatype convertTypeMinLoc(DataType dataType) {
+  switch (dataType) {
+  case FLOAT_32:
+    return MPI_FLOAT_INT;
+  case FLOAT_64:
+    return MPI_DOUBLE_INT;
+  default:
+    throw std::runtime_error("Unsupported MINLOC data type");
   }
   __builtin_unreachable();
 }
@@ -28,6 +54,10 @@ MPI_Op convertType(ReduceOp opType) {
     return MPI_SUM;
   case PROD:
     return MPI_PROD;
+  case MIN:
+    return MPI_MIN;
+  case MIN_LOC:
+    return MPI_MINLOC;
   }
   __builtin_unreachable();
 }
@@ -72,6 +102,30 @@ int mpi_getNumRanks(const cudaqDistributedCommunicator_t *comm, int32_t *size) {
 int mpi_getProcRank(const cudaqDistributedCommunicator_t *comm, int32_t *rank) {
   return MPI_Comm_rank(unpackMpiCommunicator(comm), rank);
 }
+
+int mpi_getCommSizeShared(const cudaqDistributedCommunicator_t *comm,
+                          int32_t *numRanks) {
+  *numRanks = 0;
+  MPI_Info info;
+  MPI_Info_create(&info);
+  MPI_Info_set(info, "mpi_hw_resource_type", "mpi_shared_memory");
+  int procRank = -1;
+  int mpiErr = MPI_Comm_rank(unpackMpiCommunicator(comm), &procRank);
+  if (mpiErr == MPI_SUCCESS) {
+    MPI_Comm localComm;
+    mpiErr =
+        MPI_Comm_split_type(unpackMpiCommunicator(comm), MPI_COMM_TYPE_SHARED,
+                            procRank, info, &localComm);
+    if (mpiErr == MPI_SUCCESS) {
+      int nranks = 0;
+      mpiErr = MPI_Comm_size(localComm, &nranks);
+      *numRanks = nranks;
+      MPI_Comm_free(&localComm);
+    }
+  }
+  return mpiErr;
+}
+
 int mpi_Barrier(const cudaqDistributedCommunicator_t *comm) {
   return MPI_Barrier(unpackMpiCommunicator(comm));
 }
@@ -83,9 +137,23 @@ int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
 int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
                   const void *sendBuffer, void *recvBuffer, int32_t count,
                   DataType dataType, ReduceOp opType) {
-  return MPI_Allreduce(sendBuffer, recvBuffer, count, convertType(dataType),
+  if (opType == MIN_LOC) {
+    return MPI_Allreduce(sendBuffer, recvBuffer, count,
+                         convertTypeMinLoc(dataType), convertType(opType),
+                         unpackMpiCommunicator(comm));
+  } else {
+    return MPI_Allreduce(sendBuffer, recvBuffer, count, convertType(dataType),
+                         convertType(opType), unpackMpiCommunicator(comm));
+  }
+}
+
+int mpi_AllreduceInplace(const cudaqDistributedCommunicator_t *comm,
+                         void *recvBuffer, int32_t count, DataType dataType,
+                         ReduceOp opType) {
+  return MPI_Allreduce(MPI_IN_PLACE, recvBuffer, count, convertType(dataType),
                        convertType(opType), unpackMpiCommunicator(comm));
 }
+
 int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
                   const void *sendBuffer, void *recvBuffer, int32_t count,
                   DataType dataType) {
@@ -140,9 +208,11 @@ cudaqDistributedInterface_t *getDistributedInterface() {
       mpi_finalized,
       mpi_getNumRanks,
       mpi_getProcRank,
+      mpi_getCommSizeShared,
       mpi_Barrier,
       mpi_Bcast,
       mpi_Allreduce,
+      mpi_AllreduceInplace,
       mpi_Allgather,
       mpi_CommDup,
       mpi_CommSplit};
