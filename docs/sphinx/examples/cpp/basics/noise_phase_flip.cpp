@@ -20,8 +20,8 @@ int main() {
   // our phase flip channel to.
   cudaq::noise_model noise;
 
-  // We define a phase-flip channel setting to `1.0` the probability of the qubit
-  // undergoing a phase rotation of 180 degrees (π).
+  // We define a phase-flip channel setting to `1.0` the probability of the
+  // qubit undergoing a phase rotation of 180 degrees (π).
   cudaq::phase_flip_channel pf(1.);
   // We will apply this channel to any Z gate on the qubit.
   // In other words, after each Z gate on qubit 0, there will be a
