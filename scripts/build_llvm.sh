@@ -74,7 +74,7 @@ if [ -z "${llvm_projects##*clang;*}" ]; then
 fi
 if [ -z "${llvm_projects##*mlir;*}" ]; then
   echo "- including MLIR components"
-  llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
+  llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;MLIRPythonModules;"
   projects=("${projects[@]/mlir}")
 fi
 if [ -z "${llvm_projects##*lld;*}" ]; then
@@ -93,7 +93,7 @@ if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
 else 
   install_target=install # Fixme: should be install-distribution-stripped
   # some possibly useful components or python bindings:
-  # libclang-python-bindings, MLIRPythonModules, core-resource-headers;clang-resource-headers
+  # libclang-python-bindings, core-resource-headers;clang-resource-headers
 fi
 
 # A hack, since otherwise the build can fail due to line endings in the LLVM script:
