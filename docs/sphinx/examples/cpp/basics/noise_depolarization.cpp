@@ -20,8 +20,8 @@ int main() {
   // our depolarization channel to.
   cudaq::noise_model noise;
 
-  // We define a depolarization channel setting to `1.0` the probability of the qubit 
-  // state being scrambled.
+  // We define a depolarization channel setting to `1.0` the probability of the
+  // qubit state being scrambled.
   cudaq::depolarization_channel depolarization(1.);
   // We will apply the channel to any Y-gate on qubit 0. In other words,
   // for each Y-gate on our qubit, the qubit will have a `1.0`
