@@ -20,8 +20,8 @@ int main() {
   // these decoherence channels to.
   cudaq::noise_model noise;
 
-  // We define a bit-flip channel setting to `1.0` probability of the
-  // qubit flipping 180 degrees about the X axis.
+  // We define a bit-flip channel setting the probability of the
+  // qubit flipping 180 degrees about the X axis to `1.0`.
   cudaq::bit_flip_channel bf(1.);
   // We will apply this channel to any X gate on the qubit, giving each X-gate
   // a probability of `1.0` of undergoing an extra X-gate.
