@@ -56,7 +56,7 @@ py::object unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
     auto mpi_obj = mpiMod.attr("Intracomm")();
     auto address = mpiMod.attr("_addressof")(mpi_obj).cast<int64_t>();
     void **pointer = reinterpret_cast<void **>(address);
-    pointer[0] = comm->commPtr;
+    pointer[0] = *reinterpret_cast<void **>(comm->commPtr);
     return mpi_obj;
   } catch (std::exception &e) {
     std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
@@ -221,13 +221,14 @@ int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
   auto mpiMod = py::module::import("mpi4py.MPI");
   auto pyComm = unpackMpiCommunicator(comm);
   // Use std::deque to make sure pointers to elements are valid.
-  static std::deque<cudaqDistributedCommunicator_t> dup_comms;
+  static std::deque<std::pair<cudaqDistributedCommunicator_t, void *>>
+      dup_comms;
   try {
     const auto dup = pyComm.attr("Dup")();
-    auto commPtr = (void *)(mpiMod.attr("_handleof")(dup).cast<int64_t>());
-    dup_comms.emplace_back(cudaqDistributedCommunicator_t());
-    auto &newComm = dup_comms.back();
-    newComm.commPtr = commPtr;
+    dup_comms.emplace_back(std::pair<cudaqDistributedCommunicator_t, void *>());
+    auto &[newComm, commPtr] = dup_comms.back();
+    commPtr = (void *)(mpiMod.attr("_handleof")(dup).cast<int64_t>());
+    newComm.commPtr = &commPtr;
     newComm.commSize = mpiMod.attr("_sizeof")(dup).cast<std::size_t>();
     *newDupComm = &newComm;
     return 0;
@@ -242,13 +243,15 @@ int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm, int32_t color,
   auto mpiMod = py::module::import("mpi4py.MPI");
   auto pyComm = unpackMpiCommunicator(comm);
   // Use std::deque to make sure pointers to elements are valid.
-  static std::deque<cudaqDistributedCommunicator_t> split_comms;
+  static std::deque<std::pair<cudaqDistributedCommunicator_t, void *>>
+      split_comms;
   try {
     const auto split = pyComm.attr("Split")(color, key);
-    auto commPtr = (void *)(mpiMod.attr("_handleof")(split).cast<int64_t>());
-    split_comms.emplace_back(cudaqDistributedCommunicator_t());
-    auto &newComm = split_comms.back();
-    newComm.commPtr = commPtr;
+    split_comms.emplace_back(
+        std::pair<cudaqDistributedCommunicator_t, void *>());
+    auto &[newComm, commPtr] = split_comms.back();
+    commPtr = (void *)(mpiMod.attr("_handleof")(split).cast<int64_t>());
+    newComm.commPtr = &commPtr;
     newComm.commSize = mpiMod.attr("_sizeof")(split).cast<std::size_t>();
     *newSplitComm = &newComm;
     return 0;
@@ -263,9 +266,9 @@ cudaqDistributedCommunicator_t *getMpiCommunicator() {
   try {
     auto mpiMod = py::module::import("mpi4py.MPI");
     auto pyCommWorld = mpiMod.attr("COMM_WORLD");
-    auto commPtr =
+    static auto commPtr =
         (void *)(mpiMod.attr("_handleof")(pyCommWorld).cast<int64_t>());
-    commWorld.commPtr = commPtr;
+    commWorld.commPtr = &commPtr;
     commWorld.commSize =
         mpiMod.attr("_sizeof")(pyCommWorld).cast<std::size_t>();
   } catch (std::exception &) {
