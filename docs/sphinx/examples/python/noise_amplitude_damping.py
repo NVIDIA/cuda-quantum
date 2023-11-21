@@ -12,9 +12,11 @@ cudaq.set_target('density-matrix-cpu')
 # our damping channel to.
 noise = cudaq.NoiseModel()
 
-# We define an amplitude damping channel setting to `1.0` the probability of the qubit 
+# We define an amplitude damping channel setting to `1.0` the 
+# probability of the qubit 
 # decaying to the ground state.
 amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
+
 # We will apply this channel to any Hadamard gate on the qubit.
 # In other words, after each Hadamard on the qubit, there will be a
 # probability of `1.0` that the qubit decays back to the ground state.
