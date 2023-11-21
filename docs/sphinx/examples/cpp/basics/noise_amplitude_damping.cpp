@@ -20,8 +20,8 @@ int main() {
   // our damping channel to.
   cudaq::noise_model noise;
 
-  // We define an amplitude damping channel setting to `1.0` the probability of 
-  // the qubit decaying to the ground state.
+  // We define an amplitude damping channel setting the probability of 
+  // the qubit decaying to the ground state to `1.0`.
   cudaq::amplitude_damping_channel ad(1.);
 
   // We will apply this channel to any Hadamard gate on the qubit.
