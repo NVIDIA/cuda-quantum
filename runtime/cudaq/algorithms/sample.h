@@ -209,9 +209,7 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
   auto shots = platform.get_shots().value_or(1000);
   auto kernelName = cudaq::getKernelName(kernel);
   return details::runSampling(
-             [&kernel, ... args = std::forward<Args>(args)]() mutable {
-               kernel(std::forward<Args>(args)...);
-             },
+             [&]() { kernel(std::forward<Args>(args)...); },
              platform, kernelName, shots)
       .value();
 }
@@ -243,9 +241,7 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
   return details::runSampling(
-             [&kernel, ... args = std::forward<Args>(args)]() mutable {
-               kernel(std::forward<Args>(args)...);
-             },
+             [&]() { kernel(std::forward<Args>(args)...); },
              platform, kernelName, shots)
       .value();
 }
@@ -279,9 +275,7 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
   auto ret = details::runSampling(
-                 [&kernel, ... args = std::forward<Args>(args)]() mutable {
-                   kernel(std::forward<Args>(args)...);
-                 },
+                 [&]() { kernel(std::forward<Args>(args)...); },
                  platform, kernelName, shots)
                  .value();
 
@@ -319,10 +313,8 @@ async_sample_result sample_async(const std::size_t qpu_id,
   auto kernelName = cudaq::getKernelName(kernel);
 
   return details::runSamplingAsync(
-      [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        kernel(std::forward<Args>(args)...);
-      },
-      platform, kernelName, shots, qpu_id);
+      [&]() { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, shots, qpu_id);
 }
 
 /// \brief Sample the given kernel expression asynchronously and return
@@ -355,10 +347,8 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
   auto kernelName = cudaq::getKernelName(kernel);
 
   return details::runSamplingAsync(
-      [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        kernel(std::forward<Args>(args)...);
-      },
-      platform, kernelName, shots, qpu_id);
+      [&]() { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, shots, qpu_id);
 }
 
 /// \brief Sample the given kernel expression asynchronously and return
