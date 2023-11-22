@@ -171,5 +171,5 @@ echo "Total failed: $failed"
 echo "Skipped: $skipped"
 echo "============================="
 
-echo "$available_backends" | "${PYTHONPATH_PREFIX}python3" notebook_validation.py
+echo "$available_backends" | ${PYTHONPATH_PREFIX}python3 notebook_validation.py
 if  [ $? -eq 0 ] && [ "$failed" -eq "0" ]; then exit 0; else exit 10; fi
