@@ -93,6 +93,48 @@ TEST(MPITester, checkAllGather) {
   }
 }
 
+TEST(MPITester, checkAllGatherV) {
+  const auto rank = cudaq::mpi::rank();
+  const auto numRanks = cudaq::mpi::num_ranks();
+  const int mySize = rank + 1;
+  const int refSize = numRanks * (numRanks + 1) / 2;
+  std::vector<int> sizes(numRanks);
+  std::vector<int> offsets(numRanks);
+  for (int iProc = 0; iProc < numRanks; iProc++) {
+    sizes[iProc] = iProc + 1;
+    offsets[iProc] = iProc * (iProc + 1) / 2;
+  }
+  const auto getSerialVector = [](int size, int offset) {
+    std::vector<double> vector(size);
+    for (int i = 0; i < size; ++i) {
+      vector[i] = static_cast<double>(i + offset);
+    }
+    return vector;
+  };
+  const auto refVector = getSerialVector(refSize, 0);
+  const int offset = offsets[rank];
+  const auto myVector = getSerialVector(mySize, offset);
+  std::vector<double> vector(refSize);
+  auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
+  EXPECT_TRUE(mpiPlugin != nullptr);
+  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  EXPECT_TRUE(mpiInterface != nullptr);
+  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
+  EXPECT_TRUE(comm != nullptr);
+  int initialized = 0;
+  EXPECT_EQ(mpiInterface->initialized(&initialized), 0);
+  EXPECT_EQ(initialized, 1);
+  EXPECT_EQ(mpiInterface->AllgatherV(comm, myVector.data(), mySize,
+                                     vector.data(), sizes.data(),
+                                     offsets.data(), FLOAT_64),
+            0);
+
+  for (std::size_t i = 0; i < vector.size(); ++i) {
+    EXPECT_EQ(vector[i], refVector[i])
+        << "AllGatherV data is corrupted at index " << i;
+  }
+}
+
 TEST(MPITester, checkCommDup) {
   auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
   EXPECT_TRUE(mpiPlugin != nullptr);
