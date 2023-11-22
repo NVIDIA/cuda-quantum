@@ -75,7 +75,7 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project
-RUN source /opt/llvm/bootstrap/init_command.sh && \
+RUN source /opt/llvm/bootstrap/init_command.sh && rm -rf /llvm-project/build \
     LLVM_INSTALL_PREFIX=/opt/llvm \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
