@@ -53,12 +53,20 @@ typedef struct {
                           int32_t, DataType, ReduceOp);
   int (*Allgather)(const cudaqDistributedCommunicator_t *, const void *, void *,
                    int32_t, DataType);
+  int (*AllgatherV)(const cudaqDistributedCommunicator_t *, const void *,
+                    int32_t, void *, const int32_t *, const int32_t *,
+                    DataType);
+  int (*SendAsync)(const cudaqDistributedCommunicator_t *, const void *, int,
+                   DataType, int, int32_t);
+  int (*RecvAsync)(const cudaqDistributedCommunicator_t *, void *, int,
+                   DataType, int, int32_t);
+  int (*SendRecvAsync)(const cudaqDistributedCommunicator_t *, const void *,
+                       void *, int, DataType, int, int32_t);
+  int (*Synchronize)(const cudaqDistributedCommunicator_t *);
+  int (*Abort)(const cudaqDistributedCommunicator_t *, int);
   int (*CommDup)(const cudaqDistributedCommunicator_t *,
                  cudaqDistributedCommunicator_t **);
   int (*CommSplit)(const cudaqDistributedCommunicator_t *, int32_t, int32_t,
                    cudaqDistributedCommunicator_t **);
 } cudaqDistributedInterface_t;
-
-// cudaqDistributedCommunicator_t *getMpiCommunicator();
-// cudaqDistributedInterface_t *getDistributedInterface();
 }

@@ -9,6 +9,8 @@
 #include <complex>
 #include <iostream>
 #include <pybind11/embed.h>
+#include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 #include <stdexcept>
 
 namespace py = pybind11;
@@ -108,10 +110,19 @@ py::object unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
         "Invalid distributed communicator encountered in CUDAQ mpi4py plugin.");
   }
 }
+
+struct PendingRequest {
+  py::object requests[2];
+  int nActiveRequests;
+  PendingRequest() : nActiveRequests(0){};
+  static inline std::unordered_map<const cudaqDistributedCommunicator_t *,
+                                   PendingRequest>
+      g_requests;
+};
 } // namespace
 extern "C" {
 
-int mpi_initialize(int32_t *argc, char ***argv) {
+static int mpi_initialize(int32_t *argc, char ***argv) {
   try {
     auto mpiMod = py::module::import("mpi4py.MPI");
     if (mpiMod.attr("Is_initialized")().cast<bool>())
@@ -126,7 +137,7 @@ int mpi_initialize(int32_t *argc, char ***argv) {
   }
 }
 
-int mpi_finalize() {
+static int mpi_finalize() {
   if (!initCalledByThis)
     return 0;
   try {
@@ -142,7 +153,7 @@ int mpi_finalize() {
   }
 }
 
-int mpi_initialized(int32_t *flag) {
+static int mpi_initialized(int32_t *flag) {
   try {
     auto mpiMod = py::module::import("mpi4py.MPI");
     if (mpiMod.attr("Is_initialized")().cast<bool>())
@@ -157,7 +168,7 @@ int mpi_initialized(int32_t *flag) {
   }
 }
 
-int mpi_finalized(int32_t *flag) {
+static int mpi_finalized(int32_t *flag) {
   try {
     auto mpiMod = py::module::import("mpi4py.MPI");
     if (mpiMod.attr("Is_finalized")().cast<bool>())
@@ -172,9 +183,11 @@ int mpi_finalized(int32_t *flag) {
   }
 }
 
-int mpi_getNumRanks(const cudaqDistributedCommunicator_t *comm, int32_t *size) {
-  auto pyComm = unpackMpiCommunicator(comm);
+static int mpi_getNumRanks(const cudaqDistributedCommunicator_t *comm,
+                           int32_t *size) {
   try {
+    auto pyComm = unpackMpiCommunicator(comm);
+
     *size = pyComm.attr("Get_size")().cast<int>();
     return 0;
   } catch (std::exception &e) {
@@ -183,9 +196,11 @@ int mpi_getNumRanks(const cudaqDistributedCommunicator_t *comm, int32_t *size) {
   }
 }
 
-int mpi_getProcRank(const cudaqDistributedCommunicator_t *comm, int32_t *rank) {
-  auto pyComm = unpackMpiCommunicator(comm);
+static int mpi_getProcRank(const cudaqDistributedCommunicator_t *comm,
+                           int32_t *rank) {
   try {
+    auto pyComm = unpackMpiCommunicator(comm);
+
     *rank = pyComm.attr("Get_rank")().cast<int>();
     return 0;
   } catch (std::exception &e) {
@@ -194,8 +209,8 @@ int mpi_getProcRank(const cudaqDistributedCommunicator_t *comm, int32_t *rank) {
   }
 }
 
-int mpi_getCommSizeShared(const cudaqDistributedCommunicator_t *comm,
-                          int32_t *numRanks) {
+static int mpi_getCommSizeShared(const cudaqDistributedCommunicator_t *comm,
+                                 int32_t *numRanks) {
   *numRanks = 0;
   try {
     auto mpiMod = py::module::import("mpi4py.MPI");
@@ -219,9 +234,10 @@ int mpi_getCommSizeShared(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
-int mpi_Barrier(const cudaqDistributedCommunicator_t *comm) {
-  auto pyComm = unpackMpiCommunicator(comm);
+static int mpi_Barrier(const cudaqDistributedCommunicator_t *comm) {
   try {
+    auto pyComm = unpackMpiCommunicator(comm);
+
     pyComm.attr("Barrier")();
     return 0;
   } catch (std::exception &e) {
@@ -240,10 +256,11 @@ static py::object packData(const void *buffer, int32_t count, DataType dataType,
   return pyBuffer;
 }
 
-int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
-              int32_t count, DataType dataType, int32_t rootRank) {
-  auto pyComm = unpackMpiCommunicator(comm);
+static int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
+                     int32_t count, DataType dataType, int32_t rootRank) {
   try {
+    auto pyComm = unpackMpiCommunicator(comm);
+
     pyComm.attr("Bcast")(packData(buffer, count, dataType), rootRank);
     return 0;
   } catch (std::exception &e) {
@@ -252,13 +269,12 @@ int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
   }
 }
 
-int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
-                  const void *sendBuffer, void *recvBuffer, int32_t count,
-                  DataType dataType, ReduceOp opType) {
-  
-  
-  auto pyComm = unpackMpiCommunicator(comm);
+static int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
+                         const void *sendBuffer, void *recvBuffer,
+                         int32_t count, DataType dataType, ReduceOp opType) {
   try {
+    auto pyComm = unpackMpiCommunicator(comm);
+
     py::tuple sendBuf = py::make_tuple(
         packData(sendBuffer, count, dataType, true), count,
         opType == MIN_LOC ? convertTypeMinLoc(dataType) : convertType(opType));
@@ -273,15 +289,16 @@ int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
-int mpi_AllreduceInplace(const cudaqDistributedCommunicator_t *comm,
-                         void *recvBuffer, int32_t count, DataType dataType,
-                         ReduceOp opType) {
-  auto mpiMod = py::module::import("mpi4py.MPI");
-  auto inplaceAddr = mpiMod.attr("IN_PLACE");
-  py::tuple recvBuf = py::make_tuple(packData(recvBuffer, count, dataType),
-                                     count, convertType(dataType));
-  auto pyComm = unpackMpiCommunicator(comm);
+static int mpi_AllreduceInplace(const cudaqDistributedCommunicator_t *comm,
+                                void *recvBuffer, int32_t count,
+                                DataType dataType, ReduceOp opType) {
   try {
+    auto mpiMod = py::module::import("mpi4py.MPI");
+    auto inplaceAddr = mpiMod.attr("IN_PLACE");
+    py::tuple recvBuf = py::make_tuple(packData(recvBuffer, count, dataType),
+                                       count, convertType(dataType));
+    auto pyComm = unpackMpiCommunicator(comm);
+
     pyComm.attr("Allreduce")(inplaceAddr, recvBuf, convertType(opType));
     return 0;
   } catch (std::exception &e) {
@@ -290,12 +307,12 @@ int mpi_AllreduceInplace(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
-int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
-                  const void *sendBuffer, void *recvBuffer, int32_t count,
-                  DataType dataType) {
-  auto pyComm = unpackMpiCommunicator(comm);
-  const auto size = pyComm.attr("Get_size")().cast<int>();
+static int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
+                         const void *sendBuffer, void *recvBuffer,
+                         int32_t count, DataType dataType) {
   try {
+    auto pyComm = unpackMpiCommunicator(comm);
+    const auto size = pyComm.attr("Get_size")().cast<int>();
     pyComm.attr("Allgather")(packData(sendBuffer, count, dataType, true),
                              packData(recvBuffer, size * count, dataType));
     return 0;
@@ -305,14 +322,130 @@ int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
-int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
-                cudaqDistributedCommunicator_t **newDupComm) {
-  auto mpiMod = py::module::import("mpi4py.MPI");
-  auto pyComm = unpackMpiCommunicator(comm);
-  // Use std::deque to make sure pointers to elements are valid.
-  static std::deque<std::pair<cudaqDistributedCommunicator_t, void *>>
-      dup_comms;
+static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
+                          const void *sendBuf, int sendCount, void *recvBuf,
+                          const int *recvCounts, const int *displs,
+                          DataType dataType) {
   try {
+    auto pyComm = unpackMpiCommunicator(comm);
+    const auto size = pyComm.attr("Get_size")().cast<int>();
+    py::array_t<int> pyRecvCounts(size);
+    py::array_t<int> pyDispls(size);
+    auto pyRecvCountsData = pyRecvCounts.mutable_unchecked<1>();
+    auto pyDisplsData = pyDispls.mutable_unchecked<1>();
+    for (int i = 0; i < size; ++i) {
+      pyRecvCountsData(i) = recvCounts[i];
+      pyDisplsData(i) = displs[i];
+    }
+    pyComm.attr("Allgatherv")(
+        packData(sendBuf, sendCount, dataType, true),
+        py::make_tuple(packData(recvBuf, size * sendCount, dataType),
+                       pyRecvCounts, pyDispls, convertType(dataType)));
+    return 0;
+  } catch (std::exception &e) {
+    std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
+    return 1;
+  }
+  return 0;
+}
+
+static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
+                         const void *buf, int count, DataType dataType,
+                         int peer, int32_t tag) {
+  if (PendingRequest::g_requests[comm].nActiveRequests == 2)
+    return -1;
+  try {
+    auto pyComm = unpackMpiCommunicator(comm);
+    auto request =
+        pyComm.attr("Isend")(packData(buf, count, dataType, true), peer, tag);
+    PendingRequest::g_requests[comm]
+        .requests[PendingRequest::g_requests[comm].nActiveRequests] = request;
+    ++PendingRequest::g_requests[comm].nActiveRequests;
+    return 0;
+  } catch (std::exception &e) {
+    std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
+    return 1;
+  }
+  return 0;
+}
+
+static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
+                         int count, DataType dataType, int peer, int32_t tag) {
+  if (PendingRequest::g_requests[comm].nActiveRequests == 2)
+    return -1;
+  try {
+    auto pyComm = unpackMpiCommunicator(comm);
+    auto request =
+        pyComm.attr("Irecv")(packData(buf, count, dataType), peer, tag);
+    PendingRequest::g_requests[comm]
+        .requests[PendingRequest::g_requests[comm].nActiveRequests] = request;
+    ++PendingRequest::g_requests[comm].nActiveRequests;
+    return 0;
+  } catch (std::exception &e) {
+    std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
+    return 1;
+  }
+  return 0;
+}
+
+static int mpi_SendRecvAsync(const cudaqDistributedCommunicator_t *comm,
+                             const void *sendbuf, void *recvbuf, int count,
+                             DataType dataType, int peer, int32_t tag) {
+  if (PendingRequest::g_requests[comm].nActiveRequests != 0)
+    return -1;
+  try {
+    auto pyComm = unpackMpiCommunicator(comm);
+    auto sendRequest = pyComm.attr("Isend")(
+        packData(sendbuf, count, dataType, true), peer, tag);
+    auto recvRequest =
+        pyComm.attr("Irecv")(packData(recvbuf, count, dataType), peer, tag);
+    PendingRequest::g_requests[comm].requests[0] = sendRequest;
+    PendingRequest::g_requests[comm].requests[1] = recvRequest;
+    PendingRequest::g_requests[comm].nActiveRequests = 2;
+    return 0;
+  } catch (std::exception &e) {
+    std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
+    return 1;
+  }
+  return 0;
+}
+
+static int mpi_Synchronize(const cudaqDistributedCommunicator_t *comm) {
+  try {
+    auto pyComm = unpackMpiCommunicator(comm);
+    for (int i = 0; i < PendingRequest::g_requests[comm].nActiveRequests; ++i) {
+      PendingRequest::g_requests[comm].requests[i].attr("Wait")();
+    }
+    PendingRequest::g_requests[comm].nActiveRequests = 0;
+    return 0;
+  } catch (std::exception &e) {
+    std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
+    return 1;
+  }
+  return 0;
+}
+
+static int mpi_Abort(const cudaqDistributedCommunicator_t *comm,
+                     int errorCode) {
+  try {
+    auto pyComm = unpackMpiCommunicator(comm);
+    pyComm.attr("Abort")(errorCode);
+    return 0;
+  } catch (std::exception &e) {
+    std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
+    return 1;
+  }
+}
+
+static int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
+                       cudaqDistributedCommunicator_t **newDupComm) {
+  try {
+    auto mpiMod = py::module::import("mpi4py.MPI");
+    auto pyComm = unpackMpiCommunicator(comm);
+    // Use std::deque to make sure pointers to elements are valid.
+    static std::deque<std::pair<cudaqDistributedCommunicator_t, void *>>
+        dup_comms;
+
     const auto dup = pyComm.attr("Dup")();
     dup_comms.emplace_back(std::pair<cudaqDistributedCommunicator_t, void *>());
     auto &[newComm, commPtr] = dup_comms.back();
@@ -327,14 +460,16 @@ int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
-int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm, int32_t color,
-                  int32_t key, cudaqDistributedCommunicator_t **newSplitComm) {
-  auto mpiMod = py::module::import("mpi4py.MPI");
-  auto pyComm = unpackMpiCommunicator(comm);
-  // Use std::deque to make sure pointers to elements are valid.
-  static std::deque<std::pair<cudaqDistributedCommunicator_t, void *>>
-      split_comms;
+static int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm,
+                         int32_t color, int32_t key,
+                         cudaqDistributedCommunicator_t **newSplitComm) {
   try {
+    auto mpiMod = py::module::import("mpi4py.MPI");
+    auto pyComm = unpackMpiCommunicator(comm);
+    // Use std::deque to make sure pointers to elements are valid.
+    static std::deque<std::pair<cudaqDistributedCommunicator_t, void *>>
+        split_comms;
+
     const auto split = pyComm.attr("Split")(color, key);
     split_comms.emplace_back(
         std::pair<cudaqDistributedCommunicator_t, void *>());
@@ -382,6 +517,12 @@ cudaqDistributedInterface_t *getDistributedInterface() {
       mpi_Allreduce,
       mpi_AllreduceInplace,
       mpi_Allgather,
+      mpi_AllgatherV,
+      mpi_SendAsync,
+      mpi_RecvAsync,
+      mpi_SendRecvAsync,
+      mpi_Synchronize,
+      mpi_Abort,
       mpi_CommDup,
       mpi_CommSplit};
   return &cudaqDistributedInterface;
