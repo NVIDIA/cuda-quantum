@@ -138,6 +138,7 @@ static int mpi_initialize(int32_t *argc, char ***argv) {
 }
 
 static int mpi_finalize() {
+  PendingRequest::g_requests.clear();
   if (!initCalledByThis)
     return 0;
   try {
@@ -274,13 +275,12 @@ static int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
                          int32_t count, DataType dataType, ReduceOp opType) {
   try {
     auto pyComm = unpackMpiCommunicator(comm);
-
+    auto pyMpiType = (opType == MIN_LOC) ? convertTypeMinLoc(dataType)
+                                         : convertType(dataType);
     py::tuple sendBuf = py::make_tuple(
-        packData(sendBuffer, count, dataType, true), count,
-        opType == MIN_LOC ? convertTypeMinLoc(dataType) : convertType(opType));
-    py::tuple recvBuf = py::make_tuple(
-        packData(recvBuffer, count, dataType), count,
-        opType == MIN_LOC ? convertTypeMinLoc(dataType) : convertType(opType));
+        packData(sendBuffer, count, dataType, true), count, pyMpiType);
+    py::tuple recvBuf =
+        py::make_tuple(packData(recvBuffer, count, dataType), count, pyMpiType);
     pyComm.attr("Allreduce")(sendBuf, recvBuf, convertType(opType));
     return 0;
   } catch (std::exception &e) {

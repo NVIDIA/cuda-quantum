@@ -135,6 +135,61 @@ TEST(MPITester, checkAllGatherV) {
   }
 }
 
+TEST(MPITester, checkSendAndRecv) {
+  constexpr int nElems = 1;
+  const auto rank = cudaq::mpi::rank();
+  std::vector<double> sendBuffer(nElems);
+  std::vector<double> recvBuffer(nElems);
+  std::vector<double> refBuffer(nElems);
+  const int sendRank = rank ^ 1;
+  const int recvRank = sendRank;
+  sendBuffer[0] = rank;
+  refBuffer[0] = sendRank;
+  auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
+  EXPECT_TRUE(mpiPlugin != nullptr);
+  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  EXPECT_TRUE(mpiInterface != nullptr);
+  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
+  EXPECT_TRUE(comm != nullptr);
+  EXPECT_EQ(mpiInterface->RecvAsync(comm, recvBuffer.data(), nElems, FLOAT_64,
+                                    recvRank, 0),
+            0);
+  EXPECT_EQ(mpiInterface->SendAsync(comm, sendBuffer.data(), nElems, FLOAT_64,
+                                    sendRank, 0),
+            0);
+  EXPECT_EQ(mpiInterface->Synchronize(comm), 0);
+  for (std::size_t i = 0; i < refBuffer.size(); ++i) {
+    EXPECT_EQ(refBuffer[i], recvBuffer[i])
+        << "Send-Receive data is corrupted at index " << i;
+  }
+}
+
+TEST(MPITester, checkSendRecv) {
+  constexpr int nElems = 1;
+  const auto rank = cudaq::mpi::rank();
+  std::vector<double> sendBuffer(nElems);
+  std::vector<double> recvBuffer(nElems);
+  std::vector<double> refBuffer(nElems);
+  const int sendRecvRank = rank ^ 1;
+  sendBuffer[0] = rank;
+  refBuffer[0] = sendRecvRank;
+  auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
+  EXPECT_TRUE(mpiPlugin != nullptr);
+  cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
+  EXPECT_TRUE(mpiInterface != nullptr);
+  cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
+  EXPECT_TRUE(comm != nullptr);
+  EXPECT_EQ(mpiInterface->SendRecvAsync(comm, sendBuffer.data(),
+                                        recvBuffer.data(), nElems, FLOAT_64,
+                                        sendRecvRank, 0),
+            0);
+  EXPECT_EQ(mpiInterface->Synchronize(comm), 0);
+  for (std::size_t i = 0; i < refBuffer.size(); ++i) {
+    EXPECT_EQ(refBuffer[i], recvBuffer[i])
+        << "Send-Receive data is corrupted at index " << i;
+  }
+}
+
 TEST(MPITester, checkCommDup) {
   auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
   EXPECT_TRUE(mpiPlugin != nullptr);
