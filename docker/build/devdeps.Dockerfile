@@ -39,7 +39,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install prerequisites for building LLVM.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ninja-build cmake python3 \
+        ninja-build cmake python3 python3-dev python3-pip \
+    && python3 -m pip install --no-cache-dir numpy \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Clone the LLVM source code.
@@ -47,7 +48,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project \
     && cd /llvm-project && git checkout $llvm_commit \
-    && apt-get remove -y git \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum;
@@ -67,17 +67,14 @@ ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN LLVM_INSTALL_PREFIX=/opt/llvm LLVM_SOURCE=/llvm-project \
         source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
-RUN apt-get update && apt-get install -y --no-install-recommends git python3-dev \
-    && mkdir /pybind11-project && cd /pybind11-project && git init \
+RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
     && source /opt/llvm/bootstrap/init_command.sh \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
     && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
     && cmake --build . --target install --config Release \
-    && cd .. && rm -rf /pybind11-project \
-    && apt-get remove -y git python3-dev \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && cd .. && rm -rf /pybind11-project
 RUN source /opt/llvm/bootstrap/init_command.sh && \
     LLVM_INSTALL_PREFIX=/opt/llvm \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
