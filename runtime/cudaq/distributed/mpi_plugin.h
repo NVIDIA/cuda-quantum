@@ -65,4 +65,8 @@ public:
   // may not be valid and shouldn'd be used.
   bool isValid() const { return m_valid; }
 };
+
+namespace mpi {
+extern ::cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false);
+}
 } // namespace cudaq

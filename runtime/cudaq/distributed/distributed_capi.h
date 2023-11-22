@@ -32,7 +32,6 @@ typedef struct {
 
 #define CUDAQ_DISTRIBUTED_INTERFACE_VERSION 1
 
-
 /// @brief Data type that we support
 // Plugin implementation need to convert it to MPI data type enum as needed.
 enum DataType {

@@ -9,9 +9,6 @@
 #include <cudaq.h>
 #include <gtest/gtest.h>
 #include <random>
-namespace cudaq::mpi {
-cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false);
-} // namespace cudaq::mpi
 
 TEST(MPITester, checkInit) {
   EXPECT_TRUE(cudaq::mpi::is_initialized());

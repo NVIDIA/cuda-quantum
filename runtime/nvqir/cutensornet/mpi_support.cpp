@@ -18,10 +18,6 @@ extern "C" {
 void getThisLibPath() { return; }
 }
 
-namespace cudaq::mpi {
-cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false);
-} // namespace cudaq::mpi
-
 /// @brief Query the full path to the this lib.
 static const char *getThisSharedLibFilePath() {
   static thread_local std::string LIB_PATH;
