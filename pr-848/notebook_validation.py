@@ -56,8 +56,8 @@ def print_results(success, failed, skipped=[]):
 
     if failed:
         print(
-              "::error::The following notebook(s) raised one or more errors:\n" +
-              " ".join(failed))
+            "::error::The following notebook(s) raised one or more errors:\n" +
+            " ".join(failed))
 
     if skipped:
         print("::warning::Skipped validation for the following notebook(s):\n" +
