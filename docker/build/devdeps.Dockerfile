@@ -67,7 +67,7 @@ ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN LLVM_INSTALL_PREFIX=/opt/llvm LLVM_SOURCE=/llvm-project \
         source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
-RUN source /opt/llvm/bootstrap/init_command.sh && \
+RUN source /opt/llvm/bootstrap/init_command.sh \
     && apt-get update && apt-get install -y --no-install-recommends git \
     && mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
