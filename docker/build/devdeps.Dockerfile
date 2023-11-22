@@ -66,7 +66,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN LLVM_INSTALL_PREFIX=/opt/llvm LLVM_SOURCE=/llvm-project \
-        source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
+        source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
+    && rm -rf /llvm-project/build
 RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
@@ -75,7 +76,7 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project
-RUN source /opt/llvm/bootstrap/init_command.sh && rm -rf /llvm-project/build \
+RUN source /opt/llvm/bootstrap/init_command.sh && \
     LLVM_INSTALL_PREFIX=/opt/llvm \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
