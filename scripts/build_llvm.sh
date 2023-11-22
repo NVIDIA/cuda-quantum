@@ -74,7 +74,7 @@ if [ -z "${llvm_projects##*clang;*}" ]; then
 fi
 if [ -z "${llvm_projects##*mlir;*}" ]; then
   echo "- including MLIR components"
-  llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;MLIRPythonModules;"
+  llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;MLIRPythonModules;mlir-python-sources;"
   projects=("${projects[@]/mlir}")
 fi
 if [ -z "${llvm_projects##*lld;*}" ]; then
@@ -91,9 +91,18 @@ if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
   unset llvm_components
   install_target=install
 else 
-  install_target=install # Fixme: should be install-distribution-stripped
-  # some possibly useful components or python bindings:
-  # libclang-python-bindings, core-resource-headers;clang-resource-headers
+  install_target=install-distribution-stripped
+
+  # Cherry-pick the necessary commit to have a distribution target
+  # for the mlir-python-sources; to be removed after we update to LLVM 17.
+  echo "Cherry-picking commit 9494bd84df3c5b496fc087285af9ff40d7859b6a"
+  git cherry-pick --no-commit 9494bd84df3c5b496fc087285af9ff40d7859b6a
+  if [ ! 0 -eq $? ]; then
+    echo "Cherry-pick failed."
+    if $(git rev-parse --is-shallow-repository); then
+      echo "Unshallow the repository and try again."
+    fi
+  fi
 fi
 
 # A hack, since otherwise the build can fail due to line endings in the LLVM script:

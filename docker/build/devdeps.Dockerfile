@@ -43,10 +43,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Clone the LLVM source code.
+# Preserve access to the history to be able to cherry pick specific commits.
 RUN apt-get update && apt-get install -y --no-install-recommends git \
-    && mkdir /llvm-project && cd /llvm-project && git init \
-    && git remote add origin https://github.com/llvm/llvm-project \
-    && git fetch origin --depth=1 $llvm_commit && git reset --hard FETCH_HEAD \
+    && git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project \
+    && cd /llvm-project && git checkout $llvm_commit \
+    && apt-get remove -y git \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum;
@@ -71,6 +72,7 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
     && mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
+    && apt-get remove -y git \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
     && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \

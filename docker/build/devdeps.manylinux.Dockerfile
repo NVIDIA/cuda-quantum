@@ -36,9 +36,9 @@ ARG toolchain=gcc11
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Clone the LLVM source code.
-RUN mkdir /llvm-project && cd /llvm-project && git init \
-    && git remote add origin https://github.com/llvm/llvm-project \
-    && git fetch origin --depth=1 $llvm_commit && git reset --hard FETCH_HEAD
+# Preserve access to the history to be able to cherry pick specific commits.
+RUN git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project \
+    && cd /llvm-project && git checkout $llvm_commit
 
 # Install the C/C++ compiler toolchain with which the LLVM dependencies have
 # been built. CUDA Quantum needs to be built with that same toolchain, and the
