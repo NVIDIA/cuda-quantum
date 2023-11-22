@@ -225,6 +225,7 @@ int num_ranks();
 
 /// @brief Return true if MPI is already initialized, false otherwise.
 bool is_initialized();
+
 namespace details {
 #define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
   TYPE allReduce(const TYPE &, const BINARY<TYPE> &);

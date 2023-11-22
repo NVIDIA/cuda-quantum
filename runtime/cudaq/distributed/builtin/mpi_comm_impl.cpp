@@ -106,16 +106,18 @@ static int mpi_finalize() {
 static int mpi_initialized(int32_t *flag) { return MPI_Initialized(flag); }
 static int mpi_finalized(int32_t *flag) { return MPI_Finalized(flag); }
 
-static int mpi_getNumRanks(const cudaqDistributedCommunicator_t *comm, int32_t *size) {
+static int mpi_getNumRanks(const cudaqDistributedCommunicator_t *comm,
+                           int32_t *size) {
   return MPI_Comm_size(unpackMpiCommunicator(comm), size);
 }
 
-static int mpi_getProcRank(const cudaqDistributedCommunicator_t *comm, int32_t *rank) {
+static int mpi_getProcRank(const cudaqDistributedCommunicator_t *comm,
+                           int32_t *rank) {
   return MPI_Comm_rank(unpackMpiCommunicator(comm), rank);
 }
 
 static int mpi_getCommSizeShared(const cudaqDistributedCommunicator_t *comm,
-                          int32_t *numRanks) {
+                                 int32_t *numRanks) {
   *numRanks = 0;
   MPI_Info info;
   MPI_Info_create(&info);
@@ -142,14 +144,14 @@ static int mpi_Barrier(const cudaqDistributedCommunicator_t *comm) {
 }
 
 static int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
-              int32_t count, DataType dataType, int32_t rootRank) {
+                     int32_t count, DataType dataType, int32_t rootRank) {
   return MPI_Bcast(buffer, count, convertType(dataType), rootRank,
                    unpackMpiCommunicator(comm));
 }
 
 static int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
-                  const void *sendBuffer, void *recvBuffer, int32_t count,
-                  DataType dataType, ReduceOp opType) {
+                         const void *sendBuffer, void *recvBuffer,
+                         int32_t count, DataType dataType, ReduceOp opType) {
   if (opType == MIN_LOC) {
     return MPI_Allreduce(sendBuffer, recvBuffer, count,
                          convertTypeMinLoc(dataType), convertType(opType),
@@ -161,24 +163,24 @@ static int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
 }
 
 static int mpi_AllreduceInplace(const cudaqDistributedCommunicator_t *comm,
-                         void *recvBuffer, int32_t count, DataType dataType,
-                         ReduceOp opType) {
+                                void *recvBuffer, int32_t count,
+                                DataType dataType, ReduceOp opType) {
   return MPI_Allreduce(MPI_IN_PLACE, recvBuffer, count, convertType(dataType),
                        convertType(opType), unpackMpiCommunicator(comm));
 }
 
 static int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
-                  const void *sendBuffer, void *recvBuffer, int32_t count,
-                  DataType dataType) {
+                         const void *sendBuffer, void *recvBuffer,
+                         int32_t count, DataType dataType) {
   return MPI_Allgather(sendBuffer, count, convertType(dataType), recvBuffer,
                        count, convertType(dataType),
                        unpackMpiCommunicator(comm));
 }
 
 static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
-                   const void *sendBuf, int sendCount, void *recvBuf,
-                   const int *recvCounts, const int *displs,
-                   DataType dataType) {
+                          const void *sendBuf, int sendCount, void *recvBuf,
+                          const int *recvCounts, const int *displs,
+                          DataType dataType) {
   return MPI_Allgatherv(sendBuf, sendCount, convertType(dataType), recvBuf,
                         recvCounts, displs, convertType(dataType),
                         unpackMpiCommunicator(comm));
@@ -202,9 +204,8 @@ static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
   return 0;
 }
 
-static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm,
-                                     void *buf, int count, DataType dataType,
-                                     int peer, int32_t tag) {
+static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
+                         int count, DataType dataType, int peer, int32_t tag) {
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
     return -1;
   MPI_Request *request =
@@ -268,8 +269,9 @@ static int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
   return status;
 }
 
-static int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm, int32_t color,
-                  int32_t key, cudaqDistributedCommunicator_t **newSplitComm) {
+static int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm,
+                         int32_t color, int32_t key,
+                         cudaqDistributedCommunicator_t **newSplitComm) {
 
   // Use std::deque to make sure pointers to elements are valid.
   static std::deque<std::pair<MPI_Comm, cudaqDistributedCommunicator_t>>

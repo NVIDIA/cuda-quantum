@@ -16,6 +16,7 @@ class MPIPlugin {
   cudaqDistributedCommunicator_t *m_comm;
   bool m_valid;
   std::string m_libFile;
+
 public:
   static constexpr std::string_view COMM_GETTER_SYMBOL_NAME =
       "getMpiCommunicator";
@@ -52,7 +53,8 @@ public:
 
   void broadcast(std::vector<double> &data, int rootRank);
 
-  void all_reduce(std::vector<double> &global, const std::vector<double> &local, ReduceOp op);
+  void all_reduce(std::vector<double> &global, const std::vector<double> &local,
+                  ReduceOp op);
   /// @brief Finalize MPI. This function
   /// is a no-op if there CUDA Quantum has not been built
   /// against MPI.
