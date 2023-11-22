@@ -65,6 +65,7 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
+ENV LLVM_BUILD_LINKER_FLAGS="-static-libgcc -static-libstdc++"
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         ninja-build cmake \
     && mkdir /pybind11-project && cd /pybind11-project && git init \
@@ -74,11 +75,9 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 -DDOWNLOAD_CATCH=ON \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project \
-    && export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
-    && export CMAKE_SHARED_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
-    && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
-    && dnf remove -y ninja-build cmake && dnf clean all \
-    && rm -rf /llvm-project && rm /scripts/build_llvm.sh
+    && export CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
+    && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
+    # No clean up, since we need to re-build llvm for each python version to get the bindings.
 
 # Install additional dependencies required to build the CUDA Quantum wheel.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
