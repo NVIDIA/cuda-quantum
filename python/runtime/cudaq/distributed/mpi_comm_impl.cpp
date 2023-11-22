@@ -115,10 +115,12 @@ struct PendingRequest {
   py::object requests[2];
   int nActiveRequests;
   PendingRequest() : nActiveRequests(0){};
-  static inline std::unordered_map<const cudaqDistributedCommunicator_t *,
-                                   PendingRequest>
+  static std::unordered_map<const cudaqDistributedCommunicator_t *,
+                            PendingRequest>
       g_requests;
 };
+std::unordered_map<const cudaqDistributedCommunicator_t *, PendingRequest>
+    PendingRequest::g_requests;
 } // namespace
 extern "C" {
 
