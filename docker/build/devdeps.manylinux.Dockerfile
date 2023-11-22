@@ -71,7 +71,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 -DDOWNLOAD_CATCH=ON \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project \
     && export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \

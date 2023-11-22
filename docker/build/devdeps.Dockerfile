@@ -73,7 +73,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git python3-dev
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
     && source /opt/llvm/bootstrap/init_command.sh \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 -DDOWNLOAD_CATCH=ON \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project \
     && apt-get remove -y git python3-dev \
