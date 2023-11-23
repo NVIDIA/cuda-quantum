@@ -111,10 +111,12 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         toolchain: [llvm, clang16, gcc12]
+        mpi: [openmpi, mpich]
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       platform: linux/${{ matrix.platform }}
+      mpi: ${{ matrix.mpi }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}

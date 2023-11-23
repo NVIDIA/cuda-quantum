@@ -5,6 +5,10 @@ on:
         type: string
         required: false
         default: linux/amd64
+      mpi:
+        type: string
+        required: false
+        default: openmpi
       devdeps_image:
         required: false
         type: string
@@ -66,7 +70,7 @@ jobs:
             -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
-            --build-arg mpi="openmpi"
+            --build-arg mpi="${{ inputs.mpi }}"
 
       - name: Test CUDA Quantum
         uses: ./.github/actions/run-in-docker

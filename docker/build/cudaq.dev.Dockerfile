@@ -39,7 +39,7 @@ WORKDIR "$destination"
 ARG mpi=
 RUN if [ -n "$mpi" ]; \
     then \
-        apt update && apt install -y lib$mpi-dev \
+        apt update && apt install -y lib$mpi-dev ; \
     fi
 
 # Configuring a base image that contains the necessary dependencies for GPU
