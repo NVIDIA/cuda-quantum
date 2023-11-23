@@ -532,7 +532,11 @@ cudaqDistributedInterface_t *getDistributedInterface() {
 }
 
 __attribute__((constructor)) void dllMain() {
-  interp = std::make_unique<py::scoped_interpreter>();
+  if (Py_IsInitialized() == 0) {
+    // Create a scoped interpreter if none exists.
+    // Note: if this was invoked from Python, an interpreter is already active.
+    interp = std::make_unique<py::scoped_interpreter>();
+  }
   try {
     py::module::import("mpi4py");
   } catch (std::exception &e) {
