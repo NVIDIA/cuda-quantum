@@ -82,13 +82,20 @@ jobs:
             python3 -m pip install iqm-client
             ctest --output-on-failure --test-dir build -E ctest-nvqpp
             ctest_status=$?
-            # Re-run MPI Plugin test using the mpi4py plugin (only if the above ctest is passing)
             if [ $ctest_status -eq 0 ]; then
-              # Remove the builtin plugin; force a fallback to mpi4py-based plugin
               rm -f build/lib/plugins/libcudaq-comm-plugin.so
               python3 -m pip install mpi4py
               ctest --test-dir build -R MPIApiTest -V
               ctest_status=$?
+              if [ $ctest_status -eq 0 ]; then
+                pushd .
+                cd /usr/local/cudaq/distributed_interfaces/ 
+                export MPI_PATH="$(dirname "$(mpicxx --showme:incdirs)")" 
+                source activate_custom_mpi.sh
+                popd
+                ctest --test-dir build -R MPIApiTest -V
+                ctest_status=$?
+              fi
             fi
 
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
