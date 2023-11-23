@@ -90,7 +90,6 @@ jobs:
       image_id: ${{ steps.build_info.outputs.image_id }}
       image_tags: ${{ steps.metadata.outputs.tags }}
       image_labels: ${{ steps.metadata.outputs.labels }}
-      llvm_commit: ${{ steps.build_info.outputs.llvm_commit }}
 
     # Needed for access to environment variables (like the registry name).
     environment:
@@ -146,7 +145,6 @@ jobs:
           echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
           echo "dockerfile=${{ inputs.dockerfile }}" >> $GITHUB_OUTPUT
           echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
-          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker image
         id: metadata
@@ -301,7 +299,6 @@ jobs:
           target: ${{ inputs.build_target }}
           build-args: |
             toolchain=${{ inputs.toolchain }}
-            llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
             ${{ inputs.build_args }}
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
