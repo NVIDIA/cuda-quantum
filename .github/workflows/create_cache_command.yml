@@ -14,7 +14,7 @@ name: Create CI cache
 
 jobs:
   config:
-    name: Configure build
+    name: Determine PR info
     runs-on: ubuntu-latest
 
     outputs:
@@ -45,9 +45,31 @@ jobs:
             Checking out source code from head `${{ steps.pr_info.outputs.source_label }}` (sha: ${{ steps.pr_info.outputs.source_sha }}).
           edit-mode: append
 
+  repoinfo:
+    name: Configure build
+    needs: config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
+      pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: "${{ format('refs/pull/{0}/merge', needs.config.outputs.pull_request_number) }}"
+
+      - id: repo_info
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+
   devdeps_caches:
     name: Cache dev dependencies
-    needs: config
+    needs: [config, repoinfo]
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -58,6 +80,9 @@ jobs:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
+      build_args: |
+        llvm_commit=${{ needs.repoinfo.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.repoinfo.outputs.pybind11_commit }}
       create_local_cache: true
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}
@@ -66,7 +91,7 @@ jobs:
 
   wheeldeps_caches:
     name: Cache wheel dependencies
-    needs: config
+    needs: [config, repoinfo]
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -80,6 +105,8 @@ jobs:
         manylinux_image=manylinux_2_28
         arch=${{ (matrix.platform == 'arm64' && 'aarch64') || (matrix.platform == 'amd64' && 'x86_64') || 'any' }}
         distro=rhel8
+        llvm_commit=${{ needs.repoinfo.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.repoinfo.outputs.pybind11_commit }}
       create_local_cache: true
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}

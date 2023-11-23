@@ -93,6 +93,18 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
         message(FATAL_ERROR "Cloning git submodules failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually")
     endif()
+    # Apply patches; check if patch is already applied first, and apply it if not
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --reverse --check
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_PATCH_RESULT)
+    if(NOT GIT_PATCH_RESULT EQUAL "0")
+      execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                      RESULT_VARIABLE GIT_PATCH_RESULT)
+    endif()
+    if(NOT GIT_PATCH_RESULT EQUAL "0")
+        message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+    endif()
   endif()
 endif()
 
