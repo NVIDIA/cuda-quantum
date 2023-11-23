@@ -126,11 +126,11 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         toolchain: [llvm, clang16, gcc12]
-      include:
-        - toolchain: gcc12
-          mpi: openmpi
-        - toolchain: gcc12
-          mpi: mpich
+        include:
+          - toolchain: gcc12
+            mpi: openmpi
+          - toolchain: gcc12
+            mpi: mpich
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
