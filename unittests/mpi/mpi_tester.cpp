@@ -144,6 +144,7 @@ TEST(MPITester, checkSendAndRecv) {
   refBuffer[0] = sendRank;
   auto *mpiPlugin = cudaq::mpi::getMpiPlugin();
   EXPECT_TRUE(mpiPlugin != nullptr);
+  std::cout << "MPI plugin file: " << mpiPlugin->getPluginPath() << "\n";
   cudaqDistributedInterface_t *mpiInterface = mpiPlugin->get();
   EXPECT_TRUE(mpiInterface != nullptr);
   cudaqDistributedCommunicator_t *comm = mpiPlugin->getComm();
