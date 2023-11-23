@@ -198,7 +198,7 @@ if (MPI_CXX_FOUND)
   )
   target_link_options(test_mpi_plugin PRIVATE -Wl,--no-as-needed)
   # Allow oversubscribe in case CI runner has very few cores.
-  add_test(NAME MPIApiTest COMMAND ${MPIEXEC} --allow-run-as-root --oversubscribe -np ${NUM_PROCS} bash ${CMAKE_BINARY_DIR}/unittests/test_mpi_plugin)
+  add_test(NAME MPIApiTest COMMAND ${MPIEXEC} --allow-run-as-root --oversubscribe -np ${NUM_PROCS} ${CMAKE_BINARY_DIR}/unittests/test_mpi_plugin)
 endif()
 
 add_subdirectory(backends)
