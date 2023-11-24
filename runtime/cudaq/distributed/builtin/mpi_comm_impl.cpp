@@ -14,6 +14,15 @@
 #include <stdexcept>
 #include <unordered_map>
 
+/*! \file mpi_comm_impl.h
+    \brief Reference implementation of CUDAQ MPI interface wrapper
+
+    This is an implementation of the MPI shim interface defined in
+   distributed_capi.h. This can be compiled and linked against an MPI
+   implementation (e.g., OpenMPI or MPICH) to produce a runtime loadable plugin
+   providing CUDA Quantum with necessary MPI functionalities.
+*/
+
 namespace {
 bool initCalledByThis = false;
 MPI_Datatype convertType(DataType dataType) {
@@ -74,6 +83,7 @@ MPI_Comm unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
   return *((MPI_Comm *)(comm->commPtr));
 }
 
+/// @brief Tracking in-flight non-blocking send and receive requests.
 struct PendingRequest {
   MPI_Request requests[2];
   int nActiveRequests;
@@ -87,6 +97,7 @@ std::unordered_map<const cudaqDistributedCommunicator_t *, PendingRequest>
 } // namespace
 extern "C" {
 
+/// @brief Wrapper of MPI_Init
 static int mpi_initialize(int32_t *argc, char ***argv) {
   int flag = 0;
   int res = MPI_Initialized(&flag);
@@ -99,25 +110,33 @@ static int mpi_initialize(int32_t *argc, char ***argv) {
   return MPI_Init(argc, argv);
 }
 
+/// @brief Wrapper of MPI_Finalize
 static int mpi_finalize() {
   if (!initCalledByThis)
     return MPI_SUCCESS;
   return MPI_Finalize();
 }
 
+/// @brief Wrapper of MPI_Initialized
 static int mpi_initialized(int32_t *flag) { return MPI_Initialized(flag); }
+
+/// @brief Wrapper of MPI_Finalized
 static int mpi_finalized(int32_t *flag) { return MPI_Finalized(flag); }
 
+/// @brief Wrapper of MPI_Comm_size
 static int mpi_getNumRanks(const cudaqDistributedCommunicator_t *comm,
                            int32_t *size) {
   return MPI_Comm_size(unpackMpiCommunicator(comm), size);
 }
 
+/// @brief Wrapper of MPI_Comm_rank
 static int mpi_getProcRank(const cudaqDistributedCommunicator_t *comm,
                            int32_t *rank) {
   return MPI_Comm_rank(unpackMpiCommunicator(comm), rank);
 }
 
+/// @brief Returns the size of the local subgroup of processes sharing node
+/// memory
 static int mpi_getCommSizeShared(const cudaqDistributedCommunicator_t *comm,
                                  int32_t *numRanks) {
   *numRanks = 0;
@@ -141,16 +160,19 @@ static int mpi_getCommSizeShared(const cudaqDistributedCommunicator_t *comm,
   return mpiErr;
 }
 
+/// @brief Wrapper of MPI_Barrier
 static int mpi_Barrier(const cudaqDistributedCommunicator_t *comm) {
   return MPI_Barrier(unpackMpiCommunicator(comm));
 }
 
+/// @brief Wrapper of MPI_Bcast
 static int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
                      int32_t count, DataType dataType, int32_t rootRank) {
   return MPI_Bcast(buffer, count, convertType(dataType), rootRank,
                    unpackMpiCommunicator(comm));
 }
 
+/// @brief Wrapper of MPI_Allreduce
 static int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
                          const void *sendBuffer, void *recvBuffer,
                          int32_t count, DataType dataType, ReduceOp opType) {
@@ -164,6 +186,7 @@ static int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Wrapper of MPI_Allreduce with MPI_IN_PLACE
 static int mpi_AllreduceInplace(const cudaqDistributedCommunicator_t *comm,
                                 void *recvBuffer, int32_t count,
                                 DataType dataType, ReduceOp opType) {
@@ -171,6 +194,7 @@ static int mpi_AllreduceInplace(const cudaqDistributedCommunicator_t *comm,
                        convertType(opType), unpackMpiCommunicator(comm));
 }
 
+/// @brief Wrapper of MPI_Allgather
 static int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
                          const void *sendBuffer, void *recvBuffer,
                          int32_t count, DataType dataType) {
@@ -179,6 +203,7 @@ static int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
                        unpackMpiCommunicator(comm));
 }
 
+/// @brief Wrapper of MPI_Allgatherv
 static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
                           const void *sendBuf, int sendCount, void *recvBuf,
                           const int *recvCounts, const int *displs,
@@ -188,6 +213,7 @@ static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
                         unpackMpiCommunicator(comm));
 }
 
+/// @brief Wrapper of MPI_Isend and track pending requests for synchronization
 static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
                          const void *buf, int count, DataType dataType,
                          int peer, int32_t tag) {
@@ -206,6 +232,7 @@ static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
   return 0;
 }
 
+/// @brief Wrapper of MPI_Irecv and track pending requests for synchronization
 static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
                          int count, DataType dataType, int peer, int32_t tag) {
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
@@ -223,6 +250,7 @@ static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
   return 0;
 }
 
+/// @brief Combined MPI_Isend and MPI_Irecv requests
 static int mpi_SendRecvAsync(const cudaqDistributedCommunicator_t *comm,
                              const void *sendbuf, void *recvbuf, int count,
                              DataType dataType, int peer, int32_t tag) {
@@ -243,6 +271,7 @@ static int mpi_SendRecvAsync(const cudaqDistributedCommunicator_t *comm,
   return 0;
 }
 
+/// @brief Wait for in-flight MPI_Isend and MPI_Irecv to complete
 static int mpi_Synchronize(const cudaqDistributedCommunicator_t *comm) {
   MPI_Status statuses[2];
   std::memset(statuses, 0, sizeof(statuses));
@@ -252,11 +281,13 @@ static int mpi_Synchronize(const cudaqDistributedCommunicator_t *comm) {
   return res;
 }
 
+/// @brief Wrapper of MPI_Abort
 static int mpi_Abort(const cudaqDistributedCommunicator_t *comm,
                      int errorCode) {
   return MPI_Abort(unpackMpiCommunicator(comm), errorCode);
 }
 
+/// @brief Wrapper of MPI_Comm_dup
 static int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
                        cudaqDistributedCommunicator_t **newDupComm) {
   // Use std::deque to make sure pointers to elements are valid.
@@ -271,6 +302,7 @@ static int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
   return status;
 }
 
+/// @brief Wrapper of MPI_Comm_split
 static int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm,
                          int32_t color, int32_t key,
                          cudaqDistributedCommunicator_t **newSplitComm) {
@@ -289,6 +321,7 @@ static int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm,
   return status;
 }
 
+/// @brief Return the underlying MPI_Comm as a type-erased object
 cudaqDistributedCommunicator_t *getMpiCommunicator() {
   static MPI_Comm pluginComm = MPI_COMM_WORLD;
   static cudaqDistributedCommunicator_t commWorld{&pluginComm,
@@ -296,6 +329,7 @@ cudaqDistributedCommunicator_t *getMpiCommunicator() {
   return &commWorld;
 }
 
+/// @brief Return the MPI shim interface (as a function table)
 cudaqDistributedInterface_t *getDistributedInterface() {
   static cudaqDistributedInterface_t cudaqDistributedInterface{
       CUDAQ_DISTRIBUTED_INTERFACE_VERSION,
