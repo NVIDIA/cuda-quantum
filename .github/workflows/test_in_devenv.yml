@@ -113,14 +113,13 @@ jobs:
           run: |
             cd /usr/local/cudaq/distributed_interfaces/ 
             # Set MPI_PATH depending on OMPI/MPICH
-            has_ompiinfo:=$(shell which ompi_info > /dev/null; echo $$?)
-            ifeq ($(has_ompiinfo), 0)
-              export MPI_PATH="$(dirname "$(mpicxx --showme:incdirs)")" 
-            endif
-            has_mpichversion:=$(shell which mpichversion > /dev/null; echo $$?)
-            ifeq ($(has_mpichversion), 0)
-              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
-            endif
+            has_ompiinfo=$(which ompi_info || true)
+            if [[ ! -z $has_ompiinfo ]]; then
+                export MPI_PATH="$(dirname "$(mpicxx --showme:incdirs)")" 
+            else
+                export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
+            fi
+            echo $MPI_PATH
             # Run the activation script
             source activate_custom_mpi.sh
             echo $CUDAQ_MPI_COMM_LIB

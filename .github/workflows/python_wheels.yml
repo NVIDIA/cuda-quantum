@@ -215,6 +215,7 @@ jobs:
                 exit 1
               fi
             done
+            echo "$(uname -a)"
             if [  -n "$(uname -a | grep Ubuntu)" ]; then
               # Install mpi4py when validating the wheel on Ubuntu
               # to run the MPI plugin test.
