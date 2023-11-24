@@ -130,8 +130,8 @@ jobs:
         exclude:
           - toolchain: llvm
             mpi: mpich
-          - os: clang16
-            version: mpich
+          - toolchain: clang16
+            mpi: mpich
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
