@@ -89,7 +89,7 @@ jobs:
               exit 1
             fi
 
-      - name: Test CUDA Quantum MPI Plugin
+      - name: Test CUDA Quantum MPI4Py Plugin
         uses: ./.github/actions/run-in-docker
         with:
           image: cuda-quantum-dev:local
@@ -100,8 +100,19 @@ jobs:
             rm -f build/lib/plugins/libcudaq-comm-plugin.so
             ctest --test-dir build -R MPIApiTest -V
             mpi4py_status=$?   
-            pushd .
+            if [ ! $mpi4py_status -eq 0 ] ; then
+              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI4Py Plugin failed with status $mpi4py_status."
+              exit 1
+            fi
+      
+      - name: Test CUDA Quantum MPI Plugin Activation
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: cuda-quantum-dev:local
+          shell: bash
+          run: |
             cd /usr/local/cudaq/distributed_interfaces/ 
+            # Set MPI_PATH depending on OMPI/MPICH
             has_ompiinfo:=$(shell which ompi_info > /dev/null; echo $$?)
             ifeq ($(has_ompiinfo), 0)
               export MPI_PATH="$(dirname "$(mpicxx --showme:incdirs)")" 
@@ -110,12 +121,15 @@ jobs:
             ifeq ($(has_mpichversion), 0)
               export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
             endif
+            # Run the activation script
             source activate_custom_mpi.sh
-            popd
+            echo $CUDAQ_MPI_COMM_LIB
+            # Rerun the MPI plugin test
+            cd $CUDAQ_REPO_ROOT
             ctest --test-dir build -R MPIApiTest -V
             external_plugin_status=$?   
-            if [ ! $mpi4py_status -eq 0 ] || [ ! $external_plugin_status -eq 0 ]; then
-              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin failed (MPI4Py plugin status $mpi4py_status, externally-activated plugin status $external_plugin_status)."
+            if [ ! $external_plugin_status -eq 0 ] ; then
+              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed with status $external_plugin_status."
               exit 1
             fi
 
