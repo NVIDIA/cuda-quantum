@@ -82,26 +82,40 @@ jobs:
             python3 -m pip install iqm-client
             ctest --output-on-failure --test-dir build -E ctest-nvqpp
             ctest_status=$?
-            if [ $ctest_status -eq 0 ]; then
-              rm -f build/lib/plugins/libcudaq-comm-plugin.so
-              python3 -m pip install mpi4py
-              ctest --test-dir build -R MPIApiTest -V
-              ctest_status=$?
-              if [ $ctest_status -eq 0 ]; then
-                pushd .
-                cd /usr/local/cudaq/distributed_interfaces/ 
-                export MPI_PATH="$(dirname "$(mpicxx --showme:incdirs)")" 
-                source activate_custom_mpi.sh
-                popd
-                ctest --test-dir build -R MPIApiTest -V
-                ctest_status=$?
-              fi
-            fi
-
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
             lit_status=$?
             if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status)."
+              exit 1
+            fi
+
+      - name: Test CUDA Quantum MPI Plugin
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: cuda-quantum-dev:local
+          shell: bash
+          run: |
+            cd $CUDAQ_REPO_ROOT
+            python3 -m pip install mpi4py
+            rm -f build/lib/plugins/libcudaq-comm-plugin.so
+            ctest --test-dir build -R MPIApiTest -V
+            mpi4py_status=$?   
+            pushd .
+            cd /usr/local/cudaq/distributed_interfaces/ 
+            has_ompiinfo:=$(shell which ompi_info > /dev/null; echo $$?)
+            ifeq ($(has_ompiinfo), 0)
+              export MPI_PATH="$(dirname "$(mpicxx --showme:incdirs)")" 
+            endif
+            has_mpichversion:=$(shell which mpichversion > /dev/null; echo $$?)
+            ifeq ($(has_mpichversion), 0)
+              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
+            endif
+            source activate_custom_mpi.sh
+            popd
+            ctest --test-dir build -R MPIApiTest -V
+            external_plugin_status=$?   
+            if [ ! $mpi4py_status -eq 0 ] || [ ! $external_plugin_status -eq 0 ]; then
+              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin failed (MPI4Py plugin status $mpi4py_status, externally-activated plugin status $external_plugin_status)."
               exit 1
             fi
 
