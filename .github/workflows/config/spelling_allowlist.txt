@@ -3,12 +3,14 @@ APIs
 AST
 BFGS
 CLA
+CLI
 CMake
 COBYLA
 CPTP
 CPU
 CPUs
 CUDA
+CuPy
 DGX
 DOI
 Fourier
@@ -24,11 +26,14 @@ IQM
 IonQ
 JIT
 JSON
+Jupyter
+JupyterLab
 Kraus
 LLVM
 LSB
 MLIR
 MPI
+MPS
 Max-Cut
 NGC
 NVIDIA
@@ -49,6 +54,9 @@ QPUs
 QTX
 Quake
 Quantinuum
+RSA
+SVD
+TCP
 Toffoli
 VQE
 Vazirani
@@ -147,6 +155,7 @@ symplectic
 tablegen
 templated
 toolchain
+unary
 unitaries
 unitary
 unoptimized

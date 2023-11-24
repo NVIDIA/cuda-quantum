@@ -68,12 +68,13 @@ jobs:
             --build-arg install="CMAKE_BUILD_TYPE=Debug"
 
       - name: Test CUDA Quantum
-        uses: addnab/docker-run-action@v3
+        uses: ./.github/actions/run-in-docker
         with:
           image: cuda-quantum-dev:local
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
+            python3 -m pip install iqm-client
             ctest --output-on-failure --test-dir build -E ctest-nvqpp
             ctest_status=$?
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
@@ -152,7 +153,7 @@ jobs:
             --build-arg base_image=$base_image 
 
       - name: Build and test CUDA Quantum (Python)
-        uses: addnab/docker-run-action@v3
+        uses: ./.github/actions/run-in-docker
         with:
           image: dev_env:local
           shell: bash

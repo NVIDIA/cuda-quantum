@@ -27,13 +27,15 @@ func.func @__nvqpp__mlirgen__dummy() {
       %4 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
       quake.x [%3] %4 : (!quake.ref, !quake.ref) -> ()
       %5 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
-      %bits = quake.mz %5 name "b0" : (!quake.ref) -> i1
+      %bits = quake.mz %5 name "b0" : (!quake.ref) -> !quake.measure
+      %bit = quake.discriminate %bits : (!quake.measure) -> i1
       %6 = cc.alloca i1
-      cc.store %bits, %6 : !cc.ptr<i1>
+      cc.store %bit, %6 : !cc.ptr<i1>
       %7 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
-      %bits_0 = quake.mz %7 name "b1" : (!quake.ref) -> i1
+      %bits_0 = quake.mz %7 name "b1" : (!quake.ref) -> !quake.measure
+      %bit_0 = quake.discriminate %bits_0 : (!quake.measure) -> i1
       %8 = cc.alloca i1
-      cc.store %bits_0, %8 : !cc.ptr<i1>
+      cc.store %bit_0, %8 : !cc.ptr<i1>
       %9 = cc.load %6 : !cc.ptr<i1>
       %10 = cc.load %8 : !cc.ptr<i1>
       %11 = arith.cmpi ne, %9, %10 : i1
@@ -79,10 +81,11 @@ func.func @__nvqpp__mlirgen__dummy() {
 // CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:               quake.x [%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:               %[[VAL_12:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK:               %[[VAL_13:.*]] = quake.mz %[[VAL_12]] name "b0" : (!quake.ref) -> i1
-// CHECK:               %[[VAL_14:.*]] = cc.undef i1
+// CHECK:               %[[VAL_113:.*]] = quake.mz %[[VAL_12]] name "b0" : (!quake.ref) -> !quake.measure
+// CHECK:               %[[VAL_13:.*]] = quake.discriminate %[[VAL_113]] :
 // CHECK:               %[[VAL_15:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:               %[[VAL_16:.*]] = quake.mz %[[VAL_15]] name "b1" : (!quake.ref) -> i1
+// CHECK:               %[[VAL_116:.*]] = quake.mz %[[VAL_15]] name "b1" : (!quake.ref) -> !quake.measure
+// CHECK:               %[[VAL_16:.*]] = quake.discriminate %[[VAL_116]] :
 // CHECK:               %[[VAL_18:.*]] = arith.cmpi ne, %[[VAL_13]], %[[VAL_16]] : i1
 // CHECK:               cf.cond_br %[[VAL_18]], ^bb1(%[[VAL_8]] : i32), ^bb2(%[[VAL_13]], %[[VAL_16]], %[[VAL_8]] : i1, i1, i32)
 // CHECK:             ^bb1(%[[VAL_19:.*]]: i32):

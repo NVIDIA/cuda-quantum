@@ -8,7 +8,7 @@ kernel definitions, sampling) can be included with
 
   #include <cudaq.h>
 
-Defining spin operators will require 
+Defining spin operators will require one of the following instructions:
 
 .. code-block:: cpp 
 
@@ -17,7 +17,7 @@ Defining spin operators will require
   #include <cudaq/algorithm.h>
 
 CUDA Quantum spin operator observation will also be made available by :code:`<cudaq/algorithm.h>`.
-For the available CUDA Quantum optimizers and gradients
+For the available CUDA Quantum optimizers and gradients, include these header files:
 
 .. code-block:: cpp 
 

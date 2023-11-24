@@ -34,24 +34,15 @@ CUDAQ_TEST(GradientTester, checkSimple) {
   cudaq::spin_op h3 = h + 9.625 - 9.625 * z(2) - 3.913119 * x(1) * x(2) -
                       3.913119 * y(1) * y(2);
 
-  // Default here is cobyla
-  // Should see many more iterations
-  printf("Optimize with no gradients.\n");
-  cudaq::optimizers::cobyla optimizer;
-  optimizer.optimize(
-      2, [&](const std::vector<double> &x, std::vector<double> &grad_vec) {
-        double e = cudaq::observe(deuteron_n3_ansatz{}, h3, x[0], x[1]);
-        printf("<H>(%lf, %lf) = %lf\n", x[0], x[1], e);
-        return e;
-      });
-
-  // Change the default to l-bfgs which requires gradient calc
-  // Should see fewer iterations
+  // Use l-bfgs optimizer which requires gradient calc
+  // Since we have gradients, it should converge rather quickly (small number of
+  // iterations is needed)
   printf("\nOptimize with gradients.\n");
   cudaq::gradients::central_difference gradient(
       deuteron_n3_ansatz{},
       [](std::vector<double> x) { return std::make_tuple(x[0], x[1]); });
   cudaq::optimizers::lbfgs optimizer_lbfgs;
+  optimizer_lbfgs.max_line_search_trials = 3;
   auto [opt_val_0, optpp] = optimizer_lbfgs.optimize(
       2, [&](const std::vector<double> &x, std::vector<double> &grad_vec) {
         double e = cudaq::observe(deuteron_n3_ansatz{}, h3, x[0], x[1]);
@@ -60,11 +51,12 @@ CUDAQ_TEST(GradientTester, checkSimple) {
         return e;
       });
 
-  EXPECT_NEAR(-2.0453, opt_val_0, 1e-2);
+  EXPECT_NEAR(-2.0453, opt_val_0, 1e-3);
 
   printf("\nOptimize with gradients, change a few options.\n");
   optimizer_lbfgs.initial_parameters = std::vector<double>{.1, .1};
-  optimizer_lbfgs.max_eval = 10;
+  optimizer_lbfgs.max_eval = 5;
+  optimizer_lbfgs.max_line_search_trials = 3;
   auto [opt_val, optp] = optimizer_lbfgs.optimize(
       2, [&](const std::vector<double> &x, std::vector<double> &grad_vec) {
         double e = cudaq::observe(deuteron_n3_ansatz{}, h3, x[0], x[1]);
@@ -75,7 +67,7 @@ CUDAQ_TEST(GradientTester, checkSimple) {
 
   printf("Opt loop found %lf at [%lf, %lf]\n", opt_val, optp[0], optp[1]);
 
-  EXPECT_NEAR(-2.0453, opt_val, 1e-2);
+  EXPECT_NEAR(-2.0453, opt_val, 1e-3);
 }
 
 #endif

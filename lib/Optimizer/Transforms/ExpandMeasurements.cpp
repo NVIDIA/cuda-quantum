@@ -21,7 +21,7 @@ using namespace mlir;
 // Only an individual qubit measurement returns a bool.
 template <typename A>
 bool usesIndividualQubit(A x) {
-  return x.getType() == IntegerType::get(x.getContext(), 1);
+  return x.getType() == quake::MeasureType::get(x.getContext());
 }
 
 // Generalized pattern for expanding a multiple qubit measurement (whether it is
@@ -64,14 +64,17 @@ public:
     Value buffOff = rewriter.template create<arith::ConstantIndexOp>(loc, 0);
     Value one = rewriter.template create<arith::ConstantIndexOp>(loc, 1);
     auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
+    auto measTy = quake::MeasureType::get(rewriter.getContext());
     for (auto v : measureOp.getTargets()) {
       if (isa<quake::RefType>(v.getType())) {
-        auto bit = rewriter.template create<A>(loc, i1Ty, v);
+        auto meas = rewriter.template create<A>(loc, measTy, v).getMeasOut();
+        auto bit =
+            rewriter.template create<quake::DiscriminateOp>(loc, i1Ty, meas);
         Value offCast =
             rewriter.template create<arith::IndexCastOp>(loc, i64Ty, buffOff);
         auto addr = rewriter.template create<cudaq::cc::ComputePtrOp>(
             loc, i1PtrTy, buff, offCast);
-        rewriter.template create<cudaq::cc::StoreOp>(loc, bit.getBits(), addr);
+        rewriter.template create<cudaq::cc::StoreOp>(loc, bit, addr);
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
       } else {
         assert(isa<quake::VeqType>(v.getType()));
@@ -82,17 +85,18 @@ public:
               Value iv = block.getArgument(0);
               Value qv =
                   builder.template create<quake::ExtractRefOp>(loc, v, iv);
-              auto bit = builder.template create<A>(loc, i1Ty, qv);
-              if (auto registerName = measureOp->getAttr("registerName"))
-                bit->setAttr("registerName", registerName);
+              auto meas = builder.template create<A>(loc, measTy, qv);
+              auto bit = builder.template create<quake::DiscriminateOp>(
+                  loc, i1Ty, meas.getMeasOut());
+              if (auto registerName = measureOp.getRegisterNameAttr())
+                meas.setRegisterName(registerName);
               auto offset =
                   builder.template create<arith::AddIOp>(loc, iv, buffOff);
               Value offCast = builder.template create<arith::IndexCastOp>(
                   loc, i64Ty, offset);
               auto addr = builder.template create<cudaq::cc::ComputePtrOp>(
                   loc, i1PtrTy, buff, offCast);
-              builder.template create<cudaq::cc::StoreOp>(loc, bit.getBits(),
-                                                          addr);
+              builder.template create<cudaq::cc::StoreOp>(loc, bit, addr);
             });
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, vecSz);
       }
@@ -101,8 +105,12 @@ public:
     // 4. Use the buffer as an initialization expression and create the
     // std::vec<bool> value.
     auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), i1Ty);
-    rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-        measureOp, stdvecTy, buff, buffLen);
+    for (auto *out : measureOp.getMeasOut().getUsers())
+      if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out))
+        rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+            disc, stdvecTy, buff, buffLen);
+
+    rewriter.eraseOp(measureOp);
     return success();
   }
 };
@@ -124,11 +132,11 @@ public:
     target.addLegalDialect<quake::QuakeDialect, cudaq::cc::CCDialect,
                            arith::ArithDialect, LLVM::LLVMDialect>();
     target.addDynamicallyLegalOp<quake::MxOp>(
-        [](quake::MxOp x) { return usesIndividualQubit(x.getBits()); });
+        [](quake::MxOp x) { return usesIndividualQubit(x.getMeasOut()); });
     target.addDynamicallyLegalOp<quake::MyOp>(
-        [](quake::MyOp x) { return usesIndividualQubit(x.getBits()); });
+        [](quake::MyOp x) { return usesIndividualQubit(x.getMeasOut()); });
     target.addDynamicallyLegalOp<quake::MzOp>(
-        [](quake::MzOp x) { return usesIndividualQubit(x.getBits()); });
+        [](quake::MzOp x) { return usesIndividualQubit(x.getMeasOut()); });
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
       op->emitOpError("could not expand measurements");
       signalPassFailure();

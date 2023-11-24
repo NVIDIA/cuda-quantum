@@ -16,8 +16,8 @@
 // CHECK:    quake.x %[[a1]]
 // CHECK:    quake.ry (%[[arg0]]) %[[a2]] : (f64, !quake.ref) -> ()
 // CHECK:    quake.x [%[[a2]]] %[[a1]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:    %[[a3:.*]] = quake.mz %[[a1]] : (!quake.ref) -> i1
-// CHECK:    %[[a4:.*]] = quake.mz %[[a2]] : (!quake.ref) -> i1
+// CHECK:    quake.mz %[[a1]] : (!quake.ref) -> !quake.measure
+// CHECK:    quake.mz %[[a2]] : (!quake.ref) -> !quake.measure
 // CHECK:    return
 // CHECK:  }
 
@@ -34,8 +34,8 @@ module {
         quake.x %q0 : (!quake.ref) -> ()
         quake.ry (%theta) %q1  : (f64, !quake.ref) -> ()
         quake.x [%q1] %q0 : (!quake.ref, !quake.ref) -> ()
-        %measurements0 = quake.mz %q0 : (!quake.ref) -> i1
-        %measurements1 = quake.mz %q1 : (!quake.ref) -> i1
+        %measurements0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+        %measurements1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
         return
     }
 }

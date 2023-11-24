@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/Builders.h"
@@ -21,6 +22,10 @@ class LoopOp;
 }
 
 namespace opt::factory {
+
+//===----------------------------------------------------------------------===//
+// Type builders
+//===----------------------------------------------------------------------===//
 
 /// Return the LLVM-IR dialect void type.
 inline mlir::Type getVoidType(mlir::MLIRContext *ctx) {
@@ -64,13 +69,65 @@ inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   return mlir::LLVM::LLVMStructType::getLiteral(ctx, eleTys);
 }
 
+//===----------------------------------------------------------------------===//
+// Constant builders
+//===----------------------------------------------------------------------===//
+
 /// Generate an LLVM IR dialect constant with type `i32` for a specific value.
-inline mlir::LLVM::ConstantOp
-genI32Constant(mlir::Location loc, mlir::OpBuilder &builder, std::int32_t val) {
+inline mlir::LLVM::ConstantOp genLlvmI32Constant(mlir::Location loc,
+                                                 mlir::OpBuilder &builder,
+                                                 std::int32_t val) {
   auto idx = builder.getI32IntegerAttr(val);
-  auto i32Ty = builder.getIntegerType(32);
+  auto i32Ty = builder.getI32Type();
   return builder.create<mlir::LLVM::ConstantOp>(loc, i32Ty, idx);
 }
+
+inline mlir::LLVM::ConstantOp genLlvmI64Constant(mlir::Location loc,
+                                                 mlir::OpBuilder &builder,
+                                                 std::int64_t val) {
+  auto idx = builder.getI64IntegerAttr(val);
+  auto i64Ty = builder.getI64Type();
+  return builder.create<mlir::LLVM::ConstantOp>(loc, i64Ty, idx);
+}
+
+inline mlir::Value createFloatConstant(mlir::Location loc,
+                                       mlir::OpBuilder &builder,
+                                       llvm::APFloat value,
+                                       mlir::FloatType type) {
+  return builder.create<mlir::arith::ConstantFloatOp>(loc, value, type);
+}
+
+inline mlir::Value createFloatConstant(mlir::Location loc,
+                                       mlir::OpBuilder &builder, double value,
+                                       mlir::FloatType type) {
+  return createFloatConstant(loc, builder, llvm::APFloat(value), type);
+}
+
+inline mlir::Value createF64Constant(mlir::Location loc,
+                                     mlir::OpBuilder &builder, double value) {
+  return createFloatConstant(loc, builder, value, builder.getF64Type());
+}
+
+inline mlir::Value createIntegerConstant(mlir::Location loc,
+                                         mlir::OpBuilder &builder,
+                                         std::int64_t value,
+                                         mlir::IntegerType type) {
+  return builder.create<mlir::arith::ConstantIntOp>(loc, value, type);
+}
+
+inline mlir::Value createI64Constant(mlir::Location loc,
+                                     mlir::OpBuilder &builder,
+                                     std::int64_t value) {
+  return createIntegerConstant(loc, builder, value, builder.getI64Type());
+}
+
+inline mlir::Value createI32Constant(mlir::Location loc,
+                                     mlir::OpBuilder &builder,
+                                     std::int32_t value) {
+  return createIntegerConstant(loc, builder, value, builder.getI32Type());
+}
+
+//===----------------------------------------------------------------------===//
 
 inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
   auto *entry = new mlir::Block;

@@ -6,7 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target qpp-cpu %s -o %basename_t.x && ./%basename_t.x
+// RUN: nvq++ --target qpp-cpu %s -o %basename_t.x && CUDAQ_LOG_LEVEL=info ./%basename_t.x | FileCheck --check-prefix=CHECK-QPP %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR="density-matrix-cpu" nvq++ %s -o %basename_t.x && CUDAQ_LOG_LEVEL=info ./%basename_t.x | FileCheck --check-prefix=CHECK-DM %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR="foo" nvq++ %s -o %basename_t.x && CUDAQ_LOG_LEVEL=info ./%basename_t.x | FileCheck %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR="qpp-cpu" nvq++ --target quantinuum --emulate %s -o %basename_t.x && CUDAQ_LOG_LEVEL=info ./%basename_t.x | FileCheck --check-prefix=CHECK-QPP %s
 
 #include <cudaq.h>
 
@@ -26,3 +29,11 @@ int main() {
   counts.dump();
   return 0;
 }
+
+// CHECK-QPP: [info] [NVQIR.cpp:{{[0-9]+}}] Creating the qpp backend.
+// CHECK-QPP: [info] [DefaultExecutionManager.cpp:{{[0-9]+}}] [DefaultExecutionManager] Creating the qpp backend.
+
+// CHECK-DM: [info] [NVQIR.cpp:{{[0-9]+}}] Creating the dm backend.
+// CHECK-DM: [info] [DefaultExecutionManager.cpp:{{[0-9]+}}] [DefaultExecutionManager] Creating the dm backend.
+
+// CHECK-NOT: foo

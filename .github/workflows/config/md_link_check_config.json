@@ -17,6 +17,9 @@
       },
       {
         "pattern": "^https://epubs.siam.org/doi/10.1137/S0097539796300921"
+      },
+      {
+        "pattern": "^https://vscode.dev/"
       }
     ]
 }

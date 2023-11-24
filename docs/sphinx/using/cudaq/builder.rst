@@ -4,7 +4,7 @@ There may be use cases whereby one might need the ability to construct
 quantum kernels dynamically at runtime, as opposed to statically defining
 kernel structs, lambdas, or functions. CUDA Quantum provides an abstraction called the 
 :code:`cudaq::kernel_builder` for such cases. Imagine that you wanted to dynamically 
-create a kernel with the following callable structure 
+create a kernel with the following callable structure. 
 
 .. code-block:: cpp 
 
@@ -17,7 +17,7 @@ create a kernel with the following callable structure
       } 
     };
 
-This can be expressed dynamically at runtime with the builder as follows 
+This can be expressed dynamically at runtime with the builder as follows: 
 
 .. code-block:: cpp 
 
@@ -49,7 +49,7 @@ call can be modified algebraically, giving the programmer more control over the
 kernel construction. These parameters can be any arithmetic type or 
 :code:`std::vector<T>` where T is any arithmetic type. The arithmetic
 parameters can be multiplied by scalars, negated (unary negation), and summed
-with scalars. Vector parameters can be indexed. Here's an example 
+with scalars. Vector parameters can be indexed. Here's an example: 
 
 .. code-block:: cpp 
 

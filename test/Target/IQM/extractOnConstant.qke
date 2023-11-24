@@ -18,7 +18,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__super = "_ZN5supe
     %cst_1 = arith.constant 1.5707963267948966 : f64
     quake.phased_rx (%cst_1, %cst_1) %1 : (f64, f64, !quake.ref) -> ()
     quake.phased_rx (%cst_0, %cst) %1 : (f64, f64, !quake.ref) -> ()
-    %2 = quake.mz %1 : (!quake.ref) -> i1
+    %2 = quake.mz %1 : (!quake.ref) -> !quake.measure
     return
   }
 }

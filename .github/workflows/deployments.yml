@@ -45,7 +45,7 @@ on:
 name: Deployments # do not change name without updating workflow_run triggers
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -59,6 +59,8 @@ jobs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
       pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
+      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
+      pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       update_cache: ${{ steps.build_info.outputs.update_cache }}
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
@@ -97,7 +99,9 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
-          requested_platforms=`echo ${{ inputs.platforms || 'linux/arm64 linux/amd64' }} | tr + ,`
+          echo "Concurrency group: ${{ github.event.workflow_run.head_branch || github.ref_name }}"
+
+          requested_platforms=`echo "${{ inputs.platforms || 'linux/arm64 linux/amd64' }}" | tr + ,`
           if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
             multi_platform="{\"ids\":[]}"
             platform_flag=`echo "$requested_platforms" | tr -d ' '`
@@ -141,6 +145,17 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: "${{ steps.pr_info.outputs.merge_commit }}"
+
+      - name: Configure build
+        id: repo_info
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+
   devdeps:
     name: Build dev dependencies
     needs: metadata
@@ -155,6 +170,9 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
+      build_args: |
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
@@ -182,6 +200,8 @@ jobs:
       build_args: |
         arch=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].arch }}
         distro=rhel8
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
       registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
