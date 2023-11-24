@@ -32,7 +32,11 @@ then
     return
 fi
 
-g++ -shared -std=c++17 -fPIC \
+if [ -z "${CXX}" ]; then
+    CXX=g++
+fi
+
+$CXX -shared -std=c++17 -fPIC \
     -I${MPI_PATH}/include \
     mpi_comm_impl.cpp \
     -L${MPI_PATH}/lib64 -L${MPI_PATH}/lib -lmpi \

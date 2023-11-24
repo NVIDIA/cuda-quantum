@@ -115,9 +115,9 @@ jobs:
             # Set MPI_PATH depending on OMPI/MPICH
             has_ompiinfo=$(which ompi_info || true)
             if [[ ! -z $has_ompiinfo ]]; then
-                export MPI_PATH="$(dirname "$(mpicxx --showme:incdirs)")" 
+              export MPI_PATH="$(dirname "$(mpicxx --showme:incdirs)")" 
             else
-                export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
+              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
             fi
             echo $MPI_PATH
             # Run the activation script
