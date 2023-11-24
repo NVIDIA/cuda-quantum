@@ -9,9 +9,9 @@
 	// If you do not have the NVIDIA container runtime installed, available GPUs will not be automatically detected.
 	// You can manually pass the flag to enable GPU support to docker by uncommenting the line below.
 	// "runArgs": [ "--gpus=all" ],
-    "hostRequirements": {
-        "gpu": "optional"
-    },
+	"hostRequirements": {
+		"gpu": "optional"
+	},
 	// To use certain debugging tools, you may want uncomment the two lines below.
 	// Be mindful of security implications when you do. See also 
 	// - https://github.com/rr-debugger/rr/wiki/Docker
