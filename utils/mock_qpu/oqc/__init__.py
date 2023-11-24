@@ -152,4 +152,4 @@ def startServer(port):
 
 
 if __name__ == '__main__':
-    startServer(62453)
+    startServer(62442)
