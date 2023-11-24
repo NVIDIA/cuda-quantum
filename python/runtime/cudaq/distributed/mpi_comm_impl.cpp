@@ -439,6 +439,16 @@ static int mpi_Abort(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+static void *voidPtrCast(py::handle src) {
+  PyObject *source = src.ptr();
+  PyObject *tmp = PyNumber_Long(source);
+  if (!tmp)
+    return nullptr;
+  void *casted = PyLong_AsVoidPtr(tmp);
+  Py_DECREF(tmp);
+  return casted;
+}
+
 static int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
                        cudaqDistributedCommunicator_t **newDupComm) {
   try {
@@ -451,7 +461,7 @@ static int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
     const auto dup = pyComm.attr("Dup")();
     dup_comms.emplace_back(std::pair<cudaqDistributedCommunicator_t, void *>());
     auto &[newComm, commPtr] = dup_comms.back();
-    commPtr = (void *)(mpiMod.attr("_handleof")(dup).cast<int64_t>());
+    commPtr = voidPtrCast(mpiMod.attr("_handleof")(dup));
     newComm.commPtr = &commPtr;
     newComm.commSize = mpiMod.attr("_sizeof")(dup).cast<std::size_t>();
     *newDupComm = &newComm;
@@ -476,7 +486,7 @@ static int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm,
     split_comms.emplace_back(
         std::pair<cudaqDistributedCommunicator_t, void *>());
     auto &[newComm, commPtr] = split_comms.back();
-    commPtr = (void *)(mpiMod.attr("_handleof")(split).cast<int64_t>());
+    commPtr = voidPtrCast(mpiMod.attr("_handleof")(split));
     newComm.commPtr = &commPtr;
     newComm.commSize = mpiMod.attr("_sizeof")(split).cast<std::size_t>();
     *newSplitComm = &newComm;
