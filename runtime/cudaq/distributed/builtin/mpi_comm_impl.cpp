@@ -5,14 +5,6 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "distributed_capi.h"
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <deque>
-#include <mpi.h>
-#include <stdexcept>
-#include <unordered_map>
 
 /*! \file mpi_comm_impl.h
     \brief Reference implementation of CUDAQ MPI interface wrapper
@@ -22,6 +14,24 @@
    implementation (e.g., OpenMPI or MPICH) to produce a runtime loadable plugin
    providing CUDA Quantum with necessary MPI functionalities.
 */
+
+#include "distributed_capi.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <deque>
+#include <stdexcept>
+#include <unordered_map>
+
+// This MPI plugin does not use the [deprecated] C++ binding of MPI at ALL. The
+// following flag makes sure the C++ bindings are not included.
+#if !defined(MPICH_SKIP_MPICXX)
+#define MPICH_SKIP_MPICXX 1
+#endif
+#if !defined(OMPI_SKIP_MPICXX)
+#define OMPI_SKIP_MPICXX 1
+#endif
+#include <mpi.h>
 
 namespace {
 bool initCalledByThis = false;
