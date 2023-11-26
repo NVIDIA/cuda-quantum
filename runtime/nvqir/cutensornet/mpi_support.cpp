@@ -38,6 +38,7 @@ static const char *getThisSharedLibFilePath() {
   return LIB_PATH.c_str();
 }
 
+/// @brief Retrieve the MPI plugin comm interface
 static cudaqDistributedInterface_t *getMpiPluginInterface() {
   auto mpiPlugin = cudaq::mpi::getMpiPlugin();
   if (!mpiPlugin)
@@ -48,6 +49,7 @@ static cudaqDistributedInterface_t *getMpiPluginInterface() {
   return mpiInterface;
 }
 
+/// @brief Retrieve the MPI plugin (type-erased) comm pointer
 static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
   auto mpiPlugin = cudaq::mpi::getMpiPlugin();
   if (!mpiPlugin)
@@ -58,6 +60,7 @@ static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
   return comm;
 }
 
+/// @brief Retrieve the path to the plugin implementation
 static std::string getMpiPluginFilePath() {
   auto mpiPlugin = cudaq::mpi::getMpiPlugin();
   if (!mpiPlugin)
@@ -105,7 +108,12 @@ void resetCuTensornetComm(cutensornetHandle_t cutnHandle) {
       cutnHandle, nullptr, comm->commSize));
 }
 
-// Converts CUDA data type to the corresponding CUDAQ shim type enum
+// Implementing cutensornet's COMM interface by delegating wrapped MPI calls to
+// the underlying CUDA Quantum MPI plugin. This will make this library
+// compatible with CUTENSORNET_COMM_LIB API. Converts CUDA data type to the
+// corresponding CUDAQ shim type enum
+
+/// Convert cutensornet CUDA datatype enum
 static DataType convertCudaToMpiDataType(const cudaDataType_t cudaDataType) {
   switch (cudaDataType) {
   case CUDA_R_8I:
@@ -131,6 +139,7 @@ static DataType convertCudaToMpiDataType(const cudaDataType_t cudaDataType) {
   __builtin_unreachable();
 }
 
+/// Convert the type-erased Comm object
 static cudaqDistributedCommunicator_t
 convertMpiCommunicator(const cutensornetDistributedCommunicator_t *cutnComm) {
   cudaqDistributedCommunicator_t comm{cutnComm->commPtr, cutnComm->commSize};
@@ -140,7 +149,7 @@ convertMpiCommunicator(const cutensornetDistributedCommunicator_t *cutnComm) {
 #ifdef __cplusplus
 extern "C" {
 #endif
-/** MPI_Comm_size wrapper */
+/// MPI_Comm_size wrapper
 int cutensornetMpiCommSize(const cutensornetDistributedCommunicator_t *comm,
                            int32_t *numRanks) {
   cudaq::ScopedTrace trace(__FUNCTION__);
@@ -148,7 +157,7 @@ int cutensornetMpiCommSize(const cutensornetDistributedCommunicator_t *comm,
   return getMpiPluginInterface()->getNumRanks(&cudaqComm, numRanks);
 }
 
-/** Returns the size of the local subgroup of processes sharing node memory */
+/// Returns the size of the local subgroup of processes sharing node memory
 int cutensornetMpiCommSizeShared(
     const cutensornetDistributedCommunicator_t *comm, int32_t *numRanks) {
   cudaq::ScopedTrace trace(__FUNCTION__);
@@ -156,7 +165,7 @@ int cutensornetMpiCommSizeShared(
   return getMpiPluginInterface()->getCommSizeShared(&cudaqComm, numRanks);
 }
 
-/** MPI_Comm_rank wrapper */
+/// MPI_Comm_rank wrapper
 int cutensornetMpiCommRank(const cutensornetDistributedCommunicator_t *comm,
                            int32_t *procRank) {
   cudaq::ScopedTrace trace(__FUNCTION__);
@@ -164,14 +173,14 @@ int cutensornetMpiCommRank(const cutensornetDistributedCommunicator_t *comm,
   return getMpiPluginInterface()->getProcRank(&cudaqComm, procRank);
 }
 
-/** MPI_Barrier wrapper */
+/// MPI_Barrier wrapper
 int cutensornetMpiBarrier(const cutensornetDistributedCommunicator_t *comm) {
   cudaq::ScopedTrace trace(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Barrier(&cudaqComm);
 }
 
-/** MPI_Bcast wrapper */
+/// MPI_Bcast wrapper
 int cutensornetMpiBcast(const cutensornetDistributedCommunicator_t *comm,
                         void *buffer, int32_t count, cudaDataType_t datatype,
                         int32_t root) {
@@ -181,7 +190,7 @@ int cutensornetMpiBcast(const cutensornetDistributedCommunicator_t *comm,
       &cudaqComm, buffer, count, convertCudaToMpiDataType(datatype), root);
 }
 
-/** MPI_Allreduce wrapper */
+/// MPI_Allreduce wrapper
 int cutensornetMpiAllreduce(const cutensornetDistributedCommunicator_t *comm,
                             const void *bufferIn, void *bufferOut,
                             int32_t count, cudaDataType_t datatype) {
@@ -193,7 +202,7 @@ int cutensornetMpiAllreduce(const cutensornetDistributedCommunicator_t *comm,
       convertCudaToMpiDataType(datatype), SUM);
 }
 
-/** MPI_Allreduce IN_PLACE wrapper */
+/// MPI_Allreduce IN_PLACE wrapper
 int cutensornetMpiAllreduceInPlace(
     const cutensornetDistributedCommunicator_t *comm, void *buffer,
     int32_t count, cudaDataType_t datatype) {
@@ -204,7 +213,7 @@ int cutensornetMpiAllreduceInPlace(
       &cudaqComm, buffer, count, convertCudaToMpiDataType(datatype), SUM);
 }
 
-/** MPI_Allreduce IN_PLACE MIN wrapper */
+/// MPI_Allreduce IN_PLACE MIN wrapper
 int cutensornetMpiAllreduceInPlaceMin(
     const cutensornetDistributedCommunicator_t *comm, void *buffer,
     int32_t count, cudaDataType_t datatype) {
@@ -215,7 +224,7 @@ int cutensornetMpiAllreduceInPlaceMin(
       &cudaqComm, buffer, count, convertCudaToMpiDataType(datatype), MIN);
 }
 
-/** MPI_Allreduce DOUBLE_INT MINLOC wrapper */
+/// MPI_Allreduce DOUBLE_INT MINLOC wrapper
 int cutensornetMpiAllreduceDoubleIntMinloc(
     const cutensornetDistributedCommunicator_t *comm,
     const void *bufferIn, // *struct {double; int;}
@@ -227,7 +236,7 @@ int cutensornetMpiAllreduceDoubleIntMinloc(
                                             FLOAT_64, MIN_LOC);
 }
 
-/** MPI_Allgather wrapper */
+/// MPI_Allgather wrapper
 int cutensornetMpiAllgather(const cutensornetDistributedCommunicator_t *comm,
                             const void *bufferIn, void *bufferOut,
                             int32_t count, cudaDataType_t datatype) {
@@ -238,11 +247,9 @@ int cutensornetMpiAllgather(const cutensornetDistributedCommunicator_t *comm,
                                             convertCudaToMpiDataType(datatype));
 }
 
-/**
- * Distributed communication service API wrapper binding table (imported by
- * cuTensorNet). The exposed C symbol must be named as
- * "cutensornetCommInterface".
- */
+/// Distributed communication service API wrapper binding table (imported by
+/// cuTensorNet). The exposed C symbol must be named as
+/// "cutensornetCommInterface".
 cutensornetDistributedInterface_t cutensornetCommInterface = {
     CUTENSORNET_DISTRIBUTED_INTERFACE_VERSION,
     cutensornetMpiCommSize,

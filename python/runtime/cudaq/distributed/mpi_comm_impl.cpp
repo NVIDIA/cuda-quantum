@@ -5,6 +5,17 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
+/*! \file mpi_comm_impl.h
+    \brief Implementation of CUDAQ MPI interface wrapper based on mpi4py
+
+    If a natively-built MPI wrapper plugin is not available, CUDA Quantum also
+   provides a plugin implementation based on Python's mpi4py lib via embedded
+   interpreter. Rationale: this plugin targets CUDA Quantum wheel distribution:
+   we ship pre-built wheel binary and leverage mpi4py build-from-source
+   distribution mechanism to get MPI support for Python users.
+*/
+
 #include "distributed_capi.h"
 #include <complex>
 #include <iostream>
@@ -20,9 +31,14 @@ namespace {
 /// @brief Reference to the pybind11 scoped interpreter
 thread_local static std::unique_ptr<py::scoped_interpreter> interp;
 
+/// @brief Did we find mpi4py during library load?
 static bool mpi4pyFound = false;
 
+/// @brief True if this plugin did the MPI_Init call
 bool initCalledByThis = false;
+
+/// @brief Convert supported data type enum to the corresponding mpi4py's MPI
+/// type
 py::object convertType(DataType dataType) {
   auto mpiMod = py::module::import("mpi4py.MPI");
   switch (dataType) {
@@ -46,6 +62,8 @@ py::object convertType(DataType dataType) {
   __builtin_unreachable();
 }
 
+/// @brief Convert supported data type enum to the corresponding mpi4py's MPI
+/// type
 py::object convertTypeMinLoc(DataType dataType) {
   auto mpiMod = py::module::import("mpi4py.MPI");
   switch (dataType) {
@@ -59,6 +77,7 @@ py::object convertTypeMinLoc(DataType dataType) {
   __builtin_unreachable();
 }
 
+/// @brief Get size (in bytes) for a data type
 std::size_t getDataSize(DataType dataType) {
   switch (dataType) {
   case INT_8:
@@ -81,6 +100,7 @@ std::size_t getDataSize(DataType dataType) {
   __builtin_unreachable();
 }
 
+/// @brief Convert supported op type enum to the corresponding mpi4py's MPI type
 py::object convertType(ReduceOp opType) {
   auto mpiMod = py::module::import("mpi4py.MPI");
   switch (opType) {
@@ -96,6 +116,8 @@ py::object convertType(ReduceOp opType) {
   __builtin_unreachable();
 }
 
+/// @brief Unpack the type-erased communicator object into a mpi4py's Comm
+/// object
 py::object unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
   try {
     auto mpiMod = py::module::import("mpi4py.MPI");
@@ -111,6 +133,7 @@ py::object unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
   }
 }
 
+/// @brief Tracking in-flight non-blocking send and receive requests.
 struct PendingRequest {
   py::object requests[2];
   int nActiveRequests;
@@ -123,7 +146,7 @@ std::unordered_map<const cudaqDistributedCommunicator_t *, PendingRequest>
     PendingRequest::g_requests;
 } // namespace
 extern "C" {
-
+/// @brief Wrapper of MPI_Init
 static int mpi_initialize(int32_t *argc, char ***argv) {
   try {
     auto mpiMod = py::module::import("mpi4py.MPI");
@@ -139,6 +162,7 @@ static int mpi_initialize(int32_t *argc, char ***argv) {
   }
 }
 
+/// @brief Wrapper of MPI_Finalize
 static int mpi_finalize() {
   PendingRequest::g_requests.clear();
   if (!initCalledByThis)
@@ -156,6 +180,7 @@ static int mpi_finalize() {
   }
 }
 
+/// @brief Wrapper of MPI_Initialized
 static int mpi_initialized(int32_t *flag) {
   try {
     auto mpiMod = py::module::import("mpi4py.MPI");
@@ -171,6 +196,7 @@ static int mpi_initialized(int32_t *flag) {
   }
 }
 
+/// @brief Wrapper of MPI_Finalized
 static int mpi_finalized(int32_t *flag) {
   try {
     auto mpiMod = py::module::import("mpi4py.MPI");
@@ -186,6 +212,7 @@ static int mpi_finalized(int32_t *flag) {
   }
 }
 
+/// @brief Wrapper of MPI_Comm_size
 static int mpi_getNumRanks(const cudaqDistributedCommunicator_t *comm,
                            int32_t *size) {
   try {
@@ -199,6 +226,7 @@ static int mpi_getNumRanks(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Wrapper of MPI_Comm_rank
 static int mpi_getProcRank(const cudaqDistributedCommunicator_t *comm,
                            int32_t *rank) {
   try {
@@ -212,6 +240,8 @@ static int mpi_getProcRank(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Returns the size of the local subgroup of processes sharing node
+/// memory
 static int mpi_getCommSizeShared(const cudaqDistributedCommunicator_t *comm,
                                  int32_t *numRanks) {
   *numRanks = 0;
@@ -237,6 +267,7 @@ static int mpi_getCommSizeShared(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Wrapper of MPI_Barrier
 static int mpi_Barrier(const cudaqDistributedCommunicator_t *comm) {
   try {
     auto pyComm = unpackMpiCommunicator(comm);
@@ -249,6 +280,7 @@ static int mpi_Barrier(const cudaqDistributedCommunicator_t *comm) {
   }
 }
 
+/// @brief Helper to pack native data as mpi4py's memory/buffer object
 static py::object packData(const void *buffer, int32_t count, DataType dataType,
                            bool readOnly = false) {
   auto mpiMod = py::module::import("mpi4py.MPI");
@@ -259,6 +291,7 @@ static py::object packData(const void *buffer, int32_t count, DataType dataType,
   return pyBuffer;
 }
 
+/// @brief Wrapper of MPI_Bcast
 static int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
                      int32_t count, DataType dataType, int32_t rootRank) {
   try {
@@ -272,6 +305,7 @@ static int mpi_Bcast(const cudaqDistributedCommunicator_t *comm, void *buffer,
   }
 }
 
+/// @brief Wrapper of MPI_Allreduce
 static int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
                          const void *sendBuffer, void *recvBuffer,
                          int32_t count, DataType dataType, ReduceOp opType) {
@@ -291,6 +325,7 @@ static int mpi_Allreduce(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Wrapper of MPI_Allreduce with MPI_IN_PLACE
 static int mpi_AllreduceInplace(const cudaqDistributedCommunicator_t *comm,
                                 void *recvBuffer, int32_t count,
                                 DataType dataType, ReduceOp opType) {
@@ -309,6 +344,7 @@ static int mpi_AllreduceInplace(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Wrapper of MPI_Allgather
 static int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
                          const void *sendBuffer, void *recvBuffer,
                          int32_t count, DataType dataType) {
@@ -324,6 +360,7 @@ static int mpi_Allgather(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Wrapper of MPI_Allgatherv
 static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
                           const void *sendBuf, int sendCount, void *recvBuf,
                           const int *recvCounts, const int *displs,
@@ -351,6 +388,7 @@ static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
   return 0;
 }
 
+/// @brief Wrapper of MPI_Isend and track pending requests for synchronization
 static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
                          const void *buf, int count, DataType dataType,
                          int peer, int32_t tag) {
@@ -371,6 +409,7 @@ static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
   return 0;
 }
 
+/// @brief Wrapper of MPI_Irecv and track pending requests for synchronization
 static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
                          int count, DataType dataType, int peer, int32_t tag) {
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
@@ -390,6 +429,7 @@ static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
   return 0;
 }
 
+/// @brief Combined MPI_Isend and MPI_Irecv requests
 static int mpi_SendRecvAsync(const cudaqDistributedCommunicator_t *comm,
                              const void *sendbuf, void *recvbuf, int count,
                              DataType dataType, int peer, int32_t tag) {
@@ -412,6 +452,7 @@ static int mpi_SendRecvAsync(const cudaqDistributedCommunicator_t *comm,
   return 0;
 }
 
+/// @brief Wait for in-flight MPI_Isend and MPI_Irecv to complete
 static int mpi_Synchronize(const cudaqDistributedCommunicator_t *comm) {
   try {
     auto pyComm = unpackMpiCommunicator(comm);
@@ -427,6 +468,7 @@ static int mpi_Synchronize(const cudaqDistributedCommunicator_t *comm) {
   return 0;
 }
 
+/// @brief Wrapper of MPI_Abort
 static int mpi_Abort(const cudaqDistributedCommunicator_t *comm,
                      int errorCode) {
   try {
@@ -439,6 +481,7 @@ static int mpi_Abort(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Helper to convert mpi4py's Comm handle to void*
 static void *voidPtrCast(py::handle src) {
   PyObject *source = src.ptr();
   PyObject *tmp = PyNumber_Long(source);
@@ -449,6 +492,7 @@ static void *voidPtrCast(py::handle src) {
   return casted;
 }
 
+/// @brief Wrapper of MPI_Comm_dup
 static int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
                        cudaqDistributedCommunicator_t **newDupComm) {
   try {
@@ -472,6 +516,7 @@ static int mpi_CommDup(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Wrapper of MPI_Comm_split
 static int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm,
                          int32_t color, int32_t key,
                          cudaqDistributedCommunicator_t **newSplitComm) {
@@ -497,6 +542,7 @@ static int mpi_CommSplit(const cudaqDistributedCommunicator_t *comm,
   }
 }
 
+/// @brief Return the underlying MPI_Comm as a type-erased object
 cudaqDistributedCommunicator_t *getMpiCommunicator() {
   static cudaqDistributedCommunicator_t commWorld;
   try {
@@ -514,6 +560,7 @@ cudaqDistributedCommunicator_t *getMpiCommunicator() {
   return &commWorld;
 }
 
+/// @brief Return the MPI shim interface (as a function table)
 cudaqDistributedInterface_t *getDistributedInterface() {
   static cudaqDistributedInterface_t cudaqDistributedInterface{
       CUDAQ_DISTRIBUTED_INTERFACE_VERSION,

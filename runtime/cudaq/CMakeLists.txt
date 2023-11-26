@@ -61,7 +61,8 @@ install(EXPORT cudaq-targets
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
 
-# Install CUDAQ MPI interface
+# Install CUDAQ MPI interface header, reference implementation, and build script
+# for manual activation on a local system if needed.
 install(
   FILES
       distributed/distributed_capi.h
