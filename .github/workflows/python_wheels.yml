@@ -225,8 +225,8 @@ jobs:
           run: |
             # Install mpi4py when validating the wheel on Ubuntu
             # to run the MPI plugin test.
-            apt-get update && apt-get install -y --no-install-recommends libopenmpi-dev libpython3-dev gcc
-            python${{ inputs.python_version }} -m pip install --user mpi4py
+            apt-get update && apt-get install -y --no-install-recommends libopenmpi-dev libpython${{ inputs.python_version }}-dev gcc
+            python${{ inputs.python_version }} -m pip install --user mpi4py~=3.1
             mpirun --allow-run-as-root -np 4 python${{ inputs.python_version }} -m pytest -v /tmp/tests/parallel/test_mpi_api.py
             pytest_mpi_status=$?
             if [ ! $pytest_mpi_status -eq 0 ]; then
