@@ -151,10 +151,14 @@ CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies, PROD)
 
 } // namespace details
 
-void all_gather(std::vector<double> &global, const std::vector<double> &local) {
-  auto *commPlugin = getMpiPlugin();
-  commPlugin->all_gather(global, local);
-}
+#define CUDAQ_ALL_GATHER_IMPL(TYPE)                                            \
+  void all_gather(std::vector<TYPE> &global, const std::vector<TYPE> &local) { \
+    auto *commPlugin = getMpiPlugin();                                         \
+    commPlugin->all_gather(global, local);                                     \
+  }
+
+CUDAQ_ALL_GATHER_IMPL(double)
+CUDAQ_ALL_GATHER_IMPL(int)
 
 void broadcast(std::vector<double> &data, int rootRank) {
   auto *commPlugin = getMpiPlugin();

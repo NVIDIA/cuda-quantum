@@ -45,16 +45,29 @@ public:
   /// @brief Return true if MPI is already finalized, false otherwise.
   bool is_finalized();
 
-  /// @brief Gather all vector data locally into the provided
-  /// global vector. Global vector must be sized to fit all
+  /// @brief Gather all vector data (floating point numbers) locally into the
+  /// provided global vector.
+  ///
+  /// Global vector must be sized to fit all
   /// vector elements coming from individual ranks.
   void all_gather(std::vector<double> &global,
                   const std::vector<double> &local);
 
+  /// @brief Gather all vector data (integers) locally into the provided
+  /// global vector.
+  ///
+  /// Global vector must be sized to fit all
+  /// vector elements coming from individual ranks.
+  void all_gather(std::vector<int> &global, const std::vector<int> &local);
+
+  /// @brief Broadcast a vector from a root rank to all other ranks
   void broadcast(std::vector<double> &data, int rootRank);
 
+  /// @brief Combines local vector data from all processes and distributes the
+  /// result back to all processes into the provided global vector.
   void all_reduce(std::vector<double> &global, const std::vector<double> &local,
                   ReduceOp op);
+
   /// @brief Finalize MPI. This function
   /// is a no-op if there CUDA Quantum has not been built
   /// against MPI.
@@ -67,6 +80,13 @@ public:
 };
 
 namespace mpi {
+/// @brief Retrieve the runtime MPI plugin.
+/// @note Throw an error if no runtime MPI plugin is available unless `unsafe`
+/// is true.
+/// @param unsafe If true, returns a nullptr rather than throwing an error if no
+/// MPI plugin is available. Hence, the caller needs to check the returned
+/// pointer before use.
+/// @return Pointer to the runtime MPI plugin
 extern ::cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false);
-}
+} // namespace mpi
 } // namespace cudaq

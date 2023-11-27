@@ -72,21 +72,37 @@ TEST(MPITester, checkAllReduce) {
 }
 
 TEST(MPITester, checkAllGather) {
-  constexpr std::size_t numElements = 10;
-  const std::vector<double> expectedGatherData = cudaq::random_vector(
-      -M_PI, M_PI, numElements * cudaq::mpi::num_ranks(), /*seed = */ 1);
-  // Slice this vector to each rank
-  const std::vector<double> rankData(
-      expectedGatherData.begin() + numElements * cudaq::mpi::rank(),
-      expectedGatherData.begin() + numElements * cudaq::mpi::rank() +
-          numElements);
-  EXPECT_EQ(rankData.size(), numElements);
-  // Reconstruct the data vector with all_gather
-  std::vector<double> gatherData(cudaq::mpi::num_ranks() * numElements);
-  cudaq::mpi::all_gather(gatherData, rankData);
-  for (std::size_t i = 0; i < gatherData.size(); ++i) {
-    EXPECT_EQ(gatherData[i], expectedGatherData[i])
-        << "AllGather data is corrupted at index " << i;
+  {
+    // double type
+    constexpr std::size_t numElements = 10;
+    const std::vector<double> expectedGatherData = cudaq::random_vector(
+        -M_PI, M_PI, numElements * cudaq::mpi::num_ranks(), /*seed = */ 1);
+    // Slice this vector to each rank
+    const std::vector<double> rankData(
+        expectedGatherData.begin() + numElements * cudaq::mpi::rank(),
+        expectedGatherData.begin() + numElements * cudaq::mpi::rank() +
+            numElements);
+    EXPECT_EQ(rankData.size(), numElements);
+    // Reconstruct the data vector with all_gather
+    std::vector<double> gatherData(cudaq::mpi::num_ranks() * numElements);
+    cudaq::mpi::all_gather(gatherData, rankData);
+    for (std::size_t i = 0; i < gatherData.size(); ++i) {
+      EXPECT_EQ(gatherData[i], expectedGatherData[i])
+          << "AllGather data is corrupted at index " << i;
+    }
+  }
+  {
+    // int type
+    const std::vector<int> rankData{cudaq::mpi::rank()};
+    std::vector<int> expectedGatherData(cudaq::mpi::num_ranks());
+    std::iota(expectedGatherData.begin(), expectedGatherData.end(),
+              0); // Fill with 0, 1, ...
+    std::vector<int> gatherData(cudaq::mpi::num_ranks());
+    cudaq::mpi::all_gather(gatherData, rankData);
+    for (std::size_t i = 0; i < gatherData.size(); ++i) {
+      EXPECT_EQ(gatherData[i], expectedGatherData[i])
+          << "AllGather data is corrupted at index " << i;
+    }
   }
 }
 

@@ -28,6 +28,14 @@ def testMPI():
         assert cudaq.mpi.num_ranks() == int(
             os.environ.get('OMPI_COMM_WORLD_SIZE'))
 
+    # all_gather integers
+    localData = [cudaq.mpi.rank()]
+    gatherData = cudaq.mpi.all_gather(cudaq.mpi.num_ranks(), localData)
+    assert len(gatherData) == cudaq.mpi.num_ranks()
+    for idx, x in enumerate(gatherData):
+        assert x == idx
+
+    # all_gather floats
     localData = [float(cudaq.mpi.rank())]
     gatherData = cudaq.mpi.all_gather(cudaq.mpi.num_ranks(), localData)
     assert len(gatherData) == cudaq.mpi.num_ranks()

@@ -248,6 +248,7 @@ T all_reduce(const T &localValue, const BinaryFunction &function) {
 /// global vector. Global vector must be sized to fit all
 /// vector elements coming from individual ranks.
 void all_gather(std::vector<double> &global, const std::vector<double> &local);
+void all_gather(std::vector<int> &global, const std::vector<int> &local);
 
 /// @brief Broadcast a vector from a process (rootRank) to all other processes.
 void broadcast(std::vector<double> &data, int rootRank);

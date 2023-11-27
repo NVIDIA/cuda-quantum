@@ -80,6 +80,13 @@ void MPIPlugin::all_gather(std::vector<double> &global,
       m_comm, local.data(), global.data(), local.size(), FLOAT_64));
 }
 
+void MPIPlugin::all_gather(std::vector<int> &global,
+                           const std::vector<int> &local) {
+  const auto dataType = (sizeof(int) == sizeof(int64_t)) ? INT_64 : INT_32;
+  HANDLE_MPI_ERROR(m_distributedInterface->Allgather(
+      m_comm, local.data(), global.data(), local.size(), dataType));
+}
+
 void MPIPlugin::broadcast(std::vector<double> &data, int rootRank) {
   HANDLE_MPI_ERROR(m_distributedInterface->Bcast(
       m_comm, data.data(), data.size(), FLOAT_64, rootRank));
