@@ -40,8 +40,8 @@ gradients = cudaq_runtime.gradients
 set_target = cudaq_runtime.set_target
 reset_target = cudaq_runtime.reset_target
 set_random_seed = cudaq_runtime.set_random_seed
-mpi = cudaq_runtime.mpi 
-num_available_gpus = cudaq_runtime.num_available_gpus 
+mpi = cudaq_runtime.mpi
+num_available_gpus = cudaq_runtime.num_available_gpus
 
 # Noise Modeling
 KrausChannel = cudaq_runtime.KrausChannel
@@ -101,8 +101,6 @@ if not "CUDAQ_DYNLIBS" in os.environ:
             print("Could not find a suitable cuQuantum Python package.")
         pass
 
-
-
 initKwargs = {'target': 'qpp-cpu'}
 if is_gpu_available():
     initKwargs = {'target': 'nvidia'}
@@ -110,6 +108,6 @@ if is_gpu_available():
 if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
 if '--emulate' in sys.argv:
-    initKwargs['emulate'] = True 
+    initKwargs['emulate'] = True
 
 cudaq_runtime.initialize_cudaq(**initKwargs)

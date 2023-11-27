@@ -51,7 +51,7 @@ bool __nvqpp__MeasureResultBoolConversion(int);
 /// @brief In library mode, we model the return type of
 /// a qubit measurement result via the measure_result type.
 /// This allows us to keep track of when the result is
-/// implicitly casted to a bool (likely in the case of
+/// implicitly cast to a boolean (likely in the case of
 /// conditional feedback), and affect the simulation accordingly
 class measure_result {
 private:
@@ -76,7 +76,7 @@ using measure_result = bool;
 /// The ExecutionManager provides a base class describing a
 /// concrete sub-system for allocating qudits and executing quantum
 /// instructions on those qudits. This type is templated on the concrete
-/// qudit type (qubit, qmode, etc). It exposes an API for getting an
+/// qudit type (`qubit`, `qmode`, etc). It exposes an API for getting an
 /// available qudit id, returning that id, setting and resetting the
 /// current execution context, and applying specific quantum instructions.
 class ExecutionManager {
@@ -146,7 +146,7 @@ public:
   virtual int measure(const QuditInfo &target,
                       const std::string registerName = "") = 0;
 
-  /// Measure the current state in the given pauli basis, return
+  /// Measure the current state in the given Pauli basis, return
   /// the expectation value <term>.
   virtual SpinMeasureResult measure(cudaq::spin_op &op) = 0;
 

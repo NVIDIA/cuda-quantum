@@ -61,6 +61,7 @@ Toffoli
 VQE
 Vazirani
 WSL
+accessor
 adjoint
 al
 ansatz
@@ -71,6 +72,7 @@ backends
 bitcode
 bitstring
 bitstrings
+boolean
 buildable
 callable
 callables
@@ -79,7 +81,10 @@ canonicalize
 canonicalizer
 canonicalizes
 codebase
+comparator
+comparators
 composable
+constructible
 controlled
 coprocessor
 coprocessors
@@ -92,6 +97,8 @@ deallocated
 deallocates
 deallocation
 deallocations
+decrement
+decrementing
 deserialize
 destructor
 discretization
@@ -115,9 +122,16 @@ et
 executables
 extensibility
 extremal
+homogenous
+increment
+incrementing
 inlining
 instantiation
 instantiations
+intrinsics
+iterable
+lookup
+lookups
 namespace
 namespaces
 natively
@@ -145,6 +159,7 @@ subcommand
 subfolder
 submodule
 subscriptable
+subscripted
 subtype
 subtyped
 subtypes

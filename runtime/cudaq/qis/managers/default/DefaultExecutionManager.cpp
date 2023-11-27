@@ -102,8 +102,7 @@ protected:
     flushRequestedAllocations();
 
     // Get the data, create the Qubit* targets
-    auto [gateName, parameters, controls, targets, op] =
-        instruction;
+    auto [gateName, parameters, controls, targets, op] = instruction;
 
     // Map the Qudits to Qubits
     std::vector<std::size_t> localT;

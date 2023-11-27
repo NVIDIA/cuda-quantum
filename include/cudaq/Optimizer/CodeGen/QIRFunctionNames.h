@@ -21,7 +21,8 @@ constexpr static const char QIRMeasureToRegister[] =
     "__quantum__qis__mz__to__register";
 
 constexpr static const char QIRUnitary[] = "__quantum__qis__unitary";
-constexpr static const char QIRConstantUnitary[] = "__quantum__qis__constant_unitary";
+constexpr static const char QIRConstantUnitary[] =
+    "__quantum__qis__constant_unitary";
 constexpr static const char QIRCnot[] = "__quantum__qis__cnot";
 constexpr static const char QIRCphase[] = "__quantum__qis__cphase";
 constexpr static const char QIRReadResultBody[] =
@@ -38,7 +39,7 @@ constexpr static const char NVQIRPackSingleQubitInArray[] =
 constexpr static const char NVQIRReleasePackedQubitArray[] =
     "releasePackedQubitArray";
 
-/// QIR Array funciton name strings
+/// QIR Array function name strings
 constexpr static const char QIRArrayGetElementPtr1d[] =
     "__quantum__rt__array_get_element_ptr_1d";
 constexpr static const char QIRArrayQubitAllocateArray[] =

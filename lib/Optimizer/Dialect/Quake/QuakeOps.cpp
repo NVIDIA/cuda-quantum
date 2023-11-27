@@ -583,7 +583,6 @@ void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   patterns.add<KillDeadWrapPattern>(context);
 }
 
-
 //===----------------------------------------------------------------------===//
 // UnitaryOp
 //===----------------------------------------------------------------------===//
