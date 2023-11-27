@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/*! \file mpi_comm_impl.h
+/*! \file mpi_comm_impl.cpp
     \brief Reference implementation of CUDAQ MPI interface wrapper
 
     This is an implementation of the MPI shim interface defined in
