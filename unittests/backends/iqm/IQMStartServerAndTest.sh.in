@@ -19,7 +19,7 @@ fi
 tmp_file=$(mktemp)
 @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/mock_iqm_cortex_cli.py $tmp_file
 # Launch the fake server
-@Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/mock_iqm_server.py &
+@Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/__init__.py &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 sleep 3
