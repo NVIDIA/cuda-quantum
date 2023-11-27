@@ -181,15 +181,6 @@ public:
     qpp::RandomDevices::get_instance().get_prng().seed(seed);
   }
 
-  void initializeState(
-      const std::vector<std::size_t> &targets,
-      const std::vector<std::complex<double>> &stateVector) override {
-    // for now only handle setting the whole state
-    state = Eigen::Map<qpp::ket>(
-        const_cast<std::complex<double> *>(stateVector.data()),
-        stateVector.size());
-  }
-
   bool canHandleObserve() override {
     // Do not compute <H> from matrix if shots based sampling requested
     if (executionContext &&

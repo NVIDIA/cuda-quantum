@@ -979,12 +979,6 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(quake.AllocaOp(self.getRefType()).result)
                     return
 
-                if node.func.attr == 'initialize_state':
-                    state = self.popValue()
-                    qubits = self.popValue()
-                    quake.InitializeStateOp(qubits, state)
-                    return
-
                 if node.func.attr == 'adjoint':
                     # Handle cudaq.adjoint(kernel, ...)
                     otherFuncName = node.args[0].id

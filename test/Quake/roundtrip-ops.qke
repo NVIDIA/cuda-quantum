@@ -705,14 +705,3 @@ func.func @checkUnitary() {
 // CHECK-LABEL:   func.func @checkUnitary
 // CHECK: %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK: quake.unitary %[[VAL_0]] : 
-
-func.func @checkInitState(%arg0 : !cc.stdvec<complex<f32>>) {
-  %0 = quake.alloca !quake.veq<4>
-  quake.init_state(%0, %arg0) : (!quake.veq<4>, !cc.stdvec<complex<f32>>) -> ()
-  return
-}
-
-// CHECK-LABEL:     func.func @checkInitState
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           quake.init_state(%[[VAL_0]], %[[VAL_1:.*]]) : (!quake.veq<4>, !cc.stdvec<complex<f32>>) -> ()
-// CHECK:           return

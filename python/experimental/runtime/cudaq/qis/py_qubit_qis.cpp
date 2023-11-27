@@ -106,25 +106,5 @@ void bindQIS(py::module &mod) {
       .def("__getitem__", &qvector<2>::operator[],
            py::return_value_policy::reference,
            "Return the qubit at the given index.");
-
-  mod.def("initialize_state", [](qvector<> &qubits, py::buffer buffer) {
-    std::vector<QuditInfo> qubitIds;
-    for (auto &q : qubits)
-      qubitIds.emplace_back(2, q.id());
-
-    std::vector<std::complex<double>> data;
-    auto info = buffer.request();
-    if (info.format != py::format_descriptor<std::complex<double>>::format())
-      throw std::runtime_error("input state vector must be complex type");
-
-    if (info.ndim != 1)
-      throw std::runtime_error("input state vector must be one dimensional");
-
-    auto *casted = static_cast<std::complex<double> *>(info.ptr);
-    data = std::vector<std::complex<double>>(casted, casted + info.shape[0]);
-
-    getExecutionManager()->apply("init_state", {}, {}, qubitIds, false,
-                                 spin_op(), data);
-  });
 }
 } // namespace cudaq
