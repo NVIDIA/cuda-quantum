@@ -21,8 +21,9 @@
 
 // the mock server has Apollo architecture
 
-std::string backendStringTemplate = "iqm;emulate;false;qpu-architecture;{};url;"
-                                    "http://localhost:62443"; // add architecture
+std::string backendStringTemplate =
+    "iqm;emulate;false;qpu-architecture;{};url;"
+    "http://localhost:62443"; // add architecture
 
 CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
   std::string arch = "Apollo";
