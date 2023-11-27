@@ -49,7 +49,8 @@ def test_swap_2q():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_11:.*]]: index):
 # CHECK:             %[[VAL_12:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_11]]] : (!quake.veq<2>, index) -> !quake.ref
-# CHECK:             %[[VAL_13:.*]] = quake.mz %[[VAL_12]] : (!quake.ref) -> i1
+# CHECK:             %[[VAL_113:.*]] = quake.mz %[[VAL_12]] name "" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[VAL_13:.*]] = quake.discriminate %[[VAL_113]] :
 # CHECK:             %[[VAL_14:.*]] = arith.index_cast %[[VAL_11]] : index to i64
 # CHECK:             %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_7]][%[[VAL_14]]] : (!cc.ptr<!cc.array<i1 x 2>>, i64) -> !cc.ptr<i1>
 # CHECK:             cc.store %[[VAL_13]], %[[VAL_15]] : !cc.ptr<i1>

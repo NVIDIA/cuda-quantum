@@ -32,7 +32,6 @@
 				"files.associations": {
 					"CMakeLists.txt": "cmake",
 					"*.cmake.in": "cmake",
-					"*.cq": "cuda-cpp"
 					"*.td": "tablegen",
 					"*.h.in": "cpp",
 					"*.sh.in": "shellscript",
@@ -233,6 +232,17 @@
 				"C_Cpp.inlayHints.autoDeclarationTypes.enabled": false,
 				"C_Cpp.inlayHints.referenceOperator.enabled": false,
 				"C_Cpp.doxygen.generateOnType": false,
+				"C_Cpp.default.cStandard": "c17",
+				"C_Cpp.default.cppStandard": "c++20",
+				"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+				"C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+				"C_Cpp.default.includePath": [
+					"${workspaceFolder}/**",
+					"${CUDAQ_INSTALL_PREFIX}/**",
+					"${LLVM_INSTALL_PREFIX}/**",
+					"/usr/include/c++/**",
+					"/usr/include/**/c++/**"
+				],
 				"doxdocgen.c.triggerSequence": "///",
 				"doxdocgen.c.firstLine": "",
 				"doxdocgen.c.commentPrefix": "/// ",

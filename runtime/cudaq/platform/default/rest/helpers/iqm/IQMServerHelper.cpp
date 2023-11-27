@@ -13,6 +13,7 @@
 #include "nlohmann/json.hpp"
 
 #include <fstream>
+#include <regex>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -161,6 +162,10 @@ public:
   /// @brief Given a completed job response, map back to the sample_result
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
+
+  /// @brief Update `passPipeline` with architecture-specific pass options
+  void updatePassPipeline(const std::filesystem::path &platformPath,
+                          std::string &passPipeline) override;
 };
 
 ServerJobPayload
@@ -250,6 +255,15 @@ IQMServerHelper::generateRequestHeader() const {
     headers["Authorization"] = "Bearer " + apiToken.value();
   };
   return headers;
+}
+
+void IQMServerHelper::updatePassPipeline(
+    const std::filesystem::path &platformPath, std::string &passPipeline) {
+  std::string pathToFile =
+      platformPath / std::string("mapping/iqm") /
+      (backendConfig["qpu-architecture"] + std::string(".txt"));
+  passPipeline =
+      std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
 }
 
 RestHeaders IQMServerHelper::getHeaders() { return generateRequestHeader(); }

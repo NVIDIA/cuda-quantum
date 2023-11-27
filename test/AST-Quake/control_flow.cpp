@@ -25,10 +25,10 @@ struct C {
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
 	    cudaq::qubit q;
-	    x(q,r[0]);
+	    x<cudaq::ctrl>(q,r[0]);
 	    break;
 	 }
-	 x(r[0],r[1]);
+	 x<cudaq::ctrl>(r[0],r[1]);
 	 g2();
 	 if (f2(i)) {
 	    y(r[1]);
@@ -103,7 +103,7 @@ struct C {
 // CHECK:             }
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -114,10 +114,10 @@ struct D {
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
 	    cudaq::qubit q;
-	    x(q,r[0]);
+	    x<cudaq::ctrl>(q,r[0]);
 	    continue;
 	 }
-	 x(r[0],r[1]);
+	 x<cudaq::ctrl>(r[0],r[1]);
 	 g2();
 	 if (f2(i)) {
 	    y(r[1]);
@@ -192,7 +192,7 @@ struct D {
 // CHECK:             }
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 
@@ -203,10 +203,10 @@ struct E {
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
 	    cudaq::qubit q;
-	    x(q,r[0]);
+	    x<cudaq::ctrl>(q,r[0]);
 	    return;
 	 }
-	 x(r[0],r[1]);
+	 x<cudaq::ctrl>(r[0],r[1]);
 	 g2();
 	 if (f2(i)) {
 	    y(r[1]);
@@ -280,7 +280,7 @@ struct E {
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb7:
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
 // CHECK:           return
 
@@ -291,10 +291,10 @@ struct F {
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
 	    cudaq::qubit q;
-	    x(q,r[0]);
+	    x<cudaq::ctrl>(q,r[0]);
 	    continue;
 	 }
-	 x(r[0],r[1]);
+	 x<cudaq::ctrl>(r[0],r[1]);
 	 g2();
 	 if (f2(i)) {
 	    y(r[1]);
@@ -370,6 +370,6 @@ struct F {
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb8:
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
 // CHECK:           return

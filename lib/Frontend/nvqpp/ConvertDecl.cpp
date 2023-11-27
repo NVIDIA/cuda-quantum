@@ -27,7 +27,7 @@ bool ignoredClass(clang::RecordDecl *x) {
     // Kernels don't support allocators, although they are found in
     // std::vector.
     if (isInNamespace(x, "std"))
-      return name.equals("allocator_traits");
+      return name.equals("allocator_traits") || name.equals("iterator_traits");
     // Skip non-standard GNU helper classes.
     if (isInNamespace(x, "__gnu_cxx"))
       return name.equals("__alloc_traits");
@@ -208,8 +208,36 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
         return pushType(refTy);
       return pushType(cc::PointerType::get(ctx, refTy));
     }
+    if (name.equals("basic_string")) {
+      if (allowUnknownRecordType) {
+        // Kernel argument list contains a `std::string` type. Intercept it and
+        // generate a clang diagnostic when returning out of determining the
+        // kernel's type signature.
+        return true;
+      }
+      TODO_x(toLocation(x), x, mangler, "std::string type");
+      return false;
+    }
+    if (name.equals("pair")) {
+      if (allowUnknownRecordType)
+        return true;
+      TODO_x(toLocation(x), x, mangler, "std::pair type");
+      return false;
+    }
+    if (name.equals("tuple")) {
+      if (allowUnknownRecordType)
+        return true;
+      TODO_x(toLocation(x), x, mangler, "std::tuple type");
+      return false;
+    }
     if (ignoredClass(x))
       return true;
+    if (allowUnknownRecordType) {
+      // This is a catch all for other container types (deque, map, set, etc.)
+      // that the user may try to pass as arguments to a kernel. Returning true
+      // here will cause the kernel's signature to emit a diagnostic.
+      return true;
+    }
     LLVM_DEBUG(llvm::dbgs()
                << "in std namespace, " << name << " is not matched\n");
   }
@@ -227,6 +255,12 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
           break;
         }
       assert(typeStack.size() == depth + 1);
+      return true;
+    }
+    if (name.equals("__normal_iterator")) {
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
       return true;
     }
   }
@@ -532,6 +566,10 @@ bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
 }
 
 bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
+  if (allowUnknownRecordType) {
+    // Processing a kernel's signature. Ignore variable decls.
+    return true;
+  }
   Type type = popType();
   if (x->hasInit() && !x->isCXXForRangeDecl())
     type = peekValue().getType();
@@ -594,8 +632,10 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         return true;
 
       // Assign registerName
-      if (auto meas = initVec.getDefiningOp<quake::MeasurementInterface>())
-        meas.setRegisterName(builder.getStringAttr(x->getName()));
+      if (auto descr = initVec.getDefiningOp<quake::DiscriminateOp>())
+        if (auto meas = descr.getMeasurement()
+                            .getDefiningOp<quake::MeasurementInterface>())
+          meas.setRegisterName(builder.getStringAttr(x->getName()));
 
       // Did this come from a stdvec init op? If not drop out
       auto stdVecInit = initVec.getDefiningOp<cc::StdvecInitOp>();
@@ -623,12 +663,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         auto firstGepUser = *gepOp->getResult(0).getUsers().begin();
         if (auto storeOp = dyn_cast<cc::StoreOp>(firstGepUser)) {
           auto result = storeOp->getOperand(0);
-          auto mzOp = result.getDefiningOp<quake::MzOp>();
-          if (mzOp) {
-            // Found it, tag it with the name.
-            mzOp->setAttr("registerName", builder.getStringAttr(x->getName()));
-            break;
-          }
+          if (auto discr = result.getDefiningOp<quake::DiscriminateOp>())
+            if (auto mzOp =
+                    discr.getMeasurement().getDefiningOp<quake::MzOp>()) {
+              // Found it, tag it with the name.
+              mzOp.setRegisterName(builder.getStringAttr(x->getName()));
+              break;
+            }
         }
       }
 
@@ -658,8 +699,9 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
   // If this was an auto var = mz(q), then we want to know the
   // var name, as it will serve as the classical bit register name
-  if (auto mz = initValue.getDefiningOp<quake::MzOp>())
-    mz->setAttr("registerName", builder.getStringAttr(x->getName()));
+  if (auto discr = initValue.getDefiningOp<quake::DiscriminateOp>())
+    if (auto mz = discr.getMeasurement().getDefiningOp<quake::MzOp>())
+      mz.setRegisterName(builder.getStringAttr(x->getName()));
 
   assert(initValue && "initializer value must be lowered");
   if (isa<IntegerType>(initValue.getType()) && isa<IntegerType>(type)) {

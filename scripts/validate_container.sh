@@ -50,10 +50,10 @@ available_backends=`\
         if grep -q "LIBRARY_MODE_EXECUTION_MANAGER=" $file ; then 
           continue
         fi 
-
         platform=$(cat $file | grep "PLATFORM_QPU=")
-        if [ "${platform#PLATFORM_QPU=}" != "remote_rest" ] \
-           && ($gpu_available || [ -z "$(cat $file | grep "GPU_REQUIREMENTS")" ]); then \
+        qpu=${platform#PLATFORM_QPU=}
+        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] \
+        && ($gpu_available || [ -z "$(cat $file | grep "GPU_REQUIREMENTS")" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
     done`
@@ -131,22 +131,17 @@ do
     echo "Testing $filename:"
     echo "Source: $ex"
     let "samples+=1"
+
+    # Look for a --target flag to nvq++ in the 
+    # comment block at the beginning of the file.
+    intended_target=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+--target\s+\K\S+'`
+
     for t in $requested_backends
     do
-        if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"photonics"* ]];
+        if [ -n "$intended_target" ] && [ "$intended_target" != "$t" ];
         then
             let "skipped+=1"
             echo "Skipping $t target.";
-
-        elif [[ "$ex" == *"cuquantum"* ]];
-        then 
-            let "skipped+=1"
-            echo "Skipping $t target.";
-
-        elif [[ "$ex" != *"nois"* ]] && [ "$t" == "density-matrix-cpu" ];
-        then
-            let "skipped+=1"
-            echo "Skipping $t target."
 
         else
             echo "Testing on $t target..."

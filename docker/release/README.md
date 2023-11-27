@@ -8,8 +8,8 @@ This Docker image contains contains all necessary tool for application
 development using CUDA Quantum in C++ or Python. This includes an installation
 of the NVQ++ compiler, the CUDA Quantum runtime, as well as a selection of
 integrated CPU and GPU backends for rapid application development and testing.
-Additional software can be installed into the container using the password
-`cuda-quantum`.
+To install additional software, run the installation command as administrator
+if necessary by using `sudo <command>` (no password is required).
 
 The image includes a folder with examples in C++ and Python in the home
 directory. You can find more information about CUDA Quantum including a link to

@@ -14,11 +14,11 @@ func.func @delayCheckForValueSemantics() {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2 = quake.x %0 : (!quake.wire) -> !quake.wire
-  %bits, %wires = quake.mz %2 name "result0": (!quake.wire) -> (i1, !quake.wire)
+  %bits, %wires = quake.mz %2 name "result0": (!quake.wire) -> (!quake.measure, !quake.wire)
   %3 = quake.z %wires : (!quake.wire) -> !quake.wire
   quake.sink %3 : !quake.wire
   %4 = quake.x %1 : (!quake.wire) -> !quake.wire
-  %bits_0, %wires_1 = quake.mz %4 name "result1": (!quake.wire) -> (i1, !quake.wire)
+  %bits_0, %wires_1 = quake.mz %4 name "result1": (!quake.wire) -> (!quake.measure, !quake.wire)
   quake.sink %wires_1 : !quake.wire
   return
 }
@@ -28,10 +28,10 @@ func.func @delayCheckForValueSemantics() {
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.x %[[VAL_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_3:.*]] = quake.x %[[VAL_1]] : (!quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_4:.*]], %[[VAL_5:.*]] = quake.mz %[[VAL_2]] name "result0" : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_4:.*]], %[[VAL_5:.*]] = quake.mz %[[VAL_2]] name "result0" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_6:.*]] = quake.z %[[VAL_5]] : (!quake.wire) -> !quake.wire
 // CHECK:           quake.sink %[[VAL_6]] : !quake.wire
-// CHECK:           %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_3]] name "result1" : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_3]] name "result1" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           quake.sink %[[VAL_8]] : !quake.wire
 // CHECK:           return
 // CHECK:         }

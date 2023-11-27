@@ -23,14 +23,14 @@ class QuakeType<string name, string typeMnemonic, list<Trait> traits = [],
 }
 
 //===----------------------------------------------------------------------===//
-// Quantum value type
+// Wire type: quantum value type
 //===----------------------------------------------------------------------===//
 
 def WireType : QuakeType<"Wire", "wire"> {
   let description = [{
-    A `wire` is a primitive quantum "SSA-value" that differs from a traditional
-    SSA-value in that it can and will be modified when used in any target
-    position. That means quantum "SSA-values" are not true SSA values. `wire`
+    A `wire` is a primitive "quantum value" that differs from a traditional
+    SSA value in that it can and will be modified when used in any target
+    position. That means "quantum values" are not SSA values. `wire`
     values can only be used once and have somewhat similar properties to
     volatile memory. An operation that uses a `wire` in a target position is
     required to return a new `wire` value reflecting the updated/new state.
@@ -50,26 +50,43 @@ def WireType : QuakeType<"Wire", "wire"> {
   let genStorageClass = 0;
 }
 
+//===----------------------------------------------------------------------===//
+// Control type: quantum value type
+//===----------------------------------------------------------------------===//
+
 def ControlType : QuakeType<"Control", "control"> {
   let description = [{
-    A qubit of type control is a value of type wire used in a control position.
-    Using a qubit in a control position means the qubit is an SSA-value. It is
-    defined once and can be used multiple times (in multiple control positions)
-    without changing value.
+    A value having type `control` is quite similar to a value of type `wire`.
+    The distinction is that a value of type `control` must be used in a control
+    position of a quantum operator. Using a qubit in a control position means
+    the qubit \em{is} an SSA value. Values of type `control`, unlike values of
+    type `wire`, can be defined once and used multiple times (in multiple
+    control positions on distinct quantum operators) without changing value.
+
+    ```mlir
+      %10 = quake.to_ctrl %0 : (!quake.wire) -> !quake.control
+      %11 = quake.g1 [%10] %1 : (!quake.control, !quake.wire) -> !quake.wire
+      %12 = quake.g2 [%10] %2 : (!quake.control, !quake.wire) -> !quake.wire
+      %13 = quake.g3 [%10] %3 : (!quake.control, !quake.wire) -> !quake.wire
+      %20 = quake.from_ctrl %10 : (!quake.control) -> !quake.wire
+    ```
   }];
+
   let genStorageClass = 0;
 }
 
 //===----------------------------------------------------------------------===//
-// RefType
+// RefType: quantum reference type
 //===----------------------------------------------------------------------===//
 
 def RefType : QuakeType<"Ref", "ref"> {
-  let summary = "reference to a wire";
+  let summary = "reference to a quantum wire";
   let description = [{
-    A `ref` represents a reference to a wire.  One can view the values of
-    this type as the horizontal lines in the following a quantum circuit
-    diagram. A value of type `ref` is an SSA-value.
+    A `ref` represents a reference to a value of `wire` type.  One can view the
+    values of this type as the horizontal lines in the following quantum circuit
+    diagram. A value of type `ref` is an SSA value with reference semantics. A
+    quantum operator that uses a `ref` value implicitly performs an unwrap
+    (read), modify, and wrap (write) on the "wire" value referenced.
 
     ```
     q0 : ─────●────────── <--+
@@ -89,34 +106,34 @@ def RefType : QuakeType<"Ref", "ref"> {
       quake.gate2 (%q1)
     ```
 
-    The semantics is that `gate1` has quantum memory side-effects through the
-    reference `%q1` to the referent wire, which is modified (read and write).
-    (The reference does not change, but the wire it refers to is considered
-    volatile.) Similarly `gate2` has the same side-effects through the same
-    reference, `%q1`. Because these operations modify the same wire, they
-    cannot be reordered relative to one another.
+    In the example, `gate1` has quantum memory side-effects on the reference
+    `%q1 : !quake.ref`, which is assumed to be modified in place, similar to a
+    volatile memory location. The next operation, `gate2`, also has quantum
+    memory side-effects through the same reference, `%q1`. Because these
+    operations use the same reference, they cannot be reordered relative to one
+    another.
     
-    Furthermore, `gate1` implies only a quantum memory read side-effect on the
-    referent wire through the reference `%q0`. Because `%q0` appears in a
-    control position in `gate1`, the wire value is not updated.
-
-    Not all operations will have side-effects on the referent wire of the
-    reference value of `ref` type.
+    Furthermore, `gate1` implies \em{only} a quantum memory read side-effect on
+    the reference value `%q0`. This is because `%q0` appears in a control
+    position in `gate1`, as indicated by the square brackets.
   }];
+
   let genStorageClass = 0;
 }
 
 //===----------------------------------------------------------------------===//
-// VeqType
+// VeqType: quantum reference type
 //===----------------------------------------------------------------------===//
 
 def VeqType : QuakeType<"Veq", "veq"> {
-  let summary = "a aggregate of wire references";
+  let summary = "an aggregate of quantum references";
   let description = [{
     A value of type `veq` is a (linear) collection of values of type `ref`.
     These aggregates are a convenience for referring to an entire group of
-    references to wires. A `veq` value is a proper SSA-value. `ref` values
-    in a `veq` are not volatile.
+    quantum memory references. A `veq` value is an SSA value and can be defined
+    once and used multiple times. `ref` values in a `veq` are non-volatile, so
+    extracting a `ref` at the same index multiple times yields copies of the
+    same quantum memory reference.
   }];
 
   let parameters = (ins "std::size_t":$size);
@@ -130,6 +147,27 @@ def VeqType : QuakeType<"Veq", "veq"> {
       return VeqType::get(ctx, 0);
     }
   }];
+}
+
+//===----------------------------------------------------------------------===//
+// MeasureType: classical data type
+//===----------------------------------------------------------------------===//
+
+def MeasureType : QuakeType<"Measure", "measure"> {
+  let summary = "a classical result produced by a quantum measurement";
+  let description = [{
+    A quantum measurement captures the state of a qubit and returns a classical
+    value from the measurement. Depending on the target system this value may
+    have two or more logical states. Typically, a value of type `measure` is
+    considered a binary bit.
+
+    ```mlir
+      %m = quake.mz %0 : (!quake.ref) -> !quake.measure
+      quake.dealloc %0 : !quake.ref
+    ```
+  }];
+
+  let genStorageClass = 0;
 }
 
 def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, VeqType.predicate,

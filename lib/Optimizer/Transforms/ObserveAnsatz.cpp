@@ -80,15 +80,57 @@ private:
     AnsatzMetadata data;
 
     // walk and find all quantum allocations
-    funcOp->walk([&](quake::AllocaOp op) {
-      data.nQubits += op.getResult().getType().cast<quake::VeqType>().getSize();
+    auto walkResult = funcOp->walk([&](quake::AllocaOp op) {
+      if (auto veq = dyn_cast<quake::VeqType>(op.getResult().getType())) {
+        // Only update data.nQubits here. data.qubitValues will be updated for
+        // the corresponding ExtractRefOP's in the `walk` below.
+        if (veq.hasSpecifiedSize())
+          data.nQubits += veq.getSize();
+        else
+          return WalkResult::interrupt(); // this is an error condition
+      } else {
+        // single alloc is for a single qubit. Update data.qubitValues here
+        // because ExtractRefOp `walk` won't find any ExtractRefOp for this.
+        data.qubitValues.insert({data.nQubits++, op.getResult()});
+      }
+      return WalkResult::advance();
     });
+
+    if (walkResult.wasInterrupted()) {
+      emitError(funcOp.getLoc(), "VeqType with unspecified size found");
+      return; // no cleanup necessary because infoMap is unmodified
+    }
 
     // NOTE: assumes canonicalization and cse have run.
     funcOp->walk([&](quake::ExtractRefOp op) {
       if (op.hasConstantIndex())
         data.qubitValues.insert({op.getConstantIndex(), op.getResult()});
     });
+
+    // If mapping has moved qubits or introduced auxillary qubits, update the
+    // analysis accordingly.
+    if (auto mappingAttr =
+            dyn_cast_if_present<ArrayAttr>(funcOp->getAttr("mapping_v2p"))) {
+      // First populate mapping_v2p[].
+      SmallVector<std::size_t> mapping_v2p(mappingAttr.size());
+      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr)) {
+        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
+          mapping_v2p[origIx] = val.getInt();
+        else {
+          emitError(funcOp.getLoc(), "invalid mapping_v2p found in function");
+          return; // no cleanup necessary because infoMap is unmodified
+        }
+      }
+
+      // Next create newQubitValues[]
+      DenseMap<std::size_t, Value> newQubitValues;
+      for (auto [origIx, mappedIx] : llvm::enumerate(mapping_v2p))
+        newQubitValues[origIx] = data.qubitValues[mappedIx];
+
+      // Now replace the values in data
+      data.nQubits = mapping_v2p.size();
+      data.qubitValues = newQubitValues;
+    }
 
     // Count all measures
     funcOp->walk([&](quake::MzOp op) { data.nMeasures++; });
@@ -129,7 +171,11 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 
     // Use an Analysis to count the number of qubits.
     auto iter = infoMap.find(funcOp);
-    assert(iter != infoMap.end());
+    if (iter == infoMap.end()) {
+      std::string msg = "Errors encountered in pass analysis\n";
+      funcOp.emitError(msg);
+      return failure();
+    }
     auto nQubits = iter->second.nQubits;
     auto nMeasures = iter->second.nMeasures;
 
@@ -174,9 +220,14 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
         qubitsToMeasure.push_back(qubitVal);
     }
 
-    for (auto &qubitToMeasure : qubitsToMeasure) {
+    for (auto &[measureNum, qubitToMeasure] :
+         llvm::enumerate(qubitsToMeasure)) {
       // add the measure
-      builder.create<quake::MzOp>(loc, builder.getI1Type(), qubitToMeasure);
+      char regName[16];
+      std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
+      auto measTy = quake::MeasureType::get(builder.getContext());
+      builder.create<quake::MzOp>(loc, measTy, qubitToMeasure,
+                                  builder.getStringAttr(regName));
     }
 
     rewriter.finalizeRootUpdate(funcOp);

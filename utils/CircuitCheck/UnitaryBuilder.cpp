@@ -27,6 +27,8 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   SmallVector<Complex, 16> matrix;
   SmallVector<Qubit, 16> qubits;
   auto result = func.walk([&](Operation *op) {
+    if (auto nullWireOp = dyn_cast<quake::NullWireOp>(op))
+      return allocateQubits(nullWireOp.getResult());
     if (auto allocOp = dyn_cast<quake::AllocaOp>(op))
       return allocateQubits(allocOp.getResult());
     if (auto extractOp = dyn_cast<quake::ExtractRefOp>(op))
@@ -38,20 +40,34 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
         optor.emitOpError("Couldn't produce matrix.");
         return WalkResult::interrupt();
       }
+      auto quantumOperands = quake::getQuantumOperands(op);
+      if (quantumOperands.empty()) {
+        optor.emitOpError("Couldn't get quantum operands");
+        return WalkResult::interrupt();
+      }
       // If we can't get the qubits involved in this operation, stop the walk
-      if (failed(getQubits(optor.getControls(), qubits)) ||
-          failed(getQubits(optor.getTargets(), qubits))) {
+      if (failed(getQubits(quantumOperands, qubits))) {
         optor.emitOpError("Couldn't get the qubits.");
         return WalkResult::interrupt();
       }
 
-      if (optor.getNegatedControls())
-        negatedControls(*optor.getNegatedControls(), qubits);
+      for (auto &&[newQuantumOp, quantumOp] : llvm::zip(
+               quake::getQuantumResults(op), quake::getQuantumOperands(op)))
+        qubitMap.insert({newQuantumOp, qubitMap[quantumOp]});
 
-      applyOperator(matrix, optor.getTargets().size(), qubits);
+      // When checking mapped circuits, we do a software swap, i.e., just change
+      // the qubit mapping instead of applying the swap operation.
+      if (upToMapping && isa<quake::SwapOp>(op)) {
+        std::swap(qubitMap[op->getResult(0)], qubitMap[op->getResult(1)]);
+      } else {
+        if (optor.getNegatedControls())
+          negatedControls(*optor.getNegatedControls(), qubits);
 
-      if (optor.getNegatedControls())
-        negatedControls(*optor.getNegatedControls(), qubits);
+        applyOperator(matrix, optor.getTargets().size(), qubits);
+
+        if (optor.getNegatedControls())
+          negatedControls(*optor.getNegatedControls(), qubits);
+      }
 
       matrix.clear();
       qubits.clear();
@@ -85,8 +101,10 @@ WalkResult UnitaryBuilder::visitExtractOp(quake::ExtractRefOp op) {
 
 WalkResult UnitaryBuilder::allocateQubits(Value value) {
   auto [entry, success] = qubitMap.try_emplace(value);
-  if (!success)
+  if (!success) {
+    value.getDefiningOp()->emitError("Qubit already allocated.");
     return WalkResult::interrupt();
+  }
   auto &qubits = entry->second;
   if (auto veq = dyn_cast<quake::VeqType>(value.getType())) {
     if (!veq.hasSpecifiedSize()) {
@@ -102,6 +120,10 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
   return WalkResult::advance();
 }
 
+//===----------------------------------------------------------------------===//
+// Helpers
+//===----------------------------------------------------------------------===//
+
 LogicalResult UnitaryBuilder::getValueAsInt(Value value, std::size_t &result) {
   if (auto op =
           dyn_cast_if_present<arith::ConstantIntOp>(value.getDefiningOp()))
@@ -112,16 +134,9 @@ LogicalResult UnitaryBuilder::getValueAsInt(Value value, std::size_t &result) {
   return failure();
 }
 
-//===----------------------------------------------------------------------===//
-// Helpers
-//===----------------------------------------------------------------------===//
-
 LogicalResult UnitaryBuilder::getQubits(ValueRange values,
                                         SmallVectorImpl<Qubit> &qubits) {
   for (Value value : values) {
-    if (dyn_cast<quake::WireType>(value.getType()))
-      return failure();
-
     if (auto veq = dyn_cast<quake::VeqType>(value.getType())) {
       if (!veq.hasSpecifiedSize())
         return failure();
@@ -141,7 +156,7 @@ void UnitaryBuilder::negatedControls(ArrayRef<bool> negatedControls,
 }
 
 LogicalResult UnitaryBuilder::deallocateAncillas(std::size_t numQubits) {
-  if (matrix.rows() == (1 << numQubits))
+  if (numQubits == 0 || matrix.rows() == (1 << numQubits))
     return success();
   const std::size_t size = (1ULL << numQubits);
   UMatrix newMatrix = matrix.block(0, 0, size, size);

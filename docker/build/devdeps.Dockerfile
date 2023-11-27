@@ -26,6 +26,7 @@ FROM ubuntu:22.04 as llvmbuild
 SHELL ["/bin/bash", "-c"]
 
 ARG llvm_commit
+ARG pybind11_commit
 ARG toolchain=llvm
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -38,14 +39,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install prerequisites for building LLVM.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ninja-build cmake python3 \
+        ninja-build cmake python3 python3-dev python3-pip \
+    && python3 -m pip install --no-cache-dir numpy \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Clone the LLVM source code.
+# Preserve access to the history to be able to cherry pick specific commits.
 RUN apt-get update && apt-get install -y --no-install-recommends git \
-    && mkdir /llvm-project && cd /llvm-project && git init \
-    && git remote add origin https://github.com/llvm/llvm-project \
-    && git fetch origin --depth=1 $llvm_commit && git reset --hard FETCH_HEAD \
+    && git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project \
+    && cd /llvm-project && git checkout $llvm_commit \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum;
@@ -64,7 +66,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN LLVM_INSTALL_PREFIX=/opt/llvm LLVM_SOURCE=/llvm-project \
-        source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
+        source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
+    && rm -rf /llvm-project/build
+RUN mkdir /pybind11-project && cd /pybind11-project && git init \
+    && git remote add origin https://github.com/pybind/pybind11 \
+    && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
+    && source /opt/llvm/bootstrap/init_command.sh \
+    && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
+    && cmake --build . --target install --config Release \
+    && cd .. && rm -rf /pybind11-project
 RUN source /opt/llvm/bootstrap/init_command.sh && \
     LLVM_INSTALL_PREFIX=/opt/llvm \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
@@ -151,7 +162,7 @@ COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 # Install additional tools for CUDA Quantum documentation generation.
 COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
 ENV PATH="${PATH}:/usr/local/bin"
-RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc \
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc aspell aspell-en \
     && python3 -m pip install --no-cache-dir \
         ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 sphinx-thebe==0.3.0 \
         sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 nbsphinx==0.9.2 sphinx_gallery==0.13.0 \
@@ -172,5 +183,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && python3 -m pip install --no-cache-dir \
         lit pytest numpy \
         fastapi uvicorn pydantic requests llvmlite \
+        pyspelling pymdown-extensions \
         scipy==1.10.1 openfermionpyscf==0.5 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*

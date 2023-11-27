@@ -128,12 +128,17 @@ Using Quantum Hardware Providers
 CUDA Quantum contains support for using a set of hardware providers. 
 For more information about executing quantum kernels on different hardware backends, please take a look at :doc:`hardware`.
 
-The following code illustrates how run kernels on Quantinuum's backends.
+The following code illustrates how to run kernels on Quantinuum's backends.
 
 .. literalinclude:: ../examples/python/providers/quantinuum.py
    :language: python
 
-The following code illustrates how run kernels on IonQ's backends.
+The following code illustrates how to run kernels on IonQ's backends.
 
 .. literalinclude:: ../examples/python/providers/ionq.py
+   :language: python
+
+The following code illustrates how to run kernels on IQM's backends.
+
+.. literalinclude:: ../examples/python/providers/iqm.py
    :language: python

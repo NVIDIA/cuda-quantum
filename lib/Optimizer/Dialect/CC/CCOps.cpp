@@ -427,7 +427,8 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct FuseStdvecInitData : public OpRewritePattern<cudaq::cc::StdvecDataOp> {
+struct ForwardStdvecInitData
+    : public OpRewritePattern<cudaq::cc::StdvecDataOp> {
   using Base = OpRewritePattern<cudaq::cc::StdvecDataOp>;
   using Base::Base;
 
@@ -451,7 +452,34 @@ struct FuseStdvecInitData : public OpRewritePattern<cudaq::cc::StdvecDataOp> {
 
 void cudaq::cc::StdvecDataOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FuseStdvecInitData>(context);
+  patterns.add<ForwardStdvecInitData>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// StdvecSizeOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+struct ForwardStdvecInitSize
+    : public OpRewritePattern<cudaq::cc::StdvecSizeOp> {
+  using Base = OpRewritePattern<cudaq::cc::StdvecSizeOp>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(cudaq::cc::StdvecSizeOp size,
+                                PatternRewriter &rewriter) const override {
+    if (auto ini = size.getStdvec().getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+      Value cast = rewriter.create<cudaq::cc::CastOp>(
+          size.getLoc(), size.getType(), ini.getLength());
+      rewriter.replaceOp(size, cast);
+    }
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::StdvecSizeOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ForwardStdvecInitSize>(context);
 }
 
 //===----------------------------------------------------------------------===//

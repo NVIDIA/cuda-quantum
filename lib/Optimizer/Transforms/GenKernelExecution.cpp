@@ -512,6 +512,18 @@ public:
     }
     auto rewriteEntry =
         builder.create<func::FuncOp>(loc, mangledAttr.getValue(), newFuncTy);
+    if (cudaq::opt::factory::hasHiddenSRet(funcTy)) {
+      // The first argument should be a pointer type if this function has a
+      // hidden sret.
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(
+              rewriteEntry.getFunctionType().getInput(0))) {
+        auto eleTy = ptrTy.getElementType();
+        rewriteEntry.setArgAttr(0,
+                                mlir::LLVM::LLVMDialect::getStructRetAttrName(),
+                                mlir::TypeAttr::get(eleTy));
+      }
+    }
+
     auto insPt = builder.saveInsertionPoint();
     auto *rewriteEntryBlock = rewriteEntry.addEntryBlock();
     builder.setInsertionPointToStart(rewriteEntryBlock);
@@ -573,8 +585,10 @@ public:
     if (hasTrailingData) {
       Value vecToBuffer = builder.create<cudaq::cc::ComputePtrOp>(
           loc, i8PtrTy, buff, SmallVector<Value>{structSize});
+      // Ignore any hidden `this` argument.
       for (auto inp :
-           llvm::enumerate(rewriteEntryBlock->getArguments().drop_front(1))) {
+           llvm::enumerate(rewriteEntryBlock->getArguments().drop_front(
+               addThisPtr ? 1 : 0))) {
         Value arg = inp.value();
         Type inTy = arg.getType();
         std::int64_t idx = inp.index();

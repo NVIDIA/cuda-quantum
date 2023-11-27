@@ -68,8 +68,60 @@ public:
                              const std::vector<std::size_t> &controls,
                              const std::vector<std::size_t> &qubitIds,
                              const cudaq::spin_op &op) {
-    throw std::runtime_error("CircuitSimulator::applyExpPauli not implemented, "
-                             "must be implemented by subclasses.");
+    if (op.is_identity()) {
+      if (controls.empty()) {
+        // exp(i*theta*Id) is noop if this is not a controlled gate.
+        return;
+      } else {
+        // Throw an error if this exp_pauli(i*theta*Id) becomes a non-trivial
+        // gate due to control qubits.
+        // FIXME: revisit this once
+        // https://github.com/NVIDIA/cuda-quantum/issues/483 is implemented.
+        throw std::logic_error("Applying controlled global phase via exp_pauli "
+                               "of identity operator is not supported");
+      }
+    }
+    flushGateQueue();
+    cudaq::info(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
+                op.to_string(false));
+    std::vector<std::size_t> qubitSupport;
+    std::vector<std::function<void(bool)>> basisChange;
+    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
+      if (type != cudaq::pauli::I)
+        qubitSupport.push_back(qubitIds[qubitIdx]);
+
+      if (type == cudaq::pauli::Y)
+        basisChange.emplace_back([&, qubitIdx](bool reverse) {
+          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIds[qubitIdx]);
+        });
+      else if (type == cudaq::pauli::X)
+        basisChange.emplace_back(
+            [&, qubitIdx](bool) { h(qubitIds[qubitIdx]); });
+    });
+
+    if (!basisChange.empty())
+      for (auto &basis : basisChange)
+        basis(false);
+
+    std::vector<std::pair<std::size_t, std::size_t>> toReverse;
+    for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
+      x({qubitSupport[i]}, qubitSupport[i + 1]);
+      toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
+    }
+
+    // Since this is a compute-action-uncompute type circuit, we only need to
+    // apply control on this rz gate.
+    rz(-2.0 * theta, controls, qubitSupport.back());
+
+    std::reverse(toReverse.begin(), toReverse.end());
+    for (auto &[i, j] : toReverse)
+      x({i}, j);
+
+    if (!basisChange.empty()) {
+      std::reverse(basisChange.begin(), basisChange.end());
+      for (auto &basis : basisChange)
+        basis(true);
+    }
   }
 
   /// @brief Compute the expected value of the given spin op
@@ -542,19 +594,29 @@ protected:
         std::vector<std::string> sortedRegNames =
             executionContext->result.register_names();
         std::sort(sortedRegNames.begin(), sortedRegNames.end());
-        for (size_t shot = 0; shot < executionContext->shots; shot++) {
-          std::string myResult;
-          for (auto regName : sortedRegNames) {
-            auto dataByShot = executionContext->result.sequential_data(regName);
-            if (shot < dataByShot.size())
-              myResult += dataByShot[shot];
-          }
-          globalResult.sequentialData.push_back(myResult);
-        }
+
+        // Populate sequential_data[] once so that we don't have to do it every
+        // shot. This is because calling result.sequential_data() is relatively
+        // slow if done inside a loop because it would constructs a copy of the
+        // data on every call.
+        std::vector<std::vector<std::string>> sequential_data;
+        sequential_data.reserve(sortedRegNames.size());
+        for (auto regName : sortedRegNames)
+          sequential_data.push_back(
+              executionContext->result.sequential_data(regName));
+
         // Count how often each occurrence happened (in the new sorted order)
         cudaq::CountsDictionary myGlobalCountDict;
-        for (size_t shot = 0; shot < executionContext->shots; shot++)
-          myGlobalCountDict[globalResult.sequentialData[shot]]++;
+        globalResult.sequentialData.reserve(executionContext->shots);
+        for (size_t shot = 0; shot < executionContext->shots; shot++) {
+          std::string myResult;
+          myResult.reserve(sortedRegNames.size());
+          for (auto &dataByShot : sequential_data)
+            if (shot < dataByShot.size())
+              myResult += dataByShot[shot];
+          globalResult.sequentialData.push_back(myResult);
+          myGlobalCountDict[myResult]++;
+        }
         for (auto &[bits, count] : myGlobalCountDict)
           globalResult.appendResult(bits, count);
 

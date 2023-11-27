@@ -42,14 +42,6 @@ protected:
   /// is equal to the number provided as input at runtime.
   bool canValidateVectorNumElements = true;
 
-  /// @brief Keep track of previously extracted QuakeValues from
-  /// a concrete index value
-  std::map<std::size_t, QuakeValue> extractedFromIndex;
-
-  /// @brief Keep track of previously extracted QuakeValues from
-  /// another QuakeValue (represented by its unique opaque pointer)
-  std::map<void *, QuakeValue> extractedFromValue;
-
 public:
   /// @brief Return the actual MLIR Value
   mlir::Value getValue() const;
@@ -141,6 +133,9 @@ public:
 
   /// @brief Subtract the given QuakeValue from this QuakeValue
   QuakeValue operator-(QuakeValue other);
+
+  /// @brief Return the inverse (1/x) of this QuakeValue
+  QuakeValue inverse() const;
 };
 
 /// @brief Concept constraining the input type below to be a QuakeValue
@@ -165,5 +160,7 @@ QuakeValue operator-(IsNumericType auto &&d, IsQuakeValue auto &&q) {
 QuakeValue operator+(IsNumericType auto &&d, IsQuakeValue auto &&q) {
   return q + d;
 }
-
+QuakeValue operator/(IsNumericType auto &&d, IsQuakeValue auto &&q) {
+  return q.inverse() * d;
+}
 } // namespace cudaq

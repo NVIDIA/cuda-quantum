@@ -11,6 +11,18 @@
 
 include "mlir/Pass/PassBase.td"
 
+
+def ApplyControlNegations : Pass<"apply-control-negations", "mlir::func::FuncOp"> {
+  let summary =
+    "Replace all operations with negative controls with positive controls and X operations.";
+
+  let description = [{
+    For every quantum operation with a negative control, replace that operation 
+    with an X operation on the control qubit, the controlled operation with positive 
+    polarity, and a final X operation on the control qubit. 
+  }];
+}
+
 // ApplyOpSpecialization is a module pass because it may modify the ModuleOp
 // and add new FuncOps.
 def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
@@ -32,6 +44,37 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
   let options = [
     Option<"computeActionOptimization", "compute-action-opt", "bool",
       /*default=*/"true", "Enable the compute-action control optimization.">
+  ];
+}
+
+def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
+  let summary = "Converts kernels to a set of basis operations.";
+  let description = [{
+    This pass takes as input a list of target (allowed) quantum operations.
+    It builds a conversion target, and uses it, together with the dialect
+    conversion driver, to try converting all operations into the defined basis.
+
+    The `basis` option takes a comma-separated list of elements identifying
+    specific quantum operations as input. Each element must have the
+    following format:
+
+    ```
+    <op-name>(`(` [<number-of-controls> | `n`] `)` )?
+    ```
+
+    Examples:
+    - `x` means targeting pauli-x operations without controls  (aka, `not`)
+    - `x(1)` means targeting pauli-x operations with one control (aka, `cx`)
+    - `x(n)` means targeting pauli-x operation with unbounded number of controls
+    - `x,x(1)` means targeting both `not` and `cx` operations
+  }];
+  let options = [
+    ListOption<"basis", "basis", "std::string", "Set of basis operations">,
+    ListOption<"disabledPatterns", "disable-patterns", "std::string",
+               "Labels of decomposition patterns that should be filtered out">,
+    ListOption<"enabledPatterns", "enable-patterns", "std::string",
+               "Labels of decomposition patterns that should be used, all "
+               "other patterns are filtered out">,
   ];
 }
 
@@ -84,6 +127,30 @@ def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
   }];
 
   let constructor = "cudaq::opt::createDelayMeasurementsPass()";
+}
+
+def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
+  let summary = "Break down quantum operations.";
+  let description = [{
+    This pass performs decomposition over a set of operations by iteratively
+    applying decomposition patterns until either a fixpoint is reached or the
+    maximum number of iterations/rewrites is exhausted. Decomposition is
+    best-effort and does not guarantee that the entire IR is decomposed after
+    running this pass.
+
+    NOTE: The current implementation is conservative w.r.t global phase, which
+    means no decomposition will take place under the presence of controlled
+    `quake.apply` operations in the module.
+  }];
+  let options = [
+    ListOption<"disabledPatterns", "disable-patterns", "std::string",
+               "Labels of decomposition patterns that should be filtered out">,
+    ListOption<"enabledPatterns", "enable-patterns", "std::string",
+               "Labels of decomposition patterns that should be used, all "
+               "other patterns are filtered out">,
+    Option<"testConvergence", "test-convergence", "bool", /*default=*/"false",
+           "Test only: Fail pass on non-convergence to detect cyclic patterns">,
+  ];
 }
 
 def ExpandMeasurements : Pass<"expand-measurements"> {
@@ -165,6 +232,38 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createLambdaLiftingPass()";
 }
 
+def LinearCtrlRelations : Pass<"linear-ctrl-form", "mlir::func::FuncOp"> {
+  let summary = "Removes control type values between quantum ops.";
+  let description = [{
+    In the value semantics, quantum gates may be factored in terms of control
+    qubits by the introduction of values of type `!quake.control`. These
+    relaxed constraints can be removed within the IR to get a linear and overly
+    constrained representation of the dataflow of the *logical* qubits. The
+    overly constrained representation may be better suited to certain
+    transformations.
+
+    The following example is a factored value semantics. The wire type value is
+    converted to a control type value, `%ctrl`, which is a proper SSA-value
+    until it is converted back to a wire type, `%new.0`.
+    ```mlir
+      %ctrl = to_ctrl %old.0 : (!wire) -> !control
+      %3 = x [%ctrl] %1 : (!control, !wire) -> !wire
+      %4 = h [%ctrl] %2 : (!control, !wire) -> !wire
+      %5 = y [%ctrl] %3 : (!control, !wire) -> !wire
+      %new.0 = from_ctrl %ctrl : (!control) -> !wire
+    ```
+
+    Linearizing these control type values increases the coarity of the quantum
+    operations and prevents reordering the operations without rewiring the
+    use-def chains of wire values in control positions.
+    ```mlir
+      %3:2 = x [%0] %1 : (!wire, !wire) -> (!wire, !wire)
+      %4:2 = h [%3#0] %2 : (!wire, !wire) -> (!wire, !wire)
+      %5:2 = y [%4#0] %3#1 : (!wire, !wire) -> (!wire, !wire)
+    ```
+  }];
+}
+
 def LoopNormalize : Pass<"cc-loop-normalize"> {
   let summary = "Normalize classical compute (C++) loops.";
   let description = [{
@@ -180,6 +279,31 @@ def LoopNormalize : Pass<"cc-loop-normalize"> {
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"true",
       "Allow unrolling of loop with early exit (i.e. break statement).">
   ];
+}
+
+def LoopPeeling : Pass<"cc-loop-peeling"> {
+  let summary = "Peeling classical do-while loops.";
+  let description = [{
+    This loop peeling pass currently implements the transformation of a C++
+    do-while loop into a peeled body and while sequence.
+
+    ```c++
+    do {
+      body;
+    } while (condition);
+    ```
+    is transformed to
+    ```c++
+    body;
+    while (condition) {
+      body;
+    }
+    ```
+
+    Other cases of loop peeling may be implemented in the future.
+  }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect"];
 }
 
 def LoopUnroll : Pass<"cc-loop-unroll"> {
@@ -207,14 +331,6 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
       "Allow unrolling of loop with early exit (i.e. break statement).">
   ];
-}
-
-def UpdateRegisterNames : Pass<"update-register-names", "mlir::ModuleOp"> {
-  let summary = "Update classical register names";
-  let description = [{
-    After loop unrolling, there may be duplicate registerName attributes. Run
-    this pass to give them unique attribute values.
-  }];
 }
 
 def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
@@ -255,6 +371,29 @@ def LowerToCFG : Pass<"lower-to-cfg", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createLowerToCFGPass()";
 }
 
+def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
+  let summary = "Perform qubit mapping to account for connectivity constraints";
+  let description = [{
+    Some backends cannot support any-to-any multi-qubit operations, so this pass
+    performs mapping of the qubits by inserting the necessary swap operations
+    into the Quake IR.
+
+    Note: this pass requires strictly value semantics for any quantum
+    operations. It will throw an error if any memory reference semantics are
+    present on quantum operations.
+  }];
+
+  let options = [
+    Option<"device", "device", "std::string", /*default=*/"\"-\"",
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
+    Option<"debug", "debug", "bool", /*default=*/"false", "Enable debug for qubit-mapping pass algorithm">,
+    Option<"extendedLayerSize", "extendedLayerSize", "unsigned", /*default=*/"20", "Extended layer size">,
+    Option<"extendedLayerWeight", "extendedLayerWeight", "float", /*default=*/"0.5", "Extended layer weight">,
+    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5", "Decay delta">,
+    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5", "Number of rounds before decay is reset">
+  ];
+}
+
 def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
   let summary = "Converts memory-SSA to register-SSA form.";
   let description = [{
@@ -278,6 +417,43 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     Option<"quantumValues", "quantum", "bool",
       /*default=*/"true", "Promote of quantum values.">
   ];
+}
+
+def MultiControlDecompositionPass: Pass<"multicontrol-decomposition",
+                                        "mlir::func::FuncOp"> {
+  let summary = "Break down multi-control quantum operations.";
+  let description = [{
+    This pass decomposes multi-control quantum operations. The decompostion
+    involves allocating new qubits to hold intermediate results. The number of
+    extra qubits depends on the particular operation being decomposed.
+    Pauli-X and Pauli-Z operations add _N_ - 2 qubits, while other operations
+    add _N_ - 1 qubits, where _N_ is the number of controls.
+
+    Note: When a `veq` is used as control, we need to know its size to be able
+    to decompose. In such cases, all qubits will be extracted. If the size is
+    unknown at compilation-time, the pass leaves the operation as-is.
+  }];
+}
+
+def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
+ let summary = "Given spin_op input, append measures to the FuncOp";
+  let description = [{
+    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
+    measures based on the given spin_op specified in binary symplectic form.
+  }];
+  let options = [
+    ListOption<"termBSF", "term-bsf", "unsigned",
+      "The measurement bases as a Pauli tensor product represented in binary symplectic form.">
+  ];
+}
+
+def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
+  let summary = "Promote single qubit allocations.";
+  let description = [{
+    This pass converts all single qubit allocations in the quake dialect to
+    allocations of vectors of qubits of length one. This conversion makes all
+    allocations uniform for the conversion to QIR.
+  }];
 }
 
 def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
@@ -309,7 +485,6 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
       %new.0 = from_ctrl %ctrl : (!control) -> !wire
     ```
   }];
-  let dependentDialects = ["quake::QuakeDialect"];
 }
 
 def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
@@ -345,18 +520,6 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   }];
 
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
-}
-
-def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
- let summary = "Given spin_op input, append measures to the FuncOp";
-  let description = [{
-    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
-    measures based on the given spin_op specified in binary symplectic form.
-  }];
-  let options = [
-    ListOption<"termBSF", "term-bsf", "unsigned",
-      "The measurement bases as a Pauli tensor product represented in binary symplectic form.">
-  ];
 }
 
 def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
@@ -400,74 +563,11 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createUnwindLoweringPass()";
 }
 
-def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
-  let summary = "Converts kernels to a set of basis operations.";
+def UpdateRegisterNames : Pass<"update-register-names"> {
+  let summary = "Update classical register names";
   let description = [{
-    This pass takes as input a list of target (allowed) quantum operations.
-    It builds a conversion target, and uses it, together with the dialect
-    conversion driver, to try converting all operations into the defined basis.
-
-    The `basis` option takes a comma-separated list of elements identifying
-    specific quantum operations as input. Each element must have the
-    following format:
-
-    ```
-    <op-name>(`(` [<number-of-controls> | `n`] `)` )?
-    ```
-
-    Examples:
-    - `x` means targeting pauli-x operations without controls  (aka, `not`)
-    - `x(1)` means targeting pauli-x operations with one control (aka, `cx`)
-    - `x(n)` means targeting pauli-x operation with unbounded number of controls
-    - `x,x(1)` means targeting both `not` and `cx` operations
-  }];
-  let options = [
-    ListOption<"basis", "basis", "std::string", "Set of basis operations">,
-    ListOption<"disabledPatterns", "disable-patterns", "std::string",
-               "Labels of decomposition patterns that should be filtered out">,
-    ListOption<"enabledPatterns", "enable-patterns", "std::string",
-               "Labels of decomposition patterns that should be used, all "
-               "other patterns are filtered out">,
-  ];
-}
-
-def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
-  let summary = "Break down quantum operations.";
-  let description = [{
-    This pass performs decomposition over a set of operations by iteratively
-    applying decomposition patterns until either a fixpoint is reached or the
-    maximum number of iterations/rewrites is exhausted. Decomposition is
-    best-effort and does not guarantee that the entire IR is decomposed after
-    running this pass.
-
-    NOTE: The current implementation is conservative w.r.t global phase, which
-    means no decomposition will take place under the presence of controlled
-    `quake.apply` operations in the module.
-  }];
-  let options = [
-    ListOption<"disabledPatterns", "disable-patterns", "std::string",
-               "Labels of decomposition patterns that should be filtered out">,
-    ListOption<"enabledPatterns", "enable-patterns", "std::string",
-               "Labels of decomposition patterns that should be used, all "
-               "other patterns are filtered out">,
-    Option<"testConvergence", "test-convergence", "bool", /*default=*/"false",
-           "Test only: Fail pass on non-convergence to detect cyclic patterns">,
-  ];
-}
-
-def MultiControlDecompositionPass: Pass<"multicontrol-decomposition",
-                                        "mlir::func::FuncOp"> {
-  let summary = "Break down multi-control quantum operations.";
-  let description = [{
-    This pass decomposes multi-control quantum operations. The decompostion
-    involves allocating new qubits to hold intermediate results. The number of
-    extra qubits depends on the particular operation being decomposed.
-    Pauli-X and Pauli-Z operations add _N_ - 2 qubits, while other operations
-    add _N_ - 1 qubits, where _N_ is the number of controls.
-
-    Note: When a `veq` is used as control, we need to know its size to be able
-    to decompose. In such cases, all qubits will be extracted. If the size is
-    unknown at compilation-time, the pass leaves the operation as-is.
+    After loop unrolling, there may be duplicate registerName attributes. Run
+    this pass to give them unique attribute values.
   }];
 }
 

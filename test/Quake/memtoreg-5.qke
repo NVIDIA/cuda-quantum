@@ -1,0 +1,111 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --memtoreg=quantum=0 %s | FileCheck %s
+
+func.func @__nvqpp__mlirgen__dummy() {
+  %c1_i32 = arith.constant 1 : i32
+  %c100_i32 = arith.constant 100 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %0 = quake.alloca !quake.veq<2>
+  cc.scope {
+    %1 = cc.alloca i32
+    cc.store %c0_i32, %1 : !cc.ptr<i32>
+    cc.loop while {
+      %2 = cc.load %1 : !cc.ptr<i32>
+      %3 = arith.cmpi slt, %2, %c100_i32 : i32
+      cc.condition %3
+    } do {
+      %2 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+      quake.h %2 : (!quake.ref) -> ()
+      %3 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+      %4 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+      quake.x [%3] %4 : (!quake.ref, !quake.ref) -> ()
+      %5 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+      %bits = quake.mz %5 name "b0" : (!quake.ref) -> !quake.measure
+      %bit = quake.discriminate %bits : (!quake.measure) -> i1
+      %6 = cc.alloca i1
+      cc.store %bit, %6 : !cc.ptr<i1>
+      %7 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+      %bits_0 = quake.mz %7 name "b1" : (!quake.ref) -> !quake.measure
+      %bit_0 = quake.discriminate %bits_0 : (!quake.measure) -> i1
+      %8 = cc.alloca i1
+      cc.store %bit_0, %8 : !cc.ptr<i1>
+      %9 = cc.load %6 : !cc.ptr<i1>
+      %10 = cc.load %8 : !cc.ptr<i1>
+      %11 = arith.cmpi ne, %9, %10 : i1
+      cf.cond_br %11, ^bb1, ^bb2
+    ^bb1:  // pred: ^bb0
+      cc.break
+    ^bb2:  // pred: ^bb0
+      %12 = cc.load %6 : !cc.ptr<i1>
+      cc.if(%12) {
+        %14 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+        quake.x %14 : (!quake.ref) -> ()
+      }
+      %13 = cc.load %8 : !cc.ptr<i1>
+      cc.if(%13) {
+        %14 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+        quake.x %14 : (!quake.ref) -> ()
+      }
+      cc.continue
+    } step {
+      %2 = cc.load %1 : !cc.ptr<i32>
+      %3 = arith.addi %2, %c1_i32 : i32
+      cc.store %3, %1 : !cc.ptr<i32>
+    }
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__dummy()
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 100 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           cc.scope {
+// CHECK:             %[[VAL_4:.*]] = cc.undef i32
+// CHECK:             %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (i32)) {
+// CHECK:               %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_1]] : i32
+// CHECK:               cc.condition %[[VAL_7]](%[[VAL_6]] : i32)
+// CHECK:             } do {
+// CHECK:             ^bb0(%[[VAL_8:.*]]: i32):
+// CHECK:               %[[VAL_9:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.h %[[VAL_9]] : (!quake.ref) -> ()
+// CHECK:               %[[VAL_10:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.x [%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:               %[[VAL_12:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               %[[VAL_113:.*]] = quake.mz %[[VAL_12]] name "b0" : (!quake.ref) -> !quake.measure
+// CHECK:               %[[VAL_13:.*]] = quake.discriminate %[[VAL_113]] :
+// CHECK:               %[[VAL_15:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               %[[VAL_116:.*]] = quake.mz %[[VAL_15]] name "b1" : (!quake.ref) -> !quake.measure
+// CHECK:               %[[VAL_16:.*]] = quake.discriminate %[[VAL_116]] :
+// CHECK:               %[[VAL_18:.*]] = arith.cmpi ne, %[[VAL_13]], %[[VAL_16]] : i1
+// CHECK:               cf.cond_br %[[VAL_18]], ^bb1(%[[VAL_8]] : i32), ^bb2(%[[VAL_13]], %[[VAL_16]], %[[VAL_8]] : i1, i1, i32)
+// CHECK:             ^bb1(%[[VAL_19:.*]]: i32):
+// CHECK:               cc.break %[[VAL_19]] : i32
+// CHECK:             ^bb2(%[[VAL_20:.*]]: i1, %[[VAL_21:.*]]: i1, %[[VAL_22:.*]]: i32):
+// CHECK:               cc.if(%[[VAL_20]]) {
+// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:                 quake.x %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:               }
+// CHECK:               cc.if(%[[VAL_21]]) {
+// CHECK:                 %[[VAL_24:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:                 quake.x %[[VAL_24]] : (!quake.ref) -> ()
+// CHECK:               }
+// CHECK:               cc.continue %[[VAL_22]] : i32
+// CHECK:             } step {
+// CHECK:             ^bb0(%[[VAL_25:.*]]: i32):
+// CHECK:               %[[VAL_26:.*]] = arith.addi %[[VAL_25]], %[[VAL_0]] : i32
+// CHECK:               cc.continue %[[VAL_26]] : i32
+// CHECK:             }
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+

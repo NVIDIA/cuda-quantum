@@ -12,7 +12,7 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
-std::string mockPort = "62454";
+std::string mockPort = "62453";
 std::string email = "test@test.com";
 std::string password = "password";
 std::string backendStringTemplate =
@@ -177,6 +177,7 @@ CUDAQ_TEST(OQCTester, checkObserveAsyncLoadFromFile) {
 }
 
 int main(int argc, char **argv) {
+  setenv("OQC_PASSWORD", password.c_str(), 0);
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

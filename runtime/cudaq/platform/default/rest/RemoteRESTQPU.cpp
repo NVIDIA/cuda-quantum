@@ -289,12 +289,29 @@ public:
     passPipelineConfig = std::string("cc-loop-unroll{allow-early-exit=") +
                          allowEarlyExitSetting + "}," + passPipelineConfig;
 
+    auto disableQM = backendConfig.find("disable_qubit_mapping");
+    if (disableQM != backendConfig.end() && disableQM->second == "true") {
+      // Replace the qubit-mapping{device=<>} with
+      // qubit-mapping{device=bypass} to effectively disable the qubit-mapping
+      // pass. Use $1 - $4 to make sure any other pass options are left
+      // untouched.
+      std::regex qubitMapping(
+          "(.*)qubit-mapping\\{(.*)device=[^,\\}]+(.*)\\}(.*)");
+      std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
+      passPipelineConfig =
+          std::regex_replace(passPipelineConfig, qubitMapping, replacement);
+      cudaq::info("disable_qubit_mapping option found, so updated lowering "
+                  "pipeline to {}",
+                  passPipelineConfig);
+    }
+
     // Set the qpu name
     qpuName = mutableBackend;
 
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
     serverHelper->initialize(backendConfig);
+    serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
@@ -373,6 +390,10 @@ public:
         throw std::runtime_error(
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
             ").");
+      if (disableMLIRthreading || enablePrintMLIREachPass)
+        moduleOpIn.getContext()->disableMultithreading();
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
       if (failed(pm.run(moduleOpIn)))
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
@@ -381,6 +402,10 @@ public:
       cudaq::info("Run Quake Synth.\n");
       PassManager pm(&context);
       pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, kernelArgs));
+      if (disableMLIRthreading || enablePrintMLIREachPass)
+        moduleOp.getContext()->disableMultithreading();
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
@@ -414,6 +439,10 @@ public:
         OpPassManager &optPM = pm.nest<func::FuncOp>();
         optPM.addPass(
             cudaq::opt::createObserveAnsatzPass(binarySymplecticForm[0]));
+        if (disableMLIRthreading || enablePrintMLIREachPass)
+          tmpModuleOp.getContext()->disableMultithreading();
+        if (enablePrintMLIREachPass)
+          pm.enableIRPrinting();
         if (failed(pm.run(tmpModuleOp)))
           throw std::runtime_error("Could not apply measurements to ansatz.");
         runPassPipeline(passPipelineConfig, tmpModuleOp);

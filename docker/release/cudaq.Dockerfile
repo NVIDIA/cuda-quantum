@@ -16,7 +16,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum:latest -f docker/release/cudaq.Dockerfile .
+#   docker build -t nvcr.io/nvidia/nightly/cuda-quantum:latest-base -f docker/release/cudaq.Dockerfile .
 # 
 # The build argument cudaqdev_image defines the CUDA Quantum dev image that contains the CUDA
 # Quantum build. This Dockerfile copies the built components into the base_image. The specified
@@ -93,30 +93,43 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
 # Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
 RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
 
-# Include additional readmes and samples that are distributed with the image.
+# Some tools related to shell handling.
 
 ARG COPYRIGHT_NOTICE="=========================\n\
    NVIDIA CUDA Quantum   \n\
 =========================\n\n\
 Version: ${CUDA_QUANTUM_VERSION}\n\n\
 Copyright (c) 2023 NVIDIA Corporation & Affiliates \n\
-All rights reserved.\n"
+All rights reserved.\n\n\
+To run a command as administrator (user `root`), use `sudo <command>`.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"
 RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
+
+# See also https://github.com/microsoft/vscode-remote-release/issues/4781
+RUN env | egrep -v "^(HOME=|USER=|MAIL=|LC_ALL=|LS_COLORS=|LANG=|HOSTNAME=|PWD=|TERM=|SHLVL=|LANGUAGE=|_=)" \
+        >> /etc/environment
+
+# Create cudaq user
+
+# Create new user `cudaq` with admin rights, and disable password and gecos, 
+# see also https://askubuntu.com/a/1195288/635348.
+RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
+    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers \
+    && mkdir -p /home/cudaq/.ssh && mkdir -p /var/run/sshd
+ENV PATH="$PATH:/home/cudaq/.local/bin"
+
+ADD ./docs/sphinx/examples/ /home/cudaq/examples/
+ADD ./docker/release/README.md /home/cudaq/README.md
+RUN mv /home/cudaq/examples/python/tutorials /home/cudaq/tutorial \
+    && chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
+
+USER cudaq
+WORKDIR /home/cudaq
 
 # Run apt-get update to ensure that apt-get knows about CUDA packages
 # if the base image has added the CUDA keyring.
 # If we don't do that, then apt-get will get confused if some CUDA
 # components are already installed but not all of them.
-RUN apt-get update
+RUN sudo apt-get update
 
-# Create cudaq user
-
-RUN useradd -m cudaq && echo "cudaq:cuda-quantum" | chpasswd && adduser cudaq sudo
-ADD ./docs/sphinx/examples/ /home/cudaq/examples/
-ADD ./docker/release/README.md /home/cudaq/README.md
-RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
-
-USER cudaq
-WORKDIR /home/cudaq
 ENTRYPOINT ["bash", "-l"]

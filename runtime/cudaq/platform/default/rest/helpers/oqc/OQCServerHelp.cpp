@@ -9,8 +9,6 @@
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
-#include "cudaq/utils/cudaq_utils.h"
-#include <fstream>
 #include <thread>
 namespace cudaq {
 
@@ -21,11 +19,11 @@ class OQCServerHelper : public ServerHelper {
 private:
   /// @brief RestClient used for HTTP requests.
 
-  /// @brief Retrieve the value of an environment variable.
-  std::string getEnvVar(const std::string &key) const;
-
   /// @brief Check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
+
+  /// @brief Output names indexed by jobID/taskID
+  std::map<std::string, OutputNamesType> outputNames;
 
   /// @brief Create n requested tasks placeholders returning uuids for each
   std::vector<std::string> createNTasks(int n);
@@ -81,54 +79,74 @@ public:
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) override;
-
-  std::string get_from_config(BackendConfig config, const std::string &key,
-                              const std::string &default_return = "");
 };
+
+namespace {
+
+auto make_env_functor(std::string key, std::string def = "") {
+  return [key, def]() {
+    const char *env_var = std::getenv(key.c_str());
+    // If the variable is not set, throw an exception
+    if (env_var == nullptr && def.empty()) {
+      throw std::runtime_error(key + " environment variable is not set.");
+    }
+    // Return the variable as a string
+    return env_var != nullptr ? std::string(env_var) : def;
+  };
+}
+
+std::string get_from_config(BackendConfig config, const std::string &key,
+                            const auto &envVar) {
+  const auto iter = config.find(key);
+  return iter != config.end() ? iter->second : envVar();
+}
+
+} // namespace
 
 // Initialize the OQC server helper with a given backend configuration
 void OQCServerHelper::initialize(BackendConfig config) {
+
   cudaq::info("Initializing OQC Backend.");
+  const auto emulate_it = config.find("emulate");
+  if (emulate_it != config.end() && emulate_it->second == "true") {
+    cudaq::info("Emulation is enabled, ignore all oqc connection specific "
+                "information.");
+    return;
+  }
+  // Set the necessary configuration variables for the OQC API
+  config["url"] = get_from_config(
+      config, "url",
+      make_env_functor("OQC_URL", "https://sandbox.qcaas.oqc.app"));
+  config["version"] = "v0.3";
+  config["user_agent"] = "cudaq/0.3.0";
+  config["target"] = "Lucy";
+  config["qubits"] = 8;
+  config["email"] =
+      get_from_config(config, "email", make_env_functor("OQC_EMAIL"));
+  config["password"] = make_env_functor("OQC_PASSWORD")();
+  // Construct the API job path
+  config["job_path"] = "/tasks"; // config["url"] + "/tasks";
+
+  // Parse the output_names.* (for each job) and place it in outputNames[]
+  for (auto &[key, val] : config) {
+    if (key.starts_with("output_names.")) {
+      // Parse `val` into jobOutputNames.
+      // Note: See `FunctionAnalysisData::resultQubitVals` of
+      // LowerToBaseProfileQIR.cpp for an example of how this was populated.
+      OutputNamesType jobOutputNames;
+      nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
+      for (const auto &el : outputNamesJSON[0]) {
+        auto result = el[0].get<std::size_t>();
+        auto qubit = el[1][0].get<std::size_t>();
+        auto registerName = el[1][1].get<std::string>();
+        jobOutputNames[result] = {qubit, registerName};
+      }
+
+      this->outputNames[key] = jobOutputNames;
+    }
+  }
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
-  // Set the necessary configuration variables for the OQC API
-  backendConfig["url"] = OQCServerHelper::get_from_config(
-      config, "url", "https://sandbox.qcaas.oqc.app");
-  backendConfig["version"] = "v0.3";
-  backendConfig["user_agent"] = "cudaq/0.3.0";
-  backendConfig["target"] = "Lucy";
-  backendConfig["qubits"] = 8;
-  backendConfig["email"] = OQCServerHelper::get_from_config(config, "email");
-  backendConfig["password"] =
-      OQCServerHelper::get_from_config(config, "password");
-  // Retrieve the email/password key from the environment variables
-  if (backendConfig["email"].empty())
-    backendConfig["email"] = getEnvVar("OQC_EMAIL");
-  if (backendConfig["password"].empty())
-    backendConfig["password"] = getEnvVar("OQC_PASSWORD");
-
-  // Construct the API job path
-  backendConfig["job_path"] = "/tasks"; // backendConfig["url"] + "/tasks";
-}
-
-std::string
-OQCServerHelper::get_from_config(BackendConfig config, const std::string &key,
-                                 const std::string &default_return) {
-  auto iter = backendConfig.find(key);
-  return iter != backendConfig.end() ? iter->second : default_return;
-}
-
-/// @brief Retrieve an environment variable. Return empty string if variable
-/// does not exist.
-std::string OQCServerHelper::getEnvVar(const std::string &key) const {
-  // Get the environment variable
-  const char *env_var = std::getenv(key.c_str());
-  // Return the variable as a string. Initializing with a null pointer is
-  // undefined, so use empty constructor if necessary.
-  if (env_var)
-    return std::string(env_var);
-  else
-    return std::string();
 }
 
 // Check if a key exists in the backend configuration
@@ -207,17 +225,19 @@ std::string OQCServerHelper::extractJobId(ServerMessage &postResponse) {
 // Construct the path to get a job
 std::string OQCServerHelper::constructGetJobPath(ServerMessage &postResponse) {
   return backendConfig.at("job_path") + "/" +
-         postResponse.at("task_id").get<std::string>() + "/results";
+         postResponse.at("task_id").get<std::string>() + "/all_info";
 }
 
 // Overloaded version of constructGetJobPath for jobId input
 std::string OQCServerHelper::constructGetJobPath(std::string &jobId) {
-  if (!keyExists("job_path"))
+  if (!keyExists("job_path")) {
     throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
+  }
 
   // Return the job path
-  return backendConfig.at("url") + backendConfig.at("job_path") + "/" + jobId +
-         "/results";
+  auto res = backendConfig.at("url") + backendConfig.at("job_path") + "/" +
+             jobId + "/all_info";
+  return res;
 }
 
 // Construct the path to get the results of a job
@@ -225,7 +245,7 @@ std::string
 OQCServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
   // Return the results path
   return backendConfig.at("job_path") + "/" +
-         postResponse.at("task_id").get<std::string>() + "/results";
+         postResponse.at("task_id").get<std::string>() + "/all_info";
 }
 
 // Overloaded version of constructGetResultsPath for jobId input
@@ -233,8 +253,7 @@ std::string OQCServerHelper::constructGetResultsPath(std::string &jobId) {
   if (!keyExists("job_path"))
     throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
 
-  // Return the results path
-  return backendConfig.at("job_path") + "/" + jobId + "/results";
+  return backendConfig.at("job_path") + "/" + jobId + "/all_info";
 }
 
 // Get the results from a given path
@@ -251,7 +270,8 @@ bool OQCServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error("ServerMessage doesn't contain 'results' key.");
 
   // Return whether the job is completed
-  return !getJobResponse.at("results").is_null();
+  return !getJobResponse.at("results").is_null() ||
+         !getJobResponse.at("task_error").is_null();
 }
 
 // Process the results from a job
@@ -260,22 +280,13 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobId) {
 
   if (postJobResponse["results"].is_null()) {
-    RestHeaders headers = getHeaders();
-    auto errorPath = backendConfig.at("url") + backendConfig["job_path"] + "/" +
-                     jobId + "/error";
-    cudaq::info(
-        "Null results received; fetching detailed error message here: {}",
-        errorPath);
-    ServerMessage errorMessage = client.get(errorPath, "", headers);
     throw std::runtime_error("OQC backend error message: " +
-                             errorMessage.dump());
+                             postJobResponse["task_error"].dump());
   }
   cudaq::info("postJobResponse is {}", postJobResponse.dump());
   const auto &jsonResults = postJobResponse.at("results");
 
   cudaq::sample_result sampleResult; // value to return
-  if (jsonResults.is_array() && jsonResults.size() == 0)
-    throw std::runtime_error("No measurements found. Were any in the program?");
 
   // Try to determine between two results formats:
   //   {"results":{"r0_r1_r2_r3_r4":{"00000":1000}}} (hasResultNames = true )
@@ -290,6 +301,15 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     }
   }
 
+  if (outputNames.find("output_names." + jobId) == outputNames.end())
+    throw std::runtime_error("Could not find output names for job " + jobId);
+
+  auto &output_names = outputNames["output_names." + jobId];
+  for (auto &[result, info] : output_names) {
+    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
+                info.registerName);
+  }
+
   CountsDictionary countsDict;
   if (hasResultNames) {
     // The following code only supports 1 object in the returned results because
@@ -301,24 +321,57 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
                   jsonResults.size());
 
     // Note: `name` contains a concatenated list of measurement names as
-    // specified in the sent QIR program, separated by underscores.  A
-    // potential future enhancement would be to make separate
-    // ExecutionResult's for each register.
+    // specified in the sent QIR program, separated by underscores. They are
+    // ordered by QIR result number.
     // Example jsonResults: {"r0_r1_r2_r3_r4":{"00000":1000,"11111":1000}}
     for (const auto &[name, counts] : jsonResults.items()) {
       for (auto &element : counts.items())
         countsDict[element.key()] = element.value();
-      cudaq::ExecutionResult executionResult{counts, cudaq::GlobalRegisterName};
+      ExecutionResult executionResult{counts, GlobalRegisterName};
       sampleResult.append(executionResult);
     }
   } else {
     // Example jsonResults: {"00":479,"11":521}
     for (auto &element : jsonResults.items())
       countsDict[element.key()] = element.value();
-    cudaq::ExecutionResult executionResult{countsDict,
-                                           cudaq::GlobalRegisterName};
+    ExecutionResult executionResult{countsDict, GlobalRegisterName};
     sampleResult.append(executionResult);
   }
+
+  // Note: the bitstring is sorted by the underlying QIR result number. The user
+  // doesn't know anything about QIR result numbers that the compiler generates,
+  // so we need to convert them into something the user can understand. We will
+  // make registers for each result using output_names.
+  for (auto &[result, info] : output_names) {
+    sample_result singleBitResult = sampleResult.get_marginal({result});
+    ExecutionResult executionResult{singleBitResult.to_map(),
+                                    info.registerName};
+    sampleResult.append(executionResult);
+  }
+
+  // It does no good to return the global register to the user in result order
+  // because the user doesn't know what result numbers the compiler ended up
+  // using. Re-order global register to make it alphabetical based on result
+  // name like our other emulation results.
+
+  // Get the indices `idx[]` such that newBitStrings(:) = oldBitStr(idx(:)),
+  // where newBitStrings will contain bitstrings that are alphabetically sorted
+  // based on the result names.
+  std::vector<std::size_t> idx(output_names.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::vector<std::string> outputNames(output_names.size());
+  int i = 0;
+  for (auto &[result, info] : output_names)
+    outputNames[i++] = info.registerName;
+  // Sort idx by outputNames
+  std::sort(idx.begin(), idx.end(),
+            [&outputNames](std::size_t a, std::size_t b) {
+              return outputNames[a] < outputNames[b];
+            });
+
+  // Now reorder the bitstrings according to idx[]
+  sampleResult.reorder(idx, GlobalRegisterName);
+
   return sampleResult;
 }
 
@@ -327,10 +380,6 @@ RestHeaders OQCServerHelper::getHeaders() {
   // Check if the necessary keys exist in the configuration
   if (!keyExists("email") || !keyExists("password"))
     throw std::runtime_error("Key doesn't exist in backendConfig.");
-  if (backendConfig.at("email").empty())
-    throw std::runtime_error("OQC_EMAIL environment variable is not set.");
-  if (backendConfig.at("password").empty())
-    throw std::runtime_error("OQC_PASSWORD environment variable is not set.");
 
   // Construct the headers
   RestHeaders headers;

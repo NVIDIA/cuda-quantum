@@ -29,8 +29,7 @@ from ._pycudaq import *
 from .domains import chemistry
 from .service import ngc
 
-initKwargs = {'target': 'default'}
-
+initKwargs = {}
 if '-target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
 

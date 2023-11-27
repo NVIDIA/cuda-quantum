@@ -374,3 +374,31 @@ __qpu__ void linear_expr5b() {
 // CHECK:             cc.condition %[[VAL_9]](%[[VAL_6]] : i32)
 // CHECK:           } {normalized}
 
+__qpu__ void linear_expr6() {
+  cudaq::qreg q(100);
+  // 2 iterations: [(10-1)-(1+1)+(2*2)]/(2*2)
+  for (int i = 1; 2 * i + 1 < 10; i += 2)
+    x(q[i]);
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr6
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2 : i32
+// CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_0]]) -> (i32)) {
+// CHECK:             %[[VAL_6:.*]] = arith.muli %[[VAL_5]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_7:.*]] = arith.addi %[[VAL_6]], %[[VAL_1]] : i32
+// CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
+// CHECK:             cc.condition %[[VAL_8]](%[[VAL_5]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_9:.*]]: i32):
+// CHECK:             %[[VAL_10:.*]] = arith.muli %[[VAL_9]], %[[VAL_2]] : i32
+// CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : i32
+// CHECK:             %[[VAL_12:.*]] = arith.extsi %[[VAL_11]] : i32 to i64
+// CHECK:             %[[VAL_13:.*]] = quake.extract_ref %{{.*}}[%[[VAL_12]]] :
+// CHECK:             cc.continue %[[VAL_9]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_14:.*]]: i32):
+// CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_1]] : i32
+// CHECK:             cc.continue %[[VAL_15]] : i32
+// CHECK:           } {normalized}

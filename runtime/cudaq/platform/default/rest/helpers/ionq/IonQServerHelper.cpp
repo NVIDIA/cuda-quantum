@@ -8,6 +8,7 @@
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "cudaq/Support/Version.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
 #include <fstream>
@@ -20,18 +21,8 @@ namespace cudaq {
 /// interactions with the IonQ server for submitting and retrieving quantum
 /// computation jobs.
 class IonQServerHelper : public ServerHelper {
-private:
-  /// @brief RestClient used for HTTP requests.
-  RestClient client;
-
-  /// @brief Helper method to retrieve the value of an environment variable.
-  std::string getEnvVar(const std::string &key) const;
-
-  /// @brief Helper method to check if a key exists in the configuration.
-  bool keyExists(const std::string &key) const;
-
-  /// @brief Output names indexed by jobID/taskID
-  std::map<std::string, OutputNamesType> outputNames;
+  static constexpr const char *DEFAULT_URL = "https://api.ionq.co";
+  static constexpr const char *DEFAULT_VERSION = "v0.3";
 
 public:
   /// @brief Returns the name of the server helper.
@@ -78,6 +69,28 @@ public:
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
+
+private:
+  /// @brief RestClient used for HTTP requests.
+  RestClient client;
+
+  /// @brief Helper method to set the number of qubits based on the target.
+  int setQubits(const std::string &target);
+
+  /// @brief Helper method to retrieve the value of an environment variable.
+  std::string getEnvVar(const std::string &key, const std::string &defaultVal,
+                        const bool isRequired) const;
+
+  /// @brief Helper function to get value from config or return a default value.
+  std::string getValueOrDefault(const BackendConfig &config,
+                                const std::string &key,
+                                const std::string &defaultValue) const;
+
+  /// @brief Helper method to check if a key exists in the configuration.
+  bool keyExists(const std::string &key) const;
+
+  /// @brief Output names indexed by jobID/taskID
+  std::map<std::string, OutputNamesType> outputNames;
 };
 
 // Initialize the IonQ server helper with a given backend configuration
@@ -85,19 +98,22 @@ void IonQServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initializing IonQ Backend.");
   // Move the passed config into the member variable backendConfig
   // Set the necessary configuration variables for the IonQ API
-  backendConfig["url"] = config.find("url") != config.end()
-                             ? config["url"]
-                             : "https://api.ionq.co";
-  backendConfig["version"] = "v0.3";
-  backendConfig["user_agent"] = "cudaq/0.3.0";
-  backendConfig["target"] =
-      config.find("qpu") != config.end() ? config["qpu"] : "simulator";
-  backendConfig["qubits"] = 29;
+  backendConfig["url"] = getValueOrDefault(config, "url", DEFAULT_URL);
+  backendConfig["version"] = DEFAULT_VERSION;
+  backendConfig["user_agent"] = "cudaq/" + std::string(cudaq::getVersion());
+  backendConfig["target"] = getValueOrDefault(config, "qpu", "simulator");
+  backendConfig["qubits"] = setQubits(backendConfig["target"]);
   // Retrieve the noise model setting (if provided)
   if (config.find("noise") != config.end())
     backendConfig["noise_model"] = config["noise"];
   // Retrieve the API key from the environment variables
-  backendConfig["token"] = getEnvVar("IONQ_API_KEY");
+  bool isTokenRequired = [&]() {
+    auto it = config.find("emulate");
+    if (it != config.end() && it->second == "true")
+      return false;
+    return true;
+  }();
+  backendConfig["token"] = getEnvVar("IONQ_API_KEY", "0", isTokenRequired);
   // Construct the API job path
   backendConfig["job_path"] =
       backendConfig["url"] + '/' + backendConfig["version"] + "/jobs";
@@ -113,27 +129,66 @@ void IonQServerHelper::initialize(BackendConfig config) {
       OutputNamesType jobOutputNames;
       nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
       for (const auto &el : outputNamesJSON[0]) {
-        std::size_t result = el[0].get<std::size_t>();
-        std::size_t qubit = el[1][0].get<std::size_t>();
-        std::string registerName = el[1][1].get<std::string>();
+        auto result = el[0].get<std::size_t>();
+        auto qubit = el[1][0].get<std::size_t>();
+        auto registerName = el[1][1].get<std::string>();
         jobOutputNames[result] = {qubit, registerName};
       }
 
       this->outputNames[key] = jobOutputNames;
     }
   }
+  // Enable debiasing
+  if (config.find("debias") != config.end())
+    backendConfig["debias"] = config["debias"];
+  if (config.find("sharpen") != config.end())
+    backendConfig["sharpen"] = config["sharpen"];
+  if (config.find("format") != config.end())
+    backendConfig["format"] = config["format"];
+}
+
+// Implementation of the getValueOrDefault function
+std::string
+IonQServerHelper::getValueOrDefault(const BackendConfig &config,
+                                    const std::string &key,
+                                    const std::string &defaultValue) const {
+  return config.find(key) != config.end() ? config.at(key) : defaultValue;
 }
 
 // Retrieve an environment variable
-std::string IonQServerHelper::getEnvVar(const std::string &key) const {
+std::string IonQServerHelper::getEnvVar(const std::string &key,
+                                        const std::string &defaultVal,
+                                        const bool isRequired) const {
   // Get the environment variable
   const char *env_var = std::getenv(key.c_str());
-  // If the variable is not set, throw an exception
+  // If the variable is not set, either return the default or throw an exception
   if (env_var == nullptr) {
-    throw std::runtime_error(key + " environment variable is not set.");
+    if (isRequired)
+      throw std::runtime_error(key + " environment variable is not set.");
+    else
+      return defaultVal;
   }
   // Return the variable as a string
   return std::string(env_var);
+}
+
+// Helper function to get a value from a dictionary or return a default
+template <typename K, typename V>
+V getOrDefault(const std::unordered_map<K, V> &map, const K &key,
+               const V &defaultValue) {
+  auto it = map.find(key);
+  return (it != map.end()) ? it->second : defaultValue;
+}
+
+// Set the number of qubits based on the target
+int IonQServerHelper::setQubits(const std::string &target) {
+  static const std::unordered_map<std::string, int> qubitMap = {
+      {"simulator", 29},
+      {"qpu.harmony", 11},
+      {"qpu.aria-1", 25},
+  };
+
+  return getOrDefault(qubitMap, target, 29); // 29 is the default value
 }
 
 // Check if a key exists in the backend configuration
@@ -152,9 +207,10 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   for (auto &circuitCode : circuitCodes) {
     // Construct the job message
     ServerMessage job;
+    job["name"] = circuitCode.name;
     job["target"] = backendConfig.at("target");
-    // Add noise model config to the JSON job request if a noise model was set
-    // and the IonQ 'simulator' target was selected.
+    // Add noise model config to the JSON job request if a noise model was
+    // set and the IonQ 'simulator' target was selected.
     if (keyExists("noise_model") && backendConfig.at("target") == "simulator") {
       nlohmann::json noiseModel;
       noiseModel["model"] = backendConfig.at("noise_model");
@@ -162,9 +218,21 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     }
 
     job["qubits"] = backendConfig.at("qubits");
-    job["shots"] = static_cast<int>(shots);
+    job["shots"] = shots;
     job["input"]["format"] = "qir";
     job["input"]["data"] = circuitCode.code;
+    // Include error mitigation configuration if set in backendConfig
+    if (keyExists("debias")) {
+      try {
+        bool debiasValue =
+            nlohmann::json::parse(backendConfig["debias"]).get<bool>();
+        job["error_mitigation"]["debias"] = debiasValue;
+      } catch (const nlohmann::json::exception &e) {
+        throw std::runtime_error(
+            "Invalid value for 'debias'. It should be a boolean (true/false).");
+      }
+    }
+
     jobs.push_back(job);
   }
 
@@ -210,6 +278,18 @@ std::string IonQServerHelper::constructGetJobPath(std::string &jobId) {
   return ret;
 }
 
+// Function to check if a URL already has query parameters
+bool hasQueryParameters(const std::string &url) {
+  return url.find("?") != std::string::npos;
+}
+
+// Function to append a query parameter to a URL
+void appendQueryParam(std::string &url, const std::string &param,
+                      const std::string &value) {
+  url += hasQueryParameters(url) ? "&" : "?";
+  url += param + "=" + value;
+}
+
 // Construct the path to get the results of a job
 std::string
 IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
@@ -220,14 +300,28 @@ IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
   auto &jobs = postResponse.at("jobs");
 
   if (jobs.empty() || !jobs[0].contains("results_url"))
-    throw std::runtime_error(
-        "ServerMessage doesn't contain 'results_url' key in the first job.");
+    throw std::runtime_error("ServerMessage doesn't contain 'results_url' "
+                             "key in the first job.");
 
   if (!keyExists("url"))
     throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
 
-  // Return the results path
-  return backendConfig.at("url") + jobs[0].at("results_url").get<std::string>();
+  std::string resultsPath =
+      backendConfig.at("url") + jobs[0].at("results_url").get<std::string>();
+
+  // If sharpen is true, add it to the query parameters
+  if (keyExists("sharpen") && backendConfig["sharpen"] == "true") {
+    appendQueryParam(resultsPath, "sharpen", "true");
+  }
+
+  // Get specific results format
+  if (keyExists("format")) {
+    appendQueryParam(resultsPath, "format", backendConfig["format"]);
+  } else {
+    appendQueryParam(resultsPath, "format", "qir.quantum-log.v0");
+  }
+
+  return resultsPath;
 }
 
 // Overloaded version of constructGetResultsPath for jobId input
@@ -235,8 +329,15 @@ std::string IonQServerHelper::constructGetResultsPath(std::string &jobId) {
   if (!keyExists("job_path"))
     throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
 
+  // Construct the results path
+  std::string resultsPath = backendConfig.at("job_path") + jobId + "/results";
+
+  // If sharpen is true, add it to the query parameters
+  if (keyExists("sharpen") && backendConfig["sharpen"] == "true")
+    resultsPath += "?sharpen=true";
+
   // Return the results path
-  return backendConfig.at("job_path") + jobId + "/results";
+  return resultsPath;
 }
 
 // Get the results from a given path
@@ -260,9 +361,9 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
   // Throw a runtime error if the job has failed
   if (jobs[0].at("status").get<std::string>() == "failed")
-    throw std::runtime_error(
-        "The job failed upon submission. Check the job submission in your IonQ "
-        "account for more information.");
+    throw std::runtime_error("The job failed upon submission. Check the "
+                             "job submission in your IonQ "
+                             "account for more information.");
 
   // Return whether the job is completed
   return jobs[0].at("status").get<std::string>() == "completed";
@@ -277,8 +378,8 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   // Get the results
   auto results = getResults(resultsGetPath);
 
-  // Get the number of qubits. This assumes the all qubits are measured, which
-  // is a safe assumption for now but may change in the future.
+  // Get the number of qubits. This assumes the all qubits are measured,
+  // which is a safe assumption for now but may change in the future.
   cudaq::debug("postJobResponse message: {}", postJobResponse.dump());
   auto &jobs = postJobResponse.at("jobs");
   if (!jobs[0].contains("qubits"))
@@ -289,10 +390,8 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   cudaq::debug("nQubits is : {}", nQubits);
   cudaq::debug("Results message: {}", results.dump());
 
-  if (outputNames.find("output_names." + jobID) == outputNames.end()) {
-    throw std::runtime_error("Could not find output names for job " + jobID +
-                             " this " + std::to_string((long)this));
-  }
+  if (outputNames.find("output_names." + jobID) == outputNames.end())
+    throw std::runtime_error("Could not find output names for job " + jobID);
 
   auto &output_names = outputNames["output_names." + jobID];
   for (auto &[result, info] : output_names) {
@@ -345,18 +444,18 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   for (const auto &[result, info] : output_names)
     mapResultStr[info.registerName] = std::make_pair(info.qubitNum, result);
 
-  // Get a reduced list of qubit numbers that were in the original program so
-  // that we can slice the output data and extract the bits that the user was
-  // interested in.
+  // Get a reduced list of qubit numbers that were in the original program
+  // so that we can slice the output data and extract the bits that the user
+  // was interested in.
   std::vector<std::size_t> qubitNumbers;
   qubitNumbers.reserve(output_names.size());
   for (const auto &[regName, qubitAndResult] : mapResultStr)
     qubitNumbers.push_back(qubitAndResult.first);
 
-  // For each original counts entry in the full sample results, reduce it down
-  // to the user component and add to userGlobal. This is similar to
-  // `get_marginal()`, but that sorts the input indices, which isn't necessarily
-  // desirable here.
+  // For each original counts entry in the full sample results, reduce it
+  // down to the user component and add to userGlobal. This is similar to
+  // `get_marginal()`, but that sorts the input indices, which isn't
+  // necessarily desirable here.
   CountsDictionary userGlobal;
   for (const auto &[bits, count] : fullSampleResults) {
     std::string userBitStr;

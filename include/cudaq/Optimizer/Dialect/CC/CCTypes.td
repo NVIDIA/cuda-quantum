@@ -147,8 +147,8 @@ def cc_CallableType : CCType<"Callable", "callable"> {
     A kernel may be a template function that takes a callable as an argument.
     The type of these callable instances is this proxy callable type. The
     instantiated template instance will resolve the callable instance, and this
-    resolved instance of the callable will be lowered in the specialized template
-    function.
+    resolved instance of the callable will be lowered in the specialized
+    template function.
   }];
   
   let parameters = (ins "mlir::FunctionType":$signature);
@@ -162,7 +162,7 @@ def cc_CallableType : CCType<"Callable", "callable"> {
   ];
 
   let extraClassDeclaration = [{
-    /// Create a callable type without a signature. This is for prototyping only.
+    /// Create a callable type without a signature, for prototyping only.
     [[deprecated]] static CallableType getNoSignature(mlir::MLIRContext *ctx);
   }];
 }

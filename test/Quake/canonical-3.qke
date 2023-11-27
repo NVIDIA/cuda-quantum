@@ -24,21 +24,25 @@ func.func @__nvqpp__mlirgen__super() attributes {"cudaq-entrypoint", "cudaq-kern
   quake.x [%3] %4 : (!quake.ref, !quake.ref) -> ()
   %5 = cc.alloca !cc.array<i1 x 4>
   %6 = quake.extract_ref %0[%c0] : (!quake.veq<4>, index) -> !quake.ref
-  %7 = quake.mz %6 : (!quake.ref) -> i1
+  %7 = quake.mz %6 : (!quake.ref) -> !quake.measure
   %8 = cc.compute_ptr %5[0] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-  cc.store %7, %8 : !cc.ptr<i1>
+  %107 = quake.discriminate %7 : (!quake.measure) -> i1
+  cc.store %107, %8 : !cc.ptr<i1>
   %9 = quake.extract_ref %0[%c1] : (!quake.veq<4>, index) -> !quake.ref
-  %10 = quake.mz %9 : (!quake.ref) -> i1
+  %10 = quake.mz %9 : (!quake.ref) -> !quake.measure
   %11 = cc.compute_ptr %5[1] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-  cc.store %10, %11 : !cc.ptr<i1>
+  %110 = quake.discriminate %10 : (!quake.measure) -> i1
+  cc.store %110, %11 : !cc.ptr<i1>
   %12 = quake.extract_ref %0[%c2] : (!quake.veq<4>, index) -> !quake.ref
-  %13 = quake.mz %12 : (!quake.ref) -> i1
+  %13 = quake.mz %12 : (!quake.ref) -> !quake.measure
   %14 = cc.compute_ptr %5[2] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-  cc.store %13, %14 : !cc.ptr<i1>
+  %113 = quake.discriminate %13 : (!quake.measure) -> i1
+  cc.store %113, %14 : !cc.ptr<i1>
   %15 = quake.extract_ref %0[%c3] : (!quake.veq<4>, index) -> !quake.ref
-  %16 = quake.mz %15 : (!quake.ref) -> i1
+  %16 = quake.mz %15 : (!quake.ref) -> !quake.measure
+  %116 = quake.discriminate %16 : (!quake.measure) -> i1
   %17 = cc.compute_ptr %5[3] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-  cc.store %16, %17 : !cc.ptr<i1>
+  cc.store %116, %17 : !cc.ptr<i1>
   return
 }
 
@@ -54,19 +58,23 @@ func.func @__nvqpp__mlirgen__super() attributes {"cudaq-entrypoint", "cudaq-kern
 // CHECK:           quake.x {{\[}}%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i1 x 4>
 // CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_6]] : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_5]][0] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-// CHECK:           cc.store %[[VAL_7]], %[[VAL_8]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_107:.*]] = quake.discriminate %[[VAL_7]] :
+// CHECK:           cc.store %[[VAL_107]], %[[VAL_8]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_9]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_9]] : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
-// CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_110:.*]] = quake.discriminate %[[VAL_10]] :
+// CHECK:           cc.store %[[VAL_110]], %[[VAL_11]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           %[[VAL_13:.*]] = quake.mz %[[VAL_12]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_113:.*]] = quake.mz %[[VAL_12]] : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_5]][2] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_13:.*]] = quake.discriminate %[[VAL_113]] :
 // CHECK:           cc.store %[[VAL_13]], %[[VAL_14]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_0]][3] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_15]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_116:.*]] = quake.mz %[[VAL_15]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_16:.*]] = quake.discriminate %[[VAL_116]] :
 // CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_5]][3] : (!cc.ptr<!cc.array<i1 x 4>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_16]], %[[VAL_17]] : !cc.ptr<i1>
 // CHECK:           return

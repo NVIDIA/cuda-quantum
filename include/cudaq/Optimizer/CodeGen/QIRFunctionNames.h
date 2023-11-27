@@ -27,6 +27,10 @@ constexpr static const char QIRReadResultBody[] =
 
 constexpr static const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
+constexpr static const char NVQIRInvokeRotationWithControlBits[] =
+    "invokeRotationWithControlQubits";
+constexpr static const char NVQIRInvokeWithControlRegisterOrBits[] =
+    "invokeWithControlRegisterOrQubits";
 constexpr static const char NVQIRPackSingleQubitInArray[] =
     "packSingleQubitInArray";
 constexpr static const char NVQIRReleasePackedQubitArray[] =

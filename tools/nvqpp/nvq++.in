@@ -39,29 +39,62 @@ function add_pass_to_pipeline {
 }
 
 function list_targets {
-	ls -I *.cpp -1 ${install_dir}/targets/ | sed -e 's/\.config$//'
+	ls -I *.cpp -1 ${install_dir}/targets/ | grep ".config$" | sed -e 's/\.config$//'
 	exit 0
+}
+
+function list_simulators {
+	for file in $(grep -L "PLATFORM_QPU=" $(ls ${install_dir}/targets/*.config)) ; do
+		if ! grep -q "LIBRARY_MODE_EXECUTION_MANAGER=" $file ; then
+			echo $(basename $file | cut -d "." -f 1)
+		fi
+	done
+}
+
+function get_simulation_backend {
+	config_file="${install_dir}/targets/$1.config"
+	if [ -f "$config_file" ]; then
+    	line=$(grep "NVQIR_SIMULATION_BACKEND=" "$config_file")
+		if [ $? -eq 0 ]; then
+			echo ${line#*=} | tr -d '"'
+		fi
+	fi
+}
+
+function query_gpu {
+	if [ -x "$(command -v nvidia-smi)" ]; then
+		# Make sure nvidia-smi works.
+		nvidia-smi -L | grep 'Failed\|Error\|error\|failed' >/dev/null 2>&1
+		if [ $? != 0 ]; then
+			ngpus=$(nvidia-smi -L | wc -l)
+			if [ $((ngpus > 0)) != 0 ]; then
+				echo true
+				return
+			fi
+		fi
+	fi
+	echo false
 }
 
 function show_help {
 	cat - <<HELP
 --llvm-version=<vers>
 	Set the LLVM version suffix is <vers>.
-	
+
 --execution-manager=<mgr> | -em=<mgr> | -execution-manager=<mgr>
 	Set the execution manager to <mgr>.
-	
+
 --target=<target> | -target=<target>
 	Set the Target name to <target>.
 
---list-targets 
-    List the available targets NVQ++ can compile to. 
+--list-targets
+    List the available targets NVQ++ can compile to.
 
 --emit-qir=<file> | -emit-qir=<file>
 	Emit the QIR output to <file>.
 
 --emulate | -emulate
-   For physical, remote QPU execution, enable local emulation for testing. 
+   For physical, remote QPU execution, enable local emulation for testing.
 
 --platform=<lib> | -platform=<lib>
 	Set the platform library name to <lib>.
@@ -71,7 +104,7 @@ function show_help {
 
 -g
 	Enable debugging output.
-	
+
 --enable-mlir
 	Enable and generate MLIR code for CUDA Quantum kernels.
 
@@ -86,7 +119,7 @@ function show_help {
 
 --[no-]unwind-lowering
 	Enable/disable unwind lowering pass.
-	
+
 --[no-]kernel-execution
 	Enable/disable kernel execution pass.
 
@@ -101,7 +134,7 @@ function show_help {
 
 --save-temps
 	Save temporary files.
-	
+
 -o=<obj>
 	Specify the output file.
 
@@ -110,7 +143,7 @@ function show_help {
 
 -L<dir> | -L <dir>
 	Add <dir> to the linker's library path.
-	
+
 -I<dir> | -I <dir>
 	Add a <dir> to the include path.
 
@@ -119,7 +152,7 @@ function show_help {
 
 -c
 	Compile only. Do not link.
-	
+
 -Wl<opt>
 	Linker options to be passed to the linker.
 
@@ -142,7 +175,7 @@ llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 
 IS_RELOCATABLE_INSTALL=@CUDAQ_RELOCATABLE_BOOL@
-INCLUDES=""
+INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
 
 # If we are a relocatable package, then we
 # want to re-divert llvm_install_dir to the install_dir
@@ -157,7 +190,7 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 	# the build directory for testing.
 	if [ "@CMAKE_BINARY_DIR@" -ef "${install_dir}" ]; then
 		CUDAQ_INCLUDE_PATH="@CMAKE_SOURCE_DIR@/runtime"
-		INCLUDES="-I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
+		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
 	else
 		error_exit "Invalid CUDA Quantum install configuration."
 	fi
@@ -200,20 +233,16 @@ LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-en
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
 if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]
-then 
-  CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*` 
+then
+  CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*`
   for entry in $CUDAQ_PLUGIN_LIBS
-  do 
+  do
     PLUGIN_NAME=$(basename $entry)
     PLUGIN_NAME=${PLUGIN_NAME#lib}
     PLUGIN_NAME=${PLUGIN_NAME%@CMAKE_SHARED_LIBRARY_SUFFIX@}
     LINKLIBS="$LINKLIBS -l$PLUGIN_NAME"
-  done 
+  done
 fi
-
-# Provide a default backend, user can override
-NVQIR_SIMULATION_BACKEND="qpp"
-NVQIR_LIBS="-lnvqir -lnvqir-"
 
 CUDAQ_EMULATE_REMOTE=false
 CLANG_VERBOSE=
@@ -239,9 +268,31 @@ PREPROCESSOR_DEFINES=
 CUDAQ_QUAKE_DEBUG=
 SHOW_HELP=false
 LIST_TARGETS=false
+DISABLE_QUBIT_MAPPING=false
+NVQIR_LIBS="-lnvqir -lnvqir-"
 
-# We default to LIBRARY_MODE, physical 
-# Quantum Targets can override this to turn on 
+# Provide a default backend, user can override
+NVQIR_SIMULATION_BACKEND="qpp"
+# Check availability of NVIDA GPU(s)
+gpu_found=$(query_gpu)
+if ${gpu_found} && [ -f "${install_dir}/lib/libnvqir-custatevec-fp32.so" ]; then
+	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
+fi
+# Check environment variable - overrides the default
+if [[ ! -z "${CUDAQ_DEFAULT_SIMULATOR}" ]]; then
+	available_simulators=( $(list_simulators) )
+	for s in "${available_simulators[@]}"
+	do
+		if [ "${CUDAQ_DEFAULT_SIMULATOR}" = "$s" ]; then
+			TARGET_CONFIG="${CUDAQ_DEFAULT_SIMULATOR}"
+			NVQIR_SIMULATION_BACKEND=$(get_simulation_backend "$s")
+			break
+		fi
+	done
+fi
+
+# We default to LIBRARY_MODE, physical
+# Quantum Targets can override this to turn on
 # our MLIR compilation workflow.
 LIBRARY_MODE=true
 
@@ -292,6 +343,11 @@ while [ $# -ne 0 ]; do
 		;;
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
+		;;
+	# This is intentionally not included in the "show_help" documentation
+	# because it may change in the future.
+	--disable-qubit-mapping | -disable-qubit-mapping)
+		DISABLE_QUBIT_MAPPING=true
 		;;
 	--list-targets)
 		LIST_TARGETS=true
@@ -366,7 +422,7 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	-D*)
-		DEFINED_VAR=$1 
+		DEFINED_VAR=$1
 		PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D ${DEFINED_VAR:2}"
 		;;
 	-L)
@@ -408,7 +464,7 @@ while [ $# -ne 0 ]; do
 	*.cpp | *.cc)
 		SRCS="${SRCS} $1"
 		;;
-	*.a | *.dylib)	    
+	*.a | *.dylib)
 		LINKLIBS="${LINKLIBS} $1"
 		;;
 	*)
@@ -449,9 +505,11 @@ if [ -n "${TARGET_CONFIG}" ]; then
 		. "${TARGET_CONFIG_FILE}" ${TARGET_ARGS}
 
 		if ${GEN_TARGET_BACKEND}; then
-			# Add a function that will run before main
-			# and set the target backend on the quantum_platform
-			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}${PLATFORM_EXTRA_ARGS}"
+			# Add a function that will run before main and set the target
+			# backend on the quantum_platform
+			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
+			TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
+			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
 			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 			OBJS_TO_MERGE="${OUTFILENAME}"

@@ -64,8 +64,14 @@ protected:
   /// @brief Map of available targets.
   std::unordered_map<std::string, RuntimeTarget> targets;
 
+  /// @brief Map of simulation targets
+  std::unordered_map<std::string, RuntimeTarget> simulationTargets;
+
+  /// @brief Store the name of the default target
+  std::string defaultTarget;
+
   /// @brief Store the name of the current target
-  std::string currentTarget = "default";
+  std::string currentTarget;
 
 public:
   LinkedLibraryHolder();

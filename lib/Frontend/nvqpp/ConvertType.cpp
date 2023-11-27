@@ -104,10 +104,16 @@ bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
   if (!result)
     return false;
   if (typeStack.size() != typeStackDepth + 1) {
-    assert(typeStack.size() == typeStackDepth);
-    if (allowUnknownRecordType)
+    if (allowUnknownRecordType) {
+      // This is a kernel's type signature, so add a NoneType. When finally
+      // returning out of determining the kernel's type signature, a clang error
+      // diagnsotic will be reported.
       pushType(noneTy);
-    else {
+    } else if (typeStack.size() != typeStackDepth) {
+      emitWarning(toLocation(recDecl),
+                  "compiler encountered type traversal issue");
+      return false;
+    } else {
       recDecl->dump();
       emitFatalError(toLocation(recDecl), "expected a type");
     }

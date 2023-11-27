@@ -1,0 +1,153 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-peeling %s | FileCheck %s
+
+func.func @peel_do_while() {
+  %c1_i32 = arith.constant 1 : i32
+  %false = arith.constant false
+  %c0_i32 = arith.constant 0 : i32
+  %c10_i32 = arith.constant 10 : i32
+  %0 = quake.alloca !quake.veq<10>
+  %1 = cc.alloca i32
+  cc.store %c0_i32, %1 : !cc.ptr<i32>
+  %2 = cc.alloca i1
+  cc.loop do {
+    %3 = cc.load %1 : !cc.ptr<i32>
+    %4 = arith.addi %3, %c1_i32 : i32
+    cc.store %4, %1 : !cc.ptr<i32>
+    %5 = arith.extui %3 : i32 to i64
+    %6 = quake.extract_ref %0[%5] : (!quake.veq<10>, i64) -> !quake.ref
+    %bits = quake.mz %6 : (!quake.ref) -> !quake.measure
+    %bit = quake.discriminate %bits : (!quake.measure) -> i1
+    cc.store %bit, %2 : !cc.ptr<i1>
+    cc.continue
+  } while {
+    %3 = cc.load %2 : !cc.ptr<i1>
+    %4 = arith.cmpi eq, %3, %false : i1
+    %5 = cc.if(%4) -> i1 {
+      cc.continue %false : i1
+    } else {
+      %6 = cc.load %1 : !cc.ptr<i32>
+      %7 = arith.cmpi ult, %6, %c10_i32 : i32
+      cc.continue %7 : i1
+    }
+    cc.condition %5
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @peel_do_while() {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant false
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 10 : i32
+// CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.veq<10>
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca i32
+// CHECK-DAG:       cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<i32>
+// CHECK-DAG:       %[[VAL_6:.*]] = cc.alloca i1
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_0]] : i32
+// CHECK:           cc.store %[[VAL_8]], %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_9:.*]] = arith.extui %[[VAL_7]] : i32 to i64
+// CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_9]]] : (!quake.veq<10>, i64) -> !quake.ref
+// CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_10]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_111:.*]] = quake.discriminate %[[VAL_11]] :
+// CHECK:           cc.store %[[VAL_111]], %[[VAL_6]] : !cc.ptr<i1>
+// CHECK:           cf.br ^bb2
+// CHECK:         ^bb2:
+// CHECK:           cc.loop while {
+// CHECK:             cc.if(%
+// CHECK:             cc.condition %
+// CHECK:           } do {
+// CHECK:             %[[VAL_18:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:             %[[VAL_19:.*]] = arith.addi %[[VAL_18]], %[[VAL_0]] : i32
+// CHECK:             cc.store %[[VAL_19]], %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:             %[[VAL_20:.*]] = arith.extui %[[VAL_18]] : i32 to i64
+// CHECK:             %[[VAL_21:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_20]]] : (!quake.veq<10>, i64) -> !quake.ref
+// CHECK:             %[[VAL_22:.*]] = quake.mz %[[VAL_21]] : (!quake.ref) -> !quake.measure
+// CHECK:             %[[VAL_122:.*]] = quake.discriminate %[[VAL_22]] :
+// CHECK:             cc.store %[[VAL_122]], %[[VAL_6]] : !cc.ptr<i1>
+// CHECK:             cc.continue
+// CHECK:           }
+// CHECK:           cf.br ^bb3
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+func.func @peel_do_while_with_args() {
+  %c10_i32 = arith.constant 10 : i32
+  %c0_i32 = arith.constant 0 : i32
+  %false = arith.constant false
+  %c1_i32 = arith.constant 1 : i32
+  %0 = quake.alloca !quake.veq<10>
+  %1 = cc.undef i32
+  %2 = cc.undef i1
+  %3:2 = cc.loop do ((%arg0 = %c0_i32, %arg1 = %2) -> (i32, i1)) {
+    %4 = arith.addi %arg0, %c1_i32 : i32
+    %5 = arith.extui %arg0 : i32 to i64
+    %6 = quake.extract_ref %0[%5] : (!quake.veq<10>, i64) -> !quake.ref
+    %bits = quake.mz %6 : (!quake.ref) -> !quake.measure
+    %bit = quake.discriminate %bits : (!quake.measure) -> i1
+    cc.continue %4, %bit : i32, i1
+  } while {
+  ^bb0(%arg0: i32, %arg1: i1):
+    %4 = arith.cmpi eq, %arg1, %false : i1
+    %5 = cc.if(%4) -> i1 {
+      cc.continue %false : i1
+    } else {
+      %6 = arith.cmpi ult, %arg0, %c10_i32 : i32
+      cc.continue %6 : i1
+    }
+    cc.condition %5(%arg0, %arg1 : i32, i1)
+  }
+  quake.dealloc %0 : !quake.veq<10>
+  return
+}
+
+// CHECK-LABEL:   func.func @peel_do_while_with_args() {
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant false
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 10 : i32
+// CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.veq<10>
+// CHECK:           cf.br ^bb1(%[[VAL_2]] : i32)
+// CHECK:         ^bb1(%[[VAL_5:.*]]: i32):
+// CHECK:           %[[VAL_6:.*]] = arith.addi %[[VAL_5]], %[[VAL_0]] : i32
+// CHECK:           %[[VAL_7:.*]] = arith.extui %[[VAL_5]] : i32 to i64
+// CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_7]]] : (!quake.veq<10>, i64) -> !quake.ref
+// CHECK:           %[[VAL_109:.*]] = quake.mz %[[VAL_8]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_109]] :
+// CHECK:           cf.br ^bb2(%[[VAL_6]], %[[VAL_9]] : i32, i1)
+// CHECK:         ^bb2(%[[VAL_10:.*]]: i32, %[[VAL_11:.*]]: i1):
+// CHECK:           %[[VAL_12:.*]]:2 = cc.loop while ((%[[VAL_13:.*]] = %[[VAL_10]], %[[VAL_14:.*]] = %[[VAL_11]]) -> (i32, i1)) {
+// CHECK:             %[[VAL_15:.*]] = arith.cmpi eq, %[[VAL_14]], %[[VAL_1]] : i1
+// CHECK:             %[[VAL_16:.*]] = cc.if(%[[VAL_15]]) -> i1 {
+// CHECK:               cc.continue %[[VAL_1]] : i1
+// CHECK:             } else {
+// CHECK:               %[[VAL_17:.*]] = arith.cmpi ult, %[[VAL_13]], %[[VAL_3]] : i32
+// CHECK:               cc.continue %[[VAL_17]] : i1
+// CHECK:             }
+// CHECK:             cc.condition %[[VAL_18:.*]](%[[VAL_13]], %[[VAL_14]] : i32, i1)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_19:.*]]: i32, %[[VAL_20:.*]]: i1):
+// CHECK:             %[[VAL_21:.*]] = arith.addi %[[VAL_19]], %[[VAL_0]] : i32
+// CHECK:             %[[VAL_22:.*]] = arith.extui %[[VAL_19]] : i32 to i64
+// CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_22]]] : (!quake.veq<10>, i64) -> !quake.ref
+// CHECK:             %[[VAL_124:.*]] = quake.mz %[[VAL_23]] : (!quake.ref) -> !quake.measure
+// CHECK:             %[[VAL_24:.*]] = quake.discriminate %[[VAL_124]] :
+// CHECK:             cc.continue %[[VAL_21]], %[[VAL_24]] : i32, i1
+// CHECK:           }
+// CHECK:           cf.br ^bb3
+// CHECK:         ^bb3:
+// CHECK:           quake.dealloc %[[VAL_4]] : !quake.veq<10>
+// CHECK:           return
+// CHECK:         }
+
