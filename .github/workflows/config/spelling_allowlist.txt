@@ -128,8 +128,6 @@ parallelization
 precompute
 precomputed
 prepend
-qplt
-qpu
 quantize
 quantized
 qubit
