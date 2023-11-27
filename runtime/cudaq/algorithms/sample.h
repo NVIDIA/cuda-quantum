@@ -140,7 +140,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
 /// @brief Take the input KernelFunctor (a lambda that captures runtime
 /// arguments and invokes the quantum kernel) and invoke the sampling process
-/// asynchronously. Return a async_sample_result, clients can retrieve the
+/// asynchronously. Return an `async_sample_result`, clients can retrieve the
 /// results at a later time via the `get()` call.
 template <typename KernelFunctor>
 auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
@@ -254,7 +254,7 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
 /// mapping of observed bit strings to corresponding number of
 /// times observed.
 ///
-/// @param shots The number of samples to collect.
+/// @param options Sample options.
 /// @param kernel The kernel expression, must contain final measurements.
 /// @param args The variadic concrete arguments for evaluation of the kernel.
 /// @returns The counts dictionary.
