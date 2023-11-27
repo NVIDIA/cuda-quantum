@@ -41,8 +41,8 @@ struct CutensornetExecutor {
   /// which is equal to the number of spin qubits times 2. The number of spin
   /// qubits in the operator is less than or equal to the number of qubits in
   /// the state.
-  /// @param cutnHandle `cutensornet` handle that the plugin should be using when
-  /// calling any `cutensornet` APIs
+  /// @param cutnHandle `cutensornet` handle that the plugin should be using
+  /// when calling any `cutensornet` APIs
   /// @param quantumState quantum input state
   /// @param numQubits number of qubits in the quantum state
   /// @param symplecticRepr symplectic representation of the spin operators

@@ -65,8 +65,9 @@ public:
   /// @brief  Compute the expectation value w.r.t. a
   /// `cutensornetNetworkOperator_t`
   ///
-  /// The `cutensornetNetworkOperator_t` can be constructed from `cudaq::spin_op`,
-  /// i.e., representing a sum of Pauli products with different coefficients.
+  /// The `cutensornetNetworkOperator_t` can be constructed from
+  /// `cudaq::spin_op`, i.e., representing a sum of Pauli products with
+  /// different coefficients.
   std::complex<double>
   computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator);
 

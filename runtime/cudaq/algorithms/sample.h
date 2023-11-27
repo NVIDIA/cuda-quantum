@@ -30,8 +30,8 @@ concept SampleCallValid =
 
 namespace details {
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime arguments and
-/// invokes the quantum kernel) and invoke the sampling process.
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the sampling process.
 template <typename KernelFunctor>
 std::optional<sample_result>
 runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
@@ -138,10 +138,10 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   return ctx->result;
 }
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime arguments and
-/// invokes the quantum kernel) and invoke the sampling process asynchronously.
-/// Return a async_sample_result, clients can retrieve the results at a later
-/// time via the `get()` call.
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the sampling process
+/// asynchronously. Return a async_sample_result, clients can retrieve the
+/// results at a later time via the `get()` call.
 template <typename KernelFunctor>
 auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                       const std::string &kernelName, int shots,

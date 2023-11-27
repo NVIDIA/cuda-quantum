@@ -25,7 +25,8 @@ static constexpr const char stdvecBoolCtorFromInitList[] =
 /// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
 ///
 /// This builder also allows for the inclusion of predefined intrinsics into
-/// the `ModuleOp` on demand. Intrinsics exist in a map accessed by a symbol name.
+/// the `ModuleOp` on demand. Intrinsics exist in a map accessed by a symbol
+/// name.
 class IRBuilder : public mlir::OpBuilder {
 public:
   using OpBuilder::OpBuilder;
