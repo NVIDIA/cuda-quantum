@@ -45,7 +45,7 @@ Let's take a look at how we can use CUDA Quantum's built-in `vqe` module to run 
 Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA Quantum's optimizers, 
 `cudaq.vqe` will find and return the optimal set of parameters that minimize the energy, <Z>, of the system.
 
-The code block below represents the contents of the file `simple_vqe.py` from the `CUDA Quantum Github repository<https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/examples/python/simple_vqe.py>`__. 
+The code block below represents the contents of a file titled `simple_vqe.py`. 
 
 .. literalinclude:: ../examples/python/simple_vqe.py
    :language: python
