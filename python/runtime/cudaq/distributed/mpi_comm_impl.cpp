@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/*! \file mpi_comm_impl.h
+/*! \file mpi_comm_impl.cpp
     \brief Implementation of CUDAQ MPI interface wrapper based on mpi4py
 
     If a natively-built MPI wrapper plugin is not available, CUDA Quantum also
