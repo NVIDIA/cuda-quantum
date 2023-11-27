@@ -60,7 +60,7 @@ randomValues(uint64_t num_samples, double max_value,
   return rs;
 }
 
-/// @brief Util struct to allocate and clean up device memory scratch space.
+/// @brief Struct to allocate and clean up device memory scratch space.
 struct ScratchDeviceMem {
   void *d_scratch = nullptr;
   std::size_t scratchSize = 0;
@@ -75,11 +75,11 @@ struct ScratchDeviceMem {
   ~ScratchDeviceMem() { HANDLE_CUDA_ERROR(cudaFree(d_scratch)); }
 };
 
-/// Initialize cutensornet MPI Comm
+/// Initialize `cutensornet` MPI Comm
 /// If MPI is not available, fallback to an empty implementation.
 void initCuTensornetComm(cutensornetHandle_t cutnHandle);
 
-/// Reset cutensornet MPI Comm, e.g., in preparation for shutdown.
-/// Note: this will make sure no further MPI activities from cutensornet can
+/// Reset `cutensornet` MPI Comm, e.g., in preparation for shutdown.
+/// Note: this will make sure no further MPI activities from `cutensornet` can
 /// occur once MPI has been finalized by CUDAQ.
 void resetCuTensornetComm(cutensornetHandle_t cutnHandle);

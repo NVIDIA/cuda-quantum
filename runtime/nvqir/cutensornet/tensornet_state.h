@@ -49,12 +49,12 @@ public:
 
   /// @brief Compute the reduce density matrix on a set of qubits
   ///
-  /// The order of the specified qubits (cutensornet open state modes) will be
+  /// The order of the specified qubits (`cutensornet` open state modes) will be
   /// respected when computing the RDM.
   std::vector<std::complex<double>>
   computeRDM(const std::vector<int32_t> &qubits);
 
-  /// Factorize the cutensornetState_t into matrix product state form.
+  /// Factorize the `cutensornetState_t` into matrix product state form.
   // Returns MPS tensors in GPU device memory.
   // Note: the caller assumes the ownership of these pointers, thus needs to
   // clean them up properly (with cudaFree).
@@ -63,9 +63,9 @@ public:
       cutensornetTensorSVDAlgo_t algo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ);
 
   /// @brief  Compute the expectation value w.r.t. a
-  /// cutensornetNetworkOperator_t
+  /// `cutensornetNetworkOperator_t`
   ///
-  /// The cutensornetNetworkOperator_t can be constructed from cudaq::spin_op,
+  /// The `cutensornetNetworkOperator_t` can be constructed from `cudaq::spin_op`,
   /// i.e., representing a sum of Pauli products with different coefficients.
   std::complex<double>
   computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator);

@@ -30,7 +30,7 @@ concept SampleCallValid =
 
 namespace details {
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime args and
+/// @brief Take the input KernelFunctor (a lambda that captures runtime arguments and
 /// invokes the quantum kernel) and invoke the sampling process.
 template <typename KernelFunctor>
 std::optional<sample_result>
@@ -138,7 +138,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   return ctx->result;
 }
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime args and
+/// @brief Take the input KernelFunctor (a lambda that captures runtime arguments and
 /// invokes the quantum kernel) and invoke the sampling process asynchronously.
 /// Return a async_sample_result, clients can retrieve the results at a later
 /// time via the `get()` call.
@@ -363,7 +363,7 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
 
 /// \brief Sample the given kernel expression asynchronously and return
 /// the mapping of observed bit strings to corresponding number of
-/// times observed. Defaults to the 0th QPU id.
+/// times observed. Defaults to QPU id 0.
 ///
 /// \param kernel the kernel expression, must contain final measurements
 /// \param args the variadic concrete arguments for evaluation of the kernel.
@@ -385,8 +385,8 @@ auto sample_async(QuantumKernel &&kernel, Args &&...args) {
 /// argument packs. For a kernel with signature void(Args...), this
 /// function takes as input a set of vector<Arg>..., a vector for
 /// each argument type in the kernel signature. The vectors must be of
-/// equal length, and the ith element of each vector is used ith
-/// execution of the standard sample function. Results are collected
+/// equal length, and element `i` of each vector is used in
+/// execution `i` of the standard sample function. Results are collected
 /// from the execution of every argument set and returned.
 template <typename QuantumKernel, typename... Args>
   requires SampleCallValid<QuantumKernel, Args...>
@@ -418,8 +418,8 @@ std::vector<sample_result> sample(QuantumKernel &&kernel,
 }
 
 /// @brief Run the standard sample functionality over a set of N
-/// argument packs. For a kernel with signature void(Args...), this
-/// function takes as input a set of vector<Arg>..., a vector for
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
 /// each argument type in the kernel signature. The vectors must be of
 /// equal length, and the ith element of each vector is used ith
 /// execution of the standard sample function. Results are collected
@@ -454,8 +454,8 @@ std::vector<sample_result> sample(std::size_t shots, QuantumKernel &&kernel,
 }
 
 /// @brief Run the standard sample functionality over a set of N
-/// argument packs. For a kernel with signature void(Args...), this
-/// function takes as input a set of vector<Arg>..., a vector for
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
 /// each argument type in the kernel signature. The vectors must be of
 /// equal length, and the ith element of each vector is used ith
 /// execution of the standard sample function. Results are collected
@@ -497,8 +497,8 @@ std::vector<sample_result> sample(const sample_options &options,
 }
 
 /// @brief Run the standard sample functionality over a set of N
-/// argument packs. For a kernel with signature void(Args...), this
-/// function takes as input a set of vector<Arg>..., a vector for
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
 /// each argument type in the kernel signature. The vectors must be of
 /// equal length, and the ith element of each vector is used ith
 /// execution of the standard sample function. Results are collected
@@ -533,8 +533,8 @@ sample_n(QuantumKernel &&kernel, ArgumentSet<Args...> &&params) {
 }
 
 /// @brief Run the standard sample functionality over a set of N
-/// argument packs. For a kernel with signature void(Args...), this
-/// function takes as input a set of vector<Arg>..., a vector for
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
 /// each argument type in the kernel signature. The vectors must be of
 /// equal length, and the ith element of each vector is used ith
 /// execution of the standard sample function. Results are collected
