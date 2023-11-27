@@ -27,7 +27,7 @@ To do so, we leverage the generic :code:`cudaq::sample` function, which returns 
 encoding the qubit measurement strings and the corresponding number of times that string 
 was observed (here the default number of shots is used, :code:`1000`).
 
-To compile and execute this code, we run the following: 
+The following example illustrates how to compile and execute this code.
 
 .. code:: bash 
 
