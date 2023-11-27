@@ -230,11 +230,12 @@ jobs:
 
           md_status=`create_summary Markdown markdown`
           rst_status=`create_summary reStructuredText rst`
-          cxx_status=`create_summary "C++ Headers" cxx_headers`
-          cxx_status=`create_summary "C++ Examples" cxx_examples`
+          cxx_h_status=`create_summary "C++ Headers" cxx_headers`
+          cxx_ex_status=`create_summary "C++ Examples" cxx_examples`
           py_status=`create_summary Python python`
 
           if [ ! "$md_status" -eq 0 ]; then exit 1; fi
           if [ ! "$rst_status" -eq 0 ]; then exit 2; fi
-          if [ ! "$cxx_status" -eq 0 ]; then exit 3; fi
-          if [ ! "$py_status" -eq 0 ]; then exit 4; fi
+          if [ ! "$cxx_h_status" -eq 0 ]; then exit 3; fi
+          if [ ! "$cxx_ex_status" -eq 0 ]; then exit 4; fi
+          if [ ! "$py_status" -eq 0 ]; then exit 5; fi
