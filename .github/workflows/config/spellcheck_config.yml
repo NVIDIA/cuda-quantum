@@ -157,8 +157,11 @@ matrix:
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
+      # Ignore the first lowercase word after @param, which is usually the parameter name
+      - open: '@param(?:\s[a-z]+)?'
+        close: '(\s|$)'
       # Ignore words that start with an @, e.g. @param used in doc comments
-      - open: '@\S+(?:\s[a-z]+)?'
+      - open: '@\S'
         close: '(\s|$)'
       # Ignore words before and after double columns
       - open: '([a-zA-Z0-9_])*::'
