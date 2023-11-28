@@ -25,10 +25,13 @@ namespace cudaq::opt {
 /// specified if `QIRProfile` is true.
 /// @param QIRProfile whether or not this is lowering to a specific QIR profile
 /// @param pm Pass manager to append passes to
-/// @param convertTo String name of qir profile (e.g., qir-base, qir-adaptive)
+/// @param convertTo String name of QIR profile (e.g., `qir-base`,
+/// `qir-adaptive`)
 template <bool QIRProfile = false>
 void addPipelineToQIR(mlir::PassManager &pm,
                       llvm::StringRef convertTo = "none") {
+  pm.addNestedPass<mlir::func::FuncOp>(
+      cudaq::opt::createApplyControlNegations());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createUnwindLoweringPass());

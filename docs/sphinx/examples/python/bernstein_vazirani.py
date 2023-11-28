@@ -1,3 +1,4 @@
+import argparse
 import cudaq
 import random
 
@@ -65,24 +66,48 @@ def bernstein_vazirani(qubit_count: int):
 # If you have a NVIDIA GPU you can use this example to see
 # that the GPU-accelerated backends can easily handle a
 # larger number of qubits compared the CPU-only backend.
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        prog='python',
+        description='Run a Bernstein-Vazirani algorithm using CUDA Quantum.',
+        epilog=
+        'For more information about CUDA Quantum, see https://nvidia.github.io/cuda-quantum'
+    )
+    parser.add_argument('--size',
+                        type=int,
+                        required=False,
+                        default=5,
+                        help='The number of bits in the secret string.')
+    parser.add_argument('--target',
+                        type=str,
+                        required=False,
+                        default='',
+                        help='The target to execute the algorithm on.')
+    parser.add_argument('--seed',
+                        type=int,
+                        required=False,
+                        default=0,
+                        help='The random seed to generate the secret string.')
+    args = parser.parse_args()
 
-# Depending on the available memory on your GPU, you can
-# set the number of qubits to around 30 qubits, and un-comment
-# the `cudaq.set_target(nvidia)` line.
+    # Depending on the available memory on your GPU, you can
+    # set the size of the secret string to around 28-32 when
+    # you pass the target `nvidia` as a command line argument.
 
-# Note: Without setting the target to the `nvidia` backend,
-# a 30 qubit simulation simply seems to hang; that is
-# because it takes a long time for the CPU-only backend
-# to handle this number of qubits!
+    # Note: Without setting the target to the `nvidia` backend,
+    # the program simply seems to hang; that is because it takes
+    # a long time for the CPU-only backend to simulate 28+ qubits!
 
-qubit_count = 5  # set to around 30 qubits for `nvidia` target
-# ```
-# cudaq.set_target("nvidia")
-# ```
+    qubit_count = args.size
+    if args.seed != 0:
+        random.seed(args.seed)
+    if args.target and not args.target.isspace():
+        cudaq.set_target(args.target)
 
-kernel, hidden_bitstring = bernstein_vazirani(qubit_count)
-result = cudaq.sample(kernel)
+    print(f"Running on target {cudaq.get_target().name} ...")
+    kernel, hidden_bitstring = bernstein_vazirani(qubit_count)
+    result = cudaq.sample(kernel)
 
-print(f"encoded bitstring = {hidden_bitstring}")
-print(f"measured state = {result.most_probable()}")
-print(f"Were we successful? {hidden_bitstring == result.most_probable()}")
+    print(f"encoded bitstring = {hidden_bitstring}")
+    print(f"measured state = {result.most_probable()}")
+    print(f"Were we successful? {hidden_bitstring == result.most_probable()}")

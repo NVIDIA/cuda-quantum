@@ -110,7 +110,7 @@ cmake_args="-G Ninja "$repo_root" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
-  -DCUDAQ_TEST_MOCK_SERVERS=FALSE \
+  -DCUDAQ_TEST_MOCK_SERVERS=TRUE \
   -DBLAS_LIBRARIES="${BLAS_LIBRARIES}" \
   -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
@@ -126,27 +126,27 @@ fi
 # Build and install CUDAQ
 echo "Building CUDA Quantum with configuration $build_configuration..."
 logs_dir=`pwd`/logs
-if $verbose; then 
-  ninja install
-else
-  echo "The progress of the build is being logged to $logs_dir/ninja_output.txt."
-  ninja install 2> "$logs_dir/ninja_error.txt" 1> "$logs_dir/ninja_output.txt"
-fi
-
-if [ ! "$?" -eq "0" ]; then
+function fail_gracefully {
   echo "Build failed. Please check the console output or the files in the $logs_dir directory."
   cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+}
+
+if $verbose; then 
+  ninja install || fail_gracefully
 else
-  cp "$repo_root/LICENSE" "$CUDAQ_INSTALL_PREFIX/LICENSE"
-  cp "$repo_root/NOTICE" "$CUDAQ_INSTALL_PREFIX/NOTICE"
-
-  # The CUDA Quantum installation as built above is not fully self-container;
-  # It will, in particular, break if the LLVM tools are not in the expected location.
-  # We save any system configurations that are assumed by the installation with the installation.
-  echo "<build_config>" > "$CUDAQ_INSTALL_PREFIX/build_config.xml"
-  echo "<LLVM_INSTALL_PREFIX>$LLVM_INSTALL_PREFIX</LLVM_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
-  echo "<CUQUANTUM_INSTALL_PREFIX>$CUQUANTUM_INSTALL_PREFIX</CUQUANTUM_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
-  echo "</build_config>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
-
-  cd "$working_dir" && echo "Installed CUDA Quantum in directory: $CUDAQ_INSTALL_PREFIX"
+  echo "The progress of the build is being logged to $logs_dir/ninja_output.txt."
+  ninja install 2> "$logs_dir/ninja_error.txt" 1> "$logs_dir/ninja_output.txt" || fail_gracefully
 fi
+
+cp "$repo_root/LICENSE" "$CUDAQ_INSTALL_PREFIX/LICENSE"
+cp "$repo_root/NOTICE" "$CUDAQ_INSTALL_PREFIX/NOTICE"
+
+# The CUDA Quantum installation as built above is not fully self-container;
+# It will, in particular, break if the LLVM tools are not in the expected location.
+# We save any system configurations that are assumed by the installation with the installation.
+echo "<build_config>" > "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+echo "<LLVM_INSTALL_PREFIX>$LLVM_INSTALL_PREFIX</LLVM_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+echo "<CUQUANTUM_INSTALL_PREFIX>$CUQUANTUM_INSTALL_PREFIX</CUQUANTUM_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+echo "</build_config>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+
+cd "$working_dir" && echo "Installed CUDA Quantum in directory: $CUDAQ_INSTALL_PREFIX"

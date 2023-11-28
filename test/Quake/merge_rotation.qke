@@ -16,7 +16,7 @@ func.func @duplicate_rotation_check() {
   %c_angle = arith.constant 0.59 : f64
   quake.rx (%c_angle) %q0: (f64, !quake.ref) -> ()
   quake.rx (%c_angle) %q0 : (f64, !quake.ref) -> ()
-  %measurements0 = quake.mz %q0 : (!quake.ref) -> i1
+  %measurements0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
   return
 }
 
@@ -25,7 +25,7 @@ func.func @duplicate_rotation_check() {
 // CHECK-DAG:       %[[VAL_1:.*]] = quake.null_wire
 // CHECK-DAG:       %[[VAL_2:.*]] = quake.null_wire
 // CHECK:           %[[VAL_4:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_1]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_5:.*]], %[[VAL_6:.*]] = quake.mz %[[VAL_4]] : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_5:.*]], %[[VAL_6:.*]] = quake.mz %[[VAL_4]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK-DAG:       quake.sink %[[VAL_6]] : !quake.wire
 // CHECK-DAG:       quake.sink %[[VAL_2]] : !quake.wire
 // CHECK:           return
@@ -41,7 +41,7 @@ func.func @duplicate_rotation_check2() {
   quake.rx (%c_angle) %q0 : (f64, !quake.ref) -> ()
   quake.rx (%c_angle) %q0 : (f64, !quake.ref) -> ()
   quake.rx (%c_angle2) %q0 : (f64, !quake.ref) -> ()
-  %measurement = quake.mz %q0 : (!quake.ref) -> i1
+  %measurement = quake.mz %q0 : (!quake.ref) -> !quake.measure
   return
 }
 
@@ -50,7 +50,7 @@ func.func @duplicate_rotation_check2() {
 // CHECK-DAG:       %[[VAL_2:.*]] = quake.null_wire
 // CHECK-DAG:       %[[VAL_3:.*]] = quake.null_wire
 // CHECK:           %[[VAL_6:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_2]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_6]] : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_6]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK-DAG:       quake.sink %[[VAL_8]] : !quake.wire
 // CHECK-DAG:       quake.sink %[[VAL_3]] : !quake.wire
 // CHECK:           return
@@ -74,7 +74,7 @@ func.func @duplicate_rotation_check3() {
   quake.rx (%c_angle) %q0 : (f64, !quake.ref) -> ()
   quake.rx (%new_angle2) %q0 : (f64, !quake.ref) -> ()
   quake.rx (%new_angle) %q0 : (f64, !quake.ref) -> ()
-  %measurement = quake.mz %q0 : (!quake.ref) -> i1
+  %measurement = quake.mz %q0 : (!quake.ref) -> !quake.measure
   return
 }
 
@@ -83,7 +83,7 @@ func.func @duplicate_rotation_check3() {
 // CHECK-DAG:       %[[VAL_3:.*]] = quake.null_wire
 // CHECK-DAG:       %[[VAL_4:.*]] = quake.null_wire
 // CHECK:           %[[VAL_7:.*]] = quake.rx (%[[VAL_0]]) %[[VAL_3]] : (f64, !quake.wire) -> !quake.wire
-// CHECK:           %[[VAL_8:.*]], %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           %[[VAL_8:.*]], %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK-DAG:       quake.sink %[[VAL_9]] : !quake.wire
 // CHECK-DAG:       quake.sink %[[VAL_4]] : !quake.wire
 // CHECK:           return

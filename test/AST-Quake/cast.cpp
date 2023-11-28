@@ -27,8 +27,9 @@ struct testCast {
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> i1
-// CHECK:           %[[VAL_4:.*]] = arith.uitofp %[[VAL_3]] : i1 to f64
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_10:.*]] = quake.discriminate %[[VAL_3]] :
+// CHECK:           %[[VAL_4:.*]] = arith.uitofp %[[VAL_10]] : i1 to f64
 // CHECK:           %[[VAL_5:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f64>
@@ -36,6 +37,6 @@ struct testCast {
 // CHECK:           cc.if(%[[VAL_7]]) {
 // CHECK:             quake.x %[[VAL_2]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_2]] : (!quake.ref) -> i1
+// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_2]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }

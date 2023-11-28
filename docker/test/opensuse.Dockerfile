@@ -14,7 +14,8 @@ ARG pip_install_flags="--user"
 ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11"
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN zypper --non-interactive up --no-recommends && zypper --non-interactive in --no-recommends \
+RUN zypper clean --all && zypper --non-interactive up --no-recommends \
+    && zypper --non-interactive in --no-recommends \
         python$(echo ${python_version} | tr -d .) \
     && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \

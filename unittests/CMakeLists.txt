@@ -70,6 +70,12 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   if (${NVQIR_BACKEND} STREQUAL "dm")
      target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM)
   endif()
+  if (${NVQIR_BACKEND} STREQUAL "tensornet")
+     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+  endif()
+  if (${NVQIR_BACKEND} STREQUAL "tensornet-mps")
+     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_BACKEND_TENSORNET_MPS)
+  endif()
   gtest_discover_tests(${TEST_EXE_NAME})
 endmacro()
 
@@ -77,9 +83,6 @@ endmacro()
 create_tests_with_backend(qpp backends/QPPTester.cpp)
 create_tests_with_backend(dm "")
 
-# FIXME Check that we have GPUs. Could be in a 
-# Docker environment built with CUDA, but no --gpus flag
-# or no gpus on the system.
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
   # Given that the fp32 and fp64 difference is largely inherited
@@ -124,6 +127,12 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
         endif()
       endif()
     endif() 
+endif() 
+
+if(TARGET nvqir-tensornet)
+  message(STATUS "Building cutensornet backend tests.")
+  create_tests_with_backend(tensornet "")
+  create_tests_with_backend(tensornet-mps "")
 endif() 
 
 # Create an executable for SpinOp UnitTests

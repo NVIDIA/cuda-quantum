@@ -63,9 +63,12 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     };
     cudaq::gradients::central_difference gradient(ansatz, argMapper);
     cudaq::optimizers::lbfgs optimizer;
+    optimizer.initial_parameters = {0.35, 0.25};
+    optimizer.max_eval = 10;
+    optimizer.max_line_search_trials = 10;
     auto [opt_val_0, optpp] =
         cudaq::vqe(ansatz, gradient, h3, optimizer, 2, argMapper);
-    printf("HELLO %lf %lf \n", optpp[0], optpp[1]);
+    printf("Opt-params: %lf %lf \n", optpp[0], optpp[1]);
     printf("<H3> = %lf\n", opt_val_0);
     EXPECT_NEAR(opt_val_0, -2.045375, 1e-3);
   }
@@ -94,6 +97,9 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
 
     cudaq::gradients::central_difference gradient(ansatz);
     cudaq::optimizers::lbfgs optimizer;
+    optimizer.initial_parameters = {0.35, 0.25};
+    optimizer.max_eval = 10;
+    optimizer.max_line_search_trials = 10;
     auto [opt_val_0, optpp] = cudaq::vqe(ansatz, gradient, h3, optimizer, 2);
     printf("<H3> = %lf\n", opt_val_0);
     EXPECT_NEAR(opt_val_0, -2.045375, 1e-3);
@@ -119,6 +125,8 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     EXPECT_EQ(counter, 1000);
   }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+  // MPS doesn't support gates on more than 2 qubits
   {
     auto ccnot_builder = cudaq::make_kernel();
     auto q = ccnot_builder.qalloc(3);
@@ -131,6 +139,7 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     counts.dump();
     EXPECT_TRUE(counts.begin()->first == "101");
   }
+#endif
 
   {
     // Check controlled parametric gates (constant angle)
@@ -212,6 +221,8 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
   }
 }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkRotations) {
 
   // rx: entire qreg
@@ -303,9 +314,9 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
 
     // Overload 1: `QuakeValue` parameter.
-    kernel.rx(val, ctrls, target);
+    kernel.rx<cudaq::ctrl>(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.rx(M_PI, ctrls, target);
+    kernel.rx<cudaq::ctrl>(M_PI, ctrls, target);
 
     auto counts = cudaq::sample(kernel, M_PI);
     counts.dump();
@@ -332,9 +343,9 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
 
     // Overload 1: `QuakeValue` parameter.
-    kernel.rx(val, ctrls, target);
+    kernel.rx<cudaq::ctrl>(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.rx(M_PI, ctrls, target);
+    kernel.rx<cudaq::ctrl>(M_PI, ctrls, target);
 
     auto counts = cudaq::sample(kernel, M_PI);
     counts.dump();
@@ -365,9 +376,9 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
 
     // Overload 1: `QuakeValue` parameter.
-    kernel.rz(val, ctrls, target);
+    kernel.rz<cudaq::ctrl>(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.rz(-M_PI_2, ctrls, target);
+    kernel.rz<cudaq::ctrl>(-M_PI_2, ctrls, target);
 
     // Hadamard the target again.
     kernel.h(target);
@@ -401,9 +412,9 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
 
     // Overload 1: `QuakeValue` parameter.
-    kernel.r1(val, ctrls, target);
+    kernel.r1<cudaq::ctrl>(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.r1(-M_PI_2, ctrls, target);
+    kernel.r1<cudaq::ctrl>(-M_PI_2, ctrls, target);
 
     // Hadamard the target again.
     kernel.h(target);
@@ -416,6 +427,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("0111"), 1000);
   }
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
@@ -453,6 +465,9 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
   }
 }
 
+// Conditional execution on the tensornet backend is slow for a large number of
+// shots.
+#ifndef CUDAQ_BACKEND_TENSORNET
 CUDAQ_TEST(BuilderTester, checkConditional) {
   {
     cudaq::set_random_seed(13);
@@ -495,6 +510,7 @@ CUDAQ_TEST(BuilderTester, checkConditional) {
     EXPECT_EQ(counts.count("010"), 1000);
   }
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkQubitArg) {
   auto [kernel, qubitArg] = cudaq::make_kernel<cudaq::qubit>();
@@ -580,6 +596,8 @@ CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
   EXPECT_FALSE(kernel.isArgStdVec(1));
 }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkKernelControl) {
   cudaq::set_random_seed(13);
 
@@ -636,6 +654,7 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "101");
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   auto kernel = cudaq::make_kernel();
@@ -686,6 +705,9 @@ CUDAQ_TEST(BuilderTester, checkKernelAdjoint) {
   EXPECT_EQ(counts.begin()->first, "1");
 }
 
+// Conditional execution (including reset) on the tensornet backend is slow for
+// a large number of shots.
+#ifndef CUDAQ_BACKEND_TENSORNET
 CUDAQ_TEST(BuilderTester, checkReset) {
   {
     auto entryPoint = cudaq::make_kernel();
@@ -722,6 +744,7 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     EXPECT_EQ(counts.begin()->first, "01");
   }
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkForLoop) {
 
@@ -806,6 +829,9 @@ CUDAQ_TEST(BuilderTester, checkForLoop) {
   }
 }
 
+// Conditional execution (including reset) on the tensornet backend is slow for
+// a large number of shots.
+#ifndef CUDAQ_BACKEND_TENSORNET
 CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
   {
     auto entryPoint = cudaq::make_kernel();
@@ -862,6 +888,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     EXPECT_EQ(counts.count("0", "hello2"), 1000);
   }
 }
+#endif
 
 CUDAQ_TEST(BuilderTester, checkNestedKernelCall) {
   auto [kernel1, qubit1] = cudaq::make_kernel<cudaq::qubit>();
@@ -972,6 +999,8 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
   }
 }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   // rx: pi
   {
@@ -1086,6 +1115,7 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     EXPECT_EQ(counts.count("11111111"), 1000);
   }
 }
+#endif
 
 #ifndef CUDAQ_BACKEND_DM
 

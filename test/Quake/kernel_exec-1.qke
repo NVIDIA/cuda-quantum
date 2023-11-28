@@ -62,7 +62,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__ghz = "_ZN3ghzclE
     } do {
     ^bb1 (%arg31 : index):
       %18 = quake.extract_ref %3[%arg31] : (!quake.veq<?>,index) -> !quake.ref
-      %19 = quake.mz %18 : (!quake.ref) -> i1
+      %19 = quake.mz %18 : (!quake.ref) -> !quake.measure
       cc.continue %arg31 : index
     } step {
     ^bb1 (%arg32 : index):

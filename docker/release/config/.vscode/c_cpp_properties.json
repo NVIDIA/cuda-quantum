@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "${CUDA_QUANTUM_PATH}/**",
                 "/opt/llvm/lib/clang/**",
-                "/usr/include/x86_64-linux-gnu/**"
+                "/usr/include/c++/**",
+                "/usr/include/**/c++/**"
             ],
             "compilerPath": "${CUDA_QUANTUM_PATH}/bin/nvq++",
             "defines": [],

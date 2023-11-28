@@ -6,17 +6,18 @@
 			"destination": "workspaces/host"
 		}
 	},
-	// Getting a browser to e.g. preview docs within the container (optional - uncomment if needed)
-	// "postCreateCommand": "apt update && apt install -y curl && curl -sSL https://dl.google.com/linux/direct/google-chrome-stable_current_$(dpkg --print-architecture).deb -o /tmp/chrome.deb && apt install -y /tmp/chrome.deb",
-	// Unfortunately, it is not currently possible to have the same dev container definition for systems with and without a supported GPU.
-	// See also https://github.com/airo-ugent/airo-ros/issues/17.
-	// To enable the container to leverage GPU acceleration, add "--gpus=all" to the list of arguments below.	
-	"runArgs": [ "--net=host", "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
-	"features": {
-		// Getting a GUI to show content in Chrome (optional - uncomment if needed)
-		// "ghcr.io/devcontainers/features/desktop-lite:1": { "password": "cuda-quantum" }
+	// If you do not have the NVIDIA container runtime installed, available GPUs will not be automatically detected.
+	// You can manually pass the flag to enable GPU support to docker by uncommenting the line below.
+	// "runArgs": [ "--gpus=all" ],
+	"hostRequirements": {
+		"gpu": "optional"
 	},
-	"forwardPorts": [6080],
+	// To use certain debugging tools, you may want uncomment the two lines below.
+	// Be mindful of security implications when you do. See also 
+	// - https://github.com/rr-debugger/rr/wiki/Docker
+	// - https://www.cybereason.com/blog/container-escape-all-you-need-is-cap-capabilities
+	// "capAdd": ["SYS_PTRACE"],
+	// "securityOpt": [ "seccomp=unconfined" ],
 	"customizations": {
 		"vscode": {
 		    "extensions": [
@@ -32,7 +33,8 @@
 				"stkb.rewrap",
 				"qiu.llvm-ir-language-support",
 				"llvm-vs-code-extensions.vscode-mlir",
-				"ms-azuretools.vscode-docker"
+				"ms-azuretools.vscode-docker",
+				"ritwickdey.liveserver"
 			],			
 			"settings": {
 				"files.associations": {
@@ -241,10 +243,13 @@
 				"C_Cpp.default.cStandard": "c17",
 				"C_Cpp.default.cppStandard": "c++20",
 				"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+				"C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
 				"C_Cpp.default.includePath": [
-					"\"${workspaceFolder}/**\"",
-					"\"${CUDAQ_INSTALL_PREFIX}/**\"",
-					"\"${LLVM_INSTALL_PREFIX}/lib/clang/**\""
+					"${workspaceFolder}/**",
+					"${CUDAQ_INSTALL_PREFIX}/**",
+					"${LLVM_INSTALL_PREFIX}/**",
+					"/usr/include/c++/**",
+					"/usr/include/**/c++/**"
 				],
 				"doxdocgen.c.triggerSequence": "///",
 				"doxdocgen.c.firstLine": "",

@@ -13,6 +13,7 @@ endif()
 add_cudaq_library(OptTransforms
   AddDeallocs.cpp
   AggressiveEarlyInlining.cpp
+  ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
   BasisConversion.cpp
   CombineQuantumAlloc.cpp
@@ -24,6 +25,7 @@ add_cudaq_library(OptTransforms
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   LambdaLifting.cpp
+  LinearCtrlRelations.cpp
   LoopAnalysis.cpp
   LoopNormalize.cpp
   LoopPeeling.cpp
@@ -37,6 +39,7 @@ add_cudaq_library(OptTransforms
   PruneCtrlRelations.cpp
   QuakeAddMetadata.cpp
   QuakeSynthesizer.cpp
+  RefToVeqAlloc.cpp
   RegToMem.cpp
   PySynthCallableBlockArgs.cpp
 

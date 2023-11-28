@@ -45,7 +45,7 @@ std::string get_quake_by_name(const std::string &);
 template <typename T>
 concept NumericType = requires(T param) { std::is_floating_point_v<T>; };
 
-/// @brief Define a Quake-constructable floating point value concept
+/// @brief Define a Quake-constructible floating point value concept
 // i.e., it could be a `QuakeValue` type or a floating point number (convertible
 // to a `QuakeValue` with `ConstantFloatOp`).
 template <typename T>
@@ -126,7 +126,7 @@ KernelBuilderType mapArgToType(cudaq::qubit &e);
 /// @brief  Map a `qreg` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qreg<> &e);
 
-/// @brief  Map a qvector to a `KernelBuilderType`
+/// @brief  Map a `qvector` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qvector<> &e);
 
 /// @brief Initialize the `MLIRContext`, return the raw
@@ -433,6 +433,17 @@ public:
     details::NAME(*opBuilder, empty, qubit);                                   \
   }                                                                            \
   void NAME(QuakeValue &&qubit) { NAME(qubit); }                               \
+  [[deprecated("In the future, passing `ctrls` to " #NAME                      \
+               " will require an explicit `<cudaq::ctrl>` template argument. " \
+               "Upon the next release, this will be interpreted as a single "  \
+               "qubit gate broadcast across all input qubits, per the CUDA "   \
+               "Quantum Specification.")]] void                                \
+  NAME(std::vector<QuakeValue> &ctrls, QuakeValue &target) {                   \
+    details::NAME(*opBuilder, ctrls, target);                                  \
+  }                                                                            \
+  template <typename mod,                                                      \
+            typename =                                                         \
+                typename std::enable_if_t<std::is_same_v<mod, cudaq::ctrl>>>   \
   void NAME(std::vector<QuakeValue> &ctrls, QuakeValue &target) {              \
     details::NAME(*opBuilder, ctrls, target);                                  \
   }                                                                            \
@@ -446,7 +457,7 @@ public:
     if constexpr (std::is_same_v<mod, cudaq::ctrl>) {                          \
       std::vector<QuakeValue> ctrls(values.begin(), values.end() - 1);         \
       auto &target = values.back();                                            \
-      NAME(ctrls, target);                                                     \
+      NAME<cudaq::ctrl>(ctrls, target);                                        \
       return;                                                                  \
     }                                                                          \
     for (auto &v : values) {                                                   \
@@ -473,10 +484,34 @@ public:
     std::vector<QuakeValue> empty;                                             \
     details::NAME(*opBuilder, parameter, empty, qubit);                        \
   }                                                                            \
+  [[deprecated("In the future, passing `ctrls` to " #NAME                      \
+               " will require an explicit `<cudaq::ctrl>` template argument. " \
+               "Upon the next release, this will be interpreted as a single "  \
+               "qubit gate broadcast across all input qubits, per the CUDA "   \
+               "Quantum Specification.")]] void                                \
+  NAME(QuakeValue parameter, std::vector<QuakeValue> &ctrls,                   \
+       QuakeValue &target) {                                                   \
+    details::NAME(*opBuilder, parameter, ctrls, target);                       \
+  }                                                                            \
+  template <typename mod,                                                      \
+            typename =                                                         \
+                typename std::enable_if_t<std::is_same_v<mod, cudaq::ctrl>>>   \
   void NAME(QuakeValue parameter, std::vector<QuakeValue> &ctrls,              \
             QuakeValue &target) {                                              \
     details::NAME(*opBuilder, parameter, ctrls, target);                       \
   }                                                                            \
+  [[deprecated("In the future, passing `ctrls` to " #NAME                      \
+               " will require an explicit `<cudaq::ctrl>` template argument. " \
+               "Upon the next release, this will be interpreted as a single "  \
+               "qubit gate broadcast across all input qubits, per the CUDA "   \
+               "Quantum Specification.")]] void                                \
+  NAME(double parameter, std::vector<QuakeValue> &ctrls, QuakeValue &target) { \
+    QuakeValue v(*opBuilder, parameter);                                       \
+    details::NAME(*opBuilder, v, ctrls, target);                               \
+  }                                                                            \
+  template <typename mod,                                                      \
+            typename =                                                         \
+                typename std::enable_if_t<std::is_same_v<mod, cudaq::ctrl>>>   \
   void NAME(double parameter, std::vector<QuakeValue> &ctrls,                  \
             QuakeValue &target) {                                              \
     QuakeValue v(*opBuilder, parameter);                                       \
@@ -505,9 +540,9 @@ public:
       std::vector<QuakeValue> ctrls(values.begin(), values.end() - 1);         \
       auto &target = values.back();                                            \
       if constexpr (std::is_floating_point_v<ParamT>)                          \
-        NAME(QuakeValue(*opBuilder, parameter), ctrls, target);                \
+        NAME<cudaq::ctrl>(QuakeValue(*opBuilder, parameter), ctrls, target);   \
       else                                                                     \
-        NAME(parameter, ctrls, target);                                        \
+        NAME<cudaq::ctrl>(parameter, ctrls, target);                           \
       return;                                                                  \
     }                                                                          \
   }
@@ -561,7 +596,7 @@ public:
     details::c_if(*opBuilder, result, thenFunctor);
   }
 
-  /// @brief Apply a general pauli rotation, exp(i theta P),
+  /// @brief Apply a general Pauli rotation, exp(i theta P),
   /// takes a QuakeValue representing a register of qubits.
   template <QuakeValueOrNumericType ParamT>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
@@ -574,7 +609,7 @@ public:
       details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
   }
 
-  /// @brief Apply a general pauli rotation, exp(i theta P),
+  /// @brief Apply a general Pauli rotation, exp(i theta P),
   /// takes a variadic list of QuakeValues representing a individual qubits.
   template <QuakeValueOrNumericType ParamT, typename... QubitArgs>
   void exp_pauli(const ParamT &theta, const std::string &pauliWord,

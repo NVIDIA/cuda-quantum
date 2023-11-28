@@ -39,7 +39,7 @@ constexpr static const char NVQIRPackSingleQubitInArray[] =
 constexpr static const char NVQIRReleasePackedQubitArray[] =
     "releasePackedQubitArray";
 
-/// QIR Array funciton name strings
+/// QIR Array function name strings
 constexpr static const char QIRArrayGetElementPtr1d[] =
     "__quantum__rt__array_get_element_ptr_1d";
 constexpr static const char QIRArrayQubitAllocateArray[] =

@@ -16,7 +16,7 @@ except:
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
-port = 62454
+port = 62440
 
 
 def assert_close(got) -> bool:

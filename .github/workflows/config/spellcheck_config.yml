@@ -66,6 +66,9 @@ matrix:
   - pyspelling.filters.context:
       context_visible_first: true
       delimiters:
+      # Ignore multiline content fenced by .. spellcheck-disable and .. spellcheck-enable
+      - open: '(?s):spellcheck-disable:'
+        close: ':spellcheck-enable:'
       # Ignore lines that start with two dots
       - open: '^\s*\.\.'
         close: '$'
@@ -154,6 +157,9 @@ matrix:
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
+      # Ignore the first lowercase word after @param, which is usually the parameter name
+      - open: '@param(?:\s[a-z]+)?'
+        close: '(\s|$)'
       # Ignore words that start with an @, e.g. @param used in doc comments
       - open: '@\S'
         close: '(\s|$)'

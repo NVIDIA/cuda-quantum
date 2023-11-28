@@ -71,8 +71,8 @@ module {
 
     quake.apply @umaj %cout, %b0, %a0 : (!quake.ref, !quake.ref, !quake.ref) -> ()
 
-    %ans = quake.mz %b : (!quake.veq<4>) -> !cc.stdvec<i1>
-    %ans_cout = quake.mz %cout : (!quake.ref) -> i1
+    %ans = quake.mz %b : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+    %ans_cout = quake.mz %cout : (!quake.ref) -> !quake.measure
     return
   }
 }
