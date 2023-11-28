@@ -102,13 +102,13 @@ class PyASTBridge(ast.NodeVisitor):
 
     def getIntegerType(self, width=64):
         """
-        Return an MLIR integer type of the given bit width (defaults to 64 bits).
+        Return an MLIR `IntegerType` of the given bit width (defaults to 64 bits).
         """
         return IntegerType.get_signless(width)
 
     def getIntegerAttr(self, type, value):
         """
-        Return an MLIR Integer Attribute of the given integer type.
+        Return an MLIR Integer Attribute of the given `IntegerType`.
         """
         return IntegerAttr.get(type, value)
 
@@ -502,7 +502,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         For all assignments, the variable name will be used as a key for the symbol table, 
         mapping to the corresponding MLIR Value. For values of `ref` / `veq`, `i1`, or `cc.callable`, 
-        the values will be stored directly in the table. For all another values, the variable 
+        the values will be stored directly in the table. For all other values, the variable 
         will be allocated with a `cc.alloca` op, and the loaded value will be stored in the 
         symbol table.
         """
