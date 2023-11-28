@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <mutex>
 #include <stdexcept>
 #include <unordered_map>
 
@@ -98,10 +99,13 @@ struct PendingRequest {
   MPI_Request requests[2];
   int nActiveRequests;
   PendingRequest() : nActiveRequests(0){};
+  static std::mutex g_mutex;
   static std::unordered_map<const cudaqDistributedCommunicator_t *,
                             PendingRequest>
       g_requests;
 };
+
+std::mutex PendingRequest::g_mutex;
 std::unordered_map<const cudaqDistributedCommunicator_t *, PendingRequest>
     PendingRequest::g_requests;
 } // namespace
@@ -227,6 +231,7 @@ static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
 static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
                          const void *buf, int count, DataType dataType,
                          int peer, int32_t tag) {
+  std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
     return -1;
   MPI_Request *request =
@@ -245,6 +250,7 @@ static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
 /// @brief Wrapper of MPI_Irecv and track pending requests for synchronization
 static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
                          int count, DataType dataType, int peer, int32_t tag) {
+  std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
     return -1;
   MPI_Request *request =
@@ -264,6 +270,7 @@ static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
 static int mpi_SendRecvAsync(const cudaqDistributedCommunicator_t *comm,
                              const void *sendbuf, void *recvbuf, int count,
                              DataType dataType, int peer, int32_t tag) {
+  std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests != 0)
     return -1;
   MPI_Request *sendRequest = &(PendingRequest::g_requests[comm].requests[0]);
@@ -283,6 +290,7 @@ static int mpi_SendRecvAsync(const cudaqDistributedCommunicator_t *comm,
 
 /// @brief Wait for in-flight MPI_Isend and MPI_Irecv to complete
 static int mpi_Synchronize(const cudaqDistributedCommunicator_t *comm) {
+  std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   MPI_Status statuses[2];
   std::memset(statuses, 0, sizeof(statuses));
   int res = MPI_Waitall(PendingRequest::g_requests[comm].nActiveRequests,

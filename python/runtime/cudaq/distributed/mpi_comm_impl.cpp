@@ -19,6 +19,7 @@
 #include "distributed_capi.h"
 #include <complex>
 #include <iostream>
+#include <mutex>
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -138,10 +139,12 @@ struct PendingRequest {
   py::object requests[2];
   int nActiveRequests;
   PendingRequest() : nActiveRequests(0){};
+  static std::mutex g_mutex;
   static std::unordered_map<const cudaqDistributedCommunicator_t *,
                             PendingRequest>
       g_requests;
 };
+std::mutex PendingRequest::g_mutex;
 std::unordered_map<const cudaqDistributedCommunicator_t *, PendingRequest>
     PendingRequest::g_requests;
 } // namespace
@@ -392,6 +395,7 @@ static int mpi_AllgatherV(const cudaqDistributedCommunicator_t *comm,
 static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
                          const void *buf, int count, DataType dataType,
                          int peer, int32_t tag) {
+  std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
     return -1;
   try {
@@ -412,6 +416,7 @@ static int mpi_SendAsync(const cudaqDistributedCommunicator_t *comm,
 /// @brief Wrapper of MPI_Irecv and track pending requests for synchronization
 static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
                          int count, DataType dataType, int peer, int32_t tag) {
+  std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests == 2)
     return -1;
   try {
@@ -433,6 +438,7 @@ static int mpi_RecvAsync(const cudaqDistributedCommunicator_t *comm, void *buf,
 static int mpi_SendRecvAsync(const cudaqDistributedCommunicator_t *comm,
                              const void *sendbuf, void *recvbuf, int count,
                              DataType dataType, int peer, int32_t tag) {
+  std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   if (PendingRequest::g_requests[comm].nActiveRequests != 0)
     return -1;
   try {
@@ -454,6 +460,7 @@ static int mpi_SendRecvAsync(const cudaqDistributedCommunicator_t *comm,
 
 /// @brief Wait for in-flight MPI_Isend and MPI_Irecv to complete
 static int mpi_Synchronize(const cudaqDistributedCommunicator_t *comm) {
+  std::scoped_lock<std::mutex> lock(PendingRequest::g_mutex);
   try {
     auto pyComm = unpackMpiCommunicator(comm);
     for (int i = 0; i < PendingRequest::g_requests[comm].nActiveRequests; ++i) {

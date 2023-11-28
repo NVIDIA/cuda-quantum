@@ -89,12 +89,24 @@ typedef struct {
                     int32_t, void *, const int32_t *, const int32_t *,
                     DataType);
   /// @brief MPI_Isend
+  /// @note The MPI plugin API allows for a maximum of two concurrent
+  /// non-blocking requests (e.g., one `Isend` and one `Irecv`). Hence,
+  /// `Synchronize` should be called as appropriate to resolve in-flight
+  /// requests before making new ones.
   int (*SendAsync)(const cudaqDistributedCommunicator_t *, const void *, int,
                    DataType, int, int32_t);
   /// @brief MPI_Irecv
+  /// @note The MPI plugin API allows for a maximum of two concurrent
+  /// non-blocking requests (e.g., one `Isend` and one `Irecv`). Hence,
+  /// `Synchronize` should be called as appropriate to resolve in-flight
+  /// requests before making new ones.
   int (*RecvAsync)(const cudaqDistributedCommunicator_t *, void *, int,
                    DataType, int, int32_t);
   /// @brief MPI_Isend and MPI_Irecv in one call
+  /// @note The MPI plugin API allows for a maximum of two concurrent
+  /// non-blocking requests (e.g., one `Isend` and one `Irecv`). Since this
+  /// `SendRecvAsync` creates two pending requests, `Synchronize` must be called
+  /// to resolve in-flight requests before making new ones.
   int (*SendRecvAsync)(const cudaqDistributedCommunicator_t *, const void *,
                        void *, int, DataType, int, int32_t);
   /// @brief Wait for previous non-blocking MPI_Isend and MPI_Irecv to complete
