@@ -7,6 +7,11 @@
 # ============================================================================ #
 include(AddMLIRPython)
 
+# [RFC]:
+# Check how to solve this better than just disable the warning for the whole directory.
+# If this is better addressed after updating to a newer LLVM version, track as an issue on GitHub.
+add_compile_options(-Wno-ambiguous-reversed-operator)
+
 # Specifies that all MLIR packages are co-located under the `mlir_cudaq`
 # top level package (the API has been embedded in a relocatable way).
 # TODO: Add an upstream cmake param for this vs having a global here.
