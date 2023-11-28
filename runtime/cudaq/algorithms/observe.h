@@ -50,12 +50,12 @@ concept ObserveCallValid =
     ValidArgumentsPassed<QuantumKernel, Args...> &&
     HasVoidReturnType<std::invoke_result_t<QuantumKernel, Args...>>;
 
-/// \brief Observe options to provide to the observe() / async_observe()
-/// functions
+/// Observe options to provide as an argument to the `observe()`,
+/// `async_observe()` functions.
 ///
-/// \param shots number of shots to run for the given kernel. The default of -1
-/// means direct calculations for simulation backends.
-/// \param noise noise model to use for the observe operation
+/// \p shots is the number of shots to run for the given kernel. The default of
+/// -1 means direct calculations for simulation backends. \p noise is the noise
+/// model to use for the observe operation.
 struct observe_options {
   int shots = -1;
   cudaq::noise_model noise;
@@ -168,7 +168,7 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, spin_op &H,
 
 /// @brief Distribute the expectation value computations among the
 /// available platform QPUs. The `asyncLauncher` functor takes as input the
-/// qpu index and the `spin_op` chunk and returns an `async_observe_result`.
+/// QPU index and the `spin_op` chunk and returns an `async_observe_result`.
 inline auto distributeComputations(
     std::function<async_observe_result(std::size_t, spin_op &)> &&asyncLauncher,
     spin_op &H, std::size_t nQpus) {
@@ -250,9 +250,9 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
 }
 
 /// @brief Compute the expected value of `H` with respect to `kernel(Args...)`.
-/// Distribute the work amongst available QPUs on the platform in parallel. This
-/// distribution can occur on multi-gpu multi-node platforms, multi-gpu
-/// single-node platforms, or multi-node no-gpu platforms. Programmers must
+/// Distribute the work `amongst` available QPUs on the platform in parallel.
+/// This distribution can occur on multi-GPU multi-node platforms, multi-GPU
+/// single-node platforms, or multi-node no-GPU platforms. Programmers must
 /// indicate the distribution type via the corresponding template types
 /// (cudaq::mgmn, cudaq::mgsn, cudaq::mn).
 template <typename DistributionType, typename QuantumKernel, typename... Args>
