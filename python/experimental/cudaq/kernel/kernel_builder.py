@@ -224,13 +224,13 @@ class PyKernel(object):
 
     def getIntegerType(self, width=64):
         """
-        Return an MLIR IntegerType of the given bit width (defaults to 64 bits).
+        Return an MLIR `IntegerType` of the given bit width (defaults to 64 bits).
         """
         return IntegerType.get_signless(width)
 
     def getConstantInt(self, value, width=64):
         """
-        Create a constant integer operation and return its mlir result Value.
+        Create a constant integer operation and return its MLIR result Value.
         Takes as input the concrete integer value. Can specify the integer bit width.
         """
         ty = self.getIntegerType(width)
@@ -350,7 +350,7 @@ class PyKernel(object):
 
     def __applyControlOrAdjoint(self, target, isAdjoint, controls, *args):
         """
-        Utility method for adding a Quake ApplyOp in the case of cudaq.control or 
+        Utility method for adding a Quake `ApplyOp` in the case of cudaq.control or 
         cudaq.adjoint. This function will search recursively for all required function 
         operations and add them tot he module. 
         """
@@ -406,11 +406,11 @@ class PyKernel(object):
         Returns:
             :class:`QuakeValue`: A handle to the allocated qubits in the MLIR.
 
-        .. code-block:: python
-
+        ```python
             # Example:
             kernel = cudaq.make_kernel()
             qubits = kernel.qalloc(10)
+        ```
         """
         with self.insertPoint, self.loc:
             if size == None:
@@ -488,8 +488,7 @@ class PyKernel(object):
         Controlled swap of the states of the provided qubits. 
         The controls parameter is expected to be a list of QuakeValue.
 
-        .. code-block:: python
-
+        ```python
             # Example:
             kernel = cudaq.make_kernel()
             # Allocate qubit/s to the `kernel`.
@@ -498,6 +497,7 @@ class PyKernel(object):
             kernel.x(qubits[0])
             # Swap their states.
             kernel.swap(qubits[0], qubits[1]))
+        ```
         """
         with self.insertPoint, self.loc:
             quake.SwapOp([], [], [c.mlirValue for c in controls],
@@ -507,8 +507,7 @@ class PyKernel(object):
         """
         Swap the states of the provided qubits. 
 
-        .. code-block:: python
-
+        ```python
             # Example:
             kernel = cudaq.make_kernel()
             # Allocate qubit/s to the `kernel`.
@@ -517,6 +516,7 @@ class PyKernel(object):
             kernel.x(qubits[0])
             # Swap their states.
             kernel.swap(qubits[0], qubits[1]))
+        ```
         """
         with self.insertPoint, self.loc:
             quake.SwapOp([], [], [], [qubitA.mlirValue, qubitB.mlirValue])
@@ -562,14 +562,14 @@ class PyKernel(object):
         the circuit. Mid-circuit measurements are currently only supported 
         through the use of :func:`c_if`.
 
-        .. code-block:: python
-
-        # Example:
-        kernel = cudaq.make_kernel()
-        # Allocate qubit/s to measure.
-        qubit = kernel.qalloc()
-        # Measure the qubit/s in the Z-basis.
-        kernel.mz(target=qubit))
+        ```python
+            # Example:
+            kernel = cudaq.make_kernel()
+            # Allocate qubit/s to measure.
+            qubit = kernel.qalloc()
+            # Measure the qubit/s in the Z-basis.
+            kernel.mz(target=qubit))
+        ```
         """
         with self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1, context=self.ctx)
@@ -607,14 +607,13 @@ class PyKernel(object):
         the circuit. Mid-circuit measurements are currently only supported 
         through the use of :func:`c_if`.
 
-        .. code-block:: python
-
-        # Example:
-        kernel = cudaq.make_kernel()
-        # Allocate qubit/s to measure.
-        qubit = kernel.qalloc()
-        # Measure the qubit/s in the X-basis.
-        kernel.mx(qubit))
+        ```python
+            kernel = cudaq.make_kernel()
+            # Allocate qubit/s to measure.
+            qubit = kernel.qalloc()
+            # Measure the qubit/s in the X-basis.
+            kernel.mx(qubit))
+        ```
         """
         with self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1, context=self.ctx)
@@ -652,14 +651,14 @@ class PyKernel(object):
         the circuit. Mid-circuit measurements are currently only supported 
         through the use of :func:`c_if`.
 
-        .. code-block:: python
-
-        # Example:
-        kernel = cudaq.make_kernel()
-        # Allocate qubit/s to measure.
-        qubit = kernel.qalloc()
-        # Measure the qubit/s in the Y-basis.
-        kernel.my(qubit))
+        ```python
+            # Example:
+            kernel = cudaq.make_kernel()
+            # Allocate qubit/s to measure.
+            qubit = kernel.qalloc()
+            # Measure the qubit/s in the Y-basis.
+            kernel.my(qubit))
+        ```
         """
         with self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1, context=self.ctx)
@@ -691,15 +690,15 @@ class PyKernel(object):
         RuntimeError: if the `*target_arguments` passed to the adjoint call don't 
             match the argument signature of `target`.
 
-        .. code-block:: python
-
-        # Example:
-        target_kernel = cudaq.make_kernel()
-        qubit = target_kernel.qalloc()
-        target_kernel.x(qubit)
-        # Apply the adjoint of `target_kernel` to `kernel`.
-        kernel = cudaq.make_kernel()
-        kernel.adjoint(target_kernel))
+        ```python
+            # Example:
+            target_kernel = cudaq.make_kernel()
+            qubit = target_kernel.qalloc()
+            target_kernel.x(qubit)
+            # Apply the adjoint of `target_kernel` to `kernel`.
+            kernel = cudaq.make_kernel()
+            kernel.adjoint(target_kernel))
+        ```
         """
         self.__applyControlOrAdjoint(otherKernel, True, [], *args)
         return
@@ -722,21 +721,21 @@ class PyKernel(object):
         RuntimeError: if the `*target_arguments` passed to the control 
             call don't match the argument signature of `target`.
 
-        .. code-block:: python
-
-        # Example:
-        # Create a `Kernel` that accepts a qubit as an argument.
-        # Apply an X-gate on that qubit.
-        target_kernel, qubit = cudaq.make_kernel(cudaq.qubit)
-        target_kernel.x(qubit)
-        # Create another `Kernel` that will apply `target_kernel`
-        # as a controlled operation.
-        kernel = cudaq.make_kernel()
-        control_qubit = kernel.qalloc()
-        target_qubit = kernel.qalloc()
-        # In this case, `control` performs the equivalent of a 
-        # controlled-X gate between `control_qubit` and `target_qubit`.
-        kernel.control(target_kernel, control_qubit, target_qubit))
+        ```python
+            # Example:
+            # Create a `Kernel` that accepts a qubit as an argument.
+            # Apply an X-gate on that qubit.
+            target_kernel, qubit = cudaq.make_kernel(cudaq.qubit)
+            target_kernel.x(qubit)
+            # Create another `Kernel` that will apply `target_kernel`
+            # as a controlled operation.
+            kernel = cudaq.make_kernel()
+            control_qubit = kernel.qalloc()
+            target_qubit = kernel.qalloc()
+            # In this case, `control` performs the equivalent of a 
+            # controlled-X gate between `control_qubit` and `target_qubit`.
+            kernel.control(target_kernel, control_qubit, target_qubit))
+        ```
         """
         self.__applyControlOrAdjoint(target, False, [control.mlirValue], *args)
         return
@@ -755,20 +754,20 @@ class PyKernel(object):
         RuntimeError: if the `*args` passed to the apply 
             call don't match the argument signature of `target`.
 
-        .. code-block:: python
-
-        # Example:
-        # Build a `Kernel` that's parameterized by a `cudaq.qubit`.
-        target_kernel, other_qubit = cudaq.make_kernel(cudaq.qubit)
-        target_kernel.x(other_qubit)
-        # Build a `Kernel` that will call `target_kernel` within its
-        # own function body.
-        kernel = cudaq.make_kernel()
-        qubit = kernel.qalloc()
-        # Use `qubit` as the argument to `target_kernel`.
-        kernel.apply_call(target_kernel, qubit)
-        # The final measurement of `qubit` should return the 1-state.
-        kernel.mz(qubit))
+        ```python
+            # Example:
+            # Build a `Kernel` that's parameterized by a `cudaq.qubit`.
+            target_kernel, other_qubit = cudaq.make_kernel(cudaq.qubit)
+            target_kernel.x(other_qubit)
+            # Build a `Kernel` that will call `target_kernel` within its
+            # own function body.
+            kernel = cudaq.make_kernel()
+            qubit = kernel.qalloc()
+            # Use `qubit` as the argument to `target_kernel`.
+            kernel.apply_call(target_kernel, qubit)
+            # The final measurement of `qubit` should return the 1-state.
+            kernel.mz(qubit))
+        ```
         """
         self.__applyControlOrAdjoint(otherKernel, False, [], *args)
 
@@ -786,22 +785,22 @@ class PyKernel(object):
         Raises:
         RuntimeError: If the provided `measurement` is on more than 1 qubit.
 
-        .. code-block:: python
-
-        # Example:
-        # Create a kernel and allocate a single qubit.
-        kernel = cudaq.make_kernel()
-        qubit = kernel.qalloc()
-        # Define a function that performs certain operations on the
-        # kernel and the qubit.
-        def then_function():
+        ```python
+            # Example:
+            # Create a kernel and allocate a single qubit.
+            kernel = cudaq.make_kernel()
+            qubit = kernel.qalloc()
+            # Define a function that performs certain operations on the
+            # kernel and the qubit.
+            def then_function():
+                kernel.x(qubit)
             kernel.x(qubit)
-        kernel.x(qubit)
-        # Measure the qubit.
-        measurement = kernel.mz(qubit)
-        # Apply `then_function` to the `kernel` if the qubit was measured
-        # in the 1-state.
-        kernel.c_if(measurement, then_function))
+            # Measure the qubit.
+            measurement = kernel.mz(qubit)
+            # Apply `then_function` to the `kernel` if the qubit was measured
+            # in the 1-state.
+            kernel.c_if(measurement, then_function))
+        ```
         """
         with self.insertPoint, self.loc:
             conditional = measurement.mlirValue
@@ -850,27 +849,27 @@ class PyKernel(object):
         function (Callable): The callable function to apply within the `kernel` at
             each iteration.
 
-        .. code-block:: python
+        ```python
+            # Example:
+            # Create a kernel function that takes an `int` argument.
+            kernel, size = cudaq.make_kernel(int)
+            # Parameterize the allocated number of qubits by the int.
+            qubits = kernel.qalloc(size)
+            kernel.h(qubits[0])
 
-        # Example:
-        # Create a kernel function that takes an `int` argument.
-        kernel, size = cudaq.make_kernel(int)
-        # Parameterize the allocated number of qubits by the int.
-        qubits = kernel.qalloc(size)
-        kernel.h(qubits[0])
+            def foo(index: int):
+                # A function that will be applied to `kernel` in a for loop.
+                kernel.cx(qubits[index], qubits[index+1])
 
-        def foo(index: int):
-            # A function that will be applied to `kernel` in a for loop.
-            kernel.cx(qubits[index], qubits[index+1])
+            # Create a for loop in `kernel`, parameterized by the `size`
+            # argument for its `stop` iterator.
+            kernel.for_loop(start=0, stop=size-1, function=foo)
 
-        # Create a for loop in `kernel`, parameterized by the `size`
-        # argument for its `stop` iterator.
-        kernel.for_loop(start=0, stop=size-1, function=foo)
-
-        # Execute the kernel, passing along a concrete value (5) for 
-        # the `size` argument.
-        counts = cudaq.sample(kernel, 5)
-        print(counts)
+            # Execute the kernel, passing along a concrete value (5) for 
+            # the `size` argument.
+            counts = cudaq.sample(kernel, 5)
+            print(counts)
+        ```
         """
         with self.insertPoint, self.loc:
             iTy = mlirTypeFromPyType(int, self.ctx)
@@ -933,19 +932,19 @@ class PyKernel(object):
                 kernel function at. Leave empty if the `target` kernel doesn't 
                 accept any arguments.
 
-        .. code-block:: python
-
-        # Example:
-        # Create a kernel that accepts an int and float as its 
-        # arguments.
-        kernel, qubit_count, angle = cudaq.make_kernel(int, float)
-        # Parameterize the number of qubits by `qubit_count`.
-        qubits = kernel.qalloc(qubit_count)
-        # Apply an `rx` rotation on the first qubit by `angle`.
-        kernel.rx(angle, qubits[0])
-        # Call the `Kernel` on the given number of qubits (5) and at 
-        a concrete angle (pi).
-        kernel(5, 3.14))
+        ```python
+            # Example:
+            # Create a kernel that accepts an int and float as its 
+            # arguments.
+            kernel, qubit_count, angle = cudaq.make_kernel(int, float)
+            # Parameterize the number of qubits by `qubit_count`.
+            qubits = kernel.qalloc(qubit_count)
+            # Apply an `rx` rotation on the first qubit by `angle`.
+            kernel.rx(angle, qubits[0])
+            # Call the `Kernel` on the given number of qubits (5) and at 
+            a concrete angle (pi).
+            kernel(5, 3.14))
+        ```
         """
         if len(args) != len(self.mlirArgTypes):
             raise RuntimeError(
