@@ -333,35 +333,6 @@ struct SupportedCVectorComplex {
   std::size_t size;
 };
 
-void __quantum__qis__unitary(SupportedCVectorComplex data, Array *controls,
-                             Array *targets) {
-
-  auto targetIds = arrayToVectorSizeT(targets);
-  auto numElements = (1ULL << targetIds.size()) * (1ULL << targetIds.size());
-  std::vector<std::complex<double>> matrix(numElements);
-  for (std::size_t i = 0; i < numElements; i++)
-    matrix[i] = {data.data[i].real, data.data[i].imag};
-
-  auto controlIds = arrayToVectorSizeT(controls);
-
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, controlIds,
-                                                             targetIds);
-}
-
-void __quantum__qis__constant_unitary(double *realPart, double *imagPart,
-                                      Array *controls, Array *targets) {
-  auto targetIds = arrayToVectorSizeT(targets);
-  auto numElements = (1ULL << targetIds.size()) * (1ULL << targetIds.size());
-  std::vector<std::complex<double>> matrix(numElements);
-  for (std::size_t i = 0; i < numElements; i++)
-    matrix[i] = {realPart[i], imagPart[i]};
-
-  auto controlIds = arrayToVectorSizeT(controls);
-
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, controlIds,
-                                                             targetIds);
-}
-
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);

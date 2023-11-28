@@ -27,10 +27,6 @@ globalKernelRegistry = {}
 # keyed on their name (without __nvqpp__mlirgen__ prefix)
 globalAstRegistry = {}
 
-# Keep a global registry of all registered custom
-# unitary operations.
-globalRegisteredUnitaries = {}
-
 
 def mlirTypeFromAnnotation(annotation, ctx):
     """

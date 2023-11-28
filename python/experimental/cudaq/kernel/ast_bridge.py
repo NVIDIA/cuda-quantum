@@ -11,7 +11,7 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor, preprocessCustomOperationLambda
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, globalRegisteredUnitaries, mlirTypeFromAnnotation
+from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation
 from mlir_cudaq.ir import *
 from mlir_cudaq.passmanager import *
 from mlir_cudaq.dialects import quake, cc
@@ -604,8 +604,6 @@ class PyASTBridge(ast.NodeVisitor):
             ry(np.pi, qubits)
         ```
         """
-        global globalRegisteredUnitaries
-
         if self.verbose:
             print("[Visit Call] {}".format(ast.unparse(node)))
 
@@ -829,53 +827,6 @@ class PyASTBridge(ast.NodeVisitor):
                 qubitA = self.popValue()
                 opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
                 opCtor([], [], [], [qubitA, qubitB])
-                return
-
-            if node.func.id in globalRegisteredUnitaries:
-                unitary = globalRegisteredUnitaries[node.func.id]
-
-                # Unitary could be constant or it could be a parameterized callable
-                if isinstance(unitary, Callable):
-                    if node.func.id not in SymbolTable(self.module.operation):
-                        # Get unitary source and AST
-                        unitaryModule = preprocessCustomOperationLambda(
-                            unitary, node.func.id)
-                        resTy = cc.StdvecType.get(
-                            self.ctx, ComplexType.get(self.getFloatType()))
-                        PyASTBridge(
-                            existingModule=self.module,
-                            knownResultType=resTy,
-                            disableEntryPointTag=True,
-                            disableNvqppPrefix=True).visit(unitaryModule)
-
-                    funcOp = SymbolTable(self.module.operation)[node.func.id]
-                    numParams = len(funcOp.arguments)
-                    numVals = len(self.valueStack)
-                    operands = [self.popValue() for _ in range(numVals)]
-                    operands.reverse()
-                    params = operands[:numParams]
-                    qubits = operands[numParams:]
-                    res = func.CallOp([resTy], node.func.id, params).result
-                    quake.UnitaryOp(StringAttr.get(node.func.id), [],
-                                    qubits,
-                                    unitary=res)
-                    return
-
-                # how many targets should there be?
-                numTargets = int(np.log2(unitary.shape[0]))
-                # flatten the matrix
-                unitary = list(unitary.flat)
-                # Need to map to an ArrayAttr<ArrayAttr> where each element
-                # is a pair (represented as an array)
-                arrayAttrList = []
-                for el in unitary:
-                    arrayAttrList.append(
-                        DenseF32ArrayAttr.get([np.real(el),
-                                               np.imag(el)]))
-                unitary = ArrayAttr.get(arrayAttrList)
-                quake.UnitaryOp(StringAttr.get(node.func.id), [],
-                                [self.popValue() for _ in range(numTargets)],
-                                constantUnitary=unitary)
                 return
 
             if node.func.id in globalKernelRegistry:
@@ -1143,30 +1094,6 @@ class PyASTBridge(ast.NodeVisitor):
                 opCtor([], [],
                        controls, [target],
                        negated_qubit_controls=negatedControlQubits)
-                return
-
-            if node.func.value.id in globalRegisteredUnitaries and node.func.attr == 'ctrl':
-                unitary = globalRegisteredUnitaries[node.func.value.id]
-                # how many targets should there be?
-                numTargets = int(np.log2(unitary.shape[0]))
-                # flatten the matrix
-                unitary = list(unitary.flat)
-                # Need to map to an ArrayAttr<ArrayAttr> where each element
-                # is a pair (represented as an array)
-                arrayAttrList = []
-                for el in unitary:
-                    arrayAttrList.append(
-                        DenseF32ArrayAttr.get([np.real(el),
-                                               np.imag(el)]))
-                unitary = ArrayAttr.get(arrayAttrList)
-                targets = [self.popValue() for _ in range(numTargets)]
-                controls = [
-                    self.popValue() for i in range(len(self.valueStack))
-                ]
-                quake.UnitaryOp(StringAttr.get(node.func.value.id),
-                                controls,
-                                targets,
-                                constantUnitary=unitary)
                 return
 
             # We have a `func_name.ctrl`

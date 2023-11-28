@@ -41,7 +41,6 @@ struct QuantumOperation {
   const std::vector<QuditInfo> &targets;
   bool isAdjoint = false;
   const spin_op op = spin_op();
-  const std::vector<std::complex<double>> unitary;
 };
 
 bool __nvqpp__MeasureResultBoolConversion(int);

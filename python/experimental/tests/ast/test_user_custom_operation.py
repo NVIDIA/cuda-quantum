@@ -14,56 +14,6 @@ import numpy as np
 import cudaq
 from cudaq import spin 
 
-def test_custom_op():
-
-    custom_h = cudaq.register_operation(1./np.sqrt(2.) * np.array([[1, 1], [1, -1]]))
-    custom_x = cudaq.register_operation(np.array([[0,1],[1,0]]))
-
-    @cudaq.kernel(jit=True)
-    def bell():
-        q,r = cudaq.qubit(), cudaq.qubit()
-        custom_h(q)
-        custom_x.ctrl(q,r)
-
-    counts = cudaq.sample(bell, shots_count=100)
-    counts.dump()
-    assert '00' in counts and '11' in counts and len(counts) == 2
-
-    # Also support multi-target unitary
-    hMat = 1./np.sqrt(2.) * np.array([[1, 1], [1, -1]])
-    cxMat = np.array([[1,0,0,0], [0,1,0,0], [0,0,0,1], [0,0,1,0]])
-    bellMat = np.dot(cxMat, np.kron(hMat, np.eye(2)))
-
-    custom_bell = cudaq.register_operation(bellMat)
-
-    @cudaq.kernel(jit=True)
-    def bell2():
-        q,r = cudaq.qubit(), cudaq.qubit()
-        custom_bell(q, r)
-    
-    print(bell2)
-    
-    counts = cudaq.sample(bell2, shots_count=100)
-    counts.dump()
-    assert '00' in counts and '11' in counts and len(counts) == 2
-
-
-    @cudaq.kernel(jit=True)
-    def bell3(turnOn:bool):
-        q,r,s = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
-        if turnOn:
-            x(q)
-        custom_bell.ctrl(q, r, s)
-    
-    counts = cudaq.sample(bell3, True, shots_count=100)
-    counts.dump()
-
-    assert '100' in counts and '111' in counts and len(counts) == 2
-
-    counts = cudaq.sample(bell3, False, shots_count=100)
-    counts.dump()
-    assert '000' in counts and len(counts) == 1
-
 def test_parameterized_op1():
     custom_ry = cudaq.register_operation(lambda param: np.array([[
         np.cos(param / 2), -np.sin(param / 2)
