@@ -29,7 +29,7 @@ struct QuditInfo {
   std::size_t id = 0;
   QuditInfo(const std::size_t &_levels, const std::size_t &_id)
       : levels(_levels), id(_id) {}
-  bool operator==(const QuditInfo &other) {
+  bool operator==(const QuditInfo &other) const {
     return levels == other.levels && id == other.id;
   }
 };
