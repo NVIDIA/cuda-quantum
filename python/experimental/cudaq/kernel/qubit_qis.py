@@ -66,7 +66,7 @@ class quantum_operation(object):
     def __call__(cls, *args):
         """
         Invoke the quantum operation. The args can contain float parameters (of the
-        correct number according to get_num_parameters) and quantum types (qubit, qvector, qview).
+        correct number according to `get_num_parameters`) and quantum types (`qubit`, `qvector`, `qview`).
         """
         opName = cls.get_name()
         parameters = list(args)[:cls.get_num_parameters()]
@@ -84,7 +84,7 @@ class quantum_operation(object):
         """
         Invoke the general controlled version of the quantum operation. 
         The args can contain float parameters (of the correct number according
-        to get_num_parameters) and quantum types (qubit, qvector, qview).
+        to `get_num_parameters`) and quantum types (`qubit`, `qvector`, `qview`).
         """
         opName = cls.get_name()
         parameters = list(args)[:cls.get_num_parameters()]
@@ -110,7 +110,7 @@ class quantum_operation(object):
         """
         Invoke the general adjoint version of the quantum operation. 
         The args can contain float parameters (of the correct number according
-        to get_num_parameters) and quantum types (qubit, qvector, qview).
+        to `get_num_parameters`) and quantum types (`qubit`, `qvector`, `qview`).
         """
         opName = cls.get_name()
         parameters = list(args)[:cls.get_num_parameters()]
@@ -126,7 +126,7 @@ class quantum_operation(object):
         ]
 
 
-# Define our quantum operatations
+# Define our quantum operations
 h = type('h', (quantum_operation,), {'get_name': staticmethod(lambda: 'h')})
 x = type('x', (quantum_operation,), {'get_name': staticmethod(lambda: 'x')})
 y = type('y', (quantum_operation,), {'get_name': staticmethod(lambda: 'y')})

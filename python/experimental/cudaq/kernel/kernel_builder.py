@@ -24,7 +24,7 @@ qvector = cudaq_runtime.qvector
 
 # This file reproduces the cudaq::kernel_builder in Python
 
-# We need static initializers to run in the CAPI ExecutionEngine,
+# We need static initializers to run in the CAPI `ExecutionEngine`,
 # so here we run a simple JIT compile at global scope
 with Context():
     module = Module.parse(r"""
@@ -51,7 +51,7 @@ def __generalOperation(self,
         opCtor([], parameters, controls, [target.mlirValue], is_adj=isAdj)
         return
 
-    # Must be a veq, get the size
+    # Must be a `veq`, get the size
     size = quake.VeqSizeOp(self.getIntegerType(), target.mlirValue)
 
     def body(idx):
@@ -808,7 +808,7 @@ class PyKernel(object):
                 raise RuntimeError("c_if conditional must be an i1 type.")
 
             # [RFC]: 
-            # The register names in the conditional.py tests need to be double checked; 
+            # The register names in the conditional tests need to be double checked; 
             # The code here may need to be adjusted to reflect the additional
             # quake.discriminate conversion of the measurement.
             if isinstance(conditional.owner.opview, quake.MzOp):
@@ -903,7 +903,7 @@ class PyKernel(object):
             whileBlock = Block.create_at_start(loop.whileRegion, [iTy])
             with InsertionPoint(whileBlock):
                 condPred = IntegerAttr.get(iTy, 2)
-                # if not isDecrementing else IntegerAttr.get(iTy, 4)
+                # if not `isDecrementing` else `IntegerAttr.get(iTy, 4)`
                 cc.ConditionOp(
                     arith.CmpIOp(condPred, whileBlock.arguments[0],
                                  endVal).result, whileBlock.arguments)
@@ -951,7 +951,7 @@ class PyKernel(object):
                 "invalid number of arguments passed to kernel {} (passed {} but requires {})"
                 .format(self.funcName, len(args), len(self.mlirArgTypes)))
 
-        # validate the arg types
+        # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
             mlirType = mlirTypeFromPyType(type(arg), self.ctx)
@@ -959,7 +959,7 @@ class PyKernel(object):
                 raise RuntimeError("invalid runtime arg type ({} vs {})".format(
                     mlirType, self.mlirArgTypes[i]))
 
-            # Convert np arrays to lists
+            # Convert numpy arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
                 processedArgs.append(arg.tolist())
             else:

@@ -122,9 +122,12 @@ et
 executables
 extensibility
 extremal
+fermionic
 homogenous
 increment
 incrementing
+initializer
+initializers
 inlining
 instantiation
 instantiations
