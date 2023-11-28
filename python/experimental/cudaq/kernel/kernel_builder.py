@@ -740,14 +740,14 @@ class PyKernel(object):
         self.__applyControlOrAdjoint(target, False, [control.mlirValue], *args)
         return
 
-    def apply_call(self, otherKernel, *args):
+    def apply_call(self, target, *args):
         """
         Apply a call to the given `target` kernel within the function-body 
-        of `self` at the provided `target_arguments`.
+        of `self` at the provided target arguments.
 
         Args:
         target (:class:`Kernel`): The kernel to call from within `self`.
-        *target_arguments (Optional[QuakeValue]): The arguments to the `target` kernel. 
+        *args (Optional[QuakeValue]): The arguments to the `target` kernel. 
             Leave empty if the `target` kernel doesn't accept any arguments.
 
         Raises:
@@ -769,7 +769,7 @@ class PyKernel(object):
             kernel.mz(qubit))
         ```
         """
-        self.__applyControlOrAdjoint(otherKernel, False, [], *args)
+        self.__applyControlOrAdjoint(target, False, [], *args)
 
     def c_if(self, measurement, function):
         """
@@ -959,7 +959,7 @@ class PyKernel(object):
                 raise RuntimeError("invalid runtime arg type ({} vs {})".format(
                     mlirType, self.mlirArgTypes[i]))
 
-            # Convert numpy arrays to lists
+            # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
                 processedArgs.append(arg.tolist())
             else:

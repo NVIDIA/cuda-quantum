@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Library Mode QIS
-# qubit, qvector, qview all defined in C++
+# Eager Mode QIS
+# `qubit`, `qvector`, `qview` all defined in C++
 # (better tracking of construction / destruction)
 
 from abc import abstractmethod, ABCMeta
@@ -26,7 +26,7 @@ def processQubitIds(opName, *args):
     """
     Return the qubit unique ID integers for a general tuple of 
     kernel arguments, where all arguments are assumed to be qubit-like 
-    (qvector, qview, qubit).
+    (`qvector`, `qview`, `qubit`).
     """
     qubitIds = []
     for a in args:
@@ -65,7 +65,7 @@ class quantum_operation(object):
     @classmethod
     def __call__(cls, *args):
         """
-        Invoke the quantum operation. The args can contain float parameters (of the
+        Invoke the quantum operation. The arguments can contain float parameters (of the
         correct number according to `get_num_parameters`) and quantum types (`qubit`, `qvector`, `qview`).
         """
         opName = cls.get_name()
@@ -83,7 +83,7 @@ class quantum_operation(object):
     def ctrl(cls, *args):
         """
         Invoke the general controlled version of the quantum operation. 
-        The args can contain float parameters (of the correct number according
+        The arguments can contain float parameters (of the correct number according
         to `get_num_parameters`) and quantum types (`qubit`, `qvector`, `qview`).
         """
         opName = cls.get_name()
@@ -109,7 +109,7 @@ class quantum_operation(object):
     def adj(cls, *args):
         """
         Invoke the general adjoint version of the quantum operation. 
-        The args can contain float parameters (of the correct number according
+        The arguments can contain float parameters (of the correct number according
         to `get_num_parameters`) and quantum types (`qubit`, `qvector`, `qview`).
         """
         opName = cls.get_name()

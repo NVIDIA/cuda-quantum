@@ -240,7 +240,6 @@ matrix:
       group_comments: true
   - pyspelling.filters.context:
       context_visible_first: true
-      escapes: '\\[\\`~]'
       delimiters:
       # Ignore expression the form :word:`content`
       - open: '(^|\s):[A-Za-z_-]+:`'
