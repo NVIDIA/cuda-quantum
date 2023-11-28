@@ -163,11 +163,10 @@ class PyKernel(object):
     circuits. The :class:`Kernel` programmatically represents the circuit as an MLIR 
     function using the Quake dialect.
 
-    Note:
-        See :func:`make_kernel` for the :class:`Kernel` constructor.
+    See :func:`make_kernel` for the :class:`Kernel` constructor.
 
     Attributes:
-        name (str): The name of the :class:`Kernel` function. Read-only.
+        name (:class:`str`): The name of the :class:`Kernel` function. Read-only.
         arguments (List[:class:`QuakeValue`]): The arguments accepted by the 
             :class:`Kernel` function. Read-only.
         argument_count (int): The number of arguments accepted by the 
@@ -551,7 +550,7 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[str]): The optional name to provide the 
+        register_name (Optional[:class:`str`]): The optional name to provide the 
             results of the measurement. Defaults to an empty string. 
 
         Returns:
@@ -596,7 +595,7 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[str]): The optional name to provide the 
+        register_name (Optional[:class:`str`]): The optional name to provide the 
             results of the measurement. Defaults to an empty string. 
 
         Returns:
@@ -640,7 +639,7 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[str]): The optional name to provide the 
+        register_name (Optional[:class:`str`]): The optional name to provide the 
             results of the measurement. Defaults to an empty string. 
 
         Returns:
@@ -676,13 +675,13 @@ class PyKernel(object):
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
-    def adjoint(self, otherKernel, *args):
+    def adjoint(self, otherKernel, *target_arguments):
         """
         Apply the adjoint of the `target` kernel in-place to `self`.
 
         Args:
         target (:class:`Kernel`): The kernel to take the adjoint of.
-        *target_arguments (Optional[QuakeValue]): The arguments to the 
+        *target_arguments (Optional[:class:`QuakeValue`]): The arguments to the 
             `target` kernel. Leave empty if the `target` kernel doesn't accept 
             any arguments.
 
@@ -700,10 +699,10 @@ class PyKernel(object):
             kernel.adjoint(target_kernel))
         ```
         """
-        self.__applyControlOrAdjoint(otherKernel, True, [], *args)
+        self.__applyControlOrAdjoint(otherKernel, True, [], *target_arguments)
         return
 
-    def control(self, target, control, *args):
+    def control(self, target, control, *target_arguments):
         """
         Apply the `target` kernel as a controlled operation in-place to 
         `self`.Uses the provided `control` as control qubit/s for the operation.
@@ -713,7 +712,7 @@ class PyKernel(object):
             operation in-place to self.
         control (:class:`QuakeValue`): The control qubit or register to 
             use when applying `target`.
-        *target_arguments (Optional[QuakeValue]): The arguments to the 
+        *target_arguments (Optional[:class:`QuakeValue`]): The arguments to the 
             `target` kernel. Leave empty if the `target` kernel doesn't accept 
             any arguments.
 
@@ -737,21 +736,21 @@ class PyKernel(object):
             kernel.control(target_kernel, control_qubit, target_qubit))
         ```
         """
-        self.__applyControlOrAdjoint(target, False, [control.mlirValue], *args)
+        self.__applyControlOrAdjoint(target, False, [control.mlirValue], *target_arguments)
         return
 
-    def apply_call(self, target, *args):
+    def apply_call(self, target, *target_arguments):
         """
         Apply a call to the given `target` kernel within the function-body 
         of `self` at the provided target arguments.
 
         Args:
         target (:class:`Kernel`): The kernel to call from within `self`.
-        *args (Optional[QuakeValue]): The arguments to the `target` kernel. 
+        *target_arguments (Optional[:class:`QuakeValue`]): The arguments to the `target` kernel. 
             Leave empty if the `target` kernel doesn't accept any arguments.
 
         Raises:
-        RuntimeError: if the `*args` passed to the apply 
+        RuntimeError: if the `*target_arguments` passed to the apply 
             call don't match the argument signature of `target`.
 
         ```python
@@ -769,7 +768,7 @@ class PyKernel(object):
             kernel.mz(qubit))
         ```
         """
-        self.__applyControlOrAdjoint(target, False, [], *args)
+        self.__applyControlOrAdjoint(target, False, [], *target_arguments)
 
     def c_if(self, measurement, function):
         """

@@ -241,9 +241,10 @@ matrix:
   - pyspelling.filters.context:
       context_visible_first: true
       delimiters:
-      # Ignore expression the form :word:`content`
-      - open: '(^|\s):[A-Za-z_-]+:`'
-        close: '`'
+      # Ignore lowercase words between two colons, e.g. :func:
+      - open: ':'
+        close: ':'
+        content: '[a-z]+?'
       # Ignore multiline content between three or more backticks
       - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
         close: '(?P=open)$'
