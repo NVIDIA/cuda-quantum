@@ -8,7 +8,8 @@
 
 #pragma once
 
-#include "qview.h"
+#include "cudaq/qis/qview.h"
+#include "host_config.h"
 
 namespace cudaq {
 
@@ -55,7 +56,14 @@ public:
 
   /// @brief Returns the `[0, count)` qudits as a non-owning qview.
   qview<Levels> front(std::size_t count) {
+#if CUDAQ_USE_STD20
     return std::span(qudits).subspan(0, count);
+#else
+    typename std::vector<value_type>::const_iterator first = qudits.begin();
+    typename std::vector<value_type>::const_iterator last =
+        qudits.begin() + count;
+    return {qudits(first, last)};
+#endif
   }
 
   /// @brief Returns the first qudit.
@@ -63,7 +71,14 @@ public:
 
   /// @brief Returns the `[count, size())` qudits as a non-owning qview
   qview<Levels> back(std::size_t count) {
+#if CUDAQ_USE_STD20
     return std::span(qudits).subspan(size() - count, count);
+#else
+    typename std::vector<value_type>::const_iterator first =
+        qudits.end() - count;
+    typename std::vector<value_type>::const_iterator last = qudits.end();
+    return {qudits(first, last)};
+#endif
   }
 
   /// @brief Returns the last qudit.
@@ -71,7 +86,15 @@ public:
 
   /// @brief Returns the `[start, start+size)` qudits as a non-owning qview
   qview<Levels> slice(std::size_t start, std::size_t size) {
+#if CUDAQ_USE_STD20
     return std::span(qudits).subspan(start, size);
+#else
+    typename std::vector<value_type>::const_iterator first =
+        qudits.begin() + start;
+    typename std::vector<value_type>::const_iterator last =
+        qudits.begin() + start + size;
+    return {qudits(first, last)};
+#endif
   }
 
   /// @brief Returns the number of contained qudits.

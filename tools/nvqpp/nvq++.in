@@ -207,7 +207,7 @@ if [ -d "${llvm_install_dir}/bin" -a \
 fi
 
 # Compiler and linker flags
-COMPILER_FLAGS="-std=c++20 -I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
+COMPILER_FLAGS="${CPPSTD} -I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
 # If we are a relocatable package, we want to
 # add compiler flags that will point clang to our repackaged
@@ -270,6 +270,7 @@ SHOW_HELP=false
 LIST_TARGETS=false
 DISABLE_QUBIT_MAPPING=false
 NVQIR_LIBS="-lnvqir -lnvqir-"
+CPPSTD=-std=c++20
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
@@ -463,6 +464,10 @@ while [ $# -ne 0 ]; do
 		;;
 	-v)
 		ECHO=true
+		;;
+	-std=*)
+		CPPSTD="$1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} $1"
 		;;
 	*.o | *.so | *.bundle)
 		OBJS="${OBJS} $1"

@@ -12,6 +12,7 @@
 #include "cudaq/concepts.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
+#include "host_config.h"
 #include <complex>
 #include <vector>
 
@@ -52,11 +53,13 @@ public:
   double overlap(state &other);
 };
 
+#if CUDAQ_USE_STD20
 /// @brief Define a valid kernel concept
 template <typename QuantumKernel, typename... Args>
 concept KernelCallValid =
     ValidArgumentsPassed<QuantumKernel, Args...> &&
     HasVoidReturnType<std::invoke_result_t<QuantumKernel, Args...>>;
+#endif
 
 namespace details {
 
@@ -140,8 +143,14 @@ using async_state_result = std::future<state>;
 /// \param args the variadic concrete arguments for evaluation of the kernel.
 /// \returns state future, A std::future containing the resultant state vector
 ///
+#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires KernelCallValid<QuantumKernel, Args...>
+#else
+template <typename QuantumKernel, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_r_v<void, QuantumKernel, Args...>>>
+#endif
 async_state_result get_state_async(std::size_t qpu_id, QuantumKernel &&kernel,
                                    Args &&...args) {
   auto &platform = cudaq::get_platform();
@@ -160,8 +169,14 @@ async_state_result get_state_async(std::size_t qpu_id, QuantumKernel &&kernel,
 /// \param args the variadic concrete arguments for evaluation of the kernel.
 /// \returns state future, A std::future containing the resultant state vector
 ///
+#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires KernelCallValid<QuantumKernel, Args...>
+#else
+template <typename QuantumKernel, typename... Args,
+          typename = std::enable_if_t<
+              std::is_invocable_r_v<void, QuantumKernel, Args...>>>
+#endif
 async_state_result get_state_async(QuantumKernel &&kernel, Args &&...args) {
   return get_state_async(0, std::forward<QuantumKernel>(kernel),
                          std::forward<Args>(args)...);

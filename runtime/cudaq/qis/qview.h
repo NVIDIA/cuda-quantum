@@ -8,13 +8,16 @@
 
 #pragma once
 
-#include "qudit.h"
+#include "cudaq/qis/qudit.h"
+#include "host_config.h"
 #include <ranges>
+#if CUDAQ_USE_STD20
 #include <span>
+#endif
 
 namespace cudaq {
 
-// The qview represents a non-owning container of qudits.
+/// The qview represents a non-owning container of qudits.
 template <std::size_t Levels = 2>
 class qview {
 public:
@@ -22,6 +25,7 @@ public:
   // that this qview contains.
   using value_type = qudit<Levels>;
 
+#if CUDAQ_USE_STD20
 private:
   /// @brief Reference to the non-owning span of qudits
   std::span<value_type> qudits;
@@ -55,7 +59,6 @@ public:
 
   // Returns the last qudit.
   value_type &back() { return qudits.back(); }
-
   /// @brief Returns the `[start, start+count)` qudits.
   qview<Levels> slice(std::size_t start, std::size_t count) {
     return qudits.subspan(start, count);
@@ -63,5 +66,39 @@ public:
 
   /// @brief Returns the number of contained qudits.
   std::size_t size() const { return qudits.size(); }
+
+#else
+  // C++11 reimplementation of qview.
+
+private:
+  value_type *qudits = nullptr;
+  std::size_t qusize = 0;
+
+public:
+  qview(value_type *otherQudits, std::size_t otherQusize)
+      : qudits(otherQudits), qusize(otherQusize) {}
+  template <typename Iterator>
+  qview(Iterator &&otherQudits, std::size_t otherQusize)
+      : qudits(&*otherQudits), qusize(otherQusize) {}
+  template <typename R>
+  qview(R &&other)
+      : qudits(&*other.begin()),
+        qusize(std::distance(other.begin(), other.end())) {}
+  qview(qview const &other) : qudits(other.qudits), qusize(other.qusize) {}
+
+  value_type *begin() { return qudits; }
+  value_type *end() { return qudits + qusize; }
+  value_type &operator[](const std::size_t idx) { return qudits[idx]; }
+  qview<Levels> front(std::size_t count) { return {qudits, count}; }
+  value_type &front() { return *qudits; }
+  qview<Levels> back(std::size_t count) {
+    return {qudits + qusize - count, count};
+  }
+  value_type &back() { return *(qudits + qusize - 1); }
+  qview<Levels> slice(std::size_t start, std::size_t count) {
+    return {qudits + start, count};
+  }
+  std::size_t size() const { return qusize; }
+#endif
 };
 } // namespace cudaq
