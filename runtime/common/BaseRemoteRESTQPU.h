@@ -341,7 +341,7 @@ public:
 
   /// @brief Extract the Quake representation for the given kernel name and
   /// lower it to the code format required for the specific backend. The
-  /// lowering process is controllable via the configuration file in the 
+  /// lowering process is controllable via the configuration file in the
   /// platform directory for the targeted backend.
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(const std::string &kernelName, void *kernelArgs) {
@@ -478,8 +478,8 @@ public:
 
   /// @brief Launch the kernel. Extract the Quake code and lower to
   /// the representation required by the targeted backend. Handle all pertinent
-  /// modifications for the execution context as well as asynchronous or synchronous
-  /// invocation.
+  /// modifications for the execution context as well as asynchronous or
+  /// synchronous invocation.
   void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset) override {

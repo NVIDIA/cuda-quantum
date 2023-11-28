@@ -248,10 +248,9 @@ matrix:
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
-      # Ignore words between two colons, e.g. :class:
-      - open: '(^|\s):'
-        close: ':(\s|$)'
-        content: '[A-Za-z_-]*?'
+      # Ignore expression the form :word:`content`
+      - open: '(^|\s):[A-Za-z_-]+:`'
+        close: '`'
       # Ignore words that start with uppercase letters or an underscore
       - open: '(^|\s)([A-Z]|_)'
         close: '($|\s|-)'

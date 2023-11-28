@@ -55,12 +55,12 @@ void registerQuakeDialectAndTypes(py::module &m) {
     return wrap(quake::RefType::get(unwrap(ctx)));
   });
 
- mlir_type_subclass(quakeMod, "MeasureType", [](MlirType type) {
+  mlir_type_subclass(quakeMod, "MeasureType", [](MlirType type) {
     return unwrap(type).isa<quake::MeasureType>();
   }).def_classmethod("get", [](py::object cls, MlirContext ctx) {
     return wrap(quake::MeasureType::get(unwrap(ctx)));
   });
-  
+
   mlir_type_subclass(
       quakeMod, "VeqType",
       [](MlirType type) { return unwrap(type).isa<quake::VeqType>(); })
