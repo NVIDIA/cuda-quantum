@@ -25,7 +25,8 @@ namespace cudaq::opt {
 /// specified if `QIRProfile` is true.
 /// @param QIRProfile whether or not this is lowering to a specific QIR profile
 /// @param pm Pass manager to append passes to
-/// @param convertTo String name of qir profile (e.g., qir-base, qir-adaptive)
+/// @param convertTo String name of QIR profile (e.g., `qir-base`,
+/// `qir-adaptive`)
 template <bool QIRProfile = false>
 void addPipelineToQIR(mlir::PassManager &pm,
                       llvm::StringRef convertTo = "none") {
