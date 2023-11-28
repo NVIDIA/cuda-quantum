@@ -56,18 +56,18 @@ protected:
   /// The number of shots
   std::optional<int> nShots;
 
-  /// @brief the platform file path, CUDAQ_INSTALL/platforms
+  /// @brief the platform file path
   std::filesystem::path platformPath;
 
   /// @brief The Pass pipeline string, configured by the
-  /// QPU config file in the platform path.
+  /// QPU configuration file in the platform path.
   std::string passPipelineConfig = "canonicalize";
 
   /// @brief The name of the QPU being targeted
   std::string qpuName;
 
-  /// @brief Name of codegen translation (e.g. "qir-adaptive", "qir-base",
-  /// "qasm2", "iqm")
+  /// @brief Name of code generation target (e.g. `qir-adaptive`, `qir-base`,
+  /// `qasm2`, `iqm`)
   std::string codegenTranslation = "";
 
   /// @brief Additional passes to run after the codegen-specific passes
@@ -93,12 +93,12 @@ protected:
 
   /// @brief Flag indicating whether we should perform the passes in a
   /// single-threaded environment, useful for debug. Similar to
-  /// -mlir-disable-threading for cudaq-opt.
+  /// `-mlir-disable-threading` for `cudaq-opt`.
   bool disableMLIRthreading = false;
 
   /// @brief Flag indicating whether we should enable MLIR printing before and
-  /// after each pass. This is similar to (-mlir-print-ir-before-all and
-  /// -mlir-print-ir-after-all) in cudaq-opt.
+  /// after each pass. This is similar to `-mlir-print-ir-before-all` and
+  /// `-mlir-print-ir-after-all` in `cudaq-opt`.
   bool enablePrintMLIREachPass = false;
 
   /// @brief If we are emulating locally, keep track
@@ -246,7 +246,7 @@ public:
       disableMLIRthreading = true;
     }
 
-    /// Once we know the backend, we should search for the config file
+    /// Once we know the backend, we should search for the configuration file
     /// from there we can get the URL/PORT and the required MLIR pass
     /// pipeline.
     std::string fileName = mutableBackend + std::string(".config");
@@ -341,8 +341,8 @@ public:
 
   /// @brief Extract the Quake representation for the given kernel name and
   /// lower it to the code format required for the specific backend. The
-  /// lowering process is controllable via the platforms/BACKEND.config file for
-  /// this targeted backend.
+  /// lowering process is controllable via the configuration file in the 
+  /// platform directory for the targeted backend.
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(const std::string &kernelName, void *kernelArgs) {
 
@@ -478,7 +478,7 @@ public:
 
   /// @brief Launch the kernel. Extract the Quake code and lower to
   /// the representation required by the targeted backend. Handle all pertinent
-  /// modifications for the execution context as well as async or sync
+  /// modifications for the execution context as well as asynchronous or synchronous
   /// invocation.
   void launchKernel(const std::string &kernelName, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,

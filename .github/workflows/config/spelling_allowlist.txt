@@ -142,6 +142,7 @@ parallelization
 precompute
 precomputed
 prepend
+programmatically
 quantize
 quantized
 qubit
