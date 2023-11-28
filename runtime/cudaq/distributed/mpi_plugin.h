@@ -83,8 +83,8 @@ namespace mpi {
 /// @brief Retrieve the runtime MPI plugin.
 /// @note Throw an error if no runtime MPI plugin is available unless `unsafe`
 /// is true.
-/// @param unsafe If true, returns a nullptr rather than throwing an error if no
-/// MPI plugin is available. Hence, the caller needs to check the returned
+/// @param unsafe If true, returns a `nullptr` rather than throwing an error if
+/// no MPI plugin is available. Hence, the caller needs to check the returned
 /// pointer before use.
 /// @return Pointer to the runtime MPI plugin
 extern ::cudaq::MPIPlugin *getMpiPlugin(bool unsafe = false);
