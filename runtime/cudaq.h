@@ -244,10 +244,18 @@ T all_reduce(const T &localValue, const BinaryFunction &function) {
   return details::allReduce(localValue, function);
 }
 
-/// @brief Gather all vector data locally into the provided
-/// global vector. Global vector must be sized to fit all
-/// vector elements coming from individual ranks.
+/// @brief Gather all vector data (floating point numbers) locally into the
+/// provided global vector.
+///
+/// Global vector must be sized to fit all vector
+/// elements coming from individual ranks.
 void all_gather(std::vector<double> &global, const std::vector<double> &local);
+
+/// @brief Gather all vector data (integers) locally into the provided
+/// global vector.
+///
+/// Global vector must be sized to fit all
+/// vector elements coming from individual ranks.
 void all_gather(std::vector<int> &global, const std::vector<int> &local);
 
 /// @brief Broadcast a vector from a process (rootRank) to all other processes.
