@@ -813,11 +813,15 @@ class PyASTBridge(ast.NodeVisitor):
                 i1Ty = self.getIntegerType(1)
                 resTy = i1Ty if quake.RefType.isinstance(
                     qubit.type) else cc.StdvecType.get(self.ctx, i1Ty)
-                measTy = quake.MeasureType.get(self.ctx) if quake.RefType.isinstance(
-                    qubit.type) else cc.StdvecType.get(self.ctx, quake.MeasureType.get(self.ctx))
-                measureResult = opCtor(measTy, [], [qubit],
-                           registerName=self.currentAssignVariableName).result
-                self.pushValue(quake.DiscriminateOp(resTy, measureResult).result)
+                measTy = quake.MeasureType.get(
+                    self.ctx) if quake.RefType.isinstance(
+                        qubit.type) else cc.StdvecType.get(
+                            self.ctx, quake.MeasureType.get(self.ctx))
+                measureResult = opCtor(
+                    measTy, [], [qubit],
+                    registerName=self.currentAssignVariableName).result
+                self.pushValue(
+                    quake.DiscriminateOp(resTy, measureResult).result)
                 return
 
             if node.func.id == 'swap':

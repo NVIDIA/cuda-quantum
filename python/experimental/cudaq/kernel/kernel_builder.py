@@ -166,7 +166,7 @@ class PyKernel(object):
     See :func:`make_kernel` for the :class:`Kernel` constructor.
 
     Attributes:
-        name (:class:`str`): The name of the :class:`Kernel` function. Read-only.
+        name (:obj:`str`): The name of the :class:`Kernel` function. Read-only.
         arguments (List[:class:`QuakeValue`]): The arguments accepted by the 
             :class:`Kernel` function. Read-only.
         argument_count (int): The number of arguments accepted by the 
@@ -550,7 +550,7 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:class:`str`]): The optional name to provide the 
+        register_name (Optional[:obj:`str`]): The optional name to provide the 
             results of the measurement. Defaults to an empty string. 
 
         Returns:
@@ -595,7 +595,7 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:class:`str`]): The optional name to provide the 
+        register_name (Optional[:obj:`str`]): The optional name to provide the 
             results of the measurement. Defaults to an empty string. 
 
         Returns:
@@ -639,7 +639,7 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:class:`str`]): The optional name to provide the 
+        register_name (Optional[:obj:`str`]): The optional name to provide the 
             results of the measurement. Defaults to an empty string. 
 
         Returns:
@@ -736,7 +736,8 @@ class PyKernel(object):
             kernel.control(target_kernel, control_qubit, target_qubit))
         ```
         """
-        self.__applyControlOrAdjoint(target, False, [control.mlirValue], *target_arguments)
+        self.__applyControlOrAdjoint(target, False, [control.mlirValue],
+                                     *target_arguments)
         return
 
     def apply_call(self, target, *target_arguments):
@@ -806,8 +807,8 @@ class PyKernel(object):
             if not IntegerType.isinstance(conditional.type):
                 raise RuntimeError("c_if conditional must be an i1 type.")
 
-            # [RFC]: 
-            # The register names in the conditional tests need to be double checked; 
+            # [RFC]:
+            # The register names in the conditional tests need to be double checked;
             # The code here may need to be adjusted to reflect the additional
             # quake.discriminate conversion of the measurement.
             if isinstance(conditional.owner.opview, quake.MzOp):

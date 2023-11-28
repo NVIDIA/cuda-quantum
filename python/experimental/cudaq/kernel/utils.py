@@ -82,8 +82,7 @@ def mlirTypeFromAnnotation(annotation, ctx):
             annotation.id))
 
 
-def mlirTypeFromPyType(argType, ctx,
-                       **kwargs):
+def mlirTypeFromPyType(argType, ctx, **kwargs):
 
     if argType == int:
         return IntegerType.get_signless(64, ctx)

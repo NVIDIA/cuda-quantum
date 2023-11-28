@@ -97,9 +97,8 @@ class quantum_operation(object):
             if isinstance(q, qubit) and q.is_negated():
                 x()(q)
 
-        cudaq_runtime.applyQuantumOperation(opName, parameters,
-                                            controls, targets, False,
-                                            SpinOperator())
+        cudaq_runtime.applyQuantumOperation(opName, parameters, controls,
+                                            targets, False, SpinOperator())
         for q in quantumArguments:
             if isinstance(q, qubit) and q.is_negated():
                 x()(q)
@@ -245,4 +244,3 @@ def compute_action(compute, action):
     compute()
     action()
     adjoint(compute)
-
