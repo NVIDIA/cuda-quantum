@@ -19,7 +19,7 @@ on:
         type: string
         description: The platforms to build the Docker images for. A semicolon separated list creates a separate list for each platform, whereas a comma separate list creates a multi-platform build.
         required: false
-        default: linux/amd64,linux/arm64
+        default: default
       create_release:
         type: string
         description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
@@ -99,9 +99,13 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
-          echo "Concurrency group: ${{ github.event.workflow_run.head_branch || github.ref_name }}"
+          if ${{ github.event_name == 'workflow_dispatch' }}; then 
+            defaults=${{ (inputs.update_registry_cache && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}
+            requested_platforms=`echo "${{ inputs.platforms }}" | tr + , | sed "s#default#$defaults#g"`
+          else
+            requested_platforms='linux/arm64 linux/amd64'
+          fi
 
-          requested_platforms=`echo "${{ inputs.platforms || 'linux/arm64 linux/amd64' }}" | tr + ,`
           if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
             multi_platform="{\"ids\":[]}"
             platform_flag=`echo "$requested_platforms" | tr -d ' '`
