@@ -30,6 +30,7 @@ RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
 ARG python_version=3.10
 RUN echo "Building MLIR bindings for python${python_version}" \
     && python${python_version} -m pip install --no-cache-dir numpy \
+    && rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" \
     && export Python3_EXECUTABLE="$(which python${python_version})" \
     && export CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
     && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 

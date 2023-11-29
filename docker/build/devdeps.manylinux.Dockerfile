@@ -76,11 +76,14 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project; \
     if [ -x "$(command -v python3)" ]; then \
-        python3 -m ensurepip && python3 -m pip install numpy; \
+        python3 -m ensurepip && python3 -m pip install --no-cache-dir numpy; \
     fi; \
     CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
-    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
-    # No clean up, since we need to re-build llvm for each python version to get the bindings.
+    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
+    && python3 -m pip uninstall -y numpy
+    # No clean up of the build or source directory,
+    # since we need to re-build llvm for each python version to get the bindings.
+    # Re-install numpy for the respective python version when re-building llvm.
 
 # Install additional dependencies required to build the CUDA Quantum wheel.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
