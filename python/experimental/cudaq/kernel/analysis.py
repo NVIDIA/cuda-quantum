@@ -188,23 +188,6 @@ class CheckAndCorrectFunctionName(ast.NodeTransformer):
         return node
 
 
-def preprocessCustomOperationLambda(unitaryCallable, desiredName):
-    """
-    Given a callable custom unitary operation (cudaq.register_operation(lambda param : np.array(...))), 
-    convert the matrix to a list within the NumPy array and raise the lambda 
-    to a function. Return the AST Module for parsing and visitation.
-    """
-    unitarySrc = inspect.getsource(unitaryCallable)
-    leadingSpaces = len(unitarySrc) - len(unitarySrc.lstrip())
-    unitarySrc = '\n'.join(
-        [line[leadingSpaces:] for line in unitarySrc.split('\n')])
-    unitaryModule = ast.parse(unitarySrc)
-    MatrixToRowMajorList().visit(unitaryModule)
-    LambdaOrLambdaAssignToFunctionDef().visit(unitaryModule)
-    CheckAndCorrectFunctionName(desiredName).visit(unitaryModule)
-    return unitaryModule
-
-
 class FindDepKernelsVisitor(ast.NodeVisitor):
 
     def __init__(self, ctx):
