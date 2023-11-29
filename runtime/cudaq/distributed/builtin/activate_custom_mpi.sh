@@ -27,7 +27,7 @@
 
 if [ -z "${MPI_PATH}" ]
 then
-    echo "Environment variable MPI_PATH is not set. Plese set it to point to the MPI root directory!"
+    echo "Environment variable MPI_PATH is not set. Please set it to point to the MPI root directory!"
     echo "Note that MPI_PATH/include is expected to contain the mpi.h header."
     return
 fi
