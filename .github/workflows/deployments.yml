@@ -100,10 +100,10 @@ jobs:
         id: build_info
         run: |
           if ${{ github.event_name == 'workflow_dispatch' }}; then 
-            defaults=${{ (inputs.update_registry_cache && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}
+            defaults="${{ (inputs.update_registry_cache && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}"
             requested_platforms=`echo "${{ inputs.platforms }}" | tr + , | sed "s#default#$defaults#g"`
           else
-            requested_platforms='linux/arm64 linux/amd64'
+            requested_platforms="linux/arm64 linux/amd64"
           fi
 
           if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
