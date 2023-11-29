@@ -13,7 +13,7 @@
 #include "tensornet_state.h"
 
 namespace nvqir {
-/// @brief Base class of cutensornet simulator backends
+/// @brief Base class of `cutensornet` simulator backends
 class SimulatorTensorNetBase : public nvqir::CircuitSimulatorBase<double> {
 
 public:

@@ -17,14 +17,14 @@ import pytest
 
 iqm_client = pytest.importorskip("iqm.iqm_client")
 try:
+    from utils.mock_qpu.iqm import startServer
     from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
-    from utils.mock_qpu.iqm.mock_iqm_server import startServer
 except:
     pytest.skip("Mock qpu not available, skipping IQM tests.",
                 allow_module_level=True)
 
 # Define the port for the mock server
-port = 9100
+port = 62443
 
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:

@@ -25,7 +25,8 @@ static constexpr const char stdvecBoolCtorFromInitList[] =
 /// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
 ///
 /// This builder also allows for the inclusion of predefined intrinsics into
-/// the ModuleOp on demand. Intrinsics exist in a map accessed by a symbol name.
+/// the `ModuleOp` on demand. Intrinsics exist in a map accessed by a symbol
+/// name.
 class IRBuilder : public mlir::OpBuilder {
 public:
   using OpBuilder::OpBuilder;
@@ -36,7 +37,7 @@ public:
   }
 
   /// Create a global for a C-style string. (A pointer to a NUL terminated
-  /// sequence of bytes.) \p cstring must have the NUL character appended \b
+  /// sequence of bytes.) `cstring` must have the NUL character appended \b
   /// prior to calling this builder function.
   mlir::LLVM::GlobalOp genCStringLiteral(mlir::Location loc,
                                          mlir::ModuleOp module,

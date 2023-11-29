@@ -83,9 +83,6 @@ endmacro()
 create_tests_with_backend(qpp backends/QPPTester.cpp)
 create_tests_with_backend(dm "")
 
-# FIXME Check that we have GPUs. Could be in a 
-# Docker environment built with CUDA, but no --gpus flag
-# or no gpus on the system.
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
   # Given that the fp32 and fp64 difference is largely inherited

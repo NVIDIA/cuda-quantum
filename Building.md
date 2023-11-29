@@ -27,8 +27,8 @@ export PATH="${CUDAQ_INSTALL_PREFIX}/bin:${PATH}"
 export PYTHONPATH="${CUDAQ_INSTALL_PREFIX}:${PYTHONPATH}"
 ```
 
-Our development container comes with a pre-built version of LLVM which is used to
-build CUDA Quantum. If you are working outside our container, please see the
+Our development container comes with a pre-built version of LLVM which is used
+to build CUDA Quantum. If you are working outside our container, please see the
 instructions for [building CUDA Quantum with a custom LLVM
 version](#building-cuda-quantum-with-a-custom-llvm-version).
 
@@ -47,14 +47,8 @@ detected, the corresponding backends will simply be omitted from the build.
 
 To use or develop GPU-based simulators, you will need to make sure you have a
 suitable NVIDIA GPU with the [latest driver][nvidia_driver] installed. You can
-confirm the GPU is properly detected running the command `nvidia-smi`.
-
-If you are working in our development container, please add a `--gpus=all` flag
-to the list of `runArgs` in the
-[.devcontainer/devcontainer.json](.devcontainer/devcontainer.json) file and
-relaunch the container. It is unfortunately not possible to define a development
-container that enables GPU support depending on the system configuration (see
-[this issue](https://github.com/airo-ugent/airo-ros/issues/17)).
+confirm the GPU is properly detected running the command `nvidia-smi` in your
+development environment.
 
 If you are not working in our development container, you may need to specify the
 correct path to your cuQuantum installation by setting the environment variable
@@ -65,20 +59,20 @@ correct path to your cuQuantum installation by setting the environment variable
 
 ## Building CUDA Quantum with a custom LLVM version
 
-CUDA Quantum is intended to be built using the LLVM commit that the submodule
-is set to (currently LLVM 16.0.6). If you need to update the LLVM commit, or if
-you are not using the pre-built version of that commit in our development
-container, LLVM will need to be built from source. ***Building with LLVM >=
-17.x is not currently supported*** due to the QIR specification's requirement
-to use typed pointers. LLVM 17.x removed the ability to use typed pointers and
-instead now requires [opaque pointers](https://llvm.org/docs/OpaquePointers.html#version-support).
-The QIR specification will be updated to support opaque pointers in the near
-future.
+CUDA Quantum is intended to be built using the LLVM commit that the submodule is
+set to (currently LLVM 16.0.6). If you need to update the LLVM commit, or if you
+are not using the pre-built version of that commit in our development container,
+LLVM will need to be built from source. ***Building with LLVM >= 17.x is not
+currently supported*** due to the QIR specification's requirement to use typed
+pointers. LLVM 17.x removed the ability to use typed pointers and instead now
+requires [opaque
+pointers](https://llvm.org/docs/OpaquePointers.html#version-support). The QIR
+specification will be updated to support opaque pointers in the near future.
 
-To configure our build scripts with a custom LLVM, please set the LLVM
-submodule to the desired commit, and set the following environment variable,
-replacing `<installation_path>` with the path where the freshly built LLVM tools
-and libraries should be installed:
+To configure our build scripts with a custom LLVM, please set the LLVM submodule
+to the desired commit, and set the following environment variable, replacing
+`<installation_path>` with the path where the freshly built LLVM tools and
+libraries should be installed:
 
 ```bash
 export LLVM_INSTALL_PREFIX=<installation_path>

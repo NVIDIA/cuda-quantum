@@ -26,11 +26,11 @@ namespace nvqir {
 ///  The backend shall look for that symbol to retrieve the extension.
 ///
 /// (2) The extension library should be linked against the same (or compatible)
-/// cutensornet library version.
+/// `cutensornet` library version.
 ///
 /// (3) Provide CMAKE flag:
 /// `-DCUDAQ_CUTENSORNET_PLUGIN_LIB=<path to compiled extension lib>` when
-/// building the tensornet backends.
+/// building the `tensornet` backends.
 struct CutensornetExecutor {
   /// @brief Compute expectation values for a list of Pauli spin operators
   /// @details Spin operators are expressed in binary symplectic form:
@@ -41,8 +41,8 @@ struct CutensornetExecutor {
   /// which is equal to the number of spin qubits times 2. The number of spin
   /// qubits in the operator is less than or equal to the number of qubits in
   /// the state.
-  /// @param cutnHandle cutensornet handle that the plugin should be using when
-  /// calling any cutensornet APIs
+  /// @param cutnHandle `cutensornet` handle that the plugin should be using
+  /// when calling any `cutensornet` APIs
   /// @param quantumState quantum input state
   /// @param numQubits number of qubits in the quantum state
   /// @param symplecticRepr symplectic representation of the spin operators

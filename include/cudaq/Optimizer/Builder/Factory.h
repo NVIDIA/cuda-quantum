@@ -36,7 +36,7 @@ inline mlir::Type getCharType(mlir::MLIRContext *ctx) {
   return mlir::IntegerType::get(ctx, /*bits=*/8);
 }
 
-/// Return the LLVM-IR dialect ptr type.
+/// Return the LLVM-IR dialect `ptr` type.
 inline mlir::Type getPointerType(mlir::MLIRContext *ctx) {
   return mlir::LLVM::LLVMPointerType::get(getCharType(ctx));
 }
@@ -130,8 +130,8 @@ inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
   return entry;
 }
 
-/// Return an i64 array where the kth element is N if the kth
-/// operand is veq<N> and 0 otherwise (e.g. is a ref).
+/// Return an i64 array where element `k` is `N` if the
+/// operand `k` is `veq<N>` and 0 otherwise.
 mlir::Value packIsArrayAndLengthArray(mlir::Location loc,
                                       mlir::ConversionPatternRewriter &rewriter,
                                       mlir::ModuleOp parentModule,
@@ -170,7 +170,7 @@ mlir::FunctionType toCpuSideFuncType(mlir::FunctionType funcTy,
 
 /// @brief Return true if the given type corresponds to a
 /// std-vector type according to our convention. The convention
-/// is a ptr<struct<ptr<T>, ptr<T>, ptr<T>>>.
+/// is a `ptr<struct<ptr<T>, ptr<T>, ptr<T>>>`.
 bool isStdVecArg(mlir::Type type);
 
 } // namespace opt::factory
