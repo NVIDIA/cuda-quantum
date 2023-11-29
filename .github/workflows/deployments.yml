@@ -62,7 +62,7 @@ jobs:
       llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
       pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
-      update_cache: ${{ steps.build_info.outputs.update_cache }}
+      cache_target: ${{ steps.build_info.outputs.cache_target }}
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
       platforms: ${{ steps.build_info.outputs.platforms }}
       environment: ${{ steps.build_info.outputs.environment }}
@@ -120,7 +120,7 @@ jobs:
           done
 
           cache_base=${{ (github.event_name == 'push' && 'main') || inputs.cache_base || steps.pr_info.outputs.pr_base }}
-          update_cache=${{ github.event_name != 'workflow_dispatch' || inputs.update_registry_cache }}
+          cache_target=${{ (! inputs.update_registry_cache && '') || steps.pr_info.outputs.pr_base || github.ref_name }}
           environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
 
           # Store deployment info
@@ -132,7 +132,7 @@ jobs:
           echo "release-version: $release_version" >> deployment_info.txt
 
           echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
-          echo "update_cache=$update_cache" >> $GITHUB_OUTPUT
+          echo "cache_target=$cache_target" >> $GITHUB_OUTPUT
           echo "multi_platform=$(echo $multi_platform)" >> $GITHUB_OUTPUT
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
           echo "environment=$environment" >> $GITHUB_OUTPUT
@@ -174,7 +174,7 @@ jobs:
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
@@ -202,7 +202,7 @@ jobs:
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
@@ -222,7 +222,7 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-ompi
@@ -286,7 +286,7 @@ jobs:
         base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, needs.config.outputs.devdeps_toolchain)] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-ext

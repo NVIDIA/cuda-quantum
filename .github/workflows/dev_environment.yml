@@ -24,10 +24,9 @@ on:
         required: false
         type: boolean
         default: false
-      registry_cache_update:
+      update_registry_cache:
         required: false
-        type: boolean
-        default: false
+        type: string
       additional_build_caches:
         required: false
         type: string
@@ -211,12 +210,6 @@ jobs:
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
 
-          orig_gh_ref=${{ github.ref_name }}
-          if [ "$orig_gh_ref" != "${orig_gh_ref#pull-request/}" ]; then
-            # original branch prior to the move by copy-pr-bot
-            orig_gh_ref=${orig_gh_ref#pull-request/}/merge
-          fi
-
           # Local caches are always to and from a single location.
 
           platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
@@ -226,16 +219,19 @@ jobs:
           if ${{ inputs.pull_request_number != '' }}; then
             local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}-${platform_id}"
           else
-            local_cache_from=${{ inputs.local_cache_from }}
-            local_cache_from=$(echo ${local_cache_from:-$orig_gh_ref} | tr . -)
-            if ${{ inputs.local_cache_from == '' && github.event.pull_request.merged == true }}; then
+            if ${{ inputs.local_cache_from != '' }}; then
+              local_cache_from=${{ inputs.local_cache_from }}
+            elif ${{ github.event.pull_request.merged == true }}; then
               local_cache_from=${{ github.event.pull_request.number }}/merge
+            elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
+              local_cache_from=$(echo $ref_name | cut -d / -f2)/merge
             fi
+            local_cache_from=$(echo ${local_cache_from:-${{ github.ref_name }}} | tr . -)
             local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
           fi
 
-          if ${{ inputs.registry_cache_update }}; then
-            registry_cache_target=$(echo $orig_gh_ref | tr / -)
+          if ${{ inputs.update_registry_cache != '' }}; then
+            registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
@@ -270,7 +266,7 @@ jobs:
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           echo "registry_cache_base=$registry_cache_base" >> $GITHUB_OUTPUT
-          if ${{ inputs.environment && ! inputs.registry_cache_update }}; then
+          if ${{ inputs.environment && inputs.update_registry_cache == '' }}; then
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}-${platform_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
@@ -336,7 +332,7 @@ jobs:
 
       - name: Check for existing image
         id: uploaded_image
-        if: ! inputs.registry_cache_update
+        if: inputs.update_registry_cache == ''
         run: |
           if ${{ inputs.environment != '' }}; then
             image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
@@ -385,7 +381,7 @@ jobs:
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         id: cache_upload
-        if: ! inputs.registry_cache_update && steps.uploaded_image.outputs.image_hash == ''
+        if: inputs.update_registry_cache == '' && steps.uploaded_image.outputs.image_hash == ''
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
