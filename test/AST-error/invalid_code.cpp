@@ -18,3 +18,8 @@ __qpu__ void invalid_code() {
     x(reg[i]);
   }
 }
+
+// expected-warning@* {{}}
+// expected-warning@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
