@@ -7,7 +7,7 @@ on:
     inputs:
       update_registry_cache:
         type: boolean
-        description: Create or update the build caches on the container registry.
+        description: Create or update the build caches on the container registry. The build terminates after that and no images are pushed.
         required: false
         default: false
       cache_base:
@@ -120,7 +120,7 @@ jobs:
           done
 
           cache_base=${{ (github.event_name == 'push' && 'main') || inputs.cache_base || steps.pr_info.outputs.pr_base }}
-          update_cache=${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
+          update_cache=${{ github.event_name != 'workflow_dispatch' || inputs.update_registry_cache }}
           environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
 
           # Store deployment info
@@ -175,7 +175,6 @@ jobs:
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
-      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
@@ -204,7 +203,6 @@ jobs:
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
-      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
@@ -225,7 +223,6 @@ jobs:
       dockerfile: build/devdeps.ompi.Dockerfile
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
-      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-ompi
