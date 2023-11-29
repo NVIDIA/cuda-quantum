@@ -9,6 +9,9 @@
 #include "cudaq.h"
 #include "simulator_cutensornet.h"
 
+// Forward declaration
+extern "C" nvqir::CircuitSimulator *getCircuitSimulator_tensornet();
+
 namespace nvqir {
 class SimulatorTensorNet : public SimulatorTensorNetBase {
 public:
@@ -20,8 +23,10 @@ public:
     // Note: this requires CUTENSORNET_COMM_LIB as described in
     // the Getting Started section of the cuTensorNet library documentation
     // (Installation and Compilation).
-    if (cudaq::mpi::is_initialized())
+    if (cudaq::mpi::is_initialized()) {
       initCuTensornetComm(m_cutnHandle);
+      m_cutnMpiInitialized = true;
+    }
   }
   // Nothing to do for state preparation
   virtual void prepareQubitTensorState() override {}
@@ -29,11 +34,34 @@ public:
   // Add a hook to reset the cutensornet MPI Comm before MPI finalization
   // to make sure we have a clean shutdown.
   virtual void tearDownBeforeMPIFinalize() override {
-    if (cudaq::mpi::is_initialized())
+    if (cudaq::mpi::is_initialized()) {
       resetCuTensornetComm(m_cutnHandle);
+      m_cutnMpiInitialized = false;
+    }
   }
+
+private:
+  friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();
+  /// @brief Have we initialized cuTensorNet MPI during ctor?
+  bool m_cutnMpiInitialized = false;
 };
 } // namespace nvqir
 
 /// Register this Simulator class with NVQIR under name "tensornet"
-NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorTensorNet, tensornet)
+extern "C" {
+nvqir::CircuitSimulator *getCircuitSimulator_tensornet() {
+  thread_local static auto simulator =
+      std::make_unique<nvqir::SimulatorTensorNet>();
+  // Handle multiple runtime __nvqir__setCircuitSimulator calls before/after MPI
+  // initialization. If the static simulator instance was created before MPI
+  // initialization, it needs to be reset to support MPI if needed.
+  if (cudaq::mpi::is_initialized() && !simulator->m_cutnMpiInitialized) {
+    // Reset the static instance to pick up MPI.
+    simulator.reset(new nvqir::SimulatorTensorNet());
+  }
+  return simulator.get();
+}
+nvqir::CircuitSimulator *getCircuitSimulator() {
+  return getCircuitSimulator_tensornet();
+}
+}
