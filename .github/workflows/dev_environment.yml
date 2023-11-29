@@ -266,7 +266,7 @@ jobs:
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           echo "registry_cache_base=$registry_cache_base" >> $GITHUB_OUTPUT
-          if ${{ inputs.environment && inputs.update_registry_cache == '' }}; then
+          if ${{ inputs.environment == '' && inputs.update_registry_cache == '' }}; then
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}-${platform_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
