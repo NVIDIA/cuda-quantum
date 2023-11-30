@@ -21,7 +21,7 @@
 #                ${MPI_PATH}/include is expected to contain the mpi.h header.
 #                ${MPI_PATH}/lib64 or ${MPI_PATH}/lib is expected to contain libmpi.so.
 #
-# Run (inside this directory): source ./activate_custom_mpi.sh
+# Run: source <cuda quantum install dir>/distributed_interfaces/activate_custom_mpi.sh
 # 
 # You could add $CUDAQ_MPI_COMM_LIB to your ~/.bashrc file to persist the environment variable.
 
@@ -36,9 +36,12 @@ if [ -z "${CXX}" ]; then
     CXX=g++
 fi
 
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+
 $CXX -shared -std=c++17 -fPIC \
     -I${MPI_PATH}/include \
-    mpi_comm_impl.cpp \
+    -I$this_file_dir/ \
+    $this_file_dir/mpi_comm_impl.cpp \
     -L${MPI_PATH}/lib64 -L${MPI_PATH}/lib -lmpi \
-    -o libcudaq_distributed_interface_mpi.so
-export CUDAQ_MPI_COMM_LIB=${PWD}/libcudaq_distributed_interface_mpi.so
+    -o $this_file_dir/libcudaq_distributed_interface_mpi.so
+export CUDAQ_MPI_COMM_LIB=$this_file_dir/libcudaq_distributed_interface_mpi.so

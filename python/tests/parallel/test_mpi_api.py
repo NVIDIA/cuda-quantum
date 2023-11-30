@@ -41,6 +41,18 @@ def testMPI():
     assert len(gatherData) == cudaq.mpi.num_ranks()
     for idx, x in enumerate(gatherData):
         assert abs(gatherData[idx] - float(idx)) < 1e-12
+
+    # Broadcast
+    ref_data = [1.0, 2.0, 3.0]
+    if cudaq.mpi.rank() == 0:
+        data = ref_data
+    else:
+        data = []
+
+    data = cudaq.mpi.broadcast(data, len(ref_data), 0)
+    for idx, x in enumerate(data):
+        assert abs(x - ref_data[idx]) < 1e-12
+
     cudaq.mpi.finalize()
 
 

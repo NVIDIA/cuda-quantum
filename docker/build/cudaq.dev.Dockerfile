@@ -39,7 +39,11 @@ WORKDIR "$destination"
 ARG mpi=
 RUN if [ -n "$mpi" ]; \
     then \
-        apt update && apt install -y lib$mpi-dev ; \
+        if [ ! -z "$MPI_PATH" ]; then \
+            echo "Using a base image with MPI is not supported when passing a 'mpi' build argument." && exit 1; \
+        else \
+			apt update && apt install -y lib$mpi-dev ; \
+		fi \
     fi
 
 # Configuring a base image that contains the necessary dependencies for GPU

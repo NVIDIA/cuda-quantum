@@ -111,7 +111,6 @@ jobs:
           image: cuda-quantum-dev:local
           shell: bash
           run: |
-            cd /usr/local/cudaq/distributed_interfaces/ 
             # Set MPI_PATH depending on OMPI/MPICH
             has_ompiinfo=$(which ompi_info || true)
             if [[ ! -z $has_ompiinfo ]]; then
@@ -120,7 +119,12 @@ jobs:
               export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
             fi
             # Run the activation script
-            source activate_custom_mpi.sh
+            source $CUDAQ_INSTALL_PREFIX/distributed_interfaces/activate_custom_mpi.sh
+            external_plugin_build_status=$?
+            if [ ! $external_plugin_build_status -eq 0 ] ; then
+              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed to activate the plugin with status $external_plugin_build_status."
+              exit 1
+            fi
             echo $CUDAQ_MPI_COMM_LIB
             # Rerun the MPI plugin test
             cd $CUDAQ_REPO_ROOT

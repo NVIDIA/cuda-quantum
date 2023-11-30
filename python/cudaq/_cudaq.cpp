@@ -86,6 +86,16 @@ PYBIND11_MODULE(_pycudaq, mod) {
       "concatenation of all "
       "lists across all ranks. The total global list size must be provided.");
   mpiSubmodule.def(
+      "broadcast",
+      [](std::vector<double> &data, std::size_t bcastSize, int rootRank) {
+        if (data.size() < bcastSize)
+          data.resize(bcastSize);
+        cudaq::mpi::broadcast(data, rootRank);
+        return data;
+      },
+      "Broadcast an array from a process (rootRank) to all other processes. "
+      "The size of broadcast array must be provided.");
+  mpiSubmodule.def(
       "is_initialized", []() { return cudaq::mpi::is_initialized(); },
       "Return true if MPI has already been initialized.");
   mpiSubmodule.def(
