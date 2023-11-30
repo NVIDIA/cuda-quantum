@@ -7,13 +7,12 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME cudaq-platform-mqpu)
-enable_language(CUDA)
-find_package(CUDAToolkit REQUIRED)
+find_package(CUDA REQUIRED)
 add_library(${LIBRARY_NAME} SHARED MultiQPUPlatform.cpp ../common/QuantumExecutionQueue.cpp)
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-       $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
+       $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
@@ -26,7 +25,7 @@ target_link_libraries(${LIBRARY_NAME}
     pthread
     spdlog::spdlog 
     fmt::fmt-header-only 
-    CUDA::cudart)
+    ${CUDA_LIBRARIES})
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-mqpu-targets DESTINATION lib)

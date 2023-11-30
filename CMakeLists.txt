@@ -37,13 +37,6 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 OLD)
 endif()
 
-# CMP0148: The ``FindPythonInterp`` and ``FindPythonLibs`` modules are removed.
-# CMake 3.27 and above no longer provide the modules.
-# https://cmake.org/cmake/help/latest/policy/CMP0148.html
-if(POLICY CMP0148)
-  cmake_policy(SET CMP0148 OLD)
-endif()
-
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
@@ -368,15 +361,7 @@ install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
 # Third-party libraries (tpls)
 # ==============================================================================
 set(FMT_INSTALL ON)
-cmake_policy(PUSH)
-# CMP0146: The FindCUDA module is removed.
-# CMake 3.27 and above no longer provide the modules.
-# https://cmake.org/cmake/help/latest/policy/CMP0146.html
-if(POLICY CMP0146)
-  cmake_policy(SET CMP0146 OLD)
-endif()
 add_subdirectory(tpls/fmt)
-cmake_policy(POP)
 include_directories(SYSTEM tpls/json/include)
 
 # Add spdlog 

@@ -21,19 +21,18 @@ add_library(${LIBRARY_NAME}
                 utils/cudaq_utils.cpp)
 
 if (CUDA_FOUND)
-  enable_language(CUDA)
-  find_package(CUDAToolkit REQUIRED)
+  find_package(CUDA REQUIRED)
 
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-            $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}
+            $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC dl cudaq-spin cudaq-common cudaq-nlopt cudaq-ensmallen
-    PRIVATE nvqir fmt::fmt-header-only CUDA::cudart)
+    PRIVATE nvqir fmt::fmt-header-only ${CUDA_LIBRARIES})
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
 else()
