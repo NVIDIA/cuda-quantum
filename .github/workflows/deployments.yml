@@ -124,7 +124,7 @@ jobs:
           done
 
           cache_base=${{ (github.event_name == 'push' && 'main') || inputs.cache_base || steps.pr_info.outputs.pr_base }}
-          cache_target=${{ (! inputs.update_registry_cache && '') || steps.pr_info.outputs.pr_base || github.ref_name }}
+          cache_target=${{ (github.event_name != 'workflow_dispatch' && (steps.pr_info.outputs.pr_base || github.ref_name)) || (inputs.update_registry_cache && github.ref_name) || '' }}
           environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
 
           # Store deployment info
@@ -261,7 +261,7 @@ jobs:
   config:
     name: Configure build
     needs: [devdeps, wheeldeps, openmpi]
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && ! inputs.update_registry_cache
     runs-on: ubuntu-latest
 
     outputs:
