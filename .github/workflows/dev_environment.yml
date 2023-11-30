@@ -269,6 +269,7 @@ jobs:
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           echo "registry_cache_base=$registry_cache_base" >> $GITHUB_OUTPUT
+          echo "push_to_registry=${{ inputs.environment != '' && inputs.update_registry_cache == '' }}" >> $GITHUB_OUTPUT
           if ${{ inputs.environment == '' && inputs.update_registry_cache == '' }}; then
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}-${platform_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
@@ -302,15 +303,15 @@ jobs:
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
-          push: ${{ inputs.environment != '' && inputs.update_registry_cache == '' }}
+          push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
           outputs: ${{ steps.cache.outputs.docker_output }}
 
       - name: Install Cosign
-        if: steps.cache.outputs.docker_output == ''
+        if: steps.cache.outputs.push_to_registry == 'true'
         uses: sigstore/cosign-installer@v3.1.1
 
       - name: Sign image with GitHub OIDC Token
-        if: steps.cache.outputs.docker_output == ''
+        if: steps.cache.outputs.push_to_registry == 'true'
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ needs.metadata.outputs.image_tags }}
