@@ -18,7 +18,7 @@ __qpu__ std::size_t kernel1(std::size_t arg) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel1._Z7kernel1m(
-// CHECK-SAME:      %[[VAL_0:.*]]: i64) -> i64
+// CHECK-SAME:      %[[VAL_0:.*]]: i64{{.*}}) -> i64
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i64
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i64>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
@@ -36,7 +36,7 @@ __qpu__ tiny kernel2(tiny arg) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel2._Z7kernel2h(
-// CHECK-SAME:      %[[VAL_0:.*]]: i8) -> i8
+// CHECK-SAME:      %[[VAL_0:.*]]: i8{{.*}}) -> i8
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i8
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<i8>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
@@ -54,7 +54,7 @@ __qpu__ big kernel3(big arg) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel3._Z7kernel3e(
-// CHECK-SAME:      %[[VAL_0:.*]]: f128) -> f128
+// CHECK-SAME:      %[[VAL_0:.*]]: f128{{.*}}) -> f128
 // CHECK:           %[[VAL_1:.*]] = cc.alloca f128
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<f128>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
