@@ -25,7 +25,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Remove tags
+      - name: Gather tags
+        id: tags
         run: |
           regctl="docker run ghcr.io/regclient/regctl@sha256:f25e95d626ee8858ef13fd1a45c6a865dfeb647b15210f1b6cc8547e49e9d95f"
           image=ghcr.io/nvidia/${{ inputs.ghcr_image }}
@@ -33,11 +34,46 @@ jobs:
 
           for tag in $existing_image_tags; do
             if [[ "$tag" =~ ^${{ inputs.delete_tags }}$ ]]; then 
-                echo "Removing tag $tag."
-                $regctl tag rm $image:$tag
+                delete+=", $tag"
             fi
           done
+          echo "tags_to_remove=${delete:2}" >> $GITHUB_OUTPUT
 
+      - name: Look up version numbers
+        id: packages
+        run: |
+          gh api -X GET --paginate -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            /orgs/${{ github.repository_owner }}/packages/container/${{ inputs.ghcr_image }}/versions >> packages.json
+
+          cat packages.json
+
+          for tag in ${{ steps.tags.outputs.tags_to_remove }}; do
+            echo "Finding version id for tag ${tag%,}."
+            version_id=`cat packages.json | jq ".[] | select(.metadata.package_type==\"container\" and (.metadata.container.tags[] | contains(\"${tag%,}\")))" | jq '.id'`
+            if [ -n "$version_id" ]; then
+
+
+              echo "Marking version $version_id for deletion."
+              delete+=", $version_id"
+            fi
+          done
+          echo "[${delete:2}]"
+          echo "versions_to_remove=${delete:2}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Delete matching images
+        if: steps.packages.outputs.versions_to_remove
+        uses: actions/delete-package-versions@v4
+        with: 
+          package-name: ${{ matrix.image_name }}
+          package-type: 'container'
+          package-version-ids: '${{ steps.packages.outputs.versions_to_remove }}'
+
+      - name: List remaining tags
+        run: |
+          regctl="docker run ghcr.io/regclient/regctl@sha256:f25e95d626ee8858ef13fd1a45c6a865dfeb647b15210f1b6cc8547e49e9d95f"
+          image=ghcr.io/nvidia/${{ inputs.ghcr_image }}
           existing_image_tags=`($regctl tag ls $image || echo) | (egrep --invert-match '^sha256-\S+\.sig$' || true)`
           echo "# Remaining tags for $image" >> $GITHUB_STEP_SUMMARY
           for tag in $existing_image_tags; do
