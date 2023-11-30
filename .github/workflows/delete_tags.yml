@@ -45,16 +45,25 @@ jobs:
           gh api -X GET --paginate -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
             /orgs/${{ github.repository_owner }}/packages/container/${{ inputs.ghcr_image }}/versions >> packages.json
 
-          cat packages.json
-
+          tags_to_remove=(`echo "${{ steps.tags.outputs.tags_to_remove }}" | tr -d ,`)
           for tag in ${{ steps.tags.outputs.tags_to_remove }}; do
             echo "Finding version id for tag ${tag%,}."
-            version_id=`cat packages.json | jq ".[] | select(.metadata.package_type==\"container\" and (.metadata.container.tags[] | contains(\"${tag%,}\")))" | jq '.id'`
-            if [ -n "$version_id" ]; then
+            version_ids=`cat packages.json | jq ".[] | select(.metadata.package_type==\"container\" and (.metadata.container.tags[] | contains(\"${tag%,}\")))" | jq '.id'`
+            if [ -n "$version_ids" ]; then
 
-
-              echo "Marking version $version_id for deletion."
-              delete+=", $version_id"
+              for version in $version_ids; do
+                version_tags=`cat packages.json | jq -r ".[] | select(.id==$version).metadata.container.tags[]"`
+                can_be_removed=true
+                for version_tag in $version_tags; do
+                  if ! [[ ${tags_to_remove[@]} =~ $version_tag ]]; then
+                    can_be_removed=false
+                  fi
+                done
+                if $can_be_removed; then
+                  echo "Marking version $version for deletion."
+                  delete+=", $version"
+                fi
+              done
             fi
           done
           echo "[${delete:2}]"
