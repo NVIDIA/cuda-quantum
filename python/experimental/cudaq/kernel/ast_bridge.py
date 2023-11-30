@@ -10,7 +10,7 @@ import sys
 from typing import Callable
 from collections import deque
 import numpy as np
-from .analysis import FindDepKernelsVisitor, preprocessCustomOperationLambda
+from .analysis import FindDepKernelsVisitor
 from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation
 from mlir_cudaq.ir import *
 from mlir_cudaq.passmanager import *
