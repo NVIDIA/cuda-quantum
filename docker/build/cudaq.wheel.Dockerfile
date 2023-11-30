@@ -23,18 +23,26 @@ ARG workspace=.
 ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
+ARG python_version=3.10
+ARG pybind11_commit
+RUN echo "Building MLIR bindings for python${python_version}" \
+    && python${python_version} -m pip install --no-cache-dir numpy \
+    && export Python3_EXECUTABLE="$(which python${python_version})" \
+    && mkdir /pybind11-project && cd /pybind11-project && git init \
+    && git remote add origin https://github.com/pybind/pybind11 \
+    && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
+    && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 -DPYTHON_EXECUTABLE="$Python3_EXECUTABLE" \
+    && cmake --build . --target install --config Release \
+    && cd / && rm -rf /pybind11-project
+RUN export CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
+    && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
+
 # Install additional dependencies
 # They might be optionally pulled in during auditwheel if necessary.
 RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
 
-ARG python_version=3.10
-RUN echo "Building MLIR bindings for python${python_version}" \
-    && python${python_version} -m pip install --no-cache-dir numpy \
-    && rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" \
-    && export Python3_EXECUTABLE="$(which python${python_version})" \
-    && export CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
-    && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
-
+# Build the wheel
 RUN echo "Building wheel for python${python_version}." \
     && cd cuda-quantum && python=python${python_version} \
     # Find any external NVQIR simulator assets to be pulled in during wheel packaging.

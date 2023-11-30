@@ -27,7 +27,6 @@ FROM quay.io/pypa/${manylinux_image}_${arch}:latest
 
 ARG distro=rhel8
 ARG llvm_commit
-ARG pybind11_commit
 ARG toolchain=gcc11
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -68,13 +67,6 @@ ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ENV LLVM_BUILD_LINKER_FLAGS="-static-libgcc -static-libstdc++"
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         ninja-build cmake \
-    && mkdir /pybind11-project && cd /pybind11-project && git init \
-    && git remote add origin https://github.com/pybind/pybind11 \
-    && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
-    && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
-    && cmake --build . --target install --config Release \
-    && cd .. && rm -rf /pybind11-project \
     && export CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
     && bash /scripts/build_llvm.sh -s /llvm-project -p "clang;lld;mlir" -c Release -v
     # No clean up of the build or source directory,
