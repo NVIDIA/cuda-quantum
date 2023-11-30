@@ -217,16 +217,27 @@ jobs:
             done
 
       - name: Run Python MPI tests
-        if: matrix.os_image == 'ubuntu:22.04'
+        if: matrix.os_image == 'redhat/ubi9:9.2'
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
           shell: bash
           run: |
-            # Install mpi4py when validating the wheel on Ubuntu
-            # to run the MPI plugin test.
-            apt-get update && apt-get install -y --no-install-recommends libopenmpi-dev libpython${{ inputs.python_version }}-dev gcc
-            python${{ inputs.python_version }} -m pip install --user mpi4py~=3.1
+            # Install openmpi and mpi4py by conda
+            # TODO: parse from readme
+            dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients.$(uname -m)
+            mkdir -p ~/miniconda3
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+            bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+            ~/miniconda3/bin/conda init bash
+            source ~/.bashrc
+            conda create -y -n cuda-quantum python==${{ inputs.python_version }} pip
+            conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi
+            conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib"
+            conda run -n cuda-quantum pip install /tmp/cuda_quantum-0.0.0-*-manylinux_*_$(uname -m).whl
+            conda activate cuda-quantum
+            export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
+            # Run the MPI test
             mpirun --allow-run-as-root -np 4 python${{ inputs.python_version }} -m pytest -v /tmp/tests/parallel/test_mpi_api.py
             pytest_mpi_status=$?
             if [ ! $pytest_mpi_status -eq 0 ]; then
