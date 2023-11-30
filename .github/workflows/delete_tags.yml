@@ -37,6 +37,7 @@ jobs:
                 delete+=", $tag"
             fi
           done
+          echo "Matched tags: ${delete:2}"
           echo "tags_to_remove=${delete:2}" >> $GITHUB_OUTPUT
 
       - name: Look up version numbers
@@ -66,7 +67,7 @@ jobs:
               done
             fi
           done
-          echo "[${delete:2}]"
+          echo "Deleting versions: ${delete:2}"
           echo "versions_to_remove=${delete:2}" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
@@ -75,7 +76,7 @@ jobs:
         if: steps.packages.outputs.versions_to_remove
         uses: actions/delete-package-versions@v4
         with: 
-          package-name: ${{ matrix.image_name }}
+          package-name: ${{ inputs.ghcr_image }}
           package-type: 'container'
           package-version-ids: '${{ steps.packages.outputs.versions_to_remove }}'
 
