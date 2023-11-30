@@ -204,6 +204,7 @@ jobs:
         arch=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].arch }}
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}

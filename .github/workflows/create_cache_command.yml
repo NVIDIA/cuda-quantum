@@ -106,6 +106,7 @@ jobs:
         arch=${{ (matrix.platform == 'arm64' && 'aarch64') || (matrix.platform == 'amd64' && 'x86_64') || 'any' }}
         distro=rhel8
         llvm_commit=${{ needs.repoinfo.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.repoinfo.outputs.pybind11_commit }}
       create_local_cache: true
       registry_cache_from: ${{ needs.config.outputs.target_branch }}
       pull_request_number: ${{ needs.config.outputs.pull_request_number }}
