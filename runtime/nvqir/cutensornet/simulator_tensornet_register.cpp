@@ -42,7 +42,7 @@ public:
 
 private:
   friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();
-  /// @brief Have we initialized cuTensorNet MPI during ctor?
+  /// @brief Has cuTensorNet MPI been initialized?
   bool m_cutnMpiInitialized = false;
 };
 } // namespace nvqir
