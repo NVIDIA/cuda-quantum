@@ -2,15 +2,14 @@
 
 To learn more about how to use CUDA Quantum, please take a look at the [CUDA
 Quantum Documentation][cuda_quantum_docs]. The page also contains [installation
-instructions][official_install] for released packages.
+instructions][official_install] for released packages and nightly builds.
 
 [cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/latest
 [official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
 
 This document contains instructions for how to build CUDA Quantum from source.
-This is only needed if you would like to try out the latest (unreleased) version
-that is currently under development in this repository and/or if you would like
-to add your own modifications to this code base.
+This is only needed if you cannot use our pre-built container images or
+if you would like to add your own modifications to this code base.
 
 To build the CUDA Quantum source code locally, fork this repository and follow
 the [instructions for setting up your environment](./Dev_Setup.md). Once you

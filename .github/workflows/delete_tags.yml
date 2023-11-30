@@ -1,0 +1,45 @@
+on:
+  workflow_dispatch:
+    inputs:
+      ghcr_image:
+          type: string
+          description: The name of the GitHub image.
+          required: true
+      delete_tags:
+          type: string
+          description: A regex matching the tag(s) to delete.
+          required: true
+
+name: Delete tags
+
+jobs:
+  ghcr_images:
+    name: Clean up GHCR image tags
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Log in to the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Remove tags
+        run: |
+          regctl="docker run ghcr.io/regclient/regctl@sha256:f25e95d626ee8858ef13fd1a45c6a865dfeb647b15210f1b6cc8547e49e9d95f"
+          image=ghcr.io/nvidia/${{ inputs.ghcr_image }}
+          existing_image_tags=`($regctl tag ls $image || echo) | (egrep --invert-match '^sha256-\S+\.sig$' || true)`
+
+          for tag in $existing_image_tags; do
+            if [[ "$tag" =~ ^${{ inputs.delete_tags }}$ ]]; then 
+                echo "Removing tag $tag."
+                $regctl tag rm $image:$tag
+            fi
+          done
+
+          existing_image_tags=`($regctl tag ls $image || echo) | (egrep --invert-match '^sha256-\S+\.sig$' || true)`
+          echo "# Remaining tags for $image" >> $GITHUB_STEP_SUMMARY
+          for tag in $existing_image_tags; do
+            echo $tag >> $GITHUB_STEP_SUMMARY
+          done
