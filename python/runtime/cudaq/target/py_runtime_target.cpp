@@ -38,7 +38,8 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       .def("is_remote", &cudaq::RuntimeTarget::is_remote,
            "Returns true if the target consists of a remote REST QPU.")
       .def("is_emulated", &cudaq::RuntimeTarget::is_emulated,
-           "Returns true if the emulation mode for the target has been activated.")
+           "Returns true if the emulation mode for the target has been "
+           "activated.")
       .def(
           "__str__",
           [](cudaq::RuntimeTarget &self) {
