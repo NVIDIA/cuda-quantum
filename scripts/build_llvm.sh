@@ -25,7 +25,7 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
-llvm_projects="clang;lld;mlir"
+llvm_projects="clang;lld;mlir;python-bindings"
 verbose=false
 
 __optind__=$OPTIND
@@ -68,6 +68,12 @@ mkdir -p logs && rm -rf logs/*
 echo "Preparing LLVM build..."
 projects=(`echo $llvm_projects | tr ';' ' '`)
 llvm_projects=`printf "%s;" "${projects[@]}"`
+if [ -z "${llvm_projects##*python-bindings;*}" ]; then
+  mlir_python_bindings=ON
+  projects=("${projects[@]/python-bindings}")
+fi
+
+llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*clang;*}" ]; then
   echo "- including Clang components"
   llvm_components+="clang;clang-format;clang-cmake-exports;clang-headers;clang-libraries;clang-resource-headers;"
@@ -77,8 +83,8 @@ if [ -z "${llvm_projects##*mlir;*}" ]; then
   echo "- including MLIR components"
   llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
   projects=("${projects[@]/mlir}")
-  if [ -x "$(command -v "$Python3_EXECUTABLE")" ]; then
-    mlir_python_bindings=ON
+  if [ "$mlir_python_bindings" == "ON" ]; then
+    echo "- including MLIR Python bindings"
     llvm_components+="MLIRPythonModules;mlir-python-sources;"
   fi
 fi

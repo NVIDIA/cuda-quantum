@@ -195,7 +195,7 @@ protected:
       return;
 
     int dev;
-    cudaGetDevice(&dev);
+    HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
     cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
 
     if (!deviceStateVector) {
