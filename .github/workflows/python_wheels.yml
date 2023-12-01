@@ -224,20 +224,35 @@ jobs:
           shell: bash
           run: |
             # Install openmpi and mpi4py by conda
-            # TODO: parse from readme
+            # Install conda
             dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients.$(uname -m)
             mkdir -p ~/miniconda3
-            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
+            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/miniconda3/miniconda.sh
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
-            conda create -y -n cuda-quantum python==${{ inputs.python_version }} pip
-            conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi
-            conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib"
-            conda run -n cuda-quantum pip install /tmp/cuda_quantum-0.0.0-*-manylinux_*_$(uname -m).whl
-            conda activate cuda-quantum
-            export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
+            # Extract the setup script from Python wheel's readme
+            readme_file="/tmp/README.md"
+            python_version="${{ inputs.python_version }}"
+            # Parse README file to install openmpi
+            conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $readme_file | grep . | sed '/^```/d')" 
+            # Skip the installation of CUDA since we don't need CUDA for this test.
+            regex='conda install -y -n cuda-quantum.*cuda'
+            while IFS= read -r line; do
+              if [[ ! "$line" =~ $regex ]]; then
+                  # Replace Python version
+                  line=${line//3.10/$python_version}
+                  # Install the wheel file
+                  line=${line//pip install cuda-quantum/pip install /tmp/cuda_quantum-0.0.0-*-manylinux_*_$(uname -m).whl}
+                  eval "$line"
+              fi
+            done <<< "$conda_script"
+            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $readme_file | grep . | sed '/^```/d')" 
+            while IFS= read -r line; do
+                eval "$line"
+            done <<< "$ompi_script"
             # Run the MPI test
+            python${{ inputs.python_version }} -m pip install pytest numpy
             mpirun --allow-run-as-root -np 4 python${{ inputs.python_version }} -m pytest -v /tmp/tests/parallel/test_mpi_api.py
             pytest_mpi_status=$?
             if [ ! $pytest_mpi_status -eq 0 ]; then

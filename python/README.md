@@ -42,6 +42,8 @@ you can install a minimal version following the instructions
 The following commands will create and activate a complete environment for
 CUDA Quantum with all its dependencies:
 
+[comment]: <> (Begin conda install)
+
 ```console
     conda create -y -n cuda-quantum python==3.10 pip
     conda install -y -n cuda-quantum -c "nvidia/label/cuda-11.8.0" cuda
@@ -51,11 +53,17 @@ CUDA Quantum with all its dependencies:
     conda activate cuda-quantum
 ```
 
+[comment]: <> (End conda install)
+
 You must configure MPI by setting the following environment variables:
+
+[comment]: <> (Begin ompi setup)
 
 ```console
   export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
 ```
+
+[comment]: <> (End ompi setup)
 
 *If you do not set these variables you may encounter a segmentation fault.*
 
