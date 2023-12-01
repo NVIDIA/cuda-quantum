@@ -122,9 +122,12 @@ et
 executables
 extensibility
 extremal
+fermionic
 homogenous
 increment
 incrementing
+initializer
+initializers
 inlining
 instantiation
 instantiations
@@ -142,6 +145,7 @@ parallelization
 precompute
 precomputed
 prepend
+programmatically
 quantize
 quantized
 qubit
