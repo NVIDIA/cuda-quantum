@@ -60,7 +60,7 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
 
 class RewriteMeasures(ast.NodeTransformer):
     """
-    This NodeTransformer will analyze the AST for measurement 
+    This `NodeTransformer` will analyze the AST for measurement 
     nodes that do not provide a `register_name=` keyword. If found 
     it will replace that node with one that sets the register_name to 
     the variable name in the assignment. 
@@ -72,7 +72,7 @@ class RewriteMeasures(ast.NodeTransformer):
         return node
 
     def visit_Assign(self, node):
-        # We only care about nodes with a Name target (mz,my,mx)
+        # We only care about nodes with a Name target (`mz`,`my`,`mx`)
         if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
             # The value has to be a Call node
             if isinstance(node.value, ast.Call):
@@ -112,9 +112,9 @@ class RewriteMeasures(ast.NodeTransformer):
 
 class MatrixToRowMajorList(ast.NodeTransformer):
     """
-    Convert 2D np.array([[row0],[row1], ... ]) to a row-major 
-    single list, np.array([row0 row1 row2 ...]) in order to make it 
-    easier to convert the data to a stdvec in our MLIR model.
+    Convert 2D `np.array([[row0],[row1], ... ])` to a row-major 
+    single list, `np.array([row0 row1 row2 ...])` in order to make it 
+    easier to convert the data to a `stdvec` in our MLIR model.
     """
 
     def visit_Call(self, node):
@@ -131,7 +131,7 @@ class MatrixToRowMajorList(ast.NodeTransformer):
         if not node.func.attr == 'array':
             return node
 
-        # this is an np.array
+        # this is an NumPy array
         args = node.args
 
         if len(args) != 1 and not isinstance(args[0], ast.List):
@@ -199,7 +199,7 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
         Here we will look at this Functions arguments, if 
         there is a Callable, we will add any seen kernel/AST with the same 
         signature to the dependent kernels map. This enables the creation 
-        of ModuleOps that contain all the functions necessary to inline and 
+        of `ModuleOps` that contain all the functions necessary to inline and 
         synthesize callable block arguments.
         """
         for arg in node.args.args:
