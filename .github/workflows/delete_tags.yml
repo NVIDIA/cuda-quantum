@@ -39,6 +39,8 @@ jobs:
           done
           echo "Matched tags: ${delete:2}"
           echo "tags_to_remove=${delete:2}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Look up version numbers
         id: packages
@@ -87,3 +89,5 @@ jobs:
           for tag in $existing_image_tags; do
             echo $tag >> $GITHUB_STEP_SUMMARY
           done
+        env:
+          GH_TOKEN: ${{ github.token }}
