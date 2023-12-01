@@ -28,7 +28,7 @@ if (CUDA_FOUND)
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-            $<INSTALL_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}
+            $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
