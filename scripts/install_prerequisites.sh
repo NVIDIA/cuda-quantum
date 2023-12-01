@@ -86,24 +86,17 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
   fi
 
   temp_install_if_command_unknown wget wget
+  temp_install_if_command_unknown make make
   if [ ! -x "$(command -v "$FC")" ]; then
     temp_install_if_command_unknown gcc gcc
     temp_install_if_command_unknown g++ g++
     temp_install_if_command_unknown gfortran gfortran
   fi
 
-  if [ ! -x "$(command -v ninja)" ]; then
-    temp_install_if_command_unknown unzip unzip
-    wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
-    unzip ninja-linux.zip && mv ninja /usr/local/bin/ && rm -rf ninja-linux.zip
-  fi
-
   # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
   wget http://www.netlib.org/blas/blas-3.11.0.tgz
   tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
-  mkdir build && cd build && cmake -G Ninja ../ 
-  cmake --build . --target install --config Release
-  mkdir -p "$BLAS_INSTALL_PREFIX" && mv libblas.a "$BLAS_INSTALL_PREFIX/libblas.a"
+  make && mkdir -p "$BLAS_INSTALL_PREFIX" && mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
   cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
   remove_temp_installs
 fi
