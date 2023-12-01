@@ -4,57 +4,57 @@ on:
       dockerfile:
         required: true
         type: string
+        description: The path relative to the docker folder in this repository.
       platforms:
         type: string
         required: false
+        description: The platforms to build the image for, following the same format at the Docker CLI expects.
         default: linux/amd64
       build_target:
         required: false
         type: string
+        description: If specified, only builds the these targets in the Dockerfile.
       build_args:
         required: false
         type: string
+        description: Space separated list of the form `arg_name=value` that defines the build arguments specified in the Dockerfile.
       registry_cache_from:
         required: false
         type: string
-      local_cache_from:
+        description: The name of the branch from which the build cache on the container registry should be loaded.
+      update_registry_cache:
         required: false
         type: string
+        description: If defined, the build cache for the given branch name will be updated on the registry (no image will be pushed or created in this case).
       create_local_cache:
         required: false
         type: boolean
-        default: false
-      registry_cache_update:
-        required: false
-        type: boolean
-        default: false
-      registry_cache_update_only:
-        required: false
-        type: boolean
+        description: Whether to create a local GitHub cache for this build and branch (will be ignored if update_registry_cache is true).
         default: false
       additional_build_caches:
         required: false
         type: string
-      additional_local_caches:
-        required: false
-        type: string
+        description: Any additional parameters that should be passed to --cache-from (see Docker documentation for more detail).
       toolchain:
         required: false
         type: string
-      matrix_key:
-        required: false
-        type: string
+        description: The toolchain used within the Docker image. The value is passed as build argument to Docker and used in tags and cache locations to distinguish different builds.
       pull_request_number:
         required: false
         type: string
-        description: The issue number of the pull request to check out. Permits to run the workflow from a different branch than the PR branch.
+        description: The issue number of the pull request that contains the source code. Permits to run the workflow from a different branch than the PR branch, e.g. for the purpose of deployment after a PR is merged. This parameter is used to check out the repository (unless pull_request_commit is specified) and look up existing caches.
       pull_request_commit:
         required: false
         type: string
         description: The commit to check out. Only used when pull_request_number is set.
+      matrix_key:
+        required: false
+        type: string
+        description: The key to use for the json entry in the output of the cloudposse GitHub action (only needed when the workflow runs as part of a matrix job).
       environment:
         required: false
         type: string
+        description: The name of the GitHub environment within which to execute the workflow. A protected non-default environment should be specified when the workflow pushes images to the registry.
     outputs:
       image_hash:
         description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
@@ -215,12 +215,6 @@ jobs:
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${toolchain:+-$toolchain} | tr . -)
 
-          orig_gh_ref=${{ github.ref_name }}
-          if [ "$orig_gh_ref" != "${orig_gh_ref#pull-request/}" ]; then
-            # original branch prior to the move by copy-pr-bot
-            orig_gh_ref=${orig_gh_ref#pull-request/}/merge
-          fi
-
           # Local caches are always to and from a single location.
 
           platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
@@ -230,16 +224,17 @@ jobs:
           if ${{ inputs.pull_request_number != '' }}; then
             local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}-${platform_id}"
           else
-            local_cache_from=${{ inputs.local_cache_from }}
-            local_cache_from=$(echo ${local_cache_from:-$orig_gh_ref} | tr . -)
-            if ${{ inputs.local_cache_from == '' && github.event.pull_request.merged == true }}; then
+            if ${{ github.event.pull_request.merged == true }}; then
               local_cache_from=${{ github.event.pull_request.number }}/merge
+            elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
+              local_cache_from=$(echo $ref_name | cut -d / -f2)/merge
             fi
+            local_cache_from=$(echo ${local_cache_from:-${{ github.ref_name }}} | tr . -)
             local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
           fi
 
-          if ${{ inputs.registry_cache_update || inputs.registry_cache_update_only }}; then
-            registry_cache_target=$(echo $orig_gh_ref | tr / -)
+          if ${{ inputs.update_registry_cache != '' }}; then
+            registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
@@ -274,7 +269,8 @@ jobs:
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
           echo "registry_cache_base=$registry_cache_base" >> $GITHUB_OUTPUT
-          if ${{ inputs.environment == '' && ! inputs.registry_cache_update_only }}; then
+          echo "push_to_registry=${{ inputs.environment != '' && inputs.update_registry_cache == '' }}" >> $GITHUB_OUTPUT
+          if ${{ inputs.environment == '' && inputs.update_registry_cache == '' }}; then
             tar_archive=/tmp/${{ needs.metadata.outputs.image_id }}.tar
             echo "tar_cache=tar-${cache_id}-${platform_id}${local_buildcache_key_suffix}" >> $GITHUB_OUTPUT
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
@@ -287,7 +283,6 @@ jobs:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
           restore-keys: |
-            ${{ inputs.additional_local_caches }}
             ${{ steps.cache.outputs.local_buildcache_key }}
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
@@ -308,15 +303,15 @@ jobs:
             ${{ steps.cache.outputs.cache_from_gh }}
             ${{ steps.cache.outputs.cache_from_registry }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
-          push: ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}
+          push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
           outputs: ${{ steps.cache.outputs.docker_output }}
 
       - name: Install Cosign
-        if: inputs.environment
+        if: steps.cache.outputs.push_to_registry == 'true'
         uses: sigstore/cosign-installer@v3.1.1
 
       - name: Sign image with GitHub OIDC Token
-        if: inputs.environment
+        if: steps.cache.outputs.push_to_registry == 'true'
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ needs.metadata.outputs.image_tags }}
@@ -340,11 +335,12 @@ jobs:
 
       - name: Check for existing image
         id: uploaded_image
+        if: inputs.update_registry_cache == ''
         run: |
-          if ${{ inputs.environment && ! inputs.registry_cache_update_only || false }}; then
+          if ${{ inputs.environment != '' }}; then
             image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
             echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
-          elif ${{ steps.cache.outputs.docker_output != '' }}; then
+          else
             # Check if an image with the same layers exists on the registry.
             # If so, use that image instead of uploading a tar cache.
             load_output=`docker load --input "${{ steps.cache.outputs.tar_archive }}"`
@@ -388,7 +384,7 @@ jobs:
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         id: cache_upload
-        if: steps.cache.outputs.docker_output != '' && steps.uploaded_image.outputs.image_hash == ''
+        if: inputs.update_registry_cache == '' && steps.uploaded_image.outputs.image_hash == ''
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
