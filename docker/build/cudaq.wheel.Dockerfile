@@ -23,17 +23,19 @@ ARG workspace=.
 ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
-# Install additional dependencies
-# They might be optionally pulled in during auditwheel if necessary.
-RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
-
 ARG python_version=3.10
 RUN echo "Building MLIR bindings for python${python_version}" \
     && python${python_version} -m pip install --no-cache-dir numpy \
+    && rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" \
     && export Python3_EXECUTABLE="$(which python${python_version})" \
     && export CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
     && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
 
+# Install additional dependencies
+# They might be optionally pulled in during auditwheel if necessary.
+RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
+
+# Build the wheel
 RUN echo "Building wheel for python${python_version}." \
     && cd cuda-quantum && python=python${python_version} \
     # Find any external NVQIR simulator assets to be pulled in during wheel packaging.
