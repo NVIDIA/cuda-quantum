@@ -13,7 +13,7 @@ add_library(${LIBRARY_NAME} SHARED MultiQPUPlatform.cpp ../common/QuantumExecuti
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-       $<INSTALL_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
+       $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
