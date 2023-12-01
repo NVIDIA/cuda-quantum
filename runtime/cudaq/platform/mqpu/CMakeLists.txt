@@ -26,7 +26,7 @@ target_link_libraries(${LIBRARY_NAME}
     pthread
     spdlog::spdlog 
     fmt::fmt-header-only 
-    CUDA::cudart)
+    CUDA::cudart_static)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-mqpu-targets DESTINATION lib)
