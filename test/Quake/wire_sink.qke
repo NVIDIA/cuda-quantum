@@ -41,6 +41,8 @@ func.func @red_button(%arg0: !quake.wire, %arg1: !quake.wire) {
   %1 = quake.reset %0 : (!quake.wire) -> !quake.wire
   %2 = quake.h %arg1 : (!quake.wire) -> !quake.wire
   quake.sink %1 : !quake.wire
+  %r = cc.undef !quake.ref
+  quake.wrap %2 to %r : !quake.wire, !quake.ref
   return
 }
 
