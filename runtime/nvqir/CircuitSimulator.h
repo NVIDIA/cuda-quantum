@@ -149,10 +149,6 @@ public:
   /// @brief Return the current execution context
   virtual cudaq::ExecutionContext *getExecutionContext() = 0;
 
-  virtual void
-  initializeState(const std::vector<std::size_t> &targets,
-                  const std::vector<std::complex<double>> &stateVector) = 0;
-
   /// @brief Apply a custom operation described by a matrix of data
   /// represented as 1-D vector of elements in row-major order, as well
   /// as the the control qubit and target indices

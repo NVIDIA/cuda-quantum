@@ -583,67 +583,6 @@ void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   patterns.add<KillDeadWrapPattern>(context);
 }
 
-// LogicalResult quake::InitializeStateOp::verify() {
-//   return failure();
-// }
-
-//===----------------------------------------------------------------------===//
-// UnitaryOp
-//===----------------------------------------------------------------------===//
-
-/// @brief Verify we have correct Attribute structure for
-/// unitary matrix elements.
-LogicalResult quake::UnitaryOp::verify() {
-
-  auto op = getOperation();
-  auto targets = getTargets();
-  auto constantUnitary = getConstantUnitary();
-  if (constantUnitary.has_value()) {
-    auto unitary = constantUnitary.value();
-    for (auto element : unitary) {
-      auto arrAttr = dyn_cast<DenseF32ArrayAttr>(element);
-      if (!arrAttr)
-        return op->emitOpError(
-            "quake.unitary must be an ArrayAttr containing "
-            "DenseF32ArrayAttr elements, where each element is the real "
-            "and imaginary part of the matrix element.");
-      if (arrAttr.size() != 2)
-        return op->emitOpError("unitary elements must be of size 2, the real "
-                               "and imaginary parts.");
-    }
-
-    // verify correct number of unitary elements
-    std::size_t numQubits = 0;
-    for (auto target : targets)
-      if (auto veqTy = dyn_cast<quake::VeqType>(target.getType())) {
-        if (!veqTy.hasSpecifiedSize())
-          return op->emitOpError(
-              "quake.unitary cannot have runtime-known veq<?> types for "
-              "constant-sized matrix data.");
-        numQubits += veqTy.getSize();
-      } else // otherwise, must be a quake.ref
-        numQubits++;
-
-    // Should have 2**NumQ x 2**NumQ
-    std::size_t expectedNumElements = (1UL << numQubits) * (1UL << numQubits);
-    if (expectedNumElements != unitary.size())
-      return op->emitOpError(
-          "invalid number of unitary matrix elements. For " +
-          std::to_string(targets.size()) + " qubits, there should be " +
-          std::to_string(expectedNumElements) + " elements. (" +
-          std::to_string(unitary.size()) + " provided)");
-
-    return success();
-  }
-
-  auto unitary = getUnitary();
-  if (!unitary)
-    return op->emitOpError(
-        "must have unitary value if constant unitary data not provided.");
-
-  return success();
-}
-
 //===----------------------------------------------------------------------===//
 // Measurements (MxOp, MyOp, MzOp)
 //===----------------------------------------------------------------------===//
@@ -706,9 +645,9 @@ LogicalResult quake::DiscriminateOp::verify() {
 //===----------------------------------------------------------------------===//
 
 // The following methods return to the operator's unitary matrix as a
-// column-major array. For parametrizable operations, the matrix can only be
+// column-major array. For parameterizable operations, the matrix can only be
 // built if the parameter can be computed at compilation time. These methods
-// populate an empty array taken as a input. If the matrix was not successfuly
+// populate an empty array taken as a input. If the matrix was not successfully
 // computed, the array will be left empty.
 
 /// If the parameter is known at compilation-time, set the result value and

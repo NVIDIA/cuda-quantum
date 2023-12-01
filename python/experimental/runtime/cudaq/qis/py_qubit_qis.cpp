@@ -25,8 +25,10 @@ void bindQIS(py::module &mod) {
       .def(
           "__invert__", [](qubit &self) -> qubit & { return !self; },
           "Negate the control qubit.")
-      .def("is_negated", &qubit::is_negative, "")
-      .def("reset_negation", &qubit::negate, "")
+      .def("is_negated", &qubit::is_negative,
+           "Returns true if this is a negated control qubit.")
+      .def("reset_negation", &qubit::negate,
+           "Removes the negated state of a control qubit.")
       .def(
           "id", [](qubit &self) { return self.id(); },
           "Return a unique integer identifier for this qubit.");
@@ -106,25 +108,5 @@ void bindQIS(py::module &mod) {
       .def("__getitem__", &qvector<2>::operator[],
            py::return_value_policy::reference,
            "Return the qubit at the given index.");
-
-  mod.def("initialize_state", [](qvector<> &qubits, py::buffer buffer) {
-    std::vector<QuditInfo> qubitIds;
-    for (auto &q : qubits)
-      qubitIds.emplace_back(2, q.id());
-
-    std::vector<std::complex<double>> data;
-    auto info = buffer.request();
-    if (info.format != py::format_descriptor<std::complex<double>>::format())
-      throw std::runtime_error("input state vector must be complex type");
-
-    if (info.ndim != 1)
-      throw std::runtime_error("input state vector must be one dimensional");
-
-    auto *casted = static_cast<std::complex<double> *>(info.ptr);
-    data = std::vector<std::complex<double>>(casted, casted + info.shape[0]);
-
-    getExecutionManager()->apply("init_state", {}, {}, qubitIds, false,
-                                 spin_op(), data);
-  });
 }
 } // namespace cudaq

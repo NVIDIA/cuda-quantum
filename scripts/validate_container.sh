@@ -95,7 +95,9 @@ echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
 
-for ex in `find examples -name '*.py'`;
+# [RFC]: 
+# enable the examples in the excluded directories
+for ex in `find examples -name '*.py' -not -path '*/python_mlir/*' -not -path '*/python_runtime/*'`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"

@@ -695,24 +695,3 @@ func.func @cc_indexing(%arg0 : !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f
   %ele = cc.get_const_element %arr, %one : (!cc.array<f32 x 2>, i32) -> f32
   return
 }
-
-func.func @checkUnitary() {
-  %0 = quake.alloca !quake.ref
-  quake.unitary %0 : (!quake.ref) -> () { opName = "custom_h", constantUnitary = [array<f32: 0.707106769, 0.000000e+00>, array<f32: 0.707106769, 0.000000e+00>, array<f32: 0.707106769, 0.000000e+00>, array<f32: -0.707106769, 0.000000e+00>]}
-  return 
-}
-
-// CHECK-LABEL:   func.func @checkUnitary
-// CHECK: %[[VAL_0:.*]] = quake.alloca !quake.ref
-// CHECK: quake.unitary %[[VAL_0]] : 
-
-func.func @checkInitState(%arg0 : !cc.stdvec<complex<f32>>) {
-  %0 = quake.alloca !quake.veq<4>
-  quake.init_state(%0, %arg0) : (!quake.veq<4>, !cc.stdvec<complex<f32>>) -> ()
-  return
-}
-
-// CHECK-LABEL:     func.func @checkInitState
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           quake.init_state(%[[VAL_0]], %[[VAL_1:.*]]) : (!quake.veq<4>, !cc.stdvec<complex<f32>>) -> ()
-// CHECK:           return

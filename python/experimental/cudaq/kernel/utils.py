@@ -20,16 +20,12 @@ qreg = qvector
 nvqppPrefix = '__nvqpp__mlirgen__'
 
 # Keep a global registry of all kernel FuncOps
-# keyed on their name (without __nvqpp__mlirgen__ prefix)
+# keyed on their name (without `__nvqpp__mlirgen__` prefix)
 globalKernelRegistry = {}
 
-# Keep a global registry of all kernel Python ast modules
-# keyed on their name (without __nvqpp__mlirgen__ prefix)
+# Keep a global registry of all kernel Python AST modules
+# keyed on their name (without `__nvqpp__mlirgen__` prefix)
 globalAstRegistry = {}
-
-# Keep a global registry of all registered custom
-# unitary operations.
-globalRegisteredUnitaries = {}
 
 
 def mlirTypeFromAnnotation(annotation, ctx):
@@ -86,8 +82,7 @@ def mlirTypeFromAnnotation(annotation, ctx):
             annotation.id))
 
 
-def mlirTypeFromPyType(argType, ctx,
-                       **kwargs):  #argInstance=None, argTypeToCompareTo=None):
+def mlirTypeFromPyType(argType, ctx, **kwargs):
 
     if argType == int:
         return IntegerType.get_signless(64, ctx)

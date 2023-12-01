@@ -36,10 +36,9 @@ protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits,
   /// target qudits, and an optional spin_op.
-  using Instruction =
-      std::tuple<std::string, std::vector<double>,
-                 std::vector<cudaq::QuditInfo>, std::vector<cudaq::QuditInfo>,
-                 spin_op, std::vector<std::complex<double>>>;
+  using Instruction = std::tuple<std::string, std::vector<double>,
+                                 std::vector<cudaq::QuditInfo>,
+                                 std::vector<cudaq::QuditInfo>, spin_op>;
 
   /// @brief `typedef` for a queue of instructions
   using InstructionQueue = std::queue<Instruction>;
@@ -209,9 +208,7 @@ public:
   void apply(const std::string_view gateName, const std::vector<double> &params,
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
-             bool isAdjoint = false, const spin_op op = spin_op(),
-             const std::vector<std::complex<double>> unitary =
-                 std::vector<std::complex<double>>{}) override {
+             bool isAdjoint = false, spin_op op = spin_op()) override {
 
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);
@@ -243,23 +240,22 @@ public:
 
     if (!adjointQueueStack.empty()) {
       // Add to the adjoint instruction queue
-      adjointQueueStack.top().emplace(
-          std::make_tuple(mutable_name, mutable_params, mutable_controls,
-                          mutable_targets, op, unitary));
+      adjointQueueStack.top().emplace(std::make_tuple(
+          mutable_name, mutable_params, mutable_controls, mutable_targets, op));
       return;
     }
 
     // Add to the instruction queue
     instructionQueue.emplace(std::make_tuple(std::move(mutable_name),
                                              mutable_params, mutable_controls,
-                                             mutable_targets, op, unitary));
+                                             mutable_targets, op));
   }
 
   void synchronize() override {
     while (!instructionQueue.empty()) {
       auto instruction = instructionQueue.front();
       if (isInTracerMode()) {
-        auto [gateName, params, controls, targets, op, unitary] = instruction;
+        auto [gateName, params, controls, targets, op] = instruction;
         std::vector<std::size_t> controlIds;
         std::transform(controls.begin(), controls.end(),
                        std::back_inserter(controlIds),

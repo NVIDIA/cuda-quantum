@@ -333,50 +333,6 @@ struct SupportedCVectorComplex {
   std::size_t size;
 };
 
-void __quantum__qis__initialize_state(Array *targets,
-                                      SupportedCVectorComplex data) {
-  auto targetIds = arrayToVectorSizeT(targets);
-  auto numElements = (1UL << targetIds.size());
-  if (data.size != numElements)
-    throw std::runtime_error("invalid number of state vector elements provided (" +
-                             std::to_string(data.size) + " provided, " +
-                             std::to_string(numElements) + " required).");
-  std::vector<std::complex<double>> vector(numElements);
-  for (std::size_t i = 0; i < numElements; i++)
-    vector[i] = {data.data[i].real, data.data[i].imag};
-
-  nvqir::getCircuitSimulatorInternal()->initializeState(targetIds, vector);
-}
-
-void __quantum__qis__unitary(SupportedCVectorComplex data, Array *controls,
-                             Array *targets) {
-
-  auto targetIds = arrayToVectorSizeT(targets);
-  auto numElements = (1ULL << targetIds.size()) * (1ULL << targetIds.size());
-  std::vector<std::complex<double>> matrix(numElements);
-  for (std::size_t i = 0; i < numElements; i++)
-    matrix[i] = {data.data[i].real, data.data[i].imag};
-
-  auto controlIds = arrayToVectorSizeT(controls);
-
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, controlIds,
-                                                             targetIds);
-}
-
-void __quantum__qis__constant_unitary(double *realPart, double *imagPart,
-                                      Array *controls, Array *targets) {
-  auto targetIds = arrayToVectorSizeT(targets);
-  auto numElements = (1ULL << targetIds.size()) * (1ULL << targetIds.size());
-  std::vector<std::complex<double>> matrix(numElements);
-  for (std::size_t i = 0; i < numElements; i++)
-    matrix[i] = {realPart[i], imagPart[i]};
-
-  auto controlIds = arrayToVectorSizeT(controls);
-
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, controlIds,
-                                                             targetIds);
-}
-
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);

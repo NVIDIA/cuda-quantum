@@ -29,7 +29,7 @@ struct QuditInfo {
   std::size_t id = 0;
   QuditInfo(const std::size_t &_levels, const std::size_t &_id)
       : levels(_levels), id(_id) {}
-  bool operator==(const QuditInfo &other) {
+  bool operator==(const QuditInfo &other) const {
     return levels == other.levels && id == other.id;
   }
 };
@@ -41,7 +41,6 @@ struct QuantumOperation {
   const std::vector<QuditInfo> &targets;
   bool isAdjoint = false;
   const spin_op op = spin_op();
-  const std::vector<std::complex<double>> unitary;
 };
 
 bool __nvqpp__MeasureResultBoolConversion(int);
@@ -124,8 +123,7 @@ public:
                      const std::vector<double> &params,
                      const std::vector<QuditInfo> &controls,
                      const std::vector<QuditInfo> &targets,
-                     bool isAdjoint = false, const spin_op op = spin_op(),
-                     const std::vector<std::complex<double>> unitary = {}) = 0;
+                     bool isAdjoint = false, const spin_op op = spin_op()) = 0;
 
   /// Reset the qubit to the |0> state
   virtual void reset(const QuditInfo &target) = 0;

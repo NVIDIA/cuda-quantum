@@ -10,11 +10,10 @@ from ._packages import *
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
-from .kernel.qubit_qis import register_operation, adjoint, control, compute_action
+from .kernel.qubit_qis import adjoint, control, compute_action
 from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.state import get_state
-from ._query_gpu import is_gpu_available
 from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
 
 global globalJIT
@@ -40,9 +39,8 @@ gradients = cudaq_runtime.gradients
 set_target = cudaq_runtime.set_target
 reset_target = cudaq_runtime.reset_target
 set_random_seed = cudaq_runtime.set_random_seed
-initialize_state = cudaq_runtime.initialize_state 
-mpi = cudaq_runtime.mpi 
-num_available_gpus = cudaq_runtime.num_available_gpus 
+mpi = cudaq_runtime.mpi
+num_available_gpus = cudaq_runtime.num_available_gpus
 
 # Noise Modeling
 KrausChannel = cudaq_runtime.KrausChannel
@@ -102,15 +100,11 @@ if not "CUDAQ_DYNLIBS" in os.environ:
             print("Could not find a suitable cuQuantum Python package.")
         pass
 
-
-
-initKwargs = {'target': 'qpp-cpu'}
-if is_gpu_available():
-    initKwargs = {'target': 'nvidia'}
+initKwargs = {}
 
 if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
 if '--emulate' in sys.argv:
-    initKwargs['emulate'] = True 
+    initKwargs['emulate'] = True
 
 cudaq_runtime.initialize_cudaq(**initKwargs)
