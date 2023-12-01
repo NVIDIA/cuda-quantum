@@ -112,7 +112,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "lists across all ranks. The total global list size must be provided.");
   mpiSubmodule.def(
       "is_initialized", []() { return cudaq::mpi::is_initialized(); },
-      "Return true if MPI has already been initialized.");
+      "Returns true if MPI has already been initialized.");
   mpiSubmodule.def(
       "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");
 

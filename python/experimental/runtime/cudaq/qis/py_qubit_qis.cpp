@@ -25,8 +25,10 @@ void bindQIS(py::module &mod) {
       .def(
           "__invert__", [](qubit &self) -> qubit & { return !self; },
           "Negate the control qubit.")
-      .def("is_negated", &qubit::is_negative, "")
-      .def("reset_negation", &qubit::negate, "")
+      .def("is_negated", &qubit::is_negative,
+          "Returns true if this is a negated control qubit.")
+      .def("reset_negation", &qubit::negate,
+          "Removes the negated state of a control qubit.")
       .def(
           "id", [](qubit &self) { return self.id(); },
           "Return a unique integer identifier for this qubit.");
