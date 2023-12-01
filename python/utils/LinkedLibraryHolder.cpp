@@ -30,28 +30,22 @@ constexpr static const char NVQIR_SIMULATION_BACKEND[] =
     "NVQIR_SIMULATION_BACKEND=";
 constexpr static const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
 
+/// @brief A utility function to check availability of Nvidia GPUs and return
+/// their count
 int countGPUs() {
-  char buffer[1024];
-  std::string output;
-  FILE *fp1, *fp2;
-
-  fp1 = popen("nvidia-smi", "r");
-  if (!fp1) {
+  auto retCode = std::system("nvidia-smi >/dev/null 2>&1");
+  if (0 != retCode) {
     cudaq::info("nvidia-smi: command not found");
-    return -1;
+    return 0;
   }
-  pclose(fp1);
 
-  fp2 = popen("nvidia-smi -L | wc -l", "r");
-  if (!fp2) {
-    cudaq::info("nvidia-smi: command not working");
-    return -1;
-  }
-  while (fgets(buffer, sizeof buffer, fp2)) {
-    output += buffer;
-  }
-  pclose(fp2);
-  return std::stoi(output);
+  std::string tmpFile = ".temp.command.capture.output.txt";
+  std::stringstream buffer;
+  retCode =
+      std::system(("nvidia-smi -L 2>/dev/null | wc -l >> " + tmpFile).c_str());
+  buffer << std::ifstream(tmpFile).rdbuf();
+  retCode = std::system(("rm -f " + tmpFile).c_str());
+  return std::stoi(buffer.str());
 }
 
 std::size_t RuntimeTarget::num_qpus() {
