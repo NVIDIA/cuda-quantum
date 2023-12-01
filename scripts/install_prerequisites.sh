@@ -92,6 +92,12 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
     temp_install_if_command_unknown gfortran gfortran
   fi
 
+  if [ ! -x "$(command -v ninja)" ]; then
+    temp_install_if_command_unknown unzip unzip
+    wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
+    unzip ninja-linux.zip && mv ninja /usr/local/bin/ && rm -rf ninja-linux.zip
+  fi
+
   # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
   wget http://www.netlib.org/blas/blas-3.11.0.tgz
   tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
