@@ -186,7 +186,13 @@ sample_result::sample_result(double preComputedExp,
 }
 
 void sample_result::append(ExecutionResult &result) {
-  sampleResults.insert({result.registerName, result});
+  // If given a result corresponding to the same register name,
+  // replace the existing one if in the map.
+  auto iter = sampleResults.find(result.registerName);
+  if (iter != sampleResults.end())
+    sampleResults[result.registerName] = result;
+  else
+    sampleResults.insert({result.registerName, result});
   if (!totalShots)
     for (auto &[bits, count] : result.counts)
       totalShots += count;
