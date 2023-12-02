@@ -55,7 +55,7 @@ TEST(MeasureResetTester, checkBug981) {
   };
 
   std::cout << "Bar:\n";
-  auto result = cudaq::sample(bar);
+  auto result = cudaq::sample(/*shots=*/10, bar);
   result.dump();
   EXPECT_EQ(1, result.size());
   EXPECT_TRUE(result.count("0") > 0);
