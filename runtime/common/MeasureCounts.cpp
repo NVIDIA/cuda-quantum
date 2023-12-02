@@ -190,7 +190,7 @@ void sample_result::append(ExecutionResult &result) {
   // replace the existing one if in the map.
   auto iter = sampleResults.find(result.registerName);
   if (iter != sampleResults.end())
-    sampleResults[result.registerName] = result;
+    iter->second = result;
   else
     sampleResults.insert({result.registerName, result});
   if (!totalShots)
