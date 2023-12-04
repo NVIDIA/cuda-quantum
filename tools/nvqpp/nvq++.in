@@ -437,10 +437,16 @@ while [ $# -ne 0 ]; do
 		LINKLIBS="${LINKLIBS} -l$2"
 		shift
 		;;
+	-fPIC|-fpic)
+		# Pass to linker, library mode, and cudaq-quake
+		LINKER_FLAGS="${LINKER_FLAGS} $1"
+		ARGS="${ARGS} $1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq $1"
+		;;
 	-c)
 		DO_LINK=false
 		;;
-	-L* | -Wl*)
+	-L* | -Wl* |-shared|-static)
 		LINKER_FLAGS="${LINKER_FLAGS} $1"
 		;;
 	-I*)
@@ -652,7 +658,7 @@ if ${DO_LINK}; then
 	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified
-	if [ ! -z "${OUTPUTFILE}" ] && [ $((${#OBJS[@]} == 0)) ]; then
+	if [ ! -z "${OUTPUTFILE}" ] && ((${#OBJS[@]} == 0)); then
 		run mv ${OBJS} ${OUTPUTFILE}
 	fi
 fi
