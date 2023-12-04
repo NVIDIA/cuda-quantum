@@ -56,6 +56,11 @@ fi
 llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
 if [ ! -d "$llvm_dir" ]; then
   echo "Could not find llvm libraries."
+  if [ ! -x "$(command -v ninja)" ]; then
+    temp_install_if_command_unknown unzip unzip
+    wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
+    unzip ninja-linux.zip && mv ninja /usr/local/bin/ && rm -rf ninja-linux.zip
+  fi
 
   echo "Building PyBind11..."
   repo_root="$(git rev-parse --show-toplevel)" && cd "$repo_root"
