@@ -57,6 +57,13 @@ llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
 if [ ! -d "$llvm_dir" ]; then
   echo "Could not find llvm libraries."
 
+  echo "Building PyBind11..."
+  repo_root="$(git rev-parse --show-toplevel)" && cd "$repo_root"
+  git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 && cd -
+  mkdir "$repo_root/tpls/pybind11/build" && cd "$repo_root/tpls/pybind11/build"
+  cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11
+  cmake --build . --target install --config Release
+
   # Build llvm libraries from source and install them in the install directory
   source "$this_file_dir/build_llvm.sh"
   (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
