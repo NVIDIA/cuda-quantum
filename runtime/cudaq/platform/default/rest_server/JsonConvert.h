@@ -12,12 +12,33 @@
 
 using json = nlohmann::json;
 
+namespace std {
+template <class T>
+void to_json(json &j, const std::complex<T> &p) {
+  j = json{p.real(), p.imag()};
+}
+
+template <class T>
+void from_json(const json &j, std::complex<T> &p) {
+  p.real(j.at(0));
+  p.imag(j.at(1));
+}
+} // namespace std
+
 namespace cudaq {
 void to_json(json &j, const ExecutionContext &context) {
   j = json{{"name", context.name},
            {"shots", context.shots},
            {"hasConditionalsOnMeasureResults",
             context.hasConditionalsOnMeasureResults}};
+
+  j["result"] = context.result.serialize();
+  if (context.expectationValue.has_value()) {
+    j["expectationValue"] = context.expectationValue.value();
+  }
+  j["simulationData"] = json();
+  j["simulationData"]["dim"] = std::get<0>(context.simulationData);
+  j["simulationData"]["data"] = std::get<1>(context.simulationData);
 }
 
 void from_json(const json &j, ExecutionContext &context) {

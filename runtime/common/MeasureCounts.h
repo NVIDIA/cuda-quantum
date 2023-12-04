@@ -44,7 +44,7 @@ struct ExecutionResult {
   /// then for each bit string a triple {string mapped to long, bit string
   /// length, count}
   /// @return
-  std::vector<std::size_t> serialize();
+  std::vector<std::size_t> serialize() const;
 
   /// @brief Deserialize a vector of integers to a `ExecutionResult`
   /// @param data The data with encoding discussed in the brief for
@@ -164,7 +164,7 @@ public:
   /// `ExecutionResult::serialize()` documentation for information
   //. about the encoding.
   /// @return
-  std::vector<std::size_t> serialize();
+  std::vector<std::size_t> serialize() const;
 
   /// @brief Create this sample_result from the serialized data.
   /// @param data

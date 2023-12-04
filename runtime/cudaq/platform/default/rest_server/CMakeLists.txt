@@ -77,12 +77,17 @@ target_link_libraries(cudaq_rest_server
   QuakeDialect
 )
 target_link_libraries(cudaq_rest_server
-  PRIVATE 
+  PRIVATE
+    cudaq-common  
+    cudaq-spin  
+    cudaq
     cudaq-mlir-runtime 
-    cudaq-common 
+    nvqir
+    cudaq-em-default 
+    cudaq-platform-default
     spdlog::spdlog 
     fmt::fmt-header-only) 
-
+target_link_options(cudaq_rest_server PRIVATE -Wl,--no-as-needed)
 mlir_check_all_link_libraries(cudaq_rest_server)
 
 install(TARGETS cudaq_rest_server DESTINATION bin)

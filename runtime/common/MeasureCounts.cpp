@@ -69,7 +69,7 @@ bool ExecutionResult::operator==(const ExecutionResult &result) const {
 // represent register name, number of bitstrings M, then for each bit string
 // {l, bs.length, count}
 /// @return
-std::vector<std::size_t> ExecutionResult::serialize() {
+std::vector<std::size_t> ExecutionResult::serialize() const {
   std::vector<std::size_t> retData;
 
   // Encode the classical register name
@@ -116,7 +116,7 @@ void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
   }
 }
 
-std::vector<std::size_t> sample_result::serialize() {
+std::vector<std::size_t> sample_result::serialize() const {
   std::vector<std::size_t> retData;
   for (auto &result : sampleResults) {
     auto serialized = result.second.serialize();

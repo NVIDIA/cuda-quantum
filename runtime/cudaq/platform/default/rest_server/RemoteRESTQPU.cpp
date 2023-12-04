@@ -64,7 +64,7 @@ public:
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                                     std::uint64_t resultOffset) override {
-    cudaq::info("QPU::launchKernel QPU {}", qpu_id);
+    cudaq::info("QPU::launchKernel named '{}' QPU {}", name, qpu_id);
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(name);
     
@@ -99,6 +99,7 @@ public:
 
     std::cout << "Quake:\n" << quakeCode << "\n";
     nlohmann::json job;
+    job["kernel-name"] = name;
     job["quake"] = quakeCode;
     if (!executionContext)
       throw std::runtime_error("Invalid ExecutionContext encountered.");
