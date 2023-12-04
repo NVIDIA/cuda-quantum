@@ -323,16 +323,6 @@ void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
   nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
 }
 
-struct MyComplexT {
-  double real;
-  double imag;
-};
-
-struct SupportedCVectorComplex {
-  MyComplexT *data;
-  std::size_t size;
-};
-
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);
