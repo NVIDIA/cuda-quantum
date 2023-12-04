@@ -67,7 +67,7 @@ if [ ! -d "$llvm_dir" ]; then
   git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 && cd -
   mkdir "$repo_root/tpls/pybind11/build" && cd "$repo_root/tpls/pybind11/build"
   cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11
-  cmake --build . --target install --config Release
+  cmake --build . --target install --config Release && cd -
 
   # Build llvm libraries from source and install them in the install directory
   source "$this_file_dir/build_llvm.sh"
