@@ -45,6 +45,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Pass/PassManager.h"
 #include "common/Logger.h"
+#include "common/RuntimeMLIR.h"
 
 constexpr static char BOLD[] = "\033[1m";
 constexpr static char RED[] = "\033[91m";
@@ -81,8 +82,6 @@ jitCode(ModuleOp currentModule, std::vector<std::string> extraLibPaths = {}) {
   if (failed(pm.run(module)))
     throw std::runtime_error("Failed to JIT compile the Quake representation.");
 
-  // pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
-  pm.addPass(cudaq::opt::createGenerateKernelExecution());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
   optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
@@ -132,11 +131,6 @@ jitCode(ModuleOp currentModule, std::vector<std::string> extraLibPaths = {}) {
 
 int main(int argc, char **argv) {
   crow::SimpleApp app;
-  registerAsmPrinterCLOptions();
-  registerMLIRContextCLOptions();
-  registerPassManagerCLOptions();
-  registerTranslationCLOptions();
-  registerAllPasses();
   CROW_ROUTE(app, "/")
   ([]() { return "Hello, world!"; });
 
@@ -144,16 +138,12 @@ int main(int argc, char **argv) {
     CROW_LOG_INFO << "msg from client: " << req.body;
     auto requestJson = json::parse(req.body);
     const std::string quake = requestJson["quake"];
-    DialectRegistry registry;
-    registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
-    registerAllDialects(registry);
-    MLIRContext context(registry);
-    context.loadAllAvailableDialects();
+    auto contextPtr = cudaq::initializeMLIR();
     auto fileBuf = llvm::MemoryBuffer::getMemBufferCopy(quake);
     // Parse the input mlir.
     llvm::SourceMgr sourceMgr;
     sourceMgr.AddNewSourceBuffer(std::move(fileBuf), llvm::SMLoc());
-    auto module = parseSourceFile<ModuleOp>(sourceMgr, &context);
+    auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
     std::cout << "Done\n";
     module->dump();
     auto engine = jitCode(*module);

@@ -55,8 +55,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 
 add_executable(cudaq_rest_server RestServerMain.cpp)
 target_include_directories(cudaq_rest_server PRIVATE ${crow_cpp_SOURCE_DIR}/include ${asio_SOURCE_DIR}/asio/include)
-
-# llvm_update_compile_flags(cudaq_rest_server)
 target_link_libraries(cudaq_rest_server
   PRIVATE
   ${dialect_libs}
@@ -73,7 +71,6 @@ target_link_libraries(cudaq_rest_server
   MLIRTargetLLVMIRExport
   MLIRLLVMCommonConversion
   MLIRLLVMToLLVMIRTranslation
-
   CCDialect
   OptCodeGen
   OptTransforms
@@ -81,7 +78,8 @@ target_link_libraries(cudaq_rest_server
 )
 target_link_libraries(cudaq_rest_server
   PRIVATE 
-  cudaq-common 
+    cudaq-mlir-runtime 
+    cudaq-common 
     spdlog::spdlog 
     fmt::fmt-header-only) 
 
