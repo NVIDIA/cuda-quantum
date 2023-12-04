@@ -33,18 +33,31 @@ constexpr static const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
 /// @brief A utility function to check availability of Nvidia GPUs and return
 /// their count
 int countGPUs() {
-  auto retCode = std::system("nvidia-smi >/dev/null 2>&1");
+  int retCode = std::system("nvidia-smi >/dev/null 2>&1");
   if (0 != retCode) {
     cudaq::info("nvidia-smi: command not found");
-    return 0;
+    return -1;
   }
 
-  std::string tmpFile = ".temp.command.capture.output.txt";
+  char tmpFile[] = "/tmp/.cmd.capture.XXXXXX";
+  int fileDescriptor = mkstemp(tmpFile);
+  if (-1 == fileDescriptor) {
+    cudaq::info("Failed to create a temporary file to capture output");
+    return -1;
+  }
+
+  std::string command = "nvidia-smi -L 2>/dev/null | wc -l >> ";
+  command.append(tmpFile);
+  retCode = std::system(command.c_str());
+  if (0 != retCode) {
+    cudaq::info("Encountered error while invoking 'nvidia-smi'");
+    return -1;
+  }
+
   std::stringstream buffer;
-  retCode =
-      std::system(("nvidia-smi -L 2>/dev/null | wc -l >> " + tmpFile).c_str());
   buffer << std::ifstream(tmpFile).rdbuf();
-  retCode = std::system(("rm -f " + tmpFile).c_str());
+  close(fileDescriptor);
+  unlink(tmpFile);
   return std::stoi(buffer.str());
 }
 
