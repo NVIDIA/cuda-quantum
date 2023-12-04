@@ -432,7 +432,7 @@ if (NOT CUDAQ_SKIP_MPI)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND) 
     message(STATUS "MPI CXX Found: ${MPIEXEC}")
-    # Build the buitin MPI Comm plugin
+    # Build the built-in MPI Comm plugin
     add_subdirectory(runtime/cudaq/distributed/builtin)
   endif()
 endif()
