@@ -87,9 +87,11 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
 
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
-  temp_install_if_command_unknown gcc gcc
-  temp_install_if_command_unknown g++ g++
-  temp_install_if_command_unknown gfortran gfortran
+  if [ ! -x "$(command -v "$FC")" ]; then
+    temp_install_if_command_unknown gcc gcc
+    temp_install_if_command_unknown g++ g++
+    temp_install_if_command_unknown gfortran gfortran
+  fi
 
   # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
   wget http://www.netlib.org/blas/blas-3.11.0.tgz

@@ -68,7 +68,7 @@ source "$this_file_dir/install_prerequisites.sh"
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 
 # Check if a suitable CUDA version is installed
-cuda_version=`nvcc --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
+cuda_version=`${CUDACXX:-nvcc} --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 cuda_major=`echo $cuda_version | cut -d '.' -f 1`
 cuda_minor=`echo $cuda_version | cut -d '.' -f 2`
 if [ ! -x "$(command -v nvidia-smi)" ] && [ "$FORCE_COMPILE_GPU_COMPONENTS" != "true" ] ; then # the second check here is to avoid having to use https://discuss.huggingface.co/t/how-to-deal-with-no-gpu-during-docker-build-time/28544 

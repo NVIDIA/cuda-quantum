@@ -97,8 +97,11 @@ func.func @quantum_ops() {
   %36 = quake.u3 (%f, %g, %h) %35 : (f32, f32, f32, !quake.wire) -> !quake.wire
 
   %37:2 = quake.mx %29#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %37#1 : !quake.wire
   %38:2 = quake.my %20 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %38#1 : !quake.wire
   %39:2 = quake.mz %36 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %39#1 : !quake.wire
 
   // CUDA Quantum model support
   %40 = quake.alloca !quake.ref { apply_variants = true }
@@ -633,7 +636,7 @@ func.func @wire_type() -> !quake.wire {
 // CHECK:           %[[VAL_1:.*]] = quake.unwrap %[[VAL_0]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
 // CHECK:           %[[VAL_3:.*]]:2 = quake.x [%[[VAL_2]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           quake.wrap %[[VAL_3]]#0 to %[[VAL_0]] : !quake.wire, !quake.ref
+// CHECK:           quake.wrap %[[VAL_3]]#1 to %[[VAL_0]] : !quake.wire, !quake.ref
 // CHECK:           return
 // CHECK:         }
 
@@ -641,7 +644,8 @@ func.func @unwrap_wrap(%0 : !quake.ref) {
   %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
   %3 = quake.null_wire
   %2:2 = quake.x [%3] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.wrap %2 to %0 : !quake.wire, !quake.ref
+  quake.wrap %2#1 to %0 : !quake.wire, !quake.ref
+  quake.sink %2#0 : !quake.wire
   return
 }
 
