@@ -145,7 +145,7 @@ public:
 template <typename ValueType>
 concept IsQuakeValue = std::is_convertible_v<ValueType, QuakeValue>;
 
-/// @brief Concept constraining the LHS args to be numeric below
+/// Concept constraining the LHS arguments to be numeric below.
 template <typename T>
 concept IsNumericType = requires(T param) { std::is_convertible_v<T, double>; };
 

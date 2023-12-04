@@ -46,7 +46,7 @@ std::string get_quake_by_name(const std::string &);
 template <typename T>
 concept NumericType = requires(T param) { std::is_floating_point_v<T>; };
 
-/// @brief Define a Quake-constructable floating point value concept; i.e., it
+/// @brief Define a Quake-`constructable` floating point value concept; i.e., it
 /// could be a `QuakeValue` type or a floating point number (convertible
 /// to a `QuakeValue` with `ConstantFloatOp`).
 template <typename T>
@@ -596,7 +596,7 @@ public:
     details::c_if(*opBuilder, result, thenFunctor);
   }
 
-  /// @brief Apply a general pauli rotation, exp(i theta P), takes a QuakeValue
+  /// @brief Apply a general Pauli rotation, exp(i theta P), takes a QuakeValue
   /// representing a register of qubits.
   template <QuakeValueOrNumericType ParamT>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
@@ -609,7 +609,7 @@ public:
       details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
   }
 
-  /// @brief Apply a general pauli rotation, exp(i theta P), takes a variadic
+  /// @brief Apply a general Pauli rotation, exp(i theta P), takes a variadic
   /// list of QuakeValues representing a individual qubits.
   template <QuakeValueOrNumericType ParamT, typename... QubitArgs>
   void exp_pauli(const ParamT &theta, const std::string &pauliWord,

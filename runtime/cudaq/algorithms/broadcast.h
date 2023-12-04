@@ -16,16 +16,15 @@ namespace cudaq {
 void set_random_seed(std::size_t);
 std::size_t get_random_seed();
 
-/// @brief An ArgumentSet is a tuple of vectors of general
-/// arguments to a CUDA Quantum kernel. The ith vector of the tuple
-/// corresponds to the ith argument of the kernel. The jth element of
-/// the ith vector corresponds to the jth batch of arguments to evaluate
-/// the kernel at.
+/// @brief An ArgumentSet is a tuple of vectors of general arguments to a CUDA
+/// Quantum kernel. The $i$`-th` vector of the tuple corresponds to the $i$`-th`
+/// argument of the kernel. The $j$`-th` element of the $i$`-th` vector
+/// corresponds to the $j$`-th` batch of arguments to evaluate the kernel at.
 template <typename... Args>
 using ArgumentSet = std::tuple<std::vector<Args>...>;
 
-/// @brief Create a new ArgumentSet from a variadic list of
-/// vectors of general args.
+/// @brief Create a new ArgumentSet from a variadic list of vectors of general
+/// arguments.
 template <typename... Args>
 auto make_argset(const std::vector<Args> &...args) {
   return std::make_tuple(args...);
@@ -36,9 +35,9 @@ template <typename ReturnType, typename... Args>
 using BroadcastFunctorType = const std::function<ReturnType(
     std::size_t, std::size_t, std::size_t, Args &...)>;
 
-/// @brief Given the input BroadcastFunctorType, apply it to all
-/// argument sets in the provided ArgumentSet `params`. Distribute the
-/// work over the provided number of QPUs.
+/// @brief Given the input BroadcastFunctorType, apply it to all argument sets
+/// in the provided ArgumentSet `params`. Distribute the work over the provided
+/// number of QPUs.
 template <typename ResType, typename... Args>
 std::vector<ResType>
 broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &platform,

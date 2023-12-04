@@ -15,7 +15,7 @@ namespace cudaq {
 
 #if CUDAQ_USE_STD20
 namespace details {
-/// qarray<N> for N < 1 should be a compile error
+/// `qarray`<N> for N < 1 should be a compile error
 template <std::size_t N>
 concept ValidQArraySize = N > 0;
 } // namespace details
@@ -60,46 +60,36 @@ public:
   /// @brief Returns the qudit at `idx`.
   value_type &operator[](const std::size_t idx) { return qudits[idx]; }
 
-  /// @brief Returns the `[0, count)` qudits as a non-owning qview.
+  /// @return the `[0, count)` qudits as a non-owning `qview`.
   qview<Levels> front(std::size_t count) {
 #if CUDAQ_USE_STD20
     return std::span(qudits).subspan(0, count);
 #else
-    typename std::vector<value_type>::const_iterator first = qudits.begin();
-    typename std::vector<value_type>::const_iterator last =
-        qudits.begin() + count;
-    return {qudits(first, last)};
+    return {qudits.begin(), count};
 #endif
   }
 
-  /// @brief Returns the first qudit.
+  /// @return the first qudit.
   value_type &front() { return qudits.front(); }
 
-  /// @brief Returns the `[count, size())` qudits as a non-owning qview
+  /// @return the `[count, size())` qudits as a non-owning `qview`.
   qview<Levels> back(std::size_t count) {
 #if CUDAQ_USE_STD20
     return std::span(qudits).subspan(size() - count, count);
 #else
-    typename std::vector<value_type>::const_iterator first =
-        qudits.end() - count;
-    typename std::vector<value_type>::const_iterator last = qudits.end();
-    return {qudits(first, last)};
+    return {qudits.end() - count, count};
 #endif
   }
 
   /// @brief Returns the last qudit.
   value_type &back() { return qudits.back(); }
 
-  /// @brief Returns the `[start, start+size)` qudits as a non-owning qview
+  /// @return the `[start, start+size)` qudits as a non-owning `qview`
   qview<Levels> slice(std::size_t start, std::size_t size) {
 #if CUDAQ_USE_STD20
     return std::span(qudits).subspan(start, size);
 #else
-    typename std::vector<value_type>::const_iterator first =
-        qudits.begin() + start;
-    typename std::vector<value_type>::const_iterator last =
-        qudits.begin() + start + size;
-    return {qudits(first, last)};
+    return {qudits.begin() + start, size};
 #endif
   }
 

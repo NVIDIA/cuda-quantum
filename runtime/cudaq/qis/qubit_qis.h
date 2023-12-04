@@ -319,8 +319,8 @@ inline void cs(qubit &q, qubit &r) { s<cudaq::ctrl>(q, r); }
 inline void ct(qubit &q, qubit &r) { t<cudaq::ctrl>(q, r); }
 inline void ccx(qubit &q, qubit &r, qubit &s) { x<cudaq::ctrl>(q, r, s); }
 
-/// @brief Apply a general Pauli rotation, takes a qubit register and the
-/// size must be equal to the pauli word length.
+/// @brief Apply a general Pauli rotation, takes a qubit register and the size
+/// must be equal to the Pauli word length.
 #if CUDAQ_USE_STD20
 template <typename QubitRange>
   requires(std::ranges::range<QubitRange>)
@@ -339,7 +339,7 @@ void exp_pauli(double theta, QubitRange &&qubits, const char *pauliWord) {
 }
 
 /// @brief Apply a general Pauli rotation, takes a variadic set of
-/// qubits, and the number of qubits must be equal to the pauli word length.
+/// qubits, and the number of qubits must be equal to the Pauli word length.
 template <typename... QubitArgs>
 void exp_pauli(double theta, const char *pauliWord, QubitArgs &...qubits) {
 
@@ -354,7 +354,7 @@ void exp_pauli(double theta, const char *pauliWord, QubitArgs &...qubits) {
 }
 
 /// @brief Apply a general Pauli rotation with control qubits and a variadic set
-/// of qubits. The number of qubits must be equal to the pauli word length.
+/// of qubits. The number of qubits must be equal to the Pauli word length.
 #if CUDAQ_USE_STD20
 template <typename QuantumRegister, typename... QubitArgs>
   requires(std::ranges::range<QuantumRegister>)
@@ -587,10 +587,10 @@ template <typename ComputeFunction, typename ActionFunction>
   requires isCallableVoidKernel<ComputeFunction> &&
            isCallableVoidKernel<ActionFunction>
 #else
-template <typename ComputeFunction, typename ActionFunction,
-          typename = std::enable_if_t<
-              std::is_invocable_r_v<void, ComputeFunction, void> &&
-              std::is_invocable_r_v<void, ActionFunction, void>>>
+template <
+    typename ComputeFunction, typename ActionFunction,
+    typename = std::enable_if_t<std::is_invocable_r_v<void, ComputeFunction> &&
+                                std::is_invocable_r_v<void, ActionFunction>>>
 #endif
 void compute_action(ComputeFunction &&c, ActionFunction &&a) {
   c();
@@ -606,10 +606,10 @@ template <typename ComputeFunction, typename ActionFunction>
   requires isCallableVoidKernel<ComputeFunction> &&
            isCallableVoidKernel<ActionFunction>
 #else
-template <typename ComputeFunction, typename ActionFunction,
-          typename = std::enable_if_t<
-              std::is_invocable_r_v<void, ComputeFunction, void> &&
-              std::is_invocable_r_v<void, ActionFunction, void>>>
+template <
+    typename ComputeFunction, typename ActionFunction,
+    typename = std::enable_if_t<std::is_invocable_r_v<void, ComputeFunction> &&
+                                std::is_invocable_r_v<void, ActionFunction>>>
 #endif
 void compute_dag_action(ComputeFunction &&c, ActionFunction &&a) {
   adjoint(c);

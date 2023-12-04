@@ -17,12 +17,12 @@
 
 namespace cudaq {
 
-/// The qview represents a non-owning container of qudits.
+/// The `qview` represents a non-owning container of qudits.
 template <std::size_t Levels = 2>
 class qview {
 public:
-  // Useful typedef exposing the underlying qudit type
-  // that this qview contains.
+  /// Useful typedef exposing the underlying qudit type that this `qview`
+  /// contains.
   using value_type = qudit<Levels>;
 
 #if CUDAQ_USE_STD20
@@ -31,7 +31,7 @@ private:
   std::span<value_type> qudits;
 
 public:
-  /// @brief Construct a qview that refers to the qudits in `other`.
+  /// @brief Construct a `qview` that refers to the qudits in `other`.
   template <typename R>
     requires(std::ranges::range<R>)
   qview(R &&other) : qudits(other.begin(), other.end()) {}
@@ -48,7 +48,7 @@ public:
   /// @brief Returns the qudit at `idx`.
   value_type &operator[](const std::size_t idx) { return qudits[idx]; }
 
-  /// @brief Returns the `[0, count)` qudits as a new qview.
+  /// @return the `[0, count)` qudits as a new `qview`.
   qview<Levels> front(std::size_t count) { return qudits.first(count); }
 
   /// @brief Returns the first qudit.

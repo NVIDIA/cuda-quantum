@@ -15,17 +15,16 @@ namespace cudaq {
 
 #if CUDAQ_USE_STD20
 namespace details {
-/// qreg<N> for N < 1 should be a compile error
+/// `qreg`<N> for N < 1 should be a compile error
 template <std::size_t N>
 concept ValidQregSize = N > 0;
 } // namespace details
 #endif
 
-/// @brief A qreg is a container for qudits. This container can be
-/// dynamic or compile-time-size specified. By default,
-/// the qreg is constructed as a dynamic register (vector-like)
-/// of qubits (2-level). This can be changed via the qreg type
-/// template parameters.
+/// @brief A `qreg` is a container for qudits. This container can be dynamic or
+/// compile-time-size specified. By default, the `qreg` is constructed as a
+/// dynamic register (vector-like) of qubits (2-level). This can be changed via
+/// the `qreg` type template parameters.
 #if CUDAQ_USE_STD20
 template <std::size_t N = dyn, std::size_t Levels = 2>
   requires(details::ValidQregSize<N>)
@@ -51,21 +50,20 @@ private:
 
 public:
 #if CUDAQ_USE_STD20
-  /// @brief Construct a qreg with `size` qudits in the |0> state.
-  /// Can only be used for dyn sized qregs
+  /// Construct a `qreg` with \p size qudits in the |0> state. Can only be used
+  /// for `dyn` sized `qregs`.
   qreg(std::size_t size)
     requires(N == dyn)
       : qudits(size) {}
 
-  /// Nullary constructor
-  /// can only be used for qreg<N> q;
+  /// Nullary constructor. Can only be used for `qreg`<N> q;
   qreg()
     requires(N != dyn)
   {}
 
   /// @cond
   /// Nullary constructor
-  /// meant to be used with kernel_builder<cudaq::qreg<>>
+  /// meant to be used with `kernel_builder<cudaq::qreg<>>`
   qreg()
     requires(N == dyn)
       : qudits(1) {}
@@ -77,9 +75,9 @@ public:
 
   /// @endcond
 
-  /// @brief qregs cannot be copied
+  // A `qreg` cannot be copied.
   qreg(qreg const &) = delete;
-  /// @brief qregs cannot be moved
+  // A `qreg` cannot be moved.
   qreg(qreg &&) = delete;
 
   /// @brief Iterator interface, begin.
