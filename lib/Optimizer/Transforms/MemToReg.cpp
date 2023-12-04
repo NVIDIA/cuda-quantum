@@ -631,7 +631,7 @@ public:
     for (auto wrap : wrapOps) {
       auto ref = wrap.getRefValue();
       auto wire = wrap.getWireValue();
-      if (!ref || wire.getUses().empty()) {
+      if (!ref || !wire.hasOneUse()) {
         LLVM_DEBUG(llvm::dbgs() << "erasing: "; wrap->dump();
                    llvm::dbgs() << '\n');
         wrap->dropAllUses();
