@@ -66,27 +66,29 @@ jobs:
       - name: Find matching signatures files
         id: sig_files
         run: |
-          regctl="docker run ghcr.io/regclient/regctl@sha256:f25e95d626ee8858ef13fd1a45c6a865dfeb647b15210f1b6cc8547e49e9d95f"
-          image=ghcr.io/nvidia/${{ matrix.image_name }}
-          sig_tags=`($regctl tag ls $image || echo) | (egrep -o '^sha256-\S+\.sig$' || true)`
-          nr_sigs=100 # limit how much we delete at a time to avoid exceededing the service rate limit
+          gh api -X GET --paginate -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            /orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions >> packages.json
+
+          sig_tags=`cat packages.json | jq -r ".[] | select(.metadata.package_type==\"container\").metadata.container.tags[]" | (egrep -o '^sha256-\S+\.sig$' || true)`
+
+          nr_sigs=100 # limit how much we delete at a time to avoid exceeding the service rate limit
           for sig in $sig_tags; do 
             if [ $nr_sigs -lt 1 ]; then continue; fi
-            found=`($regctl image manifest $image@sha256:${sig:7:-4} &> /dev/null && echo true) || echo false`
-            exists=`($found && [ -z "$($regctl image manifest $image@sha256:${sig:7:-4} | grep application/vnd.in-toto+json)" ] && echo true) || echo false`
-            if ! $exists; then
+
+            matching_image=`cat packages.json | jq -r ".[] | select(.name==\"sha256:${sig:7:-4}\").id"`
+            if [ -z "$matching_image" ]; then
               echo "Marking signature $sig for deletion."
               delete+=", $sig"
               nr_sigs=$(($nr_sigs-1))
-            fi
+            fi 
           done
           echo "tags_to_remove=${delete:2}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Look up version numbers
         id: packages
-        run: |
-          gh api -X GET --paginate -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
-            /orgs/${{ github.repository_owner }}/packages/container/${{ matrix.image_name }}/versions >> packages.json
+        run: |            
           for tag in ${{ steps.sig_files.outputs.tags_to_remove }}; do
             echo "Finding version id for tag ${tag%,}."
             version_id=`cat packages.json | jq ".[] | select(.metadata.package_type==\"container\" and (.metadata.container.tags[] | contains(\"${tag%,}\")))" | jq '.id'`

@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
@@ -23,10 +24,45 @@ namespace {
 #include "cudaq/Optimizer/Dialect/Quake/Canonical.inc"
 } // namespace
 
+// Is \p op in the Quake dialect?
+// TODO: Is this StringRef comparison faster than calling MLIRContext::
+// getLoadedDialect("quake")?
 static bool isQuakeOperation(Operation *op) {
   if (auto *dialect = op->getDialect())
     return dialect->getNamespace().equals("quake");
   return false;
+}
+
+// If a wire value is used more than once but in distinct blocks, assume that
+// the uses are dynamically mutually exclusive. This is an approximation and not
+// sufficient to prove the value has a linear type.
+// TODO: implement an analysis that proves the control-flow to the blocks is
+// mutually exclusive (a then and an else block, for example).
+inline static bool allUsesInDistinctBlocks(Operation *defOp, Value v) {
+  SmallPtrSet<Block *, 4> blockSet;
+  for (Operation *u : v.getUsers()) {
+    // If `u` is not in quake, then it is not a quantum operation. Skip it.
+    if (!isQuakeOperation(u))
+      continue;
+    Block *b = u->getBlock();
+    if (blockSet.count(b))
+      return false;
+    blockSet.insert(b);
+  }
+  return true;
+}
+
+static LogicalResult verifyWireResultsAreLinear(Operation *op) {
+  for (Value v : op->getOpResults())
+    if (isa<quake::WireType>(v.getType())) {
+      // Terminators can forward wire values, but they are not quantum
+      // operations.
+      if (v.hasOneUse() || allUsesInDistinctBlocks(op, v))
+        continue;
+      return op->emitOpError(
+          "wires are a linear type and must have exactly one use");
+    }
+  return success();
 }
 
 /// When a quake operation is in value form, the number of wire arguments (wire
@@ -591,6 +627,8 @@ void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 static LogicalResult verifyMeasurements(Operation *const op,
                                         TypeRange targetsType,
                                         const Type bitsType) {
+  if (failed(verifyWireResultsAreLinear(op)))
+    return failure();
   bool mustBeStdvec =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<quake::VeqType>(targetsType[0]));
@@ -960,6 +998,8 @@ void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   MACRO(R1Op) MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
 #define QUANTUM_OPS(MACRO) MACRO(ResetOp) GATE_OPS(MACRO) MEASURE_OPS(MACRO)
+#define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullWireOp)  \
+  MACRO(UnwrapOp)
 // clang-format on
 #define INSTANTIATE_CALLBACKS(Op)                                              \
   void quake::Op::getEffects(                                                  \
@@ -969,6 +1009,15 @@ void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   }
 
 QUANTUM_OPS(INSTANTIATE_CALLBACKS)
+
+#define INSTANTIATE_LINEAR_TYPE_VERIFY(Op)                                     \
+  LogicalResult quake::Op::verify() {                                          \
+    return verifyWireResultsAreLinear(getOperation());                         \
+  }
+
+#define VERIFY_OPS(MACRO) GATE_OPS(MACRO) WIRE_OPS(MACRO)
+
+VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 
 //===----------------------------------------------------------------------===//
 // Generated logic
