@@ -437,34 +437,80 @@ public:
       return false;
     }
 
-    /// Seems that FP32 is faster with
-    /// custatevecComputeExpectationsOnPauliBasis
-    if constexpr (std::is_same_v<ScalarType, float>) {
-      return false;
-    }
-
     return !shouldObserveFromSampling();
   }
 
   /// @brief Compute the expected value from the observable matrix.
   cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
+    {
+      cudaq::ScopedTrace trace(
+          "CuStateVecCircuitSimulator::observe - flushGateQueue");
+      flushGateQueue();
+    }
 
-    flushGateQueue();
+    // Use batched custatevecComputeExpectationsOnPauliBasis to compute all term
+    // expectation values in one go
+    uint32_t nPauliOperatorArrays = op.num_terms();
+    // Stable holders of vectors since we need to send vectors of pointers to
+    // custatevec
+    std::deque<std::vector<custatevecPauli_t>> pauliOperatorsArrayHolder;
+    std::deque<std::vector<int32_t>> basisBitsArrayHolder;
+    std::vector<const custatevecPauli_t *> pauliOperatorsArray;
+    std::vector<const int32_t *> basisBitsArray;
+    std::vector<std::complex<double>> coeffs;
+    std::vector<uint32_t> nBasisBitsArray;
+    pauliOperatorsArray.reserve(nPauliOperatorArrays);
+    basisBitsArray.reserve(nPauliOperatorArrays);
+    coeffs.reserve(nPauliOperatorArrays);
+    nBasisBitsArray.reserve(nPauliOperatorArrays);
+    // Helper to convert Pauli enums
+    const auto cudaqToCustateVec = [](cudaq::pauli pauli) -> custatevecPauli_t {
+      switch (pauli) {
+      case cudaq::pauli::I:
+        return CUSTATEVEC_PAULI_I;
+      case cudaq::pauli::X:
+        return CUSTATEVEC_PAULI_X;
+      case cudaq::pauli::Y:
+        return CUSTATEVEC_PAULI_Y;
+      case cudaq::pauli::Z:
+        return CUSTATEVEC_PAULI_Z;
+      }
+      __builtin_unreachable();
+    };
 
-    // The op is on the following target bits.
-    std::set<std::size_t> targets;
+    // Contruct data to send on to custatevec
     op.for_each_term([&](cudaq::spin_op &term) {
-      term.for_each_pauli(
-          [&](cudaq::pauli p, std::size_t idx) { targets.insert(idx); });
+      coeffs.emplace_back(term.get_coefficient());
+      std::vector<custatevecPauli_t> paulis;
+      std::vector<int32_t> idxs;
+      paulis.reserve(term.num_qubits());
+      idxs.reserve(term.num_qubits());
+      term.for_each_pauli([&](cudaq::pauli p, std::size_t idx) {
+        if (p != cudaq::pauli::I) {
+          paulis.emplace_back(cudaqToCustateVec(p));
+          idxs.emplace_back(idx);
+        }
+      });
+      pauliOperatorsArrayHolder.emplace_back(std::move(paulis));
+      basisBitsArrayHolder.emplace_back(std::move(idxs));
+      pauliOperatorsArray.emplace_back(pauliOperatorsArrayHolder.back().data());
+      basisBitsArray.emplace_back(basisBitsArrayHolder.back().data());
+      nBasisBitsArray.emplace_back(pauliOperatorsArrayHolder.back().size());
     });
+    std::vector<double> expectationValues(nPauliOperatorArrays);
+    {
+      cudaq::ScopedTrace trace("CuStateVecCircuitSimulator::observe - "
+                               "custatevecComputeExpectationsOnPauliBasis");
+      HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(
+          handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
+          expectationValues.data(), pauliOperatorsArray.data(),
+          nPauliOperatorArrays, basisBitsArray.data(), nBasisBitsArray.data()));
+    }
+    std::complex<double> expVal = 0.0;
+    for (uint32_t i = 0; i < nPauliOperatorArrays; ++i)
+      expVal += coeffs[i] * expectationValues[i];
 
-    std::vector<std::size_t> targetsVec(targets.begin(), targets.end());
-
-    // Get the matrix
-    auto matrix = op.to_matrix();
-    /// Compute the expectation value.
-    auto ee = getExpectationFromOperatorMatrix(matrix.data(), targetsVec);
-    return cudaq::ExecutionResult({}, ee);
+    return cudaq::ExecutionResult({}, expVal.real());
   }
 
   /// @brief Sample the multi-qubit state.

@@ -103,7 +103,30 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
     gtest_main)
-    gtest_discover_tests(test_mqpu)
+  gtest_discover_tests(test_mqpu)
+
+  # Test CUDAQ_OBSERVE_FROM_SAMPLING=OFF mode.
+  # These tests use cudaq::observe.
+  add_executable(test_custatevec_direct_observe 
+    integration/builder_tester.cpp  
+    integration/deuteron_variational_tester.cpp
+    integration/gradient_tester.cpp
+    integration/nlopt_tester.cpp
+  )
+  target_include_directories(test_custatevec_direct_observe PRIVATE .)
+  target_compile_definitions(test_custatevec_direct_observe PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_custatevec_direct_observe PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_link_libraries(test_custatevec_direct_observe
+    PRIVATE 
+    cudaq
+    cudaq-builder
+    cudaq-platform-default
+    nvqir-custatevec-fp32
+    gtest_main)
+  # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=0"
+  gtest_discover_tests(test_custatevec_direct_observe TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=0")
 
     if (MPI_CXX_FOUND)
       # Count the number of GPUs

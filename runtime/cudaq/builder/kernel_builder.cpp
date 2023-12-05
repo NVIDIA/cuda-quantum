@@ -757,6 +757,7 @@ std::tuple<bool, ExecutionEngine *>
 jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
         std::unordered_map<ExecutionEngine *, std::size_t> &jitHash,
         std::string kernelName, std::vector<std::string> extraLibPaths) {
+  cudaq::ScopedTrace trace("cudaq::details::jitCode", kernelName);
 
   // Start of by getting the current ModuleOp
   auto block = builder.getBlock();
@@ -899,7 +900,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                 std::string kernelName, void **argsArray,
                 std::vector<std::string> extraLibPaths) {
-
+  cudaq::ScopedTrace trace("cudaq::details::invokeCode", kernelName);
   assert(jit != nullptr && "JIT ExecutionEngine was null.");
   cudaq::info("kernel_builder invoke kernel with args.");
 
