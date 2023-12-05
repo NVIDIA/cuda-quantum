@@ -17,9 +17,9 @@ void set_random_seed(std::size_t);
 std::size_t get_random_seed();
 
 /// @brief An ArgumentSet is a tuple of vectors of general arguments to a CUDA
-/// Quantum kernel. The $i$`-th` vector of the tuple corresponds to the $i$`-th`
-/// argument of the kernel. The $j$`-th` element of the $i$`-th` vector
-/// corresponds to the $j$`-th` batch of arguments to evaluate the kernel at.
+/// Quantum kernel. The `i-th` vector of the tuple corresponds to the `i-th`
+/// argument of the kernel. The `j-th` element of the `i-th` vector corresponds
+/// to the `j-th` batch of arguments to evaluate the kernel at.
 template <typename... Args>
 using ArgumentSet = std::tuple<std::vector<Args>...>;
 
