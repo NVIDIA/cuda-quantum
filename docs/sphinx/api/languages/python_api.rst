@@ -207,5 +207,6 @@ MPI Submodule
 .. automethod:: cudaq.mpi::rank
 .. automethod:: cudaq.mpi::num_ranks
 .. automethod:: cudaq.mpi::all_gather
+.. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
 .. automethod:: cudaq.mpi::finalize

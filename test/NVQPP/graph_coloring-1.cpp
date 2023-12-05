@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ -v %s -o %t --target quantinuum --emulate && %t | FileCheck %s
+// RUN: nvq++ -std=c++17 %s --enable-mlir -o %t
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>

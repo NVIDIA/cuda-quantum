@@ -7,7 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 // XFAIL: *
 // ^^^^^ This is caused by this error: invalid instruction found:   %2 = xor i1 %0, true
 //       This error is reasonable given the current version of the Adaptive
