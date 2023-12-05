@@ -131,7 +131,7 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
     void operator()(cudaq::qspan<> q) __qpu__ {
 
       cudaq::compute_action([&]() { xxxh_gates{}(q); },
-                            [&] { x(q[0], q[1], q[2]); });
+                            [&]() { x(q[0], q[1], q[2]); });
     }
   };
 
