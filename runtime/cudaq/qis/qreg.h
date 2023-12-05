@@ -74,7 +74,6 @@ public:
   qreg() {}
 #endif
 
-
   // A `qreg` cannot be copied.
   qreg(qreg const &) = delete;
   // A `qreg` cannot be moved.
