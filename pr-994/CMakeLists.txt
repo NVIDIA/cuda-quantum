@@ -114,7 +114,7 @@ add_pycudaq_test(QAOA qaoa_maxcut.py)
 add_pycudaq_test(VQE simple_vqe.py)
 add_pycudaq_test(VQEAdvanced advanced_vqe.py)
 
-add_pycudaq_test(AmplitudeDampingNoise noise_aplitude_damping.py)
+add_pycudaq_test(AmplitudeDampingNoise noise_amplitude_damping.py)
 add_pycudaq_test(BitFlipNoise noise_bit_flip.py)
 add_pycudaq_test(DepolarizingNoise noise_depolarization.py)
 add_pycudaq_test(PhaseFlipNoise noise_phase_flip.py)

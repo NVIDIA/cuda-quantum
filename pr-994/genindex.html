@@ -361,6 +361,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
@@ -572,6 +573,10 @@
       <li><a href="api/languages/python_api.html#cudaq.BitFlipChannel">BitFlipChannel (class in cudaq)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.mpi.broadcast">broadcast() (in module cudaq.mpi)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="C">C</h2>
@@ -762,15 +767,15 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq14kernel_builderE">cudaq::kernel_builder (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq14kernel_builder7adjointEvR18OtherKernelBuilderDpR11QuakeValues">cudaq::kernel_builder::adjoint (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder7adjointEvR18OtherKernelBuilderRNSt6vectorI10QuakeValueEE">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq14kernel_builder7adjointEvR18OtherKernelBuilderDpR11QuakeValues">cudaq::kernel_builder::adjoint (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder7adjointEvR18OtherKernelBuilderRNSt6vectorI10QuakeValueEE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder4c_ifE10QuakeValueRRNSt8functionIFvvEEE">cudaq::kernel_builder::c_if (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq14kernel_builder4callEvRR18OtherKernelBuilderDpR11QuakeValues">cudaq::kernel_builder::call (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder4callEvR18OtherKernelBuilderRNSt6vectorI10QuakeValueEE">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq14kernel_builder4callEvRR18OtherKernelBuilderDpR11QuakeValues">cudaq::kernel_builder::call (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder4callEvR18OtherKernelBuilderRNSt6vectorI10QuakeValueEE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder11constantValEd">cudaq::kernel_builder::constantVal (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueDpR11QuakeValues">cudaq::kernel_builder::control (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueRNSt6vectorI10QuakeValueEE">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueDpR11QuakeValues">cudaq::kernel_builder::control (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueRNSt6vectorI10QuakeValueEE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I_23QuakeValueOrNumericTypeDpEN5cudaq14kernel_builder9exp_pauliEvRK6ParamTRKNSt6stringEDpRR9QubitArgs">cudaq::kernel_builder::exp_pauli (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I_23QuakeValueOrNumericTypeEN5cudaq14kernel_builder9exp_pauliEvRK6ParamTRK10QuakeValueRKNSt6stringE">[1]</a>
 </li>
@@ -836,9 +841,11 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpiE">cudaq::mpi (C++ type)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIdEERNSt6vectorIdEE">cudaq::mpi::all_gather (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIdEERKNSt6vectorIdEE">cudaq::mpi::all_gather (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIiEERKNSt6vectorIiEE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction">cudaq::mpi::all_reduce (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK4Func">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpi9broadcastERNSt6vectorIdEEi">cudaq::mpi::broadcast (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpi8finalizeEv">cudaq::mpi::finalize (C++ function)</a>
 </li>
@@ -874,10 +881,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultERdRK7spin_op">cudaq::observe_result::observe_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultERdRK7spin_op13sample_result">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_resultcvdEv">cudaq::observe_result::operator double (C++ function)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_resultcvdEv">cudaq::observe_result::operator double (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result8raw_dataEv">cudaq::observe_result::raw_data (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20optimizable_functionE">cudaq::optimizable_function (C++ class)</a>
@@ -918,7 +925,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPUD0Ev">cudaq::QPU::~QPU (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq4qregE">cudaq::qreg (C++ class)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE">cudaq::qreg (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backENSt6size_tE">cudaq::qreg::back (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backEv">[1]</a>
 </li>
@@ -929,8 +936,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontENSt6size_tE">cudaq::qreg::front (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qregixEKNSt6size_tE">cudaq::qreg::operator[] (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4qregENSt6size_tE">cudaq::qreg::qreg (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4qregERK4qreg">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4qregERR4qreg">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4qregEv">[3]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq4qreg4sizeEv">cudaq::qreg::size (C++ function)</a>
 </li>
