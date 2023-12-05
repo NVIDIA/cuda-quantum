@@ -47,6 +47,12 @@
 #include <spdlog/cfg/env.h>
 
 #include "JsonConvert.h"
+#include "nvqir/CircuitSimulator.h"
+
+namespace nvqir {
+CircuitSimulator *getCircuitSimulatorInternal();
+}
+
 namespace {
 
 class RemoteSimulatorQPU : public cudaq::QPU {
@@ -64,7 +70,9 @@ public:
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                                     std::uint64_t resultOffset) override {
-    cudaq::info("QPU::launchKernel named '{}' QPU {}", name, qpu_id);
+    auto *sim = nvqir::getCircuitSimulatorInternal();
+    cudaq::info("QPU::launchKernel named '{}' QPU {} (simulator = {})", name,
+                qpu_id, sim->name());
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(name);
     
@@ -96,8 +104,6 @@ public:
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply quake-synth.");
     }
-
-    std::cout << "Quake:\n" << quakeCode << "\n";
     nlohmann::json job;
     job["kernel-name"] = name;
     job["quake"] = quakeCode;
@@ -105,17 +111,19 @@ public:
       throw std::runtime_error("Invalid ExecutionContext encountered.");
     job["execution-context"] = *executionContext;
     std::map<std::string, std::string> headers {};
-    m_client.post(m_url, "job", job, headers);
+    auto resultJs = m_client.post(m_url, "job", job, headers);
+    resultJs.get_to(*executionContext);
   }
 
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-
     cudaq::info("RemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
     executionContext = context;
   }
 
   void resetExecutionContext() override {
     cudaq::info("RemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
+    // do nothing here
+    executionContext = nullptr;
   }
 };
 

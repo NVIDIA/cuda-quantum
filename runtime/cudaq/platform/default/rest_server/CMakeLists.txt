@@ -15,6 +15,7 @@ target_link_libraries(${LIBRARY_NAME}
   PRIVATE 
     cudaq
     cudaq-mlir-runtime 
+    nvqir
     MLIRTranslateLib
     pthread
     spdlog::spdlog 

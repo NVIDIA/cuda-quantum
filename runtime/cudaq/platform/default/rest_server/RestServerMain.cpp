@@ -138,7 +138,6 @@ int main(int argc, char **argv) {
   ([]() { return "Hello, world!"; });
 
   CROW_ROUTE(app, "/job").methods("POST"_method)([](const crow::request &req) {
-    CROW_LOG_INFO << "msg from client: " << req.body;
     auto requestJson = json::parse(req.body);
     const std::string quake = requestJson["quake"];
     auto contextPtr = cudaq::initializeMLIR();
@@ -147,8 +146,6 @@ int main(int argc, char **argv) {
     llvm::SourceMgr sourceMgr;
     sourceMgr.AddNewSourceBuffer(std::move(fileBuf), llvm::SMLoc());
     auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
-    std::cout << "Done\n";
-    module->dump();
     auto engine = jitCode(*module);
     const std::string kernelName = requestJson["kernel-name"];
     const std::string entryPoint =
@@ -190,8 +187,10 @@ int main(int argc, char **argv) {
     fn();
     circuitSimulator->resetExecutionContext();
     executionContext->result.dump();
+    json resultContextJs = *executionContext;
     dlclose(simLibHandle);
-    return "{}";
+    const auto resultJs = resultContextJs.dump();
+    return resultJs;
   });
   app.port(port).run();
 }
