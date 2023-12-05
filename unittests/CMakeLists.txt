@@ -178,6 +178,32 @@ target_link_libraries(test_photonics
   gtest_main)
 gtest_discover_tests(test_photonics)
 
+# Create an executable for MPI UnitTests
+# (only if MPI was found, i.e., the builtin plugin is available)
+if (MPI_CXX_FOUND)
+  set(CUDAQ_MPI_TEST_SOURCES 
+    mpi/mpi_tester.cpp
+  )
+  add_executable(test_mpi_plugin ${CUDAQ_MPI_TEST_SOURCES})
+  set(NUM_PROCS 4)
+  target_compile_definitions(test_mpi_plugin PRIVATE -DNUM_PROCS=${NUM_PROCS})
+  target_link_libraries(test_mpi_plugin
+    PRIVATE 
+    cudaq
+    cudaq-platform-default
+    nvqir-qpp
+    gtest
+  )
+  target_link_options(test_mpi_plugin PRIVATE -Wl,--no-as-needed)
+  # Check if `--allow-run-as-root` is supported (OpenMPI)
+  # Note: MPICH doesn't need `--allow-run-as-root`.
+  execute_process(COMMAND ${MPIEXEC} --allow-run-as-root -np ${NUM_PROCS} hostname ERROR_VARIABLE CHECK_ALLOW_RUN_AS_ROOT_RESULTS ERROR_STRIP_TRAILING_WHITESPACE OUTPUT_QUIET)
+  if ("${CHECK_ALLOW_RUN_AS_ROOT_RESULTS}" STREQUAL "")
+    set(MPI_EXEC_CMD_ARGS "--allow-run-as-root")
+  endif()
+  
+  add_test(NAME MPIApiTest COMMAND ${MPIEXEC} ${MPI_EXEC_CMD_ARGS} -np ${NUM_PROCS} ${CMAKE_BINARY_DIR}/unittests/test_mpi_plugin)
+endif()
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
