@@ -134,6 +134,7 @@ sed 's@${CUDAQ_REPO_ROOT}@'"${repo_root}"'@' > "${doxygen_output_dir}/Doxyfile"
 "$doxygen_exe" "${doxygen_output_dir}/Doxyfile" 2> "$logs_dir/doxygen_error.txt" 1> "$logs_dir/doxygen_output.txt"
 doxygen_exit_code=$?
 if [ ! "$doxygen_exit_code" -eq "0" ]; then
+    cat "$logs_dir/doxygen_output.txt" "$logs_dir/doxygen_error.txt"
     echo "Failed to generate documentation using doxygen."
     echo "Doxygen exit code: $doxygen_exit_code"
     docs_exit_code=11

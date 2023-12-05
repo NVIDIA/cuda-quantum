@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,15 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
+#pragma once
 
-#include "include/include.h"
-#include <iostream>
-
-int main() {
-  std::cout << MESSAGE << '\n';
-  return RETURN_CODE;
-}
-
-// CHECK: Hello, World!
+#define CUDAQ_USE_STD20 (__cplusplus >= 202002L)
+#define CUDAQ_APPLE_CLANG (defined(__apple_build_version__))

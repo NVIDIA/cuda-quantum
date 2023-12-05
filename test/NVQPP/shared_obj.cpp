@@ -6,28 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Note: change |& to 2>&1 if running in bash
-// RUN: nvq++ -v %s -o %t --target ionq --emulate && %t |& FileCheck %s
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: nvq++ --enable-mlir -shared -fpic %s -o %t && file %t | FileCheck %s
 
 #include <cudaq.h>
-#include <iostream>
 
-__qpu__ void qir_test() {
-  cudaq::qubit q0;
-  cudaq::qubit q1;
-  x(q0);
-  auto measureResult = mz(q0);
-  if (measureResult)
-    x(q1);
+struct Qernel {
+  void operator()() __qpu__ {}
 };
 
-int main() {
-  auto result = cudaq::sample(1000, qir_test);
-  for (auto &&[bits, counts] : result) {
-    std::cout << bits << '\n';
-  }
-  return 0;
-}
+int plain_old_function() { return 0; }
 
-// CHECK: Do you have if statements in a Base Profile QIR program
+// CHECK: shared
