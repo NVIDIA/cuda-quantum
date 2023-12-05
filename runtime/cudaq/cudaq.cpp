@@ -396,7 +396,7 @@ void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
   char *p = initList;
   for (std::size_t i = 0; i < size; ++i, ++p)
     result.push_back(static_cast<bool>(*p));
-  // Free the initialization list, which was stack allocated.
+  // Free the initialization list, which was heap allocated.
   free(initList);
 }
 }

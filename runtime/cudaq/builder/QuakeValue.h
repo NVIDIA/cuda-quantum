@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #pragma once
+
+#include "host_config.h"
 #include <functional>
 #include <map>
 #include <memory>
@@ -138,11 +140,12 @@ public:
   QuakeValue inverse() const;
 };
 
+#if CUDAQ_USE_STD20
 /// @brief Concept constraining the input type below to be a QuakeValue
 template <typename ValueType>
 concept IsQuakeValue = std::is_convertible_v<ValueType, QuakeValue>;
 
-/// @brief Concept constraining the LHS args to be numeric below
+/// Concept constraining the LHS arguments to be numeric below.
 template <typename T>
 concept IsNumericType = requires(T param) { std::is_convertible_v<T, double>; };
 
@@ -163,4 +166,43 @@ QuakeValue operator+(IsNumericType auto &&d, IsQuakeValue auto &&q) {
 QuakeValue operator/(IsNumericType auto &&d, IsQuakeValue auto &&q) {
   return q.inverse() * d;
 }
+
+#else
+// C++ 2011 compatible definitions.
+template <typename N, typename Q,
+          typename = std::enable_if_t<std::is_convertible_v<N, double>>,
+          typename = std::enable_if_t<std::is_convertible_v<Q, QuakeValue>>>
+QuakeValue operator*(N &&d, Q &&q) {
+  return q * d;
+}
+
+template <typename N, typename Q,
+          typename = std::enable_if_t<std::is_convertible_v<N, double>>,
+          typename = std::enable_if_t<std::is_convertible_v<Q, QuakeValue>>>
+QuakeValue operator*(Q &&q, N &&d) {
+  return q * d;
+}
+
+template <typename N, typename Q,
+          typename = std::enable_if_t<std::is_convertible_v<N, double>>,
+          typename = std::enable_if_t<std::is_convertible_v<Q, QuakeValue>>>
+QuakeValue operator-(N &&d, Q &&q) {
+  return -q + d;
+}
+
+template <typename N, typename Q,
+          typename = std::enable_if_t<std::is_convertible_v<N, double>>,
+          typename = std::enable_if_t<std::is_convertible_v<Q, QuakeValue>>>
+QuakeValue operator+(N &&d, Q &&q) {
+  return q + d;
+}
+
+template <typename N, typename Q,
+          typename = std::enable_if_t<std::is_convertible_v<N, double>>,
+          typename = std::enable_if_t<std::is_convertible_v<Q, QuakeValue>>>
+QuakeValue operator/(N &&d, Q &&q) {
+  return q.inverse() * d;
+}
+#endif
+
 } // namespace cudaq

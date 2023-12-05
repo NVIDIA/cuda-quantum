@@ -207,7 +207,7 @@ if [ -d "${llvm_install_dir}/bin" -a \
 fi
 
 # Compiler and linker flags
-COMPILER_FLAGS="-std=c++20 -I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
+COMPILER_FLAGS="-I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
 # If we are a relocatable package, we want to
 # add compiler flags that will point clang to our repackaged
@@ -232,11 +232,9 @@ LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-en
 
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
-if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]
-then
+if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]; then
   CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*`
-  for entry in $CUDAQ_PLUGIN_LIBS
-  do
+  for entry in $CUDAQ_PLUGIN_LIBS; do
     PLUGIN_NAME=$(basename $entry)
     PLUGIN_NAME=${PLUGIN_NAME#lib}
     PLUGIN_NAME=${PLUGIN_NAME%@CMAKE_SHARED_LIBRARY_SUFFIX@}
@@ -270,6 +268,7 @@ SHOW_HELP=false
 LIST_TARGETS=false
 DISABLE_QUBIT_MAPPING=false
 NVQIR_LIBS="-lnvqir -lnvqir-"
+CPPSTD=-std=c++20
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
@@ -464,6 +463,10 @@ while [ $# -ne 0 ]; do
 	-v)
 		ECHO=true
 		;;
+	-std=*)
+		CPPSTD="$1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} $1"
+		;;
 	*.o | *.so | *.bundle)
 		OBJS="${OBJS} $1"
 		;;
@@ -500,6 +503,8 @@ function delete_temp_files {
 }
 trap delete_temp_files EXIT
 
+COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
+
 # Goal here is to parse the backend config file, get the
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
@@ -517,7 +522,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
 			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
+			run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 			OBJS_TO_MERGE="${OUTFILENAME}"
 			TMPFILES="${TMPFILES} ${OUTFILENAME}"
 		fi

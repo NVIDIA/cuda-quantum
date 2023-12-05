@@ -7,7 +7,8 @@
  ******************************************************************************/
 
 // Note: change |& to 2>&1 if running in bash
-// RUN: nvq++ -v %s -o %basename_t.x --target ionq --emulate && ./%basename_t.x |& FileCheck %s
+// RUN: nvq++ -v %s -o %t --target ionq --emulate && %t |& FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 
 #include <cudaq.h>
 #include <iostream>

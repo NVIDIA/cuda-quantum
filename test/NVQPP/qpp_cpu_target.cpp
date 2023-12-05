@@ -6,10 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target qpp-cpu %s -o %basename_t.x && CUDAQ_LOG_LEVEL=info ./%basename_t.x | FileCheck --check-prefix=CHECK-QPP %s
-// RUN: CUDAQ_DEFAULT_SIMULATOR="density-matrix-cpu" nvq++ %s -o %basename_t.x && CUDAQ_LOG_LEVEL=info ./%basename_t.x | FileCheck --check-prefix=CHECK-DM %s
-// RUN: CUDAQ_DEFAULT_SIMULATOR="foo" nvq++ %s -o %basename_t.x && CUDAQ_LOG_LEVEL=info ./%basename_t.x | FileCheck %s
-// RUN: CUDAQ_DEFAULT_SIMULATOR="qpp-cpu" nvq++ --target quantinuum --emulate %s -o %basename_t.x && CUDAQ_LOG_LEVEL=info ./%basename_t.x | FileCheck --check-prefix=CHECK-QPP %s
+// RUN: nvq++ --target qpp-cpu %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck --check-prefix=CHECK-QPP %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR="density-matrix-cpu" nvq++ %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck --check-prefix=CHECK-DM %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR="foo" nvq++ %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR="qpp-cpu" nvq++ --target quantinuum --emulate %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck --check-prefix=CHECK-QPP %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 
 #include <cudaq.h>
 
