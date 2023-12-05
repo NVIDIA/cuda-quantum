@@ -30,28 +30,35 @@ constexpr static const char NVQIR_SIMULATION_BACKEND[] =
     "NVQIR_SIMULATION_BACKEND=";
 constexpr static const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
 
+/// @brief A utility function to check availability of Nvidia GPUs and return
+/// their count
 int countGPUs() {
-  char buffer[1024];
-  std::string output;
-  FILE *fp1, *fp2;
-
-  fp1 = popen("nvidia-smi", "r");
-  if (!fp1) {
+  int retCode = std::system("nvidia-smi >/dev/null 2>&1");
+  if (0 != retCode) {
     cudaq::info("nvidia-smi: command not found");
     return -1;
   }
-  pclose(fp1);
 
-  fp2 = popen("nvidia-smi -L | wc -l", "r");
-  if (!fp2) {
-    cudaq::info("nvidia-smi: command not working");
+  char tmpFile[] = "/tmp/.cmd.capture.XXXXXX";
+  int fileDescriptor = mkstemp(tmpFile);
+  if (-1 == fileDescriptor) {
+    cudaq::info("Failed to create a temporary file to capture output");
     return -1;
   }
-  while (fgets(buffer, sizeof buffer, fp2)) {
-    output += buffer;
+
+  std::string command = "nvidia-smi -L 2>/dev/null | wc -l >> ";
+  command.append(tmpFile);
+  retCode = std::system(command.c_str());
+  if (0 != retCode) {
+    cudaq::info("Encountered error while invoking 'nvidia-smi'");
+    return -1;
   }
-  pclose(fp2);
-  return std::stoi(output);
+
+  std::stringstream buffer;
+  buffer << std::ifstream(tmpFile).rdbuf();
+  close(fileDescriptor);
+  unlink(tmpFile);
+  return std::stoi(buffer.str());
 }
 
 std::size_t RuntimeTarget::num_qpus() {
