@@ -284,15 +284,10 @@ public:
                         {state.data(), state.data() + state.size()}};
   }
 
-  // (1) FIXME: Will we just assume all of the necessary checks on the input
-  // state have already been run? E.g, normalization, etc. ?? (2) FIXME: We
-  // should ensure that the new state vector is of the same dimensions as the
-  // old. This means we will not allow someone to initialize the state vector
-  // for a subset of qubits. They'd have to initialize the state, then add those
-  // other qubits after. That would properly kronecker the new 0-states onto
-  // their specified state. (3) FIXME: Are there potential memory issues with
-  // the way I'm mapping the std type to eigen here??
+  // FIXME: Are there potential memory issues with the way I'm mapping
+  // the std type to eigen here??
   void setStateData(std::vector<std::complex<double>> &inputState) override {
+    cudaq::info("Manually setting the internal state representation.");
     state = qpp::ket::Map(inputState.data(), stateDimension);
   }
 
