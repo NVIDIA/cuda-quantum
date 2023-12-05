@@ -43,12 +43,15 @@ BLAS_LIBRARIES=${BLAS_LIBRARIES:-"$BLAS_INSTALL_PREFIX/libblas.a"}
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
+install_prereqs=false
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:v" opt; do
+while getopts ":c:uv" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
+    ;;
+    u) install_prereqs=true
     ;;
     v) verbose=true
     ;;
@@ -64,11 +67,31 @@ working_dir=`pwd`
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 
-source "$this_file_dir/install_prerequisites.sh"
-(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
+# Prepare the build directory
+mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
+mkdir -p "$working_dir/build" && cd "$working_dir/build" && rm -rf * 
+mkdir -p logs && rm -rf logs/*
+
+if $install_prereqs; then
+  echo "Installing pre-requisites..."
+  if $verbose; then
+    source "$this_file_dir/install_prerequisites.sh"
+    status=$?
+  else
+    echo "The install log can be found in `pwd`/logs/prereqs_output.txt."
+    source "$this_file_dir/install_prerequisites.sh" 2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
+    status=$?
+  fi
+
+  (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo "Failed to install prerequisites."
+    cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+  fi
+fi
 
 # Check if a suitable CUDA version is installed
-cuda_version=`${CUDACXX:-nvcc} --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
+cuda_version=`"${CUDACXX:-nvcc}" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 cuda_major=`echo $cuda_version | cut -d '.' -f 1`
 cuda_minor=`echo $cuda_version | cut -d '.' -f 2`
 if [ ! -x "$(command -v nvidia-smi)" ] && [ "$FORCE_COMPILE_GPU_COMPONENTS" != "true" ] ; then # the second check here is to avoid having to use https://discuss.huggingface.co/t/how-to-deal-with-no-gpu-during-docker-build-time/28544 
@@ -89,11 +112,6 @@ else
     custatevec_flag="-DCUSTATEVEC_ROOT=$CUQUANTUM_INSTALL_PREFIX"
   fi
 fi
-
-# Prepare the build directory
-mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
-mkdir -p "$working_dir/build" && cd "$working_dir/build" && rm -rf * 
-mkdir -p logs && rm -rf logs/* 
 
 # Determine linker and linker flags
 cmake_common_linker_flags_init=""
