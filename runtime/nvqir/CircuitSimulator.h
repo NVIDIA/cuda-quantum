@@ -398,8 +398,7 @@ protected:
   /// at the API level via the `cudaq::from_state` or a new
   /// `cudaq::set_state` functionality. This will be cleaned up as
   /// the implementation is sorted out.
-  /// FIXME: should accept a `std::vector<std::complex<double>>`
-  virtual void setStateData() = 0;
+  virtual void setStateData(std::vector<std::complex<double>> &inputState) = 0;
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in resetExecutionContext. Return true to indicate this is

@@ -596,8 +596,8 @@ public:
     }
   }
 
-  void setStateData() override {
-    // TODO
+  void setStateData(std::vector<std::complex<double>> &inputState) override {
+    // TODO: just need this defined to prevent a build error for now.
   }
 
   std::string name() const override;
