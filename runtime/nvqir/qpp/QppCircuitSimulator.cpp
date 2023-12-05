@@ -143,6 +143,10 @@ protected:
 
   void applyGate(const GateApplicationTask &task) override {
     auto matrix = toQppMatrix(task.matrix, task.targets.size());
+    if (task.controls.empty()) {
+      state = qpp::apply(state, matrix, task.targets);
+      return;
+    }
     state = qpp::applyCTRL(state, matrix, task.controls, task.targets);
   }
 
