@@ -284,20 +284,17 @@ public:
                         {state.data(), state.data() + state.size()}};
   }
 
-  void setStateData() override {
-    // Just using a random, unique vector before moving on to accepting
-    // one from the user.
-    state = qpp::ket::Zero(stateDimension);
-    for (std::size_t i=0; i < stateDimension; i++) {
-      state(i) = 1.0;
-    }
-    state *= 0.70710678118;
+  // (1) FIXME: Will we just assume all of the necessary checks on the input
+  // state have already been run? E.g, normalization, etc. ?? (2) FIXME: We
+  // should ensure that the new state vector is of the same dimensions as the
+  // old. This means we will not allow someone to initialize the state vector
+  // for a subset of qubits. They'd have to initialize the state, then add those
+  // other qubits after. That would properly kronecker the new 0-states onto
+  // their specified state. (3) FIXME: Are there potential memory issues with
+  // the way I'm mapping the std type to eigen here??
+  void setStateData(std::vector<std::complex<double>> &inputState) override {
+    state = qpp::ket::Map(inputState.data(), stateDimension);
   }
-
-  // /// @brief Used for testing.
-  // void setStateVector() {
-  //   setStateData();
-  // }
 
   /// @brief Primarily used for testing.
   auto getStateVector() {
