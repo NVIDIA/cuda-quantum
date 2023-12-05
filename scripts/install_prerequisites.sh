@@ -17,12 +17,16 @@
 #
 # The necessary LLVM components will be installed in the location defined by the
 # LLVM_INSTALL_PREFIX if they do not already exist in that location.
+# If LLVM components need to be built from source, pybind11 will be built and 
+# installed in the location defined by PYBIND11_INSTALL_PREFIX unless that folder 
+# already exists.
 # If BLAS is not found, it will be built from source and installed the location
 # defined by the BLAS_INSTALL_PREFIX.
 # If OpenSSL is not found, it will be built from source and installed the location
 # defined by the OPENSSL_INSTALL_PREFIX.
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
+PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
 OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
 
@@ -69,6 +73,20 @@ fi
 llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
 if [ ! -d "$llvm_dir" ]; then
   echo "Could not find llvm libraries."
+  if [ ! -x "$(command -v ninja)" ]; then
+    temp_install_if_command_unknown unzip unzip
+    wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
+    unzip ninja-linux.zip && mv ninja /usr/local/bin/ && rm -rf ninja-linux.zip
+  fi
+
+  if [ ! -d "$PYBIND11_INSTALL_PREFIX" ]; then
+    echo "Building PyBind11..."
+    repo_root="$(git rev-parse --show-toplevel)" && cd "$repo_root"
+    git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 && cd -
+    mkdir "$repo_root/tpls/pybind11/build" && cd "$repo_root/tpls/pybind11/build"
+    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX"
+    cmake --build . --target install --config Release && cd -
+  fi
 
   # Build llvm libraries from source and install them in the install directory
   source "$this_file_dir/build_llvm.sh"
