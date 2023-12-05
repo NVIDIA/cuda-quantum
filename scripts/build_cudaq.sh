@@ -32,6 +32,10 @@
 # behavior and force building GPU components even if no GPU is detected by setting the
 # FORCE_COMPILE_GPU_COMPONENTS environment variable to true. This is useful primarily
 # when building docker images since GPUs may not be accessible during build.
+#
+# Note:
+# By default, the CUDA Quantum is done with warnings-as-errors turned on.
+# You can turn this setting off by defining the environment variable CUDAQ_WERROR=OFF.
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
@@ -129,6 +133,7 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCUDAQ_ENABLE_PYTHON=TRUE \
   -DCUDAQ_TEST_MOCK_SERVERS=TRUE \
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
   -DBLAS_LIBRARIES="${BLAS_LIBRARIES}" \
   -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
