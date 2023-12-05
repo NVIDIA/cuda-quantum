@@ -26,6 +26,18 @@ LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
 OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
 
+function set_ar_if_necessary {
+  if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
+      ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
+      created_ld_sym_link=$?
+      if [ "$created_ld_sym_link" = "" ] || [ ! "$created_ld_sym_link" -eq "0" ]; then
+          echo "Failed to find ar or llvm-ar."
+      else 
+          echo "Setting llvm-ar as the default ar."
+      fi
+  fi
+}
+
 function temp_install_if_command_unknown {
     if [ ! -x "$(command -v $1)" ]; then
         apt-get install -y --no-install-recommends $2
@@ -38,6 +50,7 @@ function remove_temp_installs {
       echo "Uninstalling packages used for bootstrapping: $APT_UNINSTALL"
       apt-get remove -y $APT_UNINSTALL && apt-get autoremove -y --purge
       unset APT_UNINSTALL
+      set_ar_if_necessary
   fi
 }
 
@@ -69,16 +82,7 @@ else
   echo "Configured C compiler: $CC"
   echo "Configured C++ compiler: $CXX"
 fi
-
-if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
-    ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
-    created_ld_sym_link=$?
-    if [ "$created_ld_sym_link" = "" ] || [ ! "$created_ld_sym_link" -eq "0" ]; then
-        echo "Failed to find ar or llvm-ar."
-    else 
-        echo "Setting llvm-ar as the default ar."
-    fi
-fi
+set_ar_if_necessary
 
 if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
   if [ -x "$(command -v apt-get)" ]; then

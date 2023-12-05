@@ -79,10 +79,7 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
     && rm -rf /llvm-project 
 
 FROM llvmbuild as prereqs
-SHELL ["/bin/bash", "-c"]
-COPY --from=llvmbuild /opt/llvm /opt/llvm
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
