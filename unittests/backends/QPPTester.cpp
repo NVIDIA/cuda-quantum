@@ -71,6 +71,37 @@ bool EXPECT_EQ_KETS(qpp::ket want_ket, qpp::ket got_ket,
   return true;
 }
 
+CUDAQ_TEST(QPPTester, checkSetState) {
+  {
+    // Initialize QPP Backend with 2 qubits
+    const int num_qubits = 2;
+    QppCircuitSimulator<qpp::ket> qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+    auto q1 = qppBackend.allocateQubit();
+
+    // Assert that we're starting in the 0-state.
+    qpp::ket got_state = qppBackend.getStateVector();
+    qpp::ket want_state = getZeroState(num_qubits);
+    EXPECT_EQ(want_state, got_state);
+
+    // Try the setState function (currently accepts no args)
+    // and check against the default state vector we're setting
+    // in there.
+    for (auto i=0; i < pow(num_qubits, 2); i++) {
+      want_state(i) = 0.70710678118;
+    }
+    qppBackend.setStateData();
+    got_state = qppBackend.getStateVector();
+    EXPECT_EQ(want_state, got_state);
+
+    // Just adding these so we can compile without actually
+    // using q0 and q1
+    qppBackend.mz(q0);
+    qppBackend.mz(q1);
+  }
+
+}
+
 // Checks that we're initializing the backend to the expected
 // state and confirms via calls to `measure` and `sample`, as
 // well as by checking the state vector.

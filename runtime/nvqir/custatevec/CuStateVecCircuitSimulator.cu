@@ -596,6 +596,10 @@ public:
     }
   }
 
+  void setStateData() override {
+    // TODO
+  }
+
   std::string name() const override;
   NVQIR_SIMULATOR_CLONE_IMPL(CuStateVecCircuitSimulator<ScalarType>)
 };
