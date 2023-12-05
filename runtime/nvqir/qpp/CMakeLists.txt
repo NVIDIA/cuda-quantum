@@ -23,10 +23,11 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
   endif()
 
   target_include_directories(${LIBRARY_NAME}
-                 PUBLIC . .. 
-                 ${CMAKE_SOURCE_DIR}/runtime/common 
-                 ${CMAKE_SOURCE_DIR}/tpls/eigen 
-                 ${CMAKE_SOURCE_DIR}/tpls/qpp/include)
+      PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
+        $<INSTALL_INTERFACE:include>)
 
   if(APPLE)
     set_target_properties(${LIBRARY_NAME}
@@ -36,9 +37,9 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
       PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")
   endif()
 
-  target_link_libraries(${LIBRARY_NAME} PUBLIC ${QPP_DEPENDENCIES} PRIVATE 
-                 fmt::fmt-header-only 
-                 cudaq-common)
+  target_link_libraries(${LIBRARY_NAME}
+    PUBLIC libqpp
+    PRIVATE fmt::fmt-header-only cudaq-common ${QPP_DEPENDENCIES})
   
 
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
