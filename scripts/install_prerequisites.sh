@@ -30,15 +30,14 @@ PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
 OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
 
-function set_ar_if_necessary {
+function create_llvm_symlinks {
+  if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
+    ln -s "$LLVM_INSTALL_PREFIX/bin/ld.lld" /usr/bin/ld
+    echo "Setting lld linker as the default linker."
+  fi
   if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
-      ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
-      created_ld_sym_link=$?
-      if [ "$created_ld_sym_link" = "" ] || [ ! "$created_ld_sym_link" -eq "0" ]; then
-          echo "Failed to find ar or llvm-ar."
-      else 
-          echo "Setting llvm-ar as the default ar."
-      fi
+    ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
+    echo "Setting llvm-ar as the default ar."
   fi
 }
 
@@ -54,7 +53,7 @@ function remove_temp_installs {
       echo "Uninstalling packages used for bootstrapping: $APT_UNINSTALL"
       apt-get remove -y $APT_UNINSTALL && apt-get autoremove -y --purge
       unset APT_UNINSTALL
-      set_ar_if_necessary
+      create_llvm_symlinks # uninstalling other compiler tools may have removed the symlinks
   fi
 }
 
@@ -68,7 +67,9 @@ set -e && trap exit_gracefully EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 if [ ! -x "$(command -v cmake)" ]; then
-    apt-get update && apt-get install -y --no-install-recommends cmake
+  temp_install_if_command_unknown wget wget
+  wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
+  bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
 fi
 if [ ! -x "$(command -v ninja)" ]; then
   temp_install_if_command_unknown unzip unzip
@@ -104,7 +105,6 @@ else
   echo "Configured C compiler: $CC"
   echo "Configured C++ compiler: $CXX"
 fi
-set_ar_if_necessary
 
 if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
   if [ -x "$(command -v apt-get)" ]; then
