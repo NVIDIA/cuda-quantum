@@ -8,22 +8,27 @@
 
 #pragma once
 
-#include "qview.h"
+#include "cudaq/qis/qview.h"
+#include "host_config.h"
 
 namespace cudaq {
 
+#if CUDAQ_USE_STD20
 namespace details {
-/// qarray<N> for N < 1 should be a compile error
+/// `qarray`<N> for N < 1 should be a compile error
 template <std::size_t N>
 concept ValidQArraySize = N > 0;
 } // namespace details
+#endif
 
 /// @brief A `qarray` is an owning, compile-time sized container for qudits.
 /// The semantics of the `qarray` follows that of a `std::array` for qudits. It
 /// is templated on the number of qudits contained and the number of levels for
 /// the held qudits.
 template <std::size_t N, std::size_t Levels = 2>
+#if CUDAQ_USE_STD20
   requires(details::ValidQArraySize<N>)
+#endif
 class qarray {
 public:
   /// @brief Useful typedef indicating the underlying qudit type
@@ -55,25 +60,37 @@ public:
   /// @brief Returns the qudit at `idx`.
   value_type &operator[](const std::size_t idx) { return qudits[idx]; }
 
-  /// @brief Returns the `[0, count)` qudits as a non-owning qview.
+  /// @return the `[0, count)` qudits as a non-owning `qview`.
   qview<Levels> front(std::size_t count) {
+#if CUDAQ_USE_STD20
     return std::span(qudits).subspan(0, count);
+#else
+    return {qudits.begin(), count};
+#endif
   }
 
-  /// @brief Returns the first qudit.
+  /// @return the first qudit.
   value_type &front() { return qudits.front(); }
 
-  /// @brief Returns the `[count, size())` qudits as a non-owning qview
+  /// @return the `[count, size())` qudits as a non-owning `qview`.
   qview<Levels> back(std::size_t count) {
+#if CUDAQ_USE_STD20
     return std::span(qudits).subspan(size() - count, count);
+#else
+    return {qudits.end() - count, count};
+#endif
   }
 
   /// @brief Returns the last qudit.
   value_type &back() { return qudits.back(); }
 
-  /// @brief Returns the `[start, start+size)` qudits as a non-owning qview
+  /// @return the `[start, start+size)` qudits as a non-owning `qview`
   qview<Levels> slice(std::size_t start, std::size_t size) {
+#if CUDAQ_USE_STD20
     return std::span(qudits).subspan(start, size);
+#else
+    return {qudits.begin() + start, size};
+#endif
   }
 
   /// @brief Returns the number of contained qudits.

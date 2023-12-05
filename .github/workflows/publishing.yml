@@ -607,6 +607,35 @@ jobs:
             exit $status_sum
           fi
 
+      - name: MPI validation 
+        shell: bash
+        run: |
+          set +e # Allow script to keep going through errors
+          for ex in `find /home/cudaq/examples/other/distributed/ -name '*.cpp'`; do
+            # Set CUDAQ_ENABLE_MPI_EXAMPLE to activate these examples.
+            nvq++ -DCUDAQ_ENABLE_MPI_EXAMPLE=1 $ex
+            status=$?
+            if [ $status -eq 0 ]; then
+              # Run with mpiexec
+              mpiexec --allow-run-as-root -np 4 ./a.out
+              status=$?
+              if [ $status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Failed to execute $filename." >> $GITHUB_STEP_SUMMARY
+                status_sum=$((status_sum+1))
+              fi
+            else
+              echo ":x: Compilation failed for $filename." >> $GITHUB_STEP_SUMMARY
+              status_sum=$((status_sum+1))
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $status_sum -eq 0 ]; then
+            echo "::error::$status_sum examples failed; see step summary for a list of failures."
+            exit $status_sum
+          fi
+
   create_release:
     name: CUDA Quantum Release
     needs: [assets, cudaq_hpc, cudaq_wheels, validation]

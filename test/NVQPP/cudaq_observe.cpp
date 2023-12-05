@@ -7,12 +7,14 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target ionq                     --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
 // 2 different IQM machines for 2 different topologies
-// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Apollo --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ --target oqc                      --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ --target quantinuum               --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -48,4 +50,5 @@ int main() {
 
 // Note: seeds 2 and 12 will push this to -2 instead of -1. All all other
 // seeds in 1-100 range will be -1.x.
+
 // CHECK: Energy is -1.
