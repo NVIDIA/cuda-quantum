@@ -50,7 +50,7 @@ function temp_install_if_command_unknown {
 }
 
 function remove_temp_installs {
-  if [ "$APT_UNINSTALL" != "" ]; then
+  if [ -n "$APT_UNINSTALL" ]; then
       echo "Uninstalling packages used for bootstrapping: $APT_UNINSTALL"
       apt-get remove -y $APT_UNINSTALL && apt-get autoremove -y --purge
       unset APT_UNINSTALL
@@ -58,18 +58,22 @@ function remove_temp_installs {
   fi
 }
 
-__shellopts__="$SHELLOPTS" && set -e
+read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
 function exit_gracefully {
   remove_temp_installs
-  SHELLOPTS="$__shellopts__"
+  if [ -z "$__errexit__" ]; then set +e; fi
 }
 
-trap exit_gracefully EXIT
+set -e && trap exit_gracefully EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 if [ ! -x "$(command -v cmake)" ]; then
     apt-get update && apt-get install -y --no-install-recommends cmake
-    APT_UNINSTALL="$APT_UNINSTALL $2"
+fi
+if [ ! -x "$(command -v ninja)" ]; then
+  temp_install_if_command_unknown unzip unzip
+  wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
+  unzip ninja-linux.zip && mv ninja /usr/local/bin/ && rm -rf ninja-linux.zip
 fi
 if [ "$CC" == "" ] && [ "$CXX" == "" ]; then
   source "$this_file_dir/install_toolchain.sh" -t gcc12
@@ -78,11 +82,6 @@ fi
 llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
 if [ ! -d "$llvm_dir" ]; then
   echo "Could not find llvm libraries."
-  if [ ! -x "$(command -v ninja)" ]; then
-    temp_install_if_command_unknown unzip unzip
-    wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
-    unzip ninja-linux.zip && mv ninja /usr/local/bin/ && rm -rf ninja-linux.zip
-  fi
 
   if [ ! -d "$PYBIND11_INSTALL_PREFIX" ]; then
     echo "Building PyBind11..."
