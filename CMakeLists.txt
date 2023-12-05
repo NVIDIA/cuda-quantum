@@ -449,6 +449,12 @@ add_subdirectory(include)
 add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(tpls/qpp EXCLUDE_FROM_ALL)
+  # Required workaround to add libqpp as SYSTEM. This will prevent it from
+  # generating warnings, which we treat as errors.
+  get_target_property(LIBQPP_INCLUDE libqpp INTERFACE_INCLUDE_DIRECTORIES)
+  set_target_properties(libqpp
+    PROPERTIES
+      INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
   add_subdirectory(runtime)
 endif()
 if (NOT CUDAQ_DISABLE_TOOLS)
