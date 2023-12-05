@@ -64,6 +64,7 @@ public:
   /// @cond
   /// Nullary constructor
   /// meant to be used with `kernel_builder<cudaq::qreg<>>`
+  /// @endcond
   qreg()
     requires(N == dyn)
       : qudits(1) {}
@@ -73,7 +74,6 @@ public:
   qreg() {}
 #endif
 
-  /// @endcond
 
   // A `qreg` cannot be copied.
   qreg(qreg const &) = delete;
