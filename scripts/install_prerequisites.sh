@@ -58,8 +58,13 @@ function remove_temp_installs {
   fi
 }
 
-set -e
-trap remove_temp_installs EXIT
+__shellopts__="$SHELLOPTS" && set -e
+function exit_gracefully {
+  remove_temp_installs
+  SHELLOPTS="$__shellopts__"
+}
+
+trap exit_gracefully EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 if [ ! -x "$(command -v cmake)" ]; then
@@ -89,7 +94,7 @@ if [ ! -d "$llvm_dir" ]; then
   fi
 
   # Build llvm libraries from source and install them in the install directory
-  source "$this_file_dir/build_llvm.sh"
+  set +e && source "$this_file_dir/build_llvm.sh" -v && set -e
   (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 
   if [ ! -d "$llvm_dir" ]; then
