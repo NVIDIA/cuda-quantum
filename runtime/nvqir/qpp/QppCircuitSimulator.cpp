@@ -284,6 +284,21 @@ public:
                         {state.data(), state.data() + state.size()}};
   }
 
+  void setStateData() override {
+    // Just using a random, unique vector before moving on to accepting
+    // one from the user.
+    state = qpp::ket::Zero(stateDimension);
+    for (std::size_t i=0; i < stateDimension; i++) {
+      state(i) = 1.0;
+    }
+    state *= 0.70710678118;
+  }
+
+  // /// @brief Used for testing.
+  // void setStateVector() {
+  //   setStateData();
+  // }
+
   /// @brief Primarily used for testing.
   auto getStateVector() {
     flushGateQueue();
