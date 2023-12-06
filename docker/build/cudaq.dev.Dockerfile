@@ -35,6 +35,17 @@ ARG destination="$CUDAQ_REPO_ROOT"
 ADD "$workspace" "$destination"
 WORKDIR "$destination"
 
+# mpich or openmpi
+ARG mpi=
+RUN if [ -n "$mpi" ]; \
+    then \
+        if [ ! -z "$MPI_PATH" ]; then \
+            echo "Using a base image with MPI is not supported when passing a 'mpi' build argument." && exit 1; \
+        else \
+			apt update && apt install -y lib$mpi-dev ; \
+		fi \
+    fi
+
 # Configuring a base image that contains the necessary dependencies for GPU
 # accelerated components and passing a build argument 
 #   install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"

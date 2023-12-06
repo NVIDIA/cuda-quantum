@@ -702,8 +702,6 @@ jobs:
             docker pull $cudaq_image
           fi
 
-          # Workaround for dockerd rootless
-          chown $(id -u):$(id -g) scripts/validate_container.sh
           docker run --rm -dit --name cuda-quantum $cudaq_image
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
           docker exec -e TERM=xterm cuda-quantum bash validate_container.sh > /tmp/validation.out
