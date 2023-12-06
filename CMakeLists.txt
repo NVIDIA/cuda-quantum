@@ -411,7 +411,7 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
     PROPERTIES
       INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
   if (OpenMP_CXX_FOUND)
-    target_compile_definitions(libqpp INTERFACE QPP_OPENMP)
+    target_compile_definitions(libqpp INTERFACE HAS_OPENMP)
   endif()
 endif()
 
