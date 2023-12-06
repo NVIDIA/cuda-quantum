@@ -9,24 +9,30 @@
 set(LIBRARY_NAME cudaq-em-photonics)
 
 add_library(${LIBRARY_NAME} SHARED PhotonicsExecutionManager.cpp)
+
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/qpp/include>
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-       $<INSTALL_INTERFACE:include>
-    PRIVATE .)
+       $<INSTALL_INTERFACE:include>)
 
 find_package(OpenMP)
 
 if (OpenMP_CXX_FOUND)
-  target_link_libraries(${LIBRARY_NAME} PUBLIC cudaq-spin PRIVATE cudaq-common fmt::fmt-header-only OpenMP::OpenMP_CXX)
+  target_link_libraries(${LIBRARY_NAME}
+    PUBLIC cudaq-spin
+    PRIVATE cudaq-common libqpp fmt::fmt-header-only OpenMP::OpenMP_CXX
+  )
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DHAS_OPENMP=1)
 else()
-  target_link_libraries(${LIBRARY_NAME} PUBLIC cudaq-spin PRIVATE cudaq-common fmt::fmt-header-only)
+  target_link_libraries(${LIBRARY_NAME}
+    PUBLIC cudaq-spin
+    PRIVATE cudaq-common libqpp fmt::fmt-header-only)
 endif()
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-em-photonics-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+  EXPORT cudaq-em-photonics-targets
+  DESTINATION lib)
 
 install(EXPORT cudaq-em-photonics-targets
         FILE CUDAQEmPhotonicsTargets.cmake
