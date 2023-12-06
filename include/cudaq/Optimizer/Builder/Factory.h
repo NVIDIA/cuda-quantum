@@ -19,6 +19,7 @@
 namespace cudaq {
 namespace cc {
 class LoopOp;
+class StructType;
 }
 
 namespace opt::factory {
@@ -39,6 +40,17 @@ inline mlir::Type getCharType(mlir::MLIRContext *ctx) {
 /// Return the LLVM-IR dialect `ptr` type.
 inline mlir::Type getPointerType(mlir::MLIRContext *ctx) {
   return mlir::LLVM::LLVMPointerType::get(getCharType(ctx));
+}
+
+/// The type of a dynamic buffer as returned via the runtime.
+cudaq::cc::StructType getDynamicBufferType(mlir::MLIRContext *ctx);
+
+/// Extract the element type of a sret return result.
+mlir::Type getSRetElementType(mlir::FunctionType funcTy);
+
+/// Do not use this yet. Opaque pointers are all or nothing.
+inline mlir::Type getOpaquePointerType(mlir::MLIRContext *ctx) {
+  return mlir::LLVM::LLVMPointerType::get(ctx, /*addressSpace=*/0);
 }
 
 /// Return the LLVM-IR dialect type: `ty*`.
