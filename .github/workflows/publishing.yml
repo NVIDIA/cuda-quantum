@@ -79,7 +79,7 @@ jobs:
               download "$url" "$name"
               platforms=`cat "$name.txt" | egrep -o 'platforms?: \S*' | cut -d ' ' -f 2`
               image_hash=`cat "$name.txt" | grep -o -e "cuda-quantum-dev-image: \S*" -e "cuda-quantum-wheeldeps-image: \S*" | cut -d ' ' -f 2`
-              if [ -n "$(echo $platforms | grep ',')" ]; then runner=linux-amd64-cpu8
+              if [ -n "$(echo $platforms | grep ',')" ]; then runner=linux-amd64-cpu8-testing
               else runner=$(echo $platforms | tr / -)-cpu8
               fi
 
@@ -431,7 +431,7 @@ jobs:
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
 
-    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8-testing') || 'linux-amd64-cpu8-testing' }}
 
     steps:
       - name: Checkout repository
@@ -551,7 +551,7 @@ jobs:
   validation:
     name: Validation
     needs: [assets, config]
-    runs-on: linux-amd64-gpu-v100-latest-1
+    runs-on: linux-amd64-gpu-testing-v100-latest-1
 
     strategy:
       matrix:

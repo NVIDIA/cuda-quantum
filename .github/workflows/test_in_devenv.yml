@@ -27,7 +27,7 @@ name: Run CI within the dev environment container
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8-testing') || 'linux-amd64-cpu8-testing' }}
     permissions:
       contents: read
 
@@ -160,7 +160,7 @@ jobs:
 
   build_and_test_python:
     name: Dev environment (Python)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8-testing') || 'linux-amd64-cpu8-testing' }}
     permissions:
       contents: read
 
