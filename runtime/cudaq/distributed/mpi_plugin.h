@@ -62,6 +62,9 @@ public:
 
   /// @brief Broadcast a vector from a root rank to all other ranks
   void broadcast(std::vector<double> &data, int rootRank);
+  
+  /// @brief Broadcast a string from a root rank to all other ranks
+  void broadcast(std::string &data, int rootRank);
 
   /// @brief Combines local vector data from all processes and distributes the
   /// result back to all processes into the provided global vector.

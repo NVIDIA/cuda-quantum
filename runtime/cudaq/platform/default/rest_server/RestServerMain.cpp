@@ -47,7 +47,7 @@
 #include "common/Logger.h"
 #include "common/RuntimeMLIR.h"
 #include "nvqir/CircuitSimulator.h"
-
+#include "cudaq.h"
 namespace nvqir {
 CircuitSimulator *getCircuitSimulatorInternal();
 }
@@ -56,9 +56,6 @@ constexpr static char RED[] = "\033[91m";
 constexpr static char CLEAR[] = "\033[0m";
 
 using namespace mlir;
-
-// Debug only
-constexpr int port = 3030;
 
 namespace {
 std::unique_ptr<ExecutionEngine>
@@ -116,8 +113,6 @@ jitCode(ModuleOp currentModule, std::vector<std::string> extraLibPaths = {}) {
       return nullptr;
     }
     ExecutionEngine::setupTargetTriple(llvmModule.get());
-    std::cout << "LLVM:\n";
-    llvmModule->dump();
     return llvmModule;
   };
 
@@ -131,66 +126,116 @@ jitCode(ModuleOp currentModule, std::vector<std::string> extraLibPaths = {}) {
 
   return uniqueJit;
 }
+
+void invokeKernel(cudaq::ExecutionContext &io_executionContext,
+                  const std::string &irString,
+                  const std::string &entryPointFn) {
+  auto contextPtr = cudaq::initializeMLIR();
+  auto fileBuf = llvm::MemoryBuffer::getMemBufferCopy(irString);
+  // Parse the input mlir.
+  llvm::SourceMgr sourceMgr;
+  sourceMgr.AddNewSourceBuffer(std::move(fileBuf), llvm::SMLoc());
+  auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
+  auto engine = jitCode(*module);
+  //  Extract the entry point
+  auto fnPtr = engine->lookup(entryPointFn);
+
+  if (!fnPtr)
+    throw std::runtime_error("Failed to get entry function");
+
+  auto fn = reinterpret_cast<void (*)()>(*fnPtr);
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  circuitSimulator->setExecutionContext(&io_executionContext);
+  fn();
+  circuitSimulator->resetExecutionContext();
+}
+
+void *loadNnqirSimLib(const std::string &simulatorName) {
+  const std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+#if defined(__APPLE__) && defined(__MACH__)
+  const auto libSuffix = "dylib";
+#else
+  const auto libSuffix = "so";
+#endif
+  const auto simLibPath =
+      cudaqLibPath.parent_path() /
+      fmt::format("libnvqir-{}.{}", simulatorName, libSuffix);
+  cudaq::info("Request simulator {} at {}", simulatorName, simLibPath.c_str());
+  void *simLibHandle = dlopen(simLibPath.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  if (!simLibHandle) {
+    char *error_msg = dlerror();
+    throw std::runtime_error(fmt::format(
+        "Failed to open simulator backend library: {}.",
+        error_msg ? std::string(error_msg) : std::string("Unknown error")));
+  }
+  return simLibHandle;
+}
+
+std::string processRequest(const std::string &reqBody) {
+  auto requestJson = json::parse(reqBody);
+  const std::string quake = requestJson["quake"];
+  const std::string kernelName = requestJson["kernel-name"];
+  const std::string entryPoint =
+      std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName;
+  cudaq::ExecutionContext executionContext(
+      requestJson["execution-context"]["name"]);
+  json executionContexJs = requestJson["execution-context"];
+  cudaq::from_json(executionContexJs, executionContext);
+  const auto simulator = requestJson["simulator"];
+  void* handle = loadNnqirSimLib(simulator);
+  assert(handle);
+  invokeKernel(executionContext, quake, entryPoint);
+  json resultContextJs = executionContext;
+  dlclose(handle);
+  return resultContextJs.dump();
+}
 } // namespace
+
 int main(int argc, char **argv) {
+  constexpr int DEFAULT_PORT = 3030;
+  const int port = [&]() {
+    for (int i = 1; i < argc - 1; ++i)
+      if (std::string(argv[i]) == "-p" || std::string(argv[i]) == "-port" ||
+          std::string(argv[i]) == "--port")
+        return atoi(argv[i + 1]);
+
+    return DEFAULT_PORT;
+  }();
+  cudaq::mpi::initialize();
+  std::queue<std::function<void()>> functorQueue;
   crow::SimpleApp app;
   CROW_ROUTE(app, "/")
   ([]() { return "Hello, world!"; });
-
+  CROW_ROUTE(app, "/shutdown")
+      .methods("POST"_method)([&app](const crow::request &req) {
+        std::string shutDownMsg = "SHUTDOWN";
+        cudaq::mpi::broadcast(shutDownMsg, 0);
+        app.stop();
+        return "{}";
+      });
   CROW_ROUTE(app, "/job").methods("POST"_method)([](const crow::request &req) {
-    auto requestJson = json::parse(req.body);
-    const std::string quake = requestJson["quake"];
-    auto contextPtr = cudaq::initializeMLIR();
-    auto fileBuf = llvm::MemoryBuffer::getMemBufferCopy(quake);
-    // Parse the input mlir.
-    llvm::SourceMgr sourceMgr;
-    sourceMgr.AddNewSourceBuffer(std::move(fileBuf), llvm::SMLoc());
-    auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
-    auto engine = jitCode(*module);
-    const std::string kernelName = requestJson["kernel-name"];
-    const std::string entryPoint =
-        std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName;
-    //  Extract the entry point
-    auto fnPtr = engine->lookup(entryPoint);
-    
-    if (!fnPtr)
-      throw std::runtime_error("Failed to get entry function");
-
-    auto fn = reinterpret_cast<void (*)()>(*fnPtr);
-    // const auto simulator = requestJson["simulator"];
-    // TODO: proper setting for simulator
-    const std::string simulator = "qpp";
-    const std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-#if defined(__APPLE__) && defined(__MACH__)
-    const auto libSuffix = "dylib";
-#else
-    const auto libSuffix = "so";
-#endif
-    const auto simLibPath = cudaqLibPath.parent_path() /
-                            fmt::format("libnvqir-{}.{}", simulator, libSuffix);
-    cudaq::info("Request simulator {} at {}", simulator, simLibPath.c_str());
-    void *simLibHandle =
-        dlopen(simLibPath.c_str(), RTLD_GLOBAL | RTLD_NOW);
-    if (!simLibHandle) {
-      char *error_msg = dlerror();
-      throw std::runtime_error(fmt::format(
-          "Failed to open simulator backend library: {}.",
-          error_msg ? std::string(error_msg) : std::string("Unknown error")));
-    }
-
-    auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-    auto executionContext = std::make_unique<cudaq::ExecutionContext>(
-        requestJson["execution-context"]["name"]);
-    json executionContexJs = requestJson["execution-context"];
-    cudaq::from_json(executionContexJs, *executionContext);
-    circuitSimulator->setExecutionContext(executionContext.get());
-    fn();
-    circuitSimulator->resetExecutionContext();
-    executionContext->result.dump();
-    json resultContextJs = *executionContext;
-    dlclose(simLibHandle);
-    const auto resultJs = resultContextJs.dump();
-    return resultJs;
+    std::string jsonRequestBody = req.body;
+    cudaq::mpi::broadcast(jsonRequestBody, 0);
+    return processRequest(jsonRequestBody);
   });
-  app.port(port).run();
+  if (cudaq::mpi::rank() == 0)
+    std::cout << "Start server with " << cudaq::mpi::num_ranks()
+              << " processes...\n";
+  if (cudaq::mpi::rank() == 0) {
+    app.port(port).run();
+  } else {
+    for (;;) {
+      std::string jsonRequestBody;
+      cudaq::mpi::broadcast(jsonRequestBody, 0);
+      if (jsonRequestBody == "SHUTDOWN")
+        break;
+      try {
+      std::cout << "Rank " << cudaq::mpi::rank() << "\n"
+                << processRequest(jsonRequestBody) << "\n";
+      } catch(...) {
+        // Doing nothing, the root rank will report the error
+      }
+    }
+  }
+  cudaq::mpi::finalize();
 }

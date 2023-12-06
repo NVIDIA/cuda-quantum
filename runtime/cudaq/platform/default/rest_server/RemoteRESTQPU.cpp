@@ -49,94 +49,167 @@
 #include "JsonConvert.h"
 #include "nvqir/CircuitSimulator.h"
 
-namespace nvqir {
-CircuitSimulator *getCircuitSimulatorInternal();
-}
-
 namespace {
 
 class RemoteSimulatorQPU : public cudaq::QPU {
 private:
   std::string m_url;
+  std::string m_simName;
   cudaq::RestClient m_client;
+  std::unordered_map<std::size_t, cudaq::ExecutionContext *> m_contexts;
+  std::mutex m_contextMutex;
+  MLIRContext &m_mlirContext;
+
 public:
-  RemoteSimulatorQPU(const std::string &url, std::size_t id)
-      : QPU(id), m_url(url) {}
+  RemoteSimulatorQPU(MLIRContext &mlirContext, const std::string &url,
+                     std::size_t id, const std::string &simName)
+      : QPU(id), m_url(url), m_simName(simName), m_mlirContext(mlirContext) {
+    cudaq::info("Create a remote QPU: id={}; url={}; simulator={}", qpu_id,
+                m_url, m_simName);
+  }
 
   void enqueue(cudaq::QuantumTask &task) override {
     cudaq::info("Enqueue Task on QPU {}", qpu_id);
+    execution_queue->enqueue(task);
   }
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                                     std::uint64_t resultOffset) override {
-    auto *sim = nvqir::getCircuitSimulatorInternal();
-    cudaq::info("QPU::launchKernel named '{}' QPU {} (simulator = {})", name,
-                qpu_id, sim->name());
+    cudaq::info("QPU::launchKernel named '{}' remote QPU {} (simulator = {})", name,
+                qpu_id, m_simName);
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(name);
-    
-    auto contextPtr = cudaq::initializeMLIR();
-    MLIRContext &context = *contextPtr.get();
-
-    auto module = parseSourceString<ModuleOp>(quakeCode, &context);
-    if (!module)
-      throw std::runtime_error("module cannot be parsed");
-
-    // Extract the kernel name
-    auto func = module->lookupSymbol<mlir::func::FuncOp>(
-        std::string("__nvqpp__mlirgen__") + name);
-
-    // Create a new Module to clone the function into
-    auto location = FileLineColLoc::get(&context, "<builder>", 1, 1);
-    ImplicitLocOpBuilder builder(location, &context);
-
-    // FIXME this should be added to the builder.
-    if (!func->hasAttr(cudaq::entryPointAttrName))
-      func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-    auto moduleOp = builder.create<ModuleOp>();
-    moduleOp.push_back(func.clone());
-
-    if (args) {
-      cudaq::info("Run Quake Synth.\n");
-      PassManager pm(&context);
-      pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
-      if (failed(pm.run(moduleOp)))
-        throw std::runtime_error("Could not successfully apply quake-synth.");
-    }
-    nlohmann::json job;
+        nlohmann::json job;
     job["kernel-name"] = name;
-    job["quake"] = quakeCode;
-    if (!executionContext)
-      throw std::runtime_error("Invalid ExecutionContext encountered.");
-    job["execution-context"] = *executionContext;
-    std::map<std::string, std::string> headers {};
+    job["simulator"] = m_simName;
+    {
+      auto module = parseSourceString<ModuleOp>(quakeCode, &m_mlirContext);
+      if (!module)
+        throw std::runtime_error("module cannot be parsed");
+
+      // Extract the kernel name
+      auto func = module->lookupSymbol<mlir::func::FuncOp>(
+          std::string("__nvqpp__mlirgen__") + name);
+
+      // Create a new Module to clone the function into
+      auto location = FileLineColLoc::get(&m_mlirContext, "<builder>", 1, 1);
+      ImplicitLocOpBuilder builder(location, &m_mlirContext);
+
+      // FIXME this should be added to the builder.
+      if (!func->hasAttr(cudaq::entryPointAttrName))
+        func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
+      auto moduleOp = builder.create<ModuleOp>();
+      moduleOp.push_back(func.clone());
+
+      if (args) {
+        cudaq::info("Run Quake Synth.\n");
+        PassManager pm(&m_mlirContext);
+        pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
+        if (failed(pm.run(moduleOp)))
+          throw std::runtime_error("Could not successfully apply quake-synth.");
+      }
+
+      std::string codeStr;
+      llvm::raw_string_ostream outStr(codeStr);
+      mlir::OpPrintingFlags opf;
+      opf.enableDebugInfo(/*enable=*/true,
+                          /*pretty=*/false);
+      moduleOp.print(outStr, opf);
+      job["quake"] = codeStr;
+    }
+    
+    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    {
+      std::scoped_lock<std::mutex> lock(m_contextMutex);
+      const auto iter = m_contexts.find(tid);
+      if (iter == m_contexts.end())
+        throw std::runtime_error("Internal error: invalid execution context");
+      job["execution-context"] = *(iter->second);
+    }
+    std::map<std::string, std::string> headers{};
+    // This call is a blocking call; hence must be outside the scoped_lock.
     auto resultJs = m_client.post(m_url, "job", job, headers);
-    resultJs.get_to(*executionContext);
+    
+    {
+      std::scoped_lock<std::mutex> lock(m_contextMutex);
+      const auto iter = m_contexts.find(tid);
+      if (iter == m_contexts.end())
+        throw std::runtime_error("Internal error: invalid execution context");
+      resultJs.get_to(*(iter->second));
+    }
   }
 
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     cudaq::info("RemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
     executionContext = context;
+    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    {
+      std::scoped_lock<std::mutex> lock(m_contextMutex);
+      m_contexts.emplace(tid, context);
+    }
   }
 
   void resetExecutionContext() override {
     cudaq::info("RemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
-    // do nothing here
-    executionContext = nullptr;
+    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+    {
+      std::scoped_lock<std::mutex> lock(m_contextMutex);
+      m_contexts.erase(tid);
+    }
   }
 };
 
 class RemoteSimulatorQuantumPlatform : public cudaq::quantum_platform {
+  std::unique_ptr<MLIRContext> m_mlirContext;
+
 public:
   ~RemoteSimulatorQuantumPlatform() = default;
-  RemoteSimulatorQuantumPlatform() {
-    // Populate the information and add the QPUs
-    platformQPUs.emplace_back(std::make_unique<RemoteSimulatorQPU>("localhost:3030/", 0));
-    platformNumQPUs = platformQPUs.size();
+  RemoteSimulatorQuantumPlatform() : m_mlirContext(cudaq::initializeMLIR()) {
+    platformNumQPUs = 0;
   }
 
   bool supports_task_distribution() const override { return true; }
+  void setTargetBackend(const std::string &description) override {
+    const auto getOpt = [](const std::string &str,
+                           const std::string &prefix) -> std::string {
+      const auto prefixPos = str.find(prefix);
+      if (prefixPos == std::string::npos)
+        return "";
+      const auto endPos = str.find_first_of(";", prefixPos);
+      if (endPos == std::string::npos)
+        return str.substr(prefixPos + prefix.size() + 1);
+      else
+        return cudaq::split(str.substr(prefixPos + prefix.size() + 1), ';')[0];
+    };
+
+    const auto urls = cudaq::split(getOpt(description, "url"), ',');
+    const auto sims = cudaq::split(getOpt(description, "backend"), ',');
+    // List of simulator names must either be one or the same length as the URL
+    // list. If one simulator name is provided, assuming that all the URL should
+    // be using the same simulator.
+    if (sims.size() > 1 && sims.size() != urls.size())
+      throw std::runtime_error(
+          fmt::format("Invalid number of remote backend simulators provided: "
+                      "receiving {}, expecting {}.",
+                      sims.size(), urls.size()));
+    const auto formatUrl = [](const std::string &url) -> std::string {
+      auto formatted = url;
+      if (formatted.rfind("http", 0) != 0)
+        formatted = std::string("http://") + formatted;
+      if (formatted.back() != '/')
+        formatted += '/';
+         return formatted;
+    };
+    for (std::size_t qId = 0; qId < urls.size(); ++qId) {
+      const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
+      // Populate the information and add the QPUs
+      platformQPUs.emplace_back(
+          std::make_unique<RemoteSimulatorQPU>(*m_mlirContext, formatUrl(urls[qId]), qId, simName));
+    }
+
+    platformNumQPUs = platformQPUs.size();
+  }
 };
 } // namespace
 
