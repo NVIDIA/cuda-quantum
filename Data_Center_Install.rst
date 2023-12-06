@@ -80,7 +80,7 @@ following prerequisites in your build environment:
   `bash` as the Shell for your build.
 - Common tools: wget, git, unzip. The commands in the rest of this guide assume
   that these tools are present on the build system, but they can be replaced by
-  other alternatives (such as, for example, manually going to a webpage and
+  other alternatives (such as, for example, manually going to a web page and
   downloading a file/folder).
 
 The above prerequisites are no longer needed once CUDA Quantum is built and 

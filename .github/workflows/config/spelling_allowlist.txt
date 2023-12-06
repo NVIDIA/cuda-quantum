@@ -1,7 +1,9 @@
+AlmaLinux
 API
 APIs
 AST
 BFGS
+CentOS
 CLA
 CLI
 CMake
@@ -13,6 +15,7 @@ CUDA
 CuPy
 DGX
 DOI
+Fortran
 Fourier
 GHCR
 GPU
@@ -35,6 +38,7 @@ MLIR
 MPI
 MPS
 Max-Cut
+MPICH
 NGC
 NVIDIA
 NVQIR
@@ -42,6 +46,8 @@ OQC
 OpenMP
 OpenMPI
 OpenQASM
+OpenSSL
+OpenSUSE
 Pauli
 Paulis
 PyPI
@@ -54,7 +60,10 @@ QPUs
 QTX
 Quake
 Quantinuum
+RHEL
 RSA
+SLED
+SLES
 SVD
 TCP
 Toffoli
@@ -142,6 +151,7 @@ nullary
 optimizer
 optimizers
 parallelization
+performant
 precompute
 precomputed
 prepend
@@ -172,6 +182,7 @@ symplectic
 tablegen
 templated
 toolchain
+toolchains
 unary
 unitaries
 unitary

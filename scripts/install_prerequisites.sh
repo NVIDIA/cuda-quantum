@@ -61,9 +61,10 @@ read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
 function exit_gracefully {
   remove_temp_installs
   if [ -z "$__errexit__" ]; then set +e; fi
+  exit ${exit_code:-0}
 }
 
-set -e && trap exit_gracefully EXIT
+set -e && exit_code=1 && trap exit_gracefully EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 if [ ! -x "$(command -v cmake)" ]; then
@@ -141,3 +142,6 @@ if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"
   make install && cd .. && rm -rf openssl-3.1.1*
   remove_temp_installs
 fi
+
+echo "All prerequisites have been installed."
+exit_code=0
