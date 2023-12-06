@@ -20,7 +20,7 @@ namespace cudaq {
 namespace cc {
 class LoopOp;
 class StructType;
-}
+} // namespace cc
 
 namespace opt::factory {
 

@@ -341,7 +341,7 @@ public:
       auto cast = builder.create<cudaq::cc::CastOp>(loc, elePtrTy,
                                                     funcOp.getArgument(0));
       if (funcOp.getNumResults() > 1) {
-        for (std::size_t i = 0, end = funcOp.getNumResults(); i != end; ++i) {
+        for (int i = 0, end = funcOp.getNumResults(); i != end; ++i) {
           auto mem = builder.create<cudaq::cc::ComputePtrOp>(
               loc, cudaq::cc::PointerType::get(funcTy.getResult(i)), cast,
               SmallVector<cudaq::cc::ComputePtrArg>{0, i});
@@ -436,7 +436,7 @@ public:
     auto structTy = structPtrTy.cast<cudaq::cc::PointerType>()
                         .getElementType()
                         .cast<cudaq::cc::StructType>();
-    auto offset = funcTy.getNumInputs();
+    int offset = funcTy.getNumInputs();
     if (hiddenSRet) {
       // Use the end of the argument block for the return values.
       auto eleTy = structTy.getMembers()[offset];
