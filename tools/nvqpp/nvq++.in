@@ -45,7 +45,7 @@ function list_targets {
 
 function list_simulators {
 	for file in $(grep -L "PLATFORM_QPU=" $(ls ${install_dir}/targets/*.config)) ; do
-		if ! grep -q "LIBRARY_MODE_EXECUTION_MANAGER=" $file ; then 
+		if ! grep -q "LIBRARY_MODE_EXECUTION_MANAGER=" $file ; then
 			echo $(basename $file | cut -d "." -f 1)
 		fi
 	done
@@ -80,21 +80,21 @@ function show_help {
 	cat - <<HELP
 --llvm-version=<vers>
 	Set the LLVM version suffix is <vers>.
-	
+
 --execution-manager=<mgr> | -em=<mgr> | -execution-manager=<mgr>
 	Set the execution manager to <mgr>.
-	
+
 --target=<target> | -target=<target>
 	Set the Target name to <target>.
 
---list-targets 
-    List the available targets NVQ++ can compile to. 
+--list-targets
+    List the available targets NVQ++ can compile to.
 
 --emit-qir=<file> | -emit-qir=<file>
 	Emit the QIR output to <file>.
 
 --emulate | -emulate
-   For physical, remote QPU execution, enable local emulation for testing. 
+   For physical, remote QPU execution, enable local emulation for testing.
 
 --platform=<lib> | -platform=<lib>
 	Set the platform library name to <lib>.
@@ -104,7 +104,7 @@ function show_help {
 
 -g
 	Enable debugging output.
-	
+
 --enable-mlir
 	Enable and generate MLIR code for CUDA Quantum kernels.
 
@@ -119,7 +119,7 @@ function show_help {
 
 --[no-]unwind-lowering
 	Enable/disable unwind lowering pass.
-	
+
 --[no-]kernel-execution
 	Enable/disable kernel execution pass.
 
@@ -134,7 +134,7 @@ function show_help {
 
 --save-temps
 	Save temporary files.
-	
+
 -o=<obj>
 	Specify the output file.
 
@@ -143,7 +143,7 @@ function show_help {
 
 -L<dir> | -L <dir>
 	Add <dir> to the linker's library path.
-	
+
 -I<dir> | -I <dir>
 	Add a <dir> to the include path.
 
@@ -152,7 +152,7 @@ function show_help {
 
 -c
 	Compile only. Do not link.
-	
+
 -Wl<opt>
 	Linker options to be passed to the linker.
 
@@ -175,7 +175,7 @@ llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 
 IS_RELOCATABLE_INSTALL=@CUDAQ_RELOCATABLE_BOOL@
-INCLUDES=""
+INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
 
 # If we are a relocatable package, then we
 # want to re-divert llvm_install_dir to the install_dir
@@ -190,7 +190,7 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 	# the build directory for testing.
 	if [ "@CMAKE_BINARY_DIR@" -ef "${install_dir}" ]; then
 		CUDAQ_INCLUDE_PATH="@CMAKE_SOURCE_DIR@/runtime"
-		INCLUDES="-I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
+		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
 	else
 		error_exit "Invalid CUDA Quantum install configuration."
 	fi
@@ -207,7 +207,7 @@ if [ -d "${llvm_install_dir}/bin" -a \
 fi
 
 # Compiler and linker flags
-COMPILER_FLAGS="-std=c++20 -I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
+COMPILER_FLAGS="-I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
 # If we are a relocatable package, we want to
 # add compiler flags that will point clang to our repackaged
@@ -232,16 +232,14 @@ LINKLIBS="-lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-en
 
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
-if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]
-then 
-  CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*` 
-  for entry in $CUDAQ_PLUGIN_LIBS
-  do 
+if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]; then
+  CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*`
+  for entry in $CUDAQ_PLUGIN_LIBS; do
     PLUGIN_NAME=$(basename $entry)
     PLUGIN_NAME=${PLUGIN_NAME#lib}
     PLUGIN_NAME=${PLUGIN_NAME%@CMAKE_SHARED_LIBRARY_SUFFIX@}
     LINKLIBS="$LINKLIBS -l$PLUGIN_NAME"
-  done 
+  done
 fi
 
 CUDAQ_EMULATE_REMOTE=false
@@ -270,6 +268,7 @@ SHOW_HELP=false
 LIST_TARGETS=false
 DISABLE_QUBIT_MAPPING=false
 NVQIR_LIBS="-lnvqir -lnvqir-"
+CPPSTD=-std=c++20
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
@@ -291,8 +290,8 @@ if [[ ! -z "${CUDAQ_DEFAULT_SIMULATOR}" ]]; then
 	done
 fi
 
-# We default to LIBRARY_MODE, physical 
-# Quantum Targets can override this to turn on 
+# We default to LIBRARY_MODE, physical
+# Quantum Targets can override this to turn on
 # our MLIR compilation workflow.
 LIBRARY_MODE=true
 
@@ -422,7 +421,7 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	-D*)
-		DEFINED_VAR=$1 
+		DEFINED_VAR=$1
 		PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D ${DEFINED_VAR:2}"
 		;;
 	-L)
@@ -437,10 +436,16 @@ while [ $# -ne 0 ]; do
 		LINKLIBS="${LINKLIBS} -l$2"
 		shift
 		;;
+	-fPIC|-fpic)
+		# Pass to linker, library mode, and cudaq-quake
+		LINKER_FLAGS="${LINKER_FLAGS} $1"
+		ARGS="${ARGS} $1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq $1"
+		;;
 	-c)
 		DO_LINK=false
 		;;
-	-L* | -Wl*)
+	-L* | -Wl* |-shared|-static)
 		LINKER_FLAGS="${LINKER_FLAGS} $1"
 		;;
 	-I*)
@@ -458,13 +463,17 @@ while [ $# -ne 0 ]; do
 	-v)
 		ECHO=true
 		;;
+	-std=*)
+		CPPSTD="$1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} $1"
+		;;
 	*.o | *.so | *.bundle)
 		OBJS="${OBJS} $1"
 		;;
 	*.cpp | *.cc)
 		SRCS="${SRCS} $1"
 		;;
-	*.a | *.dylib)	    
+	*.a | *.dylib)
 		LINKLIBS="${LINKLIBS} $1"
 		;;
 	*)
@@ -494,6 +503,8 @@ function delete_temp_files {
 }
 trap delete_temp_files EXIT
 
+COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
+
 # Goal here is to parse the backend config file, get the
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
@@ -511,7 +522,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
 			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-			run ${CXX} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
+			run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 			OBJS_TO_MERGE="${OUTFILENAME}"
 			TMPFILES="${TMPFILES} ${OUTFILENAME}"
 		fi
@@ -652,7 +663,7 @@ if ${DO_LINK}; then
 	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified
-	if [ ! -z "${OUTPUTFILE}" ] && [ $((${#OBJS[@]} == 0)) ]; then
+	if [ ! -z "${OUTPUTFILE}" ] && ((${#OBJS[@]} == 0)); then
 		run mv ${OBJS} ${OUTPUTFILE}
 	fi
 fi

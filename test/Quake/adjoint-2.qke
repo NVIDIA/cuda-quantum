@@ -11,7 +11,7 @@
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_alpha = "_ZN12kernel_alphaclERN4cudaq5quditILm2EEE", __nvqpp__mlirgen__kernel_beta = "_ZN11kernel_betaclEv"}} {
   // expected-error @+1 {{cannot make adjoint of kernel with a measurement}}
   func.func @__nvqpp__mlirgen__kernel_alpha(%arg0: !quake.ref) attributes {"cudaq-kernel"} {
-    %0 = quake.mx %arg0 : (!quake.ref) -> i1
+    %0 = quake.mx %arg0 : (!quake.ref) -> !quake.measure
     return
   }
   func.func @__nvqpp__mlirgen__kernel_beta() attributes {"cudaq-entrypoint", "cudaq-kernel"} {

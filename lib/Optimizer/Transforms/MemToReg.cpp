@@ -560,7 +560,7 @@ public:
 
     if constexpr (quake::isMeasure<OP>) {
       // The result type of the bits is the same. Add the wire types.
-      SmallVector<Type> newTy = {op.getBits().getType()};
+      SmallVector<Type> newTy = {op.getMeasOut().getType()};
       SmallVector<Type> wireTys(unwrapTargs.size(), wireTy);
       newTy.append(wireTys.begin(), wireTys.end());
       auto newOp = rewriter.create<OP>(loc, newTy, unwrapTargs,
@@ -631,7 +631,7 @@ public:
     for (auto wrap : wrapOps) {
       auto ref = wrap.getRefValue();
       auto wire = wrap.getWireValue();
-      if (!ref || wire.getUses().empty()) {
+      if (!ref || !wire.hasOneUse()) {
         LLVM_DEBUG(llvm::dbgs() << "erasing: "; wrap->dump();
                    llvm::dbgs() << '\n');
         wrap->dropAllUses();

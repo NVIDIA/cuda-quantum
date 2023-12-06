@@ -8,6 +8,7 @@
 	path = tpls/llvm
 	url = https://github.com/llvm/llvm-project.git
 	shallow = true
+	ignore = dirty
 [submodule "tpls/eigen"]
 	path = tpls/eigen
 	url = https://gitlab.com/libeigen/eigen.git
@@ -26,3 +27,7 @@
 [submodule "tpls/xtensor"]
 	path = tpls/xtensor
 	url = https://github.com/xtensor-stack/xtensor
+[submodule "tpls/pybind11"]
+	path = tpls/pybind11
+	url = https://github.com/pybind/pybind11
+	ignore = dirty

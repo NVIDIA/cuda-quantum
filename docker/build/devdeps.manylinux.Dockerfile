@@ -27,6 +27,7 @@ FROM quay.io/pypa/${manylinux_image}_${arch}:latest
 
 ARG distro=rhel8
 ARG llvm_commit
+ARG pybind11_commit
 ARG toolchain=gcc11
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -35,12 +36,12 @@ ARG toolchain=gcc11
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Clone the LLVM source code.
-RUN mkdir /llvm-project && cd /llvm-project && git init \
-    && git remote add origin https://github.com/llvm/llvm-project \
-    && git fetch origin --depth=1 $llvm_commit && git reset --hard FETCH_HEAD
+# Preserve access to the history to be able to cherry pick specific commits.
+RUN git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project \
+    && cd /llvm-project && git checkout $llvm_commit
 
-# Install the C/C++ compiler toolchain with which the LLVM dependencies have
-# been built. CUDA Quantum needs to be built with that same toolchain, and the
+# Install the C/C++ compiler toolchain to build the LLVM dependencies.
+# CUDA Quantum needs to be built with that same toolchain, and the
 # toolchain needs to be one of the supported CUDA host compilers. We use
 # a wrapper script so that the path that we set CC and CXX to is independent 
 # on the installed toolchain. Unfortunately, a symbolic link won't work.
@@ -62,15 +63,27 @@ RUN if [ "$toolchain" == 'gcc11' ]; then \
 ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
-# Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum
-ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
+# Build pybind11 - 
+# we should be able to use the same pybind version independent on what Python version we generate bindings for.
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        ninja-build cmake \
-    && export CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
-    && export CMAKE_SHARED_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
-    && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
-    && dnf remove -y ninja-build cmake && dnf clean all \
-    && rm -rf /llvm-project && rm /scripts/build_llvm.sh
+        ninja-build cmake python3-devel \
+    && mkdir /pybind11-project && cd /pybind11-project && git init \
+    && git remote add origin https://github.com/pybind/pybind11 \
+    && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
+    && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
+    && python3 -m ensurepip --upgrade && python3 -m pip install pytest \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 -DPYTHON_EXECUTABLE="$(which python3)" \
+    && cmake --build . --target install --config Release \
+    && python3 -m pip uninstall -y pytest \
+    && cd / && rm -rf /pybind11-project
+
+# Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum.
+ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
+ENV LLVM_BUILD_LINKER_FLAGS="-static-libgcc -static-libstdc++"
+RUN export CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
+    && bash /scripts/build_llvm.sh -s /llvm-project -p "clang;lld;mlir" -c Release -v
+    # No clean up of the build or source directory,
+    # since we need to re-build llvm for each python version to get the bindings.
 
 # Install additional dependencies required to build the CUDA Quantum wheel.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh

@@ -1,0 +1,18 @@
+name: run-in-docker
+
+inputs:
+  image:
+    required: true
+  run:
+    required: true
+  shell:
+    default: "bash"
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      run: |
+        docker run -i ${{ inputs.image }} ${{ inputs.shell }} -s << 'EOF'
+        ${{ inputs.run }}
+        EOF

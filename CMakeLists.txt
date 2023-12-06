@@ -37,6 +37,13 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 OLD)
 endif()
 
+# CMP0148: The ``FindPythonInterp`` and ``FindPythonLibs`` modules are removed.
+# CMake 3.27 and above no longer provide the modules.
+# https://cmake.org/cmake/help/latest/policy/CMP0148.html
+if(POLICY CMP0148)
+  cmake_policy(SET CMP0148 OLD)
+endif()
+
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
@@ -93,6 +100,19 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
         message(FATAL_ERROR "Cloning git submodules failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually")
     endif()
+    # Apply patches; check if patch is already applied first, and apply it if not
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --reverse --check
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_PATCH_RESULT
+                    ERROR_QUIET)
+    if(NOT GIT_PATCH_RESULT EQUAL "0")
+      execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                      RESULT_VARIABLE GIT_PATCH_RESULT)
+    endif()
+    if(NOT GIT_PATCH_RESULT EQUAL "0")
+        message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+    endif()
   endif()
 endif()
 
@@ -127,6 +147,10 @@ if(NOT CUTENSORNET_ROOT)
 endif()
 if(NOT OPENSSL_ROOT_DIR)	
   SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")	
+endif()
+if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
+  # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
+  SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")	
 endif()
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
@@ -345,7 +369,15 @@ install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
 # Third-party libraries (tpls)
 # ==============================================================================
 set(FMT_INSTALL ON)
+cmake_policy(PUSH)
+# CMP0146: The FindCUDA module is removed.
+# CMake 3.27 and above no longer provide the modules.
+# https://cmake.org/cmake/help/latest/policy/CMP0146.html
+if(POLICY CMP0146)
+  cmake_policy(SET CMP0146 OLD)
+endif()
 add_subdirectory(tpls/fmt)
+cmake_policy(POP)
 include_directories(SYSTEM tpls/json/include)
 
 # Add spdlog 
@@ -401,6 +433,8 @@ if (NOT CUDAQ_SKIP_MPI)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND) 
     message(STATUS "MPI CXX Found: ${MPIEXEC}")
+    # Build the built-in MPI Comm plugin
+    add_subdirectory(runtime/cudaq/distributed/builtin)
   endif()
 endif()
 

@@ -26,26 +26,25 @@ FROM ubuntu:22.04 as llvmbuild
 SHELL ["/bin/bash", "-c"]
 
 ARG llvm_commit
+ARG pybind11_commit
 ARG toolchain=llvm
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates openssl apt-utils \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install prerequisites for building LLVM.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ninja-build cmake python3 \
+        ninja-build cmake python3 python3-dev python3-pip \
+    && python3 -m pip install --no-cache-dir numpy \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Clone the LLVM source code.
+# Preserve access to the history to be able to cherry pick specific commits.
 RUN apt-get update && apt-get install -y --no-install-recommends git \
-    && mkdir /llvm-project && cd /llvm-project && git init \
-    && git remote add origin https://github.com/llvm/llvm-project \
-    && git fetch origin --depth=1 $llvm_commit && git reset --hard FETCH_HEAD \
+    && git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project \
+    && cd /llvm-project && git checkout $llvm_commit \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum;
@@ -64,28 +63,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN LLVM_INSTALL_PREFIX=/opt/llvm LLVM_SOURCE=/llvm-project \
-        source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
+        source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
+    && rm -rf /llvm-project/build
+RUN mkdir /pybind11-project && cd /pybind11-project && git init \
+    && git remote add origin https://github.com/pybind/pybind11 \
+    && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
+    && source /opt/llvm/bootstrap/init_command.sh \
+    && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
+    && cmake --build . --target install --config Release \
+    && cd .. && rm -rf /pybind11-project
 RUN source /opt/llvm/bootstrap/init_command.sh && \
     LLVM_INSTALL_PREFIX=/opt/llvm \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
-# Todo: 
-# - remove http://apt.llvm.org/jammy/ in the install_toolchain.sh and use
-#   FROM llvmbuild as prereqs
-# - uncomment the source /opt/llvm/bootstrap/init_command.sh below
-FROM ubuntu:22.04 as prereqs
-SHELL ["/bin/bash", "-c"]
-COPY --from=llvmbuild /opt/llvm /opt/llvm
+FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
-    # Making sure that anything that is build from source when installing additional
-    # prerequisites is built using the same toolchain as CUDA Quantum by default.
-    # && source /opt/llvm/bootstrap/init_command.sh \
+    # It would be nice to also build the prerequisites
+    # using the same toolchain as CUDA Quantum by default.
+    && source /opt/llvm/bootstrap/init_command.sh \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -167,7 +168,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certifi
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ninja-build libcurl4-openssl-dev \
+        git ninja-build file libcurl4-openssl-dev \
         python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir \
         lit pytest numpy \

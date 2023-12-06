@@ -20,11 +20,12 @@
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
+Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
-llvm_projects="clang;lld;mlir"
+llvm_projects="clang;lld;mlir;python-bindings"
 verbose=false
 
 __optind__=$OPTIND
@@ -49,10 +50,14 @@ OPTIND=$__optind__
 working_dir=`pwd`
 
 if [ "$llvm_source" = "" ]; then
+  llvm_source=~/.llvm-project
   cd $(git rev-parse --show-toplevel)
   echo "Cloning LLVM submodule..."
-  git submodule update --init --recursive --recommend-shallow --single-branch tpls/llvm
-  llvm_source=tpls/llvm
+
+  llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
+  llvm_commit="$(git rev-parse @:./tpls/llvm)"
+  git clone --filter=tree:0 "$llvm_repo" "$llvm_source"
+  cd "$llvm_source" && git checkout $llvm_commit
 fi
 
 echo "Configured C compiler: $CC"
@@ -60,12 +65,18 @@ echo "Configured C++ compiler: $CXX"
 
 # Prepare the build directory
 mkdir -p "$LLVM_INSTALL_PREFIX"
-mkdir -p "$llvm_source/build" && cd "$llvm_source/build" && rm -rf *
+mkdir -p "$llvm_source/build" && cd "$llvm_source/build"
 mkdir -p logs && rm -rf logs/* 
 
 # Specify which components we need to keep the size of the LLVM build down
 echo "Preparing LLVM build..."
 projects=(`echo $llvm_projects | tr ';' ' '`)
+llvm_projects=`printf "%s;" "${projects[@]}"`
+if [ -z "${llvm_projects##*python-bindings;*}" ]; then
+  mlir_python_bindings=ON
+  projects=("${projects[@]/python-bindings}")
+fi
+
 llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*clang;*}" ]; then
   echo "- including Clang components"
@@ -76,6 +87,10 @@ if [ -z "${llvm_projects##*mlir;*}" ]; then
   echo "- including MLIR components"
   llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
   projects=("${projects[@]/mlir}")
+  if [ "$mlir_python_bindings" == "ON" ]; then
+    echo "- including MLIR Python bindings"
+    llvm_components+="MLIRPythonModules;mlir-python-sources;"
+  fi
 fi
 if [ -z "${llvm_projects##*lld;*}" ]; then
   echo "- including LLD components"
@@ -92,7 +107,24 @@ if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
   install_target=install
 else 
   install_target=install-distribution-stripped
+  if [ -n "$mlir_python_bindings" ]; then
+    # Cherry-pick the necessary commit to have a distribution target
+    # for the mlir-python-sources; to be removed after we update to LLVM 17.
+    echo "Cherry-picking commit 9494bd84df3c5b496fc087285af9ff40d7859b6a"
+    git cherry-pick --no-commit 9494bd84df3c5b496fc087285af9ff40d7859b6a
+    if [ ! 0 -eq $? ]; then
+      echo "Cherry-pick failed."
+      if $(git rev-parse --is-shallow-repository); then
+        echo "Unshallow the repository and try again."
+        if $is_sourced; then return 1; else exit 1; fi
+      fi
+    fi
+  fi
 fi
+
+# A hack, since otherwise the build can fail due to line endings in the LLVM script:
+cat "../llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
+cat ~config.guess > "../llvm/cmake/config.guess" && rm ~config.guess
 
 # Generate CMake files
 cmake_args="-G Ninja ../llvm \
@@ -101,12 +133,15 @@ cmake_args="-G Ninja ../llvm \
   -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
   -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
   -DLLVM_DISTRIBUTION_COMPONENTS=$llvm_components \
+  -DLLVM_ENABLE_BINDINGS=OFF \
+  -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
+  -DPython3_EXECUTABLE="$Python3_EXECUTABLE" \
   -DLLVM_ENABLE_ASSERTIONS=ON \
   -DLLVM_OPTIMIZED_TABLEGEN=ON \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DLLVM_BUILD_EXAMPLES=OFF \
+  -DLLVM_BUILD_TESTS=OFF \
   -DLLVM_ENABLE_OCAMLDOC=OFF \
-  -DLLVM_ENABLE_BINDINGS=OFF \
   -DLLVM_ENABLE_ZLIB=OFF \
   -DLLVM_INSTALL_UTILS=ON"
 if $verbose; then

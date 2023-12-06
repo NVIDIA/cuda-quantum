@@ -7,7 +7,7 @@ on:
     inputs:
       update_registry_cache:
         type: boolean
-        description: Create or update the build caches on the container registry.
+        description: Create or update the build caches on the container registry. The build terminates after that and no images are pushed.
         required: false
         default: false
       cache_base:
@@ -19,7 +19,7 @@ on:
         type: string
         description: The platforms to build the Docker images for. A semicolon separated list creates a separate list for each platform, whereas a comma separate list creates a multi-platform build.
         required: false
-        default: linux/amd64,linux/arm64
+        default: default
       create_release:
         type: string
         description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
@@ -59,8 +59,10 @@ jobs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
       pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
+      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
+      pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
-      update_cache: ${{ steps.build_info.outputs.update_cache }}
+      cache_target: ${{ steps.build_info.outputs.cache_target }}
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
       platforms: ${{ steps.build_info.outputs.platforms }}
       environment: ${{ steps.build_info.outputs.environment }}
@@ -97,9 +99,13 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
-          echo "Concurrency group: ${{ github.event.workflow_run.head_branch || github.ref_name }}"
+          if ${{ github.event_name == 'workflow_dispatch' }}; then 
+            defaults="${{ (inputs.update_registry_cache && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}"
+            requested_platforms=`echo "${{ inputs.platforms }}" | tr + , | sed "s#default#$defaults#g"`
+          else
+            requested_platforms="linux/arm64 linux/amd64"
+          fi
 
-          requested_platforms=`echo ${{ inputs.platforms || 'linux/arm64 linux/amd64' }} | tr + ,`
           if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
             multi_platform="{\"ids\":[]}"
             platform_flag=`echo "$requested_platforms" | tr -d ' '`
@@ -118,7 +124,7 @@ jobs:
           done
 
           cache_base=${{ (github.event_name == 'push' && 'main') || inputs.cache_base || steps.pr_info.outputs.pr_base }}
-          update_cache=${{ (github.event_name == 'workflow_dispatch' && inputs.update_registry_cache) || github.event_name == 'push' }}
+          cache_target=${{ (github.event_name != 'workflow_dispatch' && (steps.pr_info.outputs.pr_base || github.ref_name)) || (inputs.update_registry_cache && github.ref_name) || '' }}
           environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
 
           # Store deployment info
@@ -130,7 +136,7 @@ jobs:
           echo "release-version: $release_version" >> deployment_info.txt
 
           echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
-          echo "update_cache=$update_cache" >> $GITHUB_OUTPUT
+          echo "cache_target=$cache_target" >> $GITHUB_OUTPUT
           echo "multi_platform=$(echo $multi_platform)" >> $GITHUB_OUTPUT
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
           echo "environment=$environment" >> $GITHUB_OUTPUT
@@ -142,6 +148,17 @@ jobs:
           path: deployment_info.txt
           retention-days: 30
           if-no-files-found: error
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: "${{ steps.pr_info.outputs.merge_commit }}"
+
+      - name: Configure build
+        id: repo_info
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
 
   devdeps:
     name: Build dev dependencies
@@ -157,9 +174,11 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
+      build_args: |
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
-      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
@@ -184,9 +203,10 @@ jobs:
       build_args: |
         arch=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].arch }}
         distro=rhel8
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
-      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
@@ -206,8 +226,7 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
-      registry_cache_update_only: ${{ github.event_name == 'workflow_run' }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-ompi
@@ -242,7 +261,7 @@ jobs:
   config:
     name: Configure build
     needs: [devdeps, wheeldeps, openmpi]
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && ! inputs.update_registry_cache
     runs-on: ubuntu-latest
 
     outputs:
@@ -271,7 +290,7 @@ jobs:
         base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, needs.config.outputs.devdeps_toolchain)] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
-      registry_cache_update: ${{ needs.metadata.outputs.update_cache == 'true' }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-ext

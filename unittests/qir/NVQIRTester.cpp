@@ -155,6 +155,26 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
 }
 #endif
 
+CUDAQ_TEST(NVQIRTester, checkReset) {
+  __quantum__rt__initialize(0, nullptr);
+  auto qubits = __quantum__rt__qubit_allocate_array(2);
+  Qubit *q0 = *reinterpret_cast<Qubit **>(
+      __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+  Qubit *q1 = *reinterpret_cast<Qubit **>(
+      __quantum__rt__array_get_element_ptr_1d(qubits, 1));
+
+  // Make sure that the state vector doesn't grow with each additional reset
+  for (int i = 0; i < 100; i++) {
+    __quantum__qis__reset(q0);
+    __quantum__qis__reset(q1);
+    __quantum__qis__x(q1);
+    __quantum__qis__swap(q0, q1);
+    assert(*__quantum__qis__mz(q0) == 1);
+  }
+  __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__finalize();
+}
+
 #ifndef CUDAQ_BACKEND_TENSORNET_MPS
 // MPS doesn't support gates on more than 2 qubits (controlled swap)
 // SWAP with a single ctrl qubit in 0 state.

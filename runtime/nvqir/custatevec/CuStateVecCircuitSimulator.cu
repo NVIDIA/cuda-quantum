@@ -113,9 +113,6 @@ protected:
   /// @brief The size of the extra workspace
   size_t extraWorkspaceSizeInBytes = 0;
 
-  /// @brief Count the number of resets.
-  int nResets = 0;
-
   custatevecComputeType_t cuStateVecComputeType = CUSTATEVEC_COMPUTE_64F;
   cudaDataType_t cuStateVecCudaDataType = CUDA_C_64F;
   std::random_device randomDevice;
@@ -163,10 +160,8 @@ protected:
     if (extraWorkspaceSizeInBytes > 0)
       HANDLE_CUDA_ERROR(cudaMalloc(&extraWorkspace, extraWorkspaceSizeInBytes));
 
-    // When we perform a deallocation we apply a
-    // qubit reset, and the state does not shrink (trying to minimize device
-    // memory manipulations), but nQubitsAllocated decrements.
-    auto localNQubitsAllocated = nQubitsAllocated + nResets;
+    auto localNQubitsAllocated =
+        stateDimension > 0 ? std::log2(stateDimension) : 0;
 
     // apply gate
     HANDLE_ERROR(custatevecApplyMatrix(
@@ -200,7 +195,7 @@ protected:
       return;
 
     int dev;
-    cudaGetDevice(&dev);
+    HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
     cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
 
     if (!deviceStateVector) {
@@ -266,7 +261,6 @@ protected:
       HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
     deviceStateVector = nullptr;
     extraWorkspaceSizeInBytes = 0;
-    nResets = 0;
   }
 
   /// @brief Apply the given GateApplicationTask
@@ -350,7 +344,6 @@ public:
   /// @param qubitIdx
   void resetQubit(const std::size_t qubitIdx) override {
     flushGateQueue();
-    nResets++;
     const int basisBits[] = {(int)qubitIdx};
     int parity;
     double rand = randomValues(1, 1.0)[0];

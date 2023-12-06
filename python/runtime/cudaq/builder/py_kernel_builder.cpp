@@ -208,7 +208,7 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
           [](kernel_builder<> &self, QuakeValue &control,                      \
              QuakeValue &target) {                                             \
             std::vector<QuakeValue> controls{control};                         \
-            self.NAME(controls, target);                                       \
+            self.NAME<cudaq::ctrl>(controls, target);                          \
           },                                                                   \
           py::arg("control"), py::arg("target"),                               \
           "Apply a controlled-" #NAME " operation"                             \
@@ -230,7 +230,9 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
       .def(                                                                    \
           "c" #NAME,                                                           \
           [](kernel_builder<> &self, std::vector<QuakeValue> &controls,        \
-             QuakeValue &target) { self.NAME(controls, target); },             \
+             QuakeValue &target) {                                             \
+            self.NAME<cudaq::ctrl>(controls, target);                          \
+          },                                                                   \
           py::arg("controls"), py::arg("target"),                              \
           "Apply a controlled-" #NAME " operation"                             \
           " to the given target qubits, with the provided list of control "    \
@@ -349,8 +351,9 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
       .def(                                                                    \
           "c" #NAME,                                                           \
           [](kernel_builder<> &self, QuakeValue &parameter,                    \
-             std::vector<QuakeValue> &controls,                                \
-             QuakeValue &target) { self.NAME(parameter, controls, target); },  \
+             std::vector<QuakeValue> &controls, QuakeValue &target) {          \
+            self.NAME<cudaq::ctrl>(parameter, controls, target);               \
+          },                                                                   \
           py::arg("parameter"), py::arg("controls"), py::arg("target"),        \
           "Apply a controlled-" #NAME " operation"                             \
           " to the given target qubit, with the provided list of control "     \
@@ -374,8 +377,9 @@ and rotations and return a valid, callable, CUDA Quantum kernel.
       .def(                                                                    \
           "c" #NAME,                                                           \
           [](kernel_builder<> &self, double &parameter,                        \
-             std::vector<QuakeValue> &controls,                                \
-             QuakeValue &target) { self.NAME(parameter, controls, target); },  \
+             std::vector<QuakeValue> &controls, QuakeValue &target) {          \
+            self.NAME<cudaq::ctrl>(parameter, controls, target);               \
+          },                                                                   \
           py::arg("parameter"), py::arg("controls"), py::arg("target"),        \
           "Apply a controlled-" #NAME " operation"                             \
           " to the given target qubit, with the provided list of control "     \

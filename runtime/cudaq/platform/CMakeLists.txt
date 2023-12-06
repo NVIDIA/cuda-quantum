@@ -7,7 +7,9 @@
 # ============================================================================ #
 
 add_subdirectory(default)
-add_subdirectory(orca)
+if (OPENSSL_FOUND)
+  add_subdirectory(orca)
+endif()
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)
   add_subdirectory(mqpu)
 endif()

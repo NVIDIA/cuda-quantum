@@ -33,8 +33,13 @@ jobs:
       pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
       pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       cache_base: ${{ steps.pr_info.outputs.pr_base }}
+      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
+      pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - id: pr_info
         run: |
           pr_number=`echo ${{ github.ref_name }} | grep pull-request/ | (grep -o [0-9]* || true)`
@@ -49,6 +54,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - id: repo_info
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+
   devdeps:
     name: Load dependencies
     needs: metadata
@@ -62,6 +72,9 @@ jobs:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
+      build_args: |
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
@@ -82,6 +95,8 @@ jobs:
         manylinux_image=manylinux_2_28
         arch=${{ (matrix.platform == 'arm64' && 'aarch64') || (matrix.platform == 'amd64' && 'x86_64') || 'any' }}
         distro=rhel8
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-python
@@ -111,10 +126,17 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         toolchain: [llvm, clang16, gcc12]
+        mpi: [openmpi, mpich]
+        exclude:
+          - toolchain: llvm
+            mpi: mpich
+          - toolchain: clang16
+            mpi: mpich
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       platform: linux/${{ matrix.platform }}
+      mpi: ${{ matrix.mpi }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}

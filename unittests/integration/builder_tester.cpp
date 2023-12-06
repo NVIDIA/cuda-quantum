@@ -314,9 +314,9 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
 
     // Overload 1: `QuakeValue` parameter.
-    kernel.rx(val, ctrls, target);
+    kernel.rx<cudaq::ctrl>(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.rx(M_PI, ctrls, target);
+    kernel.rx<cudaq::ctrl>(M_PI, ctrls, target);
 
     auto counts = cudaq::sample(kernel, M_PI);
     counts.dump();
@@ -343,9 +343,9 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
 
     // Overload 1: `QuakeValue` parameter.
-    kernel.rx(val, ctrls, target);
+    kernel.rx<cudaq::ctrl>(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.rx(M_PI, ctrls, target);
+    kernel.rx<cudaq::ctrl>(M_PI, ctrls, target);
 
     auto counts = cudaq::sample(kernel, M_PI);
     counts.dump();
@@ -376,9 +376,9 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
 
     // Overload 1: `QuakeValue` parameter.
-    kernel.rz(val, ctrls, target);
+    kernel.rz<cudaq::ctrl>(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.rz(-M_PI_2, ctrls, target);
+    kernel.rz<cudaq::ctrl>(-M_PI_2, ctrls, target);
 
     // Hadamard the target again.
     kernel.h(target);
@@ -412,9 +412,9 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     std::vector<cudaq::QuakeValue> ctrls{q1, q2, q3};
 
     // Overload 1: `QuakeValue` parameter.
-    kernel.r1(val, ctrls, target);
+    kernel.r1<cudaq::ctrl>(val, ctrls, target);
     // Overload 2: `double` parameter.
-    kernel.r1(-M_PI_2, ctrls, target);
+    kernel.r1<cudaq::ctrl>(-M_PI_2, ctrls, target);
 
     // Hadamard the target again.
     kernel.h(target);

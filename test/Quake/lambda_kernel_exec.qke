@@ -26,8 +26,9 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
     %c0_i32_0 = arith.constant 0 : i32
     %4 = arith.extsi %c0_i32_0 : i32 to i64
     %5 = quake.extract_ref %1[%4] : (!quake.veq<?>, i64) -> !quake.ref
-    %6 = quake.mz %5 : (!quake.ref)->i1 {registerName = "b"} 
+    %16 = quake.mz %5 name "b" : (!quake.ref) -> !quake.measure
     %alloca = memref.alloca() : memref<i1>
+    %6 = quake.discriminate %16 : (!quake.measure) -> i1
     memref.store %6, %alloca[] : memref<i1>
     %7 = memref.load %alloca[] : memref<i1>
     cc.if(%7) {
@@ -41,7 +42,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
     %c1_i32 = arith.constant 1 : i32
     %8 = arith.extsi %c1_i32 : i32 to i64
     %9 = quake.extract_ref %1[%8] : (!quake.veq<?>,i64) -> !quake.ref
-    %10 = quake.mz %9 : (!quake.ref) -> i1
+    quake.mz %9 : (!quake.ref) -> !quake.measure
     return
   }
 
@@ -60,7 +61,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
     %c0_i32_0 = arith.constant 0 : i32
     %4 = arith.extsi %c0_i32_0 : i32 to i64
     %5 = quake.extract_ref %1[%4] : (!quake.veq<?>,i64) -> !quake.ref
-    %6 = quake.mz %5 : (!quake.ref) ->i1 {registerName = "b"} 
+    %16 = quake.mz %5 name "b" : (!quake.ref) -> !quake.measure
+    %6 = quake.discriminate %16 : (!quake.measure) -> i1
     %alloca = memref.alloca() : memref<i1>
     memref.store %6, %alloca[] : memref<i1>
     %7 = memref.load %alloca[] : memref<i1>
@@ -75,7 +77,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
     %c1_i32 = arith.constant 1 : i32
     %8 = arith.extsi %c1_i32 : i32 to i64
     %9 = quake.extract_ref %1[%8] : (!quake.veq<?>,i64) -> !quake.ref
-    %10 = quake.mz %9 : (!quake.ref) -> i1
+    quake.mz %9 : (!quake.ref) -> !quake.measure
     return
   }
 }

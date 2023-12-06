@@ -8,53 +8,134 @@
 
 // RUN: cudaq-opt --canonicalize --cse %s | FileCheck %s
 
+func.func @__nvqpp__mlirgen__deuteron_n3_ansatz2(%arg0: !cc.stdvec<f64>) {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c2_i64 = arith.constant 2 : i64
+  %cst = arith.constant -1.000000e+00 : f64
+  %0 = quake.alloca  !quake.veq<3>
+  %1 = quake.extract_ref %0[%c0_i64] : (!quake.veq<3>,i64) -> !quake.ref
+  quake.x %1 : (!quake.ref) -> ()
+  %2 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
+  %3 = llvm.load %2 : !llvm.ptr<f64>
+  %4 = quake.extract_ref %0[%c1_i64] : (!quake.veq<3>,i64) -> !quake.ref
+  quake.ry (%3) %4 : (f64, !quake.ref) -> ()
+  %5 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
+  %6 = llvm.getelementptr %5[1] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
+  %7 = llvm.load %6 : !llvm.ptr<f64>
+  %8 = quake.extract_ref %0[%c2_i64] : (!quake.veq<3>, i64) -> !quake.ref
+  quake.ry (%7) %8 : (f64, !quake.ref) -> ()
+  quake.x [%8] %1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%1] %4 : (!quake.ref, !quake.ref) -> ()
+  %9 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
+  %10 = llvm.load %9 : !llvm.ptr<f64>
+  %11 = arith.mulf %10, %cst : f64
+  quake.ry (%11) %4 : (f64, !quake.ref) -> ()
+  quake.x [%1] %4   : (!quake.ref, !quake.ref) -> ()
+  quake.x [%4] %1   : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__deuteron_n3_ansatz2
 // CHECK: cc.stdvec_data
 // CHECK-NOT: cc.stdvec_data
 // CHECK: return
 
-module {
-  func.func @__nvqpp__mlirgen__deuteron_n3_ansatz2(%arg0: !cc.stdvec<f64>) {
-    %c0_i64 = arith.constant 0 : i64
-    %c1_i64 = arith.constant 1 : i64
-    %c2_i64 = arith.constant 2 : i64
-    %cst = arith.constant -1.000000e+00 : f64
-    %0 = quake.alloca  !quake.veq<3>
-    %1 = quake.extract_ref %0[%c0_i64] : (!quake.veq<3>,i64) -> !quake.ref
-    quake.x %1 : (!quake.ref) -> ()
-    %2 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
-    %3 = llvm.load %2 : !llvm.ptr<f64>
-    %4 = quake.extract_ref %0[%c1_i64] : (!quake.veq<3>,i64) -> !quake.ref
-    quake.ry (%3) %4 : (f64, !quake.ref) -> ()
-    %5 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
-    %6 = llvm.getelementptr %5[1] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-    %7 = llvm.load %6 : !llvm.ptr<f64>
-    %8 = quake.extract_ref %0[%c2_i64] : (!quake.veq<3>, i64) -> !quake.ref
-    quake.ry (%7) %8 : (f64, !quake.ref) -> ()
-    quake.x [%8] %1 : (!quake.ref, !quake.ref) -> ()
-    quake.x [%1] %4 : (!quake.ref, !quake.ref) -> ()
-    %9 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !llvm.ptr<f64>
-    %10 = llvm.load %9 : !llvm.ptr<f64>
-    %11 = arith.mulf %10, %cst : f64
-    quake.ry (%11) %4 : (f64, !quake.ref) -> ()
-    quake.x [%1] %4   : (!quake.ref, !quake.ref) -> ()
-    quake.x [%4] %1   : (!quake.ref, !quake.ref) -> ()
-    return
-  }
+func.func @test_2() -> i1 {
+  %1 = quake.alloca !quake.ref
+  %2 = quake.concat %1 : (!quake.ref) -> !quake.veq<?>
+  %zero = arith.constant 0 : i32
+  %3 = quake.extract_ref %2[%zero] : (!quake.veq<?>, i32) -> !quake.ref
+  %4 = quake.mz %3 : (!quake.ref) -> !quake.measure
+  %5 = quake.discriminate %4 : (!quake.measure) -> i1
+  return %5 : i1
+}
 
 // CHECK-LABEL:   func.func @test_2() -> i1 {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> i1
-// CHECK:           return %[[VAL_1]] : i1
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] :
+// CHECK:           return %[[VAL_2]] : i1
 // CHECK:         }
 
-  func.func @test_2() -> i1 {
-    %1 = quake.alloca !quake.ref
-    %2 = quake.concat %1 : (!quake.ref) -> !quake.veq<?>
-    %zero = arith.constant 0 : i32
-    %3 = quake.extract_ref %2[%zero] : (!quake.veq<?>, i32) -> !quake.ref
-    %4 = quake.mz %3 : (!quake.ref) -> i1
-    return %4 : i1
-  }
+func.func private @device_kernel(!quake.veq<?>)
+
+func.func @canonicalize_concat() {
+  %q1 = quake.alloca !quake.ref
+  %q2 = quake.concat %q1 : (!quake.ref) -> !quake.veq<1>
+  %b1 = quake.mz %q2 : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+  %q3 = quake.alloca !quake.veq<1>
+  %q4 = quake.concat %q3 : (!quake.veq<1>) -> !quake.veq<1>
+  %b2 = quake.mz %q4 : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+  %q5 = quake.alloca !quake.veq<1>
+  %q6 = quake.concat %q5 : (!quake.veq<1>) -> !quake.veq<?>
+  %b3 = quake.mz %q6 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+  %q7 = quake.alloca !quake.veq<2>
+  %q8 = quake.concat %q7 : (!quake.veq<2>) -> !quake.veq<?>
+  call @device_kernel(%q8) : (!quake.veq<?>) -> ()
+  %q9 = quake.alloca !quake.veq<2>
+  %q10 = quake.relax_size %q9 : (!quake.veq<2>) -> !quake.veq<?>
+  %q11 = quake.concat %q10 : (!quake.veq<?>) -> !quake.veq<?>
+  call @device_kernel(%q11) : (!quake.veq<?>) -> ()
+  return
 }
 
+// CHECK-LABEL:   func.func @canonicalize_concat() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.concat %[[VAL_0]] : (!quake.ref) -> !quake.veq<1>
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_8:.*]] = quake.relax_size %[[VAL_7]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           call @device_kernel(%[[VAL_8]]) : (!quake.veq<?>) -> ()
+// CHECK:           %[[VAL_9:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_10:.*]] = quake.relax_size %[[VAL_9]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           call @device_kernel(%[[VAL_10]]) : (!quake.veq<?>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func @canonicalize_multiple_concat() {
+  %q1 = quake.alloca !quake.ref
+  %p1 = quake.alloca !quake.ref
+  %q2 = quake.concat %q1, %p1 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %b1 = quake.mz %q2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+  %q3 = quake.alloca !quake.veq<1>
+  %q4 = quake.concat %q1, %p1, %q3 : (!quake.ref, !quake.ref, !quake.veq<1>) -> !quake.veq<3>
+  %b2 = quake.mz %q4 : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
+  %q5 = quake.alloca !quake.veq<1>
+  %q6 = quake.concat %q3, %q5 : (!quake.veq<1>, !quake.veq<1>) -> !quake.veq<?>
+  %b3 = quake.mz %q6 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+  %q7 = quake.alloca !quake.veq<2>
+  %q8 = quake.concat %q3, %q7 : (!quake.veq<1>, !quake.veq<2>) -> !quake.veq<?>
+  call @device_kernel(%q8) : (!quake.veq<?>) -> ()
+  %q9 = quake.alloca !quake.veq<2>
+  %q10 = quake.relax_size %q9 : (!quake.veq<2>) -> !quake.veq<?>
+  %q11 = quake.concat %q7, %p1, %q10 : (!quake.veq<2>, !quake.ref, !quake.veq<?>) -> !quake.veq<?>
+  call @device_kernel(%q11) : (!quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @canonicalize_multiple_concat() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.concat %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_5:.*]] = quake.concat %[[VAL_0]], %[[VAL_1]], %[[VAL_4]] : (!quake.ref, !quake.ref, !quake.veq<1>) -> !quake.veq<3>
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.veq<3>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_8:.*]] = quake.concat %[[VAL_4]], %[[VAL_7]] : (!quake.veq<1>, !quake.veq<1>) -> !quake.veq<2>
+// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_11:.*]] = quake.concat %[[VAL_4]], %[[VAL_10]] : (!quake.veq<1>, !quake.veq<2>) -> !quake.veq<3>
+// CHECK:           %[[VAL_12:.*]] = quake.relax_size %[[VAL_11]] : (!quake.veq<3>) -> !quake.veq<?>
+// CHECK:           call @device_kernel(%[[VAL_12]]) : (!quake.veq<?>) -> ()
+// CHECK:           %[[VAL_13:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_14:.*]] = quake.concat %[[VAL_10]], %[[VAL_1]], %[[VAL_13]] : (!quake.veq<2>, !quake.ref, !quake.veq<2>) -> !quake.veq<5>
+// CHECK:           %[[VAL_15:.*]] = quake.relax_size %[[VAL_14]] : (!quake.veq<5>) -> !quake.veq<?>
+// CHECK:           call @device_kernel(%[[VAL_15]]) : (!quake.veq<?>) -> ()
+// CHECK:           return
+// CHECK:         }

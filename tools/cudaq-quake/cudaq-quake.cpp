@@ -111,6 +111,11 @@ static cl::list<std::string>
 static cl::list<std::string>
     extraClangArgs("Xcudaq", cl::desc("Extra options to pass to clang++"));
 
+static cl::opt<std::string> stdCpp(
+    "std",
+    cl::desc("Specify the C++ standard (c++17, c++20). The default is c++20."),
+    cl::init("c++20"));
+
 inline bool isStdinInput(StringRef str) { return str == "-"; }
 
 //===----------------------------------------------------------------------===//
@@ -344,7 +349,7 @@ int main(int argc, char **argv) {
   });
 
   // Process arguments.
-  std::vector<std::string> clArgs = {"-std=c++20", "-resource-dir",
+  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-resource-dir",
                                      resourceDirPath.string()};
   if (verboseClang)
     clArgs.push_back("-v");
@@ -372,20 +377,18 @@ int main(int argc, char **argv) {
     clArgs.push_back(LLVM_LIBCXX_INCLUDE_DIR);
   }
 
-  // If the cudaq.h does not exist in the installation directory,
-  // fallback onto the source install.
+  // If the cudaq.h does not exist in the installation directory, fallback onto
+  // the source install.
   std::filesystem::path cudaqIncludeDir = cudaqInstallPath / "include";
   auto cudaqHeader = cudaqIncludeDir / "cudaq.h";
   if (!std::filesystem::exists(cudaqHeader))
     // need to fall back to the build environment.
     cudaqIncludeDir = std::string(FALLBACK_CUDAQ_INCLUDE_DIR);
 
-  // One final check here, do we have this header,
-  // if not we cannot proceed.
+  // One final check here, do we have this header, if not we cannot proceed.
   if (!std::filesystem::exists(cudaqIncludeDir / "cudaq.h")) {
     llvm::errs() << "Invalid CUDA Quantum install configuration, cannot find "
-                    "CUDA Quantum "
-                    "include directory.\n";
+                    "CUDA Quantum include directory.\n";
     return 1;
   }
 
@@ -419,8 +422,7 @@ int main(int argc, char **argv) {
   for (auto &xtra : extraClangArgs)
     clArgs.push_back(xtra);
 
-  // Allow a user to specify extra args for clang via
-  // an environment variable.
+  // Allow a user to specify extra args for clang via an environment variable.
   if (auto extraArgs = std::getenv("CUDAQ_CLANG_EXTRA_ARGS")) {
     std::stringstream ss;
     ss << extraArgs;

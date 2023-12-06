@@ -382,7 +382,7 @@ The template argument :code:`cudaq::adj` can be used to invoke the
 
 The template argument :code:`cudaq::ctrl` can be used to apply the transformation
 conditional on the state of one or more control qubits, see also this 
-`Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gatese>`__.
+`Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
 
 .. tab:: C++
 
