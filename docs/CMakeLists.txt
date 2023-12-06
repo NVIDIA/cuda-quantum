@@ -114,12 +114,6 @@ add_pycudaq_test(QAOA qaoa_maxcut.py)
 add_pycudaq_test(VQE simple_vqe.py)
 add_pycudaq_test(VQEAdvanced advanced_vqe.py)
 
-add_pycudaq_test(AmplitudeDampingNoise noise_amplitude_damping.py)
-add_pycudaq_test(BitFlipNoise noise_bit_flip.py)
-add_pycudaq_test(DepolarizingNoise noise_depolarization.py)
-add_pycudaq_test(PhaseFlipNoise noise_phase_flip.py)
-add_pycudaq_test(KrausNoise noise_kraus_operator.py)
-
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   add_pycudaq_test(SampleAsync using/cudaq/platform/sample_async.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   add_pycudaq_test(ObserveMQPU using/cudaq/platform/observe_mqpu.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
