@@ -50,10 +50,14 @@ OPTIND=$__optind__
 working_dir=`pwd`
 
 if [ "$llvm_source" = "" ]; then
+  llvm_source=~/.llvm-project
   cd $(git rev-parse --show-toplevel)
   echo "Cloning LLVM submodule..."
-  git submodule update --init --recursive --recommend-shallow --single-branch tpls/llvm
-  llvm_source=tpls/llvm
+
+  llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
+  llvm_commit="$(git rev-parse @:./tpls/llvm)"
+  git clone --filter=tree:0 "$llvm_repo" "$llvm_source"
+  cd "$llvm_source" && git checkout $llvm_commit
 fi
 
 echo "Configured C compiler: $CC"
@@ -112,6 +116,7 @@ else
       echo "Cherry-pick failed."
       if $(git rev-parse --is-shallow-repository); then
         echo "Unshallow the repository and try again."
+        if $is_sourced; then return 1; else exit 1; fi
       fi
     fi
   fi
@@ -135,6 +140,7 @@ cmake_args="-G Ninja ../llvm \
   -DLLVM_OPTIMIZED_TABLEGEN=ON \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DLLVM_BUILD_EXAMPLES=OFF \
+  -DLLVM_BUILD_TESTS=OFF \
   -DLLVM_ENABLE_OCAMLDOC=OFF \
   -DLLVM_ENABLE_ZLIB=OFF \
   -DLLVM_INSTALL_UTILS=ON"
