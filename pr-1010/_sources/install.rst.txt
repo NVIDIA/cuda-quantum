@@ -611,7 +611,7 @@ The following table summarizes the required components.
     * - Operating System
       - Linux
     * - Tested Distributions
-      - CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SELD/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04
+      - CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SLED/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04
     * - Python versions
       - 3.8+
 
