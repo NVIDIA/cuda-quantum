@@ -15,6 +15,17 @@
 #pragma GCC diagnostic pop
 #endif
 #include "JsonConvert.h"
+#include "common/Logger.h"
+#include "common/RuntimeMLIR.h"
+#include "cudaq.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "nvqir/CircuitSimulator.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
@@ -32,22 +43,11 @@
 #include "mlir/InitAllPasses.h"
 #include "mlir/InitAllTranslations.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Pass/PassManager.h"
-#include "common/Logger.h"
-#include "common/RuntimeMLIR.h"
-#include "nvqir/CircuitSimulator.h"
-#include "cudaq.h"
 namespace nvqir {
 CircuitSimulator *getCircuitSimulatorInternal();
 }
@@ -88,7 +88,6 @@ jitCode(ModuleOp currentModule, std::vector<std::string> extraLibPaths = {}) {
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
-
 
   if (failed(pm.run(module)))
     throw std::runtime_error("Failed to JIT compile the Quake representation.");
@@ -173,7 +172,7 @@ void *loadNnqirSimLib(const std::string &simulatorName) {
 
 std::string processRequest(const std::string &reqBody) {
   auto requestJson = json::parse(reqBody);
-  const std::string quake = requestJson["quake"];
+  const std::string irCode = requestJson["code"];
   const std::string kernelName = requestJson["kernel-name"];
   const std::string entryPoint =
       std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName;
@@ -182,9 +181,9 @@ std::string processRequest(const std::string &reqBody) {
   json executionContexJs = requestJson["execution-context"];
   cudaq::from_json(executionContexJs, executionContext);
   const auto simulator = requestJson["simulator"];
-  void* handle = loadNnqirSimLib(simulator);
+  void *handle = loadNnqirSimLib(simulator);
   assert(handle);
-  invokeKernel(executionContext, quake, entryPoint);
+  invokeKernel(executionContext, irCode, entryPoint);
   json resultContextJs = executionContext;
   dlclose(handle);
   return resultContextJs.dump();
@@ -219,8 +218,8 @@ int main(int argc, char **argv) {
     return processRequest(jsonRequestBody);
   });
   if (cudaq::mpi::rank() == 0)
-    std::cout << "Start server with " << cudaq::mpi::num_ranks()
-              << " processes...\n";
+    CROW_LOG_INFO << "Start server with " << cudaq::mpi::num_ranks()
+                  << " MPI processes...\n";
   if (cudaq::mpi::rank() == 0) {
     app.port(port).run();
   } else {
@@ -230,9 +229,9 @@ int main(int argc, char **argv) {
       if (jsonRequestBody == "SHUTDOWN")
         break;
       try {
-      std::cout << "Rank " << cudaq::mpi::rank() << "\n"
-                << processRequest(jsonRequestBody) << "\n";
-      } catch(...) {
+        // All ranks need to join, e.g., MPI-capable backends.
+        processRequest(jsonRequestBody);
+      } catch (...) {
         // Doing nothing, the root rank will report the error
       }
     }

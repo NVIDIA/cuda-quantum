@@ -6,8 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-
-
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -34,14 +32,14 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
-#include "common/RestClient.h"
 #include "common/NoiseModel.h"
+#include "common/RestClient.h"
 #include "cuda_runtime_api.h"
+#include "cudaq.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/spin_op.h"
-#include "cudaq.h"
 #include <fstream>
 #include <iostream>
 #include <spdlog/cfg/env.h>
@@ -56,7 +54,7 @@ private:
   std::string m_url;
   std::string m_simName;
   cudaq::RestClient m_client;
-  std::unordered_map<std::size_t, cudaq::ExecutionContext *> m_contexts;
+  std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
   std::mutex m_contextMutex;
   MLIRContext &m_mlirContext;
 
@@ -75,12 +73,12 @@ public:
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
-                                    std::uint64_t resultOffset) override {
-    cudaq::info("QPU::launchKernel named '{}' remote QPU {} (simulator = {})", name,
-                qpu_id, m_simName);
+                    std::uint64_t resultOffset) override {
+    cudaq::info("QPU::launchKernel named '{}' remote QPU {} (simulator = {})",
+                name, qpu_id, m_simName);
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(name);
-        nlohmann::json job;
+    nlohmann::json job;
     job["kernel-name"] = name;
     job["simulator"] = m_simName;
     {
@@ -116,13 +114,12 @@ public:
       opf.enableDebugInfo(/*enable=*/true,
                           /*pretty=*/false);
       moduleOp.print(outStr, opf);
-      job["quake"] = codeStr;
+      job["code"] = codeStr;
     }
-    
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+
     {
       std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(tid);
+      const auto iter = m_contexts.find(std::this_thread::get_id());
       if (iter == m_contexts.end())
         throw std::runtime_error("Internal error: invalid execution context");
       job["execution-context"] = *(iter->second);
@@ -130,10 +127,10 @@ public:
     std::map<std::string, std::string> headers{};
     // This call is a blocking call; hence must be outside the scoped_lock.
     auto resultJs = m_client.post(m_url, "job", job, headers);
-    
+
     {
       std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(tid);
+      const auto iter = m_contexts.find(std::this_thread::get_id());
       if (iter == m_contexts.end())
         throw std::runtime_error("Internal error: invalid execution context");
       resultJs.get_to(*(iter->second));
@@ -143,19 +140,17 @@ public:
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     cudaq::info("RemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
     executionContext = context;
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
     {
       std::scoped_lock<std::mutex> lock(m_contextMutex);
-      m_contexts.emplace(tid, context);
+      m_contexts.emplace(std::this_thread::get_id(), context);
     }
   }
 
   void resetExecutionContext() override {
     cudaq::info("RemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
     {
       std::scoped_lock<std::mutex> lock(m_contextMutex);
-      m_contexts.erase(tid);
+      m_contexts.erase(std::this_thread::get_id());
     }
   }
 };
@@ -199,13 +194,13 @@ public:
         formatted = std::string("http://") + formatted;
       if (formatted.back() != '/')
         formatted += '/';
-         return formatted;
+      return formatted;
     };
     for (std::size_t qId = 0; qId < urls.size(); ++qId) {
       const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
       // Populate the information and add the QPUs
-      platformQPUs.emplace_back(
-          std::make_unique<RemoteSimulatorQPU>(*m_mlirContext, formatUrl(urls[qId]), qId, simName));
+      platformQPUs.emplace_back(std::make_unique<RemoteSimulatorQPU>(
+          *m_mlirContext, formatUrl(urls[qId]), qId, simName));
     }
 
     platformNumQPUs = platformQPUs.size();

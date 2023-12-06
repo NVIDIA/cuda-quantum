@@ -53,7 +53,7 @@ void from_json(const json &j, ExecutionContext &context) {
   j.at("shots").get_to(context.shots);
   j.at("hasConditionalsOnMeasureResults")
       .get_to(context.hasConditionalsOnMeasureResults);
-  
+
   std::vector<std::size_t> sampleData;
   j["result"].get_to(sampleData);
   context.result.deserialize(sampleData);
@@ -76,8 +76,9 @@ void from_json(const json &j, ExecutionContext &context) {
 
   std::vector<std::size_t> stateDim;
   std::vector<std::complex<double>> stateData;
-  j["simulationData"]["dim"].get_to(stateDim); 
-  j["simulationData"]["data"].get_to(stateData); 
-  context.simulationData = std::make_tuple(std::move(stateDim), std::move(stateData));
+  j["simulationData"]["dim"].get_to(stateDim);
+  j["simulationData"]["data"].get_to(stateData);
+  context.simulationData =
+      std::make_tuple(std::move(stateDim), std::move(stateData));
 }
 } // namespace cudaq
