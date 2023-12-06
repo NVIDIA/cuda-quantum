@@ -762,12 +762,10 @@ public:
   // code.
   bool hasLegalType(FunctionType funTy) {
     for (auto ty : funTy.getInputs())
-      if (isa<quake::RefType, quake::VeqType, quake::WireType,
-              quake::ControlType>(ty))
+      if (quake::isaQuantumType(ty))
         return false;
     for (auto ty : funTy.getResults())
-      if (isa<quake::RefType, quake::VeqType, quake::WireType,
-              quake::ControlType>(ty))
+      if (quake::isaQuantumType(ty))
         return false;
     return true;
   }
