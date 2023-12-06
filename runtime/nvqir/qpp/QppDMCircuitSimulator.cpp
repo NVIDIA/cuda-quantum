@@ -113,6 +113,17 @@ public:
                         {state.data(), state.data() + state.size()}};
   }
 
+  void setStateData(std::vector<std::complex<double>> &inputState) override {
+    cudaq::info("Manually setting the internal state representation.");
+    state = qpp::cmat::Map(inputState.data(), stateDimension, stateDimension);
+  }
+
+  /// @brief Primarily used for testing.
+  auto getDensityMatrix() {
+    flushGateQueue();
+    return state;
+  }
+
   NVQIR_SIMULATOR_CLONE_IMPL(QppNoiseCircuitSimulator)
 };
 

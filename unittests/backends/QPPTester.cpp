@@ -12,7 +12,7 @@
 #include <math.h>
 
 #include "CUDAQTestUtils.h"
-#include "QppCircuitSimulator.cpp"
+#include "QppDMCircuitSimulator.cpp"
 
 #define _USE_MATH_DEFINES
 
@@ -40,8 +40,21 @@ qpp::ket getOneState(const int numQubits) {
   return one_state;
 }
 
+qpp::cmat getZeroDensityMatrix(const int numQubits) {
+  auto zeroVector = getZeroState(numQubits);
+  // rho = |0> <0|
+  return zeroVector * zeroVector.transpose();
+}
+
+qpp::cmat getOneDensityMatrix(const int numQubits) {
+  auto oneVector = getZeroState(numQubits);
+  // rho = |1> <1|
+  return oneVector * oneVector.transpose();
+}
+
 std::string getSampledBitString(QppCircuitSimulator<qpp::ket> &qppBackend,
                                 std::vector<std::size_t> &&qubits) {
+  std::cout << "sampling on the state vector backend.\n";
   // Call `sample` and return the bitstring as the first element of the
   // measurement count map.
   cudaq::ExecutionContext ctx("sample", 1);
@@ -50,6 +63,18 @@ std::string getSampledBitString(QppCircuitSimulator<qpp::ket> &qppBackend,
   auto sampleResults = ctx.result;
   return sampleResults.begin()->first;
 }
+
+// std::string getSampledBitString(QppNoiseCircuitSimulator &qppBackend,
+//                                 std::vector<std::size_t> &&qubits) {
+//   std::cout << "sampling on the density matrix backend.\n";
+//   // Call `sample` and return the bitstring as the first element of the
+//   // measurement count map.
+//   cudaq::ExecutionContext ctx("sample", 1);
+//   qppBackend.setExecutionContext(&ctx);
+//   qppBackend.resetExecutionContext();
+//   auto sampleResults = ctx.result;
+//   return sampleResults.begin()->first;
+// }
 
 // Helper function for comparing two complex state vectors up to a certain
 // tolerance.
@@ -68,212 +93,6 @@ bool EXPECT_EQ_KETS(qpp::ket want_ket, qpp::ket got_ket,
     assert(std::abs(want_imag - got_imag) < epsilon);
   }
   return true;
-}
-
-CUDAQ_TEST(QPPTester, checkSetState) {
-  {
-    // Initialize QPP Backend with 1 qubit.
-    const int num_qubits = 1;
-    QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-
-    // Assert that we're starting in the 0-state.
-    qpp::ket got_state = qppBackend.getStateVector();
-    qpp::ket want_state = getZeroState(num_qubits);
-    EXPECT_EQ(want_state, got_state);
-
-    // Build up the state as a vector of doubles, then pass
-    // that along to the `setStateData` function and ensure
-    // it returns the expected result.
-    std::vector<std::complex<double>> inputState;
-    for (auto i = 0; i < pow(2, num_qubits); i++) {
-      inputState.push_back(M_PI);
-      want_state(i) = M_PI;
-    }
-    qppBackend.setStateData(inputState);
-    got_state = qppBackend.getStateVector();
-    EXPECT_EQ(want_state, got_state);
-
-    qppBackend.deallocate(q0);
-  }
-
-  {
-    // Initialize QPP Backend with 2 qubits.
-    const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
-
-    // Assert that we're starting in the 0-state.
-    qpp::ket got_state = qppBackend.getStateVector();
-    qpp::ket want_state = getZeroState(num_qubits);
-    EXPECT_EQ(want_state, got_state);
-
-    // Build up the state as a vector of doubles, then pass
-    // that along to the `setStateData` function and ensure
-    // it returns the expected result.
-    std::vector<std::complex<double>> inputState;
-    for (auto i = 0; i < pow(2, num_qubits); i++) {
-      inputState.push_back(M_PI_2);
-      want_state(i) = M_PI_2;
-    }
-    qppBackend.setStateData(inputState);
-    got_state = qppBackend.getStateVector();
-    EXPECT_EQ(want_state, got_state);
-
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
-  }
-
-  {
-    // Initialize QPP Backend with 3 qubits.
-    const int num_qubits = 3;
-    QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
-    auto q2 = qppBackend.allocateQubit();
-
-    // Assert that we're starting in the 0-state.
-    qpp::ket got_state = qppBackend.getStateVector();
-    qpp::ket want_state = getZeroState(num_qubits);
-    EXPECT_EQ(want_state, got_state);
-
-    // Build up the state as a vector of doubles, then pass
-    // that along to the `setStateData` function and ensure
-    // it returns the expected result.
-    std::vector<std::complex<double>> inputState;
-    for (auto i = 0; i < pow(2, num_qubits); i++) {
-      inputState.push_back(M_PI_4);
-      want_state(i) = M_PI_4;
-    }
-    qppBackend.setStateData(inputState);
-    got_state = qppBackend.getStateVector();
-    EXPECT_EQ(want_state, got_state);
-
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
-    qppBackend.deallocate(q2);
-  }
-
-  // Simple integration test.
-  {
-    // Initialize QPP Backend with 3 qubits.
-    const int num_qubits = 3;
-    QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
-    auto q2 = qppBackend.allocateQubit();
-
-    // Assert that we're starting in the 0-state.
-    qpp::ket got_state = qppBackend.getStateVector();
-    qpp::ket want_state = getZeroState(num_qubits);
-    EXPECT_EQ(want_state, got_state);
-
-    // Building up the equivalent of a state vector that has
-    // undergone a Hadamard rotation.
-    std::vector<std::complex<double>> inputState;
-    auto value = 1. / sqrt(pow(2, num_qubits));
-    for (auto i = 0; i < pow(2, num_qubits); i++) {
-      inputState.push_back(value);
-      want_state(i) = value;
-    }
-    qppBackend.setStateData(inputState);
-    got_state = qppBackend.getStateVector();
-    EXPECT_EQ(want_state, got_state);
-
-    // Apply Hadamard's via gates and assert that this produces
-    // the identity. E.g, we're back in the |0> state.
-    qppBackend.h(q0);
-    qppBackend.h(q1);
-    qppBackend.h(q2);
-    got_state = qppBackend.getStateVector();
-    want_state = getZeroState(num_qubits);
-    EXPECT_EQ_KETS(got_state, want_state, 1e-10);
-
-    // Confirm that the bitstring returned from `::sample`
-    // is `000` by running 1 shot of simulation.
-    std::string got_bitstring = getSampledBitString(qppBackend, {0, 1, 2});
-    std::string want_bitstring = std::string("000");
-    EXPECT_EQ(want_bitstring, got_bitstring);
-    EXPECT_EQ(0, qppBackend.mz(q0));
-    EXPECT_EQ(0, qppBackend.mz(q1));
-    EXPECT_EQ(0, qppBackend.mz(q2));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
-    qppBackend.deallocate(q2);
-  }
-
-  // More advanced integration test.
-  {
-    // Initialize QPP Backend with 2 qubits initially.
-    // Will add a third qubit later.
-    int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
-
-    // Assert that we're starting in the 0-state.
-    qpp::ket got_state = qppBackend.getStateVector();
-    qpp::ket want_state = getZeroState(num_qubits);
-    EXPECT_EQ(want_state, got_state);
-
-    // Building up the equivalent of a state vector that has
-    // undergone a Hadamard rotation.
-    std::vector<std::complex<double>> inputState;
-    auto value = 1. / sqrt(pow(2, num_qubits));
-    for (auto i = 0; i < pow(2, num_qubits); i++) {
-      inputState.push_back(value);
-      want_state(i) = value;
-    }
-    qppBackend.setStateData(inputState);
-    got_state = qppBackend.getStateVector();
-    EXPECT_EQ(want_state, got_state);
-
-    // Add a third qubit to the system, and ensure it is
-    // in the |0> state, while the first two qubits remain
-    // in the superposition state.
-    num_qubits = 3;
-    auto q2 = qppBackend.allocateQubit();
-    EXPECT_EQ(0, qppBackend.mz(q2));
-
-    // Kronecker a new, single qubit |0> state onto the
-    // `want_state` vector.
-    // TODO: Should we just hard-code this vector instead? We use this same
-    // Kronecker behind the scenes in `addQubitToState` so if that breaks,
-    // it may not show up here.
-    want_state = qpp::kron(got_state, getZeroState(1));
-    got_state = qppBackend.getStateVector();
-    EXPECT_EQ(want_state, got_state);
-
-    // Apply Hadamard's via gates to the first 2 qubits and
-    // assert that this produces the identity.
-    qppBackend.h(q0);
-    qppBackend.h(q1);
-    got_state = qppBackend.getStateVector();
-    want_state = getZeroState(num_qubits);
-    EXPECT_EQ_KETS(got_state, want_state, 1e-10);
-
-    // Finally, rotate the third qubit to the |1> state to ensure
-    // it may still be acted upon individually.
-    qppBackend.x(q2);
-    got_state = qppBackend.getStateVector();
-    // Have to build up our expected state manually as |0> x |0> x |1>
-    want_state = qpp::kron(getZeroState(1), getZeroState(1));
-    want_state = qpp::kron(want_state, getOneState(1));
-    EXPECT_EQ_KETS(got_state, want_state, 1e-10);
-
-    // Confirm that the bitstring returned from `::sample`
-    // is `001` by running 1 shot of simulation.
-    std::string got_bitstring = getSampledBitString(qppBackend, {0, 1, 2});
-    std::string want_bitstring = std::string("001");
-    EXPECT_EQ(want_bitstring, got_bitstring);
-    EXPECT_EQ(0, qppBackend.mz(q0));
-    EXPECT_EQ(0, qppBackend.mz(q1));
-    EXPECT_EQ(1, qppBackend.mz(q2));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
-    qppBackend.deallocate(q2);
-  }
 }
 
 // Checks that we're initializing the backend to the expected
@@ -1445,5 +1264,240 @@ CUDAQ_TEST(QPPTester, checkReset) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
+  }
+}
+
+CUDAQ_TEST(QPPTester, checkSetStateVector) {
+  {
+    // Initialize QPP Backend with 1 qubit.
+    const int num_qubits = 1;
+    QppCircuitSimulator<qpp::ket> qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+
+    // Assert that we're starting in the 0-state.
+    qpp::ket got_state = qppBackend.getStateVector();
+    qpp::ket want_state = getZeroState(num_qubits);
+    EXPECT_EQ(want_state, got_state);
+
+    // Build up the state as a vector of doubles, then pass
+    // that along to the `setStateData` function and ensure
+    // it returns the expected result.
+    std::vector<std::complex<double>> inputState;
+    for (auto i = 0; i < pow(2, num_qubits); i++) {
+      inputState.push_back(M_PI);
+      want_state(i) = M_PI;
+    }
+    qppBackend.setStateData(inputState);
+    got_state = qppBackend.getStateVector();
+    EXPECT_EQ(want_state, got_state);
+
+    qppBackend.deallocate(q0);
+  }
+
+  {
+    // Initialize QPP Backend with 2 qubits.
+    const int num_qubits = 2;
+    QppCircuitSimulator<qpp::ket> qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+    auto q1 = qppBackend.allocateQubit();
+
+    // Assert that we're starting in the 0-state.
+    qpp::ket got_state = qppBackend.getStateVector();
+    qpp::ket want_state = getZeroState(num_qubits);
+    EXPECT_EQ(want_state, got_state);
+
+    // Build up the state as a vector of doubles, then pass
+    // that along to the `setStateData` function and ensure
+    // it returns the expected result.
+    std::vector<std::complex<double>> inputState;
+    for (auto i = 0; i < pow(2, num_qubits); i++) {
+      inputState.push_back(M_PI_2);
+      want_state(i) = M_PI_2;
+    }
+    qppBackend.setStateData(inputState);
+    got_state = qppBackend.getStateVector();
+    EXPECT_EQ(want_state, got_state);
+
+    qppBackend.deallocate(q0);
+    qppBackend.deallocate(q1);
+  }
+
+  {
+    // Initialize QPP Backend with 3 qubits.
+    const int num_qubits = 3;
+    QppCircuitSimulator<qpp::ket> qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+    auto q1 = qppBackend.allocateQubit();
+    auto q2 = qppBackend.allocateQubit();
+
+    // Assert that we're starting in the 0-state.
+    qpp::ket got_state = qppBackend.getStateVector();
+    qpp::ket want_state = getZeroState(num_qubits);
+    EXPECT_EQ(want_state, got_state);
+
+    // Build up the state as a vector of doubles, then pass
+    // that along to the `setStateData` function and ensure
+    // it returns the expected result.
+    std::vector<std::complex<double>> inputState;
+    for (auto i = 0; i < pow(2, num_qubits); i++) {
+      inputState.push_back(M_PI_4);
+      want_state(i) = M_PI_4;
+    }
+    qppBackend.setStateData(inputState);
+    got_state = qppBackend.getStateVector();
+    EXPECT_EQ(want_state, got_state);
+
+    qppBackend.deallocate(q0);
+    qppBackend.deallocate(q1);
+    qppBackend.deallocate(q2);
+  }
+
+  // Simple integration test.
+  {
+    // Initialize QPP Backend with 3 qubits.
+    const int num_qubits = 3;
+    QppCircuitSimulator<qpp::ket> qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+    auto q1 = qppBackend.allocateQubit();
+    auto q2 = qppBackend.allocateQubit();
+
+    // Assert that we're starting in the 0-state.
+    qpp::ket got_state = qppBackend.getStateVector();
+    qpp::ket want_state = getZeroState(num_qubits);
+    EXPECT_EQ(want_state, got_state);
+
+    // Building up the equivalent of a state vector that has
+    // undergone a Hadamard rotation.
+    std::vector<std::complex<double>> inputState;
+    auto value = 1. / sqrt(pow(2, num_qubits));
+    for (auto i = 0; i < pow(2, num_qubits); i++) {
+      inputState.push_back(value);
+      want_state(i) = value;
+    }
+    qppBackend.setStateData(inputState);
+    got_state = qppBackend.getStateVector();
+    EXPECT_EQ(want_state, got_state);
+
+    // Apply Hadamard's via gates and assert that this produces
+    // the identity. E.g, we're back in the |0> state.
+    qppBackend.h(q0);
+    qppBackend.h(q1);
+    qppBackend.h(q2);
+    got_state = qppBackend.getStateVector();
+    want_state = getZeroState(num_qubits);
+    EXPECT_EQ_KETS(got_state, want_state, 1e-10);
+
+    // Confirm that the bitstring returned from `::sample`
+    // is `000` by running 1 shot of simulation.
+    std::string got_bitstring = getSampledBitString(qppBackend, {0, 1, 2});
+    std::string want_bitstring = std::string("000");
+    EXPECT_EQ(want_bitstring, got_bitstring);
+    EXPECT_EQ(0, qppBackend.mz(q0));
+    EXPECT_EQ(0, qppBackend.mz(q1));
+    EXPECT_EQ(0, qppBackend.mz(q2));
+    qppBackend.deallocate(q0);
+    qppBackend.deallocate(q1);
+    qppBackend.deallocate(q2);
+  }
+
+  // More advanced integration test.
+  {
+    // Initialize QPP Backend with 2 qubits initially.
+    // Will add a third qubit later.
+    int num_qubits = 2;
+    QppCircuitSimulator<qpp::ket> qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+    auto q1 = qppBackend.allocateQubit();
+
+    // Assert that we're starting in the 0-state.
+    qpp::ket got_state = qppBackend.getStateVector();
+    qpp::ket want_state = getZeroState(num_qubits);
+    EXPECT_EQ(want_state, got_state);
+
+    // Building up the equivalent of a state vector that has
+    // undergone a Hadamard rotation.
+    std::vector<std::complex<double>> inputState;
+    auto value = 1. / sqrt(pow(2, num_qubits));
+    for (auto i = 0; i < pow(2, num_qubits); i++) {
+      inputState.push_back(value);
+      want_state(i) = value;
+    }
+    qppBackend.setStateData(inputState);
+    got_state = qppBackend.getStateVector();
+    EXPECT_EQ(want_state, got_state);
+
+    // Add a third qubit to the system, and ensure it is
+    // in the |0> state, while the first two qubits remain
+    // in the superposition state.
+    num_qubits = 3;
+    auto q2 = qppBackend.allocateQubit();
+    EXPECT_EQ(0, qppBackend.mz(q2));
+
+    // Kronecker a new, single qubit |0> state onto the
+    // `want_state` vector.
+    // TODO: Should we just hard-code this vector instead? We use this same
+    // Kronecker behind the scenes in `addQubitToState` so if that breaks,
+    // it may not show up here.
+    want_state = qpp::kron(got_state, getZeroState(1));
+    got_state = qppBackend.getStateVector();
+    EXPECT_EQ(want_state, got_state);
+
+    // Apply Hadamard's via gates to the first 2 qubits and
+    // assert that this produces the identity.
+    qppBackend.h(q0);
+    qppBackend.h(q1);
+    got_state = qppBackend.getStateVector();
+    want_state = getZeroState(num_qubits);
+    EXPECT_EQ_KETS(got_state, want_state, 1e-10);
+
+    // Finally, rotate the third qubit to the |1> state to ensure
+    // it may still be acted upon individually.
+    qppBackend.x(q2);
+    got_state = qppBackend.getStateVector();
+    // Have to build up our expected state manually as |0> x |0> x |1>
+    want_state = qpp::kron(getZeroState(1), getZeroState(1));
+    want_state = qpp::kron(want_state, getOneState(1));
+    EXPECT_EQ_KETS(got_state, want_state, 1e-10);
+
+    // Confirm that the bitstring returned from `::sample`
+    // is `001` by running 1 shot of simulation.
+    std::string got_bitstring = getSampledBitString(qppBackend, {0, 1, 2});
+    std::string want_bitstring = std::string("001");
+    EXPECT_EQ(want_bitstring, got_bitstring);
+    EXPECT_EQ(0, qppBackend.mz(q0));
+    EXPECT_EQ(0, qppBackend.mz(q1));
+    EXPECT_EQ(1, qppBackend.mz(q2));
+    qppBackend.deallocate(q0);
+    qppBackend.deallocate(q1);
+    qppBackend.deallocate(q2);
+  }
+}
+
+CUDAQ_TEST(QPPTester, checkSetStateDensity) {
+  {
+    // Initialize QPP Backend with 1 qubit.
+    const int num_qubits = 1;
+    QppNoiseCircuitSimulator qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+
+    // Assert that we're starting in the 0-state.
+    qpp::ket got_state = qppBackend.getDensityMatrix();
+    qpp::ket want_state = getZeroDensityMatrix(num_qubits);
+    EXPECT_EQ(want_state, got_state);
+
+    // Build up the state as a vector of doubles, then pass
+    // that along to the `setStateData` function and ensure
+    // it returns the expected result.
+    std::vector<std::complex<double>> inputState{{0., 0.}, {0., 1.}};
+    // for (auto i = 0; i < pow(2, num_qubits); i++) {
+    //   inputState.push_back(M_PI);
+    //   want_state(i) = M_PI;
+    // }
+    qppBackend.setStateData(inputState);
+    want_state = getOneDensityMatrix(num_qubits);
+    got_state = qppBackend.getDensityMatrix();
+    EXPECT_EQ(want_state, got_state);
+
+    qppBackend.deallocate(q0);
   }
 }
