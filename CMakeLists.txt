@@ -37,13 +37,6 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 OLD)
 endif()
 
-# CMP0148: The ``FindPythonInterp`` and ``FindPythonLibs`` modules are removed.
-# CMake 3.27 and above no longer provide the modules.
-# https://cmake.org/cmake/help/latest/policy/CMP0148.html
-if(POLICY CMP0148)
-  cmake_policy(SET CMP0148 OLD)
-endif()
-
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
@@ -83,6 +76,7 @@ endif()
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+set(PYBIND11_FINDPYTHON 1)
 
 if(NOT CUDAQ_LLVM_VERSION)
   set(CUDAQ_LLVM_VERSION 16)

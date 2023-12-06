@@ -12,9 +12,9 @@ Local Installation
 
 The following sections contain instructions for how to install CUDA Quantum on your machine using
 
-- :ref:`**Docker** <install-docker-image>`: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
-- :ref:`**Singularity** <install-singularity-image>`: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
-- :ref:`**PyPI** <install-python-wheels>`: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
+- **:ref:`Docker <install-docker-image>`**: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
+- **:ref:`Singularity <install-singularity-image>`**: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
+- **:ref:`PyPI <install-python-wheels>`**: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
 
 If you would like to build CUDA Quantum from source instead, please follow the instructions on the `CUDA Quantum GitHub repository`_.
 
