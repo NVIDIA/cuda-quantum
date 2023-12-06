@@ -72,8 +72,29 @@ PYBIND11_MODULE(_pycudaq, mod) {
         cudaq::mpi::all_gather(global, local);
         return global;
       },
-      "Gather and scatter the `local` list, returning a concatenation of all "
+      "Gather and scatter the `local` list of floating-point numbers, "
+      "returning a concatenation of all "
       "lists across all ranks. The total global list size must be provided.");
+  mpiSubmodule.def(
+      "all_gather",
+      [](std::size_t globalVectorSize, std::vector<int> &local) {
+        std::vector<int> global(globalVectorSize);
+        cudaq::mpi::all_gather(global, local);
+        return global;
+      },
+      "Gather and scatter the `local` list of integers, returning a "
+      "concatenation of all "
+      "lists across all ranks. The total global list size must be provided.");
+  mpiSubmodule.def(
+      "broadcast",
+      [](std::vector<double> &data, std::size_t bcastSize, int rootRank) {
+        if (data.size() < bcastSize)
+          data.resize(bcastSize);
+        cudaq::mpi::broadcast(data, rootRank);
+        return data;
+      },
+      "Broadcast an array from a process (rootRank) to all other processes. "
+      "The size of broadcast array must be provided.");
   mpiSubmodule.def(
       "is_initialized", []() { return cudaq::mpi::is_initialized(); },
       "Returns true if MPI has already been initialized.");

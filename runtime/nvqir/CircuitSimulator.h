@@ -413,8 +413,11 @@ protected:
       if (iter == registerNameToMeasuredQubit.end())
         registerNameToMeasuredQubit.emplace(mutableName,
                                             std::vector<std::size_t>{qubitIdx});
-      else
-        iter->second.push_back(qubitIdx);
+      else {
+        if (std::find(iter->second.begin(), iter->second.end(), qubitIdx) ==
+            iter->second.end())
+          iter->second.push_back(qubitIdx);
+      }
 
       return true;
     }
