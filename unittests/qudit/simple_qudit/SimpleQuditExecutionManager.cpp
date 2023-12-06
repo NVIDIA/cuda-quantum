@@ -108,7 +108,7 @@ public:
       auto &[gateName, params, controls, qudits, op] = inst;
       auto target = qudits[0];
       cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
-      state = qpp::applyCTRL(state, u, {}, {target.id}, target.levels);
+      state = qpp::applyCTRL(state, u, {target.id}, target.levels);
     });
   }
   virtual ~SimpleQuditExecutionManager() = default;
