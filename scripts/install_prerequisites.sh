@@ -51,21 +51,25 @@ function temp_install_if_command_unknown {
 function remove_temp_installs {
   if [ -n "$APT_UNINSTALL" ]; then
       echo "Uninstalling packages used for bootstrapping: $APT_UNINSTALL"
-      apt-get remove -y $APT_UNINSTALL && apt-get autoremove -y --purge
+      apt-get remove -y $APT_UNINSTALL 
+      apt-get autoremove -y --purge
       unset APT_UNINSTALL
       create_llvm_symlinks # uninstalling other compiler tools may have removed the symlinks
   fi
 }
 
+working_dir=`pwd`
 read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
 function exit_gracefully {
-  remove_temp_installs
+  cd "$working_dir" && remove_temp_installs
   if [ -z "$__errexit__" ]; then set +e; fi
-  exit ${exit_code:-0}
+  if $is_sourced; then return ${exit_code:-0}; else exit ${exit_code:-0}; fi
 }
 
-set -e && exit_code=1 && trap exit_gracefully EXIT
+set -e && exit_code=1
+trap exit_gracefully EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+cd "$this_file_dir"
 
 if [ ! -x "$(command -v cmake)" ]; then
   temp_install_if_command_unknown wget wget
@@ -75,7 +79,9 @@ fi
 if [ ! -x "$(command -v ninja)" ]; then
   temp_install_if_command_unknown unzip unzip
   wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
-  unzip ninja-linux.zip && mv ninja /usr/local/bin/ && rm -rf ninja-linux.zip
+  unzip ninja-linux.zip
+  mv ninja /usr/local/bin/
+  rm -rf ninja-linux.zip
 fi
 if [ "$CC" == "" ] && [ "$CXX" == "" ]; then
   source "$this_file_dir/install_toolchain.sh" -t gcc12
@@ -87,11 +93,14 @@ if [ ! -d "$llvm_dir" ]; then
 
   if [ ! -d "$PYBIND11_INSTALL_PREFIX" ]; then
     echo "Building PyBind11..."
-    repo_root="$(git rev-parse --show-toplevel)" && cd "$repo_root"
-    git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 && cd -
-    mkdir "$repo_root/tpls/pybind11/build" && cd "$repo_root/tpls/pybind11/build"
+    repo_root="$(git rev-parse --show-toplevel)"
+    cd "$repo_root"
+
+    git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 
+    mkdir "tpls/pybind11/build" && cd "tpls/pybind11/build"
     cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX"
-    cmake --build . --target install --config Release && cd -
+    cmake --build . --target install --config Release
+    cd "$working_dir"
   fi
 
   # Build llvm libraries from source and install them in the install directory
@@ -122,8 +131,10 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
 
   # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
   wget http://www.netlib.org/blas/blas-3.11.0.tgz
-  tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0
-  make && mkdir -p "$BLAS_INSTALL_PREFIX" && mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
+  tar -xzvf blas-3.11.0.tgz 
+  cd BLAS-3.11.0 && make 
+  mkdir -p "$BLAS_INSTALL_PREFIX"
+  mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
   cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
   remove_temp_installs
 fi
@@ -139,7 +150,8 @@ if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"
   wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
   tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
   ./config no-zlib --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX"
-  make install && cd .. && rm -rf openssl-3.1.1*
+  make install
+  cd .. && rm -rf openssl-3.1.1*
   remove_temp_installs
 fi
 
