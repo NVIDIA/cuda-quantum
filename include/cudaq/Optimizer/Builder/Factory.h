@@ -78,7 +78,6 @@ inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
 
 cudaq::cc::StructType stlVectorType(mlir::Type eleTy);
 
-
 //===----------------------------------------------------------------------===//
 // Constant builders
 //===----------------------------------------------------------------------===//
