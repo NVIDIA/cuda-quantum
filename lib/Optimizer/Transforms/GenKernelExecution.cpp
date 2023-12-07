@@ -334,6 +334,7 @@ public:
                           funcOp.getLoc());
     auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
     auto insPt = builder.saveInsertionPoint();
+    SmallVector<Operation *> returnsToErase;
     // Update all func.return to store values to the sret block.
     funcOp->walk([&](func::ReturnOp retOp) {
       auto loc = retOp.getLoc();
@@ -375,8 +376,10 @@ public:
         builder.create<cudaq::cc::StoreOp>(loc, retOp.getOperands()[0], cast);
       }
       builder.create<func::ReturnOp>(loc);
-      retOp->erase();
+      returnsToErase.push_back(retOp);
     });
+    for (auto *op : returnsToErase)
+      op->erase();
     builder.restoreInsertionPoint(insPt);
     for (std::size_t i = 0, end = funcOp.getNumResults(); i != end; ++i)
       funcOp.eraseResult(0);
