@@ -129,6 +129,7 @@ RUN git clone --filter=tree:0 https://github.com/nvidia/cuda-quantum /cuda-quant
     cd /cuda-quantum && git checkout ${CUDA_QUANTUM_COMMIT}
 RUN cd /cuda-quantum && \
     FORCE_COMPILE_GPU_COMPONENTS=true CUDAQ_WERROR=false \
+    LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX:$LD_LIBRARY_PATH" \
     bash scripts/build_cudaq.sh -u -v
     # && $CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/ && bash activate_mpi.sh
 
