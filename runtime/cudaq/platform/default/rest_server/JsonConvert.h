@@ -81,4 +81,29 @@ void from_json(const json &j, ExecutionContext &context) {
   context.simulationData =
       std::make_tuple(std::move(stateDim), std::move(stateData));
 }
+
+class RestRequest {
+private:
+  /// Holder of the reconstructed execution context.
+  std::unique_ptr<ExecutionContext> m_deserializedContext;
+
+public:
+  RestRequest(ExecutionContext &context) : executionContext(context) {}
+  RestRequest(const json &j)
+      : m_deserializedContext(
+            std::make_unique<ExecutionContext>(j["executionContext"]["name"])),
+        executionContext(*m_deserializedContext) {
+    // Load the rest
+    from_json(j, *this);
+  }
+
+  std::string entryPoint;
+  std::string simulator;
+  ExecutionContext &executionContext;
+  std::string code;
+  std::size_t seed;
+  std::vector<std::string> passes;
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, entryPoint, simulator,
+                                 executionContext, code, seed, passes);
+};
 } // namespace cudaq

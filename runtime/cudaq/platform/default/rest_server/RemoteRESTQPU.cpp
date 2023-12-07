@@ -76,82 +76,69 @@ public:
                     std::uint64_t resultOffset) override {
     cudaq::info("QPU::launchKernel named '{}' remote QPU {} (simulator = {})",
                 name, qpu_id, m_simName);
+
+    cudaq::ExecutionContext *executionContext = [&]() {
+      std::scoped_lock<std::mutex> lock(m_contextMutex);
+      const auto iter = m_contexts.find(std::this_thread::get_id());
+      if (iter == m_contexts.end())
+        throw std::runtime_error("Internal error: invalid execution context");
+      return iter->second;
+    }();
+    cudaq::RestRequest request(*executionContext);
+
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(name);
-    nlohmann::json job;
-    job["kernel-name"] = name;
-    job["simulator"] = m_simName;
-    {
-      auto module = parseSourceString<ModuleOp>(quakeCode, &m_mlirContext);
-      if (!module)
-        throw std::runtime_error("module cannot be parsed");
+    request.entryPoint = name;
+    request.simulator = m_simName;
+    request.seed = cudaq::get_random_seed();
 
-      // Extract the kernel name
-      auto func = module->lookupSymbol<mlir::func::FuncOp>(
-          std::string("__nvqpp__mlirgen__") + name);
+    auto module = parseSourceString<ModuleOp>(quakeCode, &m_mlirContext);
+    if (!module)
+      throw std::runtime_error("module cannot be parsed");
 
-      // Create a new Module to clone the function into
-      auto location = FileLineColLoc::get(&m_mlirContext, "<builder>", 1, 1);
-      ImplicitLocOpBuilder builder(location, &m_mlirContext);
+    // Extract the kernel name
+    auto func = module->lookupSymbol<mlir::func::FuncOp>(
+        std::string("__nvqpp__mlirgen__") + name);
 
-      // FIXME this should be added to the builder.
-      if (!func->hasAttr(cudaq::entryPointAttrName))
-        func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-      auto moduleOp = builder.create<ModuleOp>();
-      moduleOp.push_back(func.clone());
+    // Create a new Module to clone the function into
+    auto location = FileLineColLoc::get(&m_mlirContext, "<builder>", 1, 1);
+    ImplicitLocOpBuilder builder(location, &m_mlirContext);
 
-      if (args) {
-        cudaq::info("Run Quake Synth.\n");
-        PassManager pm(&m_mlirContext);
-        pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
-        if (failed(pm.run(moduleOp)))
-          throw std::runtime_error("Could not successfully apply quake-synth.");
-      }
+    // FIXME this should be added to the builder.
+    if (!func->hasAttr(cudaq::entryPointAttrName))
+      func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
+    auto moduleOp = builder.create<ModuleOp>();
+    moduleOp.push_back(func.clone());
 
-      std::string codeStr;
-      llvm::raw_string_ostream outStr(codeStr);
-      mlir::OpPrintingFlags opf;
-      opf.enableDebugInfo(/*enable=*/true,
-                          /*pretty=*/false);
-      moduleOp.print(outStr, opf);
-      job["code"] = codeStr;
+    if (args) {
+      cudaq::info("Run Quake Synth.\n");
+      PassManager pm(&m_mlirContext);
+      pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
+      if (failed(pm.run(moduleOp)))
+        throw std::runtime_error("Could not successfully apply quake-synth.");
     }
 
-    {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        throw std::runtime_error("Internal error: invalid execution context");
-      job["execution-context"] = *(iter->second);
-    }
+    llvm::raw_string_ostream outStr(request.code);
+    mlir::OpPrintingFlags opf;
+    opf.enableDebugInfo(/*enable=*/true,
+                        /*pretty=*/false);
+    moduleOp.print(outStr, opf);
     std::map<std::string, std::string> headers{};
-    // This call is a blocking call; hence must be outside the scoped_lock.
-    auto resultJs = m_client.post(m_url, "job", job, headers);
-
-    {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      const auto iter = m_contexts.find(std::this_thread::get_id());
-      if (iter == m_contexts.end())
-        throw std::runtime_error("Internal error: invalid execution context");
-      resultJs.get_to(*(iter->second));
-    }
+    json requestJson = request;
+    auto resultJs = m_client.post(m_url, "job", requestJson, headers);
+    resultJs.get_to(*executionContext);
   }
 
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     cudaq::info("RemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
-    executionContext = context;
-    {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      m_contexts.emplace(std::this_thread::get_id(), context);
-    }
+    std::scoped_lock<std::mutex> lock(m_contextMutex);
+    m_contexts.emplace(std::this_thread::get_id(), context);
   }
 
   void resetExecutionContext() override {
     cudaq::info("RemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
-    {
-      std::scoped_lock<std::mutex> lock(m_contextMutex);
-      m_contexts.erase(std::this_thread::get_id());
-    }
+    std::scoped_lock<std::mutex> lock(m_contextMutex);
+    m_contexts.erase(std::this_thread::get_id());
   }
 };
 

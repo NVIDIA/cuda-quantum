@@ -149,7 +149,7 @@ void invokeKernel(cudaq::ExecutionContext &io_executionContext,
   circuitSimulator->resetExecutionContext();
 }
 
-void *loadNnqirSimLib(const std::string &simulatorName) {
+void *loadNvqirSimLib(const std::string &simulatorName) {
   const std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
 #if defined(__APPLE__) && defined(__MACH__)
   const auto libSuffix = "dylib";
@@ -172,19 +172,14 @@ void *loadNnqirSimLib(const std::string &simulatorName) {
 
 std::string processRequest(const std::string &reqBody) {
   auto requestJson = json::parse(reqBody);
-  const std::string irCode = requestJson["code"];
-  const std::string kernelName = requestJson["kernel-name"];
-  const std::string entryPoint =
-      std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName;
-  cudaq::ExecutionContext executionContext(
-      requestJson["execution-context"]["name"]);
-  json executionContexJs = requestJson["execution-context"];
-  cudaq::from_json(executionContexJs, executionContext);
-  const auto simulator = requestJson["simulator"];
-  void *handle = loadNnqirSimLib(simulator);
-  assert(handle);
-  invokeKernel(executionContext, irCode, entryPoint);
-  json resultContextJs = executionContext;
+  cudaq::RestRequest request(requestJson);
+  const std::string entryPointFunc =
+      std::string(cudaq::runtime::cudaqGenPrefixName) + request.entryPoint;
+  void *handle = loadNvqirSimLib(request.simulator);
+  if (request.seed != 0)
+    cudaq::set_random_seed(request.seed);
+  invokeKernel(request.executionContext, request.code, entryPointFunc);
+  json resultContextJs = request.executionContext;
   dlclose(handle);
   return resultContextJs.dump();
 }
