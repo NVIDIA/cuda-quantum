@@ -184,7 +184,6 @@ int main(int argc, char **argv) {
     return DEFAULT_PORT;
   }();
   cudaq::mpi::initialize();
-  std::queue<std::function<void()>> functorQueue;
   cudaq::RestServer server(port);
   server.addRoute(cudaq::RestServer::Method::GET, "/",
                   [](const std::string &reqBody) {
