@@ -5,16 +5,9 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
-#pragma GCC diagnostic ignored "-Wsuggest-override"
-#endif
-#include "crow.h"
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
+
 #include "JsonConvert.h"
+#include "RestServer.h"
 #include "common/Logger.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
@@ -51,12 +44,7 @@
 namespace nvqir {
 CircuitSimulator *getCircuitSimulatorInternal();
 }
-constexpr static char BOLD[] = "\033[1m";
-constexpr static char RED[] = "\033[91m";
-constexpr static char CLEAR[] = "\033[0m";
-
 using namespace mlir;
-
 namespace {
 std::unique_ptr<ExecutionEngine>
 jitCode(ModuleOp currentModule, std::vector<std::string> extraLibPaths = {}) {
@@ -170,7 +158,7 @@ void *loadNvqirSimLib(const std::string &simulatorName) {
   return simLibHandle;
 }
 
-std::string processRequest(const std::string &reqBody) {
+json processRequest(const std::string &reqBody) {
   auto requestJson = json::parse(reqBody);
   cudaq::RestRequest request(requestJson);
   const std::string entryPointFunc =
@@ -181,7 +169,7 @@ std::string processRequest(const std::string &reqBody) {
   invokeKernel(request.executionContext, request.code, entryPointFunc);
   json resultContextJs = request.executionContext;
   dlclose(handle);
-  return resultContextJs.dump();
+  return resultContextJs;
 }
 } // namespace
 
@@ -197,26 +185,35 @@ int main(int argc, char **argv) {
   }();
   cudaq::mpi::initialize();
   std::queue<std::function<void()>> functorQueue;
-  crow::SimpleApp app;
-  CROW_ROUTE(app, "/")
-  ([]() { return "Hello, world!"; });
-  CROW_ROUTE(app, "/shutdown")
-      .methods("POST"_method)([&app](const crow::request &req) {
-        std::string shutDownMsg = "SHUTDOWN";
-        cudaq::mpi::broadcast(shutDownMsg, 0);
-        app.stop();
-        return "{}";
-      });
-  CROW_ROUTE(app, "/job").methods("POST"_method)([](const crow::request &req) {
-    std::string jsonRequestBody = req.body;
-    cudaq::mpi::broadcast(jsonRequestBody, 0);
-    return processRequest(jsonRequestBody);
-  });
-  if (cudaq::mpi::rank() == 0)
-    CROW_LOG_INFO << "Start server with " << cudaq::mpi::num_ranks()
-                  << " MPI processes...\n";
+  cudaq::RestServer server(port);
+  server.addRoute(cudaq::RestServer::Method::GET, "/",
+                  [](const std::string &reqBody) {
+                    // Return an empty JSON string,
+                    // e.g., for client to ping the server.
+                    return json();
+                  });
+
+  // Request the server to shut down.
+  server.addRoute(cudaq::RestServer::Method::POST, "/shutdown",
+                  [&server](const std::string &reqBody) {
+                    std::string shutDownMsg = "SHUTDOWN";
+                    cudaq::mpi::broadcast(shutDownMsg, 0);
+                    server.stop();
+                    return json();
+                  });
+
+  // New simulation request.
+  server.addRoute(cudaq::RestServer::Method::POST, "/job",
+                  [](const std::string &reqBody) {
+                    std::string mutableReq = reqBody;
+                    cudaq::mpi::broadcast(mutableReq, 0);
+                    return processRequest(reqBody);
+                  });
+
   if (cudaq::mpi::rank() == 0) {
-    app.port(port).run();
+    // Only run this app on Rank 0;
+    // the rest will wait for a broadcast.
+    server.start();
   } else {
     for (;;) {
       std::string jsonRequestBody;
