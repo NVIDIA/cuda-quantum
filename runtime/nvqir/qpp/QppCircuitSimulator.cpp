@@ -6,10 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CircuitSimulator.h"
-#include "Gates.h"
-#include "qpp.h"
+#include "nvqir/CircuitSimulator.h"
+#include "nvqir/Gates.h"
+
 #include <iostream>
+#include <qpp.h>
 #include <set>
 
 namespace nvqir {
@@ -142,6 +143,10 @@ protected:
 
   void applyGate(const GateApplicationTask &task) override {
     auto matrix = toQppMatrix(task.matrix, task.targets.size());
+    if (task.controls.empty()) {
+      state = qpp::apply(state, matrix, task.targets);
+      return;
+    }
     state = qpp::applyCTRL(state, matrix, task.controls, task.targets);
   }
 

@@ -31,3 +31,7 @@
 	path = tpls/pybind11
 	url = https://github.com/pybind/pybind11
 	ignore = dirty
+[submodule "tpls/qpp"]
+	path = tpls/qpp
+	url = https://github.com/softwareQinc/qpp.git
+	shallow = true
