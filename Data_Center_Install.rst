@@ -248,7 +248,11 @@ the packages `autoconf`, `libtool`, `flex`, and `make` need to be installed.
     git init && git remote add origin https://github.com/open-mpi/ompi
     git fetch origin --depth=1 v${OPENMPI_VERSION} && git reset --hard FETCH_HEAD
 
-    ./autogen.pl && LDFLAGS=-Wl,--as-needed ./configure \
+    # Make sure CUDA_PATH is set to the correct CUDA installation root.
+    CUDA_PATH=/usr/local/cuda-${CUDA_VERSION}
+    ./autogen.pl
+    PATH="$(dirname $CC):$PATH" LDFLAGS=-Wl,--as-needed \
+    ./configure \
         --prefix="${MPI_PATH}" \
         --disable-getpwuid --disable-static \
         --disable-debug --disable-mem-debug --disable-mem-profile --disable-memchecker \

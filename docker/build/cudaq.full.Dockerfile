@@ -48,8 +48,8 @@ ENV MPI_HOME="${MPI_PATH}"
 # distribution and architecture that matches your platform.
 ARG CUDA_VERSION=11.8
 ENV DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64
-RUN dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo; \
-    dnf install -y --nobest --setopt=install_weak_deps=False \
+RUN dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo
+RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-toolkit-$(echo ${CUDA_VERSION} | tr . -)
 
 # cuQuantum dependencies:
@@ -101,17 +101,21 @@ ENV CUDACXX=/usr/local/cuda-${CUDA_VERSION}/bin/nvcc
 # A plugin for OpenMPI and MPICH is included with CUDA Quantum. To use a different
 # MPI implementation, you will need to implement the plugin as defined in our documentation.
 ARG OPENMPI_VERSION=4.1.4
-RUN mkdir /openmpi-project && cd /openmpi-project; \
-    git init && git remote add origin https://github.com/open-mpi/ompi; \
-    git fetch origin --depth=1 v${OPENMPI_VERSION} && git reset --hard FETCH_HEAD;
-RUN cd /openmpi-project && ./autogen.pl; \
+RUN mkdir /openmpi-project && cd /openmpi-project && \
+    git init && git remote add origin https://github.com/open-mpi/ompi && \
+    git fetch origin --depth=1 v${OPENMPI_VERSION} && git reset --hard FETCH_HEAD
+RUN cd /openmpi-project && ./autogen.pl && \
+    CUDA_PATH=/usr/local/cuda-${CUDA_VERSION} && \
+    PATH="$(dirname $CC):$PATH" \
     LDFLAGS=-Wl,--as-needed \
     ./configure --prefix="$MPI_PATH" \
                 --disable-getpwuid --disable-static \
-                --disable-debug --disable-mem-debug --disable-mem-profile --disable-memchecker \
+                --disable-debug --disable-mem-debug --disable-event-debug \
+                --disable-mem-profile --disable-memchecker \
+                --enable-mpi-fortran=none \
                 --without-verbs \
-                --with-cuda="$CUDA_PATH"; \
-    make -j$(nproc) && make -j$(nproc) install; \
+                --with-cuda="$CUDA_PATH" && \
+    make -j$(nproc) && make -j$(nproc) install && \
     cd / && rm -rf /openmpi-project
 
 # CUDA Quantum build from source:
@@ -121,13 +125,14 @@ RUN cd /openmpi-project && ./autogen.pl; \
 # on whether the necessary pre-requisites are found in the build environment.
 # Please check the build log to confirm that all desired components have been built.
 ARG CUDA_QUANTUM_COMMIT=fa4ac125bef8bfd65861724e20ceecf7c15389a5
-RUN git clone --filter=tree:0 https://github.com/nvidia/cuda-quantum /cuda-quantum; \
-    cd /cuda-quantum && git checkout ${CUDA_QUANTUM_COMMIT}; \
+RUN git clone --filter=tree:0 https://github.com/nvidia/cuda-quantum /cuda-quantum && \
+    cd /cuda-quantum && git checkout ${CUDA_QUANTUM_COMMIT}
+RUN cd /cuda-quantum && \
     FORCE_COMPILE_GPU_COMPONENTS=true CUDAQ_WERROR=false \
     bash scripts/build_cudaq.sh -u -v
     # && $CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/ && bash activate_mpi.sh
 
-ENV PATH="${CUDAQ_INSTALL_PREFIX}/bin:${CUDA_PATH}/bin:${PATH}"
+ENV PATH="${CUDAQ_INSTALL_PREFIX}/bin:${PATH}"
 ENV PYTHONPATH="${CUDAQ_INSTALL_PREFIX}:${PYTHONPATH}"
 
 # Removing build dependencies

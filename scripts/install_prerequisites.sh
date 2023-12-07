@@ -63,6 +63,7 @@ read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
 function exit_gracefully {
   cd "$working_dir" && remove_temp_installs
   if [ -z "$__errexit__" ]; then set +e; fi
+  (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
   if $is_sourced; then return ${exit_code:-0}; else exit ${exit_code:-0}; fi
 }
 
@@ -105,11 +106,9 @@ if [ ! -d "$llvm_dir" ]; then
 
   # Build llvm libraries from source and install them in the install directory
   set +e && source "$this_file_dir/build_llvm.sh" -v && set -e
-  (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
-
   if [ ! -d "$llvm_dir" ]; then
     echo "Failed to find directory $llvm_dir."
-    if $is_sourced; then return 1; else exit 1; fi
+    exit_gracefully
   fi
 else 
   echo "Configured C compiler: $CC"
@@ -127,6 +126,8 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
     temp_install_if_command_unknown gcc gcc
     temp_install_if_command_unknown g++ g++
     temp_install_if_command_unknown gfortran gfortran
+  elif [ ! -x "gfortran" ]; then
+    ln -s "$FC" /usr/bin/gfortran
   fi
 
   # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
