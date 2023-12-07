@@ -45,38 +45,27 @@
 using namespace mlir;
 namespace {
 std::unique_ptr<ExecutionEngine>
-jitCode(ModuleOp currentModule, std::vector<std::string> extraLibPaths = {}) {
+jitCode(ModuleOp currentModule, const std::vector<std::string> &passes,
+        const std::vector<std::string> &extraLibPaths = {}) {
   cudaq::info("Running jitCode.");
   auto module = currentModule.clone();
   auto ctx = module.getContext();
   PassManager pm(ctx);
-  OpPassManager &optPM = pm.nest<func::FuncOp>();
-
-  optPM.addPass(cudaq::opt::createUnwindLoweringPass());
-  cudaq::opt::addAggressiveEarlyInlining(pm);
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
-  optPM.addPass(cudaq::opt::createClassicalMemToReg());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-  pm.addPass(cudaq::opt::createLoopNormalize());
-  pm.addPass(cudaq::opt::createLoopUnroll());
-  pm.addPass(createCanonicalizerPass());
-  optPM.addPass(cudaq::opt::createQuakeAddDeallocs());
-  optPM.addPass(cudaq::opt::createQuakeAddMetadata());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
-  if (failed(pm.run(module)))
-    throw std::runtime_error("Failed to JIT compile the Quake representation.");
-
-  optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
-  pm.addPass(createCanonicalizerPass());
-  pm.addPass(createCSEPass());
-  pm.addPass(cudaq::opt::createConvertToQIRPass());
+  std::string errMsg;
+  llvm::raw_string_ostream os(errMsg);
+  const std::string pipeline =
+      std::accumulate(passes.begin(), passes.end(), std::string(),
+                      [](const auto &ss, const auto &s) {
+                        return ss.empty() ? s : ss + "," + s;
+                      });
+  if (failed(parsePassPipeline(pipeline, pm, os)))
+    throw std::runtime_error(
+        "Remote rest platform failed to add passes to pipeline (" + errMsg +
+        ").");
 
   if (failed(pm.run(module)))
-    throw std::runtime_error("Failed to JIT compile the Quake representation.");
+    throw std::runtime_error(
+        "Remote rest platform: applying IR passes failed.");
 
   cudaq::info("- Pass manager was applied.");
   ExecutionEngineOptions opts;
@@ -114,6 +103,7 @@ jitCode(ModuleOp currentModule, std::vector<std::string> extraLibPaths = {}) {
 
 void invokeKernel(cudaq::ExecutionContext &io_executionContext,
                   const std::string &irString,
+                  const std::vector<std::string> &passes,
                   const std::string &entryPointFn) {
   auto contextPtr = cudaq::initializeMLIR();
   auto fileBuf = llvm::MemoryBuffer::getMemBufferCopy(irString);
@@ -121,7 +111,7 @@ void invokeKernel(cudaq::ExecutionContext &io_executionContext,
   llvm::SourceMgr sourceMgr;
   sourceMgr.AddNewSourceBuffer(std::move(fileBuf), llvm::SMLoc());
   auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
-  auto engine = jitCode(*module);
+  auto engine = jitCode(*module, passes);
   //  Extract the entry point
   auto fnPtr = engine->lookup(entryPointFn);
 
@@ -164,7 +154,8 @@ json processRequest(const std::string &reqBody) {
   void *handle = loadNvqirSimLib(request.simulator);
   if (request.seed != 0)
     cudaq::set_random_seed(request.seed);
-  invokeKernel(request.executionContext, request.code, entryPointFunc);
+  invokeKernel(request.executionContext, request.code, request.passes,
+               entryPointFunc);
   json resultContextJs = request.executionContext;
   dlclose(handle);
   return resultContextJs;

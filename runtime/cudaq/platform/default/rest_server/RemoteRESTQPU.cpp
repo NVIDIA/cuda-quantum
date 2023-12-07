@@ -57,6 +57,27 @@ private:
   std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
   std::mutex m_contextMutex;
   MLIRContext &m_mlirContext;
+  static inline const std::vector<std::string> clientPasses = {};
+  static inline const std::vector<std::string> serverPasses = {
+      "func.func(unwind-lowering)",
+      "func.func(indirect-to-direct-calls)",
+      "inline",
+      "canonicalize",
+      "apply-op-specialization",
+      "func.func(memtoreg{quantum=0})",
+      "canonicalize",
+      "expand-measurements",
+      "cc-loop-normalize",
+      "cc-loop-unroll",
+      "canonicalize",
+      "func.func(add-dealloc)",
+      "func.func(quake-add-metadata)",
+      "canonicalize",
+      "func.func(lower-to-cfg)",
+      "func.func(combine-quantum-alloc)",
+      "canonicalize",
+      "cse",
+      "quake-to-qir"};
 
 public:
   RemoteSimulatorQPU(MLIRContext &mlirContext, const std::string &url,
@@ -88,6 +109,7 @@ public:
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(name);
+    request.passes = serverPasses;
     request.entryPoint = name;
     request.simulator = m_simName;
     request.seed = cudaq::get_random_seed();
@@ -116,6 +138,26 @@ public:
       pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply quake-synth.");
+    }
+
+    // Client-side passes
+    if (!clientPasses.empty()) {
+      PassManager pm(&m_mlirContext);
+      std::string errMsg;
+      llvm::raw_string_ostream os(errMsg);
+      const std::string pipeline =
+          std::accumulate(clientPasses.begin(), clientPasses.end(),
+                          std::string(), [](const auto &ss, const auto &s) {
+                            return ss.empty() ? s : ss + "," + s;
+                          });
+      if (failed(parsePassPipeline(pipeline, pm, os)))
+        throw std::runtime_error(
+            "Remote rest platform failed to add passes to pipeline (" + errMsg +
+            ").");
+
+      if (failed(pm.run(moduleOp)))
+        throw std::runtime_error(
+            "Remote rest platform: applying IR passes failed.");
     }
 
     llvm::raw_string_ostream outStr(request.code);
