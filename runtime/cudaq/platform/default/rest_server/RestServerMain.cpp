@@ -41,9 +41,7 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
-namespace nvqir {
-CircuitSimulator *getCircuitSimulatorInternal();
-}
+
 using namespace mlir;
 namespace {
 std::unique_ptr<ExecutionEngine>
@@ -131,10 +129,10 @@ void invokeKernel(cudaq::ExecutionContext &io_executionContext,
     throw std::runtime_error("Failed to get entry function");
 
   auto fn = reinterpret_cast<void (*)()>(*fnPtr);
-  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  circuitSimulator->setExecutionContext(&io_executionContext);
+  auto &platform = cudaq::get_platform();
+  platform.set_exec_ctx(&io_executionContext);
   fn();
-  circuitSimulator->resetExecutionContext();
+  platform.reset_exec_ctx();
 }
 
 void *loadNvqirSimLib(const std::string &simulatorName) {
