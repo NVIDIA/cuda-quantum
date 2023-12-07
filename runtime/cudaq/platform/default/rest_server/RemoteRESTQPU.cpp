@@ -34,7 +34,6 @@
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/RestClient.h"
-#include "cuda_runtime_api.h"
 #include "cudaq.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
