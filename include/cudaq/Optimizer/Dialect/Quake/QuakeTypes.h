@@ -19,3 +19,18 @@
 
 #define GET_TYPEDEF_CLASSES
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h.inc"
+
+namespace quake {
+/// \returns true if \p `ty` is a quantum value or reference.
+inline bool isaQuantumType(mlir::Type ty) {
+  // NB: this intentionally excludes MeasureType.
+  return llvm::isa<quake::RefType, quake::VeqType, quake::WireType,
+                   quake::ControlType>(ty);
+}
+
+/// \returns true if \p `ty` is a Quake type.
+inline bool isQuakeType(mlir::Type ty) {
+  // This should correspond to the registered types in QuakeTypes.cpp.
+  return isaQuantumType(ty) || llvm::isa<quake::MeasureType>(ty);
+}
+} // namespace quake
