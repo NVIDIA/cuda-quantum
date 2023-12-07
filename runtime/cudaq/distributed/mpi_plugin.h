@@ -62,7 +62,7 @@ public:
 
   /// @brief Broadcast a vector from a root rank to all other ranks
   void broadcast(std::vector<double> &data, int rootRank);
-  
+
   /// @brief Broadcast a string from a root rank to all other ranks
   void broadcast(std::string &data, int rootRank);
 
