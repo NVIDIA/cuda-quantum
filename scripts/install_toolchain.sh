@@ -126,6 +126,15 @@ elif [ "$toolchain" = "llvm" ]; then
             echo "Setting lld linker as the default linker."
         fi
     fi
+    if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
+        ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
+        created_ld_sym_link=$?
+        if [ "$created_ld_sym_link" = "" ] || [ ! "$created_ld_sym_link" -eq "0" ]; then
+            echo "Failed to find ar or llvm-ar. Toolchain may be incomplete."
+        else 
+            echo "Setting llvm-ar as the default ar."
+        fi
+    fi
 
 else
 

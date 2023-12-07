@@ -33,9 +33,6 @@ ARG toolchain=llvm
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates openssl apt-utils \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install prerequisites for building LLVM.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -81,22 +78,15 @@ RUN source /opt/llvm/bootstrap/init_command.sh && \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
-# Todo: 
-# - remove http://apt.llvm.org/jammy/ in the install_toolchain.sh and use
-#   FROM llvmbuild as prereqs
-# - uncomment the source /opt/llvm/bootstrap/init_command.sh below
-FROM ubuntu:22.04 as prereqs
-SHELL ["/bin/bash", "-c"]
-COPY --from=llvmbuild /opt/llvm /opt/llvm
+FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
-    # Making sure that anything that is build from source when installing additional
-    # prerequisites is built using the same toolchain as CUDA Quantum by default.
-    # && source /opt/llvm/bootstrap/init_command.sh \
+    # It would be nice to also build the prerequisites
+    # using the same toolchain as CUDA Quantum by default.
+    && source /opt/llvm/bootstrap/init_command.sh \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
