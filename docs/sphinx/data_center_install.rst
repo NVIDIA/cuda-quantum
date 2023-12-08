@@ -91,7 +91,7 @@ to set the following environment variables prior to proceeding:
 
 .. code-block:: bash
 
-    .. literalinclude:: scripts/configure_build.sh
+    .. literalinclude:: ../../scripts/configure_build.sh
       :start-after: [>InstallLocations]
       :end-before: [<InstallLocations]
 
@@ -130,7 +130,7 @@ install CUDA 11.8:
 
 .. code-block:: bash
 
-    .. literalinclude:: scripts/configure_build.sh
+    .. literalinclude:: ../../scripts/configure_build.sh
       :start-after: [>CUDAInstall]
       :end-before: [<CUDAInstall]
 
@@ -148,7 +148,7 @@ Install cuQuantum version 23.10 using the following commands:
 
 .. code-block:: bash
 
-    .. literalinclude:: scripts/configure_build.sh
+    .. literalinclude:: ../../scripts/configure_build.sh
       :start-after: [>cuQuantumInstall]
       :end-before: [<cuQuantumInstall]
 
@@ -167,7 +167,7 @@ Install cuTensor version 1.7 using the following commands:
 
 .. code-block:: bash
 
-    .. literalinclude:: scripts/configure_build.sh
+    .. literalinclude:: ../../scripts/configure_build.sh
       :start-after: [>cuTensorInstall]
       :end-before: [<cuTensorInstall]
 
@@ -188,7 +188,7 @@ install GCC 11:
 
 .. code-block:: bash
 
-    .. literalinclude:: scripts/configure_build.sh
+    .. literalinclude:: ../../scripts/configure_build.sh
       :start-after: [>gccInstall]
       :end-before: [<gccInstall]
 
@@ -198,7 +198,7 @@ respective compilers on your build system:
 
 .. code-block:: bash
 
-    .. literalinclude:: scripts/configure_build.sh
+    .. literalinclude:: ../../scripts/configure_build.sh
       :start-after: [>ToolchainConfiguration]
       :end-before: [<ToolchainConfiguration]
 
@@ -282,7 +282,7 @@ commands, for example, install the necessary packages for the AlmaLinux 8 enviro
 
 .. code-block:: bash
 
-    .. literalinclude:: scripts/configure_build.sh
+    .. literalinclude:: ../../scripts/configure_build.sh
       :start-after: [>CUDARTInstall]
       :end-before: [<CUDARTInstall]
 
