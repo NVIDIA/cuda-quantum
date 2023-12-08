@@ -11,6 +11,9 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wsuggest-override"
+#pragma clang diagnostic ignored "-Wcast-qual"
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+#pragma clang diagnostic ignored "-Wcovered-switch-default"
 #endif
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic push
