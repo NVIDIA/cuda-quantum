@@ -439,6 +439,9 @@ while [ $# -ne 0 ]; do
 	--enable-mlir)
 		LIBRARY_MODE=false
 		;;
+	--library-mode)
+		LIBRARY_MODE=true
+		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
 		;;
