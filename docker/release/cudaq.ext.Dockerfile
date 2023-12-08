@@ -26,7 +26,7 @@ RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
 
 # Install additional runtime dependencies.
 RUN apt-get install -y --no-install-recommends \
-        cuda-nvtx-11-8 libopenblas-openmp-dev \
+        cuda-nvtx-11-8 \
         # just here for convenience:
         curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \

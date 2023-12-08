@@ -119,9 +119,9 @@ fi
 
 # Determine linker and linker flags
 cmake_common_linker_flags_init=""
-if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
+if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/lld")" ]; then
   echo "Configuring nvq++ to use the lld linker by default."
-  NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
+  NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/lld"
 fi
 
 # Generate CMake files 

@@ -91,14 +91,9 @@ to set the following environment variables prior to proceeding:
 
 .. code-block:: bash
 
-    export CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
-    export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
-    export CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
-    export LLVM_INSTALL_PREFIX=/usr/local/llvm
-    export OPENSSL_INSTALL_PREFIX=/usr/local/openssl
-    export BLAS_PATH=/usr/local/blas
-    export MPI_PATH=/usr/local/openmpi
-    export MPI_HOME="${MPI_PATH}"
+    .. literalinclude:: scripts/configure_build.sh
+      :start-after: [>InstallLocations]
+      :end-before: [<InstallLocations]
 
 These environment variables *must* be set during the build. Their value can be
 chosen freely, but for now the path during the build needs to match the path
@@ -135,13 +130,9 @@ install CUDA 11.8:
 
 .. code-block:: bash
 
-    CUDA_VERSION=11.8
-    # Go to https://developer.download.nvidia.com/compute/cuda/repos/ and
-    # set the variables below to the distribution and subfolder for your platform.
-    DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64
-    dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo
-    dnf install -y --nobest --setopt=install_weak_deps=False \
-        cuda-toolkit-$(echo ${CUDA_VERSION} | tr . -)
+    .. literalinclude:: scripts/configure_build.sh
+      :start-after: [>CUDAInstall]
+      :end-before: [<CUDAInstall]
 
 cuQuantum
 +++++++++++++++++++++++++++++++
@@ -157,10 +148,9 @@ Install cuQuantum version 23.10 using the following commands:
 
 .. code-block:: bash
 
-    CUQUANTUM_VERSION=23.10.0.6
-    cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
-    wget "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-${CUDA_ARCH_FOLDER}/${cuquantum_archive}"
-    mkdir -p "$CUQUANTUM_INSTALL_PREFIX" && tar xf "${cuquantum_archive}" --strip-components 1 -C "$CUQUANTUM_INSTALL_PREFIX" && rm -rf "${cuquantum_archive}"
+    .. literalinclude:: scripts/configure_build.sh
+      :start-after: [>cuQuantumInstall]
+      :end-before: [<cuQuantumInstall]
 
 cuTensor
 +++++++++++++++++++++++++++++++
@@ -177,12 +167,9 @@ Install cuTensor version 1.7 using the following commands:
 
 .. code-block:: bash
 
-    CUTENSOR_VERSION=1.7.0.1
-    cutensor_archive=libcutensor-linux-${CUDA_ARCH_FOLDER}-${CUTENSOR_VERSION}-archive.tar.xz
-    wget "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-${CUDA_ARCH_FOLDER}/${cutensor_archive}"
-    mkdir -p "$CUTENSOR_INSTALL_PREFIX" && tar xf "${cutensor_archive}" --strip-components 1 -C "$CUTENSOR_INSTALL_PREFIX"
-    mv "$CUTENSOR_INSTALL_PREFIX"/lib/$(echo ${CUDA_VERSION} | cut -d . -f1)/* $CUTENSOR_INSTALL_PREFIX/lib/
-    ls -d $CUTENSOR_INSTALL_PREFIX/lib/*/ | xargs rm -rf && rm -rf "${cutensor_archive}"
+    .. literalinclude:: scripts/configure_build.sh
+      :start-after: [>cuTensorInstall]
+      :end-before: [<cuTensorInstall]
 
 Toolchain
 +++++++++++++++++++++++++++++++
@@ -211,10 +198,9 @@ respective compilers on your build system:
 
 .. code-block:: bash
 
-    export CXX=/opt/rh/gcc-toolset-11/root/usr/bin/g++
-    export CC=/opt/rh/gcc-toolset-11/root/usr/bin/gcc
-    export FC=/opt/rh/gcc-toolset-11/root/usr/bin/gfortran
-    export CUDACXX=/usr/local/cuda-${CUDA_VERSION}/bin/nvcc
+    .. literalinclude:: scripts/configure_build.sh
+      :start-after: [>ToolchainConfiguration]
+      :end-before: [<ToolchainConfiguration]
 
 - The variables CC and CXX *must* be set for the CUDA Quantum build.
 - A Fortran compiler is needed (only) to build the OpenSSL dependency; 
@@ -224,42 +210,6 @@ respective compilers on your build system:
 - To use GPU-acceleration in CUDA Quantum, make sure to set CUDACXX to 
   your CUDA compiler. If the CUDA compiler is not found when building CUDA Quantum, some components and backends will be omitted automatically during
   the build.
-
-MPI
-+++++++++++++++++++++++++++++++
-
-To work with all CUDA Quantum backends, a CUDA-aware MPI installation
-is required. Different MPI implementations are supported via a plugin infrastructure
-in CUDA Quantum. CUDA Quantum includes the necessary plugin for OpenMPI and MPICH.
-Any other MPI implementation requires implementing the plugin yourself, and activating
-it in a final step after installing CUDA Quantum on the host system.
-
-The following commands build a sufficient CUDA-aware OpenMPI installation from source.
-To make best use of MPI, we recommend a more fully featured installation including
-additional configurations that fit your host system.
-The commands below assume you have the necessary prerequisites for the OpenMPI build
-installed on the build system. Within the tested AlmaLinux 8 environment, for example,
-the packages `autoconf`, `libtool`, `flex`, and `make` need to be installed.
-
-.. code-block:: bash
-
-    OPENMPI_VERSION=4.1.4
-    mkdir ~/.openmpi-project && cd ~/.openmpi-project
-    git init && git remote add origin https://github.com/open-mpi/ompi
-    git fetch origin --depth=1 v${OPENMPI_VERSION} && git reset --hard FETCH_HEAD
-
-    # Make sure CUDA_PATH is set to the correct CUDA installation root.
-    CUDA_PATH=/usr/local/cuda-${CUDA_VERSION}
-    ./autogen.pl
-    PATH="$(dirname $CC):$PATH" LDFLAGS=-Wl,--as-needed \
-    ./configure \
-        --prefix="${MPI_PATH}" \
-        --disable-getpwuid --disable-static \
-        --disable-debug --disable-mem-debug --disable-mem-profile --disable-memchecker \
-        --without-verbs \
-        --with-cuda="${CUDA_PATH}"
-    make -j$(nproc) && make -j$(nproc) install
-    cd - && rm -rf ~/.openmpi-project
 
 Building CUDA Quantum
 ------------------------------------
@@ -276,9 +226,9 @@ command to build CUDA Quantum:
 
 .. code-block:: bash
 
-    FORCE_COMPILE_GPU_COMPONENTS=true CUDAQ_WERROR=false \
-    bash scripts/build_cudaq.sh -u -v
-    # && $CUQUANTUM_INSTALL_PREFIX/distributed_interfaces/ && bash activate_mpi.sh
+    .. literalinclude:: docker/build/cudaq.full.Dockerfile
+      :start-after: [>CUDAQuantum]
+      :end-before: [<CUDAQuantum]
 
 The CUDA Quantum build will compile or omit optional components automatically depending
 on whether the necessary pre-requisites are found in the build environment.
@@ -290,4 +240,94 @@ and the necessary environment variables as described in this document are set.
 Installation on the Host
 ------------------------------------
 
-To be populated...
+Make sure your host system satisfies the `Prerequisites`_ listed above, and 
+copy the folders where you installed CUDA Quantum (defined by the `CUDAQ_INSTALL_PREFIX`
+variable), cuQuantum (defined by the `CUQUANTUM_INSTALL_PREFIX` variable), 
+and cuTensor (defined by the `CUQUANTUM_INSTALL_PREFIX` variable) onto the 
+host system. Their location on the host system does not need to match their 
+location on the build system, but you will need to make the following edits
+to your environment variables:
+
+.. code-block::
+
+    export CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
+    export CUQUANTUM_PATH=/opt/nvidia/cuquantum
+    export CUTENSOR_PATH=/opt/nvidia/cutensor
+
+    export PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
+    export PYTHONPATH="${CUDA_QUANTUM_PATH}:${PYTHONPATH}"
+    export LD_LIBRARY_PATH="${CUQUANTUM_PATH}/lib:$CUTENSOR_PATH/lib:$LD_LIBRARY_PATH"
+
+The variables `CUDA_QUANTUM_PATH`, `CUQUANTUM_PATH`, and `CUTENSOR_PATH` in the commands
+above should be set to the host locations of the respective folders.
+
+To make use of all CUDA Quantum features and components, install the CUDA Quantum 
+runtime dependencies listed in the remaining sections on the host system.
+
+Runtime libraries
++++++++++++++++++++++++++++++++
+
+Make sure that the same standard library that was used during the
+CUDA Quantum build is present and discoverable on the host system.
+While not strictly necessary, we recommend that you install the toolchain 
+that was used for the CUDA Quantum build on the host; you will need a compiler
+to enable MPI support, and using the same compiler as CUDA Quantum was built with
+guarantees that there are no incompatibilities.
+
+Additionally, you will need to install the necessary CUDA runtime libraries to use
+GPU-acceleration in CUDA Quantum. While not necessary, we recommend installing 
+the complete CUDA toolkit like you did for the CUDA Quantum build.
+If you prefer to only install the minimal set of runtime libraries, the following 
+commands, for example, install the necessary packages for the AlmaLinux 8 environment:
+
+.. code-block:: bash
+
+    .. literalinclude:: scripts/configure_build.sh
+      :start-after: [>CUDARTInstall]
+      :end-before: [<CUDARTInstall]
+
+.. FIXME: I THINK WE CAN JUST STATICALLY LINK IT SO THAT IT IS NOT REQUIRED
+.. To be able to execute code on remote backends, you may have to install OpenSSL on the host system. 
+
+MPI
++++++++++++++++++++++++++++++++
+
+To work with all CUDA Quantum backends, a CUDA-aware MPI installation
+is required. Different MPI implementations are supported via a plugin infrastructure
+in CUDA Quantum. CUDA Quantum includes the necessary plugin for OpenMPI and MPICH.
+Any other MPI implementation requires implementing the plugin yourself, and activating
+it in a final step after installing CUDA Quantum on the host system.
+
+Assuming you have an existing CUDA-aware MPI installation on your host system, and
+a working C++ toolchain, you can active MPI support in CUDA Quantum by executing
+the `activate_mpi.sh` script included in the CUDA Quantum `bin` directory.
+.. For more information about building and activating MPI plugins, see :ref:`this section <>`.
+
+If you do not have an existing CUDA-aware MPI installation, you can build one from source
+before activating the MPI plugin. 
+The following commands build a sufficient CUDA-aware OpenMPI installation.
+To make best use of MPI, we recommend a more fully featured installation including
+additional configurations that fit your host system.
+The commands below assume you have the necessary prerequisites for the OpenMPI build
+installed on the build system. Within the tested AlmaLinux 8 environment, for example,
+the packages `autoconf`, `libtool`, `flex`, and `make` need to be installed.
+
+.. code-block:: bash
+
+    OPENMPI_VERSION=4.1.4
+    mkdir ~/.openmpi-project && cd ~/.openmpi-project
+    git init && git remote add origin https://github.com/open-mpi/ompi
+    git fetch origin --depth=1 v${OPENMPI_VERSION} && git reset --hard FETCH_HEAD
+
+    # Make sure CUDA_PATH is set to the correct CUDA installation root.
+    ./autogen.pl
+    PATH="$(dirname $CC):$PATH" LDFLAGS=-Wl,--as-needed \
+    ./configure \
+        --prefix="${MPI_PATH}" \
+        --disable-getpwuid --disable-static \
+        --disable-debug --disable-mem-debug --disable-event-debug \
+        --disable-mem-profile --disable-memchecker \
+        --without-verbs \
+        --with-cuda=/usr/local/cuda
+    make -j$(nproc) && make -j$(nproc) install
+    cd - && rm -rf ~/.openmpi-project
