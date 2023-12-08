@@ -21,3 +21,8 @@ struct Sylvester {
 void foo() {
    Sylvester sylvester;
 }
+
+// expected-warning@* {{}}
+// expected-warning@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
