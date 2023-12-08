@@ -27,3 +27,8 @@ struct LambdaCaptureList {
      D{}([i](cudaq::qubit& q) { h(q); }); // expected-error{{lambda expression with explicit captures is not yet supported}}
   }
 };
+
+// expected-warning@* {{}}
+// expected-warning@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
