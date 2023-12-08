@@ -48,6 +48,8 @@ done
 OPTIND=$__optind__
 
 working_dir=`pwd`
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+cd "$this_file_dir"
 
 if [ "$llvm_source" = "" ]; then
   llvm_source=~/.llvm-project
@@ -55,7 +57,7 @@ if [ "$llvm_source" = "" ]; then
   echo "Cloning LLVM submodule..."
 
   llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
-  llvm_commit="$(git rev-parse @:./tpls/llvm)"
+  llvm_commit="$(git submodule | grep tpls/llvm | cut -d ' ' -f1 | tr -d -)"
   git clone --filter=tree:0 "$llvm_repo" "$llvm_source"
   cd "$llvm_source" && git checkout $llvm_commit
 fi
@@ -143,6 +145,7 @@ cmake_args="-G Ninja ../llvm \
   -DLLVM_BUILD_TESTS=OFF \
   -DLLVM_ENABLE_OCAMLDOC=OFF \
   -DLLVM_ENABLE_ZLIB=OFF \
+  -DLLVM_ENABLE_ZSTD=OFF \
   -DLLVM_INSTALL_UTILS=ON"
 if $verbose; then
   cmake $cmake_args
