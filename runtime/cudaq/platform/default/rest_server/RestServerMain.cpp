@@ -9,6 +9,7 @@
 #include "JsonConvert.h"
 #include "RestServer.h"
 #include "common/Logger.h"
+#include "common/PluginUtils.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -43,6 +44,12 @@
 #include "mlir/Transforms/Passes.h"
 
 using namespace mlir;
+
+// Our hook into configuring the NVQIR backend.
+extern "C" {
+void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
+}
+
 namespace {
 std::unique_ptr<ExecutionEngine>
 jitCode(ModuleOp currentModule, const std::vector<std::string> &passes,
@@ -143,6 +150,10 @@ void *loadNvqirSimLib(const std::string &simulatorName) {
         "Failed to open simulator backend library: {}.",
         error_msg ? std::string(error_msg) : std::string("Unknown error")));
   }
+  auto *sim = cudaq::getUniquePluginInstance<nvqir::CircuitSimulator>(
+      std::string("getCircuitSimulator"), simLibPath.c_str());
+  __nvqir__setCircuitSimulator(sim);
+
   return simLibHandle;
 }
 
