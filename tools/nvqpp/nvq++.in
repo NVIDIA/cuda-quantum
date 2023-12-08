@@ -440,7 +440,11 @@ while [ $# -ne 0 ]; do
 		LIBRARY_MODE=false
 		;;
 	--library-mode)
-		LIBRARY_MODE=true
+		if [-z "${TARGET_CONFIG}"]; then
+			LIBRARY_MODE=true
+		else
+			echo "cannot use --library-mode with --target" >&2
+		fi
 		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
