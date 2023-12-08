@@ -188,9 +188,9 @@ install GCC 11:
 
 .. code-block:: bash
 
-    GCC_VERSION=11
-    dnf install -y --nobest --setopt=install_weak_deps=False \
-        gcc-toolset-${GCC_VERSION}
+    .. literalinclude:: scripts/configure_build.sh
+      :start-after: [>gccInstall]
+      :end-before: [<gccInstall]
 
 Independent on which compiler toolchain you installed, set the following
 environment variables to point to the appropriate values to point to the 
