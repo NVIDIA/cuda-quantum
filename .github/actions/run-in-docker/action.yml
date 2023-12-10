@@ -15,4 +15,5 @@ runs:
       run: |
         docker run -i ${{ inputs.image }} ${{ inputs.shell }} -s << 'EOF'
         ${{ inputs.run }}
+        echo "BMH MADE IT TO THE END (inside run-in-docker)"
         EOF
