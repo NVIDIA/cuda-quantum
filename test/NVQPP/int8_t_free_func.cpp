@@ -20,7 +20,7 @@
 __qpu__ void variable_qreg(std::uint8_t value) {
   cudaq::qreg qubits(value);
 
-  auto result = mz(qubits);
+  mz(qubits);
 }
 
 int main() {
