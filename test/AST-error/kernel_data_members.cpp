@@ -23,3 +23,8 @@ struct D : public C { // expected-error{{class inheritance is not allowed for CU
     h(q);
   }
 };
+
+// expected-warning@* {{}}
+// expected-warning@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}
