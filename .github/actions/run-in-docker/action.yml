@@ -19,6 +19,7 @@ runs:
         tmpFile=$(mktemp)
         cat > $tmpFile << 'EOF'
         ${{ inputs.run }}
+        echo "BMH MADE IT TO THE END (inside run-in-docker)"
         EOF
         chown $(id -u):$(id -g) $tmpFile
         container=$(docker run -id ${{ inputs.image }})
