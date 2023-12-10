@@ -349,29 +349,6 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     sampleResult.append(executionResult);
   }
 
-  // // It does no good to return the global register to the user in result order
-  // // because the user doesn't know what result numbers the compiler ended up
-  // // using. Re-order global register to make it alphabetical based on result
-  // // name like our other emulation results.
-
-  // // Get the indices `idx[]` such that newBitStrings(:) = oldBitStr(idx(:)),
-  // // where newBitStrings will contain bitstrings that are alphabetically sorted
-  // // based on the result names.
-  // std::vector<std::size_t> idx(output_names.size());
-  // std::iota(idx.begin(), idx.end(), 0);
-  // std::vector<std::string> outputNames(output_names.size());
-  // int i = 0;
-  // for (auto &[result, info] : output_names)
-  //   outputNames[i++] = info.registerName;
-  // // Sort idx by outputNames
-  // std::sort(idx.begin(), idx.end(),
-  //           [&outputNames](std::size_t a, std::size_t b) {
-  //             return outputNames[a] < outputNames[b];
-  //           });
-
-  // // Now reorder the bitstrings according to idx[]
-  // sampleResult.reorder(idx, GlobalRegisterName);
-
   return sampleResult;
 }
 
