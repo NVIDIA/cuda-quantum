@@ -513,6 +513,15 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     return success();
   }
 
+  /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
+  /// nullptr.
+  void addOpAndUsersToList(Operation *op,
+                           SmallVectorImpl<Operation *> &opsToMoveToEnd) {
+    opsToMoveToEnd.push_back(op);
+    for (auto user : op->getUsers())
+      addOpAndUsersToList(user, opsToMoveToEnd);
+  }
+
   void runOnOperation() override {
 
     // Allow enabling debug via pass option `debug`
@@ -656,6 +665,15 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       sink->erase();
     sinksToRemove.clear();
 
+    // Save the order of the measurements. They are not allowed to change.
+    SmallVector<mlir::Operation *> measureOrder;
+    func.walk([&](quake::MeasurementInterface measure) {
+      measureOrder.push_back(measure);
+      for (auto user : measure->getUsers())
+        measureOrder.push_back(user);
+      return WalkResult::advance();
+    });
+
     // Create auxillary qubits if needed. Place them after the last allocated
     // qubit
     unsigned numOrigQubits = sources.size();
@@ -678,6 +696,17 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
                        extendedLayerWeight, decayDelta, roundsDecayReset);
     router.route(*blocks.begin(), sources);
     sortTopologically(&block);
+
+    // Ensure that the original measurement ordering is still honored by moving
+    // the measurements to the end (in their original order). Note that we must
+    // move the users of those measurements to the end as well.
+    for (Operation *measure : measureOrder) {
+      SmallVector<Operation *> opsToMoveToEnd;
+      addOpAndUsersToList(measure, opsToMoveToEnd);
+      for (Operation *op : opsToMoveToEnd)
+        block.getOperations().splice(std::prev(block.end()),
+                                     block.getOperations(), op->getIterator());
+    }
 
     // Remove any auxillary qubits that did not get used. Remove from the end
     // and stop once you hit a used one. If you removed from the middle, you

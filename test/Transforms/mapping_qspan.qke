@@ -163,22 +163,22 @@ module {
 // CHECK:           %[[VAL_64:.*]] = quake.t %[[VAL_62]]#0 : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_65:.*]] = quake.h %[[VAL_59]] : (!quake.wire) -> !quake.wire
 // CHECK:           quake.sink %[[VAL_65]] : !quake.wire
-// CHECK:           %[[VAL_166:.*]], %[[VAL_67:.*]] = quake.mz %[[VAL_47]] name "result%[[VAL_2]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_66:.*]] = quake.discriminate %[[VAL_166]] :
-// CHECK:           cc.store %[[VAL_66]], %[[VAL_14]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_66:.*]], %[[VAL_67:.*]] = quake.mz %[[VAL_64]] name "result%[[VAL_0]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_68:.*]] = quake.discriminate %[[VAL_66]] : (!quake.measure) -> i1
+// CHECK:           cc.store %[[VAL_68]], %[[VAL_12]] : !cc.ptr<i1>
 // CHECK:           quake.sink %[[VAL_67]] : !quake.wire
-// CHECK:           %[[VAL_168:.*]], %[[VAL_69:.*]] = quake.mz %[[VAL_42]]#0 name "result%[[VAL_3]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_68:.*]] = quake.discriminate %[[VAL_168]] :
-// CHECK:           cc.store %[[VAL_68]], %[[VAL_15]] : !cc.ptr<i1>
-// CHECK:           quake.sink %[[VAL_69]] : !quake.wire
-// CHECK:           %[[VAL_170:.*]], %[[VAL_71:.*]] = quake.mz %[[VAL_64]] name "result%[[VAL_0]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_70:.*]] = quake.discriminate %[[VAL_170]] :
-// CHECK:           cc.store %[[VAL_70]], %[[VAL_12]] : !cc.ptr<i1>
-// CHECK:           quake.sink %[[VAL_71]] : !quake.wire
-// CHECK:           %[[VAL_172:.*]], %[[VAL_73:.*]] = quake.mz %[[VAL_63]] name "result%[[VAL_1]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_72:.*]] = quake.discriminate %[[VAL_172]] :
-// CHECK:           cc.store %[[VAL_72]], %[[VAL_13]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_69:.*]], %[[VAL_70:.*]] = quake.mz %[[VAL_63]] name "result%[[VAL_1]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_71:.*]] = quake.discriminate %[[VAL_69]] : (!quake.measure) -> i1
+// CHECK:           cc.store %[[VAL_71]], %[[VAL_13]] : !cc.ptr<i1>
+// CHECK:           quake.sink %[[VAL_70]] : !quake.wire
+// CHECK:           %[[VAL_72:.*]], %[[VAL_73:.*]] = quake.mz %[[VAL_47]] name "result%[[VAL_2]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_74:.*]] = quake.discriminate %[[VAL_72]] : (!quake.measure) -> i1
+// CHECK:           cc.store %[[VAL_74]], %[[VAL_14]] : !cc.ptr<i1>
 // CHECK:           quake.sink %[[VAL_73]] : !quake.wire
+// CHECK:           %[[VAL_75:.*]], %[[VAL_76:.*]] = quake.mz %[[VAL_42]]#0 name "result%[[VAL_3]]" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_77:.*]] = quake.discriminate %[[VAL_75]] : (!quake.measure) -> i1
+// CHECK:           cc.store %[[VAL_77]], %[[VAL_15]] : !cc.ptr<i1>
+// CHECK:           quake.sink %[[VAL_76]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
 
