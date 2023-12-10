@@ -215,6 +215,7 @@ jobs:
                 exit 1
               fi
             done
+            echo "BMH MADE IT TO THE END"
 
       - name: Run Python MPI tests
         if: matrix.os_image == 'redhat/ubi9:9.2'
@@ -259,6 +260,7 @@ jobs:
               echo "::error file=python_wheel.yml::Python MPI plugin test failed with status $pytest_mpi_status."
               exit 1
             fi
+            echo "BMH MADE IT TO THE END"
 
       - name: Validate Python examples
         run: |
