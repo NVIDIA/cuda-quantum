@@ -88,7 +88,6 @@ jobs:
               echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status)."
               exit 1
             fi
-            echo "BMH MADE IT TO THE END"
 
       - name: Test CUDA Quantum MPI4Py Plugin
         uses: ./.github/actions/run-in-docker
@@ -105,7 +104,6 @@ jobs:
               echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI4Py Plugin failed with status $mpi4py_status."
               exit 1
             fi
-            echo "BMH MADE IT TO THE END"
       
       - name: Test CUDA Quantum MPI Plugin Activation
         uses: ./.github/actions/run-in-docker
@@ -136,7 +134,6 @@ jobs:
               echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed with status $external_plugin_status."
               exit 1
             fi
-            echo "BMH MADE IT TO THE END"
 
       - name: Save environment
         id: env_save
@@ -234,7 +231,6 @@ jobs:
                 exit 1
               fi 
             done 
-            echo "BMH MADE IT TO THE END"
             
       - name: Save environment
         id: env_save
