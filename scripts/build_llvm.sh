@@ -150,7 +150,7 @@ cmake_args="-G Ninja ../llvm \
   -DLLVM_ENABLE_OCAMLDOC=OFF \
   -DLLVM_ENABLE_ZLIB=OFF \
   -DLLVM_ENABLE_ZSTD=OFF \
-  -DLLVM_INSTALL_UTILS=ON" \
+  -DLLVM_INSTALL_UTILS=ON"
 if $verbose; then
   cmake $cmake_args
 else

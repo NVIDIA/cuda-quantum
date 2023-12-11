@@ -69,7 +69,7 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && \
     source scripts/configure_build.sh install-$install_before_build
 
-ARG CUDA_QUANTUM_COMMIT=ce4231055684077f8d17fd1ded3e0787f91fd4f8
+ARG CUDA_QUANTUM_COMMIT=44df0bb7dfcc6b09c4ffc86bb5bbd6bfa683d897
 RUN rm -rf /cuda-quantum && \
     git clone --filter=tree:0 https://github.com/nvidia/cuda-quantum /cuda-quantum && \
     cd /cuda-quantum && git checkout ${CUDA_QUANTUM_COMMIT} && \
@@ -94,11 +94,12 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
 
 # [Build Artifacts]
-RUN mkdir /artifacts && \
+RUN mkdir /artifacts && source /cuda-quantum/scripts/configure_build.sh && \
     #mv /usr/local/openssl artifacts \
-    mv /usr/local/cudaq artifacts && \
-    mv /usr/local/cuquantum artifacts && \
-    mv /usr/local/cutensor artifacts
+    mv "${CUDAQ_INSTALL_PREFIX}" artifacts && \
+    mv "${LLVM_INSTALL_PREFIX}" artifacts && \
+    mv "${CUQUANTUM_INSTALL_PREFIX}" artifacts && \
+    mv "${CUTENSOR_INSTALL_PREFIX}" artifacts
 
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
     cd /makeself && git checkout release-2.5.0
