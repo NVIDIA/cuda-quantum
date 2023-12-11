@@ -441,11 +441,8 @@ while [ $# -ne 0 ]; do
 		;;
 	--library-mode)
 		if [-n "${TARGET_CONFIG}"]; then
-			# Leave this commented out, since this combination is used
-			# in photonics.cpp
-			#echo "cannot use --library-mode with --target" >&2
-			#exit 2
-			true
+			echo "cannot use --library-mode with --target" >&2
+			exit 2
 		fi
 		LIBRARY_MODE=true
 		;;
