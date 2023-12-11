@@ -610,7 +610,7 @@ public:
   /// @brief SWAP operation for performing a Fredkin gate between two qubits,
   /// based on the state of a variadic input of control qubits and registers.
   /// Note: the final two qubits in the variadic list will always be the qubits
-  /// that undergo a SWAP. This requires >=3 qubits in the args.
+  /// that undergo a SWAP. This requires >=3 qubits in the arguments.
   template <
       typename mod, typename... QubitValues,
       typename = typename std::enable_if_t<sizeof...(QubitValues) >= 3>,
