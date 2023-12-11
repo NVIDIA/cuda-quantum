@@ -135,9 +135,6 @@ KernelBuilderType mapArgToType(std::vector<double> &e);
 /// Map a `qubit` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qubit &e);
 
-/// @brief  Map a `qreg` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(cudaq::qreg<> &e);
-
 /// @brief  Map a `qvector` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qvector<> &e);
 
