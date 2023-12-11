@@ -108,8 +108,20 @@ public:
                         {state.data(), state.data() + state.size()}};
   }
 
+  /// @brief Expects the density matrix to be passed in as a flattened
+  /// array of length `2^(n_qubits) * 2^(n_qubits)`. Eigen will handle
+  /// the reshaping to a matrix of size `(2^n, 2^n)`.
   void setStateData(std::vector<std::complex<double>> &inputState) override {
-    cudaq::info("Manually setting the internal state representation.");
+    cudaq::info("Manually setting the simulator density matrix.");
+    if (inputState.size() != (stateDimension * stateDimension)) {
+      std::stringstream ss;
+      ss << "The simulator expects a flattened density matrix of length "
+            "(2^n_qubits * 2^n_qubits) = "
+         << (stateDimension * stateDimension)
+         << ". The provided density matrix has length " << inputState.size()
+         << ".\n";
+      throw std::runtime_error(ss.str());
+    }
     state = qpp::cmat::Map(inputState.data(), stateDimension, stateDimension);
   }
 
