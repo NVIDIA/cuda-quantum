@@ -126,16 +126,12 @@ fi
 
 # A hack, since otherwise the build can fail due to line endings in the LLVM script:
 cat "../llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
-cat ~config.guess > "../llvm/cmake/config.guess" && rm ~config.guess
+cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 
 # Generate CMake files
-cmake_common_linker_flags_init="$COMMON_LINKER_FLAGS"
 cmake_args="-G Ninja ../llvm \
   -DLLVM_TARGETS_TO_BUILD="host" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
-  -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
-  -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
-  -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
   -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
   -DLLVM_DISTRIBUTION_COMPONENTS=$llvm_components \

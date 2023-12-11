@@ -28,8 +28,8 @@ RUN echo "Building MLIR bindings for python${python_version}" \
     && python${python_version} -m pip install --no-cache-dir numpy \
     && rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" \
     && export Python3_EXECUTABLE="$(which python${python_version})" \
-    && export COMMON_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
-    && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
+    && LDFLAGS="$LLVM_BUILD_LINKER_FLAGS" \
+        bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
 
 # Install additional dependencies
 # They might be optionally pulled in during auditwheel if necessary.

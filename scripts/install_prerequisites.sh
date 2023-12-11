@@ -105,9 +105,9 @@ if [ ! -d "$llvm_dir" ]; then
 
   # Build llvm libraries from source and install them in the install directory
   cd "$working_dir"
-  set +e && source "$this_file_dir/build_llvm.sh" -v && set -e
-  if [ ! -d "$llvm_dir" ]; then
-    echo "Failed to find directory $llvm_dir."
+  set +e && source "$this_file_dir/build_llvm.sh" -v && status=$? && set -e
+  if [ ! $status -eq 0 ]; then
+    echo "Failed to build LLVM libraries."
     exit_gracefully
   fi
 else 
