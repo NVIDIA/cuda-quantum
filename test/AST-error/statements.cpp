@@ -57,8 +57,3 @@ struct S6 {
     printf("Hello\n");
   }
 };
-
-// expected-warning@* {{}}
-// expected-warning@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}

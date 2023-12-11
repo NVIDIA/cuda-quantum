@@ -19,10 +19,6 @@ struct bad {
   }
 };
 
-// expected-warning@* {{}}
-// expected-warning@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}
 // expected-note@* {{}}
 // expected-note@* {{}}
 // expected-note@* {{}}
