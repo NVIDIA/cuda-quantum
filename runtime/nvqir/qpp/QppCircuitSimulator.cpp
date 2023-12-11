@@ -287,7 +287,14 @@ public:
   // FIXME: Are there potential memory issues with the way I'm mapping
   // the std type to eigen here??
   void setStateData(std::vector<std::complex<double>> &inputState) override {
-    cudaq::info("Manually setting the internal state representation.");
+    cudaq::info("Manually setting the simulator state vector.");
+    if (inputState.size() != stateDimension) {
+      std::stringstream ss;
+      ss << "The simulator expects a state vector of length " << stateDimension
+         << " but the provided vector has length " << inputState.size()
+         << ".\n";
+      throw std::runtime_error(ss.str());
+    }
     state = qpp::ket::Map(inputState.data(), stateDimension);
   }
 
