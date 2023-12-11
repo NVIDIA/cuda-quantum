@@ -440,11 +440,14 @@ while [ $# -ne 0 ]; do
 		LIBRARY_MODE=false
 		;;
 	--library-mode)
-		if [-z "${TARGET_CONFIG}"]; then
-			LIBRARY_MODE=true
-		else
-			echo "cannot use --library-mode with --target" >&2
+		if [-n "${TARGET_CONFIG}"]; then
+			# Leave this commented out, since this combination is used
+			# in photonics.cpp
+			#echo "cannot use --library-mode with --target" >&2
+			#exit 2
+			true
 		fi
+		LIBRARY_MODE=true
 		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
