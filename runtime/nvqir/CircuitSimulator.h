@@ -403,17 +403,16 @@ protected:
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
 
-      auto processForRegName =
-          [&](const std::string &regStr) {
-            // Insert the sample qubit into the register name map
-            auto iter = registerNameToMeasuredQubit.find(regStr);
-            if (iter == registerNameToMeasuredQubit.end())
-              registerNameToMeasuredQubit.emplace(
-                  regStr, std::vector<std::size_t>{qubitIdx});
-            else if (std::find(iter->second.begin(), iter->second.end(),
-                               qubitIdx) == iter->second.end())
-              iter->second.push_back(qubitIdx);
-          };
+      auto processForRegName = [&](const std::string &regStr) {
+        // Insert the sample qubit into the register name map
+        auto iter = registerNameToMeasuredQubit.find(regStr);
+        if (iter == registerNameToMeasuredQubit.end())
+          registerNameToMeasuredQubit.emplace(
+              regStr, std::vector<std::size_t>{qubitIdx});
+        else if (std::find(iter->second.begin(), iter->second.end(),
+                           qubitIdx) == iter->second.end())
+          iter->second.push_back(qubitIdx);
+      };
 
       // Insert into global register and named register (if it exists)
       processForRegName(cudaq::GlobalRegisterName);
