@@ -135,15 +135,19 @@ cmake_args="-G Ninja "$repo_root" \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
+  -DCMAKE_CUDA_HOST_COMPILER="$CXX" \
   -DBLAS_LIBRARIES="${BLAS_LIBRARIES}" \
   -DCMAKE_EXE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_MODULE_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   $custatevec_flag"
+# Even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
+# CMAKE_CUDA_COMPILER_WORKS checks do not use that host compiler unless 
+# we also define then environment variable CUDAHOSTCXX.
 if $verbose; then 
-  LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" cmake $cmake_args
+  CUDAHOSTCXX="$CXX" cmake $cmake_args
 else
-  LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" cmake $cmake_args \
+  CUDAHOSTCXX="$CXX" cmake $cmake_args \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 

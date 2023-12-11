@@ -74,6 +74,7 @@ RUN rm -rf /cuda-quantum && \
     git clone --filter=tree:0 https://github.com/nvidia/cuda-quantum /cuda-quantum && \
     cd /cuda-quantum && git checkout ${CUDA_QUANTUM_COMMIT} && \
     rm -rf /cuda-quantum/scripts
+ADD scripts /cuda-quantum/scripts
 RUN cd /cuda-quantum && source scripts/configure_build.sh \
     ## [>CUDAQuantum]
     FORCE_COMPILE_GPU_COMPONENTS=true \

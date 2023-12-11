@@ -9,7 +9,9 @@
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
      "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
-
+# clear any flags for static linking
+SET(CMAKE_EXE_LINKER_FLAGS "")
+SET(CMAKE_SHARED_LINKER_FLAGS "")
 
 set(CUDAQ_RUNTIME_TEST_SOURCES 
   # Integration tests
