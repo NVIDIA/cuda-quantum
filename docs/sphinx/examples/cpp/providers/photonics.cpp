@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --library-mode --target photonics photonics.cpp
+// nvq++ --target photonics photonics.cpp
 // ./a.out
 // ```
 
