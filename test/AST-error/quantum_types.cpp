@@ -10,9 +10,6 @@
 
 #include <cudaq.h>
 
-// expected-warning@*{{}}
-// expected-note@* {{}}
-
 struct S1 {
   // expected-warning@+3{{}}
   // expected-note@* {{}}
@@ -51,8 +48,6 @@ struct S4 {
 
 struct S5 {
   void operator()() {
-    // expected-warning@*{{}}
-    // expected-note@* {{}}
     // expected-error@+1{{may not use quantum types in non-kernel functions}}
     cudaq::qreg r(10);
     mz(r);

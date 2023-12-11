@@ -53,8 +53,3 @@ struct InvalidKernel4 {
     return {};
   }
 };
-
-// expected-warning@* {{}}
-// expected-warning@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}
