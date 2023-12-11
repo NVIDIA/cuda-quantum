@@ -17,8 +17,10 @@
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -106,65 +108,89 @@ public:
       return iter->second;
     }();
     cudaq::RestRequest request(*executionContext);
+    if (cudaq::__internal__::isLibraryMode(name)) {
+      const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
+      auto [objBin, objBuffer] =
+          llvm::cantFail(llvm::object::ObjectFile::createObjectFile(path))
+              .takeBinary();
+      if (!objBin)
+        throw std::runtime_error("Failed to create object file");
+      for (const auto &section : objBin->sections()) {
+        if (section.isBitcode()) {
+          llvm::MemoryBufferRef llvmBc(llvm::cantFail(section.getContents()),
+                                       "Bitcode");
+          llvm::SMDiagnostic Err;
+          llvm::LLVMContext Context;
+          std::unique_ptr<llvm::Module> llvmModule =
+              llvm::parseIR(llvmBc, Err, Context);
+          if (!llvmModule)
+            throw "Failed to parse embedded bitcode";
+          llvm::raw_string_ostream outStr(request.code);
+          llvmModule->print(outStr, nullptr);
+          request.format = cudaq::CodeFormat::LLVM;
+        }
+      }
+    } else {
+      // Get the quake representation of the kernel
+      auto quakeCode = cudaq::get_quake_by_name(name);
+      request.passes = serverPasses;
+      request.format = cudaq::CodeFormat::MLIR;
+      auto module = parseSourceString<ModuleOp>(quakeCode, &m_mlirContext);
+      if (!module)
+        throw std::runtime_error("module cannot be parsed");
 
-    // Get the quake representation of the kernel
-    auto quakeCode = cudaq::get_quake_by_name(name);
-    request.passes = serverPasses;
+      // Extract the kernel name
+      auto func = module->lookupSymbol<mlir::func::FuncOp>(
+          std::string("__nvqpp__mlirgen__") + name);
+
+      // Create a new Module to clone the function into
+      auto location = FileLineColLoc::get(&m_mlirContext, "<builder>", 1, 1);
+      ImplicitLocOpBuilder builder(location, &m_mlirContext);
+
+      // FIXME this should be added to the builder.
+      if (!func->hasAttr(cudaq::entryPointAttrName))
+        func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
+      auto moduleOp = builder.create<ModuleOp>();
+      moduleOp.push_back(func.clone());
+
+      if (args) {
+        cudaq::info("Run Quake Synth.\n");
+        PassManager pm(&m_mlirContext);
+        pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
+        if (failed(pm.run(moduleOp)))
+          throw std::runtime_error("Could not successfully apply quake-synth.");
+      }
+
+      // Client-side passes
+      if (!clientPasses.empty()) {
+        PassManager pm(&m_mlirContext);
+        std::string errMsg;
+        llvm::raw_string_ostream os(errMsg);
+        const std::string pipeline =
+            std::accumulate(clientPasses.begin(), clientPasses.end(),
+                            std::string(), [](const auto &ss, const auto &s) {
+                              return ss.empty() ? s : ss + "," + s;
+                            });
+        if (failed(parsePassPipeline(pipeline, pm, os)))
+          throw std::runtime_error(
+              "Remote rest platform failed to add passes to pipeline (" +
+              errMsg + ").");
+
+        if (failed(pm.run(moduleOp)))
+          throw std::runtime_error(
+              "Remote rest platform: applying IR passes failed.");
+      }
+
+      llvm::raw_string_ostream outStr(request.code);
+      mlir::OpPrintingFlags opf;
+      opf.enableDebugInfo(/*enable=*/true,
+                          /*pretty=*/false);
+      moduleOp.print(outStr, opf);
+    }
+
     request.entryPoint = name;
     request.simulator = m_simName;
     request.seed = cudaq::get_random_seed();
-
-    auto module = parseSourceString<ModuleOp>(quakeCode, &m_mlirContext);
-    if (!module)
-      throw std::runtime_error("module cannot be parsed");
-
-    // Extract the kernel name
-    auto func = module->lookupSymbol<mlir::func::FuncOp>(
-        std::string("__nvqpp__mlirgen__") + name);
-
-    // Create a new Module to clone the function into
-    auto location = FileLineColLoc::get(&m_mlirContext, "<builder>", 1, 1);
-    ImplicitLocOpBuilder builder(location, &m_mlirContext);
-
-    // FIXME this should be added to the builder.
-    if (!func->hasAttr(cudaq::entryPointAttrName))
-      func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-    auto moduleOp = builder.create<ModuleOp>();
-    moduleOp.push_back(func.clone());
-
-    if (args) {
-      cudaq::info("Run Quake Synth.\n");
-      PassManager pm(&m_mlirContext);
-      pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
-      if (failed(pm.run(moduleOp)))
-        throw std::runtime_error("Could not successfully apply quake-synth.");
-    }
-
-    // Client-side passes
-    if (!clientPasses.empty()) {
-      PassManager pm(&m_mlirContext);
-      std::string errMsg;
-      llvm::raw_string_ostream os(errMsg);
-      const std::string pipeline =
-          std::accumulate(clientPasses.begin(), clientPasses.end(),
-                          std::string(), [](const auto &ss, const auto &s) {
-                            return ss.empty() ? s : ss + "," + s;
-                          });
-      if (failed(parsePassPipeline(pipeline, pm, os)))
-        throw std::runtime_error(
-            "Remote rest platform failed to add passes to pipeline (" + errMsg +
-            ").");
-
-      if (failed(pm.run(moduleOp)))
-        throw std::runtime_error(
-            "Remote rest platform: applying IR passes failed.");
-    }
-
-    llvm::raw_string_ostream outStr(request.code);
-    mlir::OpPrintingFlags opf;
-    opf.enableDebugInfo(/*enable=*/true,
-                        /*pretty=*/false);
-    moduleOp.print(outStr, opf);
     std::map<std::string, std::string> headers{};
     json requestJson = request;
     auto resultJs = m_client.post(m_url, "job", requestJson, headers);

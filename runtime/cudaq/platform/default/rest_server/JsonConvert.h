@@ -82,6 +82,13 @@ void from_json(const json &j, ExecutionContext &context) {
       std::make_tuple(std::move(stateDim), std::move(stateData));
 }
 
+enum CodeFormat { MLIR, LLVM };
+
+NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {
+                                             {MLIR, "MLIR"},
+                                             {LLVM, "LLVM"},
+                                         });
+
 class RestRequest {
 private:
   /// Holder of the reconstructed execution context.
@@ -101,9 +108,10 @@ public:
   std::string simulator;
   ExecutionContext &executionContext;
   std::string code;
+  CodeFormat format;
   std::size_t seed;
   std::vector<std::string> passes;
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, entryPoint, simulator,
-                                 executionContext, code, seed, passes);
+                                 executionContext, code, format, seed, passes);
 };
 } // namespace cudaq
