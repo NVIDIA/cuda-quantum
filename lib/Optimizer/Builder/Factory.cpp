@@ -162,7 +162,7 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
 
 // FIXME: We should get the underlying structure of a std::vector from the
 // AST. For expediency, we just construct the expected type directly here.
-static cudaq::cc::StructType stlVectorType(Type eleTy) {
+cudaq::cc::StructType factory::stlVectorType(Type eleTy) {
   MLIRContext *ctx = eleTy.getContext();
   auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
   SmallVector<Type> eleTys = {elePtrTy, elePtrTy, elePtrTy};

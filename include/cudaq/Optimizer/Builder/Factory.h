@@ -76,6 +76,8 @@ inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   return mlir::LLVM::LLVMStructType::getLiteral(ctx, eleTys);
 }
 
+cudaq::cc::StructType stlVectorType(mlir::Type eleTy);
+
 //===----------------------------------------------------------------------===//
 // Constant builders
 //===----------------------------------------------------------------------===//
