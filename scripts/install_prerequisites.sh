@@ -101,10 +101,10 @@ if [ ! -d "$llvm_dir" ]; then
     mkdir "tpls/pybind11/build" && cd "tpls/pybind11/build"
     cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX"
     cmake --build . --target install --config Release
-    cd "$working_dir"
   fi
 
   # Build llvm libraries from source and install them in the install directory
+  cd "$working_dir"
   set +e && source "$this_file_dir/build_llvm.sh" -v && set -e
   if [ ! -d "$llvm_dir" ]; then
     echo "Failed to find directory $llvm_dir."
@@ -157,4 +157,6 @@ if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"
 fi
 
 echo "All prerequisites have been installed."
-exit_code=0
+# Make sure to call exit_gracefully so that we properly uninstalled all helper tools,
+# and so that we are in the correct directory also when this script is sourced.
+exit_code=0 && exit_gracefully

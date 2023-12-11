@@ -69,7 +69,7 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && \
     source scripts/configure_build.sh install-$install_before_build
 
-ARG CUDA_QUANTUM_COMMIT=cec13c0429cb23ccbaa67a601d1ebd1fdf653611
+ARG CUDA_QUANTUM_COMMIT=ce4231055684077f8d17fd1ded3e0787f91fd4f8
 RUN rm -rf /cuda-quantum && \
     git clone --filter=tree:0 https://github.com/nvidia/cuda-quantum /cuda-quantum && \
     cd /cuda-quantum && git checkout ${CUDA_QUANTUM_COMMIT} && \
@@ -78,16 +78,26 @@ ADD scripts /cuda-quantum/scripts
 RUN cd /cuda-quantum && source scripts/configure_build.sh \
     ## [>CUDAQuantum]
     FORCE_COMPILE_GPU_COMPONENTS=true \
-    CUDAQ_BUILD_SELFCONTAINED=true CUDAQ_WERROR=false \
+    CUDAQ_ENABLE_STATIC_LINKING=true \
+    CUDAQ_WERROR=false \
     LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
     bash scripts/build_cudaq.sh -uv
     ## [<CUDAQuantum]
 
+# [Testing]
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    ${PYTHON} -m pip install iqm-client && \
+    PYTHONPATH="${CUDAQ_INSTALL_PREFIX}:${PYTHONPATH}" \
+    ${PYTHON} -m pytest -v python/tests/ --ignore python/tests/backends --ignore python/tests/domains
+RUN cd /cuda-quantum && ctest --output-on-failure --test-dir build -E ctest-nvqpp
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+
 # [Build Artifacts]
 RUN mkdir /artifacts && \
     #mv /usr/local/openssl artifacts \
-    mv /usr/local/cudaq artifacts \
-    mv /usr/local/cuquantum artifacts \
+    mv /usr/local/cudaq artifacts && \
+    mv /usr/local/cuquantum artifacts && \
     mv /usr/local/cutensor artifacts
 
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \

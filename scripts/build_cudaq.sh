@@ -118,7 +118,7 @@ else
 fi
 
 # Determine linker and linker flags
-cmake_common_linker_flags_init=""
+cmake_common_linker_flags_init="$COMMON_LINKER_FLAGS"
 if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/lld")" ]; then
   echo "Configuring nvq++ to use the lld linker by default."
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/lld"
@@ -142,8 +142,8 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_SHARED_LINKER_FLAGS_INIT="$cmake_common_linker_flags_init" \
   $custatevec_flag"
 # Even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
-# CMAKE_CUDA_COMPILER_WORKS checks do not use that host compiler unless 
-# we also define then environment variable CUDAHOSTCXX.
+# CMAKE_CUDA_COMPILER_WORKS checks do not seem to use that host compiler 
+# and cause a failure. We hence set CUDAHOSTCXX in the cmake invocation below.
 if $verbose; then 
   CUDAHOSTCXX="$CXX" cmake $cmake_args
 else
