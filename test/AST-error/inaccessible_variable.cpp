@@ -30,8 +30,3 @@ int main() {
   Kernel{}(f);
   return 0;
 }
-
-// expected-warning@* {{}}
-// expected-warning@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}

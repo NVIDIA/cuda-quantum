@@ -18,8 +18,3 @@ struct S {
       foo();
    }
 };
-
-// expected-warning@* {{}}
-// expected-warning@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}
