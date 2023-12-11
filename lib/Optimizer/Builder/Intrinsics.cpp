@@ -122,6 +122,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ())#"},
 
+    {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
+
     {cudaq::llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
      {},
      R"#(
