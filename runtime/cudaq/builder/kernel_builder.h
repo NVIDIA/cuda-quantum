@@ -24,15 +24,6 @@
 #include <variant>
 #include <vector>
 
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 // Goal here is to keep MLIR out of user code!
 namespace mlir {
 class Type;
@@ -44,6 +35,8 @@ class Value;
 class ExecutionEngine;
 class PassManager;
 } // namespace mlir
+
+using namespace mlir;
 
 namespace cudaq {
 std::string get_quake_by_name(const std::string &);
@@ -143,46 +136,44 @@ KernelBuilderType mapArgToType(cudaq::qvector<> &e);
 
 /// @brief Initialize the `MLIRContext`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
-mlir::MLIRContext *initializeContext();
+MLIRContext *initializeContext();
 
 /// @brief Delete function for the context pointer, also given to the
 /// `unique_ptr`
-void deleteContext(mlir::MLIRContext *);
+void deleteContext(MLIRContext *);
 
 /// @brief Initialize the `OpBuilder`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
-mlir::ImplicitLocOpBuilder *initializeBuilder(mlir::MLIRContext *,
-                                              std::vector<KernelBuilderType> &,
-                                              std::vector<QuakeValue> &,
-                                              std::string &kernelName);
+ImplicitLocOpBuilder *initializeBuilder(MLIRContext *,
+                                        std::vector<KernelBuilderType> &,
+                                        std::vector<QuakeValue> &,
+                                        std::string &kernelName);
 
 /// @brief Delete function for the builder pointer, also given to the
 /// `unique_ptr`
-void deleteBuilder(mlir::ImplicitLocOpBuilder *builder);
+void deleteBuilder(ImplicitLocOpBuilder *builder);
 
 /// @brief Delete function for the JIT pointer, also given to the `unique_ptr`
-void deleteJitEngine(mlir::ExecutionEngine *jit);
+void deleteJitEngine(ExecutionEngine *jit);
 
 /// @brief Allocate a single `qubit`
-QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder);
+QuakeValue qalloc(ImplicitLocOpBuilder &builder);
 
 /// @brief Allocate a `qvector`.
-QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
-                  const std::size_t nQubits);
+QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits);
 
 /// @brief Allocate a `qvector` from existing `QuakeValue` size
-QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
+QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size);
 
 /// @brief Create a QuakeValue representing a constant floating-point number
-QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
+QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val);
 
 // In the following macros + instantiations, we define the functions that create
 // Quake Quantum Ops + Measures
 
 #define CUDAQ_DETAILS_QIS_DECLARATION(NAME)                                    \
-  void NAME(mlir::ImplicitLocOpBuilder &builder,                               \
-            std::vector<QuakeValue> &ctrls, const QuakeValue &target,          \
-            bool adjoint = false);
+  void NAME(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,     \
+            const QuakeValue &target, bool adjoint = false);
 
 CUDAQ_DETAILS_QIS_DECLARATION(h)
 CUDAQ_DETAILS_QIS_DECLARATION(s)
@@ -192,9 +183,9 @@ CUDAQ_DETAILS_QIS_DECLARATION(y)
 CUDAQ_DETAILS_QIS_DECLARATION(z)
 
 #define CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(NAME)                           \
-  void NAME(mlir::ImplicitLocOpBuilder &builder, QuakeValue &parameter,        \
+  void NAME(ImplicitLocOpBuilder &builder, QuakeValue &parameter,              \
             std::vector<QuakeValue> &ctrls, QuakeValue &target);               \
-  void NAME(mlir::ImplicitLocOpBuilder &builder, double &parameter,            \
+  void NAME(ImplicitLocOpBuilder &builder, double &parameter,                  \
             std::vector<QuakeValue> &ctrls, QuakeValue &target);
 
 CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(rx)
@@ -203,24 +194,23 @@ CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(rz)
 CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(r1)
 
 #define CUDAQ_DETAILS_MEASURE_DECLARATION(NAME)                                \
-  QuakeValue NAME(mlir::ImplicitLocOpBuilder &builder, QuakeValue &target,     \
+  QuakeValue NAME(ImplicitLocOpBuilder &builder, QuakeValue &target,           \
                   std::string regName = "");
 
 CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
-void exp_pauli(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &theta,
+void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                const std::vector<QuakeValue> &qubits,
                const std::string &pauliWord);
 
-void swap(mlir::ImplicitLocOpBuilder &builder,
-          const std::vector<QuakeValue> &ctrls,
+void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
           const std::vector<QuakeValue> &targets, bool adjoint = false);
 
-void reset(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec);
+void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec);
 
-void c_if(mlir::ImplicitLocOpBuilder &builder, QuakeValue &conditional,
+void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor);
 
 /// @brief Return the name of this `kernel_builder`, it is also the name of the
@@ -228,63 +218,63 @@ void c_if(mlir::ImplicitLocOpBuilder &builder, QuakeValue &conditional,
 std::string name(std::string_view kernelName);
 
 /// @brief Apply our MLIR passes before JIT execution
-void applyPasses(mlir::PassManager &);
+void applyPasses(PassManager &);
 
 /// @brief Create the `ExecutionEngine` and return a raw pointer, which we will
 /// wrap in a `unique_ptr`
-std::tuple<bool, mlir::ExecutionEngine *>
-jitCode(mlir::ImplicitLocOpBuilder &, mlir::ExecutionEngine *,
-        std::unordered_map<mlir::ExecutionEngine *, std::size_t> &, std::string,
+std::tuple<bool, ExecutionEngine *>
+jitCode(ImplicitLocOpBuilder &, ExecutionEngine *,
+        std::unordered_map<ExecutionEngine *, std::size_t> &, std::string,
         std::vector<std::string>);
 
 /// @brief Invoke the function with the given kernel name.
-void invokeCode(mlir::ImplicitLocOpBuilder &builder, mlir::ExecutionEngine *jit,
+void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                 std::string kernelName, void **argsArray,
                 std::vector<std::string> extraLibPaths);
 
 /// @brief Invoke the provided kernel function.
-void call(mlir::ImplicitLocOpBuilder &builder, std::string &name,
+void call(ImplicitLocOpBuilder &builder, std::string &name,
           std::string &quakeCode, std::vector<QuakeValue> &values);
 
 /// @brief Apply the given kernel controlled on the provided qubit value.
-void control(mlir::ImplicitLocOpBuilder &builder, std::string &name,
+void control(ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, QuakeValue &control,
              std::vector<QuakeValue> &values);
 
 /// @brief Apply the adjoint of the given kernel
-void adjoint(mlir::ImplicitLocOpBuilder &builder, std::string &name,
+void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, std::vector<QuakeValue> &values);
 
 /// @brief Add a for loop that starts from the given `start` integer index, ends
 /// at the given `end` integer index, and applies the given `body` as a callable
 /// function. This callable function must take as input an index variable that
 /// can be used within the body.
-void forLoop(mlir::ImplicitLocOpBuilder &builder, std::size_t start,
-             std::size_t end, std::function<void(QuakeValue &)> &body);
+void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, std::size_t end,
+             std::function<void(QuakeValue &)> &body);
 
 /// @brief Add a for loop that starts from the given `start` integer index, ends
 /// at the given `end` index, and applies the given `body` as a callable
 /// function. This callable function must take as input an index variable that
 /// can be used within the body.
-void forLoop(mlir::ImplicitLocOpBuilder &builder, std::size_t start,
-             QuakeValue &end, std::function<void(QuakeValue &)> &body);
+void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, QuakeValue &end,
+             std::function<void(QuakeValue &)> &body);
 
 /// @brief Add a for loop that starts from the given `start` index, ends at the
 /// given `end` integer index, and applies the given `body` as a callable
 /// function. This callable function must take as input an index variable that
 /// can be used within the body.
-void forLoop(mlir::ImplicitLocOpBuilder &builder, QuakeValue &start,
-             std::size_t end, std::function<void(QuakeValue &)> &body);
+void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, std::size_t end,
+             std::function<void(QuakeValue &)> &body);
 
 /// @brief Add a for loop that starts from the given `start` index, ends at the
 /// given `end` index, and applies the given `body` as a callable function. This
 /// callable function must take as input an index variable that can be used
 /// within the body.
-void forLoop(mlir::ImplicitLocOpBuilder &builder, QuakeValue &start,
-             QuakeValue &end, std::function<void(QuakeValue &)> &body);
+void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, QuakeValue &end,
+             std::function<void(QuakeValue &)> &body);
 
 /// @brief Return the quake representation as a string
-std::string to_quake(mlir::ImplicitLocOpBuilder &builder);
+std::string to_quake(ImplicitLocOpBuilder &builder);
 
 /// @brief Returns `true` if the argument to the `kernel_builder` is a
 /// `cc::StdvecType`. Returns `false` otherwise.
@@ -363,23 +353,20 @@ class kernel_builder : public details::kernel_builder_base {
 private:
   /// @brief Handle to the MLIR Context, stored as a pointer here to keep
   /// implementation details out of CUDA Quantum code
-  std::unique_ptr<mlir::MLIRContext, void (*)(mlir::MLIRContext *)> context;
+  std::unique_ptr<MLIRContext, void (*)(MLIRContext *)> context;
 
   /// @brief Handle to the MLIR `OpBuilder`, stored as a pointer here to keep
   /// implementation details out of CUDA Quantum code
-  std::unique_ptr<mlir::ImplicitLocOpBuilder,
-                  void (*)(mlir::ImplicitLocOpBuilder *)>
+  std::unique_ptr<ImplicitLocOpBuilder, void (*)(ImplicitLocOpBuilder *)>
       opBuilder;
 
   /// @brief Handle to the MLIR `ExecutionEngine`, stored as a pointer here to
   /// keep implementation details out of CUDA Quantum code
-  std::unique_ptr<mlir::ExecutionEngine, void (*)(mlir::ExecutionEngine *)>
-      jitEngine;
+  std::unique_ptr<ExecutionEngine, void (*)(ExecutionEngine *)> jitEngine;
 
   /// @brief Map created ExecutionEngines to a unique hash of the
   /// ModuleOp they derive from.
-  std::unordered_map<mlir::ExecutionEngine *, std::size_t>
-      jitEngineToModuleHash;
+  std::unordered_map<ExecutionEngine *, std::size_t> jitEngineToModuleHash;
 
   /// @brief Name of the CUDA Quantum kernel Quake function
   std::string kernelName = "__nvqpp__mlirgen____nvqppBuilderKernel";
@@ -392,13 +379,13 @@ public:
   /// to create the MLIR function type
   kernel_builder(std::vector<details::KernelBuilderType> &types)
       : context(details::initializeContext(), details::deleteContext),
-        opBuilder(nullptr, [](mlir::ImplicitLocOpBuilder *) {}),
-        jitEngine(nullptr, [](mlir::ExecutionEngine *) {}) {
+        opBuilder(nullptr, [](ImplicitLocOpBuilder *) {}),
+        jitEngine(nullptr, [](ExecutionEngine *) {}) {
     auto *ptr =
         details::initializeBuilder(context.get(), types, arguments, kernelName);
-    opBuilder = std::unique_ptr<mlir::ImplicitLocOpBuilder,
-                                void (*)(mlir::ImplicitLocOpBuilder *)>(
-        ptr, details::deleteBuilder);
+    opBuilder =
+        std::unique_ptr<ImplicitLocOpBuilder, void (*)(ImplicitLocOpBuilder *)>(
+            ptr, details::deleteBuilder);
   }
 
   /// @brief Return the `QuakeValue` arguments
@@ -760,8 +747,7 @@ public:
 
     // Store for the next time if we haven't already
     if (!jitEngine)
-      jitEngine = std::unique_ptr<mlir::ExecutionEngine,
-                                  void (*)(mlir::ExecutionEngine *)>(
+      jitEngine = std::unique_ptr<ExecutionEngine, void (*)(ExecutionEngine *)>(
           ptr, details::deleteJitEngine);
   }
 
@@ -847,10 +833,3 @@ auto make_kernel() {
 }
 
 } // namespace cudaq
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
