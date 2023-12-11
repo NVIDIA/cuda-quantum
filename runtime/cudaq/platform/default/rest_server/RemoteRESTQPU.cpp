@@ -47,6 +47,7 @@
 #include "nvqir/CircuitSimulator.h"
 
 namespace {
+using namespace mlir;
 
 class RemoteSimulatorQPU : public cudaq::QPU {
 private:
