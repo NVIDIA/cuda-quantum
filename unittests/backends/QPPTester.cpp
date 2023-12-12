@@ -26,6 +26,20 @@ void print_state(const qpp::ket &stateVector) {
   std::cout << "]\n";
 }
 
+void print_state(const qpp::cmat &densityMatrix) {
+  std::cout << "state = [";
+  auto rows = densityMatrix.rows();
+  auto cols = densityMatrix.cols();
+  for (auto rdx=0; rdx < rows; rdx++) {
+    std::cout << "\n[ ";
+    for (auto cdx=0; cdx < cols; cdx++) {
+      std::cout << densityMatrix(rdx,cdx) << " ";
+    }
+    std::cout << "]\n";
+  }
+  std::cout << "]\n";
+}
+
 qpp::ket getZeroState(const int numQubits) {
   qpp::idx state_dim = 1ULL << numQubits;
   qpp::ket zero_state = qpp::ket::Zero(state_dim);
@@ -1601,23 +1615,37 @@ CUDAQ_TEST(QPPTester, checkSetStateDensity) {
     qpp::cmat want_state = getZeroDensityMatrix(num_qubits);
     EXPECT_EQ(want_state, got_state);
 
-    // Building up the equivalent of a state vector that has
+    // Building up the equivalent of a density matrix that has
     // undergone a Hadamard rotation.
-    auto value = 1. / sqrt(pow(2, num_qubits));
+    // auto value = 1. / pow(2, num_qubits);
+    // std::vector<std::complex<double>> inputState(
+    //     pow(2, num_qubits) * pow(2, num_qubits), value);
+    // qppBackend.setStateData(inputState);
+
     std::vector<std::complex<double>> inputState(
-        pow(2, num_qubits) * pow(2, num_qubits), value);
+        pow(2, num_qubits) * pow(2, num_qubits), 0.0);
+    inputState.back() = 1.0;
     qppBackend.setStateData(inputState);
 
     got_state = qppBackend.getDensityMatrix();
-    want_state.fill(value);
+    // want_state.fill(value);
+    print_state(got_state);
     EXPECT_EQ(want_state, got_state);
+
+    std::cout << "measured " << getSampledBitString(qppBackend, {0, 1}) << "\n";
 
     // Add a third qubit to the system, and ensure it is
     // in the |0> state, while the first two qubits remain
     // in the superposition state.
     num_qubits = 3;
     auto q2 = qppBackend.allocateQubit();
-    EXPECT_EQ(0, qppBackend.mz(q2));
+
+    got_state = qppBackend.getDensityMatrix();
+    print_state(got_state);
+    std::cout << "q0 = " << qppBackend.mz(q0) << "\n";
+    std::cout << "q1 = " << qppBackend.mz(q1) << "\n\n";
+    std::cout << "q2 = " << qppBackend.mz(q2) << "\n";
+    // EXPECT_EQ(0, qppBackend.mz(q2));
 
     // // Kronecker a new, single qubit |0> state onto the
     // // `want_state` vector.
@@ -1659,5 +1687,77 @@ CUDAQ_TEST(QPPTester, checkSetStateDensity) {
     qppBackend.deallocate(q0);
     qppBackend.deallocate(q1);
     qppBackend.deallocate(q2);
+  }
+}
+
+
+CUDAQ_TEST(QPPTester, checkScrap) {
+
+  // State Vector. Just to show the desired behavior.
+  {
+    // Initialize QPP Backend with 1 qubit.
+    QppCircuitSimulator<qpp::ket> qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+    EXPECT_EQ(0, qppBackend.mz(q0));
+    
+    // Rotate to |1>
+    qppBackend.x(q0);
+    EXPECT_EQ(1, qppBackend.mz(q0));
+
+    // Add another qubit to the system. Individually, should be |0>.
+    auto q1 = qppBackend.allocateQubit();
+    EXPECT_EQ(0, qppBackend.mz(q1));
+
+    std::string got_bitstring = getSampledBitString(qppBackend, {0,1});
+    EXPECT_EQ("10", got_bitstring);
+    EXPECT_EQ(1, qppBackend.mz(q0));
+    EXPECT_EQ(0, qppBackend.mz(q1));
+  }
+
+  // Density Matrix. Allocate qubits at same time.
+  // The qubit ordering aligns with the state vector backend
+  // and all preexisting tests in this file.
+  {
+    // Initialize QPP Backend with 2 qubits together.
+    QppNoiseCircuitSimulator qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+    auto q1 = qppBackend.allocateQubit();
+    EXPECT_EQ(0, qppBackend.mz(q0));
+    EXPECT_EQ(0, qppBackend.mz(q1));
+
+    // Rotate q0 to |1>
+    qppBackend.x(q0);
+    EXPECT_EQ(1, qppBackend.mz(q0));
+
+    std::string got_bitstring = getSampledBitString(qppBackend, {0,1});
+    EXPECT_EQ("10", got_bitstring);
+    EXPECT_EQ(1, qppBackend.mz(q0));
+    EXPECT_EQ(0, qppBackend.mz(q1));
+  }
+
+  // Density Matrix. Add new qubit later.
+  // The qubit ordering gets flipped in this case.
+  {
+    // Initialize QPP Backend 1 qubit at a time.
+    QppNoiseCircuitSimulator qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+    // Passes.
+    EXPECT_EQ(0, qppBackend.mz(q0));
+    
+    // Rotate to |1>
+    qppBackend.x(q0);
+    // Passes.
+    EXPECT_EQ(1, qppBackend.mz(q0));
+
+    // Add another qubit. Individually, should be |0>.
+    auto q1 = qppBackend.allocateQubit();
+    // Fails. Qubits have flipped.
+    EXPECT_EQ(0, qppBackend.mz(q1));
+
+    std::string got_bitstring = getSampledBitString(qppBackend, {0,1});
+    // All fail (flipped):
+    EXPECT_EQ("10", got_bitstring);
+    EXPECT_EQ(1, qppBackend.mz(q0));
+    EXPECT_EQ(0, qppBackend.mz(q1));
   }
 }
