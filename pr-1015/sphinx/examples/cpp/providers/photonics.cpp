@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --library-mode --target photonics photonics.cpp
+// nvq++ --target photonics photonics.cpp
 // ./a.out
 // ```
 
@@ -9,7 +9,7 @@
 
 struct photonicsKernel {
   void operator()() __qpu__ {
-    cudaq::qreg<cudaq::dyn, 3> qutrits(2);
+    cudaq::qvector<3> qutrits(2);
     plus(qutrits[0]);
     plus(qutrits[1]);
     plus(qutrits[1]);
