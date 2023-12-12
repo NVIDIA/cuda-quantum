@@ -11,7 +11,7 @@
 
 // A pure device quantum kernel defined as a free function
 // (cannot be called from host code).
-__qpu__ void iqft(cudaq::qspan<> q) {
+__qpu__ void iqft(cudaq::qview<> q) {
   int N = q.size();
   // Swap qubits
   for (int i = 0; i < N / 2; ++i) {
@@ -44,7 +44,7 @@ struct qpe {
   void operator()(const int nCountingQubits, StatePrep &&state_prep,
                   Unitary &&oracle) __qpu__ {
     // Allocate a register of qubits
-    cudaq::qreg q(nCountingQubits + 1);
+    cudaq::qvector q(nCountingQubits + 1);
 
     // Extract sub-registers, one for the counting qubits
     // another for the eigenstate register
