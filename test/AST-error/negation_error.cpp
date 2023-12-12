@@ -17,8 +17,3 @@ struct NegationOperatorTest {
     rz(2.0, !qr[0]); // expected-error{{target qubit cannot be negated}}
   }
 };
-
-// expected-warning@* {{}}
-// expected-warning@* {{}}
-// expected-note@* {{}}
-// expected-note@* {{}}
