@@ -1,5 +1,5 @@
 set(LIBRARY_NAME cudaq-platform-remote-sim)
-add_library(${LIBRARY_NAME} SHARED RemoteRESTQPU.cpp ../../common/QuantumExecutionQueue.cpp)
+add_library(${LIBRARY_NAME} SHARED RemoteRESTQPU.cpp RemoteRESTExecutionManager.cpp ../../common/QuantumExecutionQueue.cpp)
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
@@ -24,7 +24,10 @@ target_link_libraries(${LIBRARY_NAME}
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-remote-sim-targets DESTINATION lib)
-
+add_custom_target(alias_remote_platform_lib ALL COMMAND ${CMAKE_COMMAND} -E create_symlink 
+  ${CMAKE_INSTALL_PREFIX}/lib/$<TARGET_FILE_NAME:${LIBRARY_NAME}> 
+  ${CMAKE_INSTALL_PREFIX}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}cudaq-em-remote-sim${CMAKE_SHARED_LIBRARY_SUFFIX}
+)
 add_target_config(remote-sim)
 
 if (NOT CUDAQ_DISABLE_TOOLS)

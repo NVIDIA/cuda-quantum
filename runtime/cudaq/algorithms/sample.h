@@ -197,8 +197,8 @@ struct sample_options {
   cudaq::get_platform().kernelExit(cudaq::getKernelName(kernel),               \
                                    typeid(kernel).name());
 #else
-#define KERNEL_ENTER(kernel) /* noop*/
-#define KERNEL_EXIT(kernel)  /* noop*/
+#define KERNEL_ENTER(kernel)
+#define KERNEL_EXIT(kernel)
 #endif
 
 /// @brief Sample the given quantum kernel expression and return the

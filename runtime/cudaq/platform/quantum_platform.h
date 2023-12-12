@@ -94,7 +94,7 @@ public:
   /// Return whether this platform is simulating the architecture.
   bool is_simulator(const std::size_t qpu_id = 0) const;
 
-  /// @brief Return whether the qpu has conditional feedback support
+  /// @brief Return whether the QPU has conditional feedback support
   bool supports_conditional_feedback(const std::size_t qpu_id = 0) const;
 
   /// The name of the platform, which also corresponds to the name of the
@@ -139,7 +139,7 @@ public:
   virtual void kernelExit(const std::string &kernelName,
                           const std::string &kernelSymbolName,
                           void *thisFunc = nullptr){};
-  /// List all available platforms, which correspond to .qplt files in the
+  /// List all available platforms, which correspond to `.qplt` files in the
   /// platform directory.
   static std::vector<std::string> list_platforms();
 

@@ -50,6 +50,10 @@
 
 namespace {
 using namespace mlir;
+class RemoteQpuExecutionQueue : public cudaq::QuantumExecutionQueue {
+public:
+  std::thread::id getExecutionThreadId() const { return thread.get_id(); }
+};
 
 class RemoteSimulatorQPU : public cudaq::QPU {
 private:
@@ -57,6 +61,7 @@ private:
   std::string m_simName;
   cudaq::RestClient m_client;
   std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
+  std::thread::id m_executionQueueThreadId;
   std::mutex m_contextMutex;
   MLIRContext &m_mlirContext;
   static inline const std::vector<std::string> clientPasses = {};
@@ -87,6 +92,13 @@ public:
       : QPU(id), m_url(url), m_simName(simName), m_mlirContext(mlirContext) {
     cudaq::info("Create a remote QPU: id={}; url={}; simulator={}", qpu_id,
                 m_url, m_simName);
+    auto queue = std::make_unique<RemoteQpuExecutionQueue>();
+    m_executionQueueThreadId = queue->getExecutionThreadId();
+    execution_queue = std::move(queue);
+  }
+
+  std::thread::id getExecutionThreadId() const {
+    return m_executionQueueThreadId;
   }
 
   void enqueue(cudaq::QuantumTask &task) override {
@@ -213,6 +225,7 @@ public:
 
 class RemoteSimulatorQuantumPlatform : public cudaq::quantum_platform {
   std::unique_ptr<MLIRContext> m_mlirContext;
+  std::unordered_map<std::thread::id, std::size_t> m_threadIdToQpuId;
 
 public:
   ~RemoteSimulatorQuantumPlatform() = default;
@@ -224,6 +237,9 @@ public:
                            void *thisFunc) override {
     cudaq::info("RemoteSimulatorQPU: Enter kernel {} ({}).", kernelName,
                 kernelSymbolName);
+    const auto iter = m_threadIdToQpuId.find(std::this_thread::get_id());
+    const auto qpuId = (iter != m_threadIdToQpuId.end()) ? iter->second : 0;
+    platformQPUs[qpuId]->launchKernel(kernelName, nullptr, nullptr, 0, 0);
   }
   virtual void kernelExit(const std::string &kernelName,
                           const std::string &kernelSymbolName,
@@ -266,8 +282,10 @@ public:
     for (std::size_t qId = 0; qId < urls.size(); ++qId) {
       const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
       // Populate the information and add the QPUs
-      platformQPUs.emplace_back(std::make_unique<RemoteSimulatorQPU>(
-          *m_mlirContext, formatUrl(urls[qId]), qId, simName));
+      auto qpu = std::make_unique<RemoteSimulatorQPU>(
+          *m_mlirContext, formatUrl(urls[qId]), qId, simName);
+      m_threadIdToQpuId[qpu->getExecutionThreadId()] = qId;
+      platformQPUs.emplace_back(std::move(qpu));
     }
 
     platformNumQPUs = platformQPUs.size();
