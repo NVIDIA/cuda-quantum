@@ -1341,7 +1341,8 @@ CUDAQ_TEST(QPPTester, checkScrap) {
 
     // Add another qubit. Individually, should be |0>.
     auto q1 = qppBackend.allocateQubit();
-    // Fails. Qubits have flipped.
+    // Fails. Qubits have flipped. Even when directly addressing
+    // the variable for q1.
     EXPECT_EQ(0, qppBackend.mz(q1));
 
     std::string got_bitstring = getSampledBitString(qppBackend, {0,1});
