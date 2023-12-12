@@ -219,7 +219,18 @@ public:
   RemoteSimulatorQuantumPlatform() : m_mlirContext(cudaq::initializeMLIR()) {
     platformNumQPUs = 0;
   }
-
+  virtual void kernelEnter(const std::string &kernelName,
+                           const std::string &kernelSymbolName,
+                           void *thisFunc) override {
+    cudaq::info("RemoteSimulatorQPU: Enter kernel {} ({}).", kernelName,
+                kernelSymbolName);
+  }
+  virtual void kernelExit(const std::string &kernelName,
+                          const std::string &kernelSymbolName,
+                          void *thisFunc) override {
+    cudaq::info("RemoteSimulatorQPU: Exit kernel {} ({}).", kernelName,
+                kernelSymbolName);
+  }
   bool supports_task_distribution() const override { return true; }
   void setTargetBackend(const std::string &description) override {
     const auto getOpt = [](const std::string &str,
