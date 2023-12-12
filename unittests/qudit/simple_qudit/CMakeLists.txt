@@ -9,15 +9,14 @@
 set(LIBRARY_NAME cudaq-em-qudit)
 
 add_library(${LIBRARY_NAME} SHARED SimpleQuditExecutionManager.cpp)
+
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
-       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/qpp/include>
-       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-       $<INSTALL_INTERFACE:include>
-    PRIVATE .)
+      $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+      $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
+      $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-spin PRIVATE cudaq-common fmt::fmt-header-only)
+  PUBLIC cudaq-spin PRIVATE cudaq-common fmt::fmt-header-only libqpp)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)

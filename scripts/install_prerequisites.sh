@@ -17,14 +17,29 @@
 #
 # The necessary LLVM components will be installed in the location defined by the
 # LLVM_INSTALL_PREFIX if they do not already exist in that location.
+# If LLVM components need to be built from source, pybind11 will be built and 
+# installed in the location defined by PYBIND11_INSTALL_PREFIX unless that folder 
+# already exists.
 # If BLAS is not found, it will be built from source and installed the location
 # defined by the BLAS_INSTALL_PREFIX.
 # If OpenSSL is not found, it will be built from source and installed the location
 # defined by the OPENSSL_INSTALL_PREFIX.
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
+PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
 OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
+
+function create_llvm_symlinks {
+  if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
+    ln -s "$LLVM_INSTALL_PREFIX/bin/ld.lld" /usr/bin/ld
+    echo "Setting lld linker as the default linker."
+  fi
+  if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
+    ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
+    echo "Setting llvm-ar as the default ar."
+  fi
+}
 
 function temp_install_if_command_unknown {
     if [ ! -x "$(command -v $1)" ]; then
@@ -34,20 +49,32 @@ function temp_install_if_command_unknown {
 }
 
 function remove_temp_installs {
-  if [ "$APT_UNINSTALL" != "" ]; then
+  if [ -n "$APT_UNINSTALL" ]; then
       echo "Uninstalling packages used for bootstrapping: $APT_UNINSTALL"
       apt-get remove -y $APT_UNINSTALL && apt-get autoremove -y --purge
       unset APT_UNINSTALL
+      create_llvm_symlinks # uninstalling other compiler tools may have removed the symlinks
   fi
 }
 
-set -e
-trap remove_temp_installs EXIT
+read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
+function exit_gracefully {
+  remove_temp_installs
+  if [ -z "$__errexit__" ]; then set +e; fi
+}
+
+set -e && trap exit_gracefully EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 if [ ! -x "$(command -v cmake)" ]; then
-    apt-get update && apt-get install -y --no-install-recommends cmake
-    APT_UNINSTALL="$APT_UNINSTALL $2"
+  temp_install_if_command_unknown wget wget
+  wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
+  bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
+fi
+if [ ! -x "$(command -v ninja)" ]; then
+  temp_install_if_command_unknown unzip unzip
+  wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
+  unzip ninja-linux.zip && mv ninja /usr/local/bin/ && rm -rf ninja-linux.zip
 fi
 if [ "$CC" == "" ] && [ "$CXX" == "" ]; then
   source "$this_file_dir/install_toolchain.sh" -t gcc12
@@ -57,8 +84,17 @@ llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
 if [ ! -d "$llvm_dir" ]; then
   echo "Could not find llvm libraries."
 
+  if [ ! -d "$PYBIND11_INSTALL_PREFIX" ]; then
+    echo "Building PyBind11..."
+    repo_root="$(git rev-parse --show-toplevel)" && cd "$repo_root"
+    git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 && cd -
+    mkdir "$repo_root/tpls/pybind11/build" && cd "$repo_root/tpls/pybind11/build"
+    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX"
+    cmake --build . --target install --config Release && cd -
+  fi
+
   # Build llvm libraries from source and install them in the install directory
-  source "$this_file_dir/build_llvm.sh"
+  set +e && source "$this_file_dir/build_llvm.sh" -v && set -e
   (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 
   if [ ! -d "$llvm_dir" ]; then
@@ -70,16 +106,6 @@ else
   echo "Configured C++ compiler: $CXX"
 fi
 
-if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
-    ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
-    created_ld_sym_link=$?
-    if [ "$created_ld_sym_link" = "" ] || [ ! "$created_ld_sym_link" -eq "0" ]; then
-        echo "Failed to find ar or llvm-ar."
-    else 
-        echo "Setting llvm-ar as the default ar."
-    fi
-fi
-
 if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
   if [ -x "$(command -v apt-get)" ]; then
     apt-get update
@@ -87,9 +113,11 @@ if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib
 
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
-  temp_install_if_command_unknown gcc gcc
-  temp_install_if_command_unknown g++ g++
-  temp_install_if_command_unknown gfortran gfortran
+  if [ ! -x "$(command -v "$FC")" ]; then
+    temp_install_if_command_unknown gcc gcc
+    temp_install_if_command_unknown g++ g++
+    temp_install_if_command_unknown gfortran gfortran
+  fi
 
   # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
   wget http://www.netlib.org/blas/blas-3.11.0.tgz

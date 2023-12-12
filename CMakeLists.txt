@@ -79,6 +79,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
   set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
 
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
@@ -103,7 +104,8 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     # Apply patches; check if patch is already applied first, and apply it if not
     execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --reverse --check
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT)
+                    RESULT_VARIABLE GIT_PATCH_RESULT
+                    ERROR_QUIET)
     if(NOT GIT_PATCH_RESULT EQUAL "0")
       execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -365,6 +367,20 @@ configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
 install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
   DESTINATION include/nvqpp)
 
+# Check optional dependencies
+# ==============================================================================
+find_package(OpenMP)
+find_package(OpenSSL)
+
+if (NOT CUDAQ_SKIP_MPI)
+  find_package(MPI COMPONENTS CXX)
+  if (MPI_FOUND)
+    message(STATUS "MPI CXX Found: ${MPIEXEC}")
+    # Build the built-in MPI Comm plugin
+    add_subdirectory(runtime/cudaq/distributed/builtin)
+  endif()
+endif()
+
 # Third-party libraries (tpls)
 # ==============================================================================
 set(FMT_INSTALL ON)
@@ -385,6 +401,21 @@ set(SPDLOG_FMT_EXTERNAL ON)
 add_subdirectory(tpls/spdlog)
 set_property(TARGET spdlog APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
+
+# QPP simulator
+if (NOT CUDAQ_DISABLE_RUNTIME)
+  add_subdirectory(tpls/qpp EXCLUDE_FROM_ALL)
+  # Required workaround to add libqpp as SYSTEM. This will prevent it from
+  # generating warnings, which we treat as errors.
+  get_target_property(LIBQPP_INCLUDE libqpp INTERFACE_INCLUDE_DIRECTORIES)
+  set_target_properties(libqpp
+    PROPERTIES
+      INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
+  if (OpenMP_CXX_FOUND)
+    target_compile_definitions(libqpp INTERFACE HAS_OPENMP)
+  endif()
+endif()
+
 
 # Check for CUDA Support
 # ==============================================================================
@@ -424,18 +455,6 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found.")
 endif()
 
-# Check for OpenSSL
-find_package(OpenSSL)
-
-# Optionally build with MPI
-if (NOT CUDAQ_SKIP_MPI)
-  find_package(MPI COMPONENTS CXX)
-  if (MPI_FOUND) 
-    message(STATUS "MPI CXX Found: ${MPIEXEC}")
-    # Build the built-in MPI Comm plugin
-    add_subdirectory(runtime/cudaq/distributed/builtin)
-  endif()
-endif()
 
 # Directory setup
 # ==============================================================================

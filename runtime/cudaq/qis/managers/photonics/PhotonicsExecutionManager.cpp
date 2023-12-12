@@ -257,7 +257,7 @@ public:
         u(i, i - 1) = 1;
       }
       cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
-      state = qpp::applyCTRL(state, u, {}, {target.id}, target.levels);
+      state = qpp::apply(state, u, {target.id}, target.levels);
     });
 
     instructions.emplace("beamSplitterGate", [&](const Instruction &inst) {
@@ -285,7 +285,7 @@ public:
       }
       cudaq::info("Applying phaseShiftGate on {}<{}>", target.id,
                   target.levels);
-      state = qpp::applyCTRL(state, PS, {}, {target.id}, target.levels);
+      state = qpp::apply(state, PS, {target.id}, target.levels);
     });
   }
 
