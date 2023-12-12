@@ -14,7 +14,7 @@
 struct ghz {
   // Maximally entangled state between 5 qubits.
   auto operator()() __qpu__ {
-    cudaq::qreg q(5);
+    cudaq::qvector q(5);
     h(q[0]);
     for (int i = 0; i < 4; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
