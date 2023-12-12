@@ -1282,7 +1282,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
 }
 
 CUDAQ_TEST(QPPTester, checkScrap) {
-
+  // Passes.
   // State Vector. Just to show the desired behavior.
   {
     // Initialize QPP Backend with 1 qubit.
@@ -1304,6 +1304,7 @@ CUDAQ_TEST(QPPTester, checkScrap) {
     EXPECT_EQ(0, qppBackend.mz(q1));
   }
 
+  // Passes.
   // Density Matrix. Allocate qubits at same time.
   // The qubit ordering aligns with the state vector backend
   // and all preexisting tests in this file.
@@ -1325,6 +1326,7 @@ CUDAQ_TEST(QPPTester, checkScrap) {
     EXPECT_EQ(0, qppBackend.mz(q1));
   }
 
+  // Fails.
   // Density Matrix. Add new qubit later.
   // The qubit ordering gets flipped in this case.
   {
