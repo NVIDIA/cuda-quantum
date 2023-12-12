@@ -93,6 +93,7 @@ class RestRequest {
 private:
   /// Holder of the reconstructed execution context.
   std::unique_ptr<ExecutionContext> m_deserializedContext;
+  std::vector<uint8_t> code;
 
 public:
   RestRequest(ExecutionContext &context) : executionContext(context) {}
@@ -104,10 +105,18 @@ public:
     from_json(j, *this);
   }
 
+  void setCode(const std::string &codeStr) {
+    code.assign(codeStr.begin(), codeStr.end());
+  }
+
+  std::string_view getCode() const {
+    return std::string_view(reinterpret_cast<const char *>(code.data()),
+                            code.size());
+  }
+
   std::string entryPoint;
   std::string simulator;
   ExecutionContext &executionContext;
-  std::string code;
   CodeFormat format;
   std::size_t seed;
   std::vector<std::string> passes;

@@ -21,6 +21,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "nvqir/CircuitSimulator.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -52,29 +53,13 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 
 namespace {
 std::unique_ptr<ExecutionEngine>
-jitCode(ModuleOp currentModule, const std::vector<std::string> &passes,
+jitCode(llvm::MemoryBufferRef codeBuf, ModuleOp currentModule,
+        const std::vector<std::string> &passes, cudaq::CodeFormat format,
+        const std::string &entryPoint,
+        std::string *optionalMangleName = nullptr,
         const std::vector<std::string> &extraLibPaths = {}) {
   cudaq::info("Running jitCode.");
   auto module = currentModule.clone();
-  auto ctx = module.getContext();
-  PassManager pm(ctx);
-  std::string errMsg;
-  llvm::raw_string_ostream os(errMsg);
-  const std::string pipeline =
-      std::accumulate(passes.begin(), passes.end(), std::string(),
-                      [](const auto &ss, const auto &s) {
-                        return ss.empty() ? s : ss + "," + s;
-                      });
-  if (failed(parsePassPipeline(pipeline, pm, os)))
-    throw std::runtime_error(
-        "Remote rest platform failed to add passes to pipeline (" + errMsg +
-        ").");
-
-  if (failed(pm.run(module)))
-    throw std::runtime_error(
-        "Remote rest platform: applying IR passes failed.");
-
-  cudaq::info("- Pass manager was applied.");
   ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
   opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
@@ -84,48 +69,105 @@ jitCode(ModuleOp currentModule, const std::vector<std::string> &passes,
     sharedLibs.push_back(lib);
   }
   opts.sharedLibPaths = sharedLibs;
-  opts.llvmModuleBuilder =
-      [](Operation *module,
-         llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
-    llvmContext.setOpaquePointers(false);
-    auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
-    if (!llvmModule) {
-      llvm::errs() << "Failed to emit LLVM IR\n";
-      return nullptr;
-    }
-    ExecutionEngine::setupTargetTriple(llvmModule.get());
-    return llvmModule;
-  };
+
+  if (format == cudaq::CodeFormat::MLIR) {
+    auto ctx = module.getContext();
+    PassManager pm(ctx);
+    std::string errMsg;
+    llvm::raw_string_ostream os(errMsg);
+    const std::string pipeline =
+        std::accumulate(passes.begin(), passes.end(), std::string(),
+                        [](const auto &ss, const auto &s) {
+                          return ss.empty() ? s : ss + "," + s;
+                        });
+    if (failed(parsePassPipeline(pipeline, pm, os)))
+      throw std::runtime_error(
+          "Remote rest platform failed to add passes to pipeline (" + errMsg +
+          ").");
+
+    if (failed(pm.run(module)))
+      throw std::runtime_error(
+          "Remote rest platform: applying IR passes failed.");
+
+    cudaq::info("- Pass manager was applied.");
+
+    opts.llvmModuleBuilder =
+        [](Operation *module,
+           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
+      llvmContext.setOpaquePointers(false);
+      auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
+      if (!llvmModule) {
+        llvm::errs() << "Failed to emit LLVM IR\n";
+        return nullptr;
+      }
+      ExecutionEngine::setupTargetTriple(llvmModule.get());
+      return llvmModule;
+    };
+  } else {
+    opts.llvmModuleBuilder =
+        [&codeBuf, entryPoint, &optionalMangleName](
+            Operation *module,
+            llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
+      llvm::SMDiagnostic Err;
+      std::unique_ptr<llvm::Module> llvmModule =
+          llvm::parseIR(codeBuf, Err, llvmContext);
+
+      if (!llvmModule)
+        throw "Failed to parse embedded bitcode";
+      for (auto &func : llvmModule->functions()) {
+        auto demangledPtr = abi::__cxa_demangle(func.getName().data(), nullptr,
+                                                nullptr, nullptr);
+        if (demangledPtr) {
+          std::string demangledName(demangledPtr);
+          if (demangledName.rfind(entryPoint, 0) == 0 && optionalMangleName) {
+            *optionalMangleName = func.getName().str();
+          }
+        }
+      }
+      ExecutionEngine::setupTargetTriple(llvmModule.get());
+      return llvmModule;
+    };
+  }
 
   cudaq::info(" - Creating the MLIR ExecutionEngine");
-  auto jitOrError = ExecutionEngine::create(module, opts);
-  assert(!!jitOrError);
-
-  auto uniqueJit = std::move(jitOrError.get());
-
+  auto uniqueJit = llvm::cantFail(ExecutionEngine::create(module, opts));
   cudaq::info("- JIT Engine created successfully.");
-
   return uniqueJit;
 }
 
 void invokeKernel(cudaq::ExecutionContext &io_executionContext,
-                  const std::string &irString,
+                  std::string_view irString, cudaq::CodeFormat format,
                   const std::vector<std::string> &passes,
                   const std::string &entryPointFn) {
   auto contextPtr = cudaq::initializeMLIR();
+  auto module = [&]() {
+    if (format == cudaq::CodeFormat::MLIR) {
+      llvm::SourceMgr sourceMgr;
+      sourceMgr.AddNewSourceBuffer(
+          llvm::MemoryBuffer::getMemBufferCopy(irString), llvm::SMLoc());
+      return parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
+    } else {
+      OpBuilder builder(contextPtr.get());
+      auto moduleOp =
+          builder.create<ModuleOp>(UnknownLoc::get(contextPtr.get()));
+      return OwningOpRef<ModuleOp>(moduleOp);
+    }
+  }();
+  std::string mangedName;
   auto fileBuf = llvm::MemoryBuffer::getMemBufferCopy(irString);
-  // Parse the input mlir.
-  llvm::SourceMgr sourceMgr;
-  sourceMgr.AddNewSourceBuffer(std::move(fileBuf), llvm::SMLoc());
-  auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
-  auto engine = jitCode(*module, passes);
+  auto engine =
+      jitCode(*fileBuf, *module, passes, format, entryPointFn, &mangedName);
+  const std::string entryPointFunc =
+      mangedName.empty()
+          ? (std::string(cudaq::runtime::cudaqGenPrefixName) + entryPointFn)
+          : mangedName;
   //  Extract the entry point
-  auto fnPtr = engine->lookup(entryPointFn);
+  auto fnPtr = llvm::cantFail(engine->lookup(entryPointFunc));
 
   if (!fnPtr)
     throw std::runtime_error("Failed to get entry function");
 
-  auto fn = reinterpret_cast<void (*)()>(*fnPtr);
+  auto fn = reinterpret_cast<void (*)()>(fnPtr);
   auto &platform = cudaq::get_platform();
   platform.set_exec_ctx(&io_executionContext);
   fn();
@@ -160,13 +202,11 @@ void *loadNvqirSimLib(const std::string &simulatorName) {
 json processRequest(const std::string &reqBody) {
   auto requestJson = json::parse(reqBody);
   cudaq::RestRequest request(requestJson);
-  const std::string entryPointFunc =
-      std::string(cudaq::runtime::cudaqGenPrefixName) + request.entryPoint;
   void *handle = loadNvqirSimLib(request.simulator);
   if (request.seed != 0)
     cudaq::set_random_seed(request.seed);
-  invokeKernel(request.executionContext, request.code, request.passes,
-               entryPointFunc);
+  invokeKernel(request.executionContext, request.getCode(), request.format,
+               request.passes, request.entryPoint);
   json resultContextJs = request.executionContext;
   dlclose(handle);
   return resultContextJs;

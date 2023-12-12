@@ -109,25 +109,21 @@ public:
     }();
     cudaq::RestRequest request(*executionContext);
     if (cudaq::__internal__::isLibraryMode(name)) {
+      // Library mode: retrieve the embedded bitcode in the executable.
       const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
+      // Load the object file
       auto [objBin, objBuffer] =
           llvm::cantFail(llvm::object::ObjectFile::createObjectFile(path))
               .takeBinary();
       if (!objBin)
-        throw std::runtime_error("Failed to create object file");
+        throw std::runtime_error("Failed to load binary object file");
       for (const auto &section : objBin->sections()) {
+        // Get the bitcode section
         if (section.isBitcode()) {
           llvm::MemoryBufferRef llvmBc(llvm::cantFail(section.getContents()),
                                        "Bitcode");
-          llvm::SMDiagnostic Err;
-          llvm::LLVMContext Context;
-          std::unique_ptr<llvm::Module> llvmModule =
-              llvm::parseIR(llvmBc, Err, Context);
-          if (!llvmModule)
-            throw "Failed to parse embedded bitcode";
-          llvm::raw_string_ostream outStr(request.code);
-          llvmModule->print(outStr, nullptr);
           request.format = cudaq::CodeFormat::LLVM;
+          request.setCode(llvmBc.getBuffer().str());
         }
       }
     } else {
@@ -180,18 +176,23 @@ public:
           throw std::runtime_error(
               "Remote rest platform: applying IR passes failed.");
       }
-
-      llvm::raw_string_ostream outStr(request.code);
+      std::string mlirCode;
+      llvm::raw_string_ostream outStr(mlirCode);
       mlir::OpPrintingFlags opf;
       opf.enableDebugInfo(/*enable=*/true,
                           /*pretty=*/false);
       moduleOp.print(outStr, opf);
+      request.setCode(mlirCode);
     }
 
     request.entryPoint = name;
     request.simulator = m_simName;
     request.seed = cudaq::get_random_seed();
-    std::map<std::string, std::string> headers{};
+    // Don't let curl adding "Expect: 100-continue" header, which is not
+    // suitable for large requests, e.g., bitcode in the JSON request.
+    //  Ref: https://gms.tf/when-curl-sends-100-continue.html
+    std::map<std::string, std::string> headers{
+        {"Expect:", ""}, {"Content-type", "application/json"}};
     json requestJson = request;
     auto resultJs = m_client.post(m_url, "job", requestJson, headers);
     resultJs.get_to(*executionContext);
