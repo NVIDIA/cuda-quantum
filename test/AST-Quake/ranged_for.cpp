@@ -289,7 +289,7 @@ struct Nesting {
 // clang-format on
 
 struct FreeRange {
-  void operator()(cudaq::qreg<> r, unsigned N) __qpu__ {
+  void operator()(cudaq::qvector<> r, unsigned N) __qpu__ {
     for (auto i : cudaq::range(N)) {
       h(r[i]);
     }

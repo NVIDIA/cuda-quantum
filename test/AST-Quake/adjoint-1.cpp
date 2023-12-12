@@ -11,7 +11,7 @@
 #include <cudaq.h>
 
 struct k {
-  void operator()(cudaq::qspan<> q) __qpu__ {
+  void operator()(cudaq::qview<> q) __qpu__ {
     h(q[0]);
     ry(3.14, q[1]);
     t(q[2]);
@@ -27,7 +27,7 @@ struct k {
 
 struct ep {
   void operator()() __qpu__ {
-    cudaq::qreg<3> q;
+    cudaq::qarray<3> q;
     cudaq::adjoint(k{}, q);
   }
 };

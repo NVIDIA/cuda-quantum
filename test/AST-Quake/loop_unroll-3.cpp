@@ -19,7 +19,7 @@
 // exactly 10 measurements on $[0 \dots 9]$.
 
 __qpu__ void loop_peeling_and_unrolling_test() {
-  cudaq::qreg r(10);
+  cudaq::qvector r(10);
   unsigned i = 0;
 
   do {
@@ -56,7 +56,7 @@ __qpu__ void loop_peeling_and_unrolling_test() {
 // clang-format on
 
 __qpu__ void another_test() {
-  cudaq::qreg r(10);
+  cudaq::qvector r(10);
   unsigned i = 0;
 
   do {
@@ -92,7 +92,7 @@ __qpu__ void another_test() {
 struct Qernel {
   // Loop that decrements. Loop is not unrolled. It needs to be normalized.
   void operator()() __qpu__ {
-    cudaq::qreg reg(1);
+    cudaq::qvector reg(1);
     for (size_t i = 3; i-- > 0;)
       x(reg[0]);
     mz(reg);
