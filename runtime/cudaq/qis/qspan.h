@@ -41,7 +41,7 @@ public:
   // Construct a span that refers to the qudits in `other`.
   template <typename R>
     requires(std::ranges::range<R>)
-  qspan(R && other) : qudits(other.begin(), other.end()) {}
+  qspan(R &&other) : qudits(other.begin(), other.end()) {}
 
   // Copy constructor
   qspan(qspan const &other) : qudits(other.qudits) {}
@@ -86,13 +86,13 @@ private:
   std::size_t qusize = 0;
 
 public:
-  qspan(value_type * otherQudits, std::size_t otherQusize)
+  qspan(value_type *otherQudits, std::size_t otherQusize)
       : qudits(otherQudits), qusize(otherQusize) {}
   template <typename Iterator>
-  qspan(Iterator && otherQudits, std::size_t otherQusize)
+  qspan(Iterator &&otherQudits, std::size_t otherQusize)
       : qudits(&*otherQudits), qusize(otherQusize) {}
   template <typename R>
-  qspan(R && other)
+  qspan(R &&other)
       : qudits(&*other.begin()),
         qusize(std::distance(other.begin(), other.end())) {}
   qspan(qspan const &other) : qudits(other.qudits), qusize(other.qusize) {}
