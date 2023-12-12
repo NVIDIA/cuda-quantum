@@ -178,6 +178,19 @@ target_link_libraries(test_photonics
   gtest_main)
 gtest_discover_tests(test_photonics)
 
+add_executable(test_utils main.cpp utils/UtilsTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_utils PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(test_utils
+  PRIVATE 
+  cudaq
+  cudaq-platform-default
+  cudaq-em-photonics
+  nvqir-qpp fmt::fmt-header-only
+  gtest_main)
+gtest_discover_tests(test_utils)
+
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)
 if (MPI_CXX_FOUND)

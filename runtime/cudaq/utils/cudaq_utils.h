@@ -240,10 +240,21 @@ std::vector<double> random_vector(const double l_range, const double r_range,
                                   const std::size_t size,
                                   const uint32_t seed = std::random_device{}());
 
-inline std::vector<std::size_t> range(int N) {
-  std::vector<std::size_t> vec(N);
-  std::iota(vec.begin(), vec.end(), 0);
+template <typename ElementType>
+inline std::vector<ElementType> range(ElementType start, ElementType stop,
+                                      ElementType step = 1) {
+  std::vector<ElementType> vec;
+  auto val = start;
+  while ((step > 0) ? (val < stop) : (val > stop)) {
+    vec.push_back(val);
+    val += step;
+  }
   return vec;
+}
+
+template <typename ElementType = int>
+inline std::vector<ElementType> range(ElementType N) {
+  return range(ElementType(0), N);
 }
 
 inline std::vector<std::string> split(const std::string &s, char delim) {
