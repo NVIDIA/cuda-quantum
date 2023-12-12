@@ -596,12 +596,6 @@ public:
     }
   }
 
-  // FIXME: Need this defined to prevent a build error.
-  void setStateData(std::vector<std::complex<double>> &inputState) override {
-    throw std::runtime_error(
-        "Setting the internal state representation is not yet supported for CuStateVec.\n");
-  }
-
   std::string name() const override;
   NVQIR_SIMULATOR_CLONE_IMPL(CuStateVecCircuitSimulator<ScalarType>)
 };
