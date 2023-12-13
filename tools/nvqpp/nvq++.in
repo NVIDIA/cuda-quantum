@@ -301,7 +301,7 @@ fi
 # We default to LIBRARY_MODE, physical
 # Quantum Targets can override this to turn on
 # our MLIR compilation workflow.
-LIBRARY_MODE=true
+LIBRARY_MODE=false
 
 CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
@@ -377,6 +377,13 @@ while [ $# -ne 0 ]; do
 		;;
 	--enable-mlir)
 		LIBRARY_MODE=false
+		;;
+	--library-mode)
+		if [-n "${TARGET_CONFIG}"]; then
+			echo "cannot use --library-mode with --target" >&2
+			exit 2
+		fi
+		LIBRARY_MODE=true
 		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"

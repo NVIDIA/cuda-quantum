@@ -10,8 +10,7 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "cudaq/qis/qarray.h"
-#include "cudaq/qis/qreg.h"
+#include "cudaq/qis/qvector.h"
 #include <vector>
 
 namespace cudaq {
@@ -46,8 +45,8 @@ int mz(cudaq::qudit<T> &q) {
 }
 
 /// @brief Measure a vector of qudits
-template <std::size_t T>
-std::vector<int> mz(cudaq::qreg<cudaq::dyn, T> &q) {
+template <std::size_t Levels>
+std::vector<int> mz(cudaq::qvector<Levels> &q) {
   std::vector<int> ret;
   for (auto &qq : q)
     ret.emplace_back(mz(qq));
