@@ -22,7 +22,7 @@ struct rwpe {
     int iteration = 0;
 
     // Allocate the qubits
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
 
     // Alias them
     auto &aux = q.front();

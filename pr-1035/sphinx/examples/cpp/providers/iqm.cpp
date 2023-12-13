@@ -17,7 +17,7 @@ struct adonis_ghz {
   //       QB5
 
   void operator()() __qpu__ {
-    cudaq::qreg q(5);
+    cudaq::qvector q(5);
     h(q[0]);
 
     // Note that the CUDA Quantum compiler will automatically generate the
