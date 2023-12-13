@@ -135,11 +135,8 @@ function show_help {
 --opt-plugin <dynamic library file>
 	Load pass plugin by specifying its dynamic library.
 
---opt-func-pass <pass name>
-	Append a function pass to the pass pipeline.	
-
---opt-module-pass <pass name>
-	Append a module pass to the pass pipeline.
+--opt-pass <pass name>
+	Append a pass to the pass pipeline by specifying its name in the pass pipeline syntax, e.g. <dialect>.<opname>(passname).
 
 --save-temps
 	Save temporary files.
@@ -424,11 +421,7 @@ while [ $# -ne 0 ]; do
 		CUDAQ_OPT_PLUGIN_ARGS="${CUDAQ_OPT_PLUGIN_ARGS} --load-cudaq-plugin $2"
 		shift
 		;;
-	--opt-func-pass)
-		CUDAQ_OPT_EXTRA_PASSES=$(add_pass_to_pipeline "${CUDAQ_OPT_EXTRA_PASSES}" "func.func($2)") 
-		shift
-		;;
-	--opt-module-pass)
+	--opt-pass)
 		CUDAQ_OPT_EXTRA_PASSES=$(add_pass_to_pipeline "${CUDAQ_OPT_EXTRA_PASSES}" "$2") 
 		shift
 		;;
