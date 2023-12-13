@@ -132,6 +132,12 @@ function show_help {
 --[no-]lambda-lifting
 	Enable/disable lambda lifting pass.
 
+--opt-plugin <dynamic library file>
+	Load pass plugin by specifying its dynamic library.
+
+--opt-pass <pass name>
+	Append a pass to the pass pipeline by specifying its name in the pass pipeline syntax, e.g. <dialect>.<opname>(passname).
+
 --save-temps
 	Save temporary files.
 
@@ -269,6 +275,8 @@ LIST_TARGETS=false
 DISABLE_QUBIT_MAPPING=false
 NVQIR_LIBS="-lnvqir -lnvqir-"
 CPPSTD=-std=c++20
+CUDAQ_OPT_PLUGIN_ARGS=
+CUDAQ_OPT_EXTRA_PASSES=
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
@@ -408,6 +416,14 @@ while [ $# -ne 0 ]; do
 		;;
 	--lambda-lifting)
 		ENABLE_LAMBDA_LIFTING=true
+		;;
+	--opt-plugin)
+		CUDAQ_OPT_PLUGIN_ARGS="${CUDAQ_OPT_PLUGIN_ARGS} --load-cudaq-plugin $2"
+		shift
+		;;
+	--opt-pass)
+		CUDAQ_OPT_EXTRA_PASSES=$(add_pass_to_pipeline "${CUDAQ_OPT_EXTRA_PASSES}" "$2") 
+		shift
 		;;
 	--save-temps)
 		DELETE_TEMPS=false
@@ -589,6 +605,10 @@ if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,cse")
 fi
 
+if [ ! -z "$CUDAQ_OPT_EXTRA_PASSES" ]; then
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "$CUDAQ_OPT_EXTRA_PASSES")
+fi
+
 OPT_PASSES="builtin.module(${OPT_PASSES})"
 
 if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
@@ -622,7 +642,7 @@ for i in ${SRCS}; do
 		if ${RUN_OPT}; then
 			DCL_FILE=$(mktemp ${file}.qke.XXXXXX)
 			TMPFILES="${TMPFILES} ${DCL_FILE} ${DCL_FILE}.o"
-			run ${TOOLBIN}cudaq-opt --pass-pipeline="${OPT_PASSES}" ${QUAKE_IN} -o ${DCL_FILE}
+			run ${TOOLBIN}cudaq-opt ${CUDAQ_OPT_PLUGIN_ARGS} --pass-pipeline="${OPT_PASSES}" ${QUAKE_IN} -o ${DCL_FILE}
 			QUAKE_IN=${DCL_FILE}
 		fi
 		QUAKELL_FILE=$(mktemp ${file}.ll.XXXXXX)
