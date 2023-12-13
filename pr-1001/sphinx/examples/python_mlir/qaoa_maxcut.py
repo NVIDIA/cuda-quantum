@@ -62,7 +62,6 @@ def objective(parameters):
     return cudaq.observe(kernel_qaoa, hamiltonian, qubit_count, layer_count,
                          parameters).expectation()
 
-
 # Optimize!
 optimal_expectation, optimal_parameters = optimizer.optimize(
     dimensions=parameter_count, function=objective)
