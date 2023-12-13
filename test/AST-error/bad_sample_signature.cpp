@@ -12,7 +12,7 @@
 
 struct bad {
   int operator()(int i) __qpu__ {
-    cudaq::qreg q(i);
+    cudaq::qvector q(i);
     h(q);
     mz(q);
     return i;

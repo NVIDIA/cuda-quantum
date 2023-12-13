@@ -26,7 +26,7 @@ inline constexpr std::size_t dyn = ~0;
 // it models both dynamically allocated qudit registers as well as
 // compile-time sized qudit registers.
 template <std::size_t N = dyn, std::size_t Levels = 2>
-class qspan {
+class [[deprecated("The qspan type is deprecated in favor of qview.")]] qspan {
 public:
   // Useful typedef exposing the underlying qudit type
   // that this span contains.

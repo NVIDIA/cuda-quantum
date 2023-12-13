@@ -296,8 +296,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
       std::size_t byteWidth = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
       Value dynSize =
           builder.create<cc::StdvecSizeOp>(loc, builder.getI64Type(), result);
-      auto eleSize = builder.create<arith::ConstantOp>(
-          loc, builder.getI64Type(), builder.getI64IntegerAttr(byteWidth));
+      auto eleSize = builder.create<arith::ConstantIntOp>(loc, byteWidth, 64);
       Value heapCopy =
           builder
               .create<func::CallOp>(loc, ptrTy, "__nvqpp_vectorCopyCtor",

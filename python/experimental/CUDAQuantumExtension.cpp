@@ -119,6 +119,6 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {
-    return unwrap(op)->hasTrait<OpTrait::IsTerminator>();
+    return unwrap(op)->hasTrait<mlir::OpTrait::IsTerminator>();
   });
 }

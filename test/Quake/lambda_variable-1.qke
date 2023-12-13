@@ -11,44 +11,42 @@
 // Tests the basic functionality of passing closures as runtime values. Much of
 // the mechanism generated here is expected to be aggressively inlined.
 
-module attributes{ qtx.mangled_name_map = { __nvqpp__mlirgen__test3_callee = "_ZN12test3_calleeclEOSt8functionIFvRN4cudaq5quditILm2EEEEERNS1_4qregILm18446744073709551615ELm2EEE", __nvqpp__mlirgen__test3_caller = "_ZN12test3_callerclEv"}} {
-  func.func @__nvqpp__mlirgen__test3_callee(%arg0: !cc.callable<(!quake.ref) -> ()>, %arg1: !quake.veq<?>) attributes {"cudaq-kernel"} {
-    %c0_i32 = arith.constant 0 : i32
-    %0 = arith.extsi %c0_i32 : i32 to i64
-    %1 = quake.extract_ref %arg1[%0] : (!quake.veq<?>,i64) -> !quake.ref
-    cc.call_callable %arg0, %1 : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
-    %c1_i32 = arith.constant 1 : i32
-    %2 = arith.extsi %c1_i32 : i32 to i64
-    %3 = quake.extract_ref %arg1[%2] : (!quake.veq<?>,i64) -> !quake.ref
-    cc.call_callable %arg0, %3 : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
-    return
-  }
-  func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-    %c2_i32 = arith.constant 2 : i32
-    %0 = arith.extsi %c2_i32 : i32 to i64
-    %1 = quake.alloca !quake.veq<?> [%0 : i64]
-    %2 = cc.undef !llvm.struct<"test3_callee", ()>
-    %3 = cc.create_lambda {
-    ^bb0(%arg0: !quake.ref):
-      cc.scope {
-        quake.h %arg0 : (!quake.ref) -> ()
-        quake.y %arg0 : (!quake.ref) -> ()
-      }
-    } : !cc.callable<(!quake.ref) -> ()>
-    call @__nvqpp__mlirgen__test3_callee(%3, %1) : (!cc.callable<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
-    return
-  }
+func.func @__nvqpp__mlirgen__test3_callee(%arg0: !cc.callable<(!quake.ref) -> ()>, %arg1: !quake.veq<?>) attributes {"cudaq-kernel"} {
+  %c0_i32 = arith.constant 0 : i32
+  %0 = arith.extsi %c0_i32 : i32 to i64
+  %1 = quake.extract_ref %arg1[%0] : (!quake.veq<?>,i64) -> !quake.ref
+  cc.call_callable %arg0, %1 : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+  %c1_i32 = arith.constant 1 : i32
+  %2 = arith.extsi %c1_i32 : i32 to i64
+  %3 = quake.extract_ref %arg1[%2] : (!quake.veq<?>,i64) -> !quake.ref
+  cc.call_callable %arg0, %3 : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+  return
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_callee(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>,
-// CHECK-SAME:        %[[VAL_1:.*]]: !quake.veq<?>)
+// CHECK-SAME:        %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>, %[[VAL_1:.*]]: !quake.veq<?>)
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           %[[VAL_5:.*]] = cc.callable_func %[[VAL_0]] : (!cc.callable<(!quake.ref) -> ()>) -> ((!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ())
 // CHECK:           call_indirect %[[VAL_5]](%[[VAL_0]], %[[VAL_4]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
 // CHECK:            %[[VAL_6:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<?>) -> !quake.ref
 // CHECK:           %[[VAL_7:.*]] = cc.callable_func %[[VAL_0]] : (!cc.callable<(!quake.ref) -> ()>) -> ((!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ())
 // CHECK:           call_indirect %[[VAL_7]](%[[VAL_0]], %[[VAL_6]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+
+func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %c2_i32 = arith.constant 2 : i32
+  %0 = arith.extsi %c2_i32 : i32 to i64
+  %1 = quake.alloca !quake.veq<?> [%0 : i64]
+  %2 = cc.undef !llvm.struct<"test3_callee", ()>
+  %3 = cc.create_lambda {
+  ^bb0(%arg0: !quake.ref):
+    cc.scope {
+      quake.h %arg0 : (!quake.ref) -> ()
+      quake.y %arg0 : (!quake.ref) -> ()
+    }
+  } : !cc.callable<(!quake.ref) -> ()>
+  call @__nvqpp__mlirgen__test3_callee(%3, %1) : (!cc.callable<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
+  return
+}
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_caller()
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>

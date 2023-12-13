@@ -11,15 +11,15 @@
 
 include "mlir/Pass/PassBase.td"
 
-
-def ApplyControlNegations : Pass<"apply-control-negations", "mlir::func::FuncOp"> {
+def ApplyControlNegations :
+    Pass<"apply-control-negations", "mlir::func::FuncOp"> {
   let summary =
     "Replace all operations with negative controls with positive controls and X operations.";
 
   let description = [{
     For every quantum operation with a negative control, replace that operation 
-    with an X operation on the control qubit, the controlled operation with positive 
-    polarity, and a final X operation on the control qubit. 
+    with an X operation on the control qubit, the controlled operation with
+    positive polarity, and a final X operation on the control qubit. 
   }];
 }
 

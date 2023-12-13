@@ -20,7 +20,7 @@ struct Kernel {
 int main() {
   int i;
   auto f = [&]() __qpu__ { // expected-remark{{An inaccessible symbol}}
-    cudaq::qreg q(i);
+    cudaq::qvector q(i);
     // expected-error@-1 {{symbol is not accessible in this kernel}}
     // expected-error@-2 {{statement not supported in qpu kernel}}
     mz(q);

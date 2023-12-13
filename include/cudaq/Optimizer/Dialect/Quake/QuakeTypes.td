@@ -167,9 +167,9 @@ def MeasureType : QuakeType<"Measure", "measure"> {
   let summary = "a classical result produced by a quantum measurement";
   let description = [{
     A quantum measurement captures the state of a qubit and returns a classical
-    value from the measurement. Depending on the target system this value may
-    have two or more logical states. Typically, a value of type `measure` is
-    considered a binary bit.
+    regular (not linear) value from the measurement. Depending on the target
+    system this value may have two or more logical states. Typically, a value of
+    type `measure` will be discriminated into a binary bit.
 
     ```mlir
       %m = quake.mz %0 : (!quake.ref) -> !quake.measure
