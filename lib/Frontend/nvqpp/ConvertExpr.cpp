@@ -1273,7 +1273,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   }
 
   if (isInClassInNamespace(func, "qreg", "cudaq") ||
-      isInClassInNamespace(func, "qspan", "cudaq")) {
+      isInClassInNamespace(func, "qvector", "cudaq") ||
+      isInClassInNamespace(func, "qarray", "cudaq") ||
+      isInClassInNamespace(func, "qspan", "cudaq") ||
+      isInClassInNamespace(func, "qview", "cudaq")) {
     // This handles conversion of qreg.size()
     if (funcName.equals("size"))
       if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
@@ -2238,7 +2241,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           return pushValue(builder.create<quake::AllocaOp>(
               loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
         }
-        if (ctorName == "qspan" && isa<quake::VeqType>(peekValue().getType())) {
+        if ((ctorName == "qspan" || ctorName == "qview") &&
+            isa<quake::VeqType>(peekValue().getType())) {
           // One of the qspan ctors, which effectively just makes a copy. Here
           // we omit making a copy and just forward the veq argument.
           assert(isa<quake::VeqType>(ctorTy));

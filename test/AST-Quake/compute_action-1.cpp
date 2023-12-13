@@ -18,7 +18,7 @@
 #endif
 
 void t() __qpu__ {
-	cudaq::qreg r(5);
+	cudaq::qvector r(5);
 	cudaq:: CALL (
 		[&](){ t(r[0]); x(r[1]); },
 		[&](){ h(r[2]); });

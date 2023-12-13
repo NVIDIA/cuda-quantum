@@ -15,7 +15,7 @@ struct ApplyX {
 struct ccnot_test {
   // constrain the signature of the incoming kernel
   void operator()(cudaq::takes_qubit auto &&apply_x) __qpu__ {
-    cudaq::qreg qs(3);
+    cudaq::qvector qs(3);
 
     x(qs);
     x(qs[1]);
@@ -32,7 +32,7 @@ int main() {
   // We can achieve the same thing as above via
   // a lambda expression.
   auto ccnot = []() __qpu__ {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
 
     x(q);
     x(q[1]);

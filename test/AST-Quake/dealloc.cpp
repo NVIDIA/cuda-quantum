@@ -12,10 +12,10 @@
 
 __qpu__ void magic_func(int N) {
   {
-    cudaq::qreg q(N);
+    cudaq::qvector q(N);
     h(q[0]);
   }
-  cudaq::qreg w(N);
+  cudaq::qvector w(N);
   x(w[0]);
 }
 

@@ -294,7 +294,7 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
   };
 
   struct test_adjoint {
-    void operator()(cudaq::qspan<> q) __qpu__ {
+    void operator()(cudaq::qview<> q) __qpu__ {
       h(q[0]);
       t(q[1]);
       s(q[2]);

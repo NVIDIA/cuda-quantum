@@ -225,7 +225,7 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
 // MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkRotations) {
 
-  // rx: entire qreg
+  // rx: entire qvector
   {
     cudaq::set_random_seed(4);
 
@@ -241,7 +241,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("1110"), 1000);
   }
 
-  // ry: entire qreg
+  // ry: entire qvector
   {
     cudaq::set_random_seed(4);
 
@@ -257,7 +257,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("1110"), 1000);
   }
 
-  // rz: entire qreg
+  // rz: entire qvector
   {
     cudaq::set_random_seed(4);
 
@@ -277,7 +277,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("1110"), 1000);
   }
 
-  // r1: entire qreg
+  // r1: entire qvector
   {
     cudaq::set_random_seed(4);
 

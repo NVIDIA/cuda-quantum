@@ -12,8 +12,8 @@
 
 struct lower_ctrl_as_qreg {
   void operator()() __qpu__ {
-    cudaq::qreg reg1(4); // group of controls
-    cudaq::qreg reg2(2); // some targets
+    cudaq::qvector reg1(4); // group of controls
+    cudaq::qvector reg2(2); // some targets
 
     h(reg1, reg2[0]);
     x(reg1, reg2[1]);
@@ -39,7 +39,7 @@ struct test_two_control_call {
       h<cudaq::ctrl>(qb);
       x<cudaq::ctrl>(qb);
     };
-    cudaq::qreg<4> qs;
+    cudaq::qarray<4> qs;
     cudaq::qubit qb;
     cudaq::control(lambda, qs, qb);
     mz(qb);
@@ -71,7 +71,7 @@ struct unmarked_lambda {
       h<cudaq::ctrl>(qb);
       y<cudaq::ctrl>(qb);
     };
-    cudaq::qreg<4> qs;
+    cudaq::qarray<4> qs;
     cudaq::qubit qb;
     cudaq::control(lambda, qs, qb);
     mz(qb);
@@ -93,7 +93,7 @@ struct unmarked_lambda {
 
 struct direct_unmarked_lambda {
   void operator()() __qpu__ {
-    cudaq::qreg<4> qs;
+    cudaq::qarray<4> qs;
     cudaq::qubit qb;
     cudaq::control([](cudaq::qubit &qb) {
       h<cudaq::ctrl>(qb);

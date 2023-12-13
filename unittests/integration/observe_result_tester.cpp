@@ -84,7 +84,7 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
 CUDAQ_TEST(ObserveResult, checkExpValBug) {
 
   auto kernel = []() __qpu__ {
-    cudaq::qreg qubits(3);
+    cudaq::qvector qubits(3);
     rx(0.531, qubits[0]);
     ry(0.9, qubits[1]);
     rx(0.3, qubits[2]);

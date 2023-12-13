@@ -15,7 +15,7 @@
 #include <iostream>
 
 __qpu__ void init_state(int N) {
-  cudaq::qreg q(N);
+  cudaq::qvector q(N);
   x(q[0]);
   mz(q[99]); // compiler can't catch this error, but runtime can
 };

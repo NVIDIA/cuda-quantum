@@ -15,7 +15,7 @@
 
 struct ak1 {
   auto operator()(int i) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     auto vec = mz(q);
     return vec[0];
   }

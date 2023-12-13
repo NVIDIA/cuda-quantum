@@ -10,11 +10,11 @@
 
 #include <cudaq.h>
 
-__qpu__ void other(cudaq::qspan<>);
+__qpu__ void other(cudaq::qview<>);
 
 struct SliceTest {
    void operator()(int i1, int i2) __qpu__ {
-      cudaq::qreg reg(10);
+      cudaq::qvector reg(10);
       auto s = reg.slice(i1, i2);
       other(s);
    }
