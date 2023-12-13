@@ -1353,4 +1353,32 @@ CUDAQ_TEST(QPPTester, checkScrap) {
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
   }
+
+  // Passes.
+  // Density Matrix. Add new qubit later.
+  // Don't measure the first qubit after applying a gate.
+  {
+    // Initialize QPP Backend 1 qubit at a time.
+    QppNoiseCircuitSimulator qppBackend;
+    auto q0 = qppBackend.allocateQubit();
+    // Passes. This measurement doesn't affect the later result.
+    EXPECT_EQ(0, qppBackend.mz(q0));
+    
+    // Rotate to |1>
+    qppBackend.x(q0);
+    // Don't measure the qubit after rotating to |1> and the
+    // rest of this test passes now.
+
+    // Add another qubit. Individually, should be |0>.
+    auto q1 = qppBackend.allocateQubit();
+    // Fails. Qubits have flipped. Even when directly addressing
+    // the variable for q1.
+    EXPECT_EQ(0, qppBackend.mz(q1));
+
+    std::string got_bitstring = getSampledBitString(qppBackend, {0,1});
+    // All fail (flipped):
+    EXPECT_EQ("10", got_bitstring);
+    EXPECT_EQ(1, qppBackend.mz(q0));
+    EXPECT_EQ(0, qppBackend.mz(q1));
+  }
 }
