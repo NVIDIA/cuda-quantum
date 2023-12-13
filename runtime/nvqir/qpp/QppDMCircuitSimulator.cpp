@@ -73,7 +73,6 @@ protected:
     qpp::cmat zero_state = qpp::cmat::Zero(2, 2);
     zero_state(0, 0) = 1.0;
     state = qpp::kron(state, zero_state);
-    return;
   }
 
   void addQubitsToState(std::size_t count) override {
@@ -90,7 +89,6 @@ protected:
     qpp::cmat zero_state = qpp::cmat::Zero(1 << count, 1 << count);
     zero_state(0, 0) = 1.0;
     state = qpp::kron(state, zero_state);
-    return;
   }
 
   void setToZeroState() override {

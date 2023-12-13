@@ -24,13 +24,13 @@ struct test_allocation {
 struct test_resizing {
   void operator()() __qpu__ {
     // Start with an initial allocation of 2 qubits.
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     cudaq::x(q);
     auto result = mz(q[0]);
     auto result1 = mz(q[1]);
     if (result && result1) {
       // Allocate two more qubits mid-circuit.
-      cudaq::qreg q2(2);
+      cudaq::qvector q2(2);
       auto result2 = mz(q2);
     }
   }
