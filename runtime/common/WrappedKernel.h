@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
+#include "cudaq/platform.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
-#include "cudaq/platform.h"
 namespace cudaq {
 
 /// @brief Wrapper for kernel address
@@ -91,7 +91,7 @@ private:
 template <typename T, typename _ = void>
 class SerializeArgImpl;
 
-/// A utility class for serializing kernel args as a flat buffer
+/// A utility class for serializing kernel `args` as a flat buffer
 template <typename... ArgTs>
 class SerializeArgs;
 
@@ -196,7 +196,7 @@ std::vector<char> serializeArgs(const Args &...args) {
   return serializedArgs;
 }
 
-/// Helper to invoke a callable with a deserialized args tuple
+// Helper to invoke a callable with a deserialized args tuple
 class WrapperFunctionHandlerCaller {
 public:
   template <typename CallableT, typename ArgTupleT, std::size_t... I>
@@ -230,7 +230,7 @@ public:
   }
 
 private:
-  /// Helper to deserialize a flat args buffer into typed args tuple.
+  // Helper to deserialize a flat args buffer into typed args tuple.
   template <std::size_t... I>
   static bool deserialize(const char *ArgData, size_t ArgSize, ArgTuple &Args,
                           std::index_sequence<I...>) {
