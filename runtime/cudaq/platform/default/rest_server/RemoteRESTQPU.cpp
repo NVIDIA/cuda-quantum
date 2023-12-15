@@ -47,6 +47,9 @@
 
 #include "JsonConvert.h"
 #include "nvqir/CircuitSimulator.h"
+#include <arpa/inet.h>
+#include <signal.h>
+#include <sys/socket.h>
 
 namespace {
 using namespace mlir;
@@ -228,12 +231,39 @@ public:
   }
 };
 
+std::optional<uint16_t> getAvailablePort() {
+  int sock = ::socket(AF_INET, SOCK_STREAM, 0);
+  if (sock < 0)
+    return {};
+  struct sockaddr_in serv_addr;
+  ::bzero((char *)&serv_addr, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_addr.s_addr = INADDR_ANY;
+  // sin_port = 0 => auto assign
+  serv_addr.sin_port = 0;
+  if (::bind(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    return {};
+  socklen_t len = sizeof(serv_addr);
+  if (::getsockname(sock, (struct sockaddr *)&serv_addr, &len) == -1)
+    return {};
+  if (close(sock) < 0)
+    return {};
+  return ::ntohs(serv_addr.sin_port);
+}
+
 class RemoteSimulatorQuantumPlatform : public cudaq::quantum_platform {
   std::unique_ptr<MLIRContext> m_mlirContext;
   std::unordered_map<std::thread::id, std::size_t> m_threadIdToQpuId;
+  std::vector<llvm::sys::ProcessInfo> m_serverProcesses;
 
 public:
-  ~RemoteSimulatorQuantumPlatform() = default;
+  ~RemoteSimulatorQuantumPlatform() {
+    for (auto &process : m_serverProcesses) {
+      cudaq::info("Shutting down REST server process {}", process.Pid);
+      ::kill(process.Pid, SIGKILL);
+    }
+  }
+
   RemoteSimulatorQuantumPlatform() : m_mlirContext(cudaq::initializeMLIR()) {
     platformNumQPUs = 0;
   }
@@ -251,16 +281,11 @@ public:
         return cudaq::split(str.substr(prefixPos + prefix.size() + 1), ';')[0];
     };
 
-    const auto urls = cudaq::split(getOpt(description, "url"), ',');
-    const auto sims = cudaq::split(getOpt(description, "backend"), ',');
-    // List of simulator names must either be one or the same length as the URL
-    // list. If one simulator name is provided, assuming that all the URL should
-    // be using the same simulator.
-    if (sims.size() > 1 && sims.size() != urls.size())
-      throw std::runtime_error(
-          fmt::format("Invalid number of remote backend simulators provided: "
-                      "receiving {}, expecting {}.",
-                      sims.size(), urls.size()));
+    auto urls = cudaq::split(getOpt(description, "url"), ',');
+    auto sims = cudaq::split(getOpt(description, "backend"), ',');
+    const bool autoLaunch =
+        description.find("auto-launch") != std::string::npos;
+
     const auto formatUrl = [](const std::string &url) -> std::string {
       auto formatted = url;
       if (formatted.rfind("http", 0) != 0)
@@ -269,6 +294,44 @@ public:
         formatted += '/';
       return formatted;
     };
+
+    if (autoLaunch) {
+      urls.clear();
+      if (sims.empty())
+        sims.emplace_back("qpp-cpu");
+      const int numInstances = std::stoi(getOpt(description, "auto-launch"));
+      cudaq::info("Auto launch {} REST servers", numInstances);
+      const std::string serverExeName = "cudaq_rest_server";
+      auto serverApp = llvm::sys::findProgramByName(serverExeName.c_str());
+      if (!serverApp)
+        throw std::runtime_error(
+            "Unable to find CUDA Quantum REST server to launch.");
+
+      for (int i = 0; i < numInstances; ++i) {
+        const auto port = getAvailablePort();
+        if (!port.has_value())
+          throw std::runtime_error("Unable to find a TCP/IP port on the local "
+                                   "machine for auto-launch a REST server.");
+        urls.emplace_back(std::string("localhost:") +
+                          std::to_string(port.value()));
+        llvm::StringRef argv[] = {serverApp.get(), "--port",
+                                  std::to_string(port.value())};
+        [[maybe_unused]] auto processInfo =
+            llvm::sys::ExecuteNoWait(serverApp.get(), argv, std::nullopt);
+        cudaq::info("Auto launch REST server at http://localhost:{} (PID {})",
+                    port.value(), processInfo.Pid);
+        m_serverProcesses.emplace_back(processInfo);
+      }
+    }
+
+    // List of simulator names must either be one or the same length as the URL
+    // list. If one simulator name is provided, assuming that all the URL should
+    // be using the same simulator.
+    if (sims.size() > 1 && sims.size() != urls.size())
+      throw std::runtime_error(
+          fmt::format("Invalid number of remote backend simulators provided: "
+                      "receiving {}, expecting {}.",
+                      sims.size(), urls.size()));
     for (std::size_t qId = 0; qId < urls.size(); ++qId) {
       const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
       // Populate the information and add the QPUs

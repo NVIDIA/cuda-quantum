@@ -247,7 +247,7 @@ template <typename ClassT, typename... ArgTs>
 class WrapperFunctionHandlerHelper<void (ClassT::*)(ArgTs...), ArgTs...>
     : public WrapperFunctionHandlerHelper<void(ArgTs...), ArgTs...> {};
 
-/// Invoke a typed callable (functions) with serialized args.
+/// Invoke a typed callable (functions) with serialized `args`.
 template <typename CallableT, typename... ArgTs>
 void invokeCallableWithSerializedArgs(const char *argData, std::size_t argSize,
                                       CallableT &&func) {
@@ -267,7 +267,7 @@ std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
   // Note: we explicitly instantiate this wrapper so that the symbol is present
   // in the IR.
   auto *wrappedKernel = reinterpret_cast<void (*)(void *)>(
-      invokeCallableWithSerializedArgs<QuantumKernel, Args...>);
+      invokeCallableWithSerializedArgs<QuantumKernel, std::decay_t<Args>...>);
   cudaq::get_platform().launchKernel(cudaq::getKernelName(fn), nullptr,
                                      (void *)serializedArgsBuffer.data(),
                                      serializedArgsBuffer.size(), 0);
