@@ -99,7 +99,7 @@ class SerializeArgs;
 template <>
 class SerializeArgs<> {
 public:
-  static size_t size() { return 0; }
+  static std::size_t size() { return 0; }
   static bool serialize(SerializeOutputBuffer &) { return true; }
   static bool deserialize(SerializeInputBuffer &) { return true; }
 };
@@ -108,7 +108,7 @@ public:
 template <typename ArgT, typename... ArgTs>
 class SerializeArgs<ArgT, ArgTs...> {
 public:
-  static size_t size(const ArgT &arg, const ArgTs &...args) {
+  static std::size_t size(const ArgT &arg, const ArgTs &...args) {
     return SerializeArgImpl<ArgT>::size(arg) +
            SerializeArgs<ArgTs...>::size(args...);
   }
@@ -130,7 +130,7 @@ public:
 template <typename T>
 class SerializeArgImpl<T, std::enable_if_t<std::is_trivial<T>::value>> {
 public:
-  static size_t size(const T &x) { return sizeof(T); }
+  static std::size_t size(const T &x) { return sizeof(T); }
 
   static bool serialize(SerializeOutputBuffer &buf, const T &x) {
     T tempVal = x;
@@ -148,38 +148,39 @@ public:
 
 // Serialization for a vector of 'trivial' types (POD), e.g.,
 // std::vector<double>
+// Format: vector size followed by data
 template <class T>
 class SerializeArgImpl<std::vector<T>,
                        std::enable_if_t<std::is_trivial<T>::value>> {
 public:
-  static size_t size(const std::vector<T> &S) {
-    size_t Size =
-        SerializeArgs<uint64_t>::size(static_cast<uint64_t>(S.size()));
-    for (const auto &E : S)
-      Size += SerializeArgs<T>::size(E);
-    return Size;
+  static std::size_t size(const std::vector<T> &vec) {
+    const std::size_t size =
+        SerializeArgs<uint64_t>::size(static_cast<uint64_t>(vec.size())) +
+        (vec.empty() ? 0 : vec.size() * SerializeArgs<T>::size(vec.front()));
+    return size;
   }
 
-  static bool serialize(SerializeOutputBuffer &buf, const std::vector<T> &S) {
+  static bool serialize(SerializeOutputBuffer &buf, const std::vector<T> &vec) {
     // Size followed by data
     if (!SerializeArgs<uint64_t>::serialize(buf,
-                                            static_cast<uint64_t>(S.size())))
+                                            static_cast<uint64_t>(vec.size())))
       return false;
-    for (const auto &E : S)
-      if (!SerializeArgs<T>::serialize(buf, E))
+    for (const auto &elem : vec)
+      if (!SerializeArgs<T>::serialize(buf, elem))
         return false;
     return true;
   }
 
-  static bool deserialize(SerializeInputBuffer &buf, std::vector<T> &S) {
-    uint64_t Size;
-    if (!SerializeArgs<uint64_t>::deserialize(buf, Size))
+  static bool deserialize(SerializeInputBuffer &buf, std::vector<T> &vec) {
+    uint64_t size;
+    vec.clear();
+    if (!SerializeArgs<uint64_t>::deserialize(buf, size))
       return false;
-    for (size_t I = 0; I != Size; ++I) {
-      T E;
-      if (!SerializeArgs<T>::deserialize(buf, E))
+    for (std::size_t i = 0; i < size; ++i) {
+      T elem;
+      if (!SerializeArgs<T>::deserialize(buf, elem))
         return false;
-      S.emplace_back(E);
+      vec.emplace_back(elem);
     }
     return true;
   }
@@ -200,8 +201,9 @@ std::vector<char> serializeArgs(const Args &...args) {
 class WrapperFunctionHandlerCaller {
 public:
   template <typename CallableT, typename ArgTupleT, std::size_t... I>
-  static void call(CallableT &&H, ArgTupleT &Args, std::index_sequence<I...>) {
-    std::forward<CallableT>(H)(std::get<I>(Args)...);
+  static void call(CallableT &&func, ArgTupleT &args,
+                   std::index_sequence<I...>) {
+    std::forward<CallableT>(func)(std::get<I>(args)...);
   }
 };
 
@@ -218,24 +220,25 @@ public:
   using ArgIndices = std::make_index_sequence<std::tuple_size<ArgTuple>::value>;
 
   template <typename CallableT>
-  static void invoke(CallableT &&H, const char *ArgData, size_t ArgSize) {
-    ArgTuple args;
+  static void invoke(CallableT &&func, const char *argData,
+                     std::size_t argSize) {
+    ArgTuple argsTuple;
     // Deserialize buffer to args tuple
-    if (!deserialize(ArgData, ArgSize, args, ArgIndices{}))
+    if (!deserialize(argData, argSize, argsTuple, ArgIndices{}))
       throw std::runtime_error(
           "Failed to deserialize arguments for wrapper function call");
     // Call the wrapped function with args tuple
-    WrapperFunctionHandlerCaller::call(std::forward<CallableT>(H), args,
+    WrapperFunctionHandlerCaller::call(std::forward<CallableT>(func), argsTuple,
                                        ArgIndices{});
   }
 
 private:
   // Helper to deserialize a flat args buffer into typed args tuple.
   template <std::size_t... I>
-  static bool deserialize(const char *ArgData, size_t ArgSize, ArgTuple &Args,
-                          std::index_sequence<I...>) {
-    SerializeInputBuffer buf(ArgData, ArgSize);
-    return SerializeArgs<ArgTs...>::deserialize(buf, std::get<I>(Args)...);
+  static bool deserialize(const char *argData, std::size_t argSize,
+                          ArgTuple &argsTuple, std::index_sequence<I...>) {
+    SerializeInputBuffer buf(argData, argSize);
+    return SerializeArgs<ArgTs...>::deserialize(buf, std::get<I>(argsTuple)...);
   }
 };
 
@@ -246,10 +249,11 @@ class WrapperFunctionHandlerHelper<void (ClassT::*)(ArgTs...), ArgTs...>
 
 /// Invoke a typed callable (functions) with serialized args.
 template <typename CallableT, typename... ArgTs>
-void invokeCallableWithSerializedArgs(const char *ArgData, size_t ArgSize,
-                                      CallableT &&Handler) {
-  WrapperFunctionHandlerHelper<std::remove_reference_t<CallableT>, ArgTs...>::
-      invoke(std::forward<CallableT>(Handler), ArgData, ArgSize);
+void invokeCallableWithSerializedArgs(const char *argData, std::size_t argSize,
+                                      CallableT &&func) {
+  WrapperFunctionHandlerHelper<std::remove_reference_t<CallableT>,
+                               ArgTs...>::invoke(std::forward<CallableT>(func),
+                                                 argData, argSize);
 }
 
 template <typename QuantumKernel, typename... Args>
