@@ -15,6 +15,15 @@
 #include <cudaq.h>
 #include <iostream>
 
+#define RUN_AND_PRINT_GLOBAL_REG(TEST_NAME)                                    \
+  do {                                                                         \
+    auto result = cudaq::sample(nShots, TEST_NAME);                            \
+    auto globalRegResults = cudaq::sample_result{                              \
+        cudaq::ExecutionResult{result.to_map(cudaq::GlobalRegisterName)}};     \
+    std::cout << #TEST_NAME << ":\n";                                          \
+    globalRegResults.dump();                                                   \
+  } while (false)
+
 int main() {
   const int nShots = 1000;
 
@@ -25,11 +34,7 @@ int main() {
     mz(b);
     mz(a);
   };
-  auto result = cudaq::sample(nShots, test1);
-  auto globalRegResults = cudaq::sample_result{
-      cudaq::ExecutionResult{result.to_map(cudaq::GlobalRegisterName)}};
-  std::cout << "test1:\n";
-  globalRegResults.dump();
+  RUN_AND_PRINT_GLOBAL_REG(test1);
   // CHECK: test1:
   // CHECK: { 01:1000 }
 
@@ -40,11 +45,7 @@ int main() {
     auto ret_b = mz(b);
     auto ret_a = mz(a);
   };
-  result = cudaq::sample(nShots, test2);
-  globalRegResults = cudaq::sample_result{
-      cudaq::ExecutionResult{result.to_map(cudaq::GlobalRegisterName)}};
-  std::cout << "test2:\n";
-  globalRegResults.dump();
+  RUN_AND_PRINT_GLOBAL_REG(test2);
   // CHECK: test2:
   // CHECK: { 01:1000 }
 
@@ -56,11 +57,7 @@ int main() {
     auto ma2 = mz(a); // 2nd measurement of qubit a
     auto mb = mz(b);
   };
-  result = cudaq::sample(nShots, test3);
-  globalRegResults = cudaq::sample_result{
-      cudaq::ExecutionResult{result.to_map(cudaq::GlobalRegisterName)}};
-  std::cout << "test3:\n";
-  globalRegResults.dump();
+  RUN_AND_PRINT_GLOBAL_REG(test3);
   // CHECK: test3:
   // CHECK: { 10:1000 }
 
@@ -70,11 +67,7 @@ int main() {
     cudaq::qubit a, b;
     x(a);
   };
-  result = cudaq::sample(nShots, test4);
-  globalRegResults = cudaq::sample_result{
-      cudaq::ExecutionResult{result.to_map(cudaq::GlobalRegisterName)}};
-  std::cout << "test4:\n";
-  globalRegResults.dump();
+  RUN_AND_PRINT_GLOBAL_REG(test4);
   // CHECK: test4:
   // CHECK: { 10:1000 }
 
@@ -85,11 +78,7 @@ int main() {
     x(a);
     mz(b);
   };
-  result = cudaq::sample(nShots, test5);
-  globalRegResults = cudaq::sample_result{
-      cudaq::ExecutionResult{result.to_map(cudaq::GlobalRegisterName)}};
-  std::cout << "test5:\n";
-  globalRegResults.dump();
+  RUN_AND_PRINT_GLOBAL_REG(test5);
   // CHECK: test5:
   // CHECK: { 0:1000 }
 
@@ -101,11 +90,7 @@ int main() {
     mz(b);
     x(b); // note that this is not allowed in base profile programs
   };
-  result = cudaq::sample(nShots, test6);
-  globalRegResults = cudaq::sample_result{
-      cudaq::ExecutionResult{result.to_map(cudaq::GlobalRegisterName)}};
-  std::cout << "test6:\n";
-  globalRegResults.dump();
+  RUN_AND_PRINT_GLOBAL_REG(test6);
   // CHECK: test6:
   // CHECK: { 11:1000 }
 
