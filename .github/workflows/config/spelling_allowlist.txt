@@ -64,6 +64,7 @@ WSL
 accessor
 adjoint
 al
+ancilla
 ansatz
 arity
 auxillary
@@ -124,6 +125,7 @@ extensibility
 extremal
 fermionic
 homogenous
+implicitly
 increment
 incrementing
 initializer
