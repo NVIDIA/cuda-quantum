@@ -118,6 +118,10 @@ public:
 
   /// @brief The constructor, sets the __global__ sample result.
   /// @param result
+  sample_result(ExecutionResult &&result);
+
+  /// @brief The constructor, sets the __global__ sample result.
+  /// @param result
   sample_result(ExecutionResult &result);
 
   /// @brief The constructor, appends all provided `ExecutionResult`s
