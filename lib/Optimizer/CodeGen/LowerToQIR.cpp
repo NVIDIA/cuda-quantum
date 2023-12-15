@@ -1541,8 +1541,9 @@ public:
     typeConverter.addConversion([](cudaq::cc::CallableType type) {
       return lambdaAsPairOfPointers(type.getContext());
     });
-    typeConverter.addConversion([](cudaq::cc::StdvecType type) {
-      return cudaq::opt::factory::stdVectorImplType(type.getElementType());
+    typeConverter.addConversion([&typeConverter](cudaq::cc::StdvecType type) {
+      auto eleTy = typeConverter.convertType(type.getElementType());
+      return cudaq::opt::factory::stdVectorImplType(eleTy);
     });
     typeConverter.addConversion([](quake::MeasureType type) {
       return IntegerType::get(type.getContext(), 1);

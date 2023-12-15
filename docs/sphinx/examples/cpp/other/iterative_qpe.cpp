@@ -15,7 +15,7 @@
 
 struct iqpe {
   void operator()() __qpu__ {
-    cudaq::qreg<2> q;
+    cudaq::qarray<2> q;
     h(q[0]);
     x(q[1]);
     for (int i = 0; i < 8; i++)

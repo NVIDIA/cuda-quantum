@@ -22,12 +22,23 @@ static bool isQuantumType(Type t) {
   return isa<quake::VeqType, quake::RefType>(t);
 }
 
-static bool isArithmeticSequenceType(Type t) {
-  if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t))
-    return isArithmeticType(vec.getElementType());
-  if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t))
-    return isArithmeticType(vec.getElementType());
+// Allow array of [array of]* T, where T is arithmetic.
+static bool isStaticArithmeticSequenceType(Type t) {
+  if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t)) {
+    auto eleTy = vec.getElementType();
+    return isArithmeticType(eleTy) || isStaticArithmeticSequenceType(eleTy);
+  }
   return false;
+}
+
+// Allow vector of [vector of]* [array of]* T or
+//       array of [array of]* T, where T is arithmetic.
+static bool isArithmeticSequenceType(Type t) {
+  if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t)) {
+    auto eleTy = vec.getElementType();
+    return isArithmeticType(eleTy) || isArithmeticSequenceType(eleTy);
+  }
+  return isStaticArithmeticSequenceType(t);
 }
 
 static bool isKernelSignatureType(FunctionType t);

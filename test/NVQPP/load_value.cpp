@@ -19,7 +19,7 @@
 #include <iostream>
 
 __qpu__ void load_value(unsigned value) {
-  cudaq::qreg qubits(4);
+  cudaq::qvector qubits(4);
   for (std::size_t i = 0; i < 4; ++i) {
     // Doesn't work, even with: `if (value)`
     if (value & (1 << i))

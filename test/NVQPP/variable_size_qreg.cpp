@@ -18,7 +18,7 @@
 #include <iostream>
 
 __qpu__ void variable_qreg(unsigned value) {
-  cudaq::qreg qubits(value);
+  cudaq::qvector qubits(value);
 
   mz(qubits);
 }

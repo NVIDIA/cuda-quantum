@@ -20,7 +20,7 @@ struct simple_double_rotation {
   auto operator()(std::vector<double> theta) __qpu__ {
     auto size = theta.size();
     bool empty = theta.empty();
-    cudaq::qreg q(1);
+    cudaq::qvector q(1);
     int test = q.size();
     rx(theta[0], q[0]);
     mz(q);
@@ -33,7 +33,7 @@ struct simple_float_rotation {
   auto operator()(std::vector<float> theta) __qpu__ {
     int size = theta.size();
     bool empty = theta.empty();
-    cudaq::qreg q(1);
+    cudaq::qvector q(1);
     rx(theta[0], q[0]);
     mz(q);
   }

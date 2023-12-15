@@ -29,12 +29,12 @@ constexpr size_t NUM_ANGLES = 100;
 CUDAQ_TEST(GateLibraryTester, checkGivensRotation) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     auto test_01 = [](double theta) __qpu__ {
-      cudaq::qreg<2> q;
+      cudaq::qarray<2> q;
       x(q[0]);
       cudaq::givens_rotation(theta, q[0], q[1]);
     };
     auto test_10 = [](double theta) __qpu__ {
-      cudaq::qreg<2> q;
+      cudaq::qarray<2> q;
       x(q[1]);
       cudaq::givens_rotation(theta, q[0], q[1]);
     };
@@ -94,7 +94,7 @@ CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     // Same check, with 2 control qubits
     auto test_01_on = [](double theta) __qpu__ {
-      cudaq::qreg<4> q;
+      cudaq::qarray<4> q;
       x(q[2]);
       x(q[0]);
       x(q[1]);
@@ -102,7 +102,7 @@ CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
     };
 
     auto test_01_off = [](double theta) __qpu__ {
-      cudaq::qreg<4> q;
+      cudaq::qarray<4> q;
       x(q[2]);
       cudaq::control(cudaq::givens_rotation, {q[0], q[1]}, theta, q[2], q[3]);
       x(q[2]);
@@ -122,21 +122,21 @@ CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
 CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     auto test_00 = [](double theta) __qpu__ {
-      cudaq::qreg<2> q;
+      cudaq::qarray<2> q;
       cudaq::fermionic_swap(theta, q[0], q[1]);
     };
     auto test_01 = [](double theta) __qpu__ {
-      cudaq::qreg<2> q;
+      cudaq::qarray<2> q;
       x(q[0]);
       cudaq::fermionic_swap(theta, q[0], q[1]);
     };
     auto test_10 = [](double theta) __qpu__ {
-      cudaq::qreg<2> q;
+      cudaq::qarray<2> q;
       x(q[1]);
       cudaq::fermionic_swap(theta, q[0], q[1]);
     };
     auto test_11 = [](double theta) __qpu__ {
-      cudaq::qreg<2> q;
+      cudaq::qarray<2> q;
       x(q);
       cudaq::fermionic_swap(theta, q[0], q[1]);
     };

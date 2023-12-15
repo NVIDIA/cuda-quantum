@@ -50,7 +50,7 @@ void singletExcitation(KernelBuilder &&kernel, QuakeValue &qubits,
   kernel.exp_pauli(-0.5 * theta, "XY", qubits[r], qubits[p]);
 }
 
-__qpu__ void singletExcitation(cudaq::qspan<> qubits, double theta,
+__qpu__ void singletExcitation(cudaq::qview<> qubits, double theta,
                                const SingleIndices &indices) {
   auto r = indices.front();
   auto p = indices.back();
@@ -93,7 +93,7 @@ void doubletExcitation(KernelBuilder &kernel, QuakeValue &qubits,
                    qubits[p]);
 }
 
-__qpu__ void doubletExcitation(cudaq::qspan<> qubits, double theta,
+__qpu__ void doubletExcitation(cudaq::qview<> qubits, double theta,
                                const DoubleIndices &d1,
                                const DoubleIndices &d2) {
   auto s = d1.front();
@@ -173,7 +173,7 @@ void uccsd(KernelBuilder &kernel, QuakeValue &qubits, QuakeValue &thetas,
 /// given number of qubits and electrons. Takes a vector of rotation
 /// parameters as input, the size of which must correspond to the output of
 /// the `uccsd_num_parameters` function.
-__qpu__ void uccsd(cudaq::qspan<> qubits, std::vector<double> thetas,
+__qpu__ void uccsd(cudaq::qview<> qubits, std::vector<double> thetas,
                    std::size_t nElectrons) {
   auto [singles, doubles] = generateExcitations(nElectrons, qubits.size());
 

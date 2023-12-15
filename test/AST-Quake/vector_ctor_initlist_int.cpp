@@ -13,7 +13,7 @@
 #include "cudaq.h"
 
 __qpu__ void testInt() {
-  cudaq::qreg<3> q;
+  cudaq::qarray<3> q;
   std::vector<int> index{0, 1, 2};
   ry(M_PI_2, q[index[0]]);
   ry(M_PI_2, q[index[1]]);

@@ -5,7 +5,7 @@
 
 #include <cudaq.h>
 
-__qpu__ void reflect_about_uniform(cudaq::qspan<> q) {
+__qpu__ void reflect_about_uniform(cudaq::qview<> q) {
   auto ctrlQubits = q.front(q.size() - 1);
   auto &lastQubit = q.back();
 
@@ -20,7 +20,7 @@ struct run_grover {
   template <typename CallableKernel>
   __qpu__ auto operator()(const int n_qubits, const int n_iterations,
                           CallableKernel &&oracle) {
-    cudaq::qreg q(n_qubits);
+    cudaq::qvector q(n_qubits);
     h(q);
     for (int i = 0; i < n_iterations; i++) {
       oracle(q);
@@ -31,7 +31,7 @@ struct run_grover {
 };
 
 struct oracle {
-  void operator()(cudaq::qreg<> &q) __qpu__ {
+  void operator()(cudaq::qvector<> &q) __qpu__ {
     z<cudaq::ctrl>(q[0], q[2]);
     z<cudaq::ctrl>(q[1], q[2]);
   }

@@ -15,7 +15,7 @@
 
 __qpu__ void init_state() {
   double theta = 2. * std::acos(1. / std::sqrt(3));
-  cudaq::qreg qubits(2);
+  cudaq::qvector qubits(2);
   ry(theta, qubits[0]);
   h<cudaq::ctrl>(qubits[0], qubits[1]);
   x(qubits[1]);

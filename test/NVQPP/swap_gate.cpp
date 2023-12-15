@@ -19,7 +19,7 @@
 int main() {
 
   auto swapKernel = []() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     x(q[0]);
     swap(q[0], q[1]);
 

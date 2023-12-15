@@ -15,7 +15,7 @@
 #include <iostream>
 #include <unordered_set>
 
-__qpu__ void init_state(cudaq::qreg<> &qubits, double theta) {
+__qpu__ void init_state(cudaq::qvector<> &qubits, double theta) {
   ry(theta, qubits[0]);
   h<cudaq::ctrl>(qubits[0], qubits[1]);
   x(qubits[1]);
@@ -34,7 +34,7 @@ __qpu__ void init_state(cudaq::qreg<> &qubits, double theta) {
 }
 
 // :(
-__qpu__ void init_state_adj(cudaq::qreg<> &qubits, double theta) {
+__qpu__ void init_state_adj(cudaq::qvector<> &qubits, double theta) {
   x(qubits[7]);
   h<cudaq::ctrl>(qubits[6], qubits[7]);
   ry<cudaq::adj>(theta, qubits[6]);
@@ -52,7 +52,7 @@ __qpu__ void init_state_adj(cudaq::qreg<> &qubits, double theta) {
   ry<cudaq::adj>(theta, qubits[0]);
 }
 
-__qpu__ void reflect_uniform(cudaq::qreg<> &qubits, double theta) {
+__qpu__ void reflect_uniform(cudaq::qvector<> &qubits, double theta) {
   // Don't work:
   // cudaq::adjoint(init_state, qubits, theta);
   init_state_adj(qubits, theta);
@@ -68,7 +68,7 @@ bool oracle_classical(uint8_t v0, uint8_t v1, uint8_t v2, uint8_t v3) {
   return c_01 && c_123;
 }
 
-__qpu__ void oracle(cudaq::qreg<> &cs, cudaq::qubit &target) {
+__qpu__ void oracle(cudaq::qvector<> &cs, cudaq::qubit &target) {
   x<cudaq::ctrl>(cs[0], !cs[1], cs[2], !cs[3], cs[5], target);
   x<cudaq::ctrl>(cs[0], !cs[1], cs[2], !cs[3], cs[7], target);
   x<cudaq::ctrl>(cs[0], !cs[1], !cs[3], cs[4], cs[7], target);
@@ -91,7 +91,7 @@ __qpu__ void oracle(cudaq::qreg<> &cs, cudaq::qubit &target) {
 }
 
 __qpu__ void grover(double theta) {
-  cudaq::qreg qubits(8);
+  cudaq::qvector qubits(8);
   cudaq::qubit ancilla;
 
   // Initialization
