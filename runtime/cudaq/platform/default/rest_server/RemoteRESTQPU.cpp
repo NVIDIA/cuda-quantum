@@ -235,20 +235,20 @@ std::optional<uint16_t> getAvailablePort() {
   int sock = ::socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0)
     return {};
-  struct sockaddr_in serv_addr;
-  ::bzero((char *)&serv_addr, sizeof(serv_addr));
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_addr.s_addr = INADDR_ANY;
+  struct sockaddr_in servAddr;
+  ::bzero((char *)&servAddr, sizeof(servAddr));
+  servAddr.sin_family = AF_INET;
+  servAddr.sin_addr.s_addr = INADDR_ANY;
   // sin_port = 0 => auto assign
-  serv_addr.sin_port = 0;
-  if (::bind(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+  servAddr.sin_port = 0;
+  if (::bind(sock, (struct sockaddr *)&servAddr, sizeof(servAddr)) < 0)
     return {};
-  socklen_t len = sizeof(serv_addr);
-  if (::getsockname(sock, (struct sockaddr *)&serv_addr, &len) == -1)
+  socklen_t len = sizeof(servAddr);
+  if (::getsockname(sock, (struct sockaddr *)&servAddr, &len) == -1)
     return {};
   if (close(sock) < 0)
     return {};
-  return ::ntohs(serv_addr.sin_port);
+  return ::ntohs(servAddr.sin_port);
 }
 
 class RemoteSimulatorQuantumPlatform : public cudaq::quantum_platform {
