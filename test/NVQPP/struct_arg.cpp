@@ -19,7 +19,7 @@ struct baz {
 struct foo {
   template <typename CallableKernel>
   void operator()(CallableKernel &&func, int n) __qpu__ {
-    cudaq::qreg q(n);
+    cudaq::qvector q(n);
     func(q[0]);
     mz(q[0]);
   }

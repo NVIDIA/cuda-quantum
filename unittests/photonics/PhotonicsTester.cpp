@@ -15,7 +15,7 @@ TEST(PhotonicsTester, checkSimple) {
 
   struct test {
     auto operator()() __qpu__ {
-      cudaq::qreg<cudaq::dyn, 3> qutrits(2);
+      cudaq::qvector<3> qutrits(2);
       plus(qutrits[0]);
       plus(qutrits[1]);
       plus(qutrits[1]);
@@ -25,7 +25,7 @@ TEST(PhotonicsTester, checkSimple) {
 
   struct test2 {
     void operator()() __qpu__ {
-      cudaq::qreg<cudaq::dyn, 3> qutrits(2);
+      cudaq::qvector<3> qutrits(2);
       plus(qutrits[0]);
       plus(qutrits[1]);
       plus(qutrits[1]);
@@ -51,7 +51,7 @@ TEST(PhotonicsTester, checkHOM) {
 
       constexpr std::array<std::size_t, 2> input_state{1, 1};
 
-      cudaq::qreg<cudaq::dyn, 3> quds(2); // |00>
+      cudaq::qvector<3> quds(2); // |00>
       for (std::size_t i = 0; i < 2; i++) {
         for (std::size_t j = 0; j < input_state[i]; j++) {
           plus(quds[i]); // setting to  |11>
@@ -93,7 +93,7 @@ TEST(PhotonicsTester, checkMZI) {
 
       constexpr std::array<std::size_t, 2> input_state{1, 0};
 
-      cudaq::qreg<cudaq::dyn, 3> quds(2); // |00>
+      cudaq::qvector<3> quds(2); // |00>
       for (std::size_t i = 0; i < 2; i++)
         for (std::size_t j = 0; j < input_state[i]; j++)
           plus(quds[i]); // setting to  |10>

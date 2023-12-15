@@ -71,6 +71,9 @@ struct FunctionAnalysisData {
   // Use std::map to keep these sorted in ascending order. While this isn't
   // required, it makes viewing the QIR easier.
   std::map<std::size_t, std::pair<std::size_t, std::string>> resultQubitVals;
+
+  // resultOperation[QIR Result Number] = corresponding measurement op
+  DenseMap<std::size_t, Operation *> resultOperation;
   DenseMap<Operation *, std::size_t> allocationOffsets;
 };
 
@@ -173,6 +176,7 @@ private:
               return nameAttr;
             return {};
           }();
+          data.resultOperation.insert({data.nResults, callOp.getOperation()});
           data.resultQubitVals.insert(std::make_pair(
               data.nResults++, std::make_pair(qb, regName.data())));
         } else {
@@ -200,9 +204,8 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     rewriter.startRootUpdate(op);
     const auto &info = iter->second;
     nlohmann::json resultQubitJSON{info.resultQubitVals};
-    const char *profileName = "base_profile";
-    if (convertTo == "qir-adaptive")
-      profileName = "adaptive_profile";
+    bool isAdaptive = convertTo == "qir-adaptive";
+    const char *profileName = isAdaptive ? "adaptive_profile" : "base_profile";
 
     // QIR functions need certain attributes, add them here.
     // TODO: Update schema_id with valid value (issues #385 and #556)
@@ -230,6 +233,12 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     auto module = op->getParentOfType<ModuleOp>();
     for (auto &iv : info.resultQubitVals) {
       auto &rec = iv.second;
+      // All measurements must come at the end of Base Profile programs, but
+      // Adaptive Profile programs are permitted (and in some cases required) to
+      // interleave the output recording calls in the QIR.
+      if (isAdaptive)
+        builder.setInsertionPointAfter(
+            info.resultOperation.find(iv.first)->getSecond());
       Value idx = builder.create<LLVM::ConstantOp>(loc, i64Ty, iv.first);
       Value ptr = builder.create<LLVM::IntToPtrOp>(loc, resultTy, idx);
       auto regName = [&]() -> Value {

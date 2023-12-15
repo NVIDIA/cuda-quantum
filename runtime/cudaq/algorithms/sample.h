@@ -121,7 +121,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       ctx->result.clear();
       // Reset the context for the next round,
       // don't need to reset on the last exec
-      if (i < static_cast<unsigned>(shots) - 1)
+      if (i < shots - 1)
         platform.set_exec_ctx(ctx.get(), qpu_id);
     }
 

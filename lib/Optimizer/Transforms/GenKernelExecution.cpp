@@ -811,7 +811,7 @@ public:
     auto builder = OpBuilder::atBlockEnd(module.getBody());
     auto mangledNameMap =
         module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map");
-    if (mangledNameMap.empty())
+    if (!mangledNameMap || mangledNameMap.empty())
       return;
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
     if (failed(irBuilder.loadIntrinsic(module,

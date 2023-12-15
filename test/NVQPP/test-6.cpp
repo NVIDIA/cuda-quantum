@@ -13,7 +13,7 @@
 #include <iostream>
 
 __qpu__ void cccx_measure_cleanup() {
-  cudaq::qreg qubits(4);
+  cudaq::qvector qubits(4);
   // Initialize
   x(qubits[0]);
   x(qubits[1]);
