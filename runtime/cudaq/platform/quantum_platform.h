@@ -133,12 +133,6 @@ public:
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset);
 
-  virtual void kernelEnter(const std::string &kernelName,
-                           const std::string &kernelSymbolName,
-                           void *thisFunc = nullptr){};
-  virtual void kernelExit(const std::string &kernelName,
-                          const std::string &kernelSymbolName,
-                          void *thisFunc = nullptr){};
   /// List all available platforms, which correspond to `.qplt` files in the
   /// platform directory.
   static std::vector<std::string> list_platforms();

@@ -10,6 +10,7 @@
 
 #include "common/ExecutionContext.h"
 #include "common/MeasureCounts.h"
+#include "common/WrappedKernel.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "host_config.h"
@@ -185,22 +186,6 @@ struct sample_options {
   cudaq::noise_model noise;
 };
 
-// Manual hooks for quantum_platform notifications in library
-// mode.
-// TODO: we could implement sth like LLVM's
-// EntryExitInstrumenterPass to automatically do this.
-#ifdef CUDAQ_LIBRARY_MODE
-#define KERNEL_ENTER(kernel)                                                   \
-  cudaq::get_platform().kernelEnter(cudaq::getKernelName(kernel),              \
-                                    typeid(kernel).name());
-#define KERNEL_EXIT(kernel)                                                    \
-  cudaq::get_platform().kernelExit(cudaq::getKernelName(kernel),               \
-                                   typeid(kernel).name());
-#else
-#define KERNEL_ENTER(kernel)
-#define KERNEL_EXIT(kernel)
-#endif
-
 /// @brief Sample the given quantum kernel expression and return the
 /// mapping of observed bit strings to corresponding number of
 /// times observed.
@@ -235,18 +220,16 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
 #if CUDAQ_USE_STD20
   return details::runSampling(
              [&kernel, ... args = std::forward<Args>(args)]() mutable {
-               KERNEL_ENTER(kernel);
-               kernel(std::forward<Args>(args)...);
-               KERNEL_EXIT(kernel);
+               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                   std::forward<Args>(args)...);
              },
              platform, kernelName, shots)
       .value();
 #else
   return details::runSampling(
              [&]() mutable {
-               KERNEL_ENTER(kernel);
-               kernel(std::forward<Args>(args)...);
-               KERNEL_EXIT(kernel);
+               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                   std::forward<Args>(args)...);
              },
              platform, kernelName, shots)
       .value();
@@ -287,18 +270,16 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
 #if CUDAQ_USE_STD20
   return details::runSampling(
              [&kernel, ... args = std::forward<Args>(args)]() mutable {
-               KERNEL_ENTER(kernel);
-               kernel(std::forward<Args>(args)...);
-               KERNEL_EXIT(kernel);
+               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                   std::forward<Args>(args)...);
              },
              platform, kernelName, shots)
       .value();
 #else
   return details::runSampling(
              [&]() mutable {
-               KERNEL_ENTER(kernel);
-               kernel(std::forward<Args>(args)...);
-               KERNEL_EXIT(kernel);
+               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                   std::forward<Args>(args)...);
              },
              platform, kernelName, shots)
       .value();
@@ -342,18 +323,16 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
 #if CUDAQ_USE_STD20
   auto ret = details::runSampling(
                  [&kernel, ... args = std::forward<Args>(args)]() mutable {
-                   KERNEL_ENTER(kernel);
-                   kernel(std::forward<Args>(args)...);
-                   KERNEL_EXIT(kernel);
+                   cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                       std::forward<Args>(args)...);
                  },
                  platform, kernelName, shots)
                  .value();
 #else
   auto ret = details::runSampling(
                  [&]() mutable {
-                   KERNEL_ENTER(kernel);
-                   kernel(std::forward<Args>(args)...);
-                   KERNEL_EXIT(kernel);
+                   cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                       std::forward<Args>(args)...);
                  },
                  platform, kernelName, shots)
                  .value();
@@ -400,9 +379,8 @@ async_sample_result sample_async(const std::size_t qpu_id,
 #if CUDAQ_USE_STD20
   return details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        KERNEL_ENTER(kernel);
-        kernel(std::forward<Args>(args)...);
-        KERNEL_EXIT(kernel);
+        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...);
       },
       platform, kernelName, shots, qpu_id);
 #else
@@ -453,9 +431,8 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
 #if CUDAQ_USE_STD20
   return details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        KERNEL_ENTER(kernel);
-        kernel(std::forward<Args>(args)...);
-        KERNEL_EXIT(kernel);
+        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...);
       },
       platform, kernelName, shots, qpu_id);
 #else

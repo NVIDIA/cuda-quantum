@@ -121,6 +121,11 @@ public:
     }();
     cudaq::RestRequest request(*executionContext);
     if (cudaq::__internal__::isLibraryMode(name)) {
+      if (args && voidStarSize > 0) {
+        cudaq::info("Serialize {} bytes of args.", voidStarSize);
+        request.args.resize(voidStarSize);
+        std::memcpy(request.args.data(), args, voidStarSize);
+      }
       // Library mode: retrieve the embedded bitcode in the executable.
       const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
       // Load the object file
@@ -231,21 +236,6 @@ public:
   ~RemoteSimulatorQuantumPlatform() = default;
   RemoteSimulatorQuantumPlatform() : m_mlirContext(cudaq::initializeMLIR()) {
     platformNumQPUs = 0;
-  }
-  virtual void kernelEnter(const std::string &kernelName,
-                           const std::string &kernelSymbolName,
-                           void *thisFunc) override {
-    cudaq::info("RemoteSimulatorQPU: Enter kernel {} ({}).", kernelName,
-                kernelSymbolName);
-    const auto iter = m_threadIdToQpuId.find(std::this_thread::get_id());
-    const auto qpuId = (iter != m_threadIdToQpuId.end()) ? iter->second : 0;
-    platformQPUs[qpuId]->launchKernel(kernelName, nullptr, nullptr, 0, 0);
-  }
-  virtual void kernelExit(const std::string &kernelName,
-                          const std::string &kernelSymbolName,
-                          void *thisFunc) override {
-    cudaq::info("RemoteSimulatorQPU: Exit kernel {} ({}).", kernelName,
-                kernelSymbolName);
   }
   bool supports_task_distribution() const override { return true; }
   void setTargetBackend(const std::string &description) override {

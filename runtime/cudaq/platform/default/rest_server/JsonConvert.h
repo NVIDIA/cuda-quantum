@@ -26,7 +26,7 @@ void from_json(const json &j, std::complex<T> &p) {
 } // namespace std
 
 namespace cudaq {
-void to_json(json &j, const ExecutionContext &context) {
+inline void to_json(json &j, const ExecutionContext &context) {
   j = json{{"name", context.name},
            {"shots", context.shots},
            {"hasConditionalsOnMeasureResults",
@@ -49,7 +49,7 @@ void to_json(json &j, const ExecutionContext &context) {
   }
 }
 
-void from_json(const json &j, ExecutionContext &context) {
+inline void from_json(const json &j, ExecutionContext &context) {
   j.at("shots").get_to(context.shots);
   j.at("hasConditionalsOnMeasureResults")
       .get_to(context.hasConditionalsOnMeasureResults);
@@ -120,7 +120,9 @@ public:
   CodeFormat format;
   std::size_t seed;
   std::vector<std::string> passes;
+  std::vector<uint8_t> args;
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, entryPoint, simulator,
-                                 executionContext, code, format, seed, passes);
+                                 executionContext, code, args, format, seed,
+                                 passes);
 };
 } // namespace cudaq

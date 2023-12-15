@@ -5,7 +5,6 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-
 #include "JsonConvert.h"
 #include "RestServer.h"
 #include "common/Logger.h"
@@ -19,6 +18,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm_jit/JIT.h"
 #include "nvqir/CircuitSimulator.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
@@ -53,15 +53,13 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 
 namespace {
 std::unique_ptr<ExecutionEngine>
-jitCode(llvm::MemoryBufferRef codeBuf, ModuleOp currentModule,
-        const std::vector<std::string> &passes, cudaq::CodeFormat format,
-        const std::string &entryPoint,
-        std::string *optionalMangleName = nullptr,
+jitCode(ModuleOp currentModule, const std::vector<std::string> &passes,
         const std::vector<std::string> &extraLibPaths = {}) {
   cudaq::info("Running jitCode.");
   auto module = currentModule.clone();
   ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
+  opts.enableObjectDump = true;
   opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
   SmallVector<StringRef, 4> sharedLibs;
   for (auto &lib : extraLibPaths) {
@@ -70,64 +68,38 @@ jitCode(llvm::MemoryBufferRef codeBuf, ModuleOp currentModule,
   }
   opts.sharedLibPaths = sharedLibs;
 
-  if (format == cudaq::CodeFormat::MLIR) {
-    auto ctx = module.getContext();
-    PassManager pm(ctx);
-    std::string errMsg;
-    llvm::raw_string_ostream os(errMsg);
-    const std::string pipeline =
-        std::accumulate(passes.begin(), passes.end(), std::string(),
-                        [](const auto &ss, const auto &s) {
-                          return ss.empty() ? s : ss + "," + s;
-                        });
-    if (failed(parsePassPipeline(pipeline, pm, os)))
-      throw std::runtime_error(
-          "Remote rest platform failed to add passes to pipeline (" + errMsg +
-          ").");
+  auto ctx = module.getContext();
+  PassManager pm(ctx);
+  std::string errMsg;
+  llvm::raw_string_ostream os(errMsg);
+  const std::string pipeline =
+      std::accumulate(passes.begin(), passes.end(), std::string(),
+                      [](const auto &ss, const auto &s) {
+                        return ss.empty() ? s : ss + "," + s;
+                      });
+  if (failed(parsePassPipeline(pipeline, pm, os)))
+    throw std::runtime_error(
+        "Remote rest platform failed to add passes to pipeline (" + errMsg +
+        ").");
 
-    if (failed(pm.run(module)))
-      throw std::runtime_error(
-          "Remote rest platform: applying IR passes failed.");
+  if (failed(pm.run(module)))
+    throw std::runtime_error(
+        "Remote rest platform: applying IR passes failed.");
 
-    cudaq::info("- Pass manager was applied.");
+  cudaq::info("- Pass manager was applied.");
 
-    opts.llvmModuleBuilder =
-        [](Operation *module,
-           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
-      llvmContext.setOpaquePointers(false);
-      auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
-      if (!llvmModule) {
-        llvm::errs() << "Failed to emit LLVM IR\n";
-        return nullptr;
-      }
-      ExecutionEngine::setupTargetTriple(llvmModule.get());
-      return llvmModule;
-    };
-  } else {
-    opts.llvmModuleBuilder =
-        [&codeBuf, entryPoint, &optionalMangleName](
-            Operation *module,
-            llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
-      llvm::SMDiagnostic Err;
-      std::unique_ptr<llvm::Module> llvmModule =
-          llvm::parseIR(codeBuf, Err, llvmContext);
-
-      if (!llvmModule)
-        throw "Failed to parse embedded bitcode";
-      for (auto &func : llvmModule->functions()) {
-        auto demangledPtr = abi::__cxa_demangle(func.getName().data(), nullptr,
-                                                nullptr, nullptr);
-        if (demangledPtr) {
-          std::string demangledName(demangledPtr);
-          if (demangledName.rfind(entryPoint, 0) == 0 && optionalMangleName) {
-            *optionalMangleName = func.getName().str();
-          }
-        }
-      }
-      ExecutionEngine::setupTargetTriple(llvmModule.get());
-      return llvmModule;
-    };
-  }
+  opts.llvmModuleBuilder =
+      [](Operation *module,
+         llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
+    llvmContext.setOpaquePointers(false);
+    auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
+    if (!llvmModule) {
+      llvm::errs() << "Failed to emit LLVM IR\n";
+      return nullptr;
+    }
+    ExecutionEngine::setupTargetTriple(llvmModule.get());
+    return llvmModule;
+  };
 
   cudaq::info(" - Creating the MLIR ExecutionEngine");
   auto uniqueJit = llvm::cantFail(ExecutionEngine::create(module, opts));
@@ -135,43 +107,23 @@ jitCode(llvm::MemoryBufferRef codeBuf, ModuleOp currentModule,
   return uniqueJit;
 }
 
-void invokeKernel(cudaq::ExecutionContext &io_executionContext,
-                  std::string_view irString, cudaq::CodeFormat format,
-                  const std::vector<std::string> &passes,
-                  const std::string &entryPointFn) {
-  auto contextPtr = cudaq::initializeMLIR();
-  auto module = [&]() {
-    if (format == cudaq::CodeFormat::MLIR) {
-      llvm::SourceMgr sourceMgr;
-      sourceMgr.AddNewSourceBuffer(
-          llvm::MemoryBuffer::getMemBufferCopy(irString), llvm::SMLoc());
-      return parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
-    } else {
-      OpBuilder builder(contextPtr.get());
-      auto moduleOp =
-          builder.create<ModuleOp>(UnknownLoc::get(contextPtr.get()));
-      return OwningOpRef<ModuleOp>(moduleOp);
-    }
-  }();
-  std::string mangedName;
-  auto fileBuf = llvm::MemoryBuffer::getMemBufferCopy(irString);
-  auto engine =
-      jitCode(*fileBuf, *module, passes, format, entryPointFn, &mangedName);
+void invokeMlirKernel(std::unique_ptr<MLIRContext> &contextPtr,
+                      std::string_view irString,
+                      const std::vector<std::string> &passes,
+                      const std::string &entryPointFn) {
+  llvm::SourceMgr sourceMgr;
+  sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(irString),
+                               llvm::SMLoc());
+  auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
+  auto engine = jitCode(*module, passes);
   const std::string entryPointFunc =
-      mangedName.empty()
-          ? (std::string(cudaq::runtime::cudaqGenPrefixName) + entryPointFn)
-          : mangedName;
-  //  Extract the entry point
+      std::string(cudaq::runtime::cudaqGenPrefixName) + entryPointFn;
   auto fnPtr = llvm::cantFail(engine->lookup(entryPointFunc));
-
   if (!fnPtr)
     throw std::runtime_error("Failed to get entry function");
 
   auto fn = reinterpret_cast<void (*)()>(fnPtr);
-  auto &platform = cudaq::get_platform();
-  platform.set_exec_ctx(&io_executionContext);
   fn();
-  platform.reset_exec_ctx();
 }
 
 void *loadNvqirSimLib(const std::string &simulatorName) {
@@ -205,8 +157,16 @@ json processRequest(const std::string &reqBody) {
   void *handle = loadNvqirSimLib(request.simulator);
   if (request.seed != 0)
     cudaq::set_random_seed(request.seed);
-  invokeKernel(request.executionContext, request.getCode(), request.format,
-               request.passes, request.entryPoint);
+  auto mlirContext = cudaq::initializeMLIR();
+  auto &platform = cudaq::get_platform();
+  platform.set_exec_ctx(&request.executionContext);
+  if (request.format == cudaq::CodeFormat::LLVM)
+    cudaq::invokeWrappedKernel(request.getCode(), request.entryPoint,
+                               request.args);
+  else
+    invokeMlirKernel(mlirContext, request.getCode(), request.passes,
+                     request.entryPoint);
+  platform.reset_exec_ctx();
   json resultContextJs = request.executionContext;
   dlclose(handle);
   return resultContextJs;

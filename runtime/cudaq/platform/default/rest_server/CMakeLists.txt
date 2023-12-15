@@ -38,10 +38,13 @@ if (NOT CUDAQ_DISABLE_TOOLS)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 
   add_subdirectory(server_impl)
+  add_subdirectory(llvm_jit)
+  
   add_executable(cudaq_rest_server RestServerMain.cpp)
   target_link_libraries(cudaq_rest_server
     PRIVATE
       rest_server_impl
+      jit_util
       ${dialect_libs}
       ${translation_libs}
       ${conversion_libs}
