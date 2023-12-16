@@ -8,6 +8,9 @@
 
 // RUN: cudaq-quake -Xcudaq -Wall -verify %s -o /dev/null
 
+// Remove this once qreg support is officially removed (not just deprecated)
+#define CUDAQ_EXCLUDE_QREG_HEADERS
+
 #include <cudaq.h>
 
 void foo();

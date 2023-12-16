@@ -8,6 +8,9 @@
 
 // RUN: cudaq-quake -verify %s
 
+// Remove this once qreg support is officially removed (not just deprecated)
+#define CUDAQ_EXCLUDE_QREG_HEADERS
+
 #include <cudaq.h>
 
 // Error for kernels with data members. Not supported (yet).
