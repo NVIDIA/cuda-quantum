@@ -22,7 +22,7 @@
 
 struct ansatz_handcoded {
   void operator()(double theta) __qpu__ {
-    cudaq::qreg q(4);
+    cudaq::qvector q(4);
     x(q[0]);
     x(q[2]);
     rx(M_PI_2, q[0]);
@@ -47,7 +47,7 @@ struct ansatz_handcoded {
 // equivalent to the one defined in `ansatz_handcoded`.
 struct ansatz_compute_action {
   void operator()(std::vector<double> theta) __qpu__ {
-    cudaq::qreg q(4);
+    cudaq::qvector q(4);
     x(q[0]);
     x(q[2]);
 
