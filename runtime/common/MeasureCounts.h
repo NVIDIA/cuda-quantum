@@ -250,7 +250,7 @@ public:
                const std::string_view registerName = GlobalRegisterName);
 
   /// @brief Reorder the bits in an ExecutionResult
-  /// @param idx Vector of indices such that newBitStr(:) = oldBitStr(idx(:))
+  /// @param idx Vector of indices such that `newBitStr(:) = oldBitStr(idx(:))`
   /// @param registerName register name to process (defaults to global)
   void reorder(const std::vector<std::size_t> &idx,
                const std::string_view registerName = GlobalRegisterName);
