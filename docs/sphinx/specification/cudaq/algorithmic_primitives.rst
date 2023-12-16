@@ -167,7 +167,7 @@ kernel is written:
    However, similar to #1, the values of the sampled qubits always correspond to
    the values *at the end of the kernel execution*. That is - if a qubit is
    measured in the middle of a kernel and subsequent operations change the state
-   of the qubit, the qubit will be implicity re-measured at the end of the
+   of the qubit, the qubit will be implicitly re-measured at the end of the
    kernel, and that re-measured value is the value that will appear in the
    :code:`__global__` register. For example,
 

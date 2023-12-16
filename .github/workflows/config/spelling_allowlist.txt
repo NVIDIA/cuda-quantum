@@ -125,7 +125,6 @@ extensibility
 extremal
 fermionic
 homogenous
-implicitly
 increment
 incrementing
 initializer
