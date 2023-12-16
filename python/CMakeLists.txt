@@ -28,6 +28,9 @@ endif()
 
 message(STATUS "Found Python version ${Python_VERSION}. Building CUDA Quantum Python API with ${Python_INCLUDE_DIRS}")
 
+# Remove this once qreg support is officially removed (not just deprecated)
+add_compile_definitions(CUDAQ_EXCLUDE_QREG_HEADERS)
+
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
 endif()

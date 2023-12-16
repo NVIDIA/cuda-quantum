@@ -11,15 +11,6 @@
 #include "cudaq/qis/qspan.h"
 #include "host_config.h"
 
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 namespace cudaq {
 
 #if CUDAQ_USE_STD20
@@ -145,10 +136,3 @@ qreg<dyn, 2>::qreg() : qudits(1) {}
 // Provide the default qreg q(SIZE) deduction guide
 qreg(std::size_t) -> qreg<dyn, 2>;
 } // namespace cudaq
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif

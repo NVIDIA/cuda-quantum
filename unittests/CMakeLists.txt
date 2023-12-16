@@ -10,6 +10,8 @@ SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
      "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
 
+# Remove this once qreg support is officially removed (not just deprecated)
+add_compile_definitions(CUDAQ_EXCLUDE_QREG_HEADERS)
 
 set(CUDAQ_RUNTIME_TEST_SOURCES 
   # Integration tests
