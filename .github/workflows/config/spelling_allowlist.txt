@@ -10,9 +10,11 @@ CPTP
 CPU
 CPUs
 CUDA
+Composability
 CuPy
 DGX
 DOI
+Deuteron
 Fourier
 GHCR
 GPU
@@ -142,6 +144,7 @@ nullary
 optimizer
 optimizers
 parallelization
+parameterization
 precompute
 precomputed
 prepend
@@ -173,6 +176,7 @@ tablegen
 templated
 toolchain
 unary
+uncompute
 unitaries
 unitary
 unoptimized
