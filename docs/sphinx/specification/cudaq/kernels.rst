@@ -51,11 +51,11 @@ memory cannot be allocated from within host code.
 Pure device quantum kernels can be expressed as typed-callables, but can also
 be represented as annotated free functions. Pure device quantum kernels can take
 :code:`cudaq::qudit<N>` specializations and containers (e.g. 
-:code:`cudaq::qspan`, :code:`cudaq::qreg`) as input. 
+:code:`cudaq::qview`, :code:`cudaq::qvector`) as input. 
 
 .. code-block:: cpp
 
-    auto my_first_device_kernel = [](cudaq::qreg<>& q) __qpu__ { 
+    auto my_first_device_kernel = [](cudaq::qvector<>& q) __qpu__ { 
        ... quantum code using q ...
        };
     struct my_second_device_kernel { 
@@ -92,7 +92,7 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
 .. code-block:: cpp 
 
   struct MyStatePrep {
-    void operator()(cudaq::qspan<> qubits) __qpu__ {
+    void operator()(cudaq::qview<> qubits) __qpu__ {
       ... apply state prep operations on qubits ...
     }
   };
@@ -100,7 +100,7 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
   struct MyGenericAlgorithm {
     template<typename StatePrep>
     void operator()(StatePrep&& statePrep) __qpu__ {
-      cudaq::qreg<10> q;
+      cudaq::qarray<10> q;
       statePrep(q);
       ...
     }
@@ -109,7 +109,7 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
   // -or- with placeholder type specifiers
   struct MyGenericAlgorithm2 {
     void operator()(auto&& statePrep) __qpu__ {
-      cudaq::qreg<10> q;
+      cudaq::qarray<10> q;
       statePrep(q);
       ...
     }
@@ -136,9 +136,9 @@ CUDA Quantum kernel inputs can also be `constrained <https://en.cppreference.com
     concept takes_qubit = signature<Kernel, void(qubit&)>;
   }
 
-  struct MyGenericAlgorithmOnQreg {
-    void operator()(cudaq::signature<void(cudaq::qreg&)> auto&& statePrep) __qpu__ {
-      cudaq::qreg<10> q;
+  struct MyGenericAlgorithmOnQarray {
+    void operator()(cudaq::signature<void(cudaq::qarray&)> auto&& statePrep) __qpu__ {
+      cudaq::qarray<10> q;
       statePrep(q);
       ...
     }
@@ -146,7 +146,7 @@ CUDA Quantum kernel inputs can also be `constrained <https://en.cppreference.com
 
   struct MyGenericAlgorithmOnQubit {
     void operator()(cudaq::takes_qubit auto&& statePrep) __qpu__ {
-      cudaq::qreg<10> q;
+      cudaq::qarray<10> q;
       statePrep(q[0]);
       ...
     }
