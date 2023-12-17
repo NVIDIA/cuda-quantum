@@ -231,7 +231,7 @@ public:
   }
 };
 
-std::optional<uint16_t> getAvailablePort() {
+std::optional<std::string> getAvailablePort() {
   int sock = ::socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0)
     return {};
@@ -248,7 +248,7 @@ std::optional<uint16_t> getAvailablePort() {
     return {};
   if (close(sock) < 0)
     return {};
-  return ::ntohs(servAddr.sin_port);
+  return std::to_string(::ntohs(servAddr.sin_port));
 }
 
 class RemoteSimulatorQuantumPlatform : public cudaq::quantum_platform {
@@ -312,10 +312,8 @@ public:
         if (!port.has_value())
           throw std::runtime_error("Unable to find a TCP/IP port on the local "
                                    "machine for auto-launch a REST server.");
-        urls.emplace_back(std::string("localhost:") +
-                          std::to_string(port.value()));
-        llvm::StringRef argv[] = {serverApp.get(), "--port",
-                                  std::to_string(port.value())};
+        urls.emplace_back(std::string("localhost:") + port.value());
+        llvm::StringRef argv[] = {serverApp.get(), "--port", port.value()};
         [[maybe_unused]] auto processInfo =
             llvm::sys::ExecuteNoWait(serverApp.get(), argv, std::nullopt);
         cudaq::info("Auto launch REST server at http://localhost:{} (PID {})",
