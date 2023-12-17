@@ -8,8 +8,9 @@
 
 #pragma once
 #include "common/ExecutionContext.h"
+#include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
-#include <deque>
+
 using json = nlohmann::json;
 
 namespace std {
@@ -67,11 +68,8 @@ inline void from_json(const json &j, ExecutionContext &context) {
     std::vector<double> spinData;
     j["spin"]["data"].get_to(spinData);
     const std::size_t nQubits = j["spin"]["num_qubits"];
-    // Static container of reconstructed spin_op instances for proper cleanup.
-    // Use std::deque to prevent pointer invalidation.
-    static thread_local std::deque<cudaq::spin_op> cacheSerializedSpinOps;
-    cacheSerializedSpinOps.emplace_back(spinData, nQubits);
-    context.spin = &cacheSerializedSpinOps.back();
+    auto serializedSpinOps = std::make_unique<spin_op>(spinData, nQubits);
+    context.spin = serializedSpinOps.release();
   }
 
   std::vector<std::size_t> stateDim;
@@ -93,16 +91,34 @@ class RestRequest {
 private:
   /// Holder of the reconstructed execution context.
   std::unique_ptr<ExecutionContext> m_deserializedContext;
+  /// Holder of the reconstructed `spin_op`.
+  std::unique_ptr<spin_op> m_deserializedSpinOp;
   std::vector<uint8_t> code;
+  // Version number of this payload.
+  // This needs to be bumped whenever a breaking change is introduced.
+  // e.g., adding/removing non-optional fields, changing field names, etc.
+  static constexpr std::size_t SCHEMA_VERSION = 1;
 
 public:
-  RestRequest(ExecutionContext &context) : executionContext(context) {}
+  RestRequest(ExecutionContext &context)
+      : executionContext(context), version(SCHEMA_VERSION) {}
   RestRequest(const json &j)
       : m_deserializedContext(
             std::make_unique<ExecutionContext>(j["executionContext"]["name"])),
         executionContext(*m_deserializedContext) {
-    // Load the rest
     from_json(j, *this);
+    // Take the ownership of the spin_op pointer for proper cleanup.
+    if (executionContext.spin.has_value() && executionContext.spin.value())
+      m_deserializedSpinOp.reset(executionContext.spin.value());
+    // If the incoming JSON payload has a different version than the one this is
+    // compiled with, throw an error. Note: we don't support automatically
+    // versioning the payload (converting payload between different versions) at
+    // the moment.
+    if (version != SCHEMA_VERSION)
+      throw std::runtime_error(
+          fmt::format("Incompatible JSON schema detected: expected version {}, "
+                      "got version {}",
+                      SCHEMA_VERSION, version));
   }
 
   void setCode(const std::string &codeStr) {
@@ -121,7 +137,9 @@ public:
   std::size_t seed;
   std::vector<std::string> passes;
   std::vector<uint8_t> args;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, entryPoint, simulator,
+  std::size_t version;
+
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
                                  executionContext, code, args, format, seed,
                                  passes);
 };
