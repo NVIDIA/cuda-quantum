@@ -8,9 +8,6 @@
 
 // RUN: cudaq-quake %s -verify
 
-// Remove this once qreg support is officially removed (not just deprecated)
-#define CUDAQ_EXCLUDE_QREG_HEADERS
-
 #include <cudaq.h>
 
 struct bad {
