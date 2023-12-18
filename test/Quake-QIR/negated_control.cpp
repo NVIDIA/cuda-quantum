@@ -12,7 +12,7 @@
 
 struct Stuart {
    void operator() () __qpu__ {
-      cudaq::qreg<5> qreg;
+      cudaq::qarray<5> qreg;
       y<cudaq::ctrl>(!qreg[0], qreg[1], qreg[4]);
       z<cudaq::ctrl>(qreg[2], !qreg[3], qreg[4]);
    }

@@ -91,7 +91,7 @@ Returns:
                 cudaq::qubit q;
                 return details::mapArgToType(q);
               } else if (name == "qreg") {
-                cudaq::qreg<cudaq::dyn, 2> q;
+                cudaq::qvector<> q;
                 return details::mapArgToType(q);
               } else
                 throw std::runtime_error("Invalid builder parameter type (must "

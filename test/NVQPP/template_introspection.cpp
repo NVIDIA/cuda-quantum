@@ -14,7 +14,7 @@
 template <std::size_t N>
 struct ghz {
   void operator()() __qpu__ {
-    cudaq::qreg<N> q;
+    cudaq::qarray<N> q;
     h(q[0]);
     // .. etc
   }

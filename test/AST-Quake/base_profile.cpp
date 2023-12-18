@@ -12,7 +12,7 @@
 
 struct kernel {
     void operator()() __qpu__ {
-        cudaq::qreg<3> q;
+        cudaq::qarray<3> q;
         h(q[1]);
         x<cudaq::ctrl>(q[1],q[2]);
 
