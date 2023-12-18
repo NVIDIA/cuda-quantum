@@ -8,9 +8,6 @@
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# Remove this once qreg support is officially removed (not just deprecated)
-add_compile_definitions(CUDAQ_EXCLUDE_QREG_HEADERS)
-
 add_subdirectory(common)
 add_subdirectory(nvqir)
 add_subdirectory(cudaq)

@@ -11,12 +11,6 @@
 #include "common/MeasureCounts.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/qarray.h"
-
-// Remove this once qreg support is officially removed (not just deprecated)
-#ifndef CUDAQ_EXCLUDE_QREG_HEADERS
-#include "cudaq/qis/qreg.h"
-#endif
-
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
 #include "host_config.h"
