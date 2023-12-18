@@ -27,7 +27,7 @@
 int main() {
   const int nShots = 1000;
 
-  // Check that qubits show up in measurement order (w/o var names)
+  // Check that qubits show up in user qubit order (w/o var names)
   auto test1 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
@@ -36,9 +36,9 @@ int main() {
   };
   RUN_AND_PRINT_GLOBAL_REG(test1);
   // CHECK: test1:
-  // CHECK: { 01:1000 }
+  // CHECK: { 10:1000 }
 
-  // Check that qubits show up in measurement order (w/ var names)
+  // Check that qubits show up in user qubit order (w/ var names)
   auto test2 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
@@ -47,9 +47,9 @@ int main() {
   };
   RUN_AND_PRINT_GLOBAL_REG(test2);
   // CHECK: test2:
-  // CHECK: { 01:1000 }
+  // CHECK: { 10:1000 }
 
-  // Check that duplicate measurements don't get duplicated in global bistring
+  // Check that duplicate measurements don't get duplicated in global bitstring
   auto test3 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
