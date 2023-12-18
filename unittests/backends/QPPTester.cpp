@@ -42,6 +42,7 @@ qpp::ket getOneState(const int numQubits) {
 
 std::string getSampledBitString(QppCircuitSimulator<qpp::ket> &qppBackend,
                                 std::vector<std::size_t> &&qubits) {
+  std::cout << "sampling on the state vector backend.\n";
   // Call `sample` and return the bitstring as the first element of the
   // measurement count map.
   cudaq::ExecutionContext ctx("sample", 1);

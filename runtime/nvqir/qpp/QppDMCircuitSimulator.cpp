@@ -69,11 +69,10 @@ protected:
       return;
     }
 
-    state.conservativeResize(stateDimension, stateDimension);
-    for (std::size_t i = previousStateDimension; i < stateDimension; i++) {
-      state.col(i).setZero();
-      state.row(i).setZero();
-    }
+    // Additional qubit is added in the |0><0| state.
+    qpp::cmat zero_state = qpp::cmat::Zero(2, 2);
+    zero_state(0, 0) = 1.0;
+    state = qpp::kron(state, zero_state);
   }
 
   void addQubitsToState(std::size_t count) override {
@@ -87,13 +86,9 @@ protected:
       return;
     }
 
-    state.conservativeResize(stateDimension, stateDimension);
-    for (std::size_t i = previousStateDimension; i < stateDimension; i++) {
-      state.col(i).setZero();
-      state.row(i).setZero();
-    }
-
-    return;
+    qpp::cmat zero_state = qpp::cmat::Zero(1 << count, 1 << count);
+    zero_state(0, 0) = 1.0;
+    state = qpp::kron(state, zero_state);
   }
 
   void setToZeroState() override {
