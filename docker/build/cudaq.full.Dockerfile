@@ -67,13 +67,13 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && \
     source scripts/configure_build.sh install-$install_before_build
 
-ARG CUDA_QUANTUM_COMMIT=68844992ddc2f34c9678dd78dc4c98931eebf9fa
+ARG CUDA_QUANTUM_COMMIT=90b13ec85beccf017544f94942a91aae6b821e6a
 RUN rm -rf /cuda-quantum && \
     git clone --filter=tree:0 https://github.com/nvidia/cuda-quantum /cuda-quantum && \
     cd /cuda-quantum && git checkout ${CUDA_QUANTUM_COMMIT} && \
     rm -rf /cuda-quantum/scripts
 ADD scripts /cuda-quantum/scripts
-RUN cd /cuda-quantum && source scripts/configure_build.sh \
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantum]
     FORCE_COMPILE_GPU_COMPONENTS=true \
     CUDAQ_ENABLE_STATIC_LINKING=true \
