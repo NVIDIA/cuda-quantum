@@ -71,7 +71,7 @@ int main() {
   // CHECK: test4:
   // CHECK: { 10:1000 }
 
-  // Check that specifying a measurement on `a` hides `b` from the global
+  // Check that specifying a measurement on `b` hides `a` from the global
   // register.
   auto test5 = []() __qpu__ {
     cudaq::qubit a, b;
