@@ -214,7 +214,7 @@ public:
     std::map<std::string, std::string> headers{
         {"Expect:", ""}, {"Content-type", "application/json"}};
     json requestJson = request;
-    auto resultJs = m_client.post(m_url, "job", requestJson, headers);
+    auto resultJs = m_client.post(m_url, "job", requestJson, headers, false);
     resultJs.get_to(*executionContext);
   }
 
@@ -253,7 +253,6 @@ std::optional<std::string> getAvailablePort() {
 
 class RemoteSimulatorQuantumPlatform : public cudaq::quantum_platform {
   std::unique_ptr<MLIRContext> m_mlirContext;
-  std::unordered_map<std::thread::id, std::size_t> m_threadIdToQpuId;
   std::vector<llvm::sys::ProcessInfo> m_serverProcesses;
 
 public:
@@ -337,7 +336,8 @@ public:
       // Populate the information and add the QPUs
       auto qpu = std::make_unique<RemoteSimulatorQPU>(
           *m_mlirContext, formatUrl(urls[qId]), qId, simName);
-      m_threadIdToQpuId[qpu->getExecutionThreadId()] = qId;
+      threadToQpuId[std::hash<std::thread::id>{}(qpu->getExecutionThreadId())] =
+          qId;
       platformQPUs.emplace_back(std::move(qpu));
     }
 
