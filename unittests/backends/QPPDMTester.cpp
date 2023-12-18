@@ -14,7 +14,6 @@
 #include "CUDAQTestUtils.h"
 #include "QppDMCircuitSimulator.cpp"
 
-
 void print_state(const qpp::cmat &densityMatrix) {
   std::cout << "state = [";
   auto rows = densityMatrix.rows();
