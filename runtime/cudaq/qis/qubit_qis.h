@@ -11,7 +11,6 @@
 #include "common/MeasureCounts.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/qarray.h"
-#include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
 #include "host_config.h"
@@ -498,7 +497,7 @@ template <typename T>
 concept takes_qubit = signature<T, void(qubit &)>;
 
 template <typename T>
-concept takes_qreg = signature<T, void(qreg<> &)>;
+concept takes_qvector = signature<T, void(qvector<> &)>;
 #endif
 
 // Control the given cudaq kernel on the given control qubit

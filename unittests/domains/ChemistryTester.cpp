@@ -55,7 +55,7 @@ CUDAQ_TEST(H2MoleculeTester, checkHamiltonian) {
 
 CUDAQ_TEST(H2MoleculeTester, checkExpPauli) {
   auto kernel = [](double theta) __qpu__ {
-    cudaq::qreg q(4);
+    cudaq::qvector q(4);
     x(q[0]);
     x(q[1]);
     exp_pauli(theta, q, "XXXY");
@@ -82,7 +82,7 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
                                        {"H", {0., 0., .7474}}};
     auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
     auto ansatz = [&](std::vector<double> thetas) __qpu__ {
-      cudaq::qreg q(2 * molecule.n_orbitals);
+      cudaq::qvector q(2 * molecule.n_orbitals);
       x(q[0]);
       x(q[1]);
       cudaq::uccsd(q, thetas, molecule.n_electrons);
@@ -124,7 +124,7 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
     cudaq::molecular_geometry geometry(gen_random_h2_geometry());
     auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
     auto ansatz = [&](const std::vector<double> &thetas) __qpu__ {
-      cudaq::qreg q(2 * molecule.n_orbitals);
+      cudaq::qvector q(2 * molecule.n_orbitals);
       for (std::size_t qId = 0; qId < molecule.n_orbitals; ++qId) {
         x(q[qId]);
       }

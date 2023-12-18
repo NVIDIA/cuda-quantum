@@ -10,14 +10,9 @@
 
 #include <cudaq.h>
 
-// expected-warning@*{{}}
-// expected-note@* {{}}
-
 struct S1 {
-  // expected-warning@+3{{}}
-  // expected-note@* {{}}
   // expected-error@+1{{may not use quantum types in non-kernel functions}}
-  void operator()(cudaq::qspan<> q) {
+  void operator()(cudaq::qview<> q) {
     mz(q);
   }
 };
@@ -32,29 +27,23 @@ struct S2 {
 
 struct S3 {
   void operator()() {
-    // expected-warning@+3{{}}
-    // expected-note@* {{}}
     // expected-error@+1{{may not use quantum types in non-kernel functions}}
-    cudaq::qreg<4> r;
+    cudaq::qarray<4> r;
     mz(r);
   }
 };
 
 struct S4 {
-  // expected-warning@+3{{}}
-  // expected-note@* {{}}
   // expected-error@+1{{may not use quantum types in non-kernel functions}}
-  void operator()(cudaq::qreg<4> r) {
+  void operator()(cudaq::qarray<4> r) {
     mz(r);
   }
 };
 
 struct S5 {
   void operator()() {
-    // expected-warning@*{{}}
-    // expected-note@* {{}}
     // expected-error@+1{{may not use quantum types in non-kernel functions}}
-    cudaq::qreg r(10);
+    cudaq::qvector r(10);
     mz(r);
   }
 };
