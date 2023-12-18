@@ -14,7 +14,7 @@
 CUDAQ_TEST(TracerTester, checkBell) {
 
   auto bell = []() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     h(q[0]);
     x<cudaq::ctrl>(q[0], q[1]);
   };
@@ -41,7 +41,7 @@ CUDAQ_TEST(TracerTester, checkBell) {
 CUDAQ_TEST(TracerTester, checkGHZ) {
 
   auto ghz = [](int i) __qpu__ {
-    cudaq::qreg q(i);
+    cudaq::qvector q(i);
     h(q[0]);
     for (int j = 0; j < i - 1; j++)
       x<cudaq::ctrl>(q[j], q[j + 1]);
@@ -82,7 +82,7 @@ CUDAQ_TEST(TracerTester, checkLargeTrace) {
 
   auto largeTrace = [&](int numQubits, int numLayers,
                         std::vector<int> cnotPairs) __qpu__ {
-    cudaq::qreg q(numQubits);
+    cudaq::qvector q(numQubits);
 
     for (int layer = 0; layer < numLayers; layer++) {
       // each layer should be composed of a set of random

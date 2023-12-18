@@ -12,7 +12,7 @@
 
 struct NegationOperatorTest {
   void operator()() __qpu__ {
-    cudaq::qreg qr(3);
+    cudaq::qvector qr(3);
     x<cudaq::ctrl>(!qr[0], qr[1], qr[2]);
   }
 };

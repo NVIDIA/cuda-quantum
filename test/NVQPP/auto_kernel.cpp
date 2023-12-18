@@ -18,7 +18,7 @@
 
 struct ak2 {
   auto operator()() __qpu__ {
-    cudaq::qreg<3> q;
+    cudaq::qarray<3> q;
     x(q[0]);
     h(q[1]);
     x<cudaq::ctrl>(q[1], q[2]);

@@ -20,7 +20,7 @@ void g4();
 
 struct C {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       g1();
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
@@ -109,7 +109,7 @@ struct C {
 
 struct D {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       g1();
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
@@ -198,7 +198,7 @@ struct D {
 
 struct E {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       g1();
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
@@ -286,7 +286,7 @@ struct E {
 
 struct F {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       g1();
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {

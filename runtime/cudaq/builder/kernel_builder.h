@@ -10,7 +10,6 @@
 
 #include "cudaq/builder/QuakeValue.h"
 #include "cudaq/qis/modifiers.h"
-#include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "host_config.h"
@@ -23,15 +22,6 @@
 #include <string>
 #include <variant>
 #include <vector>
-
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
 
 // Goal here is to keep MLIR out of user code!
 namespace mlir {
@@ -74,12 +64,11 @@ concept KernelBuilderArgTypeIsValid =
 // If you want to add to the list of valid kernel argument types first add it
 // here, then add `details::mapArgToType()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
-  requires(                                                                    \
-      KernelBuilderArgTypeIsValid<                                             \
-          Args, float, double, std::size_t, int, std::vector<int>,             \
-          std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
-          cudaq::qubit, cudaq::qreg<>, cudaq::qvector<>> &&                    \
-      ...)
+  requires(KernelBuilderArgTypeIsValid<                                        \
+               Args, float, double, std::size_t, int, std::vector<int>,        \
+               std::vector<float>, std::vector<std::size_t>,                   \
+               std::vector<double>, cudaq::qubit, cudaq::qvector<>> &&         \
+           ...)
 #else
 // Not C++ 2020: stub these out.
 #define QuakeValueOrNumericType typename
@@ -134,9 +123,6 @@ KernelBuilderType mapArgToType(std::vector<double> &e);
 
 /// Map a `qubit` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qubit &e);
-
-/// @brief  Map a `qreg` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(cudaq::qreg<> &e);
 
 /// @brief  Map a `qvector` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qvector<> &e);
@@ -847,10 +833,3 @@ auto make_kernel() {
 }
 
 } // namespace cudaq
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif

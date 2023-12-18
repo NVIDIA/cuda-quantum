@@ -240,10 +240,28 @@ std::vector<double> random_vector(const double l_range, const double r_range,
                                   const std::size_t size,
                                   const uint32_t seed = std::random_device{}());
 
-inline std::vector<std::size_t> range(int N) {
-  std::vector<std::size_t> vec(N);
-  std::iota(vec.begin(), vec.end(), 0);
+/// @brief Return a vector of integers. The first element is the
+/// user-specified `start` value. The remaining values are all values
+/// incremented by `step` (defaults to 1) until the `stop` value is reached
+/// (exclusive).
+template <typename ElementType>
+inline std::vector<ElementType> range(ElementType start, ElementType stop,
+                                      ElementType step = 1) {
+  std::vector<ElementType> vec;
+  auto val = start;
+  while ((step > 0) ? (val < stop) : (val > stop)) {
+    vec.push_back(val);
+    val += step;
+  }
   return vec;
+}
+
+/// @brief Return a vector of integers. The first element is zero, and
+/// the remaining elements are all values incremented by 1 to the total
+/// size value provided (exclusive).
+template <typename ElementType>
+inline std::vector<ElementType> range(ElementType N) {
+  return range(ElementType(0), N);
 }
 
 inline std::vector<std::string> split(const std::string &s, char delim) {

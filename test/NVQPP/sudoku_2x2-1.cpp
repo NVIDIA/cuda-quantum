@@ -18,7 +18,7 @@
 #include <iostream>
 #include <unordered_set>
 
-__qpu__ void reflect_uniform(cudaq::qreg<> &qubits) {
+__qpu__ void reflect_uniform(cudaq::qvector<> &qubits) {
   h(qubits);
   x(qubits);
   z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3]);
@@ -26,13 +26,13 @@ __qpu__ void reflect_uniform(cudaq::qreg<> &qubits) {
   h(qubits);
 }
 
-__qpu__ void oracle(cudaq::qreg<> &cs, cudaq::qubit &target) {
+__qpu__ void oracle(cudaq::qvector<> &cs, cudaq::qubit &target) {
   x<cudaq::ctrl>(cs[0], !cs[1], !cs[2], cs[3], target);
   x<cudaq::ctrl>(!cs[0], cs[1], cs[2], !cs[3], target);
 }
 
 __qpu__ void grover() {
-  cudaq::qreg qubits(4);
+  cudaq::qvector qubits(4);
   cudaq::qubit ancilla;
 
   // Initialization
