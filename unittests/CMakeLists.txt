@@ -82,7 +82,7 @@ endmacro()
 
 # We will always have the QPP backend, create a tester for it
 create_tests_with_backend(qpp backends/QPPTester.cpp)
-create_tests_with_backend(dm "")
+create_tests_with_backend(dm backends/QPPDMTester.cpp)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
