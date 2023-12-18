@@ -156,7 +156,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
     && python3 -m pip install --no-cache-dir \
         ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
         sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 nbsphinx==0.9.2 sphinx_gallery==0.13.0 \
-     myst-parser==1.0.0 ipykernel==6.27.1 torch==2.1.1 torchvision==0.16.1
+     myst-parser==1.0.0
         
 
 # Install additional dependencies required to build and test CUDA Quantum.
