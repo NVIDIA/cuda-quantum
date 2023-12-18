@@ -83,7 +83,7 @@ struct ExecutionResult {
   /// @brief Set this ExecutionResult equal to the provided one
   /// @param other
   /// @return
-  ExecutionResult &operator=(ExecutionResult &other);
+  ExecutionResult &operator=(const ExecutionResult &other);
 
   /// @brief Return true if the given `ExecutionResult` is the same as this one.
   /// @param result
@@ -95,7 +95,7 @@ struct ExecutionResult {
   /// @param count
   void appendResult(std::string bitString, std::size_t count);
 
-  std::vector<std::string> getSequentialData() { return sequentialData; }
+  std::vector<std::string> getSequentialData() const { return sequentialData; }
 };
 
 /// @brief The sample_result abstraction wraps a set of `ExecutionResult`s for
@@ -135,8 +135,8 @@ public:
 
   /// @brief Return true if the `ExecutionResult` with the specified register
   /// name has a precomputed expectation value.
-  bool
-  has_expectation(const std::string_view registerName = GlobalRegisterName);
+  bool has_expectation(
+      const std::string_view registerName = GlobalRegisterName) const;
 
   /// @brief Add another `ExecutionResult` to this `sample_result`.
   /// @param result
@@ -146,7 +146,7 @@ public:
   /// sample_result::to_map(regName : string) to retrieve the counts
   /// for each register.
   /// @return
-  std::vector<std::string> register_names();
+  std::vector<std::string> register_names() const;
 
   /// @brief Set this sample_result equal to the provided one
   /// @param counts
@@ -177,7 +177,8 @@ public:
 
   /// @brief Return the expected value <Z...Z>
   /// @return
-  double expectation(const std::string_view registerName = GlobalRegisterName);
+  double
+  expectation(const std::string_view registerName = GlobalRegisterName) const;
   /// @brief Deprecated: Return the expected value <Z...Z>
   [[deprecated("`exp_val_z()` is deprecated. Use `expectation()` with the same "
                "argument structure.")]] double
@@ -186,8 +187,9 @@ public:
   /// @brief Return the probability of observing the given bit string
   /// @param bitString
   /// @return
-  double probability(std::string_view bitString,
-                     const std::string_view registerName = GlobalRegisterName);
+  double
+  probability(std::string_view bitString,
+              const std::string_view registerName = GlobalRegisterName) const;
 
   /// @brief Return the most probable bit string.
   /// @param registerName
@@ -201,8 +203,8 @@ public:
   std::size_t count(std::string_view bitString,
                     const std::string_view registerName = GlobalRegisterName);
 
-  std::vector<std::string>
-  sequential_data(const std::string_view registerName = GlobalRegisterName);
+  std::vector<std::string> sequential_data(
+      const std::string_view registerName = GlobalRegisterName) const;
 
   /// @brief Return the number of observed bit strings
   /// @return
@@ -223,7 +225,7 @@ public:
   /// @param registerName
   /// @return
   CountsDictionary
-  to_map(const std::string_view registerName = GlobalRegisterName);
+  to_map(const std::string_view registerName = GlobalRegisterName) const;
 
   /// @brief Extract marginal counts, that is those counts for a subset
   /// of measured qubits

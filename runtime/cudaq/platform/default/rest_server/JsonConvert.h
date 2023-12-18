@@ -27,13 +27,46 @@ void from_json(const json &j, std::complex<T> &p) {
 } // namespace std
 
 namespace cudaq {
+inline void to_json(json &j, const ExecutionResult &result) {
+  j = json{{"counts", result.counts},
+           {"registerName", result.registerName},
+           {"sequentialData", result.sequentialData}};
+  if (result.expectationValue.has_value())
+    j["expectationValue"] = result.expectationValue.value();
+}
+
+inline void from_json(const json &j, ExecutionResult &result) {
+  j.at("counts").get_to(result.counts);
+  j.at("registerName").get_to(result.registerName);
+  j.at("sequentialData").get_to(result.sequentialData);
+  double expVal = 0.0;
+  if (j.contains("expectationValue")) {
+    j.at("expectationValue").get_to(expVal);
+    result.expectationValue = expVal;
+  }
+}
+
 inline void to_json(json &j, const ExecutionContext &context) {
   j = json{{"name", context.name},
            {"shots", context.shots},
            {"hasConditionalsOnMeasureResults",
             context.hasConditionalsOnMeasureResults}};
 
-  j["result"] = context.result.serialize();
+  const auto &regNames = context.result.register_names();
+  // Here, we serialize the full lists of ExecutionResult records so that
+  // expectation values are captured.
+  std::vector<ExecutionResult> results;
+  for (const auto &regName : regNames) {
+    ExecutionResult result;
+    result.registerName = regName;
+    result.counts = context.result.to_map(regName);
+    result.sequentialData = context.result.sequential_data(regName);
+    if (context.result.has_expectation(regName))
+      result.expectationValue = context.result.expectation(regName);
+    results.emplace_back(std::move(result));
+  }
+  j["result"] = results;
+
   if (context.expectationValue.has_value()) {
     j["expectationValue"] = context.expectationValue.value();
   }
@@ -54,10 +87,10 @@ inline void from_json(const json &j, ExecutionContext &context) {
   j.at("shots").get_to(context.shots);
   j.at("hasConditionalsOnMeasureResults")
       .get_to(context.hasConditionalsOnMeasureResults);
+  std::vector<ExecutionResult> results;
+  j.at("result").get_to(results);
+  context.result = sample_result(results);
 
-  std::vector<std::size_t> sampleData;
-  j["result"].get_to(sampleData);
-  context.result.deserialize(sampleData);
   if (j.contains("expectationValue")) {
     double expectationValue;
     j["expectationValue"].get_to(expectationValue);

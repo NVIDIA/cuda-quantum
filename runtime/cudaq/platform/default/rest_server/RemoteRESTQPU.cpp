@@ -221,7 +221,7 @@ public:
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     cudaq::info("RemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
     std::scoped_lock<std::mutex> lock(m_contextMutex);
-    m_contexts.emplace(std::this_thread::get_id(), context);
+    m_contexts[std::this_thread::get_id()] = context;
   }
 
   void resetExecutionContext() override {
