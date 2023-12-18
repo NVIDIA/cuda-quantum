@@ -213,10 +213,10 @@ class WrapperFunctionHandlerHelper
           decltype(&std::remove_reference_t<WrapperFunctionImplT>::operator()),
           ArgTs...> {};
 
-template <typename... ArgTs>
-class WrapperFunctionHandlerHelper<void(ArgTs...), ArgTs...> {
+template <typename... SignatureArgTs, typename... InvokeArgTs>
+class WrapperFunctionHandlerHelper<void(SignatureArgTs...), InvokeArgTs...> {
 public:
-  using ArgTuple = std::tuple<std::decay_t<ArgTs>...>;
+  using ArgTuple = std::tuple<std::decay_t<InvokeArgTs>...>;
   using ArgIndices = std::make_index_sequence<std::tuple_size<ArgTuple>::value>;
 
   template <typename CallableT>
@@ -238,22 +238,30 @@ private:
   static bool deserialize(const char *argData, std::size_t argSize,
                           ArgTuple &argsTuple, std::index_sequence<I...>) {
     SerializeInputBuffer buf(argData, argSize);
-    return SerializeArgs<ArgTs...>::deserialize(buf, std::get<I>(argsTuple)...);
+    return SerializeArgs<InvokeArgTs...>::deserialize(
+        buf, std::get<I>(argsTuple)...);
   }
 };
 
+template <typename... SignatureArgTs, typename... InvokeArgTs>
+class WrapperFunctionHandlerHelper<void (*)(SignatureArgTs...), InvokeArgTs...>
+    : public WrapperFunctionHandlerHelper<void(SignatureArgTs...),
+                                          InvokeArgTs...> {};
+
 /// Specialization for class member function
-template <typename ClassT, typename... ArgTs>
-class WrapperFunctionHandlerHelper<void (ClassT::*)(ArgTs...), ArgTs...>
-    : public WrapperFunctionHandlerHelper<void(ArgTs...), ArgTs...> {};
+template <typename ClassT, typename... SignatureArgTs, typename... InvokeArgTs>
+class WrapperFunctionHandlerHelper<void (ClassT::*)(SignatureArgTs...),
+                                   InvokeArgTs...>
+    : public WrapperFunctionHandlerHelper<void(SignatureArgTs...),
+                                          InvokeArgTs...> {};
 
 /// Invoke a typed callable (functions) with serialized `args`.
-template <typename CallableT, typename... ArgTs>
+template <typename CallableT, typename... InvokeArgTs>
 void invokeCallableWithSerializedArgs(const char *argData, std::size_t argSize,
                                       CallableT &&func) {
-  WrapperFunctionHandlerHelper<std::remove_reference_t<CallableT>,
-                               ArgTs...>::invoke(std::forward<CallableT>(func),
-                                                 argData, argSize);
+  WrapperFunctionHandlerHelper<
+      std::remove_reference_t<CallableT>,
+      InvokeArgTs...>::invoke(std::forward<CallableT>(func), argData, argSize);
 }
 
 template <typename QuantumKernel, typename... Args>

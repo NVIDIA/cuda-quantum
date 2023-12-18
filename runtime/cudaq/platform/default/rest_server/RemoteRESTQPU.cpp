@@ -298,7 +298,7 @@ public:
     if (autoLaunch) {
       urls.clear();
       if (sims.empty())
-        sims.emplace_back("qpp-cpu");
+        sims.emplace_back("qpp");
       const int numInstances = std::stoi(getOpt(description, "auto-launch"));
       cudaq::info("Auto launch {} REST servers", numInstances);
       const std::string serverExeName = "cudaq_rest_server";
@@ -320,6 +320,8 @@ public:
                     port.value(), processInfo.Pid);
         m_serverProcesses.emplace_back(processInfo);
       }
+      // Allows some time for the servers to start
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
     // List of simulator names must either be one or the same length as the URL
