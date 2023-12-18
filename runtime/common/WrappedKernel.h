@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 #include "cudaq/platform.h"
+#include "cudaq/utils/registry.h"
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -162,8 +163,8 @@ public:
 
   static bool serialize(SerializeOutputBuffer &buf, const std::vector<T> &vec) {
     // Size followed by data
-    if (!SerializeArgs<uint64_t>::serialize(buf,
-                                            static_cast<uint64_t>(vec.size())))
+    if (!SerializeArgs<uint64_t>::serialize(
+            buf, static_cast<uint64_t>(vec.size() * sizeof(T))))
       return false;
     for (const auto &elem : vec)
       if (!SerializeArgs<T>::serialize(buf, elem))
@@ -176,6 +177,8 @@ public:
     vec.clear();
     if (!SerializeArgs<uint64_t>::deserialize(buf, size))
       return false;
+    size /= sizeof(T);
+
     for (std::size_t i = 0; i < size; ++i) {
       T elem;
       if (!SerializeArgs<T>::deserialize(buf, elem))
@@ -268,17 +271,29 @@ template <typename QuantumKernel, typename... Args>
 std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
                                                           Args &&...args) {
 #if defined(CUDAQ_REMOTE_SIM) && defined(CUDAQ_LIBRARY_MODE)
-  // In library mode, to use the remote simulator platform, we need to pack the
-  // argument and delegate to the platform's launchKernel rather than invoking
-  // the kernel function directly.
-  auto serializedArgsBuffer = serializeArgs(std::forward<Args>(args)...);
-  // Note: we explicitly instantiate this wrapper so that the symbol is present
-  // in the IR.
-  auto *wrappedKernel = reinterpret_cast<void (*)(void *)>(
-      invokeCallableWithSerializedArgs<QuantumKernel, std::decay_t<Args>...>);
-  cudaq::get_platform().launchKernel(cudaq::getKernelName(fn), nullptr,
-                                     (void *)serializedArgsBuffer.data(),
-                                     serializedArgsBuffer.size(), 0);
+  if constexpr (has_name<QuantumKernel>::value) {
+    // kernel_builder kernel: it always has quake representation.
+    // In library mode, we just need to register it as a proper MLIR kernel.
+    auto serializedArgsBuffer = serializeArgs(std::forward<Args>(args)...);
+    cudaq::registry::cudaqRegisterKernelName(fn.name().c_str());
+    cudaq::registry::deviceCodeHolderAdd(fn.name().c_str(),
+                                         fn.to_quake().c_str());
+    cudaq::get_platform().launchKernel(fn.name(), nullptr,
+                                       (void *)serializedArgsBuffer.data(),
+                                       serializedArgsBuffer.size(), 0);
+  } else {
+    // In library mode, to use the remote simulator platform, we need to pack
+    // the argument and delegate to the platform's launchKernel rather than
+    // invoking the kernel function directly.
+    auto serializedArgsBuffer = serializeArgs(std::forward<Args>(args)...);
+    // Note: we explicitly instantiate this wrapper so that the symbol is
+    // present in the IR.
+    auto *wrappedKernel = reinterpret_cast<void (*)(void *)>(
+        invokeCallableWithSerializedArgs<QuantumKernel, std::decay_t<Args>...>);
+    cudaq::get_platform().launchKernel(cudaq::getKernelName(fn), nullptr,
+                                       (void *)serializedArgsBuffer.data(),
+                                       serializedArgsBuffer.size(), 0);
+  }
 #else
   return fn(std::forward<Args>(args)...);
 #endif
