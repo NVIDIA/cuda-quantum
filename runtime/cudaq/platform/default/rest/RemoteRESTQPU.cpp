@@ -413,6 +413,28 @@ public:
     // Run the config-specified pass pipeline
     runPassPipeline(passPipelineConfig, moduleOp);
 
+    // DEBUG moduleOp.dump();
+
+    std::vector<std::size_t> mapping_v2p;
+    auto entryPointFunc = moduleOp.lookupSymbol<func::FuncOp>(
+        std::string("__nvqpp__mlirgen__") + kernelName);
+    if (auto mappingAttr = dyn_cast_if_present<ArrayAttr>(
+            entryPointFunc->getAttr("mapping_v2p"))) {
+      mapping_v2p.resize(mappingAttr.size());
+      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr))
+        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
+          mapping_v2p[origIx] = val.getInt();
+    }
+
+    std::vector<std::size_t> mapping_measured_qubits;
+    if (auto mappingAttr = dyn_cast_if_present<ArrayAttr>(
+            entryPointFunc->getAttr("mapping_measured_qubits"))) {
+      mapping_measured_qubits.resize(mappingAttr.size());
+      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr))
+        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
+          mapping_measured_qubits[origIx] = val.getInt();
+    }
+
     std::vector<std::pair<std::string, ModuleOp>> modules;
     // Apply observations if necessary
     if (executionContext && executionContext->name == "observe") {
@@ -483,7 +505,8 @@ public:
       // Form an output_names mapping from codeStr
       nlohmann::json j = formOutputNames(codegenTranslation, codeStr);
 
-      codes.emplace_back(name, codeStr, j);
+      codes.emplace_back(name, codeStr, j, mapping_measured_qubits,
+                         mapping_v2p);
     }
     return codes;
   }
@@ -578,9 +601,71 @@ public:
               } else {
                 // For each register, add the context results into result.
                 for (auto &regName : context.result.register_names()) {
-                  results.emplace_back(context.result.to_map(regName), regName);
-                  results.back().sequentialData =
-                      context.result.sequential_data(regName);
+                  // If this is the global register, the mapping pass may have
+                  // moved or reordered the user qubits. If so, we need to
+                  // reorder the global register to match the order that would
+                  // be expected if mapping had NOT been run.
+                  if (regName == cudaq::GlobalRegisterName &&
+                      codes[i].mapping_v2p.size() > 0) {
+                    
+                    // Make a copy of the results because we're going to edit them.
+                    cudaq::sample_result newResult{cudaq::ExecutionResult{context.result.to_map()}};
+                    
+                    // Make a scratch copy
+                    std::vector<std::size_t> measured_qubits =
+                        codes[i].mapping_measured_qubits;
+                    
+                    // // Get a list of unused physical qubits
+                    // auto nQubits = context.result.most_probable().size();
+                    // std::set<std::size_t> unusedPhyQubits;
+                    // for (std::size_t q = 0; q < nQubits; q++)
+                    //   unusedPhyQubits.insert(q);
+                    // for (auto q : codes[i].mapping_v2p)
+                    //   unusedPhyQubits.erase(q);
+
+                    if (measured_qubits.size() == 0) {
+                      // If no measurements were explicitly in the circuit, then
+                      // all qubits would end up being measured, even ones that
+                      // may have been skipped over in mapping.
+                      // FIXME - I'm not sure this handles the cases where there
+                      // are quantum operations after the final measurement
+                      // because those cases still return all qubits.
+                      // auto nQubits = context.result.most_probable().size();
+
+                      // Eliminate the unused physical qubits
+                      newResult = newResult.get_marginal(codes[i].mapping_v2p);
+                      measured_qubits.resize(codes[i].mapping_v2p.size());
+                      std::iota(measured_qubits.begin(), measured_qubits.end(),
+                                0);
+                    } else {
+                      std::sort(measured_qubits.begin(), measured_qubits.end());
+                    }
+                    std::vector<std::size_t> idx;
+                    for (auto m : measured_qubits) {
+                      if (m < codes[i].mapping_v2p.size()) {
+                        auto phy = codes[i].mapping_v2p[m];
+                        idx.push_back(phy);
+                      } else {
+                        // Shouldn't happen
+                      }
+                    }
+                    // Now sort idx and save the indices for that sort.
+                    std::vector<std::size_t> idx2(idx.size());
+                    std::iota(idx2.begin(), idx2.end(), 0);
+                    std::sort(idx2.begin(), idx2.end(),
+                              [&v = idx](std::size_t i1, std::size_t i2) {
+                                return v[i1] < v[i2];
+                              });
+                    newResult.reorder(idx2);
+                    results.emplace_back(newResult.to_map(), regName);
+                    results.back().sequentialData =
+                        newResult.sequential_data(regName);
+                  } else {
+                    results.emplace_back(context.result.to_map(regName),
+                                         regName);
+                    results.back().sequentialData =
+                        context.result.sequential_data(regName);
+                  }
                 }
               }
             }

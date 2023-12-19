@@ -554,6 +554,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     SmallVector<quake::NullWireOp> sources;
     SmallVector<Operation *> sinksToRemove;
     DenseMap<Value, Placement::VirtualQ> wireToVirtualQ;
+    SmallVector<Attribute> userQubitsMeasured;
     for (Operation &op : block.getOperations()) {
       if (auto qop = dyn_cast<quake::NullWireOp>(op)) {
         // Assing a new virtual qubit to the resulting wire.
@@ -589,6 +590,13 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
           signalPassFailure();
           return;
         }
+
+        // Save which qubits are measured
+        if (isa<quake::MeasurementInterface>(op))
+          for (const auto &wire : wireOperands)
+            userQubitsMeasured.push_back(
+                IntegerAttr::get(mlir::IntegerType::get(op.getContext(), 64),
+                                 wireToVirtualQ[wire].index));
 
         // Map the result wires to the appropriate virtual qubits.
         for (auto &&[wire, newWire] :
@@ -729,6 +737,10 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
                            placement.getPhy(Placement::VirtualQ(v)).index);
 
     func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
+
+    // Populate mapping_measured_qubits[] attribute
+    func->setAttr("mapping_measured_qubits",
+                  builder.getArrayAttr(userQubitsMeasured));
   }
 };
 
