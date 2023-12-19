@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
+#include "common/WrappedKernel.h"
 #include "cudaq/concepts.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
@@ -128,7 +129,8 @@ template <typename QuantumKernel, typename... Args>
 auto get_state(QuantumKernel &&kernel, Args &&...args) {
   return details::extractState(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        kernel(std::forward<Args>(args)...);
+        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...);
       });
 }
 
@@ -156,7 +158,8 @@ async_state_result get_state_async(std::size_t qpu_id, QuantumKernel &&kernel,
   auto &platform = cudaq::get_platform();
   return details::runGetStateAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        kernel(std::forward<Args>(args)...);
+        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...);
       },
       platform, qpu_id);
 }
