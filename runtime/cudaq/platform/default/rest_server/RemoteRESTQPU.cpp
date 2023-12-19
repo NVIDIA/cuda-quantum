@@ -48,6 +48,7 @@
 #include "JsonConvert.h"
 #include "nvqir/CircuitSimulator.h"
 #include <arpa/inet.h>
+#include <execinfo.h>
 #include <signal.h>
 #include <sys/socket.h>
 
@@ -105,14 +106,15 @@ public:
   }
 
   void enqueue(cudaq::QuantumTask &task) override {
-    cudaq::info("Enqueue Task on QPU {}", qpu_id);
+    cudaq::info("RemoteSimulatorQPU: Enqueue Task on QPU {}", qpu_id);
     execution_queue->enqueue(task);
   }
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset) override {
-    cudaq::info("QPU::launchKernel named '{}' remote QPU {} (simulator = {})",
+    cudaq::info("RemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
+                "(simulator = {})",
                 name, qpu_id, m_simName);
 
     cudaq::ExecutionContext *executionContext = [&]() {
@@ -123,6 +125,7 @@ public:
       return iter->second;
     }();
     cudaq::RestRequest request(*executionContext);
+    request.entryPoint = name;
     if (cudaq::__internal__::isLibraryMode(name)) {
       if (args && voidStarSize > 0) {
         cudaq::info("Serialize {} bytes of args.", voidStarSize);
@@ -137,6 +140,16 @@ public:
               .takeBinary();
       if (!objBin)
         throw std::runtime_error("Failed to load binary object file");
+
+      if (kernelFunc) {
+        ::Dl_info info;
+        ::dladdr(reinterpret_cast<void *>(kernelFunc), &info);
+        const auto funcName = cudaq::quantum_platform::demangle(info.dli_sname);
+        cudaq::info("RemoteSimulatorQPU: retrieve name '{}' for kernel {}",
+                    funcName, name);
+        request.entryPoint = funcName;
+      }
+
       for (const auto &section : objBin->sections()) {
         // Get the bitcode section
         if (section.isBitcode()) {
@@ -205,7 +218,6 @@ public:
       request.setCode(mlirCode);
     }
 
-    request.entryPoint = name;
     request.simulator = m_simName;
     request.seed = cudaq::get_random_seed();
     // Don't let curl adding "Expect: 100-continue" header, which is not

@@ -45,22 +45,35 @@ void invokeWrappedKernel(std::string_view irString,
 
   // Retrieve the symbol names for the kernel and its wrapper.
   const std::pair<std::string, std::string> mangledKernelNames = [&]() {
+    const std::string templatedTypeName = [&]() {
+      const auto pos = entryPointFn.find_first_of("(");
+      return (pos != std::string::npos) ? entryPointFn.substr(pos + 1)
+                                        : entryPointFn;
+    }();
+
     const std::string wrappedKernelSymbol =
-        "void cudaq::invokeCallableWithSerializedArgs<" + entryPointFn;
+        "void cudaq::invokeCallableWithSerializedArgs<";
+
+    const std::string funcName = [&]() {
+      const auto pos = entryPointFn.find_first_of("(");
+      return (pos != std::string::npos) ? entryPointFn.substr(0, pos)
+                                        : entryPointFn;
+    }();
     std::string mangledKernel, mangledWrapper;
     for (auto &func : llvmModule->functions()) {
       auto demangledPtr =
           abi::__cxa_demangle(func.getName().data(), nullptr, nullptr, nullptr);
       if (demangledPtr) {
         std::string demangledName(demangledPtr);
-        if (demangledName.rfind(wrappedKernelSymbol, 0) == 0) {
+        if (demangledName.rfind(wrappedKernelSymbol, 0) == 0 &&
+            demangledName.find(templatedTypeName) != std::string::npos) {
           cudaq::info("Found symbol {} for {}.", func.getName().str(),
                       wrappedKernelSymbol);
           mangledWrapper = func.getName().str();
         }
-        if (demangledName.rfind(entryPointFn, 0) == 0) {
+        if (demangledName.rfind(funcName, 0) == 0) {
           cudaq::info("Found symbol {} for {}.", func.getName().str(),
-                      entryPointFn);
+                      funcName);
           mangledKernel = func.getName().str();
         }
       }

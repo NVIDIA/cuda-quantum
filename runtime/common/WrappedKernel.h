@@ -290,9 +290,19 @@ std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
     // present in the IR.
     auto *wrappedKernel = reinterpret_cast<void (*)(void *)>(
         invokeCallableWithSerializedArgs<QuantumKernel, std::decay_t<Args>...>);
-    cudaq::get_platform().launchKernel(cudaq::getKernelName(fn), nullptr,
-                                       (void *)serializedArgsBuffer.data(),
-                                       serializedArgsBuffer.size(), 0);
+
+    // In the remote execution mode, we don't need the function pointer.
+    // For raw function pointers, i.e., kernels described as free functions, we
+    // send on the function pointer to the platform to retrieve the symbol name
+    // since the typeid of a function only contains signature info.
+    if constexpr (std::is_class_v<std::decay_t<QuantumKernel>>)
+      cudaq::get_platform().launchKernel(cudaq::getKernelName(fn), nullptr,
+                                         (void *)serializedArgsBuffer.data(),
+                                         serializedArgsBuffer.size(), 0);
+    else
+      cudaq::get_platform().launchKernel(
+          cudaq::getKernelName(fn), reinterpret_cast<void (*)(void *)>(&fn),
+          (void *)serializedArgsBuffer.data(), serializedArgsBuffer.size(), 0);
   }
 #else
   return fn(std::forward<Args>(args)...);
