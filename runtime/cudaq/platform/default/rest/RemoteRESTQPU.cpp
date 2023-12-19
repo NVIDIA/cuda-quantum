@@ -607,14 +607,16 @@ public:
                   // be expected if mapping had NOT been run.
                   if (regName == cudaq::GlobalRegisterName &&
                       codes[i].mapping_v2p.size() > 0) {
-                    
-                    // Make a copy of the results because we're going to edit them.
-                    cudaq::sample_result newResult{cudaq::ExecutionResult{context.result.to_map()}};
-                    
+
+                    // Make a copy of the results because we're going to edit
+                    // them.
+                    cudaq::sample_result newResult{
+                        cudaq::ExecutionResult{context.result.to_map()}};
+
                     // Make a scratch copy
                     std::vector<std::size_t> measured_qubits =
                         codes[i].mapping_measured_qubits;
-                    
+
                     // // Get a list of unused physical qubits
                     // auto nQubits = context.result.most_probable().size();
                     // std::set<std::size_t> unusedPhyQubits;

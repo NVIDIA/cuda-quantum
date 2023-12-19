@@ -738,7 +738,9 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
 
     func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
 
-    // Populate mapping_measured_qubits[] attribute
+    // Populate mapping_measured_qubits[] attribute. The order of the elements
+    // in this array represent the order of the measurements, which will be
+    // helpful because they will align with the QIR result numbers.
     func->setAttr("mapping_measured_qubits",
                   builder.getArrayAttr(userQubitsMeasured));
   }

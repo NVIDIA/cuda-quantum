@@ -49,7 +49,8 @@ using ServerJobPayload =
 
 /// @brief Information about a result coming from a backend
 struct ResultInfoType {
-  std::size_t qubitNum;
+  std::size_t qirQubit;  // post-mapping qubit number
+  std::size_t userQubit; // pre-mapping qubit number
   std::string registerName;
 };
 

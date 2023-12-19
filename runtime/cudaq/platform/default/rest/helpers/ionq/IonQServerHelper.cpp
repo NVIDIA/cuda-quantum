@@ -130,9 +130,10 @@ void IonQServerHelper::initialize(BackendConfig config) {
       nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
       for (const auto &el : outputNamesJSON[0]) {
         auto result = el[0].get<std::size_t>();
-        auto qubit = el[1][0].get<std::size_t>();
-        auto registerName = el[1][1].get<std::string>();
-        jobOutputNames[result] = {qubit, registerName};
+        auto qirQubit = el[1][0].get<std::size_t>();
+        auto userQubit = el[1][1].get<std::size_t>();
+        auto registerName = el[1][2].get<std::string>();
+        jobOutputNames[result] = {qirQubit, userQubit, registerName};
       }
 
       this->outputNames[key] = jobOutputNames;
@@ -395,7 +396,7 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
 
   auto &output_names = outputNames["output_names." + jobID];
   for (auto &[result, info] : output_names) {
-    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
+    cudaq::info("Qubit {} Result {} Name {}", info.qirQubit, result,
                 info.registerName);
   }
 
@@ -446,7 +447,7 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   std::vector<std::size_t> qubitNumbers;
   qubitNumbers.reserve(output_names.size());
   for (auto &[result, info] : output_names) {
-    qubitNumbers.push_back(info.qubitNum);
+    qubitNumbers.push_back(info.qirQubit);
   }
 
   // For each original counts entry in the full sample results, reduce it
@@ -463,7 +464,7 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   for (const auto &[result, info] : output_names) {
     CountsDictionary regCounts;
     for (const auto &[bits, count] : fullSampleResults)
-      regCounts[std::string{bits[info.qubitNum]}] += count;
+      regCounts[std::string{bits[info.qirQubit]}] += count;
     execResults.emplace_back(regCounts, info.registerName);
   }
 

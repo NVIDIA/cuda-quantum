@@ -137,9 +137,10 @@ void OQCServerHelper::initialize(BackendConfig config) {
       nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
       for (const auto &el : outputNamesJSON[0]) {
         auto result = el[0].get<std::size_t>();
-        auto qubit = el[1][0].get<std::size_t>();
-        auto registerName = el[1][1].get<std::string>();
-        jobOutputNames[result] = {qubit, registerName};
+        auto qirQubit = el[1][0].get<std::size_t>();
+        auto userQubit = el[1][1].get<std::size_t>();
+        auto registerName = el[1][2].get<std::string>();
+        jobOutputNames[result] = {qirQubit, userQubit, registerName};
       }
 
       this->outputNames[key] = jobOutputNames;
@@ -306,8 +307,8 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
 
   auto &output_names = outputNames["output_names." + jobId];
   for (auto &[result, info] : output_names) {
-    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
-                info.registerName);
+    cudaq::info("QIR Qubit {} User Qubit {} Result {} Name {}", info.qirQubit,
+                info.userQubit, result, info.registerName);
   }
 
   CountsDictionary countsDict;
@@ -338,10 +339,42 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     sampleResult.append(executionResult);
   }
 
-  // Note: the bitstring is sorted by the underlying QIR result number. In Base
-  // Profile programs, the QIR result number is derived from the order of the
-  // measurements in the user's kernel, so the user has control over that, but
-  // we will also make registers for each result using output_names.
+  // Consider the following CUDA Quantum program
+  // cudaq::qubit a, b, c, d, e, f;
+  // mz(f);
+  // mz(c);
+
+  // Now assume the mapping pass converted it to "acebdf" (for QIR qubits 0-5)
+  // - mapping_v2p = [0, 3, 1, 4, 2, 5] (i.e. virtual qubit 1[b] ended up in QIR
+  // qubit #3)
+  // - mapping_measured_qubits = [5, 2] (i.e. [f, c])
+  // - output_names would be = {result=0, qubit=5}, {result=1, qubit=1}
+
+  // And jsonResults: "fc"
+  // I think I just need to apply
+  //   [~,ix] = sort(mapping_measured_qubits);
+  //   newResults = jsonResults(ix);
+
+  std::vector<std::size_t> userQubitMeasurements;
+  userQubitMeasurements.reserve(output_names.size());
+  for (auto &[result, info] : output_names)
+    userQubitMeasurements.push_back(info.userQubit);
+
+  std::vector<std::size_t> idx(output_names.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::sort(idx.begin(), idx.end(),
+            [&v = userQubitMeasurements](std::size_t i1, std::size_t i2) {
+              return v[i1] < v[i2];
+            });
+  cudaq::info("Reordering vector to map QIR result order to user qubit "
+              "allocation order is {}",
+              idx);
+  sampleResult.reorder(idx);
+
+  // Note: the bitstring is sorted by the underlying QIR result number, but
+  // the CUDA Quantum way is to sort by qubit allocation order.
+
+  // We will also make registers for each result using output_names.
   for (auto &[result, info] : output_names) {
     sample_result singleBitResult = sampleResult.get_marginal({result});
     ExecutionResult executionResult{singleBitResult.to_map(),
