@@ -103,6 +103,7 @@ ADD "$CUDAQ_REPO_ROOT/NOTICE" /cuda-quantum/NOTICE
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantumBuild]
     CUDAQ_ENABLE_STATIC_LINKING=true CUDAQ_WERROR=false \
+    CUDAQ_PYTHON_SUPPORT=OFF \
     bash scripts/build_cudaq.sh -uv
     ## [<CUDAQuantumBuild]
 

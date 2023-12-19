@@ -167,6 +167,16 @@ endif()
 if (CUDAQ_ENABLE_STATIC_LINKING)
   # Using -static-libgcc -static-libstdc++ offers finer control here if needed.
   # At the time of writing, there wasn't any benefit to using those over -static.
+  # However, while this so far seems to be working reasonably well, this will
+  # unfortunately also link glibc statically, which in general is likely to cause
+  # issues sooner or later. A better option might be to do something like this:
+  # https://blog.gibson.sh/2017/11/26/creating-portable-linux-binaries/
+  # If the final application loads multiple dynamic libraries, and two or more
+  # of those dynamic libraries are linked to different versions of the same static
+  # libraries, then the different copies of those static libraries will conflict
+  # with each other.If we keep linking everything statically, we should at least set 
+  # CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN to 1, 
+  # to avoid some of these issues.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-pie")
   message(INFO "CUDA Quantum static linking enabled.")

@@ -51,13 +51,7 @@ RUN ./cuda_quantum.$(uname -m) --accept
 ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
 ENV PYTHONPATH="${CUDA_QUANTUM_PATH}:${PYTHONPATH}"
-#ENV LD_LIBRARY_PATH="${CUQUANTUM_PATH}/lib:$CUTENSOR_PATH/lib:$LD_LIBRARY_PATH"
 ENV CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
-
-# FIXME: REMOVE
-ENV NVQPP_LD_PATH=ld
-RUN apt-get update && apt-get install -y --no-install-recommends gcc-11
-ADD runtime/cudaq/distributed/builtin/activate_custom_mpi.sh ${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh
 
 # [Enable MPI]
 COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
@@ -93,12 +87,7 @@ RUN ./cuda_quantum.$(uname -m) --accept
 ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
 ENV PYTHONPATH="${CUDA_QUANTUM_PATH}:${PYTHONPATH}"
-#ENV LD_LIBRARY_PATH="${CUQUANTUM_PATH}/lib:$CUTENSOR_PATH/lib:$LD_LIBRARY_PATH"
 ENV CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
-
-# FIXME: REMOVE
-ENV NVQPP_LD_PATH=ld
-ADD runtime/cudaq/distributed/builtin/activate_custom_mpi.sh ${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh
 
 # [Enable MPI]
 COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi

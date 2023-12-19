@@ -248,26 +248,11 @@ and the necessary environment variables as described in this document are set.
 Installation on the Host
 ------------------------------------
 
+TODO: update this to describe how to get an archive that is extracted to 
+the right locations (as we do for the installer).
+
 Make sure your host system satisfies the `Prerequisites`_ listed above, and 
-copy the folders where you installed CUDA Quantum (defined by the `CUDAQ_INSTALL_PREFIX`
-variable), cuQuantum (defined by the `CUQUANTUM_INSTALL_PREFIX` variable), 
-and cuTensor (defined by the `CUQUANTUM_INSTALL_PREFIX` variable) onto the 
-host system. Their location on the host system does not need to match their 
-location on the build system, but you will need to make the following edits
-to your environment variables:
-
-.. code-block::
-
-    export CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
-    export CUQUANTUM_PATH=/opt/nvidia/cuquantum
-    export CUTENSOR_PATH=/opt/nvidia/cutensor
-
-    export PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
-    export PYTHONPATH="${CUDA_QUANTUM_PATH}:${PYTHONPATH}"
-    export LD_LIBRARY_PATH="${CUQUANTUM_PATH}/lib:$CUTENSOR_PATH/lib:$LD_LIBRARY_PATH"
-
-The variables `CUDA_QUANTUM_PATH`, `CUQUANTUM_PATH`, and `CUTENSOR_PATH` in the commands
-above should be set to the host locations of the respective folders.
+...
 
 To make use of all CUDA Quantum features and components, install the CUDA Quantum 
 runtime dependencies listed in the remaining sections on the host system.
@@ -308,8 +293,10 @@ it in a final step after installing CUDA Quantum on the host system.
 
 Assuming you have an existing CUDA-aware MPI installation on your host system, and
 a working C++ toolchain, you can active MPI support in CUDA Quantum by executing
-the `activate_mpi.sh` script included in the CUDA Quantum `bin` directory.
+the `activate_custom_mpi.sh` script included in the CUDA Quantum `distributed_interfaces` directory.
 .. For more information about building and activating MPI plugins, see :ref:`this section <>`.
+
+TODO: Code snippet
 
 If you do not have an existing CUDA-aware MPI installation, you can build one from source
 before activating the MPI plugin. 
