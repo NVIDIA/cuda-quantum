@@ -60,3 +60,25 @@ TEST(MeasureResetTester, checkBug981) {
   EXPECT_EQ(1, result.size());
   EXPECT_TRUE(result.count("0") > 0);
 }
+
+TEST(MeasureResetTester, checkLibModeOrdering) {
+  auto kernel = [](bool switchFlag) __qpu__ {
+    cudaq::qubit a, b;
+    x(a);
+    if (switchFlag) {
+      mz(b);
+      mz(a);
+    } else {
+      mz(a);
+      mz(b);
+    }
+  };
+
+  // Bit string ordered according to qubit allocation order.
+  auto counts = cudaq::sample(kernel, true);
+  counts.dump();
+  EXPECT_EQ("10", counts.begin()->first);
+  counts = cudaq::sample(kernel, false);
+  counts.dump();
+  EXPECT_EQ("10", counts.begin()->first);
+}
