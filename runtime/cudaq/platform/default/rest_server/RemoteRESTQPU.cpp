@@ -283,7 +283,7 @@ public:
     auto urls = cudaq::split(getOpt(description, "url"), ',');
     auto sims = cudaq::split(getOpt(description, "backend"), ',');
     const bool autoLaunch =
-        description.find("auto-launch") != std::string::npos;
+        description.find("auto_launch") != std::string::npos;
 
     const auto formatUrl = [](const std::string &url) -> std::string {
       auto formatted = url;
@@ -298,7 +298,7 @@ public:
       urls.clear();
       if (sims.empty())
         sims.emplace_back("qpp");
-      const int numInstances = std::stoi(getOpt(description, "auto-launch"));
+      const int numInstances = std::stoi(getOpt(description, "auto_launch"));
       cudaq::info("Auto launch {} REST servers", numInstances);
       const std::string serverExeName = "cudaq_rest_server";
       auto serverApp = llvm::sys::findProgramByName(serverExeName.c_str());

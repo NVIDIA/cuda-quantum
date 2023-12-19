@@ -36,6 +36,7 @@ cudaq::RestServer::RestServer(int port, const std::string &name) {
   m_impl = std::make_unique<impl>();
   m_impl->app.port(port);
   m_impl->app.server_name(name);
+  m_impl->app.loglevel(crow::LogLevel::Warning);
 }
 void cudaq::RestServer::start() { m_impl->app.run(); }
 void cudaq::RestServer::stop() { m_impl->app.stop(); }
