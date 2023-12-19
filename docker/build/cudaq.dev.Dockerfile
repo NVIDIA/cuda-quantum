@@ -48,7 +48,7 @@ RUN if [ -n "$mpi" ]; \
 
 # Configuring a base image that contains the necessary dependencies for GPU
 # accelerated components and passing a build argument 
-#   install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
+#   install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=latest"
 # creates a dev image that can be used as argument to docker/release/cudaq.Dockerfile
 # to create the released cuda-quantum image.
 ARG install=

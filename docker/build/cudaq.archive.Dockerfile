@@ -6,8 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# This file builds a self-extractable CUDA Quantum archive that can be installed
+# on a compatible Linux host system; see also https://makeself.io/.
+#
+# Usage:
+# Must be built from the repo root with:
+#   DOCKER_BUILDKIT=1 docker build -f docker/build/cudaq.archive.Dockerfile . --output out
+
 # [Operating System]
-FROM amd64/almalinux:8
+FROM amd64/almalinux:8 as cudaqbuild
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
@@ -44,11 +51,9 @@ ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
-ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
 ADD .git/modules/tpls/pybind11/refs /.git_modules/tpls/pybind11/refs
+ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
 ADD .git/modules/tpls/llvm/refs /.git_modules/tpls/llvm/refs
-ADD .git/modules/tpls/pybind11/packed-refs /.git_modules/tpls/pybind11/packed-refs
-ADD .git/modules/tpls/llvm/packed-refs /.git_modules/tpls/llvm/packed-refs
 
 # This is a hack so that we do not need to rebuild the prerequisites 
 # whenever we pick up a new CUDA Quantum commit (which is always in CI).
@@ -67,34 +72,63 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && \
     source scripts/configure_build.sh install-$install_before_build
 
-ARG CUDA_QUANTUM_COMMIT=90b13ec85beccf017544f94942a91aae6b821e6a
-RUN rm -rf /cuda-quantum && \
-    git clone --filter=tree:0 https://github.com/nvidia/cuda-quantum /cuda-quantum && \
-    cd /cuda-quantum && git checkout ${CUDA_QUANTUM_COMMIT} && \
-    rm -rf /cuda-quantum/scripts
-ADD scripts /cuda-quantum/scripts
+# Checking out a CUDA Quantum commit is suboptimal, since the source code
+# version must match this file. At the same time, adding the entire current
+# directory will always rebuild CUDA Quantum, so instead just checking out
+# the required folders here. 
+ARG CUDA_QUANTUM_REPO=.
+ADD .git/index /cuda-quantum/.git/index
+ADD .git/modules/ /cuda-quantum/.git/modules/
+
+ADD "$CUDAQ_REPO_ROOT/cmake" /cuda-quantum/cmake
+ADD "$CUDAQ_REPO_ROOT/docs/CMakeLists.txt" /cuda-quantum/docs/CMakeLists.txt
+ADD "$CUDAQ_REPO_ROOT/docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
+ADD "$CUDAQ_REPO_ROOT/docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
+ADD "$CUDAQ_REPO_ROOT/include" /cuda-quantum/include
+ADD "$CUDAQ_REPO_ROOT/lib" /cuda-quantum/lib
+ADD "$CUDAQ_REPO_ROOT/python" /cuda-quantum/python
+ADD "$CUDAQ_REPO_ROOT/runtime" /cuda-quantum/runtime
+ADD "$CUDAQ_REPO_ROOT/scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
+ADD "$CUDAQ_REPO_ROOT/targettests" /cuda-quantum/targettests
+ADD "$CUDAQ_REPO_ROOT/test" /cuda-quantum/test
+ADD "$CUDAQ_REPO_ROOT/tools" /cuda-quantum/tools
+ADD "$CUDAQ_REPO_ROOT/tpls/customizations" /cuda-quantum/tpls/customizations
+ADD "$CUDAQ_REPO_ROOT/tpls/json" /cuda-quantum/tpls/json
+ADD "$CUDAQ_REPO_ROOT/unittests" /cuda-quantum/unittests
+ADD "$CUDAQ_REPO_ROOT/utils" /cuda-quantum/utils
+ADD "$CUDAQ_REPO_ROOT/CMakeLists.txt" /cuda-quantum/CMakeLists.txt
+ADD "$CUDAQ_REPO_ROOT/LICENSE" /cuda-quantum/LICENSE
+ADD "$CUDAQ_REPO_ROOT/NOTICE" /cuda-quantum/NOTICE
+
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantum]
-    FORCE_COMPILE_GPU_COMPONENTS=true \
-    CUDAQ_ENABLE_STATIC_LINKING=true \
-    CUDAQ_WERROR=false \
-    LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
+    CUDAQ_ENABLE_STATIC_LINKING=true CUDAQ_WERROR=false \
     bash scripts/build_cudaq.sh -uv
     ## [<CUDAQuantum]
 
-# [Build Artifacts]
-RUN mkdir /artifacts && source /cuda-quantum/scripts/configure_build.sh && \
-    #mv /usr/local/openssl artifacts \
-    mv "${CUDAQ_INSTALL_PREFIX}" artifacts && \
-    mv "${LLVM_INSTALL_PREFIX}" artifacts && \
-    mv "${CUQUANTUM_INSTALL_PREFIX}" artifacts && \
-    mv "${CUTENSOR_INSTALL_PREFIX}" artifacts
+# [Build Assets]
+ADD "$CUDAQ_REPO_ROOT/scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    archive=/cuda_quantum && mkdir -p "${archive}" && \
+    cp "/cuda-quantum/scripts/migrate_assets.sh" "${archive}/install.sh" && \
+    mv "${CUDAQ_INSTALL_PREFIX}/build_config.xml" "${archive}/build_config.xml" && \
+    mv "${CUDAQ_INSTALL_PREFIX}" "${archive}" && \
+    mv "${CUQUANTUM_INSTALL_PREFIX}" "${archive}" && \
+    mv "${CUTENSOR_INSTALL_PREFIX}" "${archive}" && \
+    #mv /usr/local/openssl "${archive}" && \
+    mkdir -p "${archive}/llvm/bin" && mkdir -p "${archive}/llvm/lib" && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/"clang* "${archive}/llvm/bin/" && rm -rf "${archive}/llvm/bin/"clang-format* && \
+    mv "${LLVM_INSTALL_PREFIX}/lib/"clang* "${archive}/llvm/lib/" && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/llc" "${archive}/llvm/bin/llc" && \
+    #mv "${LLVM_INSTALL_PREFIX}/bin/ld.lld" "${archive}/llvm/bin/ld.lld" && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/lld" "${archive}/llvm/bin/lld"
 
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
-    cd /makeself && git checkout release-2.5.0
-
-RUN cd /makeself && \
-    makeself.sh --gzip --license /cuda-quantum/LICENSE \
-        /artifacts cuda_quantum \
+    cd /makeself && git checkout release-2.5.0 && \
+    ./makeself.sh --gzip --license /cuda-quantum/LICENSE \
+        /cuda_quantum cuda_quantum.$(uname -m) \
         "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
-        startup_script [script_args]
+        ./install.sh
+
+FROM scratch
+COPY --from=cudaqbuild /makeself/cuda_quantum.* . 

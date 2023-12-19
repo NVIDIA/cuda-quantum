@@ -16,7 +16,6 @@
 #include "cudaq/spin_op.h"
 #include <fstream>
 #include <iostream>
-#include <spdlog/cfg/env.h>
 
 namespace {
 
@@ -77,8 +76,8 @@ public:
     int nDevices;
     cudaGetDeviceCount(&nDevices);
 
-    auto envVal = spdlog::details::os::getenv("CUDAQ_MQPU_NGPUS");
-    if (!envVal.empty()) {
+    const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
+    if (envVal != nullptr) {
       int specifiedNDevices = 0;
       try {
         specifiedNDevices = std::stoi(envVal);
