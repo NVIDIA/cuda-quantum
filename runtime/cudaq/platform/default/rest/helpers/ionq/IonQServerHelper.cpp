@@ -450,23 +450,14 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   }
 
   // For each original counts entry in the full sample results, reduce it
-  // down to the user component and add to userGlobal. This is similar to
-  // `get_marginal()`, but that sorts the input indices, which isn't
-  // necessarily desirable here.
-  CountsDictionary userGlobal;
-  for (const auto &[bits, count] : fullSampleResults) {
-    std::string userBitStr;
-    for (const auto &qubit : qubitNumbers) {
-      if (qubit < bits.size())
-        userBitStr += bits[qubit];
-      else
-        throw std::runtime_error(fmt::format(
-            "Cannot fetch qubit index {} from bits '{}'; bits.size() = {}",
-            qubit, bits, bits.size()));
-    }
-    userGlobal[userBitStr] += count;
+  // down to the user component and add to userGlobal. qubitNumbers is empty,
+  // that means all user qubits were measured.
+  if (qubitNumbers.size() > 0) {
+    auto subset = fullSampleResults.get_marginal(qubitNumbers);
+    execResults.emplace_back(ExecutionResult{subset.to_map()});
+  } else {
+    execResults.emplace_back(ExecutionResult{fullSampleResults.to_map()});
   }
-  execResults.emplace_back(userGlobal);
 
   // Now add to `execResults` one register at a time
   for (const auto &[result, info] : output_names) {
