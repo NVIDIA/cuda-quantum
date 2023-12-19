@@ -107,7 +107,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/build/cudaq.wheel.Dockerfile
+          file: ./docker/release/cudaq.wheel.Dockerfile
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ steps.prereqs.outputs.cudaq_version }}
@@ -176,7 +176,7 @@ jobs:
           os_version=`echo ${os_image#$distr} | cut -c2-`
 
           wheelname=`echo cuda_quantum-*-manylinux_*_$(uname -m).whl`
-          docker build -t wheel_validation:local -f "docker/test/$distr.Dockerfile" . \
+          docker build -t wheel_validation:local -f "docker/test/wheels/$distr.Dockerfile" . \
             --build-arg os_version=$os_version \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \

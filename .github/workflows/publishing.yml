@@ -486,7 +486,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/build/cudaq.wheel.Dockerfile
+          file: ./docker/release/cudaq.wheel.Dockerfile
           build-args: |
             base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}  
             release_version=${{ needs.assets.outputs.cudaq_version }}

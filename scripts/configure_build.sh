@@ -20,12 +20,12 @@ export BLAS_INSTALL_PREFIX=/usr/local/blas
 if [ "$1" == "install-cuda" ]; then
 # [>CUDAInstall]
     CUDA_VERSION=11.8
-    CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda
+    CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above and set the variables below 
     # to the distribution and subfolder for your platform.
     DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64
 
-    dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/repos/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
+    dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-toolkit-$(echo ${CUDA_VERSION} | tr . -)
 # [<CUDAInstall]
@@ -34,13 +34,13 @@ fi
 if [ "$1" == "install-cudart" ]; then
 # [>CUDARTInstall]
     CUDA_VERSION=11.8
-    CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda
+    CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above and set the variables below 
     # to the distribution and subfolder for your platform.
     DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64
 
     version_suffix=$(echo ${CUDA_VERSION} | tr . -)
-    dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/repos/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
+    dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-nvtx-${version_suffix} cuda-cudart-${version_suffix} \
         libcusolver-${version_suffix} libcublas-${version_suffix}
