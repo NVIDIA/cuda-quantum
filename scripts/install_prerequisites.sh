@@ -31,8 +31,8 @@ BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
 OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
 
 function create_llvm_symlinks {
-  if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/lld")" ]; then
-    ln -s "$LLVM_INSTALL_PREFIX/bin/lld" /usr/bin/ld
+  if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
+    ln -s "$LLVM_INSTALL_PREFIX/bin/ld.lld" /usr/bin/ld
     echo "Setting lld linker as the default linker."
   fi
   if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then

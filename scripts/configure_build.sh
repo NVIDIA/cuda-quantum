@@ -42,9 +42,9 @@ if [ "$1" == "install-cudart" ]; then
     version_suffix=$(echo ${CUDA_VERSION} | tr . -)
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/repos/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
-        cuda-nvtx-${version_suffix} libcusolver-${version_suffix}
+        cuda-nvtx-${version_suffix} cuda-cudart-${version_suffix} \
+        libcusolver-${version_suffix} libcublas-${version_suffix}
 # [<CUDARTInstall]
-        # libcublas-dev-${version_suffix} 
 fi
 
 if [ "$1" == "install-cuquantum" ]; then
@@ -99,3 +99,24 @@ if [ "$1" == "install-prereqs" ]; then
     source "$this_file_dir/install_prerequisites.sh"
 fi
 
+if [ "$1" == "build-openmpi" ]; then
+    source $GCC_INSTALL_PREFIX/enable
+
+# [>OpenMPIBuild]
+    OPENMPI_VERSION=4.1.4
+    OPENMPI_DOWNLOAD_URL=https://github.com/open-mpi/ompi
+
+    wget "${OPENMPI_DOWNLOAD_URL}/archive/v${OPENMPI_VERSION}.tar.gz" -O /tmp/openmpi.tar.gz
+    mkdir -p ~/.openmpi-src && tar xf /tmp/openmpi.tar.gz --strip-components 1 -C ~/.openmpi-src
+    rm -rf /tmp/openmpi.tar.gz && cd ~/.openmpi-src
+    ./autogen.pl && LDFLAGS=-Wl,--as-needed ./configure \
+        --prefix=/usr/local/openmpi \
+        --disable-getpwuid --disable-static \
+        --disable-debug --disable-mem-debug --disable-event-debug \
+        --disable-mem-profile --disable-memchecker \
+        --without-verbs \
+        --with-cuda=/usr/local/cuda
+    make -j$(nproc) && make -j$(nproc) install
+    cd - && rm -rf ~/.openmpi-src
+# [<OpenMPIBuild]
+fi

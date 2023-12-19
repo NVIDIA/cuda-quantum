@@ -10,45 +10,31 @@ FROM amd64/almalinux:8 as mpibuild
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        'dnf-command(config-manager)' && \
-    dnf config-manager --enable powertools
+        'dnf-command(config-manager)'
 
+# [OpenMPI Prerequisites]
 ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
+RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        autoconf libtool flex make git
+        autoconf libtool flex make wget
 
-ENV OPENMPI_VERSION=4.1.4
-RUN mkdir ~/.openmpi-project && cd ~/.openmpi-project && \
-    git init && git remote add origin https://github.com/open-mpi/ompi && \
-    git fetch origin --depth=1 v${OPENMPI_VERSION} && git reset --hard FETCH_HEAD
-
-RUN source /cuda-quantum/scripts/configure_build.sh install-gcc && \
-    cd ~/.openmpi-project && ./autogen.pl && \
-    PATH="$(dirname $CC):$PATH" LDFLAGS=-Wl,--as-needed \
-    ./configure \
-        --prefix="/usr/local/openmpi" \
-        --disable-getpwuid --disable-static \
-        --disable-debug --disable-mem-debug --disable-event-debug \
-        --disable-mem-profile --disable-memchecker \
-        --without-verbs \
-        --with-cuda=/usr/local/cuda && \
-    make -j$(nproc) && make -j$(nproc) install && \
-    cd - && rm -rf ~/.openmpi-project
+# [OpenMPI Build]
+RUN source /cuda-quantum/scripts/configure_build.sh build-openmpi
 
 FROM ubuntu:22.04 as ubuntu
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 
 # [Prerequisites]
-ARG PYTHON=python3
+ARG PYTHON=python3.11
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ${PYTHON} ${PYTHON}-pip \
-    && python3 -m pip install --no-cache-dir numpy
+        ${PYTHON} lib${PYTHON} $(echo ${PYTHON} | cut -d . -f 1)-pip  wget \
+    && ${PYTHON} -m pip install --no-cache-dir numpy
 
 # [Runtime Dependencies]
-RUN apt-get install -y --no-install-recommends libstdc++-12-dev
-RUN cuda_packages="cuda-cudart-11-8 cuda-nvtx-11-8 libcusolver-11-8" && \
+RUN apt-get install -y --no-install-recommends libstdc++-11-dev
+RUN cuda_packages="cuda-cudart-11-8 cuda-nvtx-11-8 libcusolver-11-8 libcublas-11-8" && \
     if [ -n "$cuda_packages" ]; then \
         arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
         && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
@@ -59,30 +45,34 @@ RUN cuda_packages="cuda-cudart-11-8 cuda-nvtx-11-8 libcusolver-11-8" && \
     fi
 
 # [CUDA Quantum]
-#ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
-#ENV CUQUANTUM_PATH=/opt/nvidia/cuquantum
-#ENV CUTENSOR_PATH=/opt/nvidia/cutensor
-#ENV OPENSSL_PATH=/usr/local/openssl
-#COPY --from=cudaqbuild "/usr/local/cudaq/" "${CUDA_QUANTUM_PATH}"
-#COPY --from=cudaqbuild "/usr/local/cuquantum/" "${CUQUANTUM_PATH}"
-#COPY --from=cudaqbuild "/usr/local/cutensor/" "${CUTENSOR_PATH}"
-#COPY --from=cudaqbuild "/usr/local/openssl/" "${OPENSSL_PATH}"
 ADD out/cuda_quantum.* .
 RUN ./cuda_quantum.$(uname -m) --accept
 
+ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
 ENV PYTHONPATH="${CUDA_QUANTUM_PATH}:${PYTHONPATH}"
 #ENV LD_LIBRARY_PATH="${CUQUANTUM_PATH}/lib:$CUTENSOR_PATH/lib:$LD_LIBRARY_PATH"
 ENV CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
 
+# FIXME: REMOVE
+ENV NVQPP_LD_PATH=ld
+RUN apt-get update && apt-get install -y --no-install-recommends gcc-11
+ADD runtime/cudaq/distributed/builtin/activate_custom_mpi.sh ${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh
+
 # [Enable MPI]
-ENV MPI_PATH=/usr/local/openmpi
-COPY --from=mpibuild "/usr/local/openmpi/" "${MPI_PATH}"
-RUN "${CUDA_QUANTUM_PATH}/bin/activate_mpi.sh"
+COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
+RUN MPI_PATH=/usr/local/openmpi \
+    bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
+
+# [Validate]
+ADD scripts/validate_container.sh validate.sh
+ADD docs/sphinx/examples examples
 
 FROM amd64/almalinux:8 as almalinux
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
+RUN dnf install -y --nobest --setopt=install_weak_deps=False \
+        'dnf-command(config-manager)'
 
 # [Prerequisites]
 ARG PYTHON=python3.11
@@ -97,24 +87,25 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-cudart
         # libpython3-dev libcurl4-openssl-dev 
 
 # [CUDA Quantum]
-#ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
-#ENV CUQUANTUM_PATH=/opt/nvidia/cuquantum
-#ENV CUTENSOR_PATH=/opt/nvidia/cutensor
-#ENV OPENSSL_PATH=/usr/local/openssl
-#COPY --from=cudaqbuild "/usr/local/cudaq/" "${CUDA_QUANTUM_PATH}"
-#COPY --from=cudaqbuild "/usr/local/cuquantum/" "${CUQUANTUM_PATH}"
-#COPY --from=cudaqbuild "/usr/local/cutensor/" "${CUTENSOR_PATH}"
-#COPY --from=cudaqbuild "/usr/local/openssl/" "${OPENSSL_PATH}"
 ADD out/cuda_quantum.* .
 RUN ./cuda_quantum.$(uname -m) --accept
 
+ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
 ENV PYTHONPATH="${CUDA_QUANTUM_PATH}:${PYTHONPATH}"
 #ENV LD_LIBRARY_PATH="${CUQUANTUM_PATH}/lib:$CUTENSOR_PATH/lib:$LD_LIBRARY_PATH"
 ENV CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
 
-# [Enable MPI]
-ENV MPI_PATH=/usr/local/openmpi
-COPY --from=mpibuild "/usr/local/openmpi/" "${MPI_PATH}"
-RUN "${CUDA_QUANTUM_PATH}/bin/activate_mpi.sh"
+# FIXME: REMOVE
+ENV NVQPP_LD_PATH=ld
+ADD runtime/cudaq/distributed/builtin/activate_custom_mpi.sh ${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh
 
+# [Enable MPI]
+COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
+RUN MPI_PATH=/usr/local/openmpi \
+    bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
+
+# [Validate]
+ADD scripts/validate_container.sh validate.sh
+ADD docs/sphinx/examples examples
+#RUN bash validate.sh

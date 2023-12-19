@@ -135,6 +135,9 @@ do
     # Look for a --target flag to nvq++ in the 
     # comment block at the beginning of the file.
     intended_target=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+--target\s+\K\S+'`
+    if [ -n "$intended_target" ]; then
+        echo "Intended for execution on $intended_target backend."
+    fi
 
     for t in $requested_backends
     do
@@ -150,15 +153,16 @@ do
             else
                 nvq++ $ex --target $t
             fi
-            ./a.out &> /dev/null
+            ./a.out &> /tmp/cudaq_validation.out
             status=$?
             echo "Exited with code $status"
             if [ "$status" -eq "0" ]; then 
                 let "passed+=1"
             else
+                cat /tmp/cudaq_validation.out
                 let "failed+=1"
             fi 
-            rm a.out &> /dev/null
+            rm a.out /tmp/cudaq_validation.out &> /dev/null
         fi
     done
     echo "============================="

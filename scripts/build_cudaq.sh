@@ -108,9 +108,9 @@ else
 fi
 
 # Determine linker and linker flags
-if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/lld")" ]; then
+if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   echo "Configuring nvq++ to use the lld linker by default."
-  NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/lld"
+  NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
 fi
 
 # Generate CMake files 
@@ -121,7 +121,7 @@ cmake_args="-G Ninja "$repo_root" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_CUDA_HOST_COMPILER="$CXX" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
-  -DCUDAQ_ENABLE_PYTHON=TRUE \
+  -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON}"

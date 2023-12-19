@@ -32,16 +32,24 @@ then
     return
 fi
 
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 if [ -z "${CXX}" ]; then
-    CXX=g++
+    if [ -x "$(command -v "${this_file_dir}/../bin/nvq++")" ]; then
+        CXX="${this_file_dir}/../bin/nvq++"
+    elif [ -x "$(command -v "${MPI_PATH}/bin/mpic++")" ]; then
+        CXX="${MPI_PATH}/bin/mpic++"
+    else
+        echo "The nvq++ compiler was not found. Please make sure that it is on your path or set the environment variable CXX to a suitable C++ compiler to build the MPI plugin."
+        return
+    fi
 fi
 
-this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-
+echo "Using $CXX to build the MPI plugin."
 $CXX -shared -std=c++17 -fPIC \
     -I${MPI_PATH}/include \
     -I$this_file_dir/ \
     $this_file_dir/mpi_comm_impl.cpp \
     -L${MPI_PATH}/lib64 -L${MPI_PATH}/lib -lmpi \
+    -Wl,-rpath=${MPI_PATH}/lib64 -Wl,-rpath=${MPI_PATH}/lib \
     -o $this_file_dir/libcudaq_distributed_interface_mpi.so
 export CUDAQ_MPI_COMM_LIB=$this_file_dir/libcudaq_distributed_interface_mpi.so

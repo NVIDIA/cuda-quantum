@@ -44,7 +44,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-cutensor
 ## [Compiler Toolchain]
 RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
-# [CUDA Quantum Build]
+# [CUDA Quantum]
 ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
@@ -101,10 +101,10 @@ ADD "$CUDAQ_REPO_ROOT/LICENSE" /cuda-quantum/LICENSE
 ADD "$CUDAQ_REPO_ROOT/NOTICE" /cuda-quantum/NOTICE
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    ## [>CUDAQuantum]
+    ## [>CUDAQuantumBuild]
     CUDAQ_ENABLE_STATIC_LINKING=true CUDAQ_WERROR=false \
     bash scripts/build_cudaq.sh -uv
-    ## [<CUDAQuantum]
+    ## [<CUDAQuantumBuild]
 
 # [Build Assets]
 ADD "$CUDAQ_REPO_ROOT/scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
@@ -120,8 +120,8 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     mv "${LLVM_INSTALL_PREFIX}/bin/"clang* "${archive}/llvm/bin/" && rm -rf "${archive}/llvm/bin/"clang-format* && \
     mv "${LLVM_INSTALL_PREFIX}/lib/"clang* "${archive}/llvm/lib/" && \
     mv "${LLVM_INSTALL_PREFIX}/bin/llc" "${archive}/llvm/bin/llc" && \
-    #mv "${LLVM_INSTALL_PREFIX}/bin/ld.lld" "${archive}/llvm/bin/ld.lld" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/lld" "${archive}/llvm/bin/lld"
+    mv "${LLVM_INSTALL_PREFIX}/bin/lld" "${archive}/llvm/bin/lld" && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/ld.lld" "${archive}/llvm/bin/ld.lld"
 
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
     cd /makeself && git checkout release-2.5.0 && \

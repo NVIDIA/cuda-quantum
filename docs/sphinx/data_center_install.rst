@@ -41,9 +41,11 @@ will be installed and used.
   systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SELD/SLES 15.5, RHEL 8
   and 9, Rocky 8 and 9, and Ubuntu 22.04. Other operating systems may work, but
   have not been tested.
-- Python version 3.8 or newer, as well as `NumPy
-  <https://numpy.org/install/>`__. Older Python 3 versions may work but have not
-  been tested.
+- Python version 3.8 or newer, including the corresponding `libpython` dynamic
+  libraries, as well as `NumPy <https://numpy.org/install/>`__. 
+  Older Python 3 versions may work but have not been tested. Make sure that 
+  the Python version you are using for the build is the same one as the one 
+  on the host system.
 - CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
   architecture. Other architectures may work but are not tested and may require
   adjustments to the build instructions.
@@ -75,6 +77,12 @@ following prerequisites in your build environment:
 - `Perl <https://www.perl.org/get.html>`__ and its `core modules
   <https://www.perl.com/article/what-is-the-perl-core-/>`__. Usually, this can
   be installed via package manager for your distribution.
+- Standard C library: To create a self-contained, relocatable CUDA Quantum 
+  installation, we recommend to statically link all dependencies. To do so, 
+  please make sure you have the static version of the 
+  `GNU C Library <https://www.gnu.org/software/libc/>`__, including the
+  POSIX Threads library, installed on your system. The necessary package(s) can
+  usually be obtained via package manager for your distribution.
 - `Bash <https://www.gnu.org/software/bash/>`__: The CUDA Quantum build scripts
   and the commands listed in the rest of this document assume you are using
   `bash` as the Shell for your build.
@@ -227,8 +235,8 @@ command to build CUDA Quantum:
 .. code-block:: bash
 
     .. literalinclude:: docker/build/cudaq.full.Dockerfile
-      :start-after: [>CUDAQuantum]
-      :end-before: [<CUDAQuantum]
+      :start-after: [>CUDAQuantumBuild]
+      :end-before: [<CUDAQuantumBuild]
 
 The CUDA Quantum build will compile or omit optional components automatically depending
 on whether the necessary pre-requisites are found in the build environment.
@@ -314,20 +322,6 @@ the packages `autoconf`, `libtool`, `flex`, and `make` need to be installed.
 
 .. code-block:: bash
 
-    OPENMPI_VERSION=4.1.4
-    mkdir ~/.openmpi-project && cd ~/.openmpi-project
-    git init && git remote add origin https://github.com/open-mpi/ompi
-    git fetch origin --depth=1 v${OPENMPI_VERSION} && git reset --hard FETCH_HEAD
-
-    # Make sure CUDA_PATH is set to the correct CUDA installation root.
-    ./autogen.pl
-    PATH="$(dirname $CC):$PATH" LDFLAGS=-Wl,--as-needed \
-    ./configure \
-        --prefix="${MPI_PATH}" \
-        --disable-getpwuid --disable-static \
-        --disable-debug --disable-mem-debug --disable-event-debug \
-        --disable-mem-profile --disable-memchecker \
-        --without-verbs \
-        --with-cuda=/usr/local/cuda
-    make -j$(nproc) && make -j$(nproc) install
-    cd - && rm -rf ~/.openmpi-project
+    .. literalinclude:: ../../scripts/configure_build.sh
+      :start-after: [>OpenMPIBuild]
+      :end-before: [<OpenMPIBuild]
