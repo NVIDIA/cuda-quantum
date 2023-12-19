@@ -11,6 +11,7 @@
 #include "common/MeasureCounts.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/qarray.h"
+#include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
 #include "host_config.h"

@@ -10,6 +10,7 @@ import pytest
 
 import cudaq
 
+
 def test_cpu_only_target():
     """Tests the QPP-based CPU-only target"""
 

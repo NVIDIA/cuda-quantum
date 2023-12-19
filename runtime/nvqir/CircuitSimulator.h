@@ -564,6 +564,11 @@ protected:
     } else {
 
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
+        // Measurements are sorted according to qubit allocation order
+        std::sort(qubits.begin(), qubits.end());
+        auto last = std::unique(qubits.begin(), qubits.end());
+        qubits.erase(last, qubits.end());
+
         // Find the position of the qubits we have in the result bit string
         // Create a map of qubit to bit string location
         std::unordered_map<std::size_t, std::size_t> qubitLocMap;
