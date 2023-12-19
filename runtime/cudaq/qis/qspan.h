@@ -15,6 +15,15 @@
 #include <span>
 #endif
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 namespace cudaq {
 #if CUDAQ_USE_STD20
 inline constexpr auto dyn = std::dynamic_extent;
@@ -113,3 +122,10 @@ public:
 #endif
 };
 } // namespace cudaq
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif

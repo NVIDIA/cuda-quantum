@@ -177,8 +177,8 @@ def test_kernel_ctrl_register():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+# CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+# CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.h {{\[}}%[[VAL_0]]] %[[VAL_2]] : (!quake.veq<3>, !quake.ref) -> ()
@@ -224,15 +224,15 @@ def test_kernel_rotation_ctrl_register():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 3 : index
-# CHECK:           %[[VAL_2:.*]] = arith.constant 3.000000e+00 : f64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 2.000000e+00 : f64
-# CHECK:           %[[VAL_4:.*]] = arith.constant 1.000000e+00 : f64
-# CHECK:           %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f64
-# CHECK:           %[[VAL_6:.*]] = arith.constant 1 : index
-# CHECK:           %[[VAL_7:.*]] = arith.constant 0 : index
-# CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_9:.*]] = quake.alloca !quake.veq<2>
+# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 3 : index
+# CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 3.000000e+00 : f64
+# CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2.000000e+00 : f64
+# CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1.000000e+00 : f64
+# CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f64
+# CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1 : index
+# CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : index
+# CHECK-DAG:       %[[VAL_8:.*]] = quake.alloca !quake.veq<3>
+# CHECK-DAG:       %[[VAL_9:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_9]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_9]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_12:.*]] = cc.loop while ((%[[VAL_13:.*]] = %[[VAL_7]]) -> (index)) {
@@ -265,6 +265,38 @@ def test_kernel_rotation_ctrl_register():
 # CHECK:           %[[VAL_26:.*]] = cc.compute_ptr %[[VAL_19]][3] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
 # CHECK:           %[[VAL_27:.*]] = cc.load %[[VAL_26]] : !cc.ptr<f64>
 # CHECK:           quake.rz (%[[VAL_27]]) {{\[}}%[[VAL_8]]] %[[VAL_11]] : (f64, !quake.veq<3>, !quake.ref) -> ()
+# CHECK:           return
+# CHECK:         }
+
+
+def test_ctrl_swap():
+    """
+    Tests the compilation of the various overloads of `cswap` gates.
+    """
+    kernel = cudaq.make_kernel()
+    controls_vector = [kernel.qalloc() for _ in range(3)]
+    controls_register = kernel.qalloc(3)
+    first = kernel.qalloc()
+    second = kernel.qalloc()
+
+    kernel.cswap(controls_vector, first, second)
+    kernel.cswap(controls_register, first, second)
+    kernel.cswap([controls_vector[0], controls_vector[1], controls_register],
+                 first, second)
+
+    print(kernel)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.veq<3>
+# CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_5:.*]] = quake.alloca !quake.ref
+# CHECK:           quake.swap {{\[}}%[[VAL_0]], %[[VAL_1]], %[[VAL_2]]] %[[VAL_4]], %[[VAL_5]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.swap {{\[}}%[[VAL_3]]] %[[VAL_4]], %[[VAL_5]] : (!quake.veq<3>, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.swap {{\[}}%[[VAL_0]], %[[VAL_1]], %[[VAL_3]]] %[[VAL_4]], %[[VAL_5]] : (!quake.ref, !quake.ref, !quake.veq<3>, !quake.ref, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
