@@ -16,7 +16,7 @@
 int main() {
   // [Begin Documentation]
   auto kernelToRun = [](int runtimeParam) __qpu__ {
-    cudaq::qreg q(runtimeParam);
+    cudaq::qvector q(runtimeParam);
     h(q[0]);
     for (int i = 0; i < runtimeParam - 1; ++i)
       x<cudaq::ctrl>(q[i], q[i + 1]);
