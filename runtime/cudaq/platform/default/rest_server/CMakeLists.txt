@@ -22,6 +22,10 @@ target_link_libraries(${LIBRARY_NAME}
     fmt::fmt-header-only 
 )
 
+add_custom_target(EM_SYMLINK ALL DEPENDS ${LIBRARY_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink 
+  ${CMAKE_BINARY_DIR}/lib/$<TARGET_FILE_NAME:${LIBRARY_NAME}> 
+  ${CMAKE_BINARY_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}cudaq-em-remote-sim${CMAKE_SHARED_LIBRARY_SUFFIX})
+
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-remote-sim-targets DESTINATION lib)
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
@@ -42,6 +46,10 @@ if (NOT CUDAQ_DISABLE_TOOLS)
   add_subdirectory(llvm_jit)
   
   add_executable(cudaq_rest_server RestServerMain.cpp)
+  set_target_properties(cudaq_rest_server
+    PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/"
+  )
   target_link_libraries(cudaq_rest_server
     PRIVATE
       rest_server_impl
