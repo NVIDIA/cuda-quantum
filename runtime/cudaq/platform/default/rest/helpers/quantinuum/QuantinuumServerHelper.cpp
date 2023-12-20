@@ -213,35 +213,47 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
                 info.userQubit, result, info.registerName);
   }
 
-  // Validate all the results are present
-  for (auto &[_, val] : output_names)
-    if (!results.contains(val.registerName))
-      throw std::runtime_error("Expected to see " + val.registerName +
-                               " in the results, but did not see it.");
+  // The local mock server tests don't work the same way as the true Quantinuum
+  // QPU. They do not support the full named QIR output recording functions.
+  // Detect for the that difference here.
+  bool mockServer = false;
+  if (results.begin().key() == "MOCK_SERVER_RESULTS")
+    mockServer = true;
+
+  if (!mockServer)
+    for (auto &[_, val] : output_names)
+      if (!results.contains(val.registerName))
+        throw std::runtime_error("Expected to see " + val.registerName +
+                                 " in the results, but did not see it.");
 
   // Construct idx[] such that output_names[idx[:]] is sorted by user qubit
   // number. There may initially be duplicate qubit numbers if that qubit was
   // measured multiple times. If that's true, make the lower-numbered result
   // occur first. (Dups will be removed in the next step below.)
-  std::vector<std::size_t> idx(output_names.size());
-  std::iota(idx.begin(), idx.end(), 0);
-  std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
-    if (output_names[i1].userQubit == output_names[i2].userQubit)
-      return i1 < i2; // choose lower result number
-    return output_names[i1].userQubit < output_names[i2].userQubit;
-  });
+  std::vector<std::size_t> idx;
+  if (!mockServer) {
+    idx.resize(output_names.size());
+    std::iota(idx.begin(), idx.end(), 0);
+    std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
+      if (output_names[i1].userQubit == output_names[i2].userQubit)
+        return i1 < i2; // choose lower result number
+      return output_names[i1].userQubit < output_names[i2].userQubit;
+    });
 
-  // The global register only contains the *final* measurement of each requested
-  // qubit, so eliminate lower-numbered results from idx array.
-  for (auto it = idx.begin(); it != idx.end();) {
-    if (std::next(it) != idx.end()) {
-      if (output_names[*it].userQubit ==
-          output_names[*std::next(it)].userQubit) {
-        it = idx.erase(it);
-        continue;
+    // The global register only contains the *final* measurement of each
+    // requested qubit, so eliminate lower-numbered results from idx array.
+    for (auto it = idx.begin(); it != idx.end();) {
+      if (std::next(it) != idx.end()) {
+        if (output_names[*it].userQubit ==
+            output_names[*std::next(it)].userQubit) {
+          it = idx.erase(it);
+          continue;
+        }
       }
+      ++it;
     }
-    ++it;
+  } else {
+    idx.resize(1); // local mock server tests
   }
 
   // For each shot, we concatenate the measurements results of all qubits.
@@ -249,8 +261,13 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
   auto nShots = begin.value().get<std::vector<std::string>>().size();
   std::vector<std::string> bitstrings(nShots);
   for (auto r : idx) {
-    auto bitResults = results.at(output_names[r].registerName)
-                          .get<std::vector<std::string>>();
+    // If allNamesPresent == false, that means we are running local mock server
+    // tests which don't support the full QIR output recording functions. Just
+    // use the first key in that case.
+    auto bitResults =
+        mockServer ? results.at(begin.key()).get<std::vector<std::string>>()
+                   : results.at(output_names[r].registerName)
+                         .get<std::vector<std::string>>();
     for (size_t i = 0; auto &bit : bitResults)
       bitstrings[i++] += bit;
   }
