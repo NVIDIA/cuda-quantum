@@ -15,22 +15,38 @@ QPUs for asynchronous CUDA Quantum kernel and :code:`cudaq::` function invocatio
 Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.
 
-Here is a simple example demonstrating this:
 
-.. literalinclude:: ../../snippets/cpp/using/cudaq/platform/sample_async.cpp
-    :language: cpp
+NVIDIA MQPU Platform
++++++++++++++++++++++
+
+The NVIDIA MQPU target (:code:`nvidia-mqpu`) provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
+Each QPU is simulated via a `cuStateVec` simulator backend. 
+This target enables asynchronous parallel execution of quantum kernel tasks.
+
+Here is a simple example demonstrating its usage.
+
+.. tab:: C++
+
+    .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/sample_async.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
+
+    CUDA Quantum exposes asynchronous versions of the default :code:`cudaq::` algorithmic
+    primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`cudaq::sample_async` function in the above code snippet).
+
+    One can specify the target multi-QPU architecture (:code:`nvidia-mqpu`) with the :code:`--target` flag:
+    
+    .. code-block:: console
+
+        nvq++ sample_async.cpp -target nvidia-mqpu
+        ./a.out
+
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async.py
+    :language: python
     :start-after: [Begin Documentation]
-    :end-before: [End Documentation]
-
-CUDA Quantum exposes asynchronous versions of the default :code:`cudaq::` algorithmic
-primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`cudaq::sample_async` function in the above code snippet).
-
-One can specify the target multi-QPU architecture (:code:`nvidia-mqpu`) with the :code:`--target` flag:
- 
-.. code-block:: console
-
-    nvq++ sample_async.cpp -target nvidia-mqpu
-    ./a.out
 
 Depending on the number of GPUs available on the system, the :code:`nvidia-mqpu` platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
@@ -51,46 +67,41 @@ The results might look like the following 4 different random samplings:
   To specify the number QPUs to be instantiated, one can set the :code:`CUDAQ_MQPU_NGPUS` environment variable.
   For example, use :code:`export CUDAQ_MQPU_NGPUS=2` to specify that only 2 QPUs (GPUs) are needed.
 
-
-An equivalent example in Python is as follows.
-
-.. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async.py
-    :language: python
-    :start-after: [Begin Documentation]
-
 Asynchronous expectation value computations
-+++++++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 One typical use case of the :code:`nvidia-mqpu` platform is to distribute the
 expectation value computations of a multi-term Hamiltonian across multiple virtual QPUs (:code:`GPUEmulatedQPU`).
 
 Here is an example.
 
-.. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu.cpp
-    :language: cpp
-    :start-after: [Begin Documentation]
-    :end-before: [End Documentation]
+.. tab:: C++
+
+    .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
 
 
-One can then target the :code:`nvidia-mqpu` platform by executing the following commands:
+    One can then target the :code:`nvidia-mqpu` platform by executing the following commands:
 
-.. code-block:: console
+    .. code-block:: console
 
-    nvq++ observe_mqpu.cpp -target nvidia-mqpu
-    ./a.out
+        nvq++ observe_mqpu.cpp -target nvidia-mqpu
+        ./a.out
 
-Equivalently, in Python, we would use the following:
+.. tab:: Python
 
-.. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu.py
-    :language: python
-    :start-after: [Begin Documentation]
+    .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu.py
+        :language: python
+        :start-after: [Begin Documentation]
 
-In the above code snippet, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
+In the above code snippets, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
 in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the :code:`nvidia-mqpu` platform
 is selected, these circuits will be distributed across all available QPUs. The final expectation value result is computed from all QPU execution results.
 
 Parallel distribution mode
-++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The CUDA Quantum :code:`nvidia-mqpu` platform supports two modes of parallel distribution of expectation value computation:
 
@@ -104,32 +115,90 @@ should be used.
 
 An example of MPI distribution mode usage in both C++ and Python is given below:
 
-C++
-^^^
+.. tab:: C++
 
-.. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu_mpi.cpp
-    :language: cpp
-    :start-after: [Begin Documentation]
-    :end-before: [End Documentation]
+    .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu_mpi.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
 
-.. code-block:: console
+    .. code-block:: console
 
-    nvq++ file.cpp -target nvidia-mqpu
-    mpirun -np <N> a.out
+        nvq++ file.cpp -target nvidia-mqpu
+        mpirun -np <N> a.out
 
 
-Python
-^^^^^^
+.. tab:: Python
 
-.. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu_mpi.py
-    :language: python
-    :start-after: [Begin Documentation]
+    .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu_mpi.py
+        :language: python
+        :start-after: [Begin Documentation]
 
-.. code-block:: console
+    .. code-block:: console
 
-    mpirun -np <N> python3 file.py
+        mpirun -np <N> python3 file.py
 
 In the above example, the parallel distribution mode was set to :code:`mpi` using :code:`cudaq::parallel::mpi` in C++ or :code:`cudaq.parallel.mpi` in Python.
 CUDA Quantum provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime. 
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
 e.g., :code:`mpirun`, :code:`mpiexec`, :code:`srun`, etc.
+
+Remote REST Server Platform
++++++++++++++++++++++++++++
+
+The remote simulator target (:code:`remote-sim`) encapsulates simulated QPUs
+as independent REST server instances, to which the CUDA Quantum runtime communicating 
+to via HTTP requests (REST API).
+
+CUDA Quantum provides the REST server implementation as a standalone application (:code:`cudaq_rest_server`)
+hosting all the simulator backends available in the installation, including those that require MPI for multi-GPU computation.
+To start the server, serving at a specific TCP/IP port, one can do the following.
+
+.. code-block:: console
+    cudaq_rest_server --port <port number>
+
+User code can then target this platform by specifying its target name (:code:`remote-sim`).
+
+.. tab:: C++
+
+    .. code-block:: console
+
+        nvq++ file.cpp --target remote-sim --remote-sim-url <url1[,url2,...]> --remote-sim-backend <sim1[,sim2,...]>
+
+
+.. tab:: Python
+
+     .. code:: python 
+
+        cudaq.set_target("remote-sim", url="url1[,url2,...]", backend="sim1[,sim2,...]")
+    
+
+When using this target, the user needs to provides a list of URLs where (:code:`cudaq_rest_server`) is serving.
+The number of QPUs (:code:`num_qpus()`) is equal to the number of URLs provided. 
+
+Each QPU instance can be assigned a different backend simulator via the :code:`--remote-sim-backend` (`nvq++`) or :code:`backend` (Python)
+option. Otherwise, if a single backend is specified, all the QPUs are assumed to be using the same simulator.
+
+Auto-launch REST Server
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The server app (:code:`cudaq_rest_server`) can be launch and shutdown automatically
+by using the auto-launch feature of the platform.
+Random TCP/IP ports, that are available for use, will be selected to launch those server processes.
+
+.. tab:: C++
+
+    .. code-block:: console
+
+        nvq++ file.cpp --target remote-sim --remote-sim-auto-launch <N> --remote-sim-backend <sim1[,sim2,...]>
+
+
+.. tab:: Python
+
+     .. code:: python 
+
+        cudaq.set_target("remote-sim", auto_launch="<N>", backend="sim1[,sim2,...]")
+
+
+In the above snippets, `N` denotes the number of REST server instances (QPUs) to be launched.
+These servers will be shut down at the end of the execution.
