@@ -44,6 +44,9 @@ protected:
   std::string userSpecifiedCredentials = "";
   std::string credentialsPath = "";
 
+  /// @brief Output names indexed by jobID/taskID
+  std::map<std::string, OutputNamesType> outputNames;
+
   /// @brief Quantinuum requires the API token be updated every so often,
   /// using the provided refresh token. This function will do that.
   void refreshTokens(bool force_refresh = false);
@@ -76,6 +79,26 @@ public:
     iter = backendConfig.find("credentials");
     if (iter != backendConfig.end())
       userSpecifiedCredentials = iter->second;
+
+    // Parse the output_names.* (for each job) and place it in outputNames[]
+    for (auto &[key, val] : config) {
+      if (key.starts_with("output_names.")) {
+        // Parse `val` into jobOutputNames.
+        // Note: See `FunctionAnalysisData::resultQubitVals` of
+        // LowerToBaseProfileQIR.cpp for an example of how this was populated.
+        OutputNamesType jobOutputNames;
+        nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
+        for (const auto &el : outputNamesJSON[0]) {
+          auto result = el[0].get<std::size_t>();
+          auto qirQubit = el[1][0].get<std::size_t>();
+          auto userQubit = el[1][1].get<std::size_t>();
+          auto registerName = el[1][2].get<std::string>();
+          jobOutputNames[result] = {qirQubit, userQubit, registerName};
+        }
+
+        this->outputNames[key] = jobOutputNames;
+      }
+    }
   }
 
   /// @brief Create a job payload for the provided quantum codes
@@ -178,12 +201,56 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
     srs.back().sequentialData = bitResults;
   }
 
+  // The global register needs to have results sorted by qubit number.
+  // Sort output_names by qubit first and then result number. If there are
+  // duplicate measurements for a qubit, only save the last one.
+  if (outputNames.find("output_names." + jobId) == outputNames.end())
+    throw std::runtime_error("Could not find output names for job " + jobId);
+
+  auto &output_names = outputNames["output_names." + jobId];
+  for (auto &[result, info] : output_names) {
+    cudaq::info("QIR Qubit {} User Qubit {} Result {} Name {}", info.qirQubit,
+                info.userQubit, result, info.registerName);
+  }
+
+  // Validate all the results are present
+  for (auto &[_, val] : output_names)
+    if (!results.contains(val.registerName))
+      throw std::runtime_error("Expected to see " + val.registerName +
+                               " in the results, but did not see it.");
+
+  // Construct idx[] such that output_names[idx[:]] is sorted by user qubit
+  // number. There may initially be duplicate qubit numbers if that qubit was
+  // measured multiple times. If that's true, make the lower-numbered result
+  // occur first. (Dups will be removed in the next step below.)
+  std::vector<std::size_t> idx(output_names.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
+    if (output_names[i1].userQubit == output_names[i2].userQubit)
+      return i1 < i2; // choose lower result number
+    return output_names[i1].userQubit < output_names[i2].userQubit;
+  });
+
+  // The global register only contains the *final* measurement of each requested
+  // qubit, so eliminate lower-numbered results from idx array.
+  for (auto it = idx.begin(); it != idx.end();) {
+    if (std::next(it) != idx.end()) {
+      if (output_names[*it].userQubit ==
+          output_names[*std::next(it)].userQubit) {
+        it = idx.erase(it);
+        continue;
+      }
+    }
+    ++it;
+  }
+
   // For each shot, we concatenate the measurements results of all qubits.
   auto begin = results.begin();
-  std::vector<std::string> bitstrings =
-      begin.value().get<std::vector<std::string>>();
-  for (auto it = ++begin, end = results.end(); it != end; ++it) {
-    auto bitResults = it.value().get<std::vector<std::string>>();
+  auto nShots = begin.value().get<std::vector<std::string>>().size();
+  std::vector<std::string> bitstrings(nShots);
+  for (auto r : idx) {
+    auto bitResults = results.at(output_names[r].registerName)
+                          .get<std::vector<std::string>>();
     for (size_t i = 0; auto &bit : bitResults)
       bitstrings[i++] += bit;
   }
