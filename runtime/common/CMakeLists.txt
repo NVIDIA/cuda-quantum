@@ -21,6 +21,9 @@ set(COMMON_RUNTIME_SRC
 # Create the cudaq-common library
 add_library(${LIBRARY_NAME} SHARED ${COMMON_RUNTIME_SRC})
 
+# Add into runtime_libs property
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
+
 # Setup the includes
 target_include_directories(${LIBRARY_NAME} 
     PRIVATE . 
@@ -99,6 +102,7 @@ get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 
 add_library(cudaq-mlir-runtime SHARED RuntimeMLIR.cpp)
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
 target_include_directories(cudaq-mlir-runtime
   PRIVATE . ${CMAKE_SOURCE_DIR}/runtime)
