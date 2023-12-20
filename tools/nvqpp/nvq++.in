@@ -311,6 +311,24 @@ TARGET_ARGS=
 if [[ $# -eq 0 ]]; then
     SHOW_HELP=true
 fi
+# Handle arguments with '='
+N=$#
+cmd_params=("$@")
+for i in "${!cmd_params[@]}"; do
+	arg="${cmd_params[$i]}"
+	if [[ "$arg" == *=* ]]; then
+		key="${arg%=*}"
+		val="${arg#*=}"
+		if [[ $i -eq 0 ]]; then
+			cmd_params=( "$key" "$val" "${cmd_params[@]:1}" )
+		elif [[ $i -eq $N-1 ]]; then
+			cmd_params=( "${cmd_params[@]:0:i-1}" "$key" "$val" )
+		else
+			cmd_params=( "${cmd_params[@]:0:i-1}" "$key" "$val" "${cmd_params[@]:i+1}" )
+		fi
+	fi
+done
+set -- "${cmd_params[@]}"
 
 # First, find the target option. The name is needed since it is the prefix for
 # any target specific options.
