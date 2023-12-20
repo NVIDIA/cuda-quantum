@@ -106,13 +106,13 @@ std::string getCxxMangledDeclName(clang::GlobalDecl decl,
 std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler);
 
-/// Use this helper to convert a tag name to a nvqpp mangled name.
+/// Use this helper to convert a tag name to a `nvq++` mangled name.
 inline std::string getCudaqKernelName(const std::string &tag) {
   return runtime::cudaqGenPrefixName + tag;
 }
 
 /// Creates the tag name for a quantum kernel. The tag name is a name by which
-/// one can lookup a kernel at runtime. This name does not include the nvq++
+/// one can lookup a kernel at runtime. This name does not include the `nvq++`
 /// prefix nor the unique (C++ mangled) suffix.
 std::string getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
                                      clang::ItaniumMangleContext *mangler);
@@ -131,10 +131,11 @@ bool ignoredClass(clang::RecordDecl *x);
 /// The general design is to walk the tree in a post-order traversal and
 /// assemble the IR from the leaves back down the tree. Traversals over types
 /// should push Type values to the type stack. Traversals over expressions
-/// should create IR in the ModuleOp as well as push subexpressions on the stack
-/// for parent nodes. A parent node always knows how many children it needs to
-/// be constructed correctly. The types of expressions are carried along with
-/// the expressions in the IR and need not be duplicated on the type stack.
+/// should create IR in the ModuleOp as well as push `subexpressions` on the
+/// stack for parent nodes. A parent node always knows how many children it
+/// needs to be constructed correctly. The types of expressions are carried
+/// along with the expressions in the IR and need not be duplicated on the type
+/// stack.
 ///
 /// Unfortunately, clang's RecursiveASTVisitor doesn't always visit nodes in the
 /// AST and can skip visiting types or even some expressions.
@@ -156,7 +157,7 @@ public:
         reachableFunctions(reachableFuncs), namesMap(namesMap),
         compilerInstance(ci), mangler(mangler) {}
 
-  /// nvq++ renames quantum kernels to differentiate them from classical C++
+  /// `nvq++` renames quantum kernels to differentiate them from classical C++
   /// code. This renaming is done on function names. \p tag makes it easier
   /// to identify the kernel class from which the function was extracted.
   std::string generateCudaqKernelName(const clang::FunctionDecl *func) {
@@ -306,6 +307,7 @@ public:
 
   bool TraverseMemberExpr(clang::MemberExpr *x,
                           DataRecursionQueue *q = nullptr);
+  bool VisitMemberExpr(clang::MemberExpr *x);
   bool TraverseBinaryOperator(clang::BinaryOperator *x,
                               DataRecursionQueue *q = nullptr);
   bool TraverseLambdaExpr(clang::LambdaExpr *x,
@@ -456,7 +458,7 @@ private:
   /// Returns true if \p decl is a function to lower to Quake.
   bool needToLowerFunction(const clang::FunctionDecl *decl);
 
-  // Helpers to convert an AST node's clang source range to an MLIR Location.
+  /// Helpers to convert an AST node's clang source range to an MLIR Location.
   template <typename A>
   mlir::Location toLocation(const A *x) {
     return toLocation(x->getSourceRange());
@@ -580,7 +582,7 @@ private:
 /// drives the process of walking the Clang AST and translate pertinent nodes to
 /// an MLIR Op tree containing Quake, CC, and other MLIR dialect operations.
 /// This Action will generate this MLIR Module and rewrite the input source code
-/// (using the Clang Rewriter system) to define quantum kernels as extern.
+/// (using the Clang `Rewriter` system) to define quantum kernels as `extern`.
 class ASTBridgeAction : public clang::ASTFrontendAction {
 public:
   using MangledKernelNamesMap = cudaq::MangledKernelNamesMap;
@@ -705,7 +707,7 @@ inline bool isCallOperator(clang::OverloadedOperatorKind kindValue) {
   return kindValue == clang::OverloadedOperatorKind::OO_Call;
 }
 
-// Is \p t of type `char *`?
+/// Is \p t of type `char *`?
 inline bool isCharPointerType(mlir::Type t) {
   if (auto ptrTy = dyn_cast<cc::PointerType>(t)) {
     mlir::Type eleTy = ptrTy.getElementType();

@@ -1083,16 +1083,34 @@ bool QuakeBridgeVisitor::TraverseLambdaExpr(clang::LambdaExpr *x,
 
 bool QuakeBridgeVisitor::TraverseMemberExpr(clang::MemberExpr *x,
                                             DataRecursionQueue *) {
-  [[maybe_unused]] auto typeStackDepth = typeStack.size();
-  // FIXME!
-  // Accessing data members is not currently supported. For function members, we
-  // want to push the type of the function, since the visit to CallExpr requires
-  // a type to have been pushed.
-  if (auto *methodDecl = dyn_cast<clang::CXXMethodDecl>(x->getMemberDecl()))
+  if (auto *methodDecl = dyn_cast<clang::CXXMethodDecl>(x->getMemberDecl())) {
+    // For function members, we want to push the type of the function, since the
+    // visit to CallExpr requires a type to have been pushed.
+    [[maybe_unused]] auto typeStackDepth = typeStack.size();
     if (!TraverseType(methodDecl->getType()))
       return false;
-  assert(typeStack.size() == typeStackDepth + 1);
+    assert(typeStack.size() == typeStackDepth + 1);
+  }
+  if (auto *field = dyn_cast<clang::FieldDecl>(x->getMemberDecl())) {
+    [[maybe_unused]] auto typeStackDepth = typeStack.size();
+    if (!TraverseType(field->getType()))
+      return false;
+    assert(typeStack.size() == typeStackDepth + 1);
+  }
   return Base::TraverseMemberExpr(x);
+}
+
+bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
+  if (auto *field = dyn_cast<clang::FieldDecl>(x->getMemberDecl())) {
+    auto loc = toLocation(x->getSourceRange());
+    auto object = popValue(); // DeclRefExpr
+    std::int32_t offset = field->getFieldIndex();
+    auto ty = popType();
+    return pushValue(builder.create<cc::ComputePtrOp>(
+        loc, cc::PointerType::get(ty), object,
+        SmallVector<cc::ComputePtrArg>{0, offset}));
+  }
+  return true;
 }
 
 bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {

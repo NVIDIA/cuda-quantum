@@ -157,11 +157,14 @@ matrix:
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
-      # Ignore the first lowercase word after @param, which is usually the parameter name
-      - open: '@param(?:\s[a-z]+)?'
+      # Ignore the first word after \command or @command, which is a code artifact
+      - open: '[\\@]([abcep]|em)(?:\s\S+)?'
         close: '(\s|$)'
-      # Ignore words that start with an @, e.g. @param used in doc comments
-      - open: '@\S'
+      # Ignore the doxygen \param command and the code artifact after it.
+      - open: '[\\@]param(\s+\[[a-z]+\])?\s+(?:\S+)'
+        close: '(\s|$)'
+      # Ignore words that start with a \ or @, e.g. @param used in doc comments
+      - open: '[\\@](\S+|[n\\@&\$#<>%"\.=|]|::|--|---)'
         close: '(\s|$)'
       # Ignore words before and after double columns
       - open: '([a-zA-Z0-9_])*::'
