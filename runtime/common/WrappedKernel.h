@@ -12,6 +12,19 @@
 #include <cstring>
 #include <string>
 #include <vector>
+
+/*! \file WrappedKernel.h
+    \brief Utility classes to support library-mode kernel launch.
+
+    This header file defines classes supporting launching quantum kernels in
+   library mode (without the bridge) when using the remote platform.
+    Specifically, it provides a layer of indirection, `cudaq::invokeKernel`,
+   similar to the `altLaunchKernel` function when using the bridge. In addition,
+   argument packing (for serialization) is handled by C++ templates in lieu of
+   bridge-generated functions. These utilities will only be used for the remote
+   platform target in library-mode (guarded by pre-defined macros).
+*/
+
 namespace cudaq {
 
 /// @brief Wrapper for kernel address
@@ -87,12 +100,20 @@ private:
   std::size_t m_remaining = 0;
 };
 
-/// Specialize to describe how to serialize/deserialize to/from the given
-/// concrete type.
+//===----------------------------------------------------------------------===//
+//
+// Utilities to package (serialize) kernel arguments as a flat byte buffer.
+// This is equivalent to the bridge-generated args creator function for each
+// kernel signature type.
+//
+//===----------------------------------------------------------------------===//
+
+// Specialize to describe how to serialize/deserialize to/from the given
+// concrete type.
 template <typename T, typename _ = void>
 class SerializeArgImpl;
 
-/// A utility class for serializing kernel `args` as a flat buffer
+// A utility class for serializing kernel `args` as a flat buffer
 template <typename... ArgTs>
 class SerializeArgs;
 
@@ -127,7 +148,7 @@ public:
   }
 };
 
-/// Serialization for 'trivial' types (POD)
+// Serialization for 'trivial' types (POD)
 template <typename T>
 class SerializeArgImpl<T, std::enable_if_t<std::is_trivial<T>::value>> {
 public:
@@ -189,6 +210,7 @@ public:
   }
 };
 
+// Serialize a list of args into a flat buffer.
 template <typename... Args>
 std::vector<char> serializeArgs(const Args &...args) {
   using Serializer = SerializeArgs<Args...>;
@@ -210,6 +232,13 @@ public:
   }
 };
 
+//===----------------------------------------------------------------------===//
+//
+// Utilities to wrap a kernel call f(args...) as a generic one that takes a
+// single flat buffer argument. The buffer is deserialized into a typed
+// std::tuple for invocation.
+//
+//===----------------------------------------------------------------------===//
 template <typename WrapperFunctionImplT, typename... ArgTs>
 class WrapperFunctionHandlerHelper
     : public WrapperFunctionHandlerHelper<
@@ -251,14 +280,14 @@ class WrapperFunctionHandlerHelper<void (*)(SignatureArgTs...), InvokeArgTs...>
     : public WrapperFunctionHandlerHelper<void(SignatureArgTs...),
                                           InvokeArgTs...> {};
 
-/// Specialization for class member function
+// Specialization for class member function
 template <typename ClassT, typename... SignatureArgTs, typename... InvokeArgTs>
 class WrapperFunctionHandlerHelper<void (ClassT::*)(SignatureArgTs...),
                                    InvokeArgTs...>
     : public WrapperFunctionHandlerHelper<void(SignatureArgTs...),
                                           InvokeArgTs...> {};
 
-/// Invoke a typed callable (functions) with serialized `args`.
+// Invoke a typed callable (functions) with serialized `args`.
 template <typename CallableT, typename... InvokeArgTs>
 void invokeCallableWithSerializedArgs(const char *argData, std::size_t argSize,
                                       CallableT &&func) {
@@ -267,6 +296,9 @@ void invokeCallableWithSerializedArgs(const char *argData, std::size_t argSize,
       InvokeArgTs...>::invoke(std::forward<CallableT>(func), argData, argSize);
 }
 
+// Wrapper for quantum kernel invocation, i.e., kernel(arg...).
+// In library mode, if the remote platform is used, we redirect it to the
+// platform's launchKernel instead of invoking it.
 template <typename QuantumKernel, typename... Args>
 std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
                                                           Args &&...args) {
