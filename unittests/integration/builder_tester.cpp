@@ -429,6 +429,9 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
 }
 #endif
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// Skip, else fails with error - '"MPS simulator: Gates on 3 or more qubits are
+// unsupported. Encountered: swap[0][1,2]" thrown in the test body.'
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
 
@@ -572,6 +575,7 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
     EXPECT_NEAR(counts.count(want_state), 1000, 0);
   }
 }
+#endif
 
 // Conditional execution on the tensornet backend is slow for a large number of
 // shots.
