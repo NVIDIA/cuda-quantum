@@ -16,10 +16,10 @@ Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.
 
 
-NVIDIA MQPU Platform
-+++++++++++++++++++++
+NVIDIA `MQPU` Platform
+++++++++++++++++++++++
 
-The NVIDIA MQPU target (:code:`nvidia-mqpu`) provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
+The NVIDIA `MQPU` target (:code:`nvidia-mqpu`) provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
 Each QPU is simulated via a `cuStateVec` simulator backend. 
 This target enables asynchronous parallel execution of quantum kernel tasks.
 
