@@ -253,6 +253,10 @@ the right locations (as we do for the installer).
 
 Make sure your host system satisfies the `Prerequisites`_ listed above, and 
 ...
+For pre-built archives:
+tools to decompress tar.gz needed for extraction of a pre-built archive, and be mindful that the 
+C++ standard library matches the gcc-11 compiler used to build the archive.
+...
 
 To make use of all CUDA Quantum features and components, install the CUDA Quantum 
 runtime dependencies listed in the remaining sections on the host system.
@@ -266,6 +270,16 @@ While not strictly necessary, we recommend that you install the toolchain
 that was used for the CUDA Quantum build on the host; you will need a compiler
 to enable MPI support, and using the same compiler as CUDA Quantum was built with
 guarantees that there are no incompatibilities.
+
+.. note:: 
+  CUDA Quantum is configured to use its own linker by default. This linker may not
+  support certain data compression components used by your toolchain, leading to
+  and error of the form, for example, "[library] is compressed with ELFCOMPRESS_ZLIB, 
+  but lld is not built with zlib support". In that case, you should configure 
+  CUDA Quantum to use the linker that was used to building CUDA Quantum by setting the
+  `NVQPP_LD_PATH` environment variable to point to it, e.g. `export NVQPP_LD_PATH=ld`.
+
+FIXME: maybe we should enable more compressions.
 
 Additionally, you will need to install the necessary CUDA runtime libraries to use
 GPU-acceleration in CUDA Quantum. While not necessary, we recommend installing 

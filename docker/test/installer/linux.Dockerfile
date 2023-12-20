@@ -49,5 +49,5 @@ RUN MPI_PATH=/usr/local/openmpi \
 
 ## [Validate]
 ADD scripts/validate_container.sh validate.sh
-ADD docs/sphinx/examples examples
+ADD docs/sphinx/examples/cpp examples
 #RUN bash validate.sh

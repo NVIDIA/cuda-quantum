@@ -17,13 +17,17 @@ case $1 in
         pkg_manager=apt-get
         distro=debian12
     ;;
-    *almalinux*|*redhat*|*fedora*)
+    *almalinux*|*redhat*)
         pkg_manager=dnf
         distro=rhel9
     ;;
+    *fedora*)
+        pkg_manager=dnf
+        distro=rhel9 # not really a great option, but allows some basic testing
+    ;;
     *opensuse*) 
         pkg_manager=zypper
-        distro=sles15
+        distro=opensuse15
     ;;
     *) echo "No package manager configured for $1" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -42,10 +46,10 @@ if [ "$pkg_manager" == "apt-get" ]; then
     apt-get install -y --no-install-recommends libstdc++-11-dev
 
     ## [CUDA runtime libraries]
-    wget "${CUDA_DOWNLOAD_URL}/${distro}/${CUDA_ARCH_FOLDER}/cuda-keyring_1.0-1_all.deb"
-    dpkg -i cuda-keyring_1.0-1_all.deb && apt-get update 
+    wget "${CUDA_DOWNLOAD_URL}/${distro}/${CUDA_ARCH_FOLDER}/cuda-keyring_1.1-1_all.deb"
+    dpkg -i cuda-keyring_1.1-1_all.deb && apt-get update 
     apt-get install -y --no-install-recommends ${CUDA_PACKAGES}
-    rm cuda-keyring_1.0-1_all.deb
+    rm cuda-keyring_1.1-1_all.deb
 
 elif [ "$pkg_manager" == "dnf" ]; then
     ## [Prerequisites]
@@ -53,11 +57,26 @@ elif [ "$pkg_manager" == "dnf" ]; then
         'dnf-command(config-manager)'
 
     ## [C++ standard library]
-    dnf 
+    GCC_VERSION=$([ -z "$(dnf search gcc-toolset-11 2>&1 | grep -o "No matches found.")" ] && echo 11 || echo 12) # ok-ish for basic validation - should be 11
+    package=$([ -z "$(dnf search gcc-toolset-$GCC_VERSION 2>&1 | grep -o "No matches found.")" ] && echo gcc-toolset-$GCC_VERSION || echo gcc-c++)
+    dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-${GCC_VERSION}
+    source /opt/rh/gcc-toolset-${GCC_VERSION}/enable
 
     ## [CUDA runtime libraries]
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${distro}/${CUDA_ARCH_FOLDER}/cuda-${distro}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False ${CUDA_PACKAGES}
+
+elif [ "$pkg_manager" == "zypper" ]; then
+    ## [Prerequisites]
+    zypper clean --all && zypper --non-interactive up --no-recommends
+    zypper --non-interactive in --no-recommends gzip tar
+
+    ## [C++ standard library]
+    zypper --non-interactive in --no-recommends gcc11
+
+    ## [CUDA runtime libraries]
+    zypper ar "${CUDA_DOWNLOAD_URL}/${distro}/${CUDA_ARCH_FOLDER}/cuda-${distro}.repo"
+    zypper --non-interactive --gpg-auto-import-keys in --no-recommends ${CUDA_PACKAGES}
 
 else
     echo "Installation via $pkg_manager is not yet implemented." >&2
