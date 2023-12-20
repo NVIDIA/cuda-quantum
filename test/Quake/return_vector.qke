@@ -65,8 +65,8 @@ func.func @__nvqpp__mlirgen__test_1(%arg0: i32) -> !cc.stdvec<f64> {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, !cc.ptr<i32>, i64}>>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<!cc.struct<{i32, !cc.ptr<i32>, i64}>>
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_2]] : (i64) -> !cc.ptr<!cc.struct<{i32, !cc.ptr<i32>, i64}>>
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.struct<{i32, !cc.ptr<i32>, i64}>>) -> !cc.ptr<!cc.struct<{i32, !cc.ptr<i32>, i64}>>
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_2]] : (i64) -> !cc.ptr<!cc.array<!cc.struct<{i32, !cc.ptr<i32>, i64}> x ?>>
+// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.array<!cc.struct<{i32, !cc.ptr<i32>, i64}> x ?>>) -> !cc.ptr<!cc.struct<{i32, !cc.ptr<i32>, i64}>>
 // CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.struct<{i32, !cc.ptr<i32>, i64}>>) -> i64
 // CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_3]][0, 1] : (!cc.ptr<!cc.struct<{i32, !cc.ptr<i32>, i64}>>) -> !cc.ptr<!cc.ptr<i32>>
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_8]] : (!cc.ptr<!cc.ptr<i32>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>
@@ -128,8 +128,8 @@ func.func @__nvqpp__mlirgen__test_1(%arg0: i32) -> !cc.stdvec<f64> {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, !cc.ptr<f64>, i64}>>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<!cc.struct<{i32, !cc.ptr<f64>, i64}>>
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_2]] : (i64) -> !cc.ptr<!cc.struct<{i32, !cc.ptr<f64>, i64}>>
-// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.struct<{i32, !cc.ptr<f64>, i64}>>) -> !cc.ptr<!cc.struct<{i32, !cc.ptr<f64>, i64}>>
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_2]] : (i64) -> !cc.ptr<!cc.array<!cc.struct<{i32, !cc.ptr<f64>, i64}> x ?>>
+// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]][1] : (!cc.ptr<!cc.array<!cc.struct<{i32, !cc.ptr<f64>, i64}> x ?>>) -> !cc.ptr<!cc.struct<{i32, !cc.ptr<f64>, i64}>>
 // CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.struct<{i32, !cc.ptr<f64>, i64}>>) -> i64
 // CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_3]][0, 1] : (!cc.ptr<!cc.struct<{i32, !cc.ptr<f64>, i64}>>) -> !cc.ptr<!cc.ptr<f64>>
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_8]] : (!cc.ptr<!cc.ptr<f64>>) -> !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>
