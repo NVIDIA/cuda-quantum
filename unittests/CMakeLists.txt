@@ -82,22 +82,7 @@ endmacro()
 
 # We will always have the QPP backend, create a tester for it
 create_tests_with_backend(qpp backends/QPPTester.cpp)
-create_tests_with_backend(dm "")
-add_executable(test_qpp_dm main.cpp backends/QPPDMTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_qpp_dm PRIVATE -Wl,--no-as-needed)
-endif()
-target_compile_definitions(test_qpp_dm PRIVATE -DNVQIR_BACKEND_NAME=dm)
-target_compile_definitions(test_qpp_dm PRIVATE __MATH_LONG_DOUBLE_CONSTANTS)
-target_include_directories(test_qpp_dm PRIVATE .)
-target_link_libraries(test_qpp_dm
-  PUBLIC
-  nvqir-dm nvqir
-  cudaq fmt::fmt-header-only
-  cudaq-platform-default
-  cudaq-builder
-  gtest_main)
-gtest_discover_tests(test_qpp_dm)
+create_tests_with_backend(dm backends/QPPDMTester.cpp)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
