@@ -285,7 +285,8 @@ public:
       // Get the pointer out of the void** variadic args - > void* -> TYPE*
       Value argPtrPtr = builder.create<cudaq::cc::ComputePtrOp>(
           loc, ptrPtrType, variadicArgs,
-          SmallVector<cudaq::cc::ComputePtrArg>{idx});
+          SmallVector<cudaq::cc::ComputePtrArg>{
+              static_cast<std::int32_t>(idx)});
       Value argPtr = builder.create<cudaq::cc::LoadOp>(loc, ptrI8Ty, argPtrPtr);
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
 
@@ -351,7 +352,8 @@ public:
               loc, builder.getI64Type(), stVal, off);
           Value argPtrPtr = builder.create<cudaq::cc::ComputePtrOp>(
               loc, ptrPtrType, variadicArgs,
-              SmallVector<cudaq::cc::ComputePtrArg>{idx});
+              SmallVector<cudaq::cc::ComputePtrArg>{
+                  static_cast<std::int32_t>(idx)});
           auto ptrInTy = cudaq::cc::PointerType::get(
               cudaq::opt::factory::stlVectorType(stdvecTy.getElementType()));
           Value arg =
