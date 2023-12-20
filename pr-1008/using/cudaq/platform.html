@@ -446,7 +446,7 @@ Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.</p>
 <p>Here is a simple example demonstrating this:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernelToBeSampled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">runtimeParam</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">runtimeParam</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">runtimeParam</span><span class="p">);</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 <span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 <span class="w">  </span><span class="p">};</span>
