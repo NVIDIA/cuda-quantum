@@ -239,6 +239,7 @@ public:
 // std::tuple for invocation.
 //
 //===----------------------------------------------------------------------===//
+/// @cond
 template <typename WrapperFunctionImplT, typename... ArgTs>
 class WrapperFunctionHandlerHelper
     : public WrapperFunctionHandlerHelper<
@@ -286,6 +287,7 @@ class WrapperFunctionHandlerHelper<void (ClassT::*)(SignatureArgTs...),
                                    InvokeArgTs...>
     : public WrapperFunctionHandlerHelper<void(SignatureArgTs...),
                                           InvokeArgTs...> {};
+/// @endcond
 
 // Invoke a typed callable (functions) with serialized `args`.
 template <typename CallableT, typename... InvokeArgTs>
