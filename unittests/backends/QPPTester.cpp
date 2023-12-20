@@ -12,7 +12,7 @@
 #include <math.h>
 
 #include "CUDAQTestUtils.h"
-#include "QppDMCircuitSimulator.cpp"
+#include "QppCircuitSimulator.cpp"
 
 #define _USE_MATH_DEFINES
 
