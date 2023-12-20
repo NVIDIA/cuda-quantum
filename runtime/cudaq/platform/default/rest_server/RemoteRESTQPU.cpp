@@ -59,6 +59,8 @@ public:
   std::thread::id getExecutionThreadId() const { return thread.get_id(); }
 };
 
+// Remote QPU: delegating the execution to a remotely-hosted server, which can
+// reinstate the execution context and JIT-invoke the kernel.
 class RemoteSimulatorQPU : public cudaq::QPU {
 private:
   std::string m_url;
@@ -243,6 +245,7 @@ public:
   }
 };
 
+// Util to query an available TCP/IP port for auto-launching a server instance.
 std::optional<std::string> getAvailablePort() {
   int sock = ::socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0)
@@ -263,20 +266,21 @@ std::optional<std::string> getAvailablePort() {
   return std::to_string(::ntohs(servAddr.sin_port));
 }
 
+// Multi-QPU platform for remotely-hosted simulator QPUs
 class RemoteSimulatorQuantumPlatform : public cudaq::quantum_platform {
   std::unique_ptr<MLIRContext> m_mlirContext;
   std::vector<llvm::sys::ProcessInfo> m_serverProcesses;
 
 public:
+  RemoteSimulatorQuantumPlatform() : m_mlirContext(cudaq::initializeMLIR()) {
+    platformNumQPUs = 0;
+  }
+
   ~RemoteSimulatorQuantumPlatform() {
     for (auto &process : m_serverProcesses) {
       cudaq::info("Shutting down REST server process {}", process.Pid);
       ::kill(process.Pid, SIGKILL);
     }
-  }
-
-  RemoteSimulatorQuantumPlatform() : m_mlirContext(cudaq::initializeMLIR()) {
-    platformNumQPUs = 0;
   }
   bool supports_task_distribution() const override { return true; }
   void setTargetBackend(const std::string &description) override {

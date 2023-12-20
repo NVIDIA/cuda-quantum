@@ -11,9 +11,14 @@
 #include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
 
+/*! \file JsonConvert.h
+    \brief Utility to support JSON serialization between the client and server.
+*/
+
 using json = nlohmann::json;
 
 namespace std {
+// Complex data serialization.
 template <class T>
 void to_json(json &j, const std::complex<T> &p) {
   j = json{p.real(), p.imag()};
@@ -27,6 +32,9 @@ void from_json(const json &j, std::complex<T> &p) {
 } // namespace std
 
 namespace cudaq {
+// `ExecutionResult` serialization.
+// Here, we capture full data (not just bit string statistics) since the remote
+// platform can populate simulator-only data, such as `expectationValue`.
 inline void to_json(json &j, const ExecutionResult &result) {
   j = json{{"counts", result.counts},
            {"registerName", result.registerName},
@@ -46,6 +54,7 @@ inline void from_json(const json &j, ExecutionResult &result) {
   }
 }
 
+// `ExecutionContext` serialization.
 inline void to_json(json &j, const ExecutionContext &context) {
   j = json{{"name", context.name},
            {"shots", context.shots},
@@ -113,6 +122,7 @@ inline void from_json(const json &j, ExecutionContext &context) {
       std::make_tuple(std::move(stateDim), std::move(stateData));
 }
 
+// Enum data to denote the payload format.
 enum CodeFormat { MLIR, LLVM };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {
@@ -120,12 +130,14 @@ NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {
                                              {LLVM, "LLVM"},
                                          });
 
+// Payload from client to server for a kernel execution.
 class RestRequest {
 private:
   /// Holder of the reconstructed execution context.
   std::unique_ptr<ExecutionContext> m_deserializedContext;
   /// Holder of the reconstructed `spin_op`.
   std::unique_ptr<spin_op> m_deserializedSpinOp;
+  // Underlying code (IR) payload as a byte buffer.
   std::vector<uint8_t> code;
   // Version number of this payload.
   // This needs to be bumped whenever a breaking change is introduced.
@@ -163,13 +175,23 @@ public:
                             code.size());
   }
 
+  // Name of the entry-point kernel.
   std::string entryPoint;
+  // Name of the NVQIR simulator to use.
   std::string simulator;
+  // The ExecutionContext to run the simulation.
+  // The server will execute in this context, and populate simulation data in
+  // this context, to be sending back to the client once finished.
   ExecutionContext &executionContext;
+  // Format of the code buffer.
   CodeFormat format;
+  // Simulation random seed.
   std::size_t seed;
+  // List of MLIR passes to be applied on the code before execution.
   std::vector<std::string> passes;
+  // Serialized kernel arguments.
   std::vector<uint8_t> args;
+  // Version of this schema for compatibility check.
   std::size_t version;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,

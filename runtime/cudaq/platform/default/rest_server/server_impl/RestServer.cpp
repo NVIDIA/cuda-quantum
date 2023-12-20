@@ -28,6 +28,7 @@
 #pragma clang diagnostic pop
 #endif
 
+// Implement `cudaq::RestServer` interface using the CrowCpp library.
 struct cudaq::RestServer::impl {
   crow::SimpleApp app;
 };

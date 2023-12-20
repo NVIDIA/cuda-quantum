@@ -123,6 +123,7 @@ void invokeMlirKernel(std::unique_ptr<MLIRContext> &contextPtr,
     throw std::runtime_error("Failed to get entry function");
 
   auto fn = reinterpret_cast<void (*)()>(fnPtr);
+  // Invoke the kernel
   fn();
 }
 
@@ -192,15 +193,6 @@ int main(int argc, char **argv) {
                     return json();
                   });
 
-  // Request the server to shut down.
-  server.addRoute(cudaq::RestServer::Method::POST, "/shutdown",
-                  [&server](const std::string &reqBody) {
-                    std::string shutDownMsg = "SHUTDOWN";
-                    cudaq::mpi::broadcast(shutDownMsg, 0);
-                    server.stop();
-                    return json();
-                  });
-
   // New simulation request.
   server.addRoute(cudaq::RestServer::Method::POST, "/job",
                   [](const std::string &reqBody) {
@@ -217,14 +209,8 @@ int main(int argc, char **argv) {
     for (;;) {
       std::string jsonRequestBody;
       cudaq::mpi::broadcast(jsonRequestBody, 0);
-      if (jsonRequestBody == "SHUTDOWN")
-        break;
-      try {
-        // All ranks need to join, e.g., MPI-capable backends.
-        processRequest(jsonRequestBody);
-      } catch (...) {
-        // Doing nothing, the root rank will report the error
-      }
+      // All ranks need to join, e.g., MPI-capable backends.
+      processRequest(jsonRequestBody);
     }
   }
   cudaq::mpi::finalize();
