@@ -90,8 +90,8 @@ function show_help {
 --list-targets
     List the available targets NVQ++ can compile to.
 
---emit-qir=<file> | -emit-qir=<file>
-	Emit the QIR output to <file>.
+--emit-qir | -emit-qir
+	Emit the QIR output to <input file>.qir.ll and exit.
 
 --emulate | -emulate
    For physical, remote QPU execution, enable local emulation for testing.
@@ -347,6 +347,8 @@ while [ $# -ne 0 ]; do
 		;;
 	--emit-qir | -emit-qir)
 		EMIT_QIR=true
+		# NOTE: QIR is not emitted in library mode, so automatically apply '--enable-mlir'
+		LIBRARY_MODE=false
 		;;
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
