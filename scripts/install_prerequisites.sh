@@ -28,7 +28,9 @@
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
+ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
 OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
+CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
 
 function create_llvm_symlinks {
   if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
@@ -42,19 +44,35 @@ function create_llvm_symlinks {
 }
 
 function temp_install_if_command_unknown {
-    if [ ! -x "$(command -v $1)" ]; then
-        apt-get install -y --no-install-recommends $2
-        APT_UNINSTALL="$APT_UNINSTALL $2"
+  if [ ! -x "$(command -v $1)" ]; then
+    if [ -x "$(command -v apt-get)" ]; then
+      if [ -z "$PKG_UNINSTALL" ]; then apt-get update; fi
+      apt-get install -y --no-install-recommends $2
+    elif [ -x "$(command -v dnf)" ]; then
+      dnf install -y --nobest --setopt=install_weak_deps=False $2
+    else
+      echo "No package manager was found to install $2." >&2
+      (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
+      if $is_sourced; then return ${exit_code:-0}; else exit ${exit_code:-0}; fi
     fi
+    PKG_UNINSTALL="$PKG_UNINSTALL $2"
+  fi
 }
 
 function remove_temp_installs {
-  if [ -n "$APT_UNINSTALL" ]; then
-      echo "Uninstalling packages used for bootstrapping: $APT_UNINSTALL"
-      apt-get remove -y $APT_UNINSTALL 
+  if [ -n "$PKG_UNINSTALL" ]; then
+    echo "Uninstalling packages used for bootstrapping: $PKG_UNINSTALL"
+    if [ -x "$(command -v apt-get)" ]; then  
+      apt-get remove -y $PKG_UNINSTALL
       apt-get autoremove -y --purge
-      unset APT_UNINSTALL
-      create_llvm_symlinks # uninstalling other compiler tools may have removed the symlinks
+    elif [ -x "$(command -v dnf)" ]; then
+      dnf remove -y $PKG_UNINSTALL
+      dnf clean all
+    else
+      echo "No package manager configured for clean up." >&2
+    fi
+    unset PKG_UNINSTALL
+    create_llvm_symlinks # uninstalling other compiler tools may have removed the symlinks
   fi
 }
 
@@ -72,6 +90,7 @@ trap exit_gracefully EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 cd "$this_file_dir"
 
+# [Toolchain] CMake, ninja and C/C++ compiler
 if [ ! -x "$(command -v cmake)" ]; then
   temp_install_if_command_unknown wget wget
   wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
@@ -88,6 +107,74 @@ if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
   source "$this_file_dir/install_toolchain.sh" -t gcc12
 fi
 
+# [Blas] Needed for certain optimizers
+if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
+  temp_install_if_command_unknown wget wget
+  temp_install_if_command_unknown make make
+  if [ ! -x "$(command -v "$FC")" ]; then
+    temp_install_if_command_unknown gcc gcc
+    temp_install_if_command_unknown g++ g++
+    temp_install_if_command_unknown gfortran gfortran
+  elif [ ! -x "gfortran" ]; then
+    ln -s "$FC" /usr/bin/gfortran
+  fi
+
+  # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
+  wget http://www.netlib.org/blas/blas-3.11.0.tgz
+  tar -xzvf blas-3.11.0.tgz 
+  cd BLAS-3.11.0 && make 
+  mkdir -p "$BLAS_INSTALL_PREFIX"
+  mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
+  cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
+  remove_temp_installs
+fi
+
+# [Zlib] Needed to build LLVM with zlib support (used by linker)
+if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
+  temp_install_if_command_unknown wget wget
+  temp_install_if_command_unknown make make
+
+  wget https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
+  tar -xzvf zlib-1.3.tar.gz && cd zlib-1.3
+  CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+  ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
+  make && make install
+  cd .. && rm -rf zlib-1.3.tar.gz zlib-1.3
+  remove_temp_installs
+fi
+
+# [OpenSSL] Needed for communication with external services
+if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
+  temp_install_if_command_unknown wget wget
+  temp_install_if_command_unknown make make
+  temp_install_if_command_unknown perl perl
+
+  wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
+  tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
+  CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+  ./Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
+  make && make install
+  cd .. && rm -rf openssl-3.1.1*
+  remove_temp_installs
+fi
+
+# [CURL] Needed for communication with external services
+if [ ! -f "$CURL_INSTALL_PREFIX/lib/*.a" ]; then
+  temp_install_if_command_unknown wget wget
+  temp_install_if_command_unknown make make
+
+  wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
+  tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
+  CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+  ./configure --prefix="$CURL_INSTALL_PREFIX" \
+    --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
+    --enable-shared=no --enable-static=yes
+  make && make install
+  cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0
+  remove_temp_installs
+fi
+
+# [LLVM/MLIR] Needed to build the CUDA Quantum toolchain
 llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
 if [ ! -d "$llvm_dir" ]; then
   echo "Could not find llvm libraries."
@@ -113,47 +200,6 @@ if [ ! -d "$llvm_dir" ]; then
 else 
   echo "Configured C compiler: $CC"
   echo "Configured C++ compiler: $CXX"
-fi
-
-if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
-  if [ -x "$(command -v apt-get)" ]; then
-    apt-get update
-  fi
-
-  temp_install_if_command_unknown wget wget
-  temp_install_if_command_unknown make make
-  if [ ! -x "$(command -v "$FC")" ]; then
-    temp_install_if_command_unknown gcc gcc
-    temp_install_if_command_unknown g++ g++
-    temp_install_if_command_unknown gfortran gfortran
-  elif [ ! -x "gfortran" ]; then
-    ln -s "$FC" /usr/bin/gfortran
-  fi
-
-  # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
-  wget http://www.netlib.org/blas/blas-3.11.0.tgz
-  tar -xzvf blas-3.11.0.tgz 
-  cd BLAS-3.11.0 && make 
-  mkdir -p "$BLAS_INSTALL_PREFIX"
-  mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
-  cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
-  remove_temp_installs
-fi
-
-if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
-  if [ -x "$(command -v apt-get)" ]; then
-    apt-get update && apt-get install -y --no-install-recommends perl
-  fi
-
-  temp_install_if_command_unknown wget wget
-  temp_install_if_command_unknown make make
-
-  wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
-  tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
-  ./config no-zlib --prefix="$OPENSSL_INSTALL_PREFIX" --openssldir="$OPENSSL_INSTALL_PREFIX"
-  make install
-  cd .. && rm -rf openssl-3.1.1*
-  remove_temp_installs
 fi
 
 echo "All prerequisites have been installed."

@@ -46,16 +46,17 @@ if(OPENSSL_FOUND)
   include(FetchContent)
   FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
                          GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) 
-
+  set(CURL_STATICLIB ON)
   find_package(CURL COMPONENTS HTTP HTTPS QUIET)
-
   if (CURL_FOUND)
     message(STATUS "Curl found. Using system curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+    set(CPR_USE_SYSTEM_CURL TRUE)
   else()
     message(STATUS "Curl not found. Building curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
+    set(CPR_USE_SYSTEM_CURL FALSE)
   endif()
+  set(CPR_ENABLE_SSL ON) # needed for https requests
+  set(CPR_FORCE_OPENSSL_BACKEND ON)
   set(BUILD_SHARED_LIBS OFF)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-covered-switch-default")
   if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")

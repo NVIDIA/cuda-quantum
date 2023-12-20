@@ -13,8 +13,10 @@ export CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
 export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
 export CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
 export LLVM_INSTALL_PREFIX=/usr/local/llvm
-export OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 export BLAS_INSTALL_PREFIX=/usr/local/blas
+export ZLIB_INSTALL_PREFIX=/usr/local/zlib
+export OPENSSL_INSTALL_PREFIX=/usr/local/openssl
+export CURL_INSTALL_PREFIX=/usr/local/curl
 # [<InstallLocations]
 
 if [ "$1" == "install-cuda" ]; then

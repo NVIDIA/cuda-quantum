@@ -272,14 +272,12 @@ to enable MPI support, and using the same compiler as CUDA Quantum was built wit
 guarantees that there are no incompatibilities.
 
 .. note:: 
-  CUDA Quantum is configured to use its own linker by default. This linker may not
-  support certain data compression components used by your toolchain, leading to
-  and error of the form, for example, "[library] is compressed with ELFCOMPRESS_ZLIB, 
-  but lld is not built with zlib support". In that case, you should configure 
-  CUDA Quantum to use the linker that was used to building CUDA Quantum by setting the
-  `NVQPP_LD_PATH` environment variable to point to it, e.g. `export NVQPP_LD_PATH=ld`.
-
-FIXME: maybe we should enable more compressions.
+  CUDA Quantum is configured to use its own linker, meaning the 
+  `LLD <https://lld.llvm.org/>`__ linker, by default. While this linker should be 
+  a drop-in replacement for system linkers, in rare cases it may be necessary to use
+  your own linker instead. You can configure CUDA Quantum to use an external linker 
+  setting the `NVQPP_LD_PATH` environment variable to point to it; for example
+  `export NVQPP_LD_PATH=ld`.
 
 Additionally, you will need to install the necessary CUDA runtime libraries to use
 GPU-acceleration in CUDA Quantum. While not necessary, we recommend installing 

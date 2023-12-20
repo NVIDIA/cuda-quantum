@@ -96,6 +96,7 @@ if [ -z "${llvm_projects##*mlir;*}" ]; then
 fi
 if [ -z "${llvm_projects##*lld;*}" ]; then
   echo "- including LLD components"
+  llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
   llvm_components+="lld;"
   projects=("${projects[@]/lld}")
 fi
@@ -144,7 +145,7 @@ cmake_args="-G Ninja ../llvm \
   -DLLVM_BUILD_EXAMPLES=OFF \
   -DLLVM_BUILD_TESTS=OFF \
   -DLLVM_ENABLE_OCAMLDOC=OFF \
-  -DLLVM_ENABLE_ZLIB=OFF \
+  -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
   -DLLVM_ENABLE_ZSTD=OFF \
   -DLLVM_INSTALL_UTILS=ON"
 if $verbose; then
