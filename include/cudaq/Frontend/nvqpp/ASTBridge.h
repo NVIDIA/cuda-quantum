@@ -581,8 +581,7 @@ private:
 /// Clang AST analysis / processing workflow. The nested ASTBridgeConsumer
 /// drives the process of walking the Clang AST and translate pertinent nodes to
 /// an MLIR Op tree containing Quake, CC, and other MLIR dialect operations.
-/// This Action will generate this MLIR Module and rewrite the input source code
-/// (using the Clang `Rewriter` system) to define quantum kernels as `extern`.
+/// In short, this Action generates the MLIR Module.
 class ASTBridgeAction : public clang::ASTFrontendAction {
 public:
   using MangledKernelNamesMap = cudaq::MangledKernelNamesMap;
