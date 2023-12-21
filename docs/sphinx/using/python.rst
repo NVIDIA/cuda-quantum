@@ -53,6 +53,16 @@ Let's now see how we can leverage the VQE algorithm to compute the Max-Cut of a 
 .. literalinclude:: ../examples/python/qaoa_maxcut.py
    :language: python
 
+Quantum-enhanced Markov Chain Monte Carlo Algorithm
+---------------------------------------------------
+This example showcases the prototype of the quantum-enhanced Markov chain Monte Carlo (QMCMC) algorithm. The process involves generating a random bitstring, loading it as a quantum state, and evolving the circuit by applying the first-order trotterization of both the mixer and problem Hamiltonians. Subsequently, an acceptance probability is generated based on the energy of the most probable bitstring obtained from executing this circuit and the energy of the initial state. This acceptance probability determines whether the observed bitstring is accepted as the new state for the next iteration. The algorithm continues to run until the specified number of iterations is achieved.
+
+For the original source of this algorithm, please refer to 
+`this publication <https://arxiv.org/abs/2203.12497>`__.
+
+.. literalinclude:: ../examples/python/qmcmc.py
+   :language: python
+
 Noisy Simulation
 -----------------
 
