@@ -138,13 +138,13 @@ def main():
     # Convert it to its equivalent spin config later when needed
     s = generate_random_bitstring(nqubits)
 
-    # Create a circuit and allocate qubits
-    kernel = cudaq.make_kernel()
-    q = kernel.qalloc(nqubits)
-
     # Iteration loop
     iter = 0
     while iter < num_iterations:
+        # Create a circuit and allocate qubits
+        kernel = cudaq.make_kernel()
+        q = kernel.qalloc(nqubits)
+
         # Propose jump (quantum step 1)
         gamma = np.random.uniform(0.25, 0.6)
         t = np.random.uniform(2, 20)
@@ -156,6 +156,7 @@ def main():
         # First order trotterization
         kernel = trotter_circuit(kernel, q, H_list, t, nqubits)
 
+        # Sample the distribution
         result = cudaq.sample(kernel, shots_count=shots_count)
         s_prime = result.most_probable()
 
@@ -167,8 +168,6 @@ def main():
         if (A >= random.uniform(0, 1)):
             s = s_prime
 
-        # Reset the circuit for the next iter
-        kernel.reset(q)
         # Increment the iteration count
         iter = iter + 1
 
