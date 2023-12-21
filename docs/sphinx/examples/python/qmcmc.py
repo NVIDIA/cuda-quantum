@@ -1,7 +1,7 @@
-# To run with the default values of the parameters:
+# To run with the default parameters use:
 # python qmcmc.py
 # 
-# For non-default values of the parameters:
+# For non-default values of the parameters use:
 # python3 qmcmc.py --num_iterations 30 --nqubits 13 --temperature 0.08 --shots_count 20
 # 
 # This code is based on the quantum enchanced Markov 
@@ -29,7 +29,7 @@ def initial_state(qc, q, bitstring):
 
 # Calculate energy for a spin configuration 
 def calculate_energy(bitstring, J, h):
-    # map the bitstring to the spin configuration first
+    # Map the bitstring to the spin configuration first
     nqubits = len(bitstring)
     s = [-1 if bit == '1' else 1 for bit in bitstring]
     sum_E = 0.0
@@ -44,13 +44,15 @@ def calculate_energy(bitstring, J, h):
 
 # Create a list of Hamiltonians if order matters
 def generate_H(gamma, nqubits, J, h):
-    # Initialize Hamiltonians with 0 coefficients
-    H_prob = 0 * spin.i(0) 
-    H_mix = 0 * spin.i(0) 
+    # Create an empty list for storing the Hamiltonians  
     H_list = []
+    # Initialize Hamiltonians with 0 coefficients
+    # These are needed to calculate alpha
+    H_prob = 0 * spin.i(0) 
+    H_mix = 0 * spin.i(0)
     count_problem_terms = 0
 
-    # problem hamiltonian  
+    # Problem hamiltonian  
     for k in range (1, nqubits):
         for j in range(k+1, nqubits):
             H_prob -= J[j][k]* spin.z(j)*spin.z(k)
@@ -62,12 +64,12 @@ def generate_H(gamma, nqubits, J, h):
         H_list.append((gamma - 1.0) * h[j]*spin.z(j))
         count_problem_terms =  count_problem_terms + 1
 
-    # mixer hamiltonian
+    # Mixer hamiltonian
     for j in range(1, nqubits):
         H_mix += spin.x(j)
         H_list.append(gamma * spin.x(j))
 
-    # final hamiltonian
+    # Final hamiltonian
     alpha = np.linalg.norm(H_mix.to_matrix()) / np.linalg.norm(H_prob.to_matrix())
     for i in range(count_problem_terms):
         H_list[i] = H_list[i] * alpha
@@ -81,42 +83,13 @@ def generate_H(gamma, nqubits, J, h):
 
     return ordered_H
 
-# This is the first-order Trotter gate decomposition
+# This is the first-order Trotter gate decomposition for 
+# an ordered list of Hamiltonians
 def trotter_circuit(kernel, qreg, hk, dt, n_qubits):
     for term in hk:
-        qbitSupport = []
         pauliString = str(term).split(' ')[1].rstrip()
-        coef = term.get_coefficient()
-        for i in range(n_qubits):
-            pauli = pauliString[i]
-            if (pauli == 'X'):
-                kernel.h(qreg[i])
-                qbitSupport.append(i)
-            elif (pauli == 'Y'):
-                kernel.rx(np.pi/2.0, qreg[i])
-                qbitSupport.append(i)
-            elif (pauli == 'Z'):
-                qbitSupport.append(i)
-
-        # Apply cnots
-        for j in range(len(qbitSupport)-1):
-            kernel.cx(qreg[qbitSupport[j]], qreg[qbitSupport[j+1]])
-
-        if (len(qbitSupport) > 0):
-            kernel.rz(2.0 * dt * coef.real, qreg[qbitSupport[-1]])
-
-        for j in range(len(qbitSupport)-1,0,-1):
-            kernel.cx(qreg[qbitSupport[j-1]], qreg[qbitSupport[j]])
-        for i in range(n_qubits-1, -1, -1):
-
-            pauli = pauliString[i]
-
-            if (pauli == 'X'):
-                kernel.h(qreg[i])
-            elif (pauli == 'Y'):
-                kernel.rx(-np.pi/2.0, qreg[i])
-            elif (pauli == 'Z'):
-                pass
+        kernel.exp_pauli(2. * dt * term.get_coefficient().real, qreg, pauliString)
+       
     return kernel
 
 
