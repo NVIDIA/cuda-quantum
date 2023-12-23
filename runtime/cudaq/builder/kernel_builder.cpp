@@ -927,6 +927,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   altLaunchKernel(properName.data(), thunk, rawArgs, size);
   std::free(rawArgs);
+  // TODO: any return values are dropped on the floor here.
 }
 
 std::string to_quake(ImplicitLocOpBuilder &builder) {
