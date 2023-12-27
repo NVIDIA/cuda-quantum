@@ -10,7 +10,6 @@ CPTP
 CPU
 CPUs
 CUDA
-Composability
 CuPy
 DGX
 DOI
@@ -85,6 +84,7 @@ canonicalizes
 codebase
 comparator
 comparators
+composability
 composable
 constructible
 controlled
