@@ -1151,6 +1151,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   if (isInClassInNamespace(func, "vector", "std")) {
     // Get the size of the std::vector.
     auto svec = popValue();
+    if (isa<cc::PointerType>(svec.getType()))
+      svec = builder.create<cc::LoadOp>(loc, svec);
     auto ext =
         builder.create<cc::StdvecSizeOp>(loc, builder.getI64Type(), svec);
     if (funcName.equals("size"))
@@ -1273,7 +1275,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   }
 
   if (isInClassInNamespace(func, "qreg", "cudaq") ||
-      isInClassInNamespace(func, "qspan", "cudaq")) {
+      isInClassInNamespace(func, "qvector", "cudaq") ||
+      isInClassInNamespace(func, "qarray", "cudaq") ||
+      isInClassInNamespace(func, "qspan", "cudaq") ||
+      isInClassInNamespace(func, "qview", "cudaq")) {
     // This handles conversion of qreg.size()
     if (funcName.equals("size"))
       if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
@@ -1965,7 +1970,12 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       // are accessing it like theta[i].
       auto indexVar = popValue();
       auto svec = popValue();
-      assert(svec.getType().isa<cc::StdvecType>());
+      if (svec.getType().isa<cc::PointerType>())
+        svec = builder.create<cc::LoadOp>(loc, svec);
+      if (!svec.getType().isa<cc::StdvecType>()) {
+        TODO_x(loc, x, mangler, "vector dereference");
+        return false;
+      }
       auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
       auto elePtrTy = cc::PointerType::get(eleTy);
       auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
@@ -2238,7 +2248,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           return pushValue(builder.create<quake::AllocaOp>(
               loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
         }
-        if (ctorName == "qspan" && isa<quake::VeqType>(peekValue().getType())) {
+        if ((ctorName == "qspan" || ctorName == "qview") &&
+            isa<quake::VeqType>(peekValue().getType())) {
           // One of the qspan ctors, which effectively just makes a copy. Here
           // we omit making a copy and just forward the veq argument.
           assert(isa<quake::VeqType>(ctorTy));
@@ -2250,16 +2261,16 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         if (auto *ctor = x->getConstructor()) {
           if (isInNamespace(ctor, "std") &&
               ctor->getNameAsString() == "vector") {
+            if (valueStack.empty())
+              return false;
             Value v = peekValue();
             return v && isa<quake::VeqType>(v.getType());
           }
         }
         return false;
       };
-      if (isVectorOfQubitRefs()) {
-        assert(isa<quake::VeqType>(peekValue().getType()));
+      if (isVectorOfQubitRefs())
         return true;
-      }
       if (ctorName == "function") {
         // Are we converting a lambda expr to a std::function?
         auto backVal = peekValue();
@@ -2320,50 +2331,52 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       // We check for vector constructors with 2 args, the first
       // could be an initializer_list or an integer, while the
       // second is the allocator
-      if (ctorName == "vector" && x->getNumArgs() == 2) {
-        // This is a std::vector constructor, first we'll check if it
-        // is constructed from a constant initializer list, in that case
-        // we'll have a AllocaOp at the top of the stack that allocates a
-        // ptr<array<TxC>>, where C is constant / known
-        auto desugared = x->getArg(0)->getType().getCanonicalType();
-        if (auto recordType =
-                dyn_cast<clang::RecordType>(desugared.getTypePtr()))
-          if (recordType->getDecl()->getName().equals("initializer_list")) {
-            auto allocation = popValue();
-            if (auto ptrTy = dyn_cast<cc::PointerType>(allocation.getType()))
-              if (auto arrayTy =
-                      dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
-                if (auto definingOp = allocation.getDefiningOp<cc::AllocaOp>())
-                  return pushValue(builder.create<cc::StdvecInitOp>(
-                      loc, cc::StdvecType::get(arrayTy.getElementType()),
-                      allocation, definingOp.getSeqSize()));
-          }
+      if (ctorName == "vector") {
+        if (x->getNumArgs() == 2) {
+          // This is a std::vector constructor, first we'll check if it
+          // is constructed from a constant initializer list, in that case
+          // we'll have a AllocaOp at the top of the stack that allocates a
+          // ptr<array<TxC>>, where C is constant / known
+          auto desugared = x->getArg(0)->getType().getCanonicalType();
+          if (auto recordType =
+                  dyn_cast<clang::RecordType>(desugared.getTypePtr()))
+            if (recordType->getDecl()->getName().equals("initializer_list")) {
+              auto allocation = popValue();
+              if (auto ptrTy = dyn_cast<cc::PointerType>(allocation.getType()))
+                if (auto arrayTy =
+                        dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
+                  if (auto definingOp =
+                          allocation.getDefiningOp<cc::AllocaOp>())
+                    return pushValue(builder.create<cc::StdvecInitOp>(
+                        loc, cc::StdvecType::get(arrayTy.getElementType()),
+                        allocation, definingOp.getSeqSize()));
+            }
 
-        // Next check if its created from a size integer
-        // Let's do a check on the first argument, make sure that when
-        // we peel off all the typedefs that it is an integer
-        if (auto builtInType =
-                dyn_cast<clang::BuiltinType>(desugared.getTypePtr()))
-          if (builtInType->isInteger() &&
-              isa<IntegerType>(peekValue().getType())) {
-            // This is an integer argument, and the value on the stack
-            // is an integer, so let's connect them up
-            auto arrSize = popValue();
-            auto eleTy = [&]() {
-              if (auto stdvecTy = dyn_cast<cc::StdvecType>(ctorTy))
-                return stdvecTy.getElementType();
-              return ctorTy;
-            }();
+          // Next check if its created from a size integer
+          // Let's do a check on the first argument, make sure that when
+          // we peel off all the typedefs that it is an integer
+          if (auto builtInType =
+                  dyn_cast<clang::BuiltinType>(desugared.getTypePtr()))
+            if (builtInType->isInteger() &&
+                isa<IntegerType>(peekValue().getType())) {
+              // This is an integer argument, and the value on the stack
+              // is an integer, so let's connect them up
+              auto arrSize = popValue();
+              auto eleTy = [&]() {
+                if (auto stdvecTy = dyn_cast<cc::StdvecType>(ctorTy))
+                  return stdvecTy.getElementType();
+                return ctorTy;
+              }();
 
-            // create stdvec init op without a buffer.
-            // Allocate the required memory chunk
-            Value alloca = builder.create<cc::AllocaOp>(loc, eleTy, arrSize);
+              // create stdvec init op without a buffer.
+              // Allocate the required memory chunk
+              Value alloca = builder.create<cc::AllocaOp>(loc, eleTy, arrSize);
 
-            // Create the stdvec_init op
-            return pushValue(builder.create<cc::StdvecInitOp>(
-                loc, cc::StdvecType::get(eleTy), alloca, arrSize));
-          }
-
+              // Create the stdvec_init op
+              return pushValue(builder.create<cc::StdvecInitOp>(
+                  loc, cc::StdvecType::get(eleTy), alloca, arrSize));
+            }
+        }
         // Disallow any default vector construction bc we don't
         // want any .push_back
         if (ctor->isDefaultConstructor())
@@ -2386,7 +2399,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     // TODO: remove this when we can handle ctors more generally.
     if (!ctor->isDefaultConstructor()) {
       LLVM_DEBUG(llvm::dbgs() << ctorName << " - unhandled ctor:\n"; x->dump());
-      TODO_loc(loc, "C++ ctor (not-default)");
+      TODO_x(loc, x, mangler, "C++ ctor (not-default)");
     }
 
     // A regular C++ class constructor lowers as:

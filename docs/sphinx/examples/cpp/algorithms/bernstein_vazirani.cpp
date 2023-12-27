@@ -34,7 +34,7 @@ std::bitset<nrOfBits> random_bits(int seed) {
 
 template <int nrOfBits>
 struct oracle {
-  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs,
+  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qview<> qs,
                   cudaq::qubit &aux) __qpu__ {
 
     for (size_t i = 0; i < nrOfBits; i++) {
@@ -49,7 +49,7 @@ template <int nrOfBits>
 struct bernstein_vazirani {
   auto operator()(std::bitset<nrOfBits> bitvector) __qpu__ {
 
-    cudaq::qreg<nrOfBits> qs;
+    cudaq::qarray<nrOfBits> qs;
     cudaq::qubit aux;
     h(aux);
     z(aux);

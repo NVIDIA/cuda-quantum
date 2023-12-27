@@ -295,7 +295,9 @@ public:
           if (auto *id = decl->getIdentifier()) {
             auto name = id->getName();
             if (name.equals("qubit") || name.equals("qudit") ||
-                name.equals("qspan") || name.startswith("qreg"))
+                name.equals("qspan") || name.startswith("qreg") ||
+                name.startswith("qvector") || name.startswith("qarray") ||
+                name.startswith("qview"))
               cudaq::details::reportClangError(
                   x, mangler,
                   "may not use quantum types in non-kernel functions");

@@ -13,7 +13,7 @@ struct ghz {
   auto operator()() __qpu__ {
 
     // Compile-time, std::array-like `qreg`.
-    cudaq::qreg<N> q;
+    cudaq::qarray<N> q;
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);

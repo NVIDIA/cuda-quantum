@@ -19,6 +19,7 @@
 namespace cudaq {
 namespace cc {
 class LoopOp;
+class PointerType;
 class StructType;
 } // namespace cc
 
@@ -57,6 +58,8 @@ inline mlir::Type getOpaquePointerType(mlir::MLIRContext *ctx) {
 inline mlir::Type getPointerType(mlir::Type ty) {
   return mlir::LLVM::LLVMPointerType::get(ty);
 }
+
+cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
 
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {

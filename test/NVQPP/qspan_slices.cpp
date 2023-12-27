@@ -19,14 +19,14 @@
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void bar(cudaq::qspan<> qubits) {
+__qpu__ void bar(cudaq::qview<> qubits) {
   auto controls = qubits.front(qubits.size() - 1);
   auto &target = qubits.back();
   x<cudaq::ctrl>(controls, target);
 }
 
 __qpu__ void foo() {
-  cudaq::qreg qubits(4);
+  cudaq::qvector qubits(4);
   x(qubits);
   bar(qubits);
 

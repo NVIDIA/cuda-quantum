@@ -13,7 +13,7 @@
 
 struct test {
   int operator()(std::vector<int> applyX) __qpu__ {
-    cudaq::qreg q(applyX.size());
+    cudaq::qvector q(applyX.size());
 
     for (std::size_t i = 0; i < applyX.size(); i++) {
       if (applyX[i]) {
