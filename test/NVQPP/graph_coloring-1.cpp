@@ -16,7 +16,7 @@
 #include <unordered_set>
 
 struct init_state {
-  __qpu__ void operator()(cudaq::qreg<> &qubits, double theta) {
+  __qpu__ void operator()(cudaq::qvector<> &qubits, double theta) {
     ry(theta, qubits[0]);
     h<cudaq::ctrl>(qubits[0], qubits[1]);
     x(qubits[1]);
@@ -35,7 +35,7 @@ struct init_state {
   }
 };
 
-__qpu__ void reflect_uniform(cudaq::qreg<> &qubits, double theta) {
+__qpu__ void reflect_uniform(cudaq::qvector<> &qubits, double theta) {
   cudaq::adjoint(init_state{}, qubits, theta);
   x(qubits);
   z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4], qubits[5], qubits[6], qubits[7]);
@@ -49,7 +49,7 @@ bool oracle_classical(uint8_t v0, uint8_t v1, uint8_t v2, uint8_t v3) {
   return c_01 && c_123;
 }
 
-__qpu__ void oracle(cudaq::qreg<> &cs, cudaq::qubit &target) {
+__qpu__ void oracle(cudaq::qvector<> &cs, cudaq::qubit &target) {
   x<cudaq::ctrl>(cs[0], !cs[1], cs[2], !cs[3], cs[5], target);
   x<cudaq::ctrl>(cs[0], !cs[1], cs[2], !cs[3], cs[7], target);
   x<cudaq::ctrl>(cs[0], !cs[1], !cs[3], cs[4], cs[7], target);
@@ -72,7 +72,7 @@ __qpu__ void oracle(cudaq::qreg<> &cs, cudaq::qubit &target) {
 }
 
 __qpu__ void grover(double theta) {
-  cudaq::qreg qubits(8);
+  cudaq::qvector qubits(8);
   cudaq::qubit ancilla;
 
   // Initialization

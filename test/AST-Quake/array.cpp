@@ -12,7 +12,7 @@
 
 struct T {
    void operator()(int N) __qpu__ {
-      cudaq::qreg Q(N);
+      cudaq::qvector Q(N);
       x(Q);
    }
 };

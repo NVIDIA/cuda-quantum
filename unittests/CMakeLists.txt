@@ -82,7 +82,7 @@ endmacro()
 
 # We will always have the QPP backend, create a tester for it
 create_tests_with_backend(qpp backends/QPPTester.cpp)
-create_tests_with_backend(dm "")
+create_tests_with_backend(dm backends/QPPDMTester.cpp)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
@@ -177,6 +177,19 @@ target_link_libraries(test_photonics
   nvqir-qpp
   gtest_main)
 gtest_discover_tests(test_photonics)
+
+add_executable(test_utils main.cpp utils/UtilsTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_utils PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(test_utils
+  PRIVATE 
+  cudaq
+  cudaq-platform-default
+  cudaq-em-photonics
+  nvqir-qpp fmt::fmt-header-only
+  gtest_main)
+gtest_discover_tests(test_utils)
 
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)

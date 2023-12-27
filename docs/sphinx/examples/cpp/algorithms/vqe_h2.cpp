@@ -46,7 +46,7 @@ __qpu__ void so4(cudaq::qubit &q, cudaq::qubit &r,
 struct so4_fabric {
   void operator()(std::vector<double> params, int n_qubits,
                   int n_layers) __qpu__ {
-    cudaq::qreg q(n_qubits);
+    cudaq::qvector q(n_qubits);
 
     x(q[0]);
     x(q[2]);
