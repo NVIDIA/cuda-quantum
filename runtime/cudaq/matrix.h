@@ -27,7 +27,7 @@ private:
 
   /// @brief Raw pointer to the data, whether it is
   /// owned or not. This is what should be used primarily
-  /// in matrix.cpp
+  /// in `matrix.cpp`.
   value_type *internalData;
 
   /// @brief The number of rows in this matrix
@@ -66,7 +66,7 @@ public:
   /// x is provided as a std vector of the correct size.
   complex_matrix operator*(std::vector<value_type> &other) const;
 
-  /// @brief Return the element at the ith row and jth column.
+  /// @brief Return the element at the row `i` and column `j`.
   value_type &operator()(std::size_t i, std::size_t j) const;
 
   /// @brief Return the minimal eigenvalue for this matrix.

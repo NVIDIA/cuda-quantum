@@ -82,7 +82,7 @@ protected:
   /// @brief The kraus_ops that make up this channel
   std::vector<kraus_op> ops;
 
-  /// @brief Validate that Sum Ki^ Ki = I
+  /// @brief Validate that \sum_{i} K_i^† K_i = I
   void validateCompleteness();
 
 public:

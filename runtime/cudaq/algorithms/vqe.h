@@ -198,7 +198,8 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE with a kernel
-///        callable with non-trivial (not std::vector<double>) arg structure.
+///        callable with non-trivial (not std::vector<double>) argument
+///        structure.
 ///
 /// \param kernel The CUDA Quantum callable with non-trivial function
 /// signature. \param H The hermitian cudaq::spin_op to compute the minimal
@@ -208,13 +209,13 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
 /// \param n_params The number of variational parameters in the ansatz quantum
 ///        kernel callable.
 /// \param argsMapper A custom callable type with function type
-///        std::tuple<Args...>(std::vector<double>&) that takes the parameter
+///        `std::tuple<Args...>(std::vector<double>&)` that takes the parameter
 ///        vector as input and returns a tuple representing the arguments
 ///        required for evaluation of the quantum kernel.
 /// \returns The optimal value and corresponding parameters as a
 ///        cudaq::optimization_result (std::tuple<double,std::vector<double>>)
 ///
-/// \details Given a quantum kernel of type void(Args...),
+/// \details Given a quantum kernel of type `void(Args...)`,
 /// run the variational quantum eigensolver routine to compute
 /// the minimum eigenvalue of the specified hermitian cudaq::spin_op
 /// \p H. This function will use the custom ArgMapper to map input variational
@@ -271,7 +272,8 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE with a kernel
-///        callable with non-trivial (not std::vector<double>) arg structure.
+///        callable with non-trivial (not std::vector<double>) argument
+///        structure.
 ///
 /// \param shots The number samples to collect.
 /// \param kernel The quantum callable with non-trivial function
@@ -282,13 +284,13 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 /// \param n_params The number of variational parameters in the ansatz quantum
 ///        kernel callable.
 /// \param argsMapper A custom callable type with function type
-///        std::tuple<Args...>(std::vector<double>&) that takes the parameter
+///        `std::tuple<Args...>(std::vector<double>&)` that takes the parameter
 ///        vector as input and returns a tuple representing the arguments
 ///        required for evaluation of the quantum kernel.
 /// \returns The optimal value and corresponding parameters as a
 ///        cudaq::optimization_result (std::tuple<double,std::vector<double>>)
 ///
-/// \details Given a quantum kernel of type void(Args...),
+/// \details Given a quantum kernel of type `void(Args...)`,
 /// run the variational quantum eigensolver routine to compute
 /// the minimum eigenvalue of the specified hermitian cudaq::spin_op
 /// \p H. This function will use the custom ArgMapper to map input variational
@@ -345,8 +347,8 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE with a kernel
-///        callable with non-trivial (not std::vector<double>) arg structure
-///        and a specified gradient strategy.
+///        callable with non-trivial (not std::vector<double>) argument
+///        structure and a specified gradient strategy.
 ///
 /// \param kernel The quantum callable with non-trivial function
 /// signature. \param gradient a sub-type of cudaq::gradient that uses extra QPU
@@ -359,13 +361,13 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
 /// \param n_params The number of variational parameters in the ansatz quantum
 ///        kernel callable.
 /// \param argsMapper A custom callable type with function type
-///        std::tuple<Args...>(std::vector<double>&) that takes the parameter
+///        `std::tuple<Args...>(std::vector<double>&)` that takes the parameter
 ///        vector as input and returns a tuple representing the arguments
 ///        required for evaluation of the quantum kernel.
 /// \returns The optimal value and corresponding parameters as a
 ///        cudaq::optimization_result (std::tuple<double,std::vector<double>>)
 ///
-/// \details Given a quantum kernel of type void(Args...),
+/// \details Given a quantum kernel of type `void(Args...)`,
 /// run the variational quantum eigensolver routine to compute
 /// the minimum eigenvalue of the specified hermitian cudaq::spin_op
 /// \p H. This function will use the custom ArgMapper to map input variational

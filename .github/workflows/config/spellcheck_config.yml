@@ -152,13 +152,16 @@ matrix:
       - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
         close: '(?P=open)$'
       # Ignore multiline content fenced by \code ... \endcode
-      - open: '(?s)^\s*(\\code)'
+      - open: '(?s)\\code'
         close: '\\endcode$'
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
-      # Ignore the first lowercase word after @param, which is usually the parameter name
-      - open: '@param(?:\s[a-z]+)?'
+      # Ignore the first word after @param, which is usually the parameter name
+      - open: '@param(?:\s\w+)?'
+        close: '(\s|$)'
+      # Ignore the first word after \p, which is usually the parameter name
+      - open: '\\p(?:\s\w+)?'
         close: '(\s|$)'
       # Ignore words that start with an @, e.g. @param used in doc comments
       - open: '@\S'

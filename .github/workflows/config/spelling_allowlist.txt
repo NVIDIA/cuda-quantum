@@ -67,6 +67,7 @@ accessor
 adjoint
 al
 ansatz
+ansatzae
 arity
 auxillary
 backend
@@ -93,6 +94,8 @@ coprocessor
 coprocessors
 copyable
 cortex-cli
+coupler
+couplers
 cuQuantum
 cudaq
 deallocate
@@ -129,17 +132,22 @@ extensibility
 extremal
 fermionic
 homogenous
+iff
 increment
 incrementing
 initializer
 initializers
+inlined
 inlining
 instantiation
 instantiations
 intrinsics
 iterable
+iteratively
 lookup
 lookups
+lvalue
+mutex
 namespace
 namespaces
 natively
@@ -151,6 +159,7 @@ parameterization
 precompute
 precomputed
 prepend
+preprocessor
 programmatically
 quantize
 quantized
@@ -159,6 +168,7 @@ qubits
 qudit
 qudits
 runtime
+rvalue
 struct
 structs
 subclass
@@ -166,6 +176,7 @@ subclassed
 subclasses
 subclassing
 subcommand
+subexpressions
 subfolder
 submodule
 subscriptable
@@ -187,4 +198,5 @@ unitary
 unoptimized
 variadic
 variational
+verifier
 workflow

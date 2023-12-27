@@ -29,7 +29,7 @@ void registerConvertToQIRPass();
 
 /// Convert (generic) QIR to the profile-specific QIR for a specific target.
 /// @param pm Pass Manager to add QIR passes to
-/// @param convertTo Expected to be "qir-base" or "qir-adaptive" (comes from the
+/// @param convertTo Expected to be `qir-base` or `qir-adaptive` (comes from the
 /// cudaq-translate command line `--convert-to` parameter)
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 

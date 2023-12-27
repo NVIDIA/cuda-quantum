@@ -106,13 +106,13 @@ std::string getCxxMangledDeclName(clang::GlobalDecl decl,
 std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler);
 
-/// Use this helper to convert a tag name to a nvqpp mangled name.
+/// Use this helper to convert a tag name to an `nvq++` mangled name.
 inline std::string getCudaqKernelName(const std::string &tag) {
   return runtime::cudaqGenPrefixName + tag;
 }
 
 /// Creates the tag name for a quantum kernel. The tag name is a name by which
-/// one can lookup a kernel at runtime. This name does not include the nvq++
+/// one can lookup a kernel at runtime. This name does not include the `nvq++`
 /// prefix nor the unique (C++ mangled) suffix.
 std::string getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
                                      clang::ItaniumMangleContext *mangler);
@@ -156,7 +156,7 @@ public:
         reachableFunctions(reachableFuncs), namesMap(namesMap),
         compilerInstance(ci), mangler(mangler) {}
 
-  /// nvq++ renames quantum kernels to differentiate them from classical C++
+  /// `nvq++` renames quantum kernels to differentiate them from classical C++
   /// code. This renaming is done on function names. \p tag makes it easier
   /// to identify the kernel class from which the function was extracted.
   std::string generateCudaqKernelName(const clang::FunctionDecl *func) {
@@ -579,8 +579,7 @@ private:
 /// Clang AST analysis / processing workflow. The nested ASTBridgeConsumer
 /// drives the process of walking the Clang AST and translate pertinent nodes to
 /// an MLIR Op tree containing Quake, CC, and other MLIR dialect operations.
-/// This Action will generate this MLIR Module and rewrite the input source code
-/// (using the Clang Rewriter system) to define quantum kernels as extern.
+/// In short, this Action generates the MLIR Module.
 class ASTBridgeAction : public clang::ASTFrontendAction {
 public:
   using MangledKernelNamesMap = cudaq::MangledKernelNamesMap;
