@@ -30,8 +30,8 @@ Value factory::packIsArrayAndLengthArray(Location loc,
       loc, LLVM::LLVMPointerType::get(i64Type), numOperands);
   auto intPtrTy = LLVM::LLVMPointerType::get(i64Type);
   Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
-  auto getSizeSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-      cudaq::opt::QIRArrayGetSize, i64Type, {cudaq::opt::getArrayType(context)},
+  auto getSizeSymbolRef = opt::factory::createLLVMFunctionSymbol(
+      opt::QIRArrayGetSize, i64Type, {opt::getArrayType(context)},
       parentModule);
   for (auto iter : llvm::enumerate(operands)) {
     auto operand = iter.value();
@@ -40,7 +40,7 @@ Value factory::packIsArrayAndLengthArray(Location loc,
     Value ptr = rewriter.create<LLVM::GEPOp>(loc, intPtrTy, isArrayAndLengthArr,
                                              ValueRange{idx});
     Value element;
-    if (operand.getType() == cudaq::opt::getQubitType(context))
+    if (operand.getType() == opt::getQubitType(context))
       element = zero;
     else
       // get array size with the runtime function
@@ -109,7 +109,7 @@ void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {
   builder.create<LLVM::GlobalCtorsOp>(loc, ctorAttr, prioAttr);
 }
 
-cudaq::cc::LoopOp factory::createInvariantLoop(
+cc::LoopOp factory::createInvariantLoop(
     OpBuilder &builder, Location loc, Value totalIterations,
     llvm::function_ref<void(OpBuilder &, Location, Region &, Block &)>
         bodyBuilder) {
@@ -118,31 +118,31 @@ cudaq::cc::LoopOp factory::createInvariantLoop(
   Type indexTy = builder.getIndexType();
   SmallVector<Value> inputs = {zero};
   SmallVector<Type> resultTys = {indexTy};
-  auto loop = builder.create<cudaq::cc::LoopOp>(
+  auto loop = builder.create<cc::LoopOp>(
       loc, resultTys, inputs, /*postCondition=*/false,
       [&](OpBuilder &builder, Location loc, Region &region) {
-        cudaq::cc::RegionBuilderGuard guard(builder, loc, region,
-                                            TypeRange{zero.getType()});
+        cc::RegionBuilderGuard guard(builder, loc, region,
+                                     TypeRange{zero.getType()});
         auto &block = *builder.getBlock();
         Value cmpi = builder.create<arith::CmpIOp>(
             loc, arith::CmpIPredicate::slt, block.getArgument(0),
             totalIterations);
-        builder.create<cudaq::cc::ConditionOp>(loc, cmpi, block.getArguments());
+        builder.create<cc::ConditionOp>(loc, cmpi, block.getArguments());
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
-        cudaq::cc::RegionBuilderGuard guard(builder, loc, region,
-                                            TypeRange{zero.getType()});
+        cc::RegionBuilderGuard guard(builder, loc, region,
+                                     TypeRange{zero.getType()});
         auto &block = *builder.getBlock();
         bodyBuilder(builder, loc, region, block);
-        builder.create<cudaq::cc::ContinueOp>(loc, block.getArguments());
+        builder.create<cc::ContinueOp>(loc, block.getArguments());
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
-        cudaq::cc::RegionBuilderGuard guard(builder, loc, region,
-                                            TypeRange{zero.getType()});
+        cc::RegionBuilderGuard guard(builder, loc, region,
+                                     TypeRange{zero.getType()});
         auto &block = *builder.getBlock();
         auto incr =
             builder.create<arith::AddIOp>(loc, block.getArgument(0), one);
-        builder.create<cudaq::cc::ContinueOp>(loc, ValueRange{incr});
+        builder.create<cc::ContinueOp>(loc, ValueRange{incr});
       });
   loop->setAttr("invariant", builder.getUnitAttr());
   return loop;
@@ -154,33 +154,36 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
   // aggregate type, then it is promoted to a structured return argument.
   auto numResults = funcTy.getNumResults();
   return numResults > 1 ||
-         (numResults == 1 &&
-          funcTy.getResult(0)
-              .isa<cudaq::cc::StdvecType, cudaq::cc::StructType,
-                   cudaq::cc::ArrayType, cudaq::cc::CallableType>());
+         (numResults == 1 && funcTy.getResult(0)
+                                 .isa<cc::StdvecType, cc::StructType,
+                                      cc::ArrayType, cc::CallableType>());
 }
 
 // FIXME: We should get the underlying structure of a std::vector from the
 // AST. For expediency, we just construct the expected type directly here.
-cudaq::cc::StructType factory::stlVectorType(Type eleTy) {
+cc::StructType factory::stlVectorType(Type eleTy) {
   MLIRContext *ctx = eleTy.getContext();
-  auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
+  auto elePtrTy = cc::PointerType::get(eleTy);
   SmallVector<Type> eleTys = {elePtrTy, elePtrTy, elePtrTy};
-  return cudaq::cc::StructType::get(ctx, eleTys);
+  return cc::StructType::get(ctx, eleTys);
 }
 
-cudaq::cc::StructType factory::getDynamicBufferType(MLIRContext *ctx) {
-  auto ptrTy = cudaq::cc::PointerType::get(IntegerType::get(ctx, 8));
-  return cudaq::cc::StructType::get(
-      ctx, ArrayRef<Type>{ptrTy, IntegerType::get(ctx, 64)});
+cc::StructType factory::getDynamicBufferType(MLIRContext *ctx) {
+  auto ptrTy = cc::PointerType::get(IntegerType::get(ctx, 8));
+  return cc::StructType::get(ctx,
+                             ArrayRef<Type>{ptrTy, IntegerType::get(ctx, 64)});
+}
+
+cc::PointerType factory::getIndexedObjectType(mlir::Type eleTy) {
+  return cc::PointerType::get(cc::ArrayType::get(eleTy));
 }
 
 Type factory::getSRetElementType(FunctionType funcTy) {
   assert(funcTy.getNumResults() && "function type must have results");
   auto *ctx = funcTy.getContext();
   if (funcTy.getNumResults() > 1)
-    return cudaq::cc::StructType::get(ctx, funcTy.getResults());
-  if (isa<cudaq::cc::StdvecType>(funcTy.getResult(0)))
+    return cc::StructType::get(ctx, funcTy.getResults());
+  if (isa<cc::StdvecType>(funcTy.getResult(0)))
     return getDynamicBufferType(ctx);
   return funcTy.getResult(0);
 }
@@ -199,26 +202,26 @@ FunctionType factory::toCpuSideFuncType(FunctionType funcTy, bool addThisPtr) {
     // is added, the this pointer becomes the second argument. Both are opaque
     // pointers at this point.
     auto eleTy = getSRetElementType(funcTy);
-    inputTys.push_back(cudaq::cc::PointerType::get(eleTy));
+    inputTys.push_back(cc::PointerType::get(eleTy));
     hasSRet = true;
   }
   // If this kernel is a plain old function or a static member function, we
   // don't want to add a hidden `this` argument.
-  auto ptrTy = cudaq::cc::PointerType::get(IntegerType::get(ctx, 8));
+  auto ptrTy = cc::PointerType::get(IntegerType::get(ctx, 8));
   if (addThisPtr)
     inputTys.push_back(ptrTy);
 
   // Add all the explicit (not hidden) arguments after the hidden ones.
   for (auto inTy : funcTy.getInputs()) {
-    if (auto memrefTy = dyn_cast<cudaq::cc::StdvecType>(inTy))
-      inputTys.push_back(cudaq::cc::PointerType::get(
-          stlVectorType(memrefTy.getElementType())));
-    else if (auto structTy = dyn_cast<cudaq::cc::StructType>(inTy))
+    if (auto memrefTy = dyn_cast<cc::StdvecType>(inTy))
+      inputTys.push_back(
+          cc::PointerType::get(stlVectorType(memrefTy.getElementType())));
+    else if (auto structTy = dyn_cast<cc::StructType>(inTy))
       // cc.struct args are callable (at this point), need them as pointers
       // for the new entry point
-      inputTys.push_back(cudaq::cc::PointerType::get(structTy));
+      inputTys.push_back(cc::PointerType::get(structTy));
     else if (auto memrefTy = dyn_cast<quake::VeqType>(inTy))
-      inputTys.push_back(cudaq::cc::PointerType::get(stlVectorType(
+      inputTys.push_back(cc::PointerType::get(stlVectorType(
           IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64))));
     else
       inputTys.push_back(inTy);
@@ -233,12 +236,12 @@ FunctionType factory::toCpuSideFuncType(FunctionType funcTy, bool addThisPtr) {
 }
 
 bool factory::isStdVecArg(Type type) {
-  auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type);
+  auto ptrTy = dyn_cast<cc::PointerType>(type);
   if (!ptrTy)
     return false;
 
   auto elementTy = ptrTy.getElementType();
-  auto structTy = dyn_cast<cudaq::cc::StructType>(elementTy);
+  auto structTy = dyn_cast<cc::StructType>(elementTy);
   if (!structTy)
     return false;
 
@@ -247,7 +250,7 @@ bool factory::isStdVecArg(Type type) {
     return false;
 
   for (std::size_t i = 0; i < 3; i++)
-    if (!dyn_cast<cudaq::cc::PointerType>(memberTys[i]))
+    if (!dyn_cast<cc::PointerType>(memberTys[i]))
       return false;
 
   // This is a stdvec type to us.
