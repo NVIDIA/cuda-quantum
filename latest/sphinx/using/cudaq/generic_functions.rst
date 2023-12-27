@@ -19,7 +19,7 @@ configuration was observed.
 
 .. code-block:: cpp
 
-    auto myFirstKernel_Toffoli_111_input = [](cudaq::qspan<> threeQubits) __qpu__ {
+    auto myFirstKernel_Toffoli_111_input = [](cudaq::qview<> threeQubits) __qpu__ {
       // Alias the 3 qubits
       auto& q = threeQubits[0];
       auto& r = threeQubits[1];
@@ -45,7 +45,7 @@ configuration was observed.
 
     // cudaq::sample takes entry point kernels as input
     auto entryPointKernel = [&]() __qpu__ {
-      cudaq::qreg<3> q;
+      cudaq::qarray<3> q;
       myFirstKernel_Toffoli_111_input(q);
       mz(q);
     };
@@ -63,7 +63,7 @@ arguments.
 .. code-block:: cpp
 
     auto ghz = [](int N) __qpu__ {
-      cudaq::qreg q(N);
+      cudaq::qvector q(N);
       h(q[0]);
       for (int i = 0; i < N - 1; i++) {
         x<cudaq::ctrl>(q[i], q[i + 1]);
