@@ -307,7 +307,7 @@ LIBRARY_MODE=true
 CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
 CMAKE_FALLBACK_HOST_CXX=${CXX}
-TARGET_ARGS=
+TARGET_ARGS=()
 
 if [[ $# -eq 0 ]]; then
     SHOW_HELP=true
@@ -327,8 +327,11 @@ while [ $# -ne 0 ]; do
 	# Filter out any target-specific options.
 	if [[ $# -gt 1 ]] && [[ -n "${TARGET_CONFIG}" ]] && \
 	     [[ "$1" = --${TARGET_CONFIG}-* ]]; then
-		# Assume always has an additional value
-		TARGET_ARGS="${TARGET_ARGS} $1 $2"
+		# Assume always has an additional value. Perform base64 encoding on the
+		# parameter value in case it has spaces. The runtime will be responsible
+		# for decoding the value.
+		ESC2=$(echo -n $2 | base64)
+		TARGET_ARGS+=($1 $ESC2)
 		shift 2
 		continue
 	fi
@@ -536,7 +539,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
-		. "${TARGET_CONFIG_FILE}" ${TARGET_ARGS}
+		. "${TARGET_CONFIG_FILE}" "${TARGET_ARGS[@]}"
 
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main and set the target

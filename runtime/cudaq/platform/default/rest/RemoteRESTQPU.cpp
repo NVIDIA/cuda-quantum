@@ -43,6 +43,7 @@
 #include <fstream>
 #include <iostream>
 #include <netinet/in.h>
+#include <openssl/evp.h>
 #include <regex>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -214,6 +215,30 @@ public:
     executionContext = nullptr;
   }
 
+  /// Decode a Base64-encoded string
+  std::string DecodeBase64(const std::string &to_decode) {
+    const auto predicted_len =
+        3 * to_decode.length() / 4; // predict output size
+    std::string str;
+    str.resize(predicted_len);
+    const auto output_len =
+        EVP_DecodeBlock(reinterpret_cast<unsigned char *>(&str[0]),
+                        reinterpret_cast<const unsigned char *>(&to_decode[0]),
+                        to_decode.length());
+    if (predicted_len != static_cast<unsigned long>(output_len)) {
+      throw std::runtime_error("DecodeBase64 error");
+    }
+
+    // Remove trailing null characters in order to get the correct length (whose
+    // exact length depends on the contents of the Base64-encoded string). Since
+    // this will only happen for 1-2 characters at the end, it is faster to do
+    // this (call .resize() and then trim off the end) than to call .reserve()
+    // and calculate the length by traversing beginning to end.
+    while (!str.empty() && !str.back())
+      str.pop_back();
+    return str;
+  }
+
   /// @brief This setTargetBackend override is in charge of reading the
   /// specific target backend configuration file (bundled as part of this
   /// CUDA Quantum installation) and extract MLIR lowering pipelines and
@@ -233,8 +258,17 @@ public:
             std::to_string(split.size()));
 
       // Add to the backend configuration map
-      for (std::size_t i = 1; i < split.size(); i += 2)
-        backendConfig.insert({split[i], split[i + 1]});
+      for (std::size_t i = 1; i < split.size(); i += 2) {
+        // No need to decode trivial true/false values
+        if (split[i + 1] == "true" || split[i + 1] == "false") {
+          backendConfig.insert({split[i], split[i + 1]});
+        } else {
+          std::string decodedStr = DecodeBase64(split[i + 1]);
+          cudaq::info("Decoded {} parameter from '{}' to '{}'", split[i],
+                      split[i + 1], decodedStr);
+          backendConfig.insert({split[i], decodedStr});
+        }
+      }
     }
 
     // Turn on emulation mode if requested
