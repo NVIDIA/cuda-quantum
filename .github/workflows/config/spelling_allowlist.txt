@@ -14,6 +14,7 @@ CuPy
 DGX
 DOI
 Deuteron
+FPGAs
 Fourier
 GHCR
 GPU
@@ -122,6 +123,8 @@ entanglers
 enum
 et
 executables
+exponentiated
+expressivity
 extensibility
 extremal
 fermionic
@@ -175,7 +178,9 @@ symplectic
 tablegen
 templated
 toolchain
+trotterization
 unary
+uncomputation
 uncompute
 unitaries
 unitary
