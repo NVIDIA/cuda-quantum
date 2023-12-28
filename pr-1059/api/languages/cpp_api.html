@@ -782,9 +782,126 @@
 </dd></dl>
 
 <dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I_NSt6size_tEEN5cudaq7qvectorE">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Levels</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1qvector"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qvector</span></span></span><a class="headerlink" href="#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A <code class="docutils literal notranslate"><span class="pre">qvector</span></code> is an owning, dynamically sized container for qudits. The semantics of the <code class="docutils literal notranslate"><span class="pre">qvector</span></code> follows that of a <code class="docutils literal notranslate"><span class="pre">std::vector</span></code> for qudits. It is templated on the number of levels for the held qudits. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector10value_typeE">
+<span class="target" id="classcudaq_1_1qvector_1ae682d4685f2f82df11ee2fba64b15979"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">value_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq5quditE" title="cudaq::qudit"><span class="n"><span class="pre">qudit</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE" title="cudaq::qvector::Levels"><span class="n"><span class="pre">Levels</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq7qvector10value_typeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Useful typedef indicating the underlying qudit type. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector7qvectorENSt6size_tE">
+<span class="target" id="classcudaq_1_1qvector_1abae7b7b8afbba68eb00a0132242ca772"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qvector</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector7qvectorENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Construct a <code class="docutils literal notranslate"><span class="pre">qvector</span></code> with <code class="docutils literal notranslate"><span class="pre">size</span></code> qudits in the |0&gt; state. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector7qvectorERK7qvector">
+<span class="target" id="classcudaq_1_1qvector_1a3c728c95d13fa476066e3d4379b42577"></span><span class="sig-name descname"><span class="n"><span class="pre">qvector</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq7qvector7qvectorERK7qvector" title="cudaq::qvector::qvector"><span class="n"><span class="pre">qvector</span></span></a><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N5cudaq7qvector7qvectorERK7qvector" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">qvectors</span></code> cannot be copied </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector7qvectorERR7qvector">
+<span class="target" id="classcudaq_1_1qvector_1a82d3fe912eea5c553ca16535202a0153"></span><span class="sig-name descname"><span class="n"><span class="pre">qvector</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq7qvector7qvectorERR7qvector" title="cudaq::qvector::qvector"><span class="n"><span class="pre">qvector</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N5cudaq7qvector7qvectorERR7qvector" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">qvectors</span></code> cannot be moved </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvectoraSERK7qvector">
+<span class="target" id="classcudaq_1_1qvector_1a6c5ea26ff88b2878e489abe0decf0443"></span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE" title="cudaq::qvector"><span class="n"><span class="pre">qvector</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE" title="cudaq::qvector"><span class="n"><span class="pre">qvector</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">delete</span></span><a class="headerlink" href="#_CPPv4N5cudaq7qvectoraSERK7qvector" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">qvectors</span></code> cannot be copy assigned. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector5beginEv">
+<span class="target" id="classcudaq_1_1qvector_1a70e0810339d14fd4dd2318e64ba0e8bf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">begin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector5beginEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Iterator interface, begin. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector3endEv">
+<span class="target" id="classcudaq_1_1qvector_1a318de5f80ce8de87d4ab93c23c7bb4e1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector3endEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Iterator interface, end. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvectorixEKNSt6size_tE">
+<span class="target" id="classcudaq_1_1qvector_1a0f523009b5ed3508b2ed82782519a162"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq7qvector10value_typeE" title="cudaq::qvector::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvectorixEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the qudit at <code class="docutils literal notranslate"><span class="pre">idx</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector5frontENSt6size_tE">
+<span class="target" id="classcudaq_1_1qvector_1a1a432e3062bdc3a20bb60325d13dc0f8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq5qviewE" title="cudaq::qview"><span class="n"><span class="pre">qview</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE" title="cudaq::qvector::Levels"><span class="n"><span class="pre">Levels</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">front</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector5frontENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">count)</span></code> qudits as a non-owning <code class="docutils literal notranslate"><span class="pre">qview</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector5frontEv">
+<span class="target" id="classcudaq_1_1qvector_1a91033e3edd4c8d5bdeb8c4413b8dca46"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq7qvector10value_typeE" title="cudaq::qvector::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">front</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector5frontEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the first qudit. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector4backENSt6size_tE">
+<span class="target" id="classcudaq_1_1qvector_1a23e6307b94f7cfe671257e1aea073e3c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq5qviewE" title="cudaq::qview"><span class="n"><span class="pre">qview</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE" title="cudaq::qvector::Levels"><span class="n"><span class="pre">Levels</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">back</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">count</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector4backENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the <code class="docutils literal notranslate"><span class="pre">[count,</span> <a class="reference internal" href="#classcudaq_1_1qvector_1a47fdee3b43a7df454bfc60e1095c12a1"><span class="std std-ref"><span class="pre">size()</span></span></a><span class="pre">)</span></code> qudits as a non-owning <code class="docutils literal notranslate"><span class="pre">qview</span></code> </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector4backEv">
+<span class="target" id="classcudaq_1_1qvector_1a661d4e8d60e511508e2fbae8089f0bb0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq7qvector10value_typeE" title="cudaq::qvector::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">back</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector4backEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the last qudit. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector5sliceENSt6size_tENSt6size_tE">
+<span class="target" id="classcudaq_1_1qvector_1a0ce059332fd013ed919762961e306323"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq5qviewE" title="cudaq::qview"><span class="n"><span class="pre">qview</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE" title="cudaq::qvector::Levels"><span class="n"><span class="pre">Levels</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">slice</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">start</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">size</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector5sliceENSt6size_tENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the <code class="docutils literal notranslate"><span class="pre">[start,</span> <span class="pre">start+size)</span></code> qudits as a non-owning <code class="docutils literal notranslate"><span class="pre">qview</span></code> </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq7qvector4sizeEv">
+<span class="target" id="classcudaq_1_1qvector_1a47fdee3b43a7df454bfc60e1095c12a1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq7qvector4sizeEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns the number of contained qudits. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7qvector5clearEv">
+<span class="target" id="classcudaq_1_1qvector_1a8b77c953437148f72de1a1150674f653"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7qvector5clearEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Destroys all contained qudits. Postcondition: <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1qvector_1a47fdee3b43a7df454bfc60e1095c12a1"><span class="std std-ref"><span class="pre">size()</span></span></a> <span class="pre">==</span> <span class="pre">0</span></code>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq5qspanE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq3dynE" title="cudaq::dyn"><span class="n"><span class="pre">dyn</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Levels</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1qspan"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qspan</span></span></span><a class="headerlink" href="#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq5qspanE" title="Permalink to this definition">¶</a><br /></dt>
 <dd></dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4I_NSt6size_tEEN5cudaq5qviewE">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Levels</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1qview"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">qview</span></span></span><a class="headerlink" href="#_CPPv4I_NSt6size_tEEN5cudaq5qviewE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The <code class="docutils literal notranslate"><span class="pre">qview</span></code> represents a non-owning container of qudits. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5qview10value_typeE">
+<span class="target" id="classcudaq_1_1qview_1a6433c4ac3fb63793c67d05e48c5d7cd5"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">value_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq5quditE" title="cudaq::qudit"><span class="n"><span class="pre">qudit</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_NSt6size_tEEN5cudaq5qviewE" title="cudaq::qview::Levels"><span class="n"><span class="pre">Levels</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq5qview10value_typeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Useful typedef exposing the underlying qudit type that this <code class="docutils literal notranslate"><span class="pre">qview</span></code> contains. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq5qubitE">
