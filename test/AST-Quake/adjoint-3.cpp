@@ -12,7 +12,7 @@
 #include <cudaq.h>
 
 struct statePrep_A {
-  void operator()(cudaq::qreg<> &q, const double bmax) __qpu__ {
+  void operator()(cudaq::qvector<> &q, const double bmax) __qpu__ {
 
     int n = q.size();
     // all qubits sans ancilla
@@ -29,7 +29,7 @@ struct statePrep_A {
 };
 
 struct QernelZero {
-  void operator()(cudaq::qreg<> &q) __qpu__ {
+  void operator()(cudaq::qvector<> &q) __qpu__ {
 
     auto ctrl_qubits = q.front(q.size() - 1);
     auto &last_qubit = q.back();
@@ -68,7 +68,7 @@ struct run_circuit {
   auto operator()(const int n_qubits, const int n_itrs,
                   const double bmax) __qpu__ {
 
-    cudaq::qreg q(n_qubits + 1); // last is ancilla
+    cudaq::qvector q(n_qubits + 1); // last is ancilla
     auto &last_qubit = q.back();
 
     // State preparation

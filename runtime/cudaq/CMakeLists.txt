@@ -21,6 +21,8 @@ add_library(${LIBRARY_NAME}
                 utils/cudaq_utils.cpp
                 distributed/mpi_plugin.cpp)
 
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
+
 if (CUDA_FOUND)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)

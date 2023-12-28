@@ -90,8 +90,8 @@ function show_help {
 --list-targets
     List the available targets NVQ++ can compile to.
 
---emit-qir=<file> | -emit-qir=<file>
-	Emit the QIR output to <file>.
+--emit-qir | -emit-qir
+	Emit the QIR output to <input file>.qir.ll and exit.
 
 --emulate | -emulate
    For physical, remote QPU execution, enable local emulation for testing.
@@ -131,6 +131,12 @@ function show_help {
 
 --[no-]lambda-lifting
 	Enable/disable lambda lifting pass.
+
+--opt-plugin <dynamic library file>
+	Load pass plugin by specifying its dynamic library.
+
+--opt-pass <pass name>
+	Append a pass to the pass pipeline by specifying its name in the pass pipeline syntax, e.g. <dialect>.<opname>(passname).
 
 --save-temps
 	Save temporary files.
@@ -250,6 +256,9 @@ OBJS=
 SRCS=
 ARGS=
 CUDAQ_QUAKE_ARGS=
+CUDAQ_OPT_ARGS=
+CUDAQ_TRANSLATE_ARGS=
+LLC_FLAGS=-O2
 DO_LINK=true
 SHOW_VERSION=false
 ENABLE_UNWIND_LOWERING=true
@@ -263,12 +272,12 @@ DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
 PREPROCESSOR_DEFINES=
-CUDAQ_QUAKE_DEBUG=
 SHOW_HELP=false
 LIST_TARGETS=false
 DISABLE_QUBIT_MAPPING=false
 NVQIR_LIBS="-lnvqir -lnvqir-"
 CPPSTD=-std=c++20
+CUDAQ_OPT_EXTRA_PASSES=
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
@@ -339,6 +348,8 @@ while [ $# -ne 0 ]; do
 		;;
 	--emit-qir | -emit-qir)
 		EMIT_QIR=true
+		# NOTE: QIR is not emitted in library mode, so automatically apply '--enable-mlir'
+		LIBRARY_MODE=false
 		;;
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
@@ -365,7 +376,11 @@ while [ $# -ne 0 ]; do
 		;;
 	-g)
 		COMPILER_FLAGS="${COMPILER_FLAGS} -g"
-		CUDAQ_QUAKE_DEBUG="-g"
+		LINKER_FLAGS="${LINKER_FLAGS} -g"
+		CUDAQ_OPT_ARGS="${CUDAQ_OPT_ARGS} --mlir-print-debuginfo"
+		CUDAQ_TRANSLATE_ARGS="${CUDAQ_TRANSLATE_ARGS} --mlir-print-debuginfo"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -g"
+		LLC_FLAGS="${LLC_FLAGS} --dwarf64"
 		;;
 	--enable-mlir)
 		LIBRARY_MODE=false
@@ -408,6 +423,14 @@ while [ $# -ne 0 ]; do
 		;;
 	--lambda-lifting)
 		ENABLE_LAMBDA_LIFTING=true
+		;;
+	--opt-plugin)
+		CUDAQ_OPT_ARGS="${CUDAQ_OPT_ARGS} --load-cudaq-plugin $2"
+		shift
+		;;
+	--opt-pass)
+		CUDAQ_OPT_EXTRA_PASSES=$(add_pass_to_pipeline "${CUDAQ_OPT_EXTRA_PASSES}" "$2") 
+		shift
 		;;
 	--save-temps)
 		DELETE_TEMPS=false
@@ -589,6 +612,10 @@ if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,cse")
 fi
 
+if [ ! -z "$CUDAQ_OPT_EXTRA_PASSES" ]; then
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "$CUDAQ_OPT_EXTRA_PASSES")
+fi
+
 OPT_PASSES="builtin.module(${OPT_PASSES})"
 
 if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
@@ -613,7 +640,7 @@ for i in ${SRCS}; do
 
 	# If we make it here, we have CUDA Quantum kernels, need
 	# to map to MLIR and output an LLVM file for the classical code
-	run ${TOOLBIN}cudaq-quake ${CUDAQ_QUAKE_DEBUG} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file $i -o ${file}.qke
+	run ${TOOLBIN}cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file $i -o ${file}.qke
 	TMPFILES="${TMPFILES} ${file}.ll ${file}.qke"
 
 	# Run the MLIR passes
@@ -622,7 +649,7 @@ for i in ${SRCS}; do
 		if ${RUN_OPT}; then
 			DCL_FILE=$(mktemp ${file}.qke.XXXXXX)
 			TMPFILES="${TMPFILES} ${DCL_FILE} ${DCL_FILE}.o"
-			run ${TOOLBIN}cudaq-opt --pass-pipeline="${OPT_PASSES}" ${QUAKE_IN} -o ${DCL_FILE}
+			run ${TOOLBIN}cudaq-opt ${CUDAQ_OPT_ARGS} --pass-pipeline="${OPT_PASSES}" ${QUAKE_IN} -o ${DCL_FILE}
 			QUAKE_IN=${DCL_FILE}
 		fi
 		QUAKELL_FILE=$(mktemp ${file}.ll.XXXXXX)
@@ -631,7 +658,7 @@ for i in ${SRCS}; do
 		# FIXME This next step needs to be extensible... We may lower to QIR, but we
 		# may need to lower to Rigetti QIR and link with their libs or we may lower
 		# to IBM QUIR
-		run ${TOOLBIN}cudaq-translate --convert-to=${LLVM_QUANTUM_TARGET} ${QUAKE_IN} -o ${QUAKELL_FILE}
+		run ${TOOLBIN}cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${LLVM_QUANTUM_TARGET} ${QUAKE_IN} -o ${QUAKELL_FILE}
 		if ${EMIT_QIR}; then
 			run cp ${QUAKELL_FILE} ${file}.qir.ll
 			exit 0
@@ -643,12 +670,12 @@ for i in ${SRCS}; do
 		run ${install_dir}/bin/fixup-linkage ${file}.qke ${file}.pre.ll ${file}.ll
 
 		# Lower our LLVM to object files
-		run ${LLC} --relocation-model=pic --filetype=obj -O2 ${QUAKELL_FILE} -o ${file}.qke.o
+		run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${QUAKELL_FILE} -o ${file}.qke.o
 		QUAKE_OBJ="${file}.qke.o"
 	else
 		QUAKE_OBJ=
 	fi
-	run ${LLC} --relocation-model=pic --filetype=obj -O2 ${file}.ll -o ${file}.classic.o
+	run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${file}.ll -o ${file}.classic.o
 	TMPFILES="${TMPFILES} ${file}.qke.o ${file}.classic.o"
 	if ${DO_LINK}; then
 		TMPFILES="${TMPFILES} ${file}.o"

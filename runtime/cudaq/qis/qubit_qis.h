@@ -498,7 +498,7 @@ template <typename T>
 concept takes_qubit = signature<T, void(qubit &)>;
 
 template <typename T>
-concept takes_qreg = signature<T, void(qreg<> &)>;
+concept takes_qvector = signature<T, void(qvector<> &)>;
 #endif
 
 // Control the given cudaq kernel on the given control qubit

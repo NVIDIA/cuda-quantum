@@ -12,7 +12,7 @@
 
 int main() {
   auto kernel2 = [](double theta, const char *pauli) __qpu__ {
-    cudaq::qreg q(4);
+    cudaq::qvector q(4);
     x(q[0]);
     x(q[1]);
     exp_pauli(theta, q, pauli);

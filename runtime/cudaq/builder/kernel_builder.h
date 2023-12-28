@@ -10,7 +10,6 @@
 
 #include "cudaq/builder/QuakeValue.h"
 #include "cudaq/qis/modifiers.h"
-#include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "host_config.h"
@@ -23,15 +22,6 @@
 #include <string>
 #include <variant>
 #include <vector>
-
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
 
 // Goal here is to keep MLIR out of user code!
 namespace mlir {
@@ -74,12 +64,11 @@ concept KernelBuilderArgTypeIsValid =
 // If you want to add to the list of valid kernel argument types first add it
 // here, then add `details::mapArgToType()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
-  requires(                                                                    \
-      KernelBuilderArgTypeIsValid<                                             \
-          Args, float, double, std::size_t, int, std::vector<int>,             \
-          std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
-          cudaq::qubit, cudaq::qreg<>, cudaq::qvector<>> &&                    \
-      ...)
+  requires(KernelBuilderArgTypeIsValid<                                        \
+               Args, float, double, std::size_t, int, std::vector<int>,        \
+               std::vector<float>, std::vector<std::size_t>,                   \
+               std::vector<double>, cudaq::qubit, cudaq::qvector<>> &&         \
+           ...)
 #else
 // Not C++ 2020: stub these out.
 #define QuakeValueOrNumericType typename
@@ -134,9 +123,6 @@ KernelBuilderType mapArgToType(std::vector<double> &e);
 
 /// Map a `qubit` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qubit &e);
-
-/// @brief  Map a `qreg` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(cudaq::qreg<> &e);
 
 /// @brief  Map a `qvector` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qvector<> &e);
@@ -600,6 +586,44 @@ public:
     details::swap(*opBuilder, empty, qubits);
   }
 
+  /// @brief SWAP operation for performing a Fredkin gate between two qubits,
+  /// based on the state of input `control` qubit/s.
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void swap(const QuakeValue &control, const QuakeValue &first,
+            const QuakeValue &second) {
+    const std::vector<QuakeValue> ctrl{control};
+    const std::vector<QuakeValue> targets{first, second};
+    details::swap(*opBuilder, ctrl, targets);
+  }
+
+  /// @brief SWAP operation for performing a Fredkin gate between two qubits,
+  /// based on the state of an input vector of `controls`.
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void swap(const std::vector<QuakeValue> &controls, const QuakeValue &first,
+            const QuakeValue &second) {
+    const std::vector<QuakeValue> targets{first, second};
+    details::swap(*opBuilder, controls, targets);
+  }
+
+  /// @brief SWAP operation for performing a Fredkin gate between two qubits,
+  /// based on the state of a variadic input of control qubits and registers.
+  /// Note: the final two qubits in the variadic list will always be the qubits
+  /// that undergo a SWAP. This requires >=3 qubits in the arguments.
+  template <
+      typename mod, typename... QubitValues,
+      typename = typename std::enable_if_t<sizeof...(QubitValues) >= 3>,
+      typename = typename std::enable_if_t<std::is_same_v<mod, cudaq::ctrl>>>
+  void swap(QubitValues... args) {
+    std::vector<QuakeValue> values{args...};
+    // Up until the last two arguments will be our controls.
+    const std::vector<QuakeValue> controls(values.begin(), values.end() - 2);
+    // The last two args will be the two qubits to swap.
+    const std::vector<QuakeValue> targets(values.end() - 2, values.end());
+    details::swap(*opBuilder, controls, targets);
+  }
+
   /// @brief Reset the given qubit or qubits.
   void reset(const QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
 
@@ -847,10 +871,3 @@ auto make_kernel() {
 }
 
 } // namespace cudaq
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif

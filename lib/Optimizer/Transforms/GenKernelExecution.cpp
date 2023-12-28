@@ -93,6 +93,8 @@ public:
     return cudaq::cc::StructType::get(ctx, eleTys);
   }
 
+  /// Creates the function signature for a thunk function. The signature is
+  /// always the same for all thunk functions.
   FunctionType getThunkType(MLIRContext *ctx) {
     auto ptrTy = cudaq::cc::PointerType::get(IntegerType::get(ctx, 8));
     return FunctionType::get(ctx, {ptrTy, IntegerType::get(ctx, 1)},
@@ -121,7 +123,7 @@ public:
     Type i64Ty = builder.getI64Type();
 
     // We're given ptr<struct<...>>, get that struct type (struct<T*,T*,T*>)
-    auto inpStructTy = ptrTy.getElementType().cast<cudaq::cc::StructType>();
+    auto inpStructTy = cast<cudaq::cc::StructType>(ptrTy.getElementType());
 
     // For the following GEP calls, we'll expect them to return T**
     auto ptrTtype = cudaq::cc::PointerType::get(inpStructTy.getMembers()[0]);
@@ -146,37 +148,98 @@ public:
     return builder.create<arith::SubIOp>(loc, endInt, beginInt);
   }
 
-  Value copyVectorData(OpBuilder &builder, Location loc, Value stVal, Value arg,
-                       Value vecToBuffer, DenseI64ArrayAttr off) {
-    auto falseAttr = IntegerAttr::get(builder.getI1Type(), 0);
-    auto notVolatile =
-        builder.create<arith::ConstantOp>(loc, builder.getI1Type(), falseAttr);
-    // memcpy from arg->begin to vecToBuffer, size bytes.
-    auto bytes = builder.create<cudaq::cc::ExtractValueOp>(
-        loc, builder.getI64Type(), stVal, off);
-    auto inStructTy = arg.getType()
-                          .cast<cudaq::cc::PointerType>()
-                          .getElementType()
-                          .cast<cudaq::cc::StructType>();
+  /// Helper that converts a byte length to a length of i64.
+  Value convertLengthBytesToLengthI64(OpBuilder &builder, Location loc,
+                                      Value length) {
+    auto eight = builder.create<arith::ConstantIntOp>(loc, 8, 64);
+    return builder.create<arith::DivSIOp>(loc, length, eight);
+  }
+
+  /// This computes a vector's size and handles recursive vector types. This
+  /// first value returned is the size of the top level (outermost) vector in
+  /// bytes. The second value is the recursive size of all the vectors within
+  /// the outer vector.
+  std::pair<Value, Value>
+  computeRecursiveVectorSize(OpBuilder &builder, Location loc, Value cpuArg,
+                             cudaq::cc::PointerType cpuVecTy,
+                             cudaq::cc::StdvecType stdvecTy) {
+    Value topLevelSize;
+    Value recursiveSize;
+    auto eleTy = stdvecTy.getElementType();
+    if (auto sTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
+      // Convert size of vectors to i64s.
+      topLevelSize = computeCpuVectorLengthInBytes(
+          builder, loc, cpuArg, stdvecTy.getElementType(), cpuVecTy);
+      auto nested = fetchCpuVectorFront(builder, loc, cpuArg, cpuVecTy);
+      auto tmp = builder.create<cudaq::cc::AllocaOp>(loc, builder.getI64Type());
+      builder.create<cudaq::cc::StoreOp>(loc, topLevelSize, tmp);
+      // Convert bytes to units of i64. (Divide by 8)
+      auto topLevelCount =
+          convertLengthBytesToLengthI64(builder, loc, topLevelSize);
+      // Now walk the vectors recursively.
+      auto topLevelIndex = builder.create<arith::IndexCastOp>(
+          loc, builder.getIndexType(), topLevelCount);
+      cudaq::opt::factory::createInvariantLoop(
+          builder, loc, topLevelIndex,
+          [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+            Value i = builder.create<arith::IndexCastOp>(
+                loc, builder.getI64Type(), block.getArgument(0));
+            auto sub = builder.create<cudaq::cc::ComputePtrOp>(loc, cpuVecTy,
+                                                               nested, i);
+            auto p =
+                computeRecursiveVectorSize(builder, loc, sub, cpuVecTy, sTy);
+            auto subSz = builder.create<cudaq::cc::LoadOp>(loc, tmp);
+            auto sum = builder.create<arith::AddIOp>(loc, p.second, subSz);
+            builder.create<cudaq::cc::StoreOp>(loc, sum, tmp);
+          });
+      recursiveSize = builder.create<cudaq::cc::LoadOp>(loc, tmp);
+    } else {
+      // Non-recusive case. Just compute the size of the top-level vector<T>.
+      topLevelSize = getVectorSize(builder, loc, cpuVecTy, cpuArg);
+      recursiveSize = topLevelSize;
+    }
+    return {topLevelSize, recursiveSize};
+  }
+
+  /// Copy a vector's data, which must be \p bytes in length, from \p cpuArg to
+  /// \p outputBuffer. The cpuArg must have a pointer type that is compatible
+  /// with the triple pointer std::vector base implementation.
+  Value copyVectorData(OpBuilder &builder, Location loc, Value bytes,
+                       Value cpuArg, Value outputBuffer) {
+    auto notVolatile = builder.create<arith::ConstantIntOp>(loc, 0, 1);
+    auto inStructTy = cast<cudaq::cc::StructType>(
+        cast<cudaq::cc::PointerType>(cpuArg.getType()).getElementType());
     auto beginPtr = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, cudaq::cc::PointerType::get(inStructTy.getMembers()[0]), arg,
+        loc, cudaq::cc::PointerType::get(inStructTy.getMembers()[0]), cpuArg,
         SmallVector<cudaq::cc::ComputePtrArg>{0, 0});
     auto fromBuff = builder.create<cudaq::cc::LoadOp>(loc, beginPtr);
     auto vecFromBuff = builder.create<cudaq::cc::CastOp>(
         loc, cudaq::cc::PointerType::get(builder.getI8Type()), fromBuff);
     builder.create<func::CallOp>(
         loc, std::nullopt, cudaq::llvmMemCopyIntrinsic,
-        SmallVector<Value>{vecToBuffer, vecFromBuff, bytes, notVolatile});
-    // Increment vecToBuffer by size bytes.
+        SmallVector<Value>{outputBuffer, vecFromBuff, bytes, notVolatile});
+    // Increment outputBuffer by size bytes.
     return builder.create<cudaq::cc::ComputePtrOp>(
-        loc, vecToBuffer.getType(), vecToBuffer, SmallVector<Value>{bytes});
+        loc, outputBuffer.getType(), outputBuffer, SmallVector<Value>{bytes});
   }
 
-  // Create a function that takes void**, void* and returns void
+  /// Creates a function that can take a block of pointers to argument values
+  /// and using the compiler's knowledge of a kernel encodes those argument
+  /// values into a message buffer. The message buffer is a pointer-free block
+  /// of memory allocated on the heap on the host. Once the argument values are
+  /// packed into the message buffer, they can be passed to altLaunchKernel or
+  /// the corresponding thunk function.
+  ///
+  /// The created function takes two arguments: a pointer to the argument values
+  /// to be encoded and a pointer to a pointer into which the message buffer
+  /// value will be written for return. This function returns to size of the
+  /// message buffer. (Message buffers are at least the size of \p structTy but
+  /// may be extended.)
   func::FuncOp genKernelArgsCreatorFunction(Location loc, OpBuilder &builder,
                                             const std::string &classNameStr,
-                                            Type structPtrTy,
+                                            cudaq::cc::StructType structTy,
                                             FunctionType funcTy) {
+    auto structPtrTy = cudaq::cc::PointerType::get(structTy);
     // Local types and values we'll need
     auto *ctx = builder.getContext();
     Type ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
@@ -187,85 +250,68 @@ public:
     auto funcType = FunctionType::get(ctx, {ptrPtrType, ptrPtrType}, {i64Ty});
     auto argsCreatorFunc = builder.create<func::FuncOp>(
         loc, classNameStr + ".argsCreator", funcType);
-    auto insPt = builder.saveInsertionPoint();
+    OpBuilder::InsertionGuard guard(builder);
     auto *entry = argsCreatorFunc.addEntryBlock();
     builder.setInsertionPointToStart(entry);
 
-    // Get the struct type
-    auto structType = structPtrTy.cast<cudaq::cc::PointerType>()
-                          .getElementType()
-                          .cast<cudaq::cc::StructType>();
     // Get the original function args
     auto kernelArgTypes = funcTy.getInputs();
 
     // Init the struct
-    Value stVal = builder.create<cudaq::cc::UndefOp>(loc, structType);
+    Value stVal = builder.create<cudaq::cc::UndefOp>(loc, structTy);
 
     // Get the variadic void* args
     auto variadicArgs = entry->getArgument(0);
-
-    // We want to keep track of all the vector args we see
-    SmallVector<std::pair<std::int64_t, Value>> vectorArgIndices;
 
     // Initialize the counter for extra size.
     Value zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
     Value extraBytes = zero;
 
     // Loop over the struct elements
-    for (auto structElementTypeIter :
-         llvm::enumerate(structType.getMembers())) {
-      std::size_t idx = structElementTypeIter.index();
+    bool hasTrailingData = false;
+    for (auto structElementTypeIter : llvm::enumerate(structTy.getMembers())) {
+      std::int64_t idx = structElementTypeIter.index();
 
       // Don't do anything with return args.
-      if (idx == kernelArgTypes.size())
+      if (idx == static_cast<std::int64_t>(kernelArgTypes.size()))
         break;
-
-      auto off = DenseI64ArrayAttr::get(
-          ctx, ArrayRef<std::int64_t>{static_cast<std::int64_t>(idx)});
 
       // Get the corresponding cudaq kernel arg type
       auto correspondingKernelArgType = kernelArgTypes[idx];
 
-      // The struct element type
-      // for a vector, this type is a i64, the size.
-      auto type = structElementTypeIter.value();
+      // The struct element type for a vector, this type is a i64, the size.
+      auto currEleTy = structElementTypeIter.value();
 
       // Get the pointer out of the void** variadic args - > void* -> TYPE*
       Value argPtrPtr = builder.create<cudaq::cc::ComputePtrOp>(
           loc, ptrPtrType, variadicArgs,
-          SmallVector<cudaq::cc::ComputePtrArg>{static_cast<int32_t>(idx)});
+          SmallVector<cudaq::cc::ComputePtrArg>{
+              static_cast<std::int32_t>(idx)});
       Value argPtr = builder.create<cudaq::cc::LoadOp>(loc, ptrI8Ty, argPtrPtr);
+      auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
 
-      // Is this a vecType, storing it to a bool so we can check
-      // in multiple parts of the following code
-      auto vecType =
-          dyn_cast<cudaq::cc::StdvecType>(correspondingKernelArgType);
-      bool isVecType = vecType != nullptr;
-      Value loadedVal;
-      if (isVecType) {
-        auto vecEleTy = vecType.getElementType();
-        auto vecElePtrTy = cudaq::cc::PointerType::get(vecEleTy);
-        SmallVector<Type> vecStructEleTys = {vecElePtrTy, vecElePtrTy,
-                                             vecElePtrTy};
-        type = cudaq::cc::PointerType::get(
-            cudaq::cc::StructType::get(ctx, vecStructEleTys));
-        loadedVal = builder.create<cudaq::cc::CastOp>(loc, type, argPtr);
-      } else {
-        argPtr = builder.create<cudaq::cc::CastOp>(
-            loc, cudaq::cc::PointerType::get(type), argPtr);
-        // cast to the struct element type, void* -> TYPE *
-        loadedVal = builder.create<cudaq::cc::LoadOp>(loc, type, argPtr);
+      if (auto stdvecTy =
+              dyn_cast<cudaq::cc::StdvecType>(correspondingKernelArgType)) {
+        // If this is a vector argument, then we will add data to the message
+        // buffer's addendum (unless the vector is length 0).
+        auto ptrInTy = cudaq::cc::PointerType::get(
+            cudaq::opt::factory::stlVectorType(stdvecTy.getElementType()));
+        Value arg = builder.create<cudaq::cc::CastOp>(loc, ptrInTy, argPtr);
+        // Store the size of the vector.
+        auto [topLevelSize, recursiveSize] =
+            computeRecursiveVectorSize(builder, loc, arg, ptrInTy, stdvecTy);
+        stVal = builder.create<cudaq::cc::InsertValueOp>(
+            loc, stVal.getType(), stVal, topLevelSize, off);
+        extraBytes =
+            builder.create<arith::AddIOp>(loc, extraBytes, recursiveSize);
+        hasTrailingData = true;
+        continue;
       }
-
-      if (isVecType) {
-        // Store the index and the vec value
-        vectorArgIndices.push_back(std::make_pair(idx, loadedVal));
-        // compute the extra size needed for the vector data
-        loadedVal = getVectorSize(
-            builder, loc, type.cast<cudaq::cc::PointerType>(), loadedVal);
-        extraBytes = builder.create<arith::AddIOp>(loc, extraBytes, loadedVal);
-      }
-
+      argPtr = builder.create<cudaq::cc::CastOp>(
+          loc, cudaq::cc::PointerType::get(currEleTy), argPtr);
+      // cast to the struct element type, void* -> TYPE *
+      Value loadedVal =
+          builder.create<cudaq::cc::LoadOp>(loc, currEleTy, argPtr);
       stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
                                                        stVal, loadedVal, off);
     }
@@ -277,46 +323,56 @@ public:
     Value structSize =
         builder.create<cudaq::cc::CastOp>(loc, i64Ty, computedOffset);
 
-    // If no vector args, handle this simple case and drop out
-    if (vectorArgIndices.empty()) {
-      Value buff = builder
-                       .create<func::CallOp>(loc, ptrI8Ty, "malloc",
-                                             ValueRange(structSize))
-                       .getResult(0);
-
-      Value casted = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, buff);
-      builder.create<cudaq::cc::StoreOp>(loc, stVal, casted);
-      builder.create<cudaq::cc::StoreOp>(loc, buff, entry->getArgument(1));
-      builder.create<func::ReturnOp>(loc, ValueRange{structSize});
-      builder.restoreInsertionPoint(insPt);
-      return argsCreatorFunc;
-    }
-
     // Here we do have vector args
     Value extendedStructSize =
-        builder.create<arith::AddIOp>(loc, structSize, extraBytes);
+        hasTrailingData
+            ? builder.create<arith::AddIOp>(loc, structSize, extraBytes)
+            : structSize;
+    // If no vector args, handle this simple case and drop out
     Value buff = builder
                      .create<func::CallOp>(loc, ptrI8Ty, "malloc",
                                            ValueRange(extendedStructSize))
                      .getResult(0);
 
-    auto casted = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, buff);
+    Value casted = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, buff);
     builder.create<cudaq::cc::StoreOp>(loc, stVal, casted);
-    Value vecToBuffer = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrI8Ty, buff, SmallVector<Value>{structSize});
-
-    for (auto [idx, vecVal] : vectorArgIndices) {
-      auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-      vecToBuffer =
-          copyVectorData(builder, loc, stVal, vecVal, vecToBuffer, off);
+    if (hasTrailingData) {
+      Value vecToBuffer = builder.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrI8Ty, buff, SmallVector<Value>{structSize});
+      for (auto iter : llvm::enumerate(structTy.getMembers())) {
+        std::int64_t idx = iter.index();
+        if (idx == static_cast<std::int64_t>(kernelArgTypes.size()))
+          break;
+        // Get the corresponding cudaq kernel arg type
+        auto correspondingKernelArgType = kernelArgTypes[idx];
+        if (auto stdvecTy =
+                dyn_cast<cudaq::cc::StdvecType>(correspondingKernelArgType)) {
+          auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
+          auto bytes = builder.create<cudaq::cc::ExtractValueOp>(
+              loc, builder.getI64Type(), stVal, off);
+          Value argPtrPtr = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, ptrPtrType, variadicArgs,
+              SmallVector<cudaq::cc::ComputePtrArg>{
+                  static_cast<std::int32_t>(idx)});
+          auto ptrInTy = cudaq::cc::PointerType::get(
+              cudaq::opt::factory::stlVectorType(stdvecTy.getElementType()));
+          Value arg =
+              builder.create<cudaq::cc::LoadOp>(loc, ptrI8Ty, argPtrPtr);
+          arg = builder.create<cudaq::cc::CastOp>(loc, ptrInTy, arg);
+          vecToBuffer = encodeVectorData(builder, loc, bytes, stdvecTy, arg,
+                                         vecToBuffer, ptrInTy);
+        }
+      }
     }
-
     builder.create<cudaq::cc::StoreOp>(loc, buff, entry->getArgument(1));
     builder.create<func::ReturnOp>(loc, ValueRange{extendedStructSize});
-    builder.restoreInsertionPoint(insPt);
     return argsCreatorFunc;
   }
 
+  /// If the kernel has an sret argument, then we rewrite the kernel's signature
+  /// on the target. Note that this requires that the target has the ability to
+  /// pass stack pointers as function arguments. These stack pointers will
+  /// obviously only necessarily be valid to the target executing the kernel.
   void updateQPUKernelAsSRet(OpBuilder &builder, func::FuncOp funcOp,
                              FunctionType newFuncTy) {
     auto funcTy = funcOp.getFunctionType();
@@ -331,7 +387,7 @@ public:
     funcOp.insertArgument(0, newFuncTy.getInput(0), attrs.getDictionary(ctx),
                           funcOp.getLoc());
     auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
-    auto insPt = builder.saveInsertionPoint();
+    OpBuilder::InsertionGuard guard(builder);
     SmallVector<Operation *> returnsToErase;
     // Update all func.return to store values to the sret block.
     funcOp->walk([&](func::ReturnOp retOp) {
@@ -378,9 +434,108 @@ public:
     });
     for (auto *op : returnsToErase)
       op->erase();
-    builder.restoreInsertionPoint(insPt);
     for (std::size_t i = 0, end = funcOp.getNumResults(); i != end; ++i)
       funcOp.eraseResult(0);
+  }
+
+  /// In the thunk, we need to unpack any `std::vector` objects encoded in the
+  /// packet. Since these have dynamic size, they are encoded as trailing bytes
+  /// by offset and size. The offset is implicit from the values of the
+  /// arguments. All sizes are encoded as `int64_t`.
+  ///
+  /// A vector of vector of ... T is encoded as a int64_t (length). At the
+  /// offset of the level `i` vector will be a sequence of sizes for the level
+  /// `i+1` vectors. For the leaf vector level, `n`, the blocks of data for each
+  /// vector will be immediately following for each vector at level `n` for the
+  /// branch of the tree being encoded.
+  ///
+  /// For example, a variable defined and initialized as
+  /// ```
+  /// vector<vector<vector<char>>> example =
+  ///    {{{'a'}, {'b', 'c'}, {'z'}}, {{'d' 'e', 'f'}}};
+  /// ```
+  ///
+  /// and passed as an argument to a kernel will be encoded as the following
+  /// block. The block will have a structure with the declared arguments
+  /// followed by an addendum of variable data, where the vector data is
+  /// encoded.
+  ///
+  /// ```
+  ///   arguments: { ..., 1, ... }
+  ///   addendum: [[3; 1 2 1, a, b c, z] [1; 3, d e f]]
+  /// ```
+  std::pair<Value, Value> unpackStdVector(OpBuilder &builder, Location loc,
+                                          cudaq::cc::StdvecType stdvecTy,
+                                          Value vecSize, Value trailingData) {
+    // Convert the pointer-free std::vector<T> to a span structure to be
+    // passed. A span structure is a pointer and a size (in element
+    // units). Note that this structure may be recursive.
+    auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
+    Type eleTy = stdvecTy.getElementType();
+    auto innerStdvecTy = dyn_cast<cudaq::cc::StdvecType>(eleTy);
+    std::size_t eleSize =
+        innerStdvecTy ? /*(i64Type/8)*/ 8 : eleTy.getIntOrFloatBitWidth() / 8;
+    auto eleSizeVal = builder.create<arith::ConstantIntOp>(loc, eleSize, 64);
+    auto vecLength = builder.create<arith::DivSIOp>(loc, vecSize, eleSizeVal);
+    if (innerStdvecTy) {
+      // Recursive case: std::vector<std::vector<...>>
+      // TODO: Uses stack allocation, however it may be better to use heap
+      // allocation. It's not clear the QPU has heap memory allocation. If this
+      // uses heap allocation, then the thunk must free that memory *after* the
+      // kernel proper returns.
+      auto vecTmp = builder.create<cudaq::cc::AllocaOp>(loc, eleTy, vecLength);
+      auto currentEnd = builder.create<cudaq::cc::AllocaOp>(loc, ptrI8Ty);
+      auto i64Ty = builder.getI64Type();
+      auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
+      auto innerVec =
+          builder.create<cudaq::cc::CastOp>(loc, ptrI64Ty, trailingData);
+      trailingData = builder.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrI8Ty, trailingData, vecSize);
+      builder.create<cudaq::cc::StoreOp>(loc, trailingData, currentEnd);
+      // Loop over each subvector in the vector and recursively unpack it into
+      // the vecTmp variable. Leaf vectors do not need a fresh variable. This
+      // effectively translates all the size/offset information for all the
+      // subvectors into temps.
+      Value vecLengthIndex = builder.create<arith::IndexCastOp>(
+          loc, builder.getIndexType(), vecLength);
+      cudaq::opt::factory::createInvariantLoop(
+          builder, loc, vecLengthIndex,
+          [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+            Value i = builder.create<arith::IndexCastOp>(loc, i64Ty,
+                                                         block.getArgument(0));
+            auto innerPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(i64Ty), innerVec,
+                SmallVector<cudaq::cc::ComputePtrArg>{i});
+            Value innerVecSize =
+                builder.create<cudaq::cc::LoadOp>(loc, innerPtr);
+            Value tmp = builder.create<cudaq::cc::LoadOp>(loc, currentEnd);
+            auto unpackPair =
+                unpackStdVector(builder, loc, innerStdvecTy, innerVecSize, tmp);
+            auto ptrInnerTy = cudaq::cc::PointerType::get(innerStdvecTy);
+            auto subVecPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, ptrInnerTy, vecTmp,
+                SmallVector<cudaq::cc::ComputePtrArg>{i});
+            builder.create<cudaq::cc::StoreOp>(loc, unpackPair.first,
+                                               subVecPtr);
+            builder.create<cudaq::cc::StoreOp>(loc, unpackPair.second,
+                                               currentEnd);
+          });
+      auto coerceResult = builder.create<cudaq::cc::CastOp>(
+          loc, cudaq::cc::PointerType::get(stdvecTy), vecTmp);
+      trailingData = builder.create<cudaq::cc::LoadOp>(loc, currentEnd);
+      Value result = builder.create<cudaq::cc::StdvecInitOp>(
+          loc, stdvecTy, coerceResult, vecLength);
+      return {result, trailingData};
+    }
+    // Must divide by byte, 8 bits.
+    // The data is at trailingData and is valid for vecLength of eleTy.
+    auto castData = builder.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(eleTy), trailingData);
+    Value stdVecResult = builder.create<cudaq::cc::StdvecInitOp>(
+        loc, stdvecTy, castData, vecLength);
+    trailingData = builder.create<cudaq::cc::ComputePtrOp>(
+        loc, ptrI8Ty, trailingData, vecSize);
+    return {stdVecResult, trailingData};
   }
 
   /// Generate the thunk function. This function is called by the library
@@ -391,33 +546,40 @@ public:
   /// arguments and return value of the corresponding kernel.
   func::FuncOp genThunkFunction(Location loc, OpBuilder &builder,
                                 const std::string &classNameStr,
-                                Type structPtrTy, FunctionType funcTy,
-                                func::FuncOp funcOp) {
+                                cudaq::cc::StructType structTy,
+                                FunctionType funcTy, func::FuncOp funcOp) {
+    Type structPtrTy = cudaq::cc::PointerType::get(structTy);
     auto *ctx = builder.getContext();
     auto thunkTy = getThunkType(ctx);
     auto thunk =
         builder.create<func::FuncOp>(loc, classNameStr + ".thunk", thunkTy);
-    auto insPt = builder.saveInsertionPoint();
+    OpBuilder::InsertionGuard guard(builder);
     auto *thunkEntry = thunk.addEntryBlock();
     builder.setInsertionPointToStart(thunkEntry);
-    auto cast = builder.create<cudaq::cc::CastOp>(loc, structPtrTy,
-                                                  thunkEntry->getArgument(0));
+    auto castOp = builder.create<cudaq::cc::CastOp>(loc, structPtrTy,
+                                                    thunkEntry->getArgument(0));
     auto isClientServer = thunkEntry->getArgument(1);
-    Value val = builder.create<cudaq::cc::LoadOp>(loc, cast);
-    auto i64Ty = builder.getIntegerType(64);
+    Value val = builder.create<cudaq::cc::LoadOp>(loc, castOp);
+    auto i64Ty = builder.getI64Type();
 
     // Compute the struct size without the trailing bytes, structSize.
+    auto ptrArrayStructTy = cudaq::opt::factory::getIndexedObjectType(structTy);
     auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
-    auto nullSt = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, zero);
+    auto nullSt =
+        builder.create<cudaq::cc::CastOp>(loc, ptrArrayStructTy, zero);
     auto computedOffset = builder.create<cudaq::cc::ComputePtrOp>(
         loc, structPtrTy, nullSt, SmallVector<cudaq::cc::ComputePtrArg>{1});
     Value structSize =
         builder.create<cudaq::cc::CastOp>(loc, i64Ty, computedOffset);
 
     // Compute location of trailing bytes.
+    auto bufferPtrTy =
+        cudaq::opt::factory::getIndexedObjectType(builder.getI8Type());
+    Value extendedBuffer = builder.create<cudaq::cc::CastOp>(
+        loc, bufferPtrTy, thunkEntry->getArgument(0));
     auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
     Value trailingData = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrI8Ty, thunkEntry->getArgument(0), structSize);
+        loc, ptrI8Ty, extendedBuffer, structSize);
 
     // Unpack the arguments in the struct and build the argument list for
     // the call to the kernel code.
@@ -433,15 +595,12 @@ public:
       }
       return funcTy;
     }();
-    auto structTy = structPtrTy.cast<cudaq::cc::PointerType>()
-                        .getElementType()
-                        .cast<cudaq::cc::StructType>();
     int offset = funcTy.getNumInputs();
     if (hiddenSRet) {
       // Use the end of the argument block for the return values.
       auto eleTy = structTy.getMembers()[offset];
       auto mem = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, cudaq::cc::PointerType::get(eleTy), cast,
+          loc, cudaq::cc::PointerType::get(eleTy), castOp,
           SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
       auto sretPtrTy = cudaq::cc::PointerType::get(
           cudaq::opt::factory::getSRetElementType(funcTy));
@@ -455,33 +614,16 @@ public:
       Type inTy = inp.value();
       std::int64_t idx = inp.index();
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
+      if (isa<cudaq::cc::CallableType, cudaq::cc::StructType>(inTy)) {
         auto undef = builder.create<cudaq::cc::UndefOp>(loc, inTy);
         args.push_back(undef);
-      } else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>()) {
-        Type eleTy = IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64);
-        if (auto memrefTy = dyn_cast<cudaq::cc::StdvecType>(inTy))
-          eleTy = memrefTy.getElementType();
-        auto stdvecTy = cudaq::cc::StdvecType::get(ctx, eleTy);
-        // Must divide by byte, 8 bits.
-        std::size_t eleSize;
-        if (auto cTy = dyn_cast<ComplexType>(eleTy))
-          eleSize = 2 * (cTy.getElementType().getIntOrFloatBitWidth() / 8);
-        else
-          eleSize = eleTy.getIntOrFloatBitWidth() / 8;
+      } else if (auto stdVecTy = dyn_cast<cudaq::cc::StdvecType>(inTy)) {
         Value vecSize =
             builder.create<cudaq::cc::ExtractValueOp>(loc, i64Ty, val, off);
-        auto eleSizeVal =
-            builder.create<arith::ConstantIntOp>(loc, eleSize, 64);
-        auto vecLength =
-            builder.create<arith::DivSIOp>(loc, vecSize, eleSizeVal);
-        // The data is at trailingData and is valid for vecLength of eleTy.
-        auto castData = builder.create<cudaq::cc::CastOp>(
-            loc, cudaq::cc::PointerType::get(eleTy), trailingData);
-        args.push_back(builder.create<cudaq::cc::StdvecInitOp>(
-            loc, stdvecTy, castData, vecLength));
-        trailingData = builder.create<cudaq::cc::ComputePtrOp>(
-            loc, ptrI8Ty, trailingData, vecSize);
+        auto unpackPair =
+            unpackStdVector(builder, loc, stdVecTy, vecSize, trailingData);
+        trailingData = unpackPair.second;
+        args.push_back(unpackPair.first);
       } else {
         args.push_back(
             builder.create<cudaq::cc::ExtractValueOp>(loc, inTy, val, off));
@@ -495,7 +637,7 @@ public:
     if (!hiddenSRet && funcTy.getNumResults() == 1) {
       auto eleTy = structTy.getMembers()[offset];
       auto mem = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, cudaq::cc::PointerType::get(eleTy), cast,
+          loc, cudaq::cc::PointerType::get(eleTy), castOp,
           SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
       builder.create<cudaq::cc::StoreOp>(loc, call.getResult(0), mem);
     }
@@ -517,8 +659,8 @@ public:
       builder.setInsertionPointToEnd(thenBlock);
       int offset = funcTy.getNumInputs();
       auto gepRes = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, cudaq::cc::PointerType::get(structTy.getMembers()[offset]), cast,
-          SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
+          loc, cudaq::cc::PointerType::get(structTy.getMembers()[offset]),
+          castOp, SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
       auto gepRes2 = builder.create<cudaq::cc::CastOp>(
           loc, cudaq::cc::PointerType::get(thunkTy.getResults()[0]), gepRes);
       // createDynamicResult packs the input values and the dynamic results
@@ -536,7 +678,6 @@ public:
         builder.create<func::CallOp>(loc, thunkTy.getResults()[0],
                                      "__nvqpp_zeroDynamicResult", ValueRange{});
     builder.create<func::ReturnOp>(loc, zeroRes.getResult(0));
-    builder.restoreInsertionPoint(insPt);
     return thunk;
   }
 
@@ -553,6 +694,11 @@ public:
                                  ArrayRef<Value>{castSret, castData, size});
   }
 
+  /// Generate a `std::vector<T>` (where `T != bool`) from an initializer list.
+  /// This is done with the assumption that `std::vector` is implemented as a
+  /// triple of pointers. The original content of the vector is freed and the
+  /// new content, which is already on the stack, is moved into the
+  /// `std::vector`.
   void genStdvecTFromInitList(Location loc, OpBuilder &builder, Value sret,
                               Value data, Value tSize, Value vecSize) {
     auto i8Ty = builder.getI8Type();
@@ -587,9 +733,91 @@ public:
     unsigned count = hasThisPointer ? 1 : 0;
     if (cudaq::opt::factory::hasHiddenSRet(funcTy))
       ++count;
-    if (!args.empty() && isa<cudaq::cc::PointerType>(args[0].getType()))
+    if (count > 0 && args.size() >= count &&
+        std::all_of(args.begin(), args.begin() + count, [](auto i) {
+          return isa<cudaq::cc::PointerType>(i.getType());
+        }))
       return args.drop_front(count);
     return args;
+  }
+
+  // Return the vector's length, computed on the CPU side, in bytes.
+  Value computeCpuVectorLengthInBytes(OpBuilder &builder, Location loc,
+                                      Value cpuArg, Type eleTy,
+                                      cudaq::cc::PointerType cpuVecTy) {
+    auto rawSize = getVectorSize(builder, loc, cpuVecTy, cpuArg);
+    if (isa<cudaq::cc::StdvecType>(eleTy)) {
+      auto three = builder.create<arith::ConstantIntOp>(loc, 3, 64);
+      return builder.create<arith::DivSIOp>(loc, rawSize, three);
+    }
+    return rawSize;
+  }
+
+  Value fetchCpuVectorFront(OpBuilder &builder, Location loc, Value cpuArg,
+                            cudaq::cc::PointerType cpuVecTy) {
+    auto inpStructTy = cast<cudaq::cc::StructType>(cpuVecTy.getElementType());
+    auto ptrTtype = cudaq::cc::PointerType::get(inpStructTy.getMembers()[0]);
+    auto beginPtr = builder.create<cudaq::cc::ComputePtrOp>(
+        loc, ptrTtype, cpuArg, SmallVector<cudaq::cc::ComputePtrArg>{0, 0});
+    auto ptrArrSTy = cudaq::opt::factory::getIndexedObjectType(inpStructTy);
+    auto vecPtr = builder.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(ptrArrSTy), beginPtr);
+    return builder.create<cudaq::cc::LoadOp>(loc, vecPtr);
+  }
+
+  Value recursiveVectorDataCopy(OpBuilder &builder, Location loc, Value cpuArg,
+                                Value buffPtr, cudaq::cc::StdvecType stdvecTy,
+                                cudaq::cc::PointerType cpuVecTy) {
+    auto vecLen =
+        computeCpuVectorLengthInBytes(builder, loc, cpuArg, stdvecTy, cpuVecTy);
+    auto nested = fetchCpuVectorFront(builder, loc, cpuArg, cpuVecTy);
+    auto vecLogicalLen = convertLengthBytesToLengthI64(builder, loc, vecLen);
+    auto vecLenIndex = builder.create<arith::IndexCastOp>(
+        loc, builder.getIndexType(), vecLogicalLen);
+    auto buffPtrTy = buffPtr.getType();
+    auto tmp = builder.create<cudaq::cc::AllocaOp>(loc, buffPtrTy);
+    auto newEnd = builder.create<cudaq::cc::ComputePtrOp>(
+        loc, buffPtrTy, buffPtr, SmallVector<cudaq::cc::ComputePtrArg>{vecLen});
+    builder.create<cudaq::cc::StoreOp>(loc, newEnd, tmp);
+    auto i64Ty = builder.getI64Type();
+    auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
+    auto vecBasePtr = builder.create<cudaq::cc::CastOp>(loc, ptrI64Ty, buffPtr);
+    auto nestedArr = builder.create<cudaq::cc::CastOp>(loc, cpuVecTy, nested);
+    cudaq::opt::factory::createInvariantLoop(
+        builder, loc, vecLenIndex,
+        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+          Value i = builder.create<arith::IndexCastOp>(
+              loc, builder.getI64Type(), block.getArgument(0));
+          auto currBuffPtr = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, ptrI64Ty, vecBasePtr,
+              SmallVector<cudaq::cc::ComputePtrArg>{i});
+          auto cpuSubVec = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, cpuVecTy, nestedArr, i);
+          Value buff = builder.create<cudaq::cc::LoadOp>(loc, tmp);
+          // Compute and save the byte size.
+          auto vecSz = computeCpuVectorLengthInBytes(
+              builder, loc, cpuSubVec, stdvecTy.getElementType(), cpuVecTy);
+          builder.create<cudaq::cc::StoreOp>(loc, vecSz, currBuffPtr);
+          // Recursively copy vector data.
+          auto endBuff = encodeVectorData(builder, loc, vecSz, stdvecTy,
+                                          cpuSubVec, buff, cpuVecTy);
+          builder.create<cudaq::cc::StoreOp>(loc, endBuff, tmp);
+        });
+    return builder.create<cudaq::cc::LoadOp>(loc, tmp);
+  }
+
+  /// Recursively encode a `std::vector` into a buffer's addendum. The data is
+  /// read from \p cpuArg. The data is \p bytes size long if this is a leaf
+  /// vector, otherwise the size is computed on-the-fly during the encoding of
+  /// the ragged array.
+  Value encodeVectorData(OpBuilder &builder, Location loc, Value bytes,
+                         cudaq::cc::StdvecType stdvecTy, Value cpuArg,
+                         Value bufferAddendum, cudaq::cc::PointerType ptrInTy) {
+    auto eleTy = stdvecTy.getElementType();
+    if (auto subVecTy = dyn_cast<cudaq::cc::StdvecType>(eleTy))
+      return recursiveVectorDataCopy(builder, loc, cpuArg, bufferAddendum,
+                                     subVecTy, ptrInTy);
+    return copyVectorData(builder, loc, bytes, cpuArg, bufferAddendum);
   }
 
   /// Generate an all new entry point body, calling launchKernel in the runtime
@@ -602,7 +830,7 @@ public:
                             func::FuncOp thunk, ModuleOp module,
                             bool addThisPtr) {
     auto *ctx = builder.getContext();
-    auto i64Ty = builder.getIntegerType(64);
+    auto i64Ty = builder.getI64Type();
     auto offset = funcTy.getNumInputs();
     auto thunkTy = getThunkType(ctx);
     auto structPtrTy = cudaq::cc::PointerType::get(structTy);
@@ -634,7 +862,7 @@ public:
       }
     }
 
-    auto insPt = builder.saveInsertionPoint();
+    OpBuilder::InsertionGuard guard(builder);
     auto *rewriteEntryBlock = rewriteEntry.addEntryBlock();
     builder.setInsertionPointToStart(rewriteEntryBlock);
     Value stVal = builder.create<cudaq::cc::UndefOp>(loc, structTy);
@@ -650,20 +878,24 @@ public:
       Type inTy = arg.getType();
       std::int64_t idx = inp.index();
       auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-      if (inTy.isa<cudaq::cc::CallableType, cudaq::cc::StructType>()) {
+      if (isa<cudaq::cc::CallableType, cudaq::cc::StructType>(inTy)) {
         /* do nothing */
       } else if (cudaq::opt::factory::isStdVecArg(inTy)) {
-        auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy);
+        // Per the CUDAQ spec, `[const] std::vector<T>&` must be passed.
+        auto ptrInTy = cast<cudaq::cc::PointerType>(inTy);
         // FIXME: call the `size` member function. For expediency, assume this
         // is an std::vector and the size is the scaled delta between the
         // first two pointers. Use the unscaled size for now.
-        auto sizeBytes = getVectorSize(builder, loc, ptrTy, arg);
-        stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
-                                                         stVal, sizeBytes, off);
-        extraBytes = builder.create<arith::AddIOp>(loc, extraBytes, sizeBytes);
+        auto stdvecTy = cast<cudaq::cc::StdvecType>(funcTy.getInput(idx));
+        auto [topLevelSize, recursiveSize] =
+            computeRecursiveVectorSize(builder, loc, arg, ptrInTy, stdvecTy);
+        stVal = builder.create<cudaq::cc::InsertValueOp>(
+            loc, stVal.getType(), stVal, topLevelSize, off);
+        extraBytes =
+            builder.create<arith::AddIOp>(loc, extraBytes, recursiveSize);
         hasTrailingData = true;
       } else if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy)) {
-        /*do nothing*/
+        // do nothing - we can only encode pointers to std::vector<T>.
       } else {
         stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
                                                          stVal, arg, off);
@@ -696,17 +928,19 @@ public:
       Value vecToBuffer = builder.create<cudaq::cc::ComputePtrOp>(
           loc, ptrI8Ty, buff, SmallVector<Value>{structSize});
       // Ignore any hidden `this` argument.
-      for (auto inp :
-           llvm::enumerate(rewriteEntryBlock->getArguments().drop_front(
-               addThisPtr ? 1 : 0))) {
+      for (auto inp : llvm::enumerate(dropAnyHiddenArguments(
+               rewriteEntryBlock->getArguments(), funcTy, addThisPtr))) {
         Value arg = inp.value();
         Type inTy = arg.getType();
         std::int64_t idx = inp.index();
         auto off = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{idx});
-        if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(inTy)) {
-          // memcpy from arg->begin to vecToBuffer, size bytes.
-          vecToBuffer =
-              copyVectorData(builder, loc, stVal, arg, vecToBuffer, off);
+        if (cudaq::opt::factory::isStdVecArg(inTy)) {
+          auto bytes = builder.create<cudaq::cc::ExtractValueOp>(
+              loc, builder.getI64Type(), stVal, off);
+          auto stdvecTy = cast<cudaq::cc::StdvecType>(funcTy.getInput(idx));
+          auto ptrInTy = cast<cudaq::cc::PointerType>(inTy);
+          vecToBuffer = encodeVectorData(builder, loc, bytes, stdvecTy, arg,
+                                         vecToBuffer, ptrInTy);
         }
       }
     }
@@ -787,7 +1021,6 @@ public:
       }
     }
     builder.create<func::ReturnOp>(loc, results);
-    builder.restoreInsertionPoint(insPt);
   }
 
   // An entry function that takes a quantum type argument cannot be called
@@ -815,7 +1048,7 @@ public:
     auto builder = OpBuilder::atBlockEnd(module.getBody());
     auto mangledNameMap =
         module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map");
-    if (mangledNameMap.empty())
+    if (!mangledNameMap || mangledNameMap.empty())
       return;
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
     if (failed(irBuilder.loadIntrinsic(module,
@@ -890,14 +1123,13 @@ public:
       // Create a new struct type to pass arguments and results.
       auto funcTy = funcOp.getFunctionType();
       auto structTy = buildStructType(classNameStr, funcTy);
-      auto structPtrTy = cudaq::cc::PointerType::get(structTy);
 
       // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
-      auto thunk = genThunkFunction(loc, builder, classNameStr, structPtrTy,
+      auto thunk = genThunkFunction(loc, builder, classNameStr, structTy,
                                     funcTy, funcOp);
 
       auto argsCreatorFunc = genKernelArgsCreatorFunction(
-          loc, builder, classNameStr, structPtrTy, funcTy);
+          loc, builder, classNameStr, structTy, funcTy);
 
       if (!mangledNameMap.contains(funcOp.getName()))
         continue;
@@ -917,75 +1149,77 @@ public:
           loc, classNameStr + ".kernelRegFunc",
           LLVM::LLVMFunctionType::get(cudaq::opt::factory::getVoidType(ctx),
                                       {}));
-      auto insPt = builder.saveInsertionPoint();
-      auto *initFunEntry = initFun.addEntryBlock();
-      builder.setInsertionPointToStart(initFunEntry);
-      auto kernRef = builder.create<LLVM::AddressOfOp>(
-          loc, cudaq::opt::factory::getPointerType(kernName.getType()),
-          kernName.getSymName());
-      auto castKernRef =
-          builder.create<cudaq::cc::CastOp>(loc, ptrType, kernRef);
-      builder.create<func::CallOp>(loc, std::nullopt, cudaqRegisterKernelName,
-                                   ValueRange{castKernRef});
+      {
+        OpBuilder::InsertionGuard guard(builder);
+        auto *initFunEntry = initFun.addEntryBlock();
+        builder.setInsertionPointToStart(initFunEntry);
+        auto kernRef = builder.create<LLVM::AddressOfOp>(
+            loc, cudaq::opt::factory::getPointerType(kernName.getType()),
+            kernName.getSymName());
+        auto castKernRef =
+            builder.create<cudaq::cc::CastOp>(loc, ptrType, kernRef);
+        builder.create<func::CallOp>(loc, std::nullopt, cudaqRegisterKernelName,
+                                     ValueRange{castKernRef});
 
-      // Register the argsCreator too
-      auto ptrPtrType = cudaq::cc::PointerType::get(ptrType);
-      auto argsCreatorFuncType = FunctionType::get(
-          ctx, {ptrPtrType, ptrPtrType}, {builder.getI64Type()});
-      Value loadArgsCreator = builder.create<func::ConstantOp>(
-          loc, argsCreatorFuncType, argsCreatorFunc.getName());
-      auto castLoadArgsCreator =
-          builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrType, loadArgsCreator);
-      builder.create<func::CallOp>(
-          loc, std::nullopt, cudaqRegisterArgsCreator,
-          ValueRange{castKernRef, castLoadArgsCreator});
+        // Register the argsCreator too
+        auto ptrPtrType = cudaq::cc::PointerType::get(ptrType);
+        auto argsCreatorFuncType = FunctionType::get(
+            ctx, {ptrPtrType, ptrPtrType}, {builder.getI64Type()});
+        Value loadArgsCreator = builder.create<func::ConstantOp>(
+            loc, argsCreatorFuncType, argsCreatorFunc.getName());
+        auto castLoadArgsCreator = builder.create<cudaq::cc::FuncToPtrOp>(
+            loc, ptrType, loadArgsCreator);
+        builder.create<func::CallOp>(
+            loc, std::nullopt, cudaqRegisterArgsCreator,
+            ValueRange{castKernRef, castLoadArgsCreator});
 
-      // Check if this is a lambda mangled name
-      auto demangledPtr = abi::__cxa_demangle(
-          mangledAttr.getValue().str().c_str(), nullptr, nullptr, nullptr);
-      if (demangledPtr) {
-        std::string demangledName(demangledPtr);
-        demangledName = std::regex_replace(demangledName,
-                                           std::regex("::operator()(.*)"), "");
-        if (demangledName.find("$_") != std::string::npos) {
-          auto insertPoint = builder.saveInsertionPoint();
-          builder.setInsertionPointToStart(module.getBody());
+        // Check if this is a lambda mangled name
+        auto demangledPtr = abi::__cxa_demangle(
+            mangledAttr.getValue().str().c_str(), nullptr, nullptr, nullptr);
+        if (demangledPtr) {
+          std::string demangledName(demangledPtr);
+          demangledName = std::regex_replace(
+              demangledName, std::regex("::operator()(.*)"), "");
+          if (demangledName.find("$_") != std::string::npos) {
+            auto insertPoint = builder.saveInsertionPoint();
+            builder.setInsertionPointToStart(module.getBody());
 
-          // Create the function if it doesn't already exist.
-          if (!module.lookupSymbol<LLVM::LLVMFuncOp>(cudaqRegisterLambdaName))
-            builder.create<LLVM::LLVMFuncOp>(
-                module.getLoc(), cudaqRegisterLambdaName,
-                LLVM::LLVMFunctionType::get(
-                    cudaq::opt::factory::getVoidType(ctx),
-                    {cudaq::opt::factory::getPointerType(ctx),
-                     cudaq::opt::factory::getPointerType(ctx)}));
+            // Create the function if it doesn't already exist.
+            if (!module.lookupSymbol<LLVM::LLVMFuncOp>(cudaqRegisterLambdaName))
+              builder.create<LLVM::LLVMFuncOp>(
+                  module.getLoc(), cudaqRegisterLambdaName,
+                  LLVM::LLVMFunctionType::get(
+                      cudaq::opt::factory::getVoidType(ctx),
+                      {cudaq::opt::factory::getPointerType(ctx),
+                       cudaq::opt::factory::getPointerType(ctx)}));
 
-          // Create this global name, it is unique for any lambda
-          // bc classNameStr contains the parentFunc + varName
-          auto lambdaName = builder.create<LLVM::GlobalOp>(
-              loc,
-              cudaq::opt::factory::getStringType(ctx, demangledName.size() + 1),
-              /*isConstant=*/true, LLVM::Linkage::External,
-              classNameStr + ".lambdaName",
-              builder.getStringAttr(demangledName + '\0'), /*alignment=*/0);
+            // Create this global name, it is unique for any lambda
+            // bc classNameStr contains the parentFunc + varName
+            auto lambdaName = builder.create<LLVM::GlobalOp>(
+                loc,
+                cudaq::opt::factory::getStringType(ctx,
+                                                   demangledName.size() + 1),
+                /*isConstant=*/true, LLVM::Linkage::External,
+                classNameStr + ".lambdaName",
+                builder.getStringAttr(demangledName + '\0'), /*alignment=*/0);
 
-          builder.restoreInsertionPoint(insertPoint);
-          auto lambdaRef = builder.create<LLVM::AddressOfOp>(
-              loc, cudaq::opt::factory::getPointerType(lambdaName.getType()),
-              lambdaName.getSymName());
+            builder.restoreInsertionPoint(insertPoint);
+            auto lambdaRef = builder.create<LLVM::AddressOfOp>(
+                loc, cudaq::opt::factory::getPointerType(lambdaName.getType()),
+                lambdaName.getSymName());
 
-          auto castLambdaRef = builder.create<cudaq::cc::CastOp>(
-              loc, cudaq::opt::factory::getPointerType(ctx), lambdaRef);
-          auto castKernelRef = builder.create<cudaq::cc::CastOp>(
-              loc, cudaq::opt::factory::getPointerType(ctx), castKernRef);
-          builder.create<LLVM::CallOp>(
-              loc, std::nullopt, cudaqRegisterLambdaName,
-              ValueRange{castLambdaRef, castKernelRef});
+            auto castLambdaRef = builder.create<cudaq::cc::CastOp>(
+                loc, cudaq::opt::factory::getPointerType(ctx), lambdaRef);
+            auto castKernelRef = builder.create<cudaq::cc::CastOp>(
+                loc, cudaq::opt::factory::getPointerType(ctx), castKernRef);
+            builder.create<LLVM::CallOp>(
+                loc, std::nullopt, cudaqRegisterLambdaName,
+                ValueRange{castLambdaRef, castKernelRef});
+          }
         }
-      }
 
-      builder.create<LLVM::ReturnOp>(loc, ValueRange{});
-      builder.restoreInsertionPoint(insPt);
+        builder.create<LLVM::ReturnOp>(loc, ValueRange{});
+      }
 
       // Create a global with a default ctor to be run at program startup.
       // The ctor will execute the above function, which will register this

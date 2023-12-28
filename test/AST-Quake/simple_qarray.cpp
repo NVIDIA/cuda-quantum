@@ -17,7 +17,7 @@
 // Define a quantum kernel
 struct ghz {
   auto operator()() __qpu__ {
-    cudaq::qreg<5> q;
+    cudaq::qarray<5> q;
     h(q[0]);
     for (int i = 0; i < 4; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
