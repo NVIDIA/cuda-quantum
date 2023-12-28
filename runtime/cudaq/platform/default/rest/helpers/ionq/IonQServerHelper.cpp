@@ -88,9 +88,6 @@ private:
 
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
-
-  /// @brief Output names indexed by jobID/taskID
-  std::map<std::string, OutputNamesType> outputNames;
 };
 
 // Initialize the IonQ server helper with a given backend configuration
@@ -120,25 +117,8 @@ void IonQServerHelper::initialize(BackendConfig config) {
   if (!config["shots"].empty())
     this->setShots(std::stoul(config["shots"]));
 
-  // Parse the output_names.* (for each job) and place it in outputNames[]
-  for (auto &[key, val] : config) {
-    if (key.starts_with("output_names.")) {
-      // Parse `val` into jobOutputNames.
-      // Note: See `FunctionAnalysisData::resultQubitVals` of
-      // LowerToQIRProfile.cpp for an example of how this was populated.
-      OutputNamesType jobOutputNames;
-      nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
-      for (const auto &el : outputNamesJSON[0]) {
-        auto result = el[0].get<std::size_t>();
-        auto qirQubit = el[1][0].get<std::size_t>();
-        auto userQubit = el[1][1].get<std::size_t>();
-        auto registerName = el[1][2].get<std::string>();
-        jobOutputNames[result] = {qirQubit, userQubit, registerName};
-      }
+  parseConfigForOutputNames(config);
 
-      this->outputNames[key] = jobOutputNames;
-    }
-  }
   // Enable debiasing
   if (config.find("debias") != config.end())
     backendConfig["debias"] = config["debias"];

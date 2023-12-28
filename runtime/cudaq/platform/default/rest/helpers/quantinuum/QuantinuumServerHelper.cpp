@@ -44,9 +44,6 @@ protected:
   std::string userSpecifiedCredentials = "";
   std::string credentialsPath = "";
 
-  /// @brief Output names indexed by jobID/taskID
-  std::map<std::string, OutputNamesType> outputNames;
-
   /// @brief Quantinuum requires the API token be updated every so often,
   /// using the provided refresh token. This function will do that.
   void refreshTokens(bool force_refresh = false);
@@ -80,25 +77,7 @@ public:
     if (iter != backendConfig.end())
       userSpecifiedCredentials = iter->second;
 
-    // Parse the output_names.* (for each job) and place it in outputNames[]
-    for (auto &[key, val] : config) {
-      if (key.starts_with("output_names.")) {
-        // Parse `val` into jobOutputNames.
-        // Note: See `FunctionAnalysisData::resultQubitVals` of
-        // LowerToBaseProfileQIR.cpp for an example of how this was populated.
-        OutputNamesType jobOutputNames;
-        nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
-        for (const auto &el : outputNamesJSON[0]) {
-          auto result = el[0].get<std::size_t>();
-          auto qirQubit = el[1][0].get<std::size_t>();
-          auto userQubit = el[1][1].get<std::size_t>();
-          auto registerName = el[1][2].get<std::string>();
-          jobOutputNames[result] = {qirQubit, userQubit, registerName};
-        }
-
-        this->outputNames[key] = jobOutputNames;
-      }
-    }
+    parseConfigForOutputNames(config);
   }
 
   /// @brief Create a job payload for the provided quantum codes

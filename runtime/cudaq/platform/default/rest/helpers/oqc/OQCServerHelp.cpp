@@ -22,9 +22,6 @@ private:
   /// @brief Check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
 
-  /// @brief Output names indexed by jobID/taskID
-  std::map<std::string, OutputNamesType> outputNames;
-
   /// @brief Create n requested tasks placeholders returning uuids for each
   std::vector<std::string> createNTasks(int n);
 
@@ -127,25 +124,8 @@ void OQCServerHelper::initialize(BackendConfig config) {
   // Construct the API job path
   config["job_path"] = "/tasks"; // config["url"] + "/tasks";
 
-  // Parse the output_names.* (for each job) and place it in outputNames[]
-  for (auto &[key, val] : config) {
-    if (key.starts_with("output_names.")) {
-      // Parse `val` into jobOutputNames.
-      // Note: See `FunctionAnalysisData::resultQubitVals` of
-      // LowerToBaseProfileQIR.cpp for an example of how this was populated.
-      OutputNamesType jobOutputNames;
-      nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
-      for (const auto &el : outputNamesJSON[0]) {
-        auto result = el[0].get<std::size_t>();
-        auto qirQubit = el[1][0].get<std::size_t>();
-        auto userQubit = el[1][1].get<std::size_t>();
-        auto registerName = el[1][2].get<std::string>();
-        jobOutputNames[result] = {qirQubit, userQubit, registerName};
-      }
+  parseConfigForOutputNames(config);
 
-      this->outputNames[key] = jobOutputNames;
-    }
-  }
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
 }

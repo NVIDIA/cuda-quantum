@@ -71,6 +71,14 @@ protected:
   /// @brief The number of shots to execute
   std::size_t shots = 100;
 
+  /// @brief Parse a config for output names (intended to be called from
+  /// `initialize` if the ServerHelper wants to restore the output names using
+  /// the JSON output_names)
+  void parseConfigForOutputNames(const BackendConfig &config);
+
+  /// @brief Output names indexed by jobID/taskID
+  std::map<std::string, OutputNamesType> outputNames;
+
 public:
   ServerHelper() = default;
   virtual ~ServerHelper() = default;

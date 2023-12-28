@@ -413,8 +413,6 @@ public:
     // Run the config-specified pass pipeline
     runPassPipeline(passPipelineConfig, moduleOp);
 
-    // DEBUG moduleOp.dump();
-
     std::vector<std::size_t> mapping_v2p;
     auto entryPointFunc = moduleOp.lookupSymbol<func::FuncOp>(
         std::string("__nvqpp__mlirgen__") + kernelName);
@@ -617,24 +615,8 @@ public:
                     std::vector<std::size_t> measured_qubits =
                         codes[i].mapping_measured_qubits;
 
-                    // // Get a list of unused physical qubits
-                    // auto nQubits = context.result.most_probable().size();
-                    // std::set<std::size_t> unusedPhyQubits;
-                    // for (std::size_t q = 0; q < nQubits; q++)
-                    //   unusedPhyQubits.insert(q);
-                    // for (auto q : codes[i].mapping_v2p)
-                    //   unusedPhyQubits.erase(q);
-
                     if (measured_qubits.size() == 0) {
-                      // If no measurements were explicitly in the circuit, then
-                      // all qubits would end up being measured, even ones that
-                      // may have been skipped over in mapping.
-                      // FIXME - I'm not sure this handles the cases where there
-                      // are quantum operations after the final measurement
-                      // because those cases still return all qubits.
-                      // auto nQubits = context.result.most_probable().size();
-
-                      // Eliminate the unused physical qubits
+                      // Eliminate the unused physical qubits from the result
                       newResult = newResult.get_marginal(codes[i].mapping_v2p);
                       measured_qubits.resize(codes[i].mapping_v2p.size());
                       std::iota(measured_qubits.begin(), measured_qubits.end(),
