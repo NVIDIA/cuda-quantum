@@ -27,7 +27,7 @@ greater, the extra qubits are considered controls.
 
 The main motivation behind Quake's value model is to directly expose
 quantum and classical data dependencies for optimization purposes,
-i.e., to represent the dataflow in quantum computations.  In contrast
+i.e., to represent the data flow in quantum computations.  In contrast
 to Quake's memory model, which uses memory semantics (quantum
 operators act as side-effects on qubit references), the value model
 uses value semantics, that is quantum operators consume and produce
@@ -69,7 +69,7 @@ other on the same qubit---visually:
     └───┘ └───┘         └───┘
 ```
 
-Where `I` is the identity operator. Now note that a naive implemention of
+Where `I` is the identity operator. Now note that a naive implementation of
 this optimization for Quake would optimize away both `quake.h` operators
 being applied to `%q0`.  Such an implementation would have missed the fact
 that a measurement is being applied to the vector, `%veq`, which contains

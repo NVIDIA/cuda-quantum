@@ -41,7 +41,7 @@ configured by the settings in the [sphinx/conf.py](./sphinx/conf.py) file.
   defining these bindings in C++. To incorporate the API documentation, the
   `cudaq` Python package needs to be built and installed prior to generating the
   CUDA Quantum documentation. The [build_docs.sh](../scripts/build_docs.sh)
-  script will automatically do that if necessary. We use the [AutoDoc
+  script will automatically do that if necessary. We use the [Autodoc
   extension](https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html)
   for Sphinx to incorporate Python documentation.
 

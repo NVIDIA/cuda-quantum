@@ -17,7 +17,7 @@ and its state is
 collapses to: 00000
 ```
 
-If we flip the 0th qubit to the 1-state, the state according to the CUDA Quantum
+If we flip the [0] qubit to the 1-state, the state according to the CUDA Quantum
 schema is now
 
 ```text
@@ -42,7 +42,7 @@ with the state
 collapses to: 00000
 ```
 
-If we flip the 0th qubit to the 1-state, the state according to the CUDA Quantum
+If we flip the [0] qubit to the 1-state, the state according to the CUDA Quantum
 schema is now
 
 ```text
@@ -78,10 +78,10 @@ CH = ((1,0,0,0),
       (0,0,1/sqrt(2),-1/sqrt(2)))
 ```
 
-Additionally, qiskit will often remove certain multiplicative factors from their
+Additionally, Qiskit will often remove certain multiplicative factors from their
 parameterized gate definitions. To avoid confusion, here is how we define the
 different parameterized gates in CUDA Quantum. Note: where we call, e.g,
-`cos(theta/2)`, qiskit often uses `cos(theta)`. As with the gates above, the
+`cos(theta/2)`, Qiskit often uses `cos(theta)`. As with the gates above, the
 following matrices are ordered for MSB.
 
 ```text
