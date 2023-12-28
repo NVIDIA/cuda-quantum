@@ -437,7 +437,7 @@ differentiates between kernels invoked from host code and those invoked
 from within another quantum kernel. The former are denoted <strong>entry-point</strong>
 quantum kernels, the latter are <strong>pure device</strong> quantum kernels. All quantum
 kernels must be annotated to indicate they are to be compiled to and executed
-on a specified quantum coprocessor. CUDA Quantum requires the <strong>__qpu__</strong> function
+on a specified quantum coprocessor. CUDA Quantum requires the <code class="code docutils literal notranslate"><span class="pre">__qpu__</span></code> function
 attribute for quantum kernel declarations.</p>
 <p>Quantum kernel function bodies are programmed in a subset of C++. They can be composed of the following:</p>
 <blockquote>
@@ -479,8 +479,8 @@ memory cannot be allocated from within host code.</p>
 <p>Pure device quantum kernels can be expressed as typed-callables, but can also
 be represented as annotated free functions. Pure device quantum kernels can take
 <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;N&gt;</span></code> specializations and containers (e.g.
-<code class="code docutils literal notranslate"><span class="pre">cudaq::qspan</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code>) as input.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">my_first_device_kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;&gt;&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<code class="code docutils literal notranslate"><span class="pre">cudaq::qview</span></code>, <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>) as input.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">my_first_device_kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;&gt;&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">   </span><span class="p">...</span><span class="w"> </span><span class="n">quantum</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="k">using</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="p">...</span>
 <span class="w">   </span><span class="p">};</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">my_second_device_kernel</span><span class="w"> </span><span class="p">{</span>
@@ -511,7 +511,7 @@ to support this pattern, CUDA Quantum kernels can be passed as arguments for ind
 <p>CUDA Quantum builds upon C++ to enable this capability. To support CUDA Quantum kernel parameterization
 on callable quantum kernel code, programmers can leverage standard C++ template definitions:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">MyStatePrep</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qspan</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">qubits</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qview</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">qubits</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="p">...</span><span class="w"> </span><span class="n">apply</span><span class="w"> </span><span class="n">state</span><span class="w"> </span><span class="n">prep</span><span class="w"> </span><span class="n">operations</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">qubits</span><span class="w"> </span><span class="p">...</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">};</span>
@@ -519,7 +519,7 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
 <span class="k">struct</span><span class="w"> </span><span class="nc">MyGenericAlgorithm</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">StatePrep</span><span class="o">&gt;</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="n">StatePrep</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">statePrep</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">statePrep</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 <span class="w">    </span><span class="p">...</span>
 <span class="w">  </span><span class="p">}</span>
@@ -528,7 +528,7 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
 <span class="c1">// -or- with placeholder type specifiers</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">MyGenericAlgorithm2</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="k">auto</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">statePrep</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">statePrep</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 <span class="w">    </span><span class="p">...</span>
 <span class="w">  </span><span class="p">}</span>
@@ -553,9 +553,9 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
 <span class="w">  </span><span class="k">concept</span><span class="w"> </span><span class="nc">takes_qubit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">signature</span><span class="o">&lt;</span><span class="n">Kernel</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="p">(</span><span class="n">qubit</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span>
 <span class="p">}</span>
 
-<span class="k">struct</span><span class="w"> </span><span class="nc">MyGenericAlgorithmOnQreg</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">signature</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">statePrep</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">MyGenericAlgorithmOnQarray</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">signature</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">statePrep</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">statePrep</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 <span class="w">    </span><span class="p">...</span>
 <span class="w">  </span><span class="p">}</span>
@@ -563,7 +563,7 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
 
 <span class="k">struct</span><span class="w"> </span><span class="nc">MyGenericAlgorithmOnQubit</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">takes_qubit</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">statePrep</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">statePrep</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="p">...</span>
 <span class="w">  </span><span class="p">}</span>
@@ -575,7 +575,7 @@ algorithms that are parameterized on sub-units of the global circuit representat
 </section>
 <section id="allowed-kernel-classical-function-invocations">
 <h2><span class="section-number">6.2. </span>Allowed Kernel Classical Function Invocations<a class="headerlink" href="#allowed-kernel-classical-function-invocations" title="Permalink to this heading">¶</a></h2>
-<p>TODO</p>
+<p>To be filled in…</p>
 </section>
 </section>
 

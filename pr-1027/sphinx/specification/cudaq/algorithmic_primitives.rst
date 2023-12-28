@@ -306,7 +306,7 @@ Here is an example of the utility of the :code:`cudaq::observe` function:
 
     struct ansatz {
       auto operator()(double theta) __qpu__ {
-        cudaq::qreg q(2);
+        cudaq::qarray<2> q;
         x(q[0]);
         ry(theta, q[1]);
         x<cudaq::ctrl>(q[1], q[0]);
@@ -485,7 +485,7 @@ default :code:`std::vector<double>` signature):
 .. code-block:: cpp
 
     auto deuteron_n3_ansatz = [](double x0, double x1) __qpu__ {
-      cudaq::qreg q(3);
+      cudaq::qarray<3> q;
       x(q[0]);
       ry(x0, q[1]);
       ry(x1, q[2]);
