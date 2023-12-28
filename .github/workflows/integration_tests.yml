@@ -150,7 +150,7 @@ jobs:
         if: (success() || failure()) && (inputs.target == 'iqm' || github.event_name == 'schedule' || inputs.target == 'nightly')
         run: |
           # Must install iqm-cortex-cli to authenticate
-          pip install iqm-cortex-cli
+          pip install iqm-cortex-cli==5.6
           echo "### Submit to IQM Demo server" >> $GITHUB_STEP_SUMMARY
           # IQM demo server info is from: https://demo.qc.iqm.fi/cocos/info/
           cortex init --config-file ${HOME}/.config/iqm-cortex-cli/config.json --tokens-file ${HOME}/.cache/iqm-cortex-cli/tokens.json --auth-server-url https://demo.qc.iqm.fi/auth --client-id iqm_client --realm cortex --username '${{ secrets.IQM_USER }}'
