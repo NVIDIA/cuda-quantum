@@ -620,6 +620,8 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Kernel.cs">cs() (cudaq.Kernel method)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.Kernel.cswap">cswap() (cudaq.Kernel method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.Kernel.ct">ct() (cudaq.Kernel method)</a>
 </li>
       <li>
@@ -769,21 +771,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq14kernel_builderE">cudaq::kernel_builder (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq14kernel_builder7adjointEvR18OtherKernelBuilderDpR11QuakeValues">cudaq::kernel_builder::adjoint (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder7adjointEvR18OtherKernelBuilderRNSt6vectorI10QuakeValueEE">[1]</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder4c_ifE10QuakeValueRRNSt8functionIFvvEEE">cudaq::kernel_builder::c_if (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq14kernel_builder4callEvRR18OtherKernelBuilderDpR11QuakeValues">cudaq::kernel_builder::call (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder4callEvR18OtherKernelBuilderRNSt6vectorI10QuakeValueEE">[1]</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder11constantValEd">cudaq::kernel_builder::constantVal (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueDpR11QuakeValues">cudaq::kernel_builder::control (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueRNSt6vectorI10QuakeValueEE">[1]</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I_23QuakeValueOrNumericTypeDpEN5cudaq14kernel_builder9exp_pauliEvRK6ParamTRKNSt6stringEDpRR9QubitArgs">cudaq::kernel_builder::exp_pauli (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I_23QuakeValueOrNumericTypeEN5cudaq14kernel_builder9exp_pauliEvRK6ParamTRK10QuakeValueRKNSt6stringE">[1]</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq14kernel_builder8for_loopEvRR9StartTypeRR7EndTypeRRNSt8functionIFvR10QuakeValueEEE">cudaq::kernel_builder::for_loop (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq14kernel_builder3getEDcv">cudaq::kernel_builder::get (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder12getArgumentsEv">cudaq::kernel_builder::getArguments (C++ function)</a>
 </li>
@@ -791,23 +779,13 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder11isArgStdVecENSt6size_tE">cudaq::kernel_builder::isArgStdVec (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder12jitAndInvokeEPPvNSt6vectorINSt6stringEEE">cudaq::kernel_builder::jitAndInvoke (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder7jitCodeENSt6vectorINSt6stringEEE">cudaq::kernel_builder::jitCode (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder14kernel_builderERNSt6vectorIN7details17KernelBuilderTypeEEE">cudaq::kernel_builder::kernel_builder (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder4nameEv">cudaq::kernel_builder::name (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builderclEDp4Args">cudaq::kernel_builder::operator() (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builderclEPPv">[1]</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder6qallocE10QuakeValue">cudaq::kernel_builder::qalloc (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder6qallocEKNSt6size_tE">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder6qallocEv">[2]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder5resetERK10QuakeValue">cudaq::kernel_builder::reset (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder4swapERK10QuakeValueRK10QuakeValue">cudaq::kernel_builder::swap (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq14kernel_builder8to_quakeEv">cudaq::kernel_builder::to_quake (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq14kernel_builder4swapEvRK10QuakeValueRK10QuakeValueRK10QuakeValue">cudaq::kernel_builder::swap (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq14kernel_builder4swapEvRKNSt6vectorI10QuakeValueEERK10QuakeValueRK10QuakeValue">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder4swapERK10QuakeValueRK10QuakeValue">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq19KernelExecutionTaskE">cudaq::KernelExecutionTask (C++ type)</a>
 </li>
@@ -883,8 +861,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultERdRK7spin_op">cudaq::observe_result::observe_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultERdRK7spin_op13sample_result">[1]</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_resultcvdEv">cudaq::observe_result::operator double (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result8raw_dataEv">cudaq::observe_result::raw_data (C++ function)</a>
@@ -909,6 +885,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12getNumQubitsEv">cudaq::QPU::getNumQubits (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU10isEmulatedEv">cudaq::QPU::isEmulated (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU11isSimulatorEv">cudaq::QPU::isSimulator (C++ function)</a>
@@ -1036,6 +1014,34 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq5quditE">cudaq::qudit (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qudit5quditEv">cudaq::qudit::qudit (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE">cudaq::qvector (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector4backENSt6size_tE">cudaq::qvector::back (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector4backEv">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5beginEv">cudaq::qvector::begin (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5clearEv">cudaq::qvector::clear (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector3endEv">cudaq::qvector::end (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5frontENSt6size_tE">cudaq::qvector::front (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5frontEv">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvectoraSERK7qvector">cudaq::qvector::operator= (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvectorixEKNSt6size_tE">cudaq::qvector::operator[] (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorENSt6size_tE">cudaq::qvector::qvector (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK7qvector">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERR7qvector">[2]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq7qvector4sizeEv">cudaq::qvector::size (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5sliceENSt6size_tENSt6size_tE">cudaq::qvector::slice (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector10value_typeE">cudaq::qvector::value_type (C++ type)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq5qviewE">cudaq::qview (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview10value_typeE">cudaq::qview::value_type (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8registryE">cudaq::registry (C++ type)</a>
 </li>

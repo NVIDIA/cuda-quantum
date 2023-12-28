@@ -18,7 +18,13 @@ Quantum
 .. doxygenclass:: cudaq::qreg
     :members:
 
+.. doxygenclass:: cudaq::qvector
+    :members:
+
 .. doxygenclass:: cudaq::qspan
+    :members:
+
+.. doxygenclass:: cudaq::qview
     :members:
 
 .. doxygentypedef:: cudaq::qubit

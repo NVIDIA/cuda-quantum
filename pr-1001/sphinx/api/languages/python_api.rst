@@ -37,6 +37,7 @@ Program Construction
     .. automethod:: r1
     .. automethod:: cr1
     .. automethod:: swap
+    .. automethod:: cswap
     .. automethod:: exp_pauli
     .. automethod:: mx
     .. automethod:: my
