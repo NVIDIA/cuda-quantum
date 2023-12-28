@@ -22,56 +22,49 @@ quantum information.
   discussions that follow are meant to be general on qudits.
 
 The CUDA Quantum quantum memory container types are the 
-:code:`cudaq::qreg<NQudits = dyn, Levels>` and the 
-:code:`cudaq::qspan<NQudits = dyn, Levels>`, representing owning and non-owning
+:code:`cudaq::qarray<NQudits, Levels>` and the 
+:code:`cudaq::qview<NQudits, Levels>`, representing owning and non-owning
 semantics, respectively. Notice that the first template parameter represents
-the number of qudits contained and is defaulted to a special symbol in CUDA Quantum
-(:code:`dyn`) indicating that this is a runtime-known, dynamic register of
-qudits, very much akin to something like :code:`std::vector<T> v(N)` in 
-classical C++. One can alternatively specify this template parameter to pick 
-up :code:`std::array<T, N> a` like semantics whereby the size of the register is 
-known at compile time. The trade-off here is important; there may be quantum
-circuit optimizations that can be enabled at compile time for CUDA Quantum kernels 
-solely employing compile-time-known :code:`cudaq::qreg` allocations. 
-
-These quantum memory types are specifically designed to throw compile-time errors 
-when they are incorrectly used. An example of this for quantum memory and 
-its underlying ownership model can be seen in this snippet. 
+the number of qudits contained. If the number of qubits is not known at compile
+time, one can use the :code:`cudaq::qvector` container. These quantum memory
+types are specifically designed to throw compile-time errors when they are
+incorrectly used. An example of this for quantum memory and its underlying
+ownership model can be seen in this snippet. 
 
 .. code-block:: cpp 
 
     __qpu__ void fooBad(cudaq::qubit q) { ... };
     __qpu__ void fooGood(cudaq::qubit& q) { ... };
-    __qpu__ void barBad(cudaq::qreg<> q) { ... };
-    __qpu__ void barGood(cudaq::qreg<>& q) { ... };
-    __qpu__ void barGoodWithSpan(cudaq::qspan q) { ... };
+    __qpu__ void barBad(cudaq::qvector<> q) { ... };
+    __qpu__ void barGood(cudaq::qvector<>& q) { ... };
+    __qpu__ void barGoodWithView(cudaq::qview q) { ... };
 
     struct myEntryPointKernel {
       void operator()(int runtimeKnownInteger) __qpu__ { 
         // Allocate array-like compile-time-known
         // register of 2 qubits. Owns the qubits. 
-        cudaq::qreg<2> a;
+        cudaq::qarray<2> a;
         // fooBad (a[0]); // Compile Error, cannot pass qubits by value (no copy)
         // auto alias = a[0]; // Compile Error, cannot copy (auto defaults to by-value)
         auto& alias = a[0]; // Must alias by reference
         fooGood (a[0]); // Can pass by reference, no copy
 
-        // barBad(a); // Compile Error, cannot pass qreg by value
+        // barBad(a); // Compile Error, cannot pass qarray by value
         barGood(a); // Can pass by reference, no copy
 
         // Allocate vector-like register of qubits
         // Owns the qubits
-        cudaq::qreg b(runtimeKnownInteger);
+        cudaq::qvector b(runtimeKnownInteger);
         
         // Get the front 2 qubits, which returns 
-        // a cudaq::span<>, it does not own the qubits. 
+        // a cudaq::qview<>, it does not own the qubits. 
         auto sub_view = b.front(2);
 
-        // cudaq::span is non-owning, it can be passed by value
-        barGoodWithSpan(sub_view);
+        // cudaq::qview is non-owning, it can be passed by value
+        barGoodWithView(sub_view);
 
-        // cudaq::qreg can also be passed to a kernel that accepts a span
-        barGoodWithSpan(a);
+        // cudaq::qvector can also be passed to a kernel that accepts a view
+        barGoodWithView(a);
 
         // Front with no size provided will 
         // return a reference to the first qubit. 
@@ -84,10 +77,10 @@ its underlying ownership model can be seen in this snippet.
       }
     };
 
-:code:`cudaq::qubit` and :code:`cudaq::qreg` types are owning types and
+:code:`cudaq::qubit` and :code:`cudaq::qvector` types are owning types and
 therefore cannot be passed by value to invoked pure quantum device kernels. 
 In order to share allocated registers with other quantum function calls, 
 one must pass by reference or define the invoked kernel to take the qubits 
-as a :code:`cudaq::span`. Note that all slicing operations intended to 
-extract a sub-register from a given :code:`cudaq::qreg` will return a 
-non-owning :code:`qspan`. 
+as a :code:`cudaq::qview`. Note that all slicing operations intended to 
+extract a sub-register from a given :code:`cudaq::qvector` will return a 
+non-owning :code:`qview`. 

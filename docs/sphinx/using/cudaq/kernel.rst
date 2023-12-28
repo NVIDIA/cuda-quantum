@@ -41,7 +41,7 @@ for pure-device kernels:
 
 .. code-block:: cpp 
 
-    __qpu__ void freeFunctionDeviceKernel(cudaq::qspan<> q) { ... }
+    __qpu__ void freeFunctionDeviceKernel(cudaq::qview<> q) { ... }
     // Entry points are those that can be called from host code
     // i.e., can only take classical input and return classical output
     struct myEntryPointKernel1 {
