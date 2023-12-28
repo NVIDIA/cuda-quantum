@@ -235,9 +235,8 @@ public:
       // Add to the backend configuration map
       for (std::size_t i = 1; i < split.size(); i += 2) {
         // No need to decode trivial true/false values
-        if (split[i + 1] == "true" || split[i + 1] == "false") {
-          backendConfig.insert({split[i], split[i + 1]});
-        } else {
+        if (split[i + 1].starts_with("base64_")) {
+          split[i + 1].erase(0, 7); // erase "base64_"
           std::vector<char> decoded_vec;
           if (auto err = llvm::decodeBase64(split[i + 1], decoded_vec))
             throw std::runtime_error("DecodeBase64 error");
@@ -245,6 +244,8 @@ public:
           cudaq::info("Decoded {} parameter from '{}' to '{}'", split[i],
                       split[i + 1], decodedStr);
           backendConfig.insert({split[i], decodedStr});
+        } else {
+          backendConfig.insert({split[i], split[i + 1]});
         }
       }
     }
