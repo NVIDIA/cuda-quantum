@@ -46,16 +46,16 @@ done
 echo "Going to check up to $NCHECK files"
 
 # markdown
-# ff=`find $ALL_FILES_TO_CONSIDER -name "*.md"`
-# NCHECK=0; for f in $ff; do NCHECK=$((NCHECK+1)); done
-# echo "Beginning markdown check ($NCHECK files to check)"
-# for f in $ff; do
-#   echo "*** $f ***"
-#   pyspelling -n markdown -c ${CONFIG} -S $f
-#   if [ $? -ne 0 ]; then
-#     exit
-#   fi
-# done
+ff=`find $ALL_FILES_TO_CONSIDER -name "*.md" | grep -v -P "^tpls/"`
+NCHECK=0; for f in $ff; do NCHECK=$((NCHECK+1)); done
+echo "Beginning markdown check ($NCHECK files to check)"
+for f in $ff; do
+  echo "*** $f ***"
+  pyspelling -n markdown -c ${CONFIG} -S $f
+  if [ $? -ne 0 ]; then
+    exit
+  fi
+done
 
 # rst
 ff=`find $ALL_FILES_TO_CONSIDER -name "*.rst" | grep -v -P "^tpls/|_templates"`
