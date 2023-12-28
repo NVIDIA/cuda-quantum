@@ -27,7 +27,7 @@ from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
 
 class PyKernelDecorator(object):
     """
-    The PyKernelDecorator serves as a standard Python decorator that 
+    The `PyKernelDecorator` serves as a standard Python decorator that 
     takes the decorated function as input and optionally lowers its 
     AST representation to executable code via MLIR. This decorator enables 
     both library-mode execution (no JIT, just library calls to affect local simulation 
@@ -35,7 +35,7 @@ class PyKernelDecorator(object):
     to an MLIR representation. 
 
     This decorator exposes a call overload that executes the code via the 
-    MLIR ExecutionEngine if not in library mode. 
+    MLIR `ExecutionEngine` if not in library mode. 
     """
 
     # Enable one to use JIT exclusively and not have to
@@ -70,7 +70,7 @@ class PyKernelDecorator(object):
                 # Could be that we don't have a function
                 # but someone has provided an external Module.
                 # But if we want this new decorator to be callable
-                # we'll need to turn library_mode off and set the argTypes
+                # we'll need to turn library_mode off and set the `argTypes`
                 symbols = SymbolTable(self.module.operation)
                 if nvqppPrefix + self.name in symbols:
                     function = symbols[nvqppPrefix + self.name]
@@ -139,7 +139,7 @@ class PyKernelDecorator(object):
             self.kernelFunction.__globals__['exp_pauli'] = exp_pauli
 
             # Rewrite the function if necessary to convert
-            # r = mz(q) to r = mz(q, register_name='r')
+            # `r = mz(q)` to `r = mz(q, register_name='r')`
             vis = RewriteMeasures()
             res = self.kernelFunction.__globals__
             exec(
@@ -178,7 +178,7 @@ class PyKernelDecorator(object):
                 "Incorrect number of runtime arguments provided to kernel {} ({} required, {} provided)"
                 .format(self.name, len(self.argTypes), len(args)))
 
-        # validate the arg types
+        # validate the argument types
         processedArgs = []
         callableNames = []
         for i, arg in enumerate(args):
@@ -194,7 +194,7 @@ class PyKernelDecorator(object):
                 # Assume this is a PyKernelDecorator
                 callableNames.append(arg.name)
 
-            # Convert np arrays to lists
+            # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
                 if arg.ndim != 1:
                     raise RuntimeError(

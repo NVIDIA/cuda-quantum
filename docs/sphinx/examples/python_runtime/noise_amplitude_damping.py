@@ -20,6 +20,7 @@ amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
 # probability of `1.0` that the qubit decays back to ground.
 noise.add_channel('h', [0], amplitude_damping)
 
+
 # Now we may define our simple kernel function and allocate a qubit.
 @cudaq.kernel(jit=True)
 def kernel():
@@ -30,6 +31,7 @@ def kernel():
     h(qubit)
     # Measure
     mz(qubit)
+
 
 # Now we're ready to run the noisy simulation of our kernel.
 # Note: We must pass the noise model to sample via key-word.

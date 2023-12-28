@@ -32,7 +32,7 @@ def test_simple_sampling_ghz():
 ## [NOTE] With pybind11 v2.11.0+, the use of 'front', e.g. 'qubits.front(qubits.size() - 1)'
 ## results in following error : 'RuntimeError: return_value_policy = move, but type
 ## cudaq::qview<2ul> is neither movable nor copyable!'
-## Link to issue: <TO BE UPDATED>
+## https://github.com/NVIDIA/cuda-quantum/issues/1046
 def test_simple_sampling_qpe():
     """Test that we can build up a set of kernels, compose them, and sample."""
 

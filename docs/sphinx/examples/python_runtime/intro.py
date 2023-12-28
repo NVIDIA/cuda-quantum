@@ -1,5 +1,6 @@
 import cudaq
 
+
 # We begin by defining the `Kernel` that we will construct our
 # program with.
 @cudaq.kernel(jit=False)
@@ -24,6 +25,7 @@ def kernel():
     # Next, we add a measurement to the kernel so that we can sample
     # the measurement results on our simulator!
     mz(qubit)
+
 
 # Finally, we can execute this kernel on the state vector simulator
 # by calling `cudaq.sample`. This will execute the provided kernel

@@ -74,6 +74,7 @@ bitcode
 bitstring
 bitstrings
 boolean
+broadcasted
 buildable
 callable
 callables
@@ -135,6 +136,7 @@ instantiation
 instantiations
 intrinsics
 iterable
+jit
 lookup
 lookups
 namespace

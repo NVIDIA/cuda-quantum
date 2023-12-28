@@ -41,8 +41,9 @@ def __isBroadcast(kernel, *args):
             return False
         firstArg = args[0]
         firstArgType = next(iter(argTypes))
-        firstArgTypeIsStdvec = argTypes[
-            firstArgType] in [list, list[float], list[complex], list[int], np.ndarray] 
+        firstArgTypeIsStdvec = argTypes[firstArgType] in [
+            list, list[float], list[complex], list[int], np.ndarray
+        ]
         if isinstance(firstArg, list) and not firstArgTypeIsStdvec:
             return True
 
