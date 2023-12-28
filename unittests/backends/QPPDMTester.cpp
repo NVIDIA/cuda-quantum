@@ -6,13 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <complex>
+#include "QppDMCircuitSimulator.cpp"
+
 #include <gtest/gtest.h>
 #include <iostream>
-#include <math.h>
 
 #include "CUDAQTestUtils.h"
-#include "QppDMCircuitSimulator.cpp"
 
 void print_state(const qpp::cmat &densityMatrix) {
   std::cout << "state = [";
