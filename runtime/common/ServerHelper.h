@@ -29,11 +29,13 @@ struct KernelExecution {
   std::string code;
   nlohmann::json output_names;
   std::vector<std::size_t> mapping_measured_qubits;
+  std::vector<std::size_t> mapping_reorder_idx;
   std::vector<std::size_t> mapping_v2p;
   KernelExecution(std::string &n, std::string &c, nlohmann::json &o,
-                  std::vector<std::size_t> &m1, std::vector<std::size_t> &m2)
+                  std::vector<std::size_t> &m1, std::vector<std::size_t> &m2,
+                  std::vector<std::size_t> &m3)
       : name(n), code(c), output_names(o), mapping_measured_qubits(m1),
-        mapping_v2p(m2) {}
+        mapping_reorder_idx(m2), mapping_v2p(m3) {}
 };
 
 /// @brief Responses / Submissions to the Server are modeled via JSON

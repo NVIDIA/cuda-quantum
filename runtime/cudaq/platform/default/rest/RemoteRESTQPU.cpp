@@ -433,6 +433,15 @@ public:
           mapping_measured_qubits[origIx] = val.getInt();
     }
 
+    std::vector<std::size_t> mapping_reorder_idx;
+    if (auto mappingAttr = dyn_cast_if_present<ArrayAttr>(
+            entryPointFunc->getAttr("mapping_reorder_idx"))) {
+      mapping_reorder_idx.resize(mappingAttr.size());
+      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr))
+        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
+          mapping_reorder_idx[origIx] = val.getInt();
+    }
+
     std::vector<std::pair<std::string, ModuleOp>> modules;
     // Apply observations if necessary
     if (executionContext && executionContext->name == "observe") {
@@ -504,7 +513,7 @@ public:
       nlohmann::json j = formOutputNames(codegenTranslation, codeStr);
 
       codes.emplace_back(name, codeStr, j, mapping_measured_qubits,
-                         mapping_v2p);
+                         mapping_reorder_idx, mapping_v2p);
     }
     return codes;
   }
@@ -611,36 +620,7 @@ public:
                     cudaq::sample_result newResult{
                         cudaq::ExecutionResult{context.result.to_map()}};
 
-                    // Make a scratch copy
-                    std::vector<std::size_t> measured_qubits =
-                        codes[i].mapping_measured_qubits;
-
-                    if (measured_qubits.size() == 0) {
-                      // Eliminate the unused physical qubits from the result
-                      newResult = newResult.get_marginal(codes[i].mapping_v2p);
-                      measured_qubits.resize(codes[i].mapping_v2p.size());
-                      std::iota(measured_qubits.begin(), measured_qubits.end(),
-                                0);
-                    } else {
-                      std::sort(measured_qubits.begin(), measured_qubits.end());
-                    }
-                    std::vector<std::size_t> idx;
-                    for (auto m : measured_qubits) {
-                      if (m < codes[i].mapping_v2p.size()) {
-                        auto phy = codes[i].mapping_v2p[m];
-                        idx.push_back(phy);
-                      } else {
-                        // Shouldn't happen
-                      }
-                    }
-                    // Now sort idx and save the indices for that sort.
-                    std::vector<std::size_t> idx2(idx.size());
-                    std::iota(idx2.begin(), idx2.end(), 0);
-                    std::sort(idx2.begin(), idx2.end(),
-                              [&v = idx](std::size_t i1, std::size_t i2) {
-                                return v[i1] < v[i2];
-                              });
-                    newResult.reorder(idx2);
+                    newResult.reorder(codes[i].mapping_reorder_idx);
                     results.emplace_back(newResult.to_map(), regName);
                     results.back().sequentialData =
                         newResult.sequential_data(regName);
