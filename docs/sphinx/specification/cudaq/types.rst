@@ -73,8 +73,8 @@ connectivity of the :code:`cudaq::qudit` instances stored in these containers is
 the programmer and any logical-to-physical program connectivity mapping
 should be done by compiler implementations. 
 
-:code:`cudaq::qspan<N, Levels>`
-+++++++++++++++++++++++++++++++
+:code:`cudaq::qspan<N, Levels>` (Deprecated. Use :code:`cudaq::qview<Levels>` instead.)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 :code:`cudaq::qspan` is a non-owning reference to a part of the discrete quantum
 memory space. It's a :code:`std::span`-like C++ range of :code:`cudaq::qudit` 
 (see C++ `span <https://en.cppreference.com/w/cpp/container/span>`_). It does not
@@ -119,8 +119,8 @@ It takes on the following structure:
       };
     }
 
-:code:`cudaq::qreg<N, Levels>`
-++++++++++++++++++++++++++++++
+:code:`cudaq::qreg<N, Levels>` (Deprecated. Use :code:`cudaq::qvector<Levels>` instead.)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 :code:`cudaq::qreg<N, Levels>` models a register of the discrete quantum memory space - a
 C++ container of :code:`cudaq::qudit`.  As a container, it owns its elements and
 their storage. :code:`qreg<dyn, Levels>` is a dynamically allocated container

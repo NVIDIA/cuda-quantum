@@ -29,7 +29,7 @@ These functions can be leveraged in quantum kernel code in the following way
     };
     struct kernel {
       void operator() () __qpu__ {
-        cudaq::qreg q(3);
+        cudaq::qarray<3> q;
         ...
         // Create Toffoli gate
         auto ctrl_bits = q.front(2);
@@ -42,7 +42,7 @@ These functions can be leveraged in quantum kernel code in the following way
     };
     struct kernel {
       void operator(int N) () __qpu__ {
-        cudaq::qreg q(N);
+        cudaq::qvector q(N);
         ...
         // apply h(q[2]); rx(-pi, q[2]);
         cudaq::adjoint(rx_and_h_gate{}, M_PI, q[2]);
@@ -51,8 +51,8 @@ These functions can be leveraged in quantum kernel code in the following way
     };
 
 The :code:`cudaq::control(...)` function takes as input an instantiated pure
-device quantum kernel, an std::range of control qubits (:code:`cudaq::qreg`
-or :code:`cudaq::qspan`), and the remaining arguments for the kernel itself.
+device quantum kernel, a std::range of control qubits (:code:`cudaq::qvector`
+or :code:`cudaq::qview`), and the remaining arguments for the kernel itself.
 Compiler implementations are free to synthesize multi-controlled operations
 using any pertinent synthesis strategy available. Qubits may be aggregated into
 a range of control qubits with or without the use of the :code:`operator!`

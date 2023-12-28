@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// [Begin Documentation]
 // Compile and run with:
 // ```
 // nvq++ iterative_qpe.cpp -o qpe.x && ./qpe.x
@@ -72,3 +73,4 @@ int main() {
 
   return 0;
 }
+// [End Documentation]
