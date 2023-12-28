@@ -617,17 +617,7 @@ public:
       if (isa<cudaq::cc::CallableType, cudaq::cc::StructType>(inTy)) {
         auto undef = builder.create<cudaq::cc::UndefOp>(loc, inTy);
         args.push_back(undef);
-      } else if (inTy.isa<cudaq::cc::StdvecType, quake::VeqType>()) {
-        Type eleTy = IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64);
-        if (auto memrefTy = dyn_cast<cudaq::cc::StdvecType>(inTy))
-          eleTy = memrefTy.getElementType();
-        auto stdvecTy = cudaq::cc::StdvecType::get(ctx, eleTy);
-        // Must divide by byte, 8 bits.
-        std::size_t eleSize;
-        if (auto cTy = dyn_cast<ComplexType>(eleTy))
-          eleSize = 2 * (cTy.getElementType().getIntOrFloatBitWidth() / 8);
-        else
-          eleSize = eleTy.getIntOrFloatBitWidth() / 8;
+      } else if (auto stdVecTy = dyn_cast<cudaq::cc::StdvecType>(inTy)) {
         Value vecSize =
             builder.create<cudaq::cc::ExtractValueOp>(loc, i64Ty, val, off);
         auto unpackPair =
