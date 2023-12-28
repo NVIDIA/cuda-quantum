@@ -499,8 +499,8 @@ form of familiar, std-like C++ containers. The underlying
 connectivity of the <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code> instances stored in these containers is opaque to
 the programmer and any logical-to-physical program connectivity mapping
 should be done by compiler implementations.</p>
-<section id="cudaq-qspan-n-levels">
-<h3><span class="section-number">3.3.1. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::qspan&lt;N,</span> <span class="pre">Levels&gt;</span></code><a class="headerlink" href="#cudaq-qspan-n-levels" title="Permalink to this heading">¶</a></h3>
+<section id="cudaq-qspan-n-levels-deprecated-use-cudaq-qview-levels-instead">
+<h3><span class="section-number">3.3.1. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::qspan&lt;N,</span> <span class="pre">Levels&gt;</span></code> (Deprecated. Use <code class="code docutils literal notranslate"><span class="pre">cudaq::qview&lt;Levels&gt;</span></code> instead.)<a class="headerlink" href="#cudaq-qspan-n-levels-deprecated-use-cudaq-qview-levels-instead" title="Permalink to this heading">¶</a></h3>
 <p><code class="code docutils literal notranslate"><span class="pre">cudaq::qspan</span></code> is a non-owning reference to a part of the discrete quantum
 memory space. It’s a <code class="code docutils literal notranslate"><span class="pre">std::span</span></code>-like C++ range of <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>
 (see C++ <a class="reference external" href="https://en.cppreference.com/w/cpp/container/span">span</a>). It does not
@@ -544,8 +544,8 @@ It takes on the following structure:</p>
 </pre></div>
 </div>
 </section>
-<section id="cudaq-qreg-n-levels">
-<h3><span class="section-number">3.3.2. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::qreg&lt;N,</span> <span class="pre">Levels&gt;</span></code><a class="headerlink" href="#cudaq-qreg-n-levels" title="Permalink to this heading">¶</a></h3>
+<section id="cudaq-qreg-n-levels-deprecated-use-cudaq-qvector-levels-instead">
+<h3><span class="section-number">3.3.2. </span><code class="code docutils literal notranslate"><span class="pre">cudaq::qreg&lt;N,</span> <span class="pre">Levels&gt;</span></code> (Deprecated. Use <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector&lt;Levels&gt;</span></code> instead.)<a class="headerlink" href="#cudaq-qreg-n-levels-deprecated-use-cudaq-qvector-levels-instead" title="Permalink to this heading">¶</a></h3>
 <p><code class="code docutils literal notranslate"><span class="pre">cudaq::qreg&lt;N,</span> <span class="pre">Levels&gt;</span></code> models a register of the discrete quantum memory space - a
 C++ container of <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>.  As a container, it owns its elements and
 their storage. <code class="code docutils literal notranslate"><span class="pre">qreg&lt;dyn,</span> <span class="pre">Levels&gt;</span></code> is a dynamically allocated container
