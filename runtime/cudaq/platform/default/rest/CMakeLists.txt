@@ -17,7 +17,6 @@ add_subdirectory(helpers)
 
 target_include_directories(cudaq-rest-qpu PRIVATE .
     PUBLIC 
-       ${OPENSSL_INCLUDE_DIR}
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<INSTALL_INTERFACE:include>)
 
