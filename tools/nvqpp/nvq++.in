@@ -664,7 +664,7 @@ for i in ${SRCS}; do
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-	    run ${TOOLBIN}nvq++-pp $i ${INCLUDES} -o ${file}.cudaq.cpp
+		run ${TOOLBIN}nvq++-pp $i ${INCLUDES} -o ${file}.cudaq.cpp
 		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE \
 		    ${PREPROCESSOR_DEFINES} -include-pch \
 			${install_dir}/pch/libmode/cudaq.h.pch \
