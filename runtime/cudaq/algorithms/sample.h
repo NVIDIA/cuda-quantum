@@ -107,8 +107,6 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
     // If it has conditionals, loop over individual circuit executions
     for (auto &i : cudaq::range(shots)) {
-      // Set the adaptive shot
-      ctx->adaptiveExecutionShot = i;
       // Run the kernel
       wrappedKernel();
       // Reset the context and get the single measure result,

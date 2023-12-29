@@ -85,9 +85,6 @@ public:
   /// keep track of the register names.
   std::vector<std::string> registerNames;
 
-  /// @brief For adaptive sampling, track the current shot.
-  std::size_t adaptiveExecutionShot = 0;
-
   /// @brief Keep track of vector register names when applying
   /// `auto vec = mz(qvector)`
   std::optional<std::string> measuringRegisterName = std::nullopt;
