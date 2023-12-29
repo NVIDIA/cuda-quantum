@@ -46,8 +46,9 @@ struct AnsatzMetadata {
   /// elements provided
   std::size_t nQubits = 0;
 
-  /// Check that we have no measures
-  std::size_t nMeasures = 0;
+  /// Track pre-existing measurements and attempt to remove them during
+  /// processing
+  SmallVector<Operation *> measurements;
 
   /// Map qubit indices to their mlir Value
   DenseMap<std::size_t, Value> qubitValues;
@@ -133,7 +134,7 @@ private:
     }
 
     // Count all measures
-    funcOp->walk([&](quake::MzOp op) { data.nMeasures++; });
+    funcOp->walk([&](quake::MzOp op) { data.measurements.push_back(op); });
 
     infoMap.insert({operation, data});
   }
@@ -158,17 +159,6 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
                                 PatternRewriter &rewriter) const override {
     rewriter.startRootUpdate(funcOp);
 
-    OpBuilder builder = OpBuilder::atBlockTerminator(&funcOp.getBody().back());
-    auto loc = funcOp.getBody().back().getTerminator()->getLoc();
-
-    // We want to insert after the last quantum operation
-    Operation *last = &funcOp.getBody().back().front();
-    funcOp.walk([&](Operation *op) {
-      if (dyn_cast<quake::OperatorInterface>(op))
-        last = op;
-    });
-    builder.setInsertionPointAfter(last);
-
     // Use an Analysis to count the number of qubits.
     auto iter = infoMap.find(funcOp);
     if (iter == infoMap.end()) {
@@ -177,7 +167,6 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       return failure();
     }
     auto nQubits = iter->second.nQubits;
-    auto nMeasures = iter->second.nMeasures;
 
     if (nQubits != termBSF.size() / 2) {
       std::string msg = "Invalid number of binary-symplectic elements "
@@ -187,11 +176,29 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       return failure();
     }
 
-    if (nMeasures != 0) {
-      std::string msg = "Cannot observe kernel with measures in it.\n";
-      funcOp.emitError(msg);
-      return failure();
+    // Attempt to remove measurements. Note that the mapping pass may add
+    // measurements to kernels that don't contain any measurements. For
+    // observe kernels, we remove them here since we are adding specific
+    // measurements below.
+    for (auto *op : iter->second.measurements) {
+      if (!op->getUsers().empty()) {
+        std::string msg = "Cannot observe kernel with measures in it.\n";
+        funcOp.emitError(msg);
+        return failure();
+      }
+      op->erase();
     }
+
+    // We want to insert after the last quantum operation. We must perform this
+    // after erasing the measurements above.
+    OpBuilder builder = OpBuilder::atBlockTerminator(&funcOp.getBody().back());
+    auto loc = funcOp.getBody().back().getTerminator()->getLoc();
+    Operation *last = &funcOp.getBody().back().front();
+    funcOp.walk([&](Operation *op) {
+      if (dyn_cast<quake::OperatorInterface>(op))
+        last = op;
+    });
+    builder.setInsertionPointAfter(last);
 
     // Loop over the binary-symplectic form provided and append
     // measurements as necessary.
