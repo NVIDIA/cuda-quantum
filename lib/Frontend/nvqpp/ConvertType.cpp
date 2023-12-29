@@ -344,7 +344,8 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
     // device kernels may take veq and/or ref arguments.
     if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-        isCharPointerType(t) || isReferenceToCallableRecord(t, p))
+        isCharPointerType(t) || isCharPointerSequenceType(t) ||
+        isReferenceToCallableRecord(t, p))
       continue;
     reportClangError(p, mangler, "kernel argument type not supported");
     return false;

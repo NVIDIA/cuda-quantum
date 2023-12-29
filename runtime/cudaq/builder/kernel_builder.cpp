@@ -90,6 +90,13 @@ KernelBuilderType mapArgToType(std::vector<float> &e) {
   });
 }
 
+KernelBuilderType mapArgToType(std::vector<const char *> &e) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::StdvecType::get(
+        ctx, cudaq::cc::PointerType::get(ctx, IntegerType::get(ctx, 8)));
+  });
+}
+
 KernelBuilderType mapArgToType(cudaq::qubit &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return quake::RefType::get(ctx); });
@@ -188,6 +195,35 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
   Value stringLiteral = builder.create<cc::CreateStringLiteralOp>(
       strLitTy, builder.getStringAttr(pauliWord));
   SmallVector<Value> args{thetaVal, qubitsVal, stringLiteral};
+  builder.create<quake::ExpPauliOp>(TypeRange{}, args);
+}
+
+void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
+               const std::vector<QuakeValue> &qubits,
+               const QuakeValue &pauliWord) {
+  Value qubitsVal;
+  if (qubits.size() == 1)
+    qubitsVal = qubits.front().getValue();
+  else {
+    // we have a vector of quake value qubits, need to concat them
+    SmallVector<Value> values;
+    for (auto &v : qubits)
+      values.push_back(v.getValue());
+
+    qubitsVal = builder.create<quake::ConcatOp>(
+        quake::VeqType::get(builder.getContext(), qubits.size()), values);
+  }
+
+  auto thetaVal = theta.getValue();
+  if (!isa<quake::VeqType>(qubitsVal.getType()))
+    throw std::runtime_error(
+        "exp_pauli must take a QuakeValue of veq type as second argument.");
+  if (!thetaVal.getType().isIntOrFloat())
+    throw std::runtime_error("exp_pauli must take a QuakeValue of float/int "
+                             "type as first argument.");
+  cudaq::info("kernel_builder apply runtime exp_pauli");
+
+  SmallVector<Value> args{thetaVal, qubitsVal, pauliWord.getValue()};
   builder.create<quake::ExpPauliOp>(TypeRange{}, args);
 }
 

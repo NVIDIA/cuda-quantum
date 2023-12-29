@@ -21,6 +21,9 @@ void bindQuakeValue(py::module &mod) {
       ":class:`qubit`, or :class:`qreg`. The :class:`QuakeValue` can also hold "
       "kernel operations such as qubit allocations and measurements.\n")
       /// @brief Bind the indexing operator for cudaq::QuakeValue
+      .def("size", &QuakeValue::size,
+           "For a `QuakeValue` of type `Stdvec` or `Veq`, add code to the MLIR "
+           "representation that computes the size of the sequence.")
       .def(
           "__getitem__",
           [](QuakeValue &self, std::size_t idx) { return self[idx]; },

@@ -20,7 +20,7 @@
 #include "cudaq/kernels/givens_rotation.h"
 #include "cudaq/platform.h"
 #include <any>
-
+#include <iostream>
 namespace cudaq {
 struct PyQubit {};
 struct PyQreg {};
@@ -85,6 +85,12 @@ Returns:
                 int tmp = 0;
                 return details::mapArgToType(tmp);
               } else if (name == "list" || name == "List") {
+                if (py::str(arguments).cast<std::string>().find("str") !=
+                    std::string::npos) {
+                  std::vector<const char *> tmp;
+                  return details::mapArgToType(tmp);
+                }
+                // FUTURE hook up more list[T] types
                 std::vector<double> tmp;
                 return details::mapArgToType(tmp);
               } else if (name == "qubit") {
@@ -104,7 +110,9 @@ Returns:
         auto ret = py::tuple(quakeValues.size() + 1);
         ret[0] = std::move(kernelBuilder);
         for (std::size_t i = 0; i < quakeValues.size(); i++) {
-          ret[i + 1] = quakeValues[i];
+          // We want the user to have a reference to the kernelBuilder
+          // internal QuakeValue for the argument.
+          ret[i + 1] = &quakeValues[i];
         }
         return ret;
       },
@@ -114,7 +122,7 @@ kernel argument.
 
 Note:
   The following types are supported as kernel arguments: `int`, `float`, 
-  `list`/`List`, `cudaq.qubit`, or `cudaq.qreg`.
+  `list`/`List`, `list[str]`/`List[str]`, `cudaq.qubit`, or `cudaq.qreg`.
 
 Args:
   *arguments : A variable amount of types for the kernel function to accept as 
@@ -1140,6 +1148,23 @@ Args:
           "exp_pauli",
           [](kernel_builder<> &self, py::object theta, const QuakeValue &qubits,
              const std::string &pauliWord) {
+            if (py::isinstance<py::float_>(theta))
+              self.exp_pauli(theta.cast<double>(), qubits, pauliWord);
+            else if (py::isinstance<QuakeValue>(theta))
+              self.exp_pauli(theta.cast<QuakeValue &>(), qubits, pauliWord);
+            else
+              throw std::runtime_error(
+                  "Invalid `theta` argument type. Must be a "
+                  "`float` or a `QuakeValue`.");
+          },
+          "Apply a general Pauli tensor product rotation, `exp(i theta P)`, on "
+          "the specified qubit register. The Pauli tensor product is provided "
+          "as a string, e.g. `XXYX` for a 4-qubit term. The angle parameter "
+          "can be provided as a concrete float or a `QuakeValue`.")
+      .def(
+          "exp_pauli",
+          [](kernel_builder<> &self, py::object theta, const QuakeValue &qubits,
+             const QuakeValue &pauliWord) {
             if (py::isinstance<py::float_>(theta))
               self.exp_pauli(theta.cast<double>(), qubits, pauliWord);
             else if (py::isinstance<QuakeValue>(theta))

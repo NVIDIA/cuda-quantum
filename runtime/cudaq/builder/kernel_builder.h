@@ -64,11 +64,12 @@ concept KernelBuilderArgTypeIsValid =
 // If you want to add to the list of valid kernel argument types first add it
 // here, then add `details::mapArgToType()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
-  requires(KernelBuilderArgTypeIsValid<                                        \
-               Args, float, double, std::size_t, int, std::vector<int>,        \
-               std::vector<float>, std::vector<std::size_t>,                   \
-               std::vector<double>, cudaq::qubit, cudaq::qvector<>> &&         \
-           ...)
+  requires(                                                                    \
+      KernelBuilderArgTypeIsValid<                                             \
+          Args, float, double, std::size_t, int, std::vector<int>,             \
+          std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
+          std::vector<const char *>, cudaq::qubit, cudaq::qvector<>> &&        \
+      ...)
 #else
 // Not C++ 2020: stub these out.
 #define QuakeValueOrNumericType typename
@@ -120,6 +121,9 @@ KernelBuilderType mapArgToType(std::vector<float> &e);
 
 /// Map a `vector<double>` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(std::vector<double> &e);
+
+/// Map a `std::vector<const char*>` to a `KernelBuilderType`
+KernelBuilderType mapArgToType(std::vector<const char *> &e);
 
 /// Map a `qubit` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qubit &e);
@@ -199,6 +203,10 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 void exp_pauli(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                const std::vector<QuakeValue> &qubits,
                const std::string &pauliWord);
+
+void exp_pauli(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &theta,
+               const std::vector<QuakeValue> &qubits,
+               const QuakeValue &pauliWord);
 
 void swap(mlir::ImplicitLocOpBuilder &builder,
           const std::vector<QuakeValue> &ctrls,
@@ -305,7 +313,7 @@ struct ArgumentValidator<std::vector<T>> {
     // Validate the input vector<T> if possible
     if (auto nRequiredElements = arg.getRequiredElements();
         arg.canValidateNumElements())
-      if (input.size() != nRequiredElements)
+      if (input.size() < nRequiredElements)
         throw std::runtime_error(
             "Invalid vector<T> input. Number of elements provided != "
             "number of elements required (" +
@@ -638,6 +646,19 @@ public:
   template <QuakeValueOrNumericType ParamT>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
                  const std::string &pauliWord) {
+    std::vector<QuakeValue> qubitValues{qubits};
+    if constexpr (std::is_floating_point_v<ParamT>)
+      details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
+                         pauliWord);
+    else
+      details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
+  }
+
+  /// @brief Apply a general Pauli rotation, exp(i theta P), takes a QuakeValue
+  /// representing a register of qubits.
+  template <QuakeValueOrNumericType ParamT>
+  void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
+                 const QuakeValue &pauliWord) {
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
       details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,

@@ -718,4 +718,10 @@ inline bool isCharPointerType(mlir::Type t) {
   return false;
 }
 
+// Is \p t of type `stdvec<char *>`?
+inline bool isCharPointerSequenceType(mlir::Type t) {
+  if (auto vecTy = dyn_cast<cc::StdvecType>(t))
+    return isCharPointerType(vecTy.getElementType());
+  return false;
+}
 } // namespace cudaq

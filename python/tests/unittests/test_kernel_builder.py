@@ -376,7 +376,8 @@ def test_ctrl_h():
     assert counts1["0011111"] >= 225 and counts1["0011111"] <= 275
     assert counts1["0010011"] >= 225 and counts1["0010011"] <= 275
     assert counts1["0010111"] >= 225 and counts1["0010111"] <= 275
-    assert counts1["0011011"] + counts1["0011111"] + counts1["0010011"] + counts1["0010111"] == 1000
+    assert counts1["0011011"] + counts1["0011111"] + counts1[
+        "0010011"] + counts1["0010111"] == 1000
 
     kernel.h(qubits[3])
     kernel.h(qubits[4])
@@ -915,6 +916,23 @@ def test_exp_pauli():
     kernel.exp_pauli(theta, qubits, "XXXY")
     want_exp = cudaq.observe(kernel, h, .11).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
+
+    # Test we can construct a list[str] arg and pass to exp_pauli
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    kernel, thetas, paulisArg = cudaq.make_kernel(list[float], list[str])
+    qubits = kernel.qalloc(2)
+    kernel.x(qubits[0])
+    kernel.for_loop(
+        0, paulisArg.size(),
+        lambda idx: kernel.exp_pauli(thetas[idx], qubits, paulisArg[idx]))
+
+    print(kernel)
+    want_exp = cudaq.observe(kernel, hamiltonian, [-.1744, .1223],
+                             ['XY', 'YX']).expectation()
+    print(want_exp)
+    assert np.isclose(want_exp, -1.74, atol=1e-2)
 
 
 def test_givens_rotation_op():
