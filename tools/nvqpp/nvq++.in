@@ -366,7 +366,6 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	--target=* | -target=*)
-		echo "${arg#*=}"
 		;;
 	--emit-qir | -emit-qir)
 		EMIT_QIR=true
