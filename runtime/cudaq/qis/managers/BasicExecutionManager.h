@@ -289,16 +289,20 @@ public:
     // We hit a measure, need to exec / clear instruction queue
     synchronize();
 
-    // Instruction executed, run the measure call
-    // INDICATE THIS IS A COLLECTION TO BE MEASURED
+    // Instructions executed, run the measure call
+
+    // Check if we are sampling, if so, indicate to the 
+    // simulation runtime that we are measuring a vector register 
+    // by providing the single name for the register
     if (executionContext && executionContext->name == "sample")
       executionContext->measuringRegisterName = regName;
 
+    // For each target in the register, measure
     std::vector<int> ret;
     for (auto &t : targets)
       ret.emplace_back(measureQudit(t, regName));
 
-    // DONE WITH COLLECTION MEASUREMENT
+    // Done with measurements, reset the vector register name.
     executionContext->measuringRegisterName = std::nullopt;
 
     return ret;
