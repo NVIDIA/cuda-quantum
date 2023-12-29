@@ -38,7 +38,7 @@ the `kernel`. If the input `spin_operator` is a list of `SpinOperator` then comp
 the expected value of every operator in the list and return a list of results.
 If the kernel accepts arguments, it will be evaluated 
 with respect to `kernel(*arguments)`. Each argument in `arguments` provided
-can be a list or ndarray of arguments of the specified kernel argument
+can be a list or `ndarray` of arguments of the specified kernel argument
 type, and in this case, the `observe` functionality will be broadcasted over
 all argument sets and a list of `observe_result` instances will be returned.
 If both the input `spin_operator` and `arguments` are broadcast lists, 
@@ -90,21 +90,22 @@ Returns:
         res = ctx.result
         cudaq_runtime.resetExecutionContext()
 
-        expVal = ctx.getExpectationValue() 
+        expVal = ctx.getExpectationValue()
         if expVal == None:
             sum = 0.0
+
             def computeExpVal(term):
                 nonlocal sum
                 if term.is_identity():
                     sum += term.get_coefficient().real
                 else:
-                    sum += res.expectation(term.to_string(False)) * term.get_coefficient().real
+                    sum += res.expectation(
+                        term.to_string(False)) * term.get_coefficient().real
 
             localOp.for_each_term(computeExpVal)
             expVal = sum
 
-        observeResult = cudaq_runtime.ObserveResult(expVal,
-                                                    localOp, res)
+        observeResult = cudaq_runtime.ObserveResult(expVal, localOp, res)
         if not isinstance(spin_operator, list):
             return observeResult
 

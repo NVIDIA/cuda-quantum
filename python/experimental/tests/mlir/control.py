@@ -35,6 +35,7 @@ def test_kernel_control_no_args(qubit_count):
     # Check the MLIR.
     print(kernel)
 
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           quake.apply @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}{{\[}}%[[VAL_0]]]  : (!quake.veq<1>) -> ()
@@ -87,7 +88,6 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
-
 
 
 @pytest.mark.parametrize("qubit_count", [1, 5])
@@ -269,7 +269,7 @@ def test_sample_control_qubit_args():
     # Simulate `kernel` and check its expectation value.
     result = cudaq.sample(kernel)
     want_expectation = 0.0
-    got_expectation = result.expectation_z()
+    got_expectation = result.expectation()
     assert np.isclose(want_expectation, got_expectation, atol=1e-1)
 
     # Check the MLIR.
@@ -380,7 +380,7 @@ def test_sample_apply_call_control():
     # Simulate `kernel` and check its expectation value.
     result = cudaq.sample(kernel)
     want_expectation = -1. / np.sqrt(2.)
-    got_expectation = result.expectation_z()
+    got_expectation = result.expectation()
     assert np.isclose(want_expectation, got_expectation, atol=1e-1)
 
     # Check the MLIR.

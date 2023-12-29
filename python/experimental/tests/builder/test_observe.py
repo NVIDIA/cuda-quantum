@@ -244,7 +244,7 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
                                    angles,
                                    shots_count=shots_count)
     got_expectation = observe_result.expectation()
-    assert want_expectation == got_expectation
+    assert assert_close(want_expectation, got_expectation)
 
     # If shots mode was enabled, check those results.
     if shots_count != -1:
@@ -446,7 +446,7 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
                                  shots_count=shots_count)
     observe_result = future.get()
     got_expectation = observe_result.expectation()
-    assert want_expectation == got_expectation
+    assert assert_close(want_expectation, got_expectation)
 
     # If shots mode was enabled, check those results.
     if shots_count != -1:

@@ -1,5 +1,6 @@
-import cudaq 
-import random 
+import cudaq
+import random
+
 
 def random_bitstring(length: int):
     bitstring = []
@@ -31,9 +32,10 @@ qubit_count = 5  # set to around 30 qubits for `nvidia` target
 # as to be able to return it for verification.
 hidden_bitstring = random_bitstring(qubit_count)
 
+
 @cudaq.kernel
-def oracle(register: cudaq.qview,
-           auxillary_qubit: cudaq.qubit, hidden_bitstring: list[int]):
+def oracle(register: cudaq.qview, auxillary_qubit: cudaq.qubit,
+           hidden_bitstring: list[int]):
     for index, bit in enumerate(hidden_bitstring):
         if bit == 1:
             # apply a `cx` gate with the current qubit as
@@ -71,4 +73,6 @@ result = cudaq.sample(bernstein_vazirani, hidden_bitstring)
 
 print(f"encoded bitstring = {hidden_bitstring}")
 print(f"measured state = {result.most_probable()}")
-print(f"Were we successful? {''.join([str(i) for i in hidden_bitstring]) == result.most_probable()}")
+print(
+    f"Were we successful? {''.join([str(i) for i in hidden_bitstring]) == result.most_probable()}"
+)

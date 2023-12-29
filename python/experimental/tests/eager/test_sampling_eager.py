@@ -29,6 +29,10 @@ def test_simple_sampling_ghz():
     assert '0' * 10 in counts and '1' * 10 in counts
 
 
+## [NOTE] With pybind11 v2.11.0+, the use of 'front', e.g. 'qubits.front(qubits.size() - 1)'
+## results in following error : 'RuntimeError: return_value_policy = move, but type
+## cudaq::qview<2ul> is neither movable nor copyable!'
+## https://github.com/NVIDIA/cuda-quantum/issues/1046
 def test_simple_sampling_qpe():
     """Test that we can build up a set of kernels, compose them, and sample."""
 
@@ -67,7 +71,7 @@ def test_simple_sampling_qpe():
         iqft(countingQubits)
         mz(countingQubits)
 
-    # cudaq.set_random_seed(13)
+    cudaq.set_random_seed(13)
     counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
     assert len(counts) == 1
     assert '100' in counts

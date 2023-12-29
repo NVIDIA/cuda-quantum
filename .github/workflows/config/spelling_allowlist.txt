@@ -74,6 +74,7 @@ bitcode
 bitstring
 bitstrings
 boolean
+broadcasted
 buildable
 callable
 callables

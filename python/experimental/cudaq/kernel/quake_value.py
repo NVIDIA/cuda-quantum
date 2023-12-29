@@ -37,9 +37,9 @@ class QuakeValue(object):
 
     def size(self):
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
-            # assert this is a stdvec type or a veq type
-            # See if we know the size of the veq
-            # return stdvecsizeop or veqsizeop
+            # assert this is a `stdvec` type or a `veq` type
+            # See if we know the size of the `veq`
+            # return `stdvecsizeop` or `veqsizeop`
             type = self.mlirValue.type
             if not quake.VeqType.isinstance(
                     type) and not cc.StdvecType.isinstance(type):
@@ -54,7 +54,7 @@ class QuakeValue(object):
                     quake.VeqSizeOp(self.intType, self.mlirValue).result,
                     self.pyKernel)
 
-            # Must be a stdvec type
+            # Must be a `stdvec` type
             return QuakeValue(
                 cc.StdvecSizeOp(self.intType, self.mlirValue).result,
                 self.pyKernel)

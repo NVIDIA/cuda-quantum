@@ -14,41 +14,46 @@ import numpy as np
 import cudaq
 from typing import Callable
 
+
 @pytest.fixture(autouse=True)
 def do_something():
     cudaq.__clearKernelRegistries()
-    yield 
-    return 
+    yield
+    return
+
 
 def test_simple_sampling_ghz():
     """Test that we can build a very simple kernel and sample it."""
+
     @cudaq.kernel(jit=True)
     def simple(numQubits: int):
         qubits = cudaq.qvector(numQubits)
         h(qubits.front())
-        for i, qubit in enumerate(qubits.front(numQubits-1)):
-            x.ctrl(qubit, qubits[i+1])
+        for i, qubit in enumerate(qubits.front(numQubits - 1)):
+            x.ctrl(qubit, qubits[i + 1])
+
     print(simple)
     counts = cudaq.sample(simple, 10)
     assert len(counts) == 2
-    assert '0'*10 in counts and '1'*10 in counts
+    assert '0' * 10 in counts and '1' * 10 in counts
 
 
 def test_simple_sampling_qpe():
     """Test that we can build up a set of kernels, compose them, and sample."""
+
     @cudaq.kernel(jit=True)
     def iqft(qubits: cudaq.qview):
         N = qubits.size()
-        for i in range(N//2):
-            swap(qubits[i], qubits[N-i-1])
+        for i in range(N // 2):
+            swap(qubits[i], qubits[N - i - 1])
 
-        for i in range(N-1):
+        for i in range(N - 1):
             h(qubits[i])
             j = i + 1
             for y in range(i, -1, -1):
-                r1.ctrl(-np.pi / 2**(j-y), qubits[j], qubits[y])
+                r1.ctrl(-np.pi / 2**(j - y), qubits[j], qubits[y])
 
-        h(qubits[N-1])
+        h(qubits[N - 1])
 
     @cudaq.kernel(jit=True)
     def tGate(qubit: cudaq.qubit):
@@ -59,8 +64,9 @@ def test_simple_sampling_qpe():
         x(qubit)
 
     @cudaq.kernel(jit=True, verbose=True)
-    def qpe(nC: int, nQ: int, statePrep: Callable[[cudaq.qubit], None], oracle: Callable[[cudaq.qubit], None]):
-        q = cudaq.qvector(nC+nQ)
+    def qpe(nC: int, nQ: int, statePrep: Callable[[cudaq.qubit], None],
+            oracle: Callable[[cudaq.qubit], None]):
+        q = cudaq.qvector(nC + nQ)
         countingQubits = q.front(nC)
         stateRegister = q.back()
         statePrep(stateRegister)
@@ -84,8 +90,8 @@ def test_broadcast():
     def circuit(inSize: int):
         qubits = cudaq.qvector(inSize)
         h(qubits[0])
-        for i in range(inSize-1):
-            x.ctrl(qubits[i], qubits[i+1])
+        for i in range(inSize - 1):
+            x.ctrl(qubits[i], qubits[i + 1])
 
     cudaq.set_random_seed(13)
     allCounts = cudaq.sample(circuit, [3, 4, 5, 6, 7])

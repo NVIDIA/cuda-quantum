@@ -13,20 +13,22 @@ import numpy as np
 
 import cudaq
 from cudaq import spin
-from typing import Callable 
+from typing import Callable
 
-# This file is a hodgepodge of tests that I've used for 
+# This file is a hodgepodge of tests that I've used for
 # understanding the AST and mapping to MLIR
+
 
 @pytest.fixture(autouse=True)
 def do_something():
     cudaq.__clearKernelRegistries()
-    yield 
-    return 
+    yield
+    return
 
 
 def test_adjoint():
     """Test that adjoint can be called on kernels and operations."""
+
     @cudaq.kernel(jit=True)
     def single_adjoint_test():
         q = cudaq.qubit()
@@ -61,7 +63,7 @@ def test_adjoint():
     assert len(counts) == 1
 
     @cudaq.kernel(jit=True)
-    def test_kernel_adjoint(q:cudaq.qview):
+    def test_kernel_adjoint(q: cudaq.qview):
         h(q[0])
         t(q[1])
         s(q[2])
@@ -78,6 +80,7 @@ def test_adjoint():
     assert len(counts) == 1
     assert '101' in counts
 
+
 def test_exp_pauli():
     h2_data = [
       3, 1, 1, 3, 0.0454063,  0,  2,  0, 0, 0, 0.17028,    0,
@@ -92,7 +95,7 @@ def test_exp_pauli():
     h = cudaq.SpinOperator(h2_data, 4)
 
     @cudaq.kernel(jit=True, verbose=True)
-    def kernel(theta:float):
+    def kernel(theta: float):
         q = cudaq.qvector(4)
         x(q[0])
         x(q[1])
@@ -115,7 +118,7 @@ def test_exp_pauli():
 #     def toffoli():
 #         q = cudaq.qvector(3)
 #         ctrl = q.front()
-#         # without a control, apply x to all 
+#         # without a control, apply x to all
 #         x(ctrl, q[2])
 #         cudaq.control(fancyCnot, [ctrl], q[1], q[2])
 
@@ -128,7 +131,7 @@ def test_exp_pauli():
 #         q, r, s = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
 #         x(q, s)
 #         swap.ctrl(q, r, s)
-    
+
 #     print(test)
 #     counts = cudaq.sample(test)
 #     assert len(counts) == 1
@@ -137,9 +140,10 @@ def test_exp_pauli():
 
 def test_grover():
     """Test that compute_action works in tandem with kernel composability."""
+
     @cudaq.kernel(jit=True)
-    def reflect(qubits:cudaq.qview):
-        ctrls = qubits.front(qubits.size()-1)
+    def reflect(qubits: cudaq.qview):
+        ctrls = qubits.front(qubits.size() - 1)
         last = qubits.back()
 
         # def compute():
@@ -156,12 +160,12 @@ def test_grover():
 
     # Order matters, kernels must be "in-scope"
     @cudaq.kernel(jit=True)
-    def oracle(q:cudaq.qview):
+    def oracle(q: cudaq.qview):
         z.ctrl(q[0], q[2])
         z.ctrl(q[1], q[2])
 
     @cudaq.kernel(jit=True)
-    def grover(N:int, M:int, oracle:Callable[[cudaq.qview],None]):
+    def grover(N: int, M: int, oracle: Callable[[cudaq.qview], None]):
         q = cudaq.qvector(N)
         h(q)
         for i in range(M):
@@ -181,15 +185,17 @@ def test_grover():
 
 def test_grover_compute_action():
     """Test that compute_action works in tandem with kernel composability."""
+
     @cudaq.kernel(jit=True)
-    def reflect(qubits:cudaq.qview):
-        ctrls = qubits.front(qubits.size()-1)
+    def reflect(qubits: cudaq.qview):
+        ctrls = qubits.front(qubits.size() - 1)
         last = qubits.back()
 
         def compute():
             h(qubits)
             x(qubits)
-        # can also use 
+
+        # can also use
         # compute = lambda : (h(qubits), x(qubits))
 
         cudaq.compute_action(compute, lambda: z.ctrl(ctrls, last))
@@ -198,12 +204,12 @@ def test_grover_compute_action():
 
     # Order matters, kernels must be "in-scope"
     @cudaq.kernel(jit=True)
-    def oracle(q:cudaq.qview):
+    def oracle(q: cudaq.qview):
         z.ctrl(q[0], q[2])
         z.ctrl(q[1], q[2])
 
     @cudaq.kernel(jit=True)
-    def grover(N:int, M:int, oracle:Callable[[cudaq.qview],None]):
+    def grover(N: int, M: int, oracle: Callable[[cudaq.qview], None]):
         q = cudaq.qvector(N)
         h(q)
         for i in range(M):
@@ -222,6 +228,7 @@ def test_grover_compute_action():
 def test_dynamic_circuit():
     """Test that we correctly sample circuits with 
        mid-circuit measurements and conditionals."""
+
     @cudaq.kernel(jit=True, verbose=True)
     def simple():
         q = cudaq.qvector(2)
@@ -238,4 +245,3 @@ def test_dynamic_circuit():
     c0 = counts.get_register_counts('i')
     assert '0' in c0 and '1' in c0
     assert '00' in counts and '11' in counts
-    

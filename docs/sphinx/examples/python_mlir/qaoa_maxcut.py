@@ -57,10 +57,10 @@ optimizer.initial_parameters = np.random.uniform(-np.pi / 8.0, np.pi / 8.0,
 print("Initial parameters = ", optimizer.initial_parameters)
 
 
-# Define the objective, return <state(params) | H | state(params)>
+# Define the objective, return `<state(params) | H | state(params)>`
 def objective(parameters):
     return cudaq.observe(kernel_qaoa, hamiltonian, qubit_count, layer_count,
-                         parameters).expectation_z()
+                         parameters).expectation()
 
 
 # Optimize!
