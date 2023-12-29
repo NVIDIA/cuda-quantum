@@ -78,7 +78,7 @@ protected:
     operation(instruction);
   }
 
-  int measureQudit(const cudaq::QuditInfo &q) override {
+  int measureQudit(const cudaq::QuditInfo &q, const std::string &) override {
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;

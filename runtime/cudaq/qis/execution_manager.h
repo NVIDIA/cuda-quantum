@@ -34,7 +34,7 @@ struct QuditInfo {
   }
 };
 
-bool __nvqpp__MeasureResultBoolConversion(int);
+bool __nvqpp__MeasureResultBoolConversion(int, std::size_t);
 
 #ifdef CUDAQ_LIBRARY_MODE
 
@@ -54,9 +54,14 @@ private:
 public:
   measure_result(int res, std::size_t id) : result(res), uniqueId(id) {}
   measure_result(int res) : result(res) {}
+  measure_result() = default;
+  measure_result(const measure_result &other)
+      : result(other.result), uniqueId(other.uniqueId) {}
 
-  operator int() { return result; }
-  operator bool() { return __nvqpp__MeasureResultBoolConversion(result); }
+  operator int() const { return result; }
+  operator bool() const {
+    return __nvqpp__MeasureResultBoolConversion(result, uniqueId);
+  }
 };
 #else
 /// @brief When compiling with MLIR, we default to a boolean
@@ -133,7 +138,16 @@ public:
 
   /// Measure the qudit and return the observed state (0,1,2,3,...)
   /// e.g. for qubits, this can return 0 or 1;
-  virtual int measure(const QuditInfo &target) = 0;
+  virtual int measure(const QuditInfo &target,
+                      const std::string regName = "") = 0;
+
+  virtual std::vector<int> measure(const std::vector<QuditInfo> &targets,
+                                   const std::string regName = "") {
+    std::vector<int> ret;
+    for (auto &t : targets)
+      ret.emplace_back(measure(t, regName));
+    return ret;
+  }
 
   /// Measure the current state in the given Pauli basis, return
   /// the expectation value <term>.

@@ -71,10 +71,6 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     // that is passed to an if statement, then
     // we'll have collected registernames
     if (!context.registerNames.empty()) {
-      // append new register names to the main sample context
-      for (std::size_t i = 0; i < context.registerNames.size(); ++i)
-        ctx->registerNames.emplace_back("auto_register_" + std::to_string(i));
-
       ctx->hasConditionalsOnMeasureResults = true;
     }
   }
@@ -111,6 +107,8 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
     // If it has conditionals, loop over individual circuit executions
     for (auto &i : cudaq::range(shots)) {
+      // Set the adaptive shot
+      ctx->adaptiveExecutionShot = i;
       // Run the kernel
       wrappedKernel();
       // Reset the context and get the single measure result,

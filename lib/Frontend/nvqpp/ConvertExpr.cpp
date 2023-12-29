@@ -1451,6 +1451,14 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       bool useStdvec =
           (args.size() > 1) ||
           (args.size() == 1 && args[0].getType().isa<quake::VeqType>());
+      // Check also for mz(qref/veq, "stringName"), if
+      // found change useStdVec appropriately and drop the string
+      if (args.size() == 2 && isa<cc::PointerType>(args[1].getType())) {
+        // This is actually mz()
+        useStdvec = args[0].getType().isa<quake::VeqType>();
+        args.pop_back();
+      }
+
       auto measure = [&]() -> Value {
         Type measTy = quake::MeasureType::get(builder.getContext());
         if (useStdvec)

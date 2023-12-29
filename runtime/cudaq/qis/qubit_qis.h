@@ -380,23 +380,24 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
                                false, spin_op::from_word(pauliWord));
 }
 
-/// @brief Measure an individual qubit, return 0,1 as `bool`
-inline measure_result mz(qubit &q) {
-  return getExecutionManager()->measure({q.n_levels(), q.id()});
-}
+#define SINGLE_QUBIT_MEASURE_OVERLOAD(NAME, BASISCHANGECODE)                   \
+  inline measure_result NAME(qubit &q) {                                       \
+    BASISCHANGECODE                                                            \
+    return getExecutionManager()->measure({q.n_levels(), q.id()});             \
+  }                                                                            \
+  template <std::size_t N>                                                     \
+  inline measure_result NAME(qubit &q, const char(&regName)[N]) {              \
+    BASISCHANGECODE                                                            \
+    return getExecutionManager()->measure({q.n_levels(), q.id()}, regName);    \
+  }                                                                            \
+  inline measure_result NAME(qubit &q, const std::string regName) {            \
+    BASISCHANGECODE                                                            \
+    return getExecutionManager()->measure({q.n_levels(), q.id()}, regName);    \
+  }
 
-/// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
-inline measure_result mx(qubit &q) {
-  h(q);
-  return getExecutionManager()->measure({q.n_levels(), q.id()});
-}
-
-// Measure an individual qubit in `y` basis, return 0,1 as `bool`
-inline measure_result my(qubit &q) {
-  s<adj>(q);
-  h(q);
-  return getExecutionManager()->measure({q.n_levels(), q.id()});
-}
+SINGLE_QUBIT_MEASURE_OVERLOAD(mz, )
+SINGLE_QUBIT_MEASURE_OVERLOAD(mx, h(q);)
+SINGLE_QUBIT_MEASURE_OVERLOAD(my, s<adj>(q); h(q);)
 
 inline void reset(qubit &q) {
   getExecutionManager()->reset({q.n_levels(), q.id()});
@@ -416,6 +417,27 @@ std::vector<measure_result> mz(QubitRange &q) {
   std::vector<measure_result> b;
   for (auto &qq : q) {
     b.push_back(mz(qq));
+  }
+  return b;
+}
+
+#if CUDAQ_USE_STD20
+template <typename QubitRange, std::size_t N>
+  requires std::ranges::range<QubitRange>
+#else
+template <
+    typename QubitRange, std::size_t N,
+    typename = std::enable_if_t<!std::is_same_v<
+        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
+#endif
+std::vector<measure_result> mz(QubitRange &q, const char (&regName)[N]) {
+  std::vector<QuditInfo> targets;
+  for (auto &qq : q)
+    targets.emplace_back(2, qq.id());
+  auto results = getExecutionManager()->measure(targets, regName);
+  std::vector<measure_result> b;
+  for (auto &r : results) {
+    b.push_back(r == 1);
   }
   return b;
 }

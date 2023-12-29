@@ -74,3 +74,29 @@ install(
   DESTINATION distributed_interfaces
   PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ
 )
+
+add_custom_command(
+  TARGET cudaq
+  POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/pch/libmode
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/pch/mlir/c++20
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/pch/mlir/c++17
+  COMMAND
+    ${LLVM_BINARY_DIR}/bin/clang++ -std=c++20 -x c++-header -DCUDAQ_LIBRARY_MODE
+    ${CMAKE_SOURCE_DIR}/runtime/cudaq.h -I ${CMAKE_SOURCE_DIR}/runtime -o
+    ${CMAKE_BINARY_DIR}/pch/libmode/cudaq.h.pch
+  COMMAND
+    ${LLVM_BINARY_DIR}/bin/clang++ -std=c++20 -x c++-header
+    ${CMAKE_SOURCE_DIR}/runtime/cudaq.h -I ${CMAKE_SOURCE_DIR}/runtime -o
+    ${CMAKE_BINARY_DIR}/pch/mlir/c++20/cudaq.h.pch
+  COMMAND
+    ${LLVM_BINARY_DIR}/bin/clang++ -std=c++17 -x c++-header
+    ${CMAKE_SOURCE_DIR}/runtime/cudaq.h -I ${CMAKE_SOURCE_DIR}/runtime -o
+    ${CMAKE_BINARY_DIR}/pch/mlir/c++17/cudaq.h.pch)
+
+install(FILES ${CMAKE_BINARY_DIR}/pch/libmode/cudaq.h.pch
+        DESTINATION include/pch/libmode)
+install(FILES ${CMAKE_BINARY_DIR}/pch/mlir/c++20/cudaq.h.pch
+        DESTINATION include/pch/mlir/c++20/)
+install(FILES ${CMAKE_BINARY_DIR}/pch/mlir/c++17/cudaq.h.pch
+        DESTINATION include/pch/mlir/c++17/)

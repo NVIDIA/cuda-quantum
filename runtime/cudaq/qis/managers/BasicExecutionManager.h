@@ -91,7 +91,8 @@ protected:
   virtual void executeInstruction(const Instruction &inst) = 0;
 
   /// @brief Subtype-specific method for performing qudit measurement.
-  virtual int measureQudit(const cudaq::QuditInfo &q) = 0;
+  virtual int measureQudit(const cudaq::QuditInfo &q,
+                           const std::string &regName) = 0;
 
   /// @brief Measure the state in the basis described by the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
@@ -268,7 +269,8 @@ public:
     }
   }
 
-  int measure(const cudaq::QuditInfo &target) override {
+  int measure(const cudaq::QuditInfo &target,
+              const std::string regName) override {
     if (isInTracerMode())
       return 0;
 
@@ -276,7 +278,30 @@ public:
     synchronize();
 
     // Instruction executed, run the measure call
-    return measureQudit(target);
+    return measureQudit(target, regName);
+  }
+
+  std::vector<int> measure(const std::vector<cudaq::QuditInfo> &targets,
+                           const std::string regName) override {
+    if (isInTracerMode())
+      return {};
+
+    // We hit a measure, need to exec / clear instruction queue
+    synchronize();
+
+    // Instruction executed, run the measure call
+    // INDICATE THIS IS A COLLECTION TO BE MEASURED
+    if (executionContext && executionContext->name == "sample")
+      executionContext->measuringRegisterName = regName;
+
+    std::vector<int> ret;
+    for (auto &t : targets)
+      ret.emplace_back(measureQudit(t, regName));
+
+    // DONE WITH COLLECTION MEASUREMENT
+    executionContext->measuringRegisterName = std::nullopt;
+
+    return ret;
   }
 
   cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {

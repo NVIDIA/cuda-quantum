@@ -17,3 +17,4 @@
 // for required cudaq headers. We will search this install 
 // directory first 
 #define FALLBACK_CUDAQ_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/runtime"
+#define FALLBACK_CUDAQ_PCH_DIR "${CMAKE_BINARY_DIR}/pch"

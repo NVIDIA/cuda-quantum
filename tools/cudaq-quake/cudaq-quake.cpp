@@ -392,6 +392,31 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // We will look for the PCH if we have it. Look in the install dir,
+  // if not there, see if we are in the build path (for developers)
+  auto cudaqPCH =
+      cudaqIncludeDir / "pch" / "mlir" / stdCpp.getValue() / "cudaq.h.pch";
+  if (!std::filesystem::exists(cudaqPCH))
+    // need to fall back to the build environment.
+    cudaqPCH = std::filesystem::path(std::string(FALLBACK_CUDAQ_PCH_DIR)) /
+               "mlir" / stdCpp.getValue() / "cudaq.h.pch";
+
+  // One final check here, do we have a pre compiled header, and if so point to
+  // it. Also make sure that we are compiling without flags that we did not use
+  // for generating the pre-compiled header.
+  std::vector<std::string> nonStdFlags{"-fPIC", "-fpic", "-fPIE", "-fpie"};
+  bool hasNonStdCompileFlags = [&]() {
+    for (auto &xtra : extraClangArgs)
+      if (std::find(nonStdFlags.begin(), nonStdFlags.end(), xtra) !=
+          nonStdFlags.end())
+        return true;
+    return false;
+  }();
+  if (std::filesystem::exists(cudaqPCH) && !hasNonStdCompileFlags) {
+    clArgs.push_back("-include-pch");
+    clArgs.push_back(cudaqPCH.string());
+  }
+
   // Attach the relative path of the file, if any. The directory the file
   // resides in has highest priority.
   std::string relativePath = sys::path::parent_path(inputFilename).str();

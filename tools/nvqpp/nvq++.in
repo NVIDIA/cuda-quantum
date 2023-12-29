@@ -661,12 +661,16 @@ fi
 
 for i in ${SRCS}; do
 	file=$(basename -s .cc -s .cpp $i)
-
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
+	    run ${TOOLBIN}nvq++-pp $i ${INCLUDES} -o ${file}.cudaq.cpp
+		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE \
+		    ${PREPROCESSOR_DEFINES} -include-pch \
+			${install_dir}/pch/libmode/cudaq.h.pch \
+			${INCLUDES} ${ARGS} -o ${file}.o -c ${file}.cudaq.cpp
 		OBJS="${OBJS} ${file}.o"
+		TMPFILES="${TMPFILES} ${file}.cudaq.cpp"
 		# Go to the next iteration, maybe there
 		# will be cudaq kernels there
 		continue

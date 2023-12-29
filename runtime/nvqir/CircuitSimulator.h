@@ -309,10 +309,6 @@ protected:
   std::unordered_map<std::string, std::vector<std::string>>
       midCircuitSampleResults;
 
-  /// @brief Store the last observed register name, this will help us
-  /// know if we are writing to a classical bit vector
-  std::string lastMidCircuitRegisterName = "";
-
   /// @brief Vector storing register names that are bit vectors
   std::vector<std::string> vectorRegisters;
 
@@ -321,6 +317,10 @@ protected:
   /// this vector keeps track of qubit ids that are to be
   /// deallocated at a later time.
   std::vector<std::size_t> deferredDeallocation;
+
+  /// @brief Flag indicating CircuitSimulator is currently
+  /// being used in adaptive execution mode.
+  bool isAdaptiveExecution = false;
 
   /// @brief Map bit register names to the qubits that make it up
   std::unordered_map<std::string, std::vector<std::size_t>>
@@ -398,31 +398,35 @@ protected:
   /// sampling and to exit early. False otherwise.
   bool handleBasicSampling(const std::size_t qubitIdx,
                            const std::string &regName) {
-    if (executionContext && executionContext->name == "sample" &&
-        !executionContext->hasConditionalsOnMeasureResults) {
-      // Add the qubit to the sampling list
-      sampleQubits.push_back(qubitIdx);
+    if (!executionContext)
+      return false;
 
-      // Configure the register name so we can operate on it
-      std::string mutableName = regName;
-      if (regName.empty())
-        mutableName = cudaq::GlobalRegisterName;
+    if (isAdaptiveExecution)
+      return false;
 
-      // Insert the sample qubit into the register name map
-      auto iter = registerNameToMeasuredQubit.find(mutableName);
-      if (iter == registerNameToMeasuredQubit.end())
-        registerNameToMeasuredQubit.emplace(mutableName,
-                                            std::vector<std::size_t>{qubitIdx});
-      else {
-        if (std::find(iter->second.begin(), iter->second.end(), qubitIdx) ==
-            iter->second.end())
-          iter->second.push_back(qubitIdx);
-      }
+    if (executionContext->name != "sample")
+      return false;
 
-      return true;
+    // Add the qubit to the sampling list
+    sampleQubits.push_back(qubitIdx);
+
+    // Configure the register name so we can operate on it
+    std::string mutableName = regName;
+    if (regName.empty())
+      mutableName = cudaq::GlobalRegisterName;
+
+    // Insert the sample qubit into the register name map
+    auto iter = registerNameToMeasuredQubit.find(mutableName);
+    if (iter == registerNameToMeasuredQubit.end())
+      registerNameToMeasuredQubit.emplace(mutableName,
+                                          std::vector<std::size_t>{qubitIdx});
+    else {
+      if (std::find(iter->second.begin(), iter->second.end(), qubitIdx) ==
+          iter->second.end())
+        iter->second.push_back(qubitIdx);
     }
 
-    return false;
+    return true;
   }
 
   /// @brief This function handles sampling in the presence of conditional
@@ -432,48 +436,50 @@ protected:
   void handleSamplingWithConditionals(const std::size_t qubitIdx,
                                       const std::string bitResult,
                                       const std::string &registerName) {
-    // We still care about what qubit we are measuring if in the
-    // sample-conditional context
-    if (executionContext && executionContext->name == "sample" &&
-        executionContext->hasConditionalsOnMeasureResults) {
-      std::string mutableRegisterName = registerName;
+    if (!executionContext)
+      return;
 
-      // If no registerName, we'll just sample normally
-      if (registerName.empty()) {
-        // Either this is library mode and we have register names attached
-        // to the execution context
-        if (midCircuitSampleResults.size() <
-            executionContext->registerNames.size()) {
-          mutableRegisterName =
-              executionContext->registerNames[midCircuitSampleResults.size()];
-        } else {
-          // or no register names, in which case we'll just treat it as
-          // a regular sampled qubit and drop out
-          sampleQubits.push_back(qubitIdx);
-          return;
-        }
+    if (executionContext->name != "sample")
+      return;
+
+    if (!isAdaptiveExecution)
+      return;
+
+    std::string mutableRegisterName = registerName;
+
+    // If no registerName, we'll just sample normally
+    if (registerName.empty()) {
+      // Either this is library mode and we have register names attached
+      // to the execution context
+      if (midCircuitSampleResults.size() <
+          executionContext->registerNames.size()) {
+        mutableRegisterName =
+            executionContext->registerNames[midCircuitSampleResults.size()];
+      } else {
+        // or no register names, in which case we'll just treat it as
+        // a regular sampled qubit and drop out
+        sampleQubits.push_back(qubitIdx);
+        return;
       }
-
-      cudaq::info("Handling Sampling With Conditionals: {}, {}, {}", qubitIdx,
-                  bitResult, mutableRegisterName);
-      // See if we've observed this register before, if not
-      // start a vector of bit results, if we have, add the
-      // bit result to the existing vector
-      auto iter = midCircuitSampleResults.find(mutableRegisterName);
-      if (iter == midCircuitSampleResults.end())
-        midCircuitSampleResults.emplace(mutableRegisterName,
-                                        std::vector<std::string>{bitResult});
-      else
-        iter->second.push_back(bitResult);
-
-      // If this register is the same as last time, then we are
-      // writing to a bit vector register (auto var = mz(qreg))
-      if (lastMidCircuitRegisterName == mutableRegisterName)
-        vectorRegisters.push_back(mutableRegisterName);
-
-      // Store the last register name
-      lastMidCircuitRegisterName = mutableRegisterName;
     }
+
+    cudaq::info("Handling Sampling With Conditionals: {}, {}, {}", qubitIdx,
+                bitResult, mutableRegisterName);
+
+    // See if we've observed this register before, if not
+    // start a vector of bit results, if we have, add the
+    // bit result to the existing vector
+    auto iter = midCircuitSampleResults.find(mutableRegisterName);
+    if (iter == midCircuitSampleResults.end())
+      midCircuitSampleResults.emplace(mutableRegisterName,
+                                      std::vector<std::string>{bitResult});
+    else
+      iter->second.push_back(bitResult);
+
+    // Is this a vector<qubit> we are measuring?
+    if (executionContext->measuringRegisterName.value_or("") ==
+        mutableRegisterName)
+      vectorRegisters.push_back(mutableRegisterName);
   }
 
   /// @brief Utility function that returns a string-view of the current
@@ -542,7 +548,7 @@ protected:
     if (sampleQubits.empty())
       return;
 
-    if (executionContext->hasConditionalsOnMeasureResults && !force)
+    if (isAdaptiveExecution && !force)
       return;
 
     // Sort the qubit indices
@@ -563,12 +569,7 @@ protected:
       executionContext->result.append(execResult);
     } else {
 
-      bool hasGlobal = false;
-
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
-        if (regName == cudaq::GlobalRegisterName)
-          hasGlobal = true;
-
         // Measurements are sorted according to qubit allocation order
         std::sort(qubits.begin(), qubits.end());
         auto last = std::unique(qubits.begin(), qubits.end());
@@ -595,9 +596,8 @@ protected:
         executionContext->result.append(tmp);
       }
 
-      // Form the global register from a combination of the sorted register
-      // names. In the future, we may want to let the user customize
-      if (!hasGlobal) {
+      // FIXME Should we drop the __global__ register when registers specified?
+      if (!registerNameToMeasuredQubit.count(cudaq::GlobalRegisterName)) {
         cudaq::ExecutionResult globalResult(cudaq::GlobalRegisterName);
         std::vector<std::string> sortedRegNames =
             executionContext->result.register_names();
@@ -874,6 +874,8 @@ public:
         // Get the register name and the vector of bit results
         auto regName = m.first;
         auto bitResults = m.second;
+
+        // Do we have an existing ExecutionResult with given regName?
         cudaq::ExecutionResult counts(regName);
 
         if (std::find(vectorRegisters.begin(), vectorRegisters.end(),
@@ -887,9 +889,8 @@ public:
 
         } else {
           // Not a vector, collate all bits into a 1 qubit counts dict
-          for (std::size_t j = 0; j < bitResults.size(); j++) {
+          for (std::size_t j = 0; j < bitResults.size(); j++)
             counts.appendResult(bitResults[j], 1);
-          }
         }
         executionContext->result.append(counts);
       }
@@ -897,7 +898,6 @@ public:
       // Clear the sample bits for the next run
       sampleQubits.clear();
       midCircuitSampleResults.clear();
-      lastMidCircuitRegisterName = "";
       currentCircuitName = "";
     }
 
@@ -930,11 +930,13 @@ public:
 
     batchModeCurrentNumQubits = 0;
     deferredDeallocation.clear();
+    isAdaptiveExecution = false;
   }
 
   /// @brief Set the execution context
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     executionContext = context;
+    isAdaptiveExecution = executionContext->hasConditionalsOnMeasureResults;
     executionContext->canHandleObserve = canHandleObserve();
     currentCircuitName = context->kernelName;
     cudaq::info("Setting current circuit name to {}", currentCircuitName);
