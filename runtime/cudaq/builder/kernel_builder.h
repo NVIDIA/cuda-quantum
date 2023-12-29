@@ -52,6 +52,15 @@ concept QuakeValueOrNumericType = requires(T param) {
       std::is_same_v<std::remove_cvref_t<T>, QuakeValue>;
 };
 
+/// @brief Define a concept that can be a `QuakeValue` representing a
+/// string-like parameter, or a concrete string-like instance provided at
+/// runtime.
+template <typename T>
+concept QuakeValueOrStringType = requires(T param) {
+  std::is_convertible_v<T, std::string_view> ||
+      std::is_same_v<std::remove_cvref_t<T>, QuakeValue>;
+};
+
 /// @brief Define a floating point concept
 template <typename T>
 concept IntegralType = requires(T param) { std::is_integral_v<T>; };
@@ -200,10 +209,13 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
+/// @brief Apply and `ExpPauliOp` to the MLIR with a constant string literal.
 void exp_pauli(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                const std::vector<QuakeValue> &qubits,
                const std::string &pauliWord);
 
+/// @brief Apply and `ExpPauliOp` to the MLIR with a runtime-known string-like
+/// `QuakeValue`.
 void exp_pauli(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                const std::vector<QuakeValue> &qubits,
                const QuakeValue &pauliWord);
@@ -643,22 +655,9 @@ public:
 
   /// @brief Apply a general Pauli rotation, exp(i theta P), takes a QuakeValue
   /// representing a register of qubits.
-  template <QuakeValueOrNumericType ParamT>
+  template <QuakeValueOrNumericType ParamT, typename StringOrQuakeValuePauli>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
-                 const std::string &pauliWord) {
-    std::vector<QuakeValue> qubitValues{qubits};
-    if constexpr (std::is_floating_point_v<ParamT>)
-      details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
-                         pauliWord);
-    else
-      details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
-  }
-
-  /// @brief Apply a general Pauli rotation, exp(i theta P), takes a QuakeValue
-  /// representing a register of qubits.
-  template <QuakeValueOrNumericType ParamT>
-  void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
-                 const QuakeValue &pauliWord) {
+                 const StringOrQuakeValuePauli &pauliWord) {
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
       details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,

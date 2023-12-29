@@ -473,11 +473,11 @@ public:
     auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
     Type eleTy = stdvecTy.getElementType();
     auto innerStdvecTy = dyn_cast<cudaq::cc::StdvecType>(eleTy);
-    std::size_t eleSize;
-    if (innerStdvecTy || isa<cudaq::cc::PointerType>(eleTy))
-      eleSize = 8;
-    else
-      eleSize = eleTy.getIntOrFloatBitWidth() / 8;
+    std::size_t eleSize = [&innerStdvecTy](Type ty) -> std::size_t {
+      if (innerStdvecTy || isa<cudaq::cc::PointerType>(ty))
+        return 8;
+      return ty.getIntOrFloatBitWidth() / 8;
+    }(eleTy);
     auto eleSizeVal = builder.create<arith::ConstantIntOp>(loc, eleSize, 64);
     auto vecLength = builder.create<arith::DivSIOp>(loc, vecSize, eleSizeVal);
     if (innerStdvecTy) {

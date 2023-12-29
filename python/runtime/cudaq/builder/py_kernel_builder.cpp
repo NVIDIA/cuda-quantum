@@ -20,7 +20,7 @@
 #include "cudaq/kernels/givens_rotation.h"
 #include "cudaq/platform.h"
 #include <any>
-#include <iostream>
+
 namespace cudaq {
 struct PyQubit {};
 struct PyQreg {};
@@ -90,7 +90,7 @@ Returns:
                   std::vector<const char *> tmp;
                   return details::mapArgToType(tmp);
                 }
-                // FUTURE hook up more list[T] types
+                // TODO hook up more list[T] types
                 std::vector<double> tmp;
                 return details::mapArgToType(tmp);
               } else if (name == "qubit") {
@@ -1176,8 +1176,8 @@ Args:
           },
           "Apply a general Pauli tensor product rotation, `exp(i theta P)`, on "
           "the specified qubit register. The Pauli tensor product is provided "
-          "as a string, e.g. `XXYX` for a 4-qubit term. The angle parameter "
-          "can be provided as a concrete float or a `QuakeValue`.");
+          "as a `QuakeValue`. The angle parameter can be provided as a "
+          "concrete float or a `QuakeValue`.");
 }
 
 void bindBuilder(py::module &mod) {
