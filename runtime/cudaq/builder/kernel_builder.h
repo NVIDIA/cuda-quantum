@@ -655,7 +655,8 @@ public:
 
   /// @brief Apply a general Pauli rotation, exp(i theta P), takes a QuakeValue
   /// representing a register of qubits.
-  template <QuakeValueOrNumericType ParamT, typename StringOrQuakeValuePauli>
+  template <QuakeValueOrNumericType ParamT,
+            QuakeValueOrStringType StringOrQuakeValuePauli>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
                  const StringOrQuakeValuePauli &pauliWord) {
     std::vector<QuakeValue> qubitValues{qubits};
