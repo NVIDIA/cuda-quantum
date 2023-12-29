@@ -28,14 +28,10 @@ struct KernelExecution {
   std::string name;
   std::string code;
   nlohmann::json output_names;
-  std::vector<std::size_t> mapping_measured_qubits;
   std::vector<std::size_t> mapping_reorder_idx;
-  std::vector<std::size_t> mapping_v2p;
   KernelExecution(std::string &n, std::string &c, nlohmann::json &o,
-                  std::vector<std::size_t> &m1, std::vector<std::size_t> &m2,
-                  std::vector<std::size_t> &m3)
-      : name(n), code(c), output_names(o), mapping_measured_qubits(m1),
-        mapping_reorder_idx(m2), mapping_v2p(m3) {}
+                  std::vector<std::size_t> &m)
+      : name(n), code(c), output_names(o), mapping_reorder_idx(m) {}
 };
 
 /// @brief Responses / Submissions to the Server are modeled via JSON
@@ -51,8 +47,7 @@ using ServerJobPayload =
 
 /// @brief Information about a result coming from a backend
 struct ResultInfoType {
-  std::size_t qirQubit;  // post-mapping qubit number
-  std::size_t userQubit; // pre-mapping qubit number
+  std::size_t qubitNum;
   std::string registerName;
 };
 
@@ -73,13 +68,15 @@ protected:
   /// @brief The number of shots to execute
   std::size_t shots = 100;
 
-  /// @brief Parse a `config` for output names (intended to be called from
-  /// `initialize` if the ServerHelper wants to restore the output names using
-  /// the JSON output_names)
-  void parseConfigForOutputNames(const BackendConfig &config);
+  /// @brief Parse a `config` for common parameters in a server helper (i.e.
+  /// `outputNames` and `reorderIdx`)
+  void parseConfigForCommonParams(const BackendConfig &config);
 
   /// @brief Output names indexed by jobID/taskID
   std::map<std::string, OutputNamesType> outputNames;
+
+  /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
+  std::map<std::string, std::vector<std::size_t>> reorderIdx;
 
 public:
   ServerHelper() = default;

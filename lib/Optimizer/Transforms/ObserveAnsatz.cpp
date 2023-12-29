@@ -114,14 +114,9 @@ private:
             dyn_cast_if_present<ArrayAttr>(funcOp->getAttr("mapping_v2p"))) {
       // First populate mapping_v2p[].
       SmallVector<std::size_t> mapping_v2p(mappingAttr.size());
-      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr)) {
-        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
-          mapping_v2p[origIx] = val.getInt();
-        else {
-          emitError(funcOp.getLoc(), "invalid mapping_v2p found in function");
-          return; // no cleanup necessary because infoMap is unmodified
-        }
-      }
+      std::transform(
+          mappingAttr.begin(), mappingAttr.end(), mapping_v2p.begin(),
+          [](Attribute attr) { return attr.cast<IntegerAttr>().getInt(); });
 
       // Next create newQubitValues[]
       DenseMap<std::size_t, Value> newQubitValues;

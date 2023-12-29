@@ -67,11 +67,10 @@ struct FunctionAnalysisData {
   std::size_t nResults = 0;
   // Store by result to prevent collisions on a single qubit having
   // multiple measurements (Adaptive Profile)
-  // map[result] --> [qirQubit, userQubit, regName]
+  // map[result] --> [qb,regName]
   // Use std::map to keep these sorted in ascending order. While this isn't
   // required, it makes viewing the QIR easier.
-  std::map<std::size_t, std::tuple<std::size_t, std::size_t, std::string>>
-      resultQubitVals;
+  std::map<std::size_t, std::pair<std::size_t, std::string>> resultQubitVals;
 
   // resultOperation[QIR Result Number] = corresponding measurement op
   DenseMap<std::size_t, Operation *> resultOperation;
@@ -94,17 +93,6 @@ private:
     auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(operation);
     if (!funcOp)
       return;
-
-    // Populate a map that maps post-mapping qubit numbers to pre-mapping qubit
-    // numbers (i.e. the inverse of mapping_v2p[]).
-    std::map<std::size_t, std::size_t> mapping_p2v;
-    if (auto mappingAttr =
-            dyn_cast_if_present<ArrayAttr>(operation->getAttr("mapping_v2p"))) {
-      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr))
-        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
-          mapping_p2v[val.getInt()] = origIx;
-    }
-
     FunctionAnalysisData data;
     funcOp->walk([&](LLVM::CallOp callOp) {
       StringRef funcName = callOp.getCalleeAttr().getValue();
@@ -188,15 +176,9 @@ private:
               return nameAttr;
             return {};
           }();
-          auto userQubit = [&]() {
-            auto iter = mapping_p2v.find(qb);
-            if (iter != mapping_p2v.end())
-              return iter->second;
-            return qb;
-          }();
           data.resultOperation.insert({data.nResults, callOp.getOperation()});
           data.resultQubitVals.insert(std::make_pair(
-              data.nResults++, std::make_tuple(qb, userQubit, regName.data())));
+              data.nResults++, std::make_pair(qb, regName.data())));
         } else {
           callOp.emitError("could not trace offset value");
         }
@@ -261,12 +243,12 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
       Value ptr = builder.create<LLVM::IntToPtrOp>(loc, resultTy, idx);
       auto regName = [&]() -> Value {
         auto charPtrTy = cudaq::opt::getCharPointerType(builder.getContext());
-        if (!std::get<2>(rec).empty()) {
+        if (!rec.second.empty()) {
           // Note: it should be the case that this string literal has already
           // been added to the IR, so this step does not actually update the
           // module.
           auto globl =
-              builder.genCStringLiteralAppendNul(loc, module, std::get<2>(rec));
+              builder.genCStringLiteralAppendNul(loc, module, rec.second);
           auto addrOf = builder.create<LLVM::AddressOfOp>(
               loc, cudaq::opt::factory::getPointerType(globl.getType()),
               globl.getName());

@@ -413,38 +413,28 @@ public:
     // Run the config-specified pass pipeline
     runPassPipeline(passPipelineConfig, moduleOp);
 
-    std::vector<std::size_t> mapping_v2p;
     auto entryPointFunc = moduleOp.lookupSymbol<func::FuncOp>(
         std::string("__nvqpp__mlirgen__") + kernelName);
-    if (auto mappingAttr = dyn_cast_if_present<ArrayAttr>(
-            entryPointFunc->getAttr("mapping_v2p"))) {
-      mapping_v2p.resize(mappingAttr.size());
-      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr))
-        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
-          mapping_v2p[origIx] = val.getInt();
-    }
-
-    std::vector<std::size_t> mapping_measured_qubits;
-    if (auto mappingAttr = dyn_cast_if_present<ArrayAttr>(
-            entryPointFunc->getAttr("mapping_measured_qubits"))) {
-      mapping_measured_qubits.resize(mappingAttr.size());
-      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr))
-        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
-          mapping_measured_qubits[origIx] = val.getInt();
-    }
-
     std::vector<std::size_t> mapping_reorder_idx;
     if (auto mappingAttr = dyn_cast_if_present<ArrayAttr>(
             entryPointFunc->getAttr("mapping_reorder_idx"))) {
       mapping_reorder_idx.resize(mappingAttr.size());
-      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr))
-        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
-          mapping_reorder_idx[origIx] = val.getInt();
+      std::transform(
+          mappingAttr.begin(), mappingAttr.end(), mapping_reorder_idx.begin(),
+          [](Attribute attr) { return attr.cast<IntegerAttr>().getInt(); });
+    }
+
+    if (executionContext) {
+      if (executionContext->name == "sample")
+        executionContext->reorderIdx = mapping_reorder_idx;
+      else
+        executionContext->reorderIdx.clear();
     }
 
     std::vector<std::pair<std::string, ModuleOp>> modules;
     // Apply observations if necessary
     if (executionContext && executionContext->name == "observe") {
+      mapping_reorder_idx.clear();
       runPassPipeline("canonicalize,cse", moduleOp);
       cudaq::spin_op &spin = *executionContext->spin.value();
       for (const auto &term : spin) {
@@ -512,8 +502,7 @@ public:
       // Form an output_names mapping from codeStr
       nlohmann::json j = formOutputNames(codegenTranslation, codeStr);
 
-      codes.emplace_back(name, codeStr, j, mapping_measured_qubits,
-                         mapping_reorder_idx, mapping_v2p);
+      codes.emplace_back(name, codeStr, j, mapping_reorder_idx);
     }
     return codes;
   }
@@ -554,6 +543,7 @@ public:
       future = cudaq::details::future(std::async(
           std::launch::async,
           [&, codes, localShots, kernelName, seed,
+           reorderIdx = executionContext->reorderIdx,
            localJIT = std::move(jitEngines)]() mutable -> cudaq::sample_result {
             std::vector<cudaq::ExecutionResult> results;
 
@@ -595,6 +585,7 @@ public:
 
             for (std::size_t i = 0; i < codes.size(); i++) {
               cudaq::ExecutionContext context("sample", localShots);
+              context.reorderIdx = reorderIdx;
               cudaq::getExecutionManager()->setExecutionContext(&context);
               invokeJITKernelAndRelease(localJIT[i], kernelName);
               cudaq::getExecutionManager()->resetExecutionContext();
@@ -608,28 +599,9 @@ public:
               } else {
                 // For each register, add the context results into result.
                 for (auto &regName : context.result.register_names()) {
-                  // If this is the global register, the mapping pass may have
-                  // moved or reordered the user qubits. If so, we need to
-                  // reorder the global register to match the order that would
-                  // be expected if mapping had NOT been run.
-                  if (regName == cudaq::GlobalRegisterName &&
-                      codes[i].mapping_v2p.size() > 0) {
-
-                    // Make a copy of the results because we're going to edit
-                    // them.
-                    cudaq::sample_result newResult{
-                        cudaq::ExecutionResult{context.result.to_map()}};
-
-                    newResult.reorder(codes[i].mapping_reorder_idx);
-                    results.emplace_back(newResult.to_map(), regName);
-                    results.back().sequentialData =
-                        newResult.sequential_data(regName);
-                  } else {
-                    results.emplace_back(context.result.to_map(regName),
-                                         regName);
-                    results.back().sequentialData =
-                        context.result.sequential_data(regName);
-                  }
+                  results.emplace_back(context.result.to_map(regName), regName);
+                  results.back().sequentialData =
+                      context.result.sequential_data(regName);
                 }
               }
             }

@@ -77,7 +77,7 @@ public:
     if (iter != backendConfig.end())
       userSpecifiedCredentials = iter->second;
 
-    parseConfigForOutputNames(config);
+    parseConfigForCommonParams(config);
   }
 
   /// @brief Create a job payload for the provided quantum codes
@@ -183,13 +183,13 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
   // The global register needs to have results sorted by qubit number.
   // Sort output_names by qubit first and then result number. If there are
   // duplicate measurements for a qubit, only save the last one.
-  if (outputNames.find("output_names." + jobId) == outputNames.end())
+  if (outputNames.find(jobId) == outputNames.end())
     throw std::runtime_error("Could not find output names for job " + jobId);
 
-  auto &output_names = outputNames["output_names." + jobId];
+  auto &output_names = outputNames[jobId];
   for (auto &[result, info] : output_names) {
-    cudaq::info("QIR Qubit {} User Qubit {} Result {} Name {}", info.qirQubit,
-                info.userQubit, result, info.registerName);
+    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
+                info.registerName);
   }
 
   // The local mock server tests don't work the same way as the true Quantinuum
@@ -205,7 +205,7 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
         throw std::runtime_error("Expected to see " + val.registerName +
                                  " in the results, but did not see it.");
 
-  // Construct idx[] such that output_names[idx[:]] is sorted by user qubit
+  // Construct idx[] such that output_names[idx[:]] is sorted by QIR qubit
   // number. There may initially be duplicate qubit numbers if that qubit was
   // measured multiple times. If that's true, make the lower-numbered result
   // occur first. (Dups will be removed in the next step below.)
@@ -214,17 +214,17 @@ QuantinuumServerHelper::processResults(ServerMessage &postJobResponse,
     idx.resize(output_names.size());
     std::iota(idx.begin(), idx.end(), 0);
     std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
-      if (output_names[i1].userQubit == output_names[i2].userQubit)
+      if (output_names[i1].qubitNum == output_names[i2].qubitNum)
         return i1 < i2; // choose lower result number
-      return output_names[i1].userQubit < output_names[i2].userQubit;
+      return output_names[i1].qubitNum < output_names[i2].qubitNum;
     });
 
     // The global register only contains the *final* measurement of each
     // requested qubit, so eliminate lower-numbered results from idx array.
     for (auto it = idx.begin(); it != idx.end();) {
       if (std::next(it) != idx.end()) {
-        if (output_names[*it].userQubit ==
-            output_names[*std::next(it)].userQubit) {
+        if (output_names[*it].qubitNum ==
+            output_names[*std::next(it)].qubitNum) {
           it = idx.erase(it);
           continue;
         }

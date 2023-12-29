@@ -852,6 +852,14 @@ public:
         executionContext->result.append(counts);
       }
 
+      // Reorder the global register (if necessary). This might be necessary if
+      // the mapping pass had run and we want to undo the shuffle that occurred
+      // during mapping.
+      if (!executionContext->reorderIdx.empty()) {
+        executionContext->result.reorder(executionContext->reorderIdx);
+        executionContext->reorderIdx.clear();
+      }
+
       // Clear the sample bits for the next run
       sampleQubits.clear();
       midCircuitSampleResults.clear();

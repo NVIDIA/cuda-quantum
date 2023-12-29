@@ -124,7 +124,7 @@ void OQCServerHelper::initialize(BackendConfig config) {
   // Construct the API job path
   config["job_path"] = "/tasks"; // config["url"] + "/tasks";
 
-  parseConfigForOutputNames(config);
+  parseConfigForCommonParams(config);
 
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
@@ -282,13 +282,13 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     }
   }
 
-  if (outputNames.find("output_names." + jobId) == outputNames.end())
+  if (outputNames.find(jobId) == outputNames.end())
     throw std::runtime_error("Could not find output names for job " + jobId);
 
-  auto &output_names = outputNames["output_names." + jobId];
+  auto &output_names = outputNames[jobId];
   for (auto &[result, info] : output_names) {
-    cudaq::info("QIR Qubit {} User Qubit {} Result {} Name {}", info.qirQubit,
-                info.userQubit, result, info.registerName);
+    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
+                info.registerName);
   }
 
   CountsDictionary countsDict;
@@ -319,40 +319,30 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     sampleResult.append(executionResult);
   }
 
-  // Consider the following CUDA Quantum program
-  // cudaq::qubit a, b, c, d, e, f;
-  // mz(f);
-  // mz(c);
-
-  // Now assume the mapping pass converted it to "acebdf" (for QIR qubits 0-5)
-  // - mapping_v2p = [0, 3, 1, 4, 2, 5] (i.e. virtual qubit 1[b] ended up in QIR
-  // qubit #3)
-  // - mapping_measured_qubits = [5, 2] (i.e. [f, c])
-  // - output_names would be = {result=0, qubit=5}, {result=1, qubit=1}
-
-  // And jsonResults: "fc"
-  // I think I just need to apply
-  //   [~,ix] = sort(mapping_measured_qubits);
-  //   newResults = jsonResults(ix);
-
-  std::vector<std::size_t> userQubitMeasurements;
-  userQubitMeasurements.reserve(output_names.size());
+  // First reorder the global register by QIR qubit number.
+  std::vector<std::size_t> qirQubitMeasurements;
+  qirQubitMeasurements.reserve(output_names.size());
   for (auto &[result, info] : output_names)
-    userQubitMeasurements.push_back(info.userQubit);
+    qirQubitMeasurements.push_back(info.qubitNum);
 
   std::vector<std::size_t> idx(output_names.size());
   std::iota(idx.begin(), idx.end(), 0);
-  std::sort(idx.begin(), idx.end(),
-            [&v = userQubitMeasurements](std::size_t i1, std::size_t i2) {
-              return v[i1] < v[i2];
-            });
-  cudaq::info("Reordering vector to map QIR result order to user qubit "
+  std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
+    return qirQubitMeasurements[i1] < qirQubitMeasurements[i2];
+  });
+  cudaq::info("Reordering global result to map QIR result order to QIR qubit "
               "allocation order is {}",
               idx);
   sampleResult.reorder(idx);
 
-  // Note: the bitstring is sorted by the underlying QIR result number, but
-  // the CUDA Quantum way is to sort by qubit allocation order.
+  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
+  // original user qubit allocation order.
+  auto thisJobReorderIdxIt = reorderIdx.find(jobId);
+  if (thisJobReorderIdxIt != reorderIdx.end()) {
+    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
+    if (!thisJobReorderIdx.empty())
+      sampleResult.reorder(thisJobReorderIdx);
+  }
 
   // We will also make registers for each result using output_names.
   for (auto &[result, info] : output_names) {

@@ -95,7 +95,7 @@ module {
   }
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_measured_qubits = [1, 2, 3, 4], mapping_reorder_idx = [1, 0, 2, 3], mapping_v2p = [2, 1, 0, 3, 4], no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [1, 0, 2, 3], mapping_v2p = [2, 1, 0, 3, 4], no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
@@ -182,7 +182,7 @@ module {
 // CHECK:           return
 // CHECK:         }
 
-// RING-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_measured_qubits = [1, 2, 3, 4], mapping_reorder_idx = [0, 1, 3, 2], mapping_v2p = [0, 1, 2, 4, 3], no_this}
-// GRID-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_measured_qubits = [1, 2, 3, 4], mapping_reorder_idx = [0, 1, 2, 3], mapping_v2p = [0, 1, 2, 3, 4], no_this}
-// STAR50-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_measured_qubits = [1, 2, 3, 4], mapping_reorder_idx = [0, 2, 1, 3], mapping_v2p = [1, 0, 3, 2, 4], no_this}
-// STAR52-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_measured_qubits = [1, 2, 3, 4], mapping_reorder_idx = [1, 2, 0, 3], mapping_v2p = [1, 2, 3, 0, 4], no_this}
+// RING-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [0, 1, 3, 2], mapping_v2p = [0, 1, 2, 4, 3], no_this}
+// GRID-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [0, 1, 2, 3], mapping_v2p = [0, 1, 2, 3, 4], no_this}
+// STAR50-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [0, 2, 1, 3], mapping_v2p = [1, 0, 3, 2, 4], no_this}
+// STAR52-LABEL:   func.func {{.*}} attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [1, 2, 0, 3], mapping_v2p = [1, 2, 3, 0, 4], no_this}
