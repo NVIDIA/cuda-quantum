@@ -291,8 +291,8 @@ public:
 
     // Instructions executed, run the measure call
 
-    // Check if we are sampling, if so, indicate to the 
-    // simulation runtime that we are measuring a vector register 
+    // Check if we are sampling, if so, indicate to the
+    // simulation runtime that we are measuring a vector register
     // by providing the single name for the register
     if (executionContext && executionContext->name == "sample")
       executionContext->measuringRegisterName = regName;
