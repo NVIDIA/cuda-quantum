@@ -25,7 +25,7 @@ struct KernelCharacteristics {
   bool isObserved = false;
   /// @brief What is the kernel function name?
   std::string name;
-  /// can add more in the futute ...
+  /// can add more in the future ...
 };
 
 using namespace clang;
