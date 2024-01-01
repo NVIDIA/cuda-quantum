@@ -169,8 +169,10 @@ public:
 };
 
 // Serialization for a vector of 'trivial' types (POD), e.g.,
-// std::vector<double>
+// `std::vector<double>`.
 // Format: vector size followed by data
+// Note: vectors of non-POD types are not supported by this library-mode
+// serializer.
 template <class T>
 class SerializeArgImpl<std::vector<T>,
                        std::enable_if_t<std::is_trivial<T>::value>> {
