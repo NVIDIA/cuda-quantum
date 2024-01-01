@@ -9,6 +9,7 @@ import pytest
 import os, math
 import cudaq
 
+
 def has_rest_server():
     try:
         import subprocess
@@ -17,10 +18,12 @@ def has_rest_server():
     except:
         return False
 
+
 skipIfNoRestServer = pytest.mark.skipif(
     not (has_rest_server()), reason="cudaq_rest_server not available")
 
 num_qpus = 3
+
 
 @pytest.fixture(scope="session", autouse=True)
 @skipIfNoRestServer
@@ -29,11 +32,13 @@ def startUpMockServer():
     yield
     cudaq.reset_target()
 
+
 @skipIfNoRestServer
 def test_setup():
     target = cudaq.get_target()
     numQpus = target.num_qpus()
     assert numQpus == num_qpus
+
 
 @skipIfNoRestServer
 def test_sample():
@@ -56,6 +61,7 @@ def test_sample():
     assert "00" in counts
     assert "11" in counts
 
+
 @skipIfNoRestServer
 def test_observe():
     # Create the parameterized ansatz
@@ -72,11 +78,14 @@ def test_observe():
 
     res = cudaq.observe(kernel, hamiltonian, 0.59)
     print("Energy =", res.expectation())
-    assert abs(res.expectation() + 1.748794) < 0.01
+    expected_energy = -1.748794
+    energy_tol = 0.01
+    assert abs(res.expectation() - expected_energy) < energy_tol
     future = cudaq.observe_async(kernel, hamiltonian, 0.59)
     res = future.get()
     print("Energy =", res.expectation())
-    assert abs(res.expectation() + 1.748794) < 0.01
+    assert abs(res.expectation() - expected_energy) < energy_tol
+
 
 @skipIfNoRestServer
 def test_multi_qpus():
@@ -115,8 +124,11 @@ def test_multi_qpus():
     optimal_value, optimal_parameters = optimizer.optimize(1, opt_gradient)
     print("Ground state energy =", optimal_value)
     print("Optimal parameters =", optimal_parameters)
-    assert abs(optimal_value + 1.748794) < 0.01
-    assert abs(optimal_parameters[0] - 0.59) < 0.01
+    expected_energy = -1.748794
+    expected_optimal_param = 0.59
+    tolerance = 0.01
+    assert abs(optimal_value - expected_energy) < tolerance
+    assert abs(optimal_parameters[0] - expected_optimal_param) < tolerance
 
 
 # leave for gdb debugging

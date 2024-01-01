@@ -9,8 +9,8 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
+#include "common/KernelWrapper.h"
 #include "common/MeasureCounts.h"
-#include "common/WrappedKernel.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "host_config.h"

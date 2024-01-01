@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-/*! \file WrappedKernel.h
+/*! \file KernelWrapper.h
     \brief Utility classes to support library-mode kernel launch.
 
     This header file defines classes supporting launching quantum kernels in

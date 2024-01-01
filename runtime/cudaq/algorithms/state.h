@@ -9,7 +9,7 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/WrappedKernel.h"
+#include "common/KernelWrapper.h"
 #include "cudaq/concepts.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
