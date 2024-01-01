@@ -6,7 +6,7 @@ differentiates between kernels invoked from host code and those invoked
 from within another quantum kernel. The former are denoted **entry-point**
 quantum kernels, the latter are **pure device** quantum kernels. All quantum
 kernels must be annotated to indicate they are to be compiled to and executed
-on a specified quantum coprocessor. CUDA Quantum requires the **__qpu__** function
+on a specified quantum coprocessor. CUDA Quantum requires the :code:`__qpu__` function
 attribute for quantum kernel declarations. 
 
 Quantum kernel function bodies are programmed in a subset of C++. They can be composed of the following: 
@@ -51,11 +51,11 @@ memory cannot be allocated from within host code.
 Pure device quantum kernels can be expressed as typed-callables, but can also
 be represented as annotated free functions. Pure device quantum kernels can take
 :code:`cudaq::qudit<N>` specializations and containers (e.g. 
-:code:`cudaq::qspan`, :code:`cudaq::qreg`) as input. 
+:code:`cudaq::qview`, :code:`cudaq::qvector`) as input. 
 
 .. code-block:: cpp
 
-    auto my_first_device_kernel = [](cudaq::qreg<>& q) __qpu__ { 
+    auto my_first_device_kernel = [](cudaq::qvector<>& q) __qpu__ { 
        ... quantum code using q ...
        };
     struct my_second_device_kernel { 
@@ -91,70 +91,70 @@ on callable quantum kernel code, programmers can leverage standard C++ template 
 
 .. code-block:: cpp 
 
-  struct MyStatePrep {
-    void operator()(cudaq::qspan<> qubits) __qpu__ {
-      ... apply state prep operations on qubits ...
-    }
-  };
+    struct MyStatePrep {
+      void operator()(cudaq::qview<> qubits) __qpu__ {
+        ... apply state prep operations on qubits ...
+      }
+    };
 
-  struct MyGenericAlgorithm {
-    template<typename StatePrep>
-    void operator()(StatePrep&& statePrep) __qpu__ {
-      cudaq::qreg<10> q;
-      statePrep(q);
-      ...
-    }
-  };
+    struct MyGenericAlgorithm {
+      template<typename StatePrep>
+      void operator()(StatePrep&& statePrep) __qpu__ {
+        cudaq::qarray<10> q;
+        statePrep(q);
+        ...
+      }
+    };
 
-  // -or- with placeholder type specifiers
-  struct MyGenericAlgorithm2 {
-    void operator()(auto&& statePrep) __qpu__ {
-      cudaq::qreg<10> q;
-      statePrep(q);
-      ...
-    }
-  };
+    // -or- with placeholder type specifiers
+    struct MyGenericAlgorithm2 {
+      void operator()(auto&& statePrep) __qpu__ {
+        cudaq::qarray<10> q;
+        statePrep(q);
+        ...
+      }
+    };
 
-  MyGenericAlgorithm algorithm;
-  algorithm(MyStatePrep{});
+    MyGenericAlgorithm algorithm;
+    algorithm(MyStatePrep{});
 
-  MyGenericAlgorithm2 anotherVersion;
-  anotherVersion(MyStatePrep{});
+    MyGenericAlgorithm2 anotherVersion;
+    anotherVersion(MyStatePrep{});
 
 CUDA Quantum kernel inputs can also be `constrained <https://en.cppreference.com/w/cpp/language/constraints>`_. 
 
 .. code-block:: cpp 
 
-  namespace cudaq {
+    namespace cudaq {
 
-    // Generic constraint on Kernel Function Signatures
-    template <typename Kernel, typename Signature>
-    concept signature = std::is_convertible_v<Kernel, std::function<Signature>>; 
+      // Generic constraint on Kernel Function Signatures
+      template <typename Kernel, typename Signature>
+      concept signature = std::is_convertible_v<Kernel, std::function<Signature>>; 
 
-    // Specialized for taking a single qubit
-    template<typename Kernel>
-    concept takes_qubit = signature<Kernel, void(qubit&)>;
-  }
-
-  struct MyGenericAlgorithmOnQreg {
-    void operator()(cudaq::signature<void(cudaq::qreg&)> auto&& statePrep) __qpu__ {
-      cudaq::qreg<10> q;
-      statePrep(q);
-      ...
+      // Specialized for taking a single qubit
+      template<typename Kernel>
+      concept takes_qubit = signature<Kernel, void(qubit&)>;
     }
-  };
 
-  struct MyGenericAlgorithmOnQubit {
-    void operator()(cudaq::takes_qubit auto&& statePrep) __qpu__ {
-      cudaq::qreg<10> q;
-      statePrep(q[0]);
-      ...
-    }
-  };
+    struct MyGenericAlgorithmOnQarray {
+      void operator()(cudaq::signature<void(cudaq::qarray&)> auto&& statePrep) __qpu__ {
+        cudaq::qarray<10> q;
+        statePrep(q);
+        ...
+      }
+    };
+
+    struct MyGenericAlgorithmOnQubit {
+      void operator()(cudaq::takes_qubit auto&& statePrep) __qpu__ {
+        cudaq::qarray<10> q;
+        statePrep(q[0]);
+        ...
+      }
+    };
 
 This approach enables the development of generic libraries of quantum 
 algorithms that are parameterized on sub-units of the global circuit representation. 
 
 Allowed Kernel Classical Function Invocations
 ---------------------------------------------
-TODO
+To be filled in...
