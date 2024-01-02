@@ -131,7 +131,7 @@ bool ignoredClass(clang::RecordDecl *x);
 /// The general design is to walk the tree in a post-order traversal and
 /// assemble the IR from the leaves back down the tree. Traversals over types
 /// should push Type values to the type stack. Traversals over expressions
-/// should create IR in the ModuleOp as well as push `subexpressions` on the
+/// should create IR in the ModuleOp as well as push subexpressions on the
 /// stack for parent nodes. A parent node always knows how many children it
 /// needs to be constructed correctly. The types of expressions are carried
 /// along with the expressions in the IR and need not be duplicated on the type

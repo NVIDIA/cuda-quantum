@@ -164,7 +164,7 @@ matrix:
       - open: '[\\@]param(\s+\[[a-z]+\])?\s+(?:\S+)'
         close: '(\s|$)'
       # Ignore words that start with a \ or @, e.g. @param used in doc comments
-      - open: '[\\@](\S+|[n\\@&\$#<>%"\.=|]|::|--|---)'
+      - open: '[\\@](\w|[\\@&\$#<>%"\.=|]|::|--|---)'
         close: '(\s|$)'
       # Ignore words before and after double columns
       - open: '([a-zA-Z0-9_])*::'
