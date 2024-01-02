@@ -136,10 +136,13 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="platform.html#remote-rest-server-platform">Remote REST Server Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#auto-launch-rest-server">Auto-launch REST Server</a></li>
 </ul>
 </li>
 </ul>
@@ -437,7 +440,7 @@ kernel structs, lambdas, or functions. CUDA Quantum provides an abstraction call
 create a kernel with the following callable structure.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">kernel</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">double</span><span class="w"> </span><span class="n">theta</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 <span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>

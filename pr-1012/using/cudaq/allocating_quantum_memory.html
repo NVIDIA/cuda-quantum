@@ -136,10 +136,13 @@
 <li class="toctree-l2"><a class="reference internal" href="builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="platform.html#remote-rest-server-platform">Remote REST Server Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#auto-launch-rest-server">Auto-launch REST Server</a></li>
 </ul>
 </li>
 </ul>
@@ -450,52 +453,46 @@ development work has focused on <code class="code docutils literal notranslate">
 discussions that follow are meant to be general on qudits.</p>
 </div>
 <p>The CUDA Quantum quantum memory container types are the
-<code class="code docutils literal notranslate"><span class="pre">cudaq::qreg&lt;NQudits</span> <span class="pre">=</span> <span class="pre">dyn,</span> <span class="pre">Levels&gt;</span></code> and the
-<code class="code docutils literal notranslate"><span class="pre">cudaq::qspan&lt;NQudits</span> <span class="pre">=</span> <span class="pre">dyn,</span> <span class="pre">Levels&gt;</span></code>, representing owning and non-owning
+<code class="code docutils literal notranslate"><span class="pre">cudaq::qarray&lt;NQudits,</span> <span class="pre">Levels&gt;</span></code> and the
+<code class="code docutils literal notranslate"><span class="pre">cudaq::qview&lt;NQudits,</span> <span class="pre">Levels&gt;</span></code>, representing owning and non-owning
 semantics, respectively. Notice that the first template parameter represents
-the number of qudits contained and is defaulted to a special symbol in CUDA Quantum
-(<code class="code docutils literal notranslate"><span class="pre">dyn</span></code>) indicating that this is a runtime-known, dynamic register of
-qudits, very much akin to something like <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;T&gt;</span> <span class="pre">v(N)</span></code> in
-classical C++. One can alternatively specify this template parameter to pick
-up <code class="code docutils literal notranslate"><span class="pre">std::array&lt;T,</span> <span class="pre">N&gt;</span> <span class="pre">a</span></code> like semantics whereby the size of the register is
-known at compile time. The trade-off here is important; there may be quantum
-circuit optimizations that can be enabled at compile time for CUDA Quantum kernels
-solely employing compile-time-known <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code> allocations.</p>
-<p>These quantum memory types are specifically designed to throw compile-time errors
-when they are incorrectly used. An example of this for quantum memory and
-its underlying ownership model can be seen in this snippet.</p>
+the number of qudits contained. If the number of qubits is not known at compile
+time, one can use the <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code> container. These quantum memory
+types are specifically designed to throw compile-time errors when they are
+incorrectly used. An example of this for quantum memory and its underlying
+ownership model can be seen in this snippet.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">fooBad</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 <span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">fooGood</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="o">&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barBad</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barGood</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;&gt;&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barGoodWithSpan</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qspan</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barBad</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barGood</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;&gt;&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barGoodWithView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qview</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
 
 <span class="k">struct</span><span class="w"> </span><span class="nc">myEntryPointKernel</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">int</span><span class="w"> </span><span class="n">runtimeKnownInteger</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="c1">// Allocate array-like compile-time-known</span>
 <span class="w">    </span><span class="c1">// register of 2 qubits. Owns the qubits.</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
 <span class="w">    </span><span class="c1">// fooBad (a[0]); // Compile Error, cannot pass qubits by value (no copy)</span>
 <span class="w">    </span><span class="c1">// auto alias = a[0]; // Compile Error, cannot copy (auto defaults to by-value)</span>
 <span class="w">    </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">alias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><span class="w"> </span><span class="c1">// Must alias by reference</span>
 <span class="w">    </span><span class="n">fooGood</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span><span class="w"> </span><span class="c1">// Can pass by reference, no copy</span>
 
-<span class="w">    </span><span class="c1">// barBad(a); // Compile Error, cannot pass qreg by value</span>
+<span class="w">    </span><span class="c1">// barBad(a); // Compile Error, cannot pass qarray by value</span>
 <span class="w">    </span><span class="n">barGood</span><span class="p">(</span><span class="n">a</span><span class="p">);</span><span class="w"> </span><span class="c1">// Can pass by reference, no copy</span>
 
 <span class="w">    </span><span class="c1">// Allocate vector-like register of qubits</span>
 <span class="w">    </span><span class="c1">// Owns the qubits</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="n">b</span><span class="p">(</span><span class="n">runtimeKnownInteger</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">b</span><span class="p">(</span><span class="n">runtimeKnownInteger</span><span class="p">);</span>
 
 <span class="w">    </span><span class="c1">// Get the front 2 qubits, which returns</span>
-<span class="w">    </span><span class="c1">// a cudaq::span&lt;&gt;, it does not own the qubits.</span>
+<span class="w">    </span><span class="c1">// a cudaq::qview&lt;&gt;, it does not own the qubits.</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">sub_view</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">front</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// cudaq::span is non-owning, it can be passed by value</span>
-<span class="w">    </span><span class="n">barGoodWithSpan</span><span class="p">(</span><span class="n">sub_view</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// cudaq::qview is non-owning, it can be passed by value</span>
+<span class="w">    </span><span class="n">barGoodWithView</span><span class="p">(</span><span class="n">sub_view</span><span class="p">);</span>
 
-<span class="w">    </span><span class="c1">// cudaq::qreg can also be passed to a kernel that accepts a span</span>
-<span class="w">    </span><span class="n">barGoodWithSpan</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// cudaq::qvector can also be passed to a kernel that accepts a view</span>
+<span class="w">    </span><span class="n">barGoodWithView</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
 
 <span class="w">    </span><span class="c1">// Front with no size provided will</span>
 <span class="w">    </span><span class="c1">// return a reference to the first qubit.</span>
@@ -509,13 +506,13 @@ its underlying ownership model can be seen in this snippet.</p>
 <span class="p">};</span>
 </pre></div>
 </div>
-<p><code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> and <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code> types are owning types and
+<p><code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> and <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code> types are owning types and
 therefore cannot be passed by value to invoked pure quantum device kernels.
 In order to share allocated registers with other quantum function calls,
 one must pass by reference or define the invoked kernel to take the qubits
-as a <code class="code docutils literal notranslate"><span class="pre">cudaq::span</span></code>. Note that all slicing operations intended to
-extract a sub-register from a given <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code> will return a
-non-owning <code class="code docutils literal notranslate"><span class="pre">qspan</span></code>.</p>
+as a <code class="code docutils literal notranslate"><span class="pre">cudaq::qview</span></code>. Note that all slicing operations intended to
+extract a sub-register from a given <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code> will return a
+non-owning <code class="code docutils literal notranslate"><span class="pre">qview</span></code>.</p>
 </section>
 
 

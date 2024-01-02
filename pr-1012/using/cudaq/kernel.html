@@ -136,10 +136,13 @@
 <li class="toctree-l2"><a class="reference internal" href="builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="platform.html#remote-rest-server-platform">Remote REST Server Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#auto-launch-rest-server">Auto-launch REST Server</a></li>
 </ul>
 </li>
 </ul>
@@ -461,7 +464,7 @@ called from host code, while pure-device kernels are those that can only be
 called from other quantum kernel code. See the <a class="reference internal" href="../../specification/cudaq/kernels.html"><span class="doc">specification</span></a>
 for more detail,  but here we note that the “typed” requirement can be relaxed
 for pure-device kernels:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">freeFunctionDeviceKernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qspan</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">freeFunctionDeviceKernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qview</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
 <span class="c1">// Entry points are those that can be called from host code</span>
 <span class="c1">// i.e., can only take classical input and return classical output</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">myEntryPointKernel1</span><span class="w"> </span><span class="p">{</span>

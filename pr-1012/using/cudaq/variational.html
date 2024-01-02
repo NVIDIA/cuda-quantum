@@ -136,10 +136,13 @@
 <li class="toctree-l2"><a class="reference internal" href="builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="platform.html#remote-rest-server-platform">Remote REST Server Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="platform.html#auto-launch-rest-server">Auto-launch REST Server</a></li>
 </ul>
 </li>
 </ul>
@@ -445,7 +448,7 @@ gradients in <code class="code docutils literal notranslate"><span class="pre">&
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Define your parameterized ansatz</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">ansatz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">double</span><span class="w"> </span><span class="n">x0</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">x1</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="n">ry</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 <span class="w">    </span><span class="n">ry</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
@@ -483,7 +486,7 @@ Here is an example:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Define your parameterized ansatz</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">ansatz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">double</span><span class="w"> </span><span class="n">x0</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">x1</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="n">ry</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 <span class="w">    </span><span class="n">ry</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>

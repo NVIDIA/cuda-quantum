@@ -136,10 +136,13 @@
 <li class="toctree-l2"><a class="reference internal" href="builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-rest-server-platform">Remote REST Server Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#auto-launch-rest-server">Auto-launch REST Server</a></li>
 </ul>
 </li>
 </ul>
@@ -444,7 +447,14 @@ platform via the <code class="code docutils literal notranslate"><span class="pr
 QPUs for asynchronous CUDA Quantum kernel and <code class="code docutils literal notranslate"><span class="pre">cudaq::</span></code> function invocations.
 Each available QPU is assigned a logical index, and programmers can launch
 specific asynchronous function invocations targeting a desired QPU.</p>
-<p>Here is a simple example demonstrating this:</p>
+<section id="nvidia-mqpu-platform">
+<h2>NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform<a class="headerlink" href="#nvidia-mqpu-platform" title="Permalink to this heading">¶</a></h2>
+<p>The NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> target (<code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code>) provides a simulated QPU for every available NVIDIA GPU on the underlying system.
+Each QPU is simulated via a <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> simulator backend.
+This target enables asynchronous parallel execution of quantum kernel tasks.</p>
+<p>Here is a simple example demonstrating its usage.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernelToBeSampled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">runtimeParam</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">runtimeParam</span><span class="p">);</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
@@ -484,23 +494,8 @@ primitive functions like <code class="code docutils literal notranslate"><span c
 <span class="go">./a.out</span>
 </pre></div>
 </div>
-<p>Depending on the number of GPUs available on the system, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform will create the same number of virtual QPU instances.
-For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those <code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code> instances.</p>
-<p>The results might look like the following 4 different random samplings:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Number of QPUs: 4</span>
-<span class="go">{ 10011:28 01100:28 ... }</span>
-<span class="go">{ 10011:37 01100:25 ... }</span>
-<span class="go">{ 10011:29 01100:25 ... }</span>
-<span class="go">{ 10011:33 01100:30 ... }</span>
-</pre></div>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>By default, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform will utilize all available GPUs (number of QPUs instances is equal to the number of GPUs).
-To specify the number QPUs to be instantiated, one can set the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MQPU_NGPUS</span></code> environment variable.
-For example, use <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">CUDAQ_MQPU_NGPUS=2</span></code> to specify that only 2 QPUs (GPUs) are needed.</p>
-</div>
-<p>An equivalent example in Python is as follows.</p>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
@@ -523,11 +518,31 @@ For example, use <code class="code docutils literal notranslate"><span class="pr
     <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
 </pre></div>
 </div>
+</div>
+</div>
+<p>Depending on the number of GPUs available on the system, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform will create the same number of virtual QPU instances.
+For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those <code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code> instances.</p>
+<p>The results might look like the following 4 different random samplings:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Number of QPUs: 4</span>
+<span class="go">{ 10011:28 01100:28 ... }</span>
+<span class="go">{ 10011:37 01100:25 ... }</span>
+<span class="go">{ 10011:29 01100:25 ... }</span>
+<span class="go">{ 10011:33 01100:30 ... }</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By default, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform will utilize all available GPUs (number of QPUs instances is equal to the number of GPUs).
+To specify the number QPUs to be instantiated, one can set the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MQPU_NGPUS</span></code> environment variable.
+For example, use <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">CUDAQ_MQPU_NGPUS=2</span></code> to specify that only 2 QPUs (GPUs) are needed.</p>
+</div>
 <section id="asynchronous-expectation-value-computations">
-<h2>Asynchronous expectation value computations<a class="headerlink" href="#asynchronous-expectation-value-computations" title="Permalink to this heading">¶</a></h2>
+<h3>Asynchronous expectation value computations<a class="headerlink" href="#asynchronous-expectation-value-computations" title="Permalink to this heading">¶</a></h3>
 <p>One typical use case of the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform is to distribute the
 expectation value computations of a multi-term Hamiltonian across multiple virtual QPUs (<code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code>).</p>
 <p>Here is an example.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="o">::</span><span class="nn">spin</span><span class="p">;</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.907</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span>
 <span class="w">                     </span><span class="mf">.21829</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">6.125</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
@@ -555,7 +570,8 @@ expectation value computations of a multi-term Hamiltonian across multiple virtu
 <span class="go">./a.out</span>
 </pre></div>
 </div>
-<p>Equivalently, in Python, we would use the following:</p>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
@@ -566,10 +582,10 @@ expectation value computations of a multi-term Hamiltonian across multiple virtu
 
 <span class="c1"># Define spin ansatz.</span>
 <span class="n">kernel</span><span class="p">,</span> <span class="n">theta</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-<span class="n">qreg</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">qvec</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">qvec</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qvec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="c1"># Define spin Hamiltonian.</span>
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span>
     <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -581,12 +597,14 @@ expectation value computations of a multi-term Hamiltonian across multiple virtu
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Expectation value: &quot;</span><span class="p">,</span> <span class="n">exp_val</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>In the above code snippet, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
+</div>
+</div>
+<p>In the above code snippets, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
 in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform
 is selected, these circuits will be distributed across all available QPUs. The final expectation value result is computed from all QPU execution results.</p>
 </section>
 <section id="parallel-distribution-mode">
-<h2>Parallel distribution mode<a class="headerlink" href="#parallel-distribution-mode" title="Permalink to this heading">¶</a></h2>
+<h3>Parallel distribution mode<a class="headerlink" href="#parallel-distribution-mode" title="Permalink to this heading">¶</a></h3>
 <p>The CUDA Quantum <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform supports two modes of parallel distribution of expectation value computation:</p>
 <ul class="simple">
 <li><p>MPI: distribute the expectation value computations across available MPI ranks and GPUs for each Hamiltonian term.</p></li>
@@ -597,8 +615,8 @@ is selected, these circuits will be distributed across all available QPUs. The f
 On the other hand, if one wants to distribute the tasks across GPUs on multiple nodes, e.g., on a compute cluster, MPI distribution mode
 should be used.</p>
 <p>An example of MPI distribution mode usage in both C++ and Python is given below:</p>
-<section id="c">
-<h3>C++<a class="headerlink" href="#c" title="Permalink to this heading">¶</a></h3>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">initialize</span><span class="p">();</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="o">::</span><span class="nn">spin</span><span class="p">;</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.907</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span>
@@ -621,9 +639,8 @@ should be used.</p>
 <span class="go">mpirun -np &lt;N&gt; a.out</span>
 </pre></div>
 </div>
-</section>
-<section id="python">
-<h3>Python<a class="headerlink" href="#python" title="Permalink to this heading">¶</a></h3>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
@@ -632,10 +649,10 @@ should be used.</p>
 
 <span class="c1"># Define spin ansatz.</span>
 <span class="n">kernel</span><span class="p">,</span> <span class="n">theta</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-<span class="n">qreg</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">qvec</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">qvec</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qvec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <span class="c1"># Define spin Hamiltonian.</span>
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span>
     <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -651,10 +668,61 @@ should be used.</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">mpirun -np &lt;N&gt; python3 file.py</span>
 </pre></div>
 </div>
+</div>
+</div>
 <p>In the above example, the parallel distribution mode was set to <code class="code docutils literal notranslate"><span class="pre">mpi</span></code> using <code class="code docutils literal notranslate"><span class="pre">cudaq::parallel::mpi</span></code> in C++ or <code class="code docutils literal notranslate"><span class="pre">cudaq.parallel.mpi</span></code> in Python.
 CUDA Quantum provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime.
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command,
 e.g., <code class="code docutils literal notranslate"><span class="pre">mpirun</span></code>, <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code>, <code class="code docutils literal notranslate"><span class="pre">srun</span></code>, etc.</p>
+</section>
+</section>
+<section id="remote-rest-server-platform">
+<h2>Remote REST Server Platform<a class="headerlink" href="#remote-rest-server-platform" title="Permalink to this heading">¶</a></h2>
+<p>The remote simulator target (<code class="code docutils literal notranslate"><span class="pre">remote-sim</span></code>) encapsulates simulated QPUs
+as independent REST server instances, to which the CUDA Quantum runtime communicates via HTTP requests (REST API).
+to via HTTP requests (REST API).</p>
+<p>CUDA Quantum provides the REST server implementation as a standalone application (<code class="code docutils literal notranslate"><span class="pre">cudaq_rest_server</span></code>)
+hosting all the simulator backends available in the installation, including those that require MPI for multi-GPU computation.
+To start the server, serving at a specific TCP/IP port, one can do the following.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cudaq_rest_server --port &lt;port number&gt;</span>
+</pre></div>
+</div>
+<p>User code can then target this platform by specifying its target name (<code class="code docutils literal notranslate"><span class="pre">remote-sim</span></code>).</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ file.cpp --target remote-sim --remote-sim-url &lt;url1[,url2,...]&gt; --remote-sim-backend &lt;sim1[,sim2,...]&gt;</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-sim&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;url1[,url2,...]&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;sim1[,sim2,...]&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>When using this target, the user needs to provides a list of URLs where (<code class="code docutils literal notranslate"><span class="pre">cudaq_rest_server</span></code>) is serving.
+The number of QPUs (<code class="code docutils literal notranslate"><span class="pre">num_qpus()</span></code>) is equal to the number of URLs provided.</p>
+<p>Each QPU instance can be assigned a different backend simulator via the <code class="code docutils literal notranslate"><span class="pre">--remote-sim-backend</span></code> (<code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>) or <code class="code docutils literal notranslate"><span class="pre">backend</span></code> (Python)
+option. Otherwise, if a single backend is specified, all the QPUs are assumed to be using the same simulator.</p>
+<section id="auto-launch-rest-server">
+<h3>Auto-launch REST Server<a class="headerlink" href="#auto-launch-rest-server" title="Permalink to this heading">¶</a></h3>
+<p>The server app (<code class="code docutils literal notranslate"><span class="pre">cudaq_rest_server</span></code>) can be launch and shutdown automatically
+by using the auto-launch feature of the platform.
+Random TCP/IP ports, that are available for use, will be selected to launch those server processes.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ file.cpp --target remote-sim --remote-sim-auto-launch &lt;N&gt; --remote-sim-backend &lt;sim1[,sim2,...]&gt;</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-sim&quot;</span><span class="p">,</span> <span class="n">auto_launch</span><span class="o">=</span><span class="s2">&quot;&lt;N&gt;&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;sim1[,sim2,...]&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>In the above snippets, <code class="code docutils literal notranslate"><span class="pre">N</span></code> denotes the number of REST server instances (QPUs) to be launched.
+These servers will be shut down at the end of the execution.</p>
 </section>
 </section>
 </section>

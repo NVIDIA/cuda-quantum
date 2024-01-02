@@ -136,10 +136,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../using/cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../using/cudaq/variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../using/cudaq/platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../using/cudaq/platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../using/cudaq/platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../using/cudaq/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../using/cudaq/platform.html#remote-rest-server-platform">Remote REST Server Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../using/cudaq/platform.html#auto-launch-rest-server">Auto-launch REST Server</a></li>
 </ul>
 </li>
 </ul>
@@ -440,8 +443,9 @@ for that target.</p>
 <p>Operations that implement unitary transformations of the quantum state are templated.
 The template argument allows to invoke the adjoint and controlled version of the quantum transformation, see the section on <a class="reference internal" href="#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a>.</p>
 <p>CUDA Quantum additionally provides overloads to support broadcasting of
-single-qubit operations across a register of qubits.
-For example, <code class="code docutils literal notranslate"><span class="pre">x(cudaq::qreg&lt;&gt;&amp;)</span></code> flips the state of each qubit in the provided <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code>.</p>
+single-qubit operations across a vector of qubits.  For example,
+<code class="code docutils literal notranslate"><span class="pre">x(cudaq::qvector&lt;&gt;&amp;)</span></code> flips the state of each qubit in the provided
+<code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>.</p>
 <section id="unitary-operations-on-qubits">
 <h2>Unitary Operations on Qubits<a class="headerlink" href="#unitary-operations-on-qubits" title="Permalink to this heading">¶</a></h2>
 <section id="x">

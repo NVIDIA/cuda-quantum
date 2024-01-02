@@ -136,10 +136,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#remote-rest-server-platform">Remote REST Server Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#auto-launch-rest-server">Auto-launch REST Server</a></li>
 </ul>
 </li>
 </ul>
@@ -455,7 +458,7 @@ device kernel</p>
 <span class="p">};</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">kernel</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="p">...</span>
 <span class="w">    </span><span class="c1">// Create Toffoli gate</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ctrl_bits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">front</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
@@ -468,7 +471,7 @@ device kernel</p>
 <span class="p">};</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">kernel</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
 <span class="w">    </span><span class="p">...</span>
 <span class="w">    </span><span class="c1">// apply h(q[2]); rx(-pi, q[2]);</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">adjoint</span><span class="p">(</span><span class="n">rx_and_h_gate</span><span class="p">{},</span><span class="w"> </span><span class="n">M_PI</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
@@ -478,8 +481,8 @@ device kernel</p>
 </pre></div>
 </div>
 <p>The <code class="code docutils literal notranslate"><span class="pre">cudaq::control(...)</span></code> function takes as input an instantiated pure
-device quantum kernel, an std::range of control qubits (<code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code>
-or <code class="code docutils literal notranslate"><span class="pre">cudaq::qspan</span></code>), and the remaining arguments for the kernel itself.
+device quantum kernel, a std::range of control qubits (<code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>
+or <code class="code docutils literal notranslate"><span class="pre">cudaq::qview</span></code>), and the remaining arguments for the kernel itself.
 Compiler implementations are free to synthesize multi-controlled operations
 using any pertinent synthesis strategy available. Qubits may be aggregated into
 a range of control qubits with or without the use of the <code class="code docutils literal notranslate"><span class="pre">operator!</span></code>

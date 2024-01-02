@@ -136,10 +136,13 @@
 <li class="toctree-l2"><a class="reference internal" href="cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq/platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq/platform.html#remote-rest-server-platform">Remote REST Server Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cudaq/platform.html#auto-launch-rest-server">Auto-launch REST Server</a></li>
 </ul>
 </li>
 </ul>
@@ -748,23 +751,23 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 <span class="k">def</span> <span class="nf">kernel_qaoa</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;QAOA ansatz for Max-Cut&quot;&quot;&quot;</span>
     <span class="n">kernel</span><span class="p">,</span> <span class="n">thetas</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
-    <span class="n">qreg</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+    <span class="n">qvec</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
 
     <span class="c1"># Create superposition</span>
-    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qreg</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qvec</span><span class="p">)</span>
 
     <span class="c1"># Loop over the layers</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">layer_count</span><span class="p">):</span>
         <span class="c1"># Loop over the qubits</span>
         <span class="c1"># Problem unitary</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
-            <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">qubit_count</span><span class="p">])</span>
-            <span class="n">kernel</span><span class="o">.</span><span class="n">rz</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">qubit_count</span><span class="p">])</span>
-            <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">qubit_count</span><span class="p">])</span>
+            <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">qvec</span><span class="p">[(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">qubit_count</span><span class="p">])</span>
+            <span class="n">kernel</span><span class="o">.</span><span class="n">rz</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qvec</span><span class="p">[(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">qubit_count</span><span class="p">])</span>
+            <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">qvec</span><span class="p">[(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">qubit_count</span><span class="p">])</span>
 
         <span class="c1"># Mixer unitary</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">):</span>
-            <span class="n">kernel</span><span class="o">.</span><span class="n">rx</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">layer_count</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            <span class="n">kernel</span><span class="o">.</span><span class="n">rx</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">thetas</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">layer_count</span><span class="p">],</span> <span class="n">qvec</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
 
     <span class="k">return</span> <span class="n">kernel</span>
 
