@@ -158,10 +158,10 @@ matrix:
       - open: '(?P<open>`+)'
         close: '(?P=open)'
       # Ignore the first word after \command or @command, which is a code artifact
-      - open: '[\\@]([acep])(?:\s\S+)?'
+      - open: '[\\@]([acep])(?:\s+\S)?'
         close: '(\s|$)'
       # Ignore the doxygen \param command and the code artifact after it.
-      - open: '[\\@]param(\s+\[[a-z]+\])?\s+(?:\S+)'
+      - open: '[\\@]param(\s+\[\w+\])?(?:\s+\S)?'
         close: '(\s|$)'
       # Ignore words that start with a \ or @, e.g. @param used in doc comments
       - open: '[\\@](\w|[\\@&\$#<>%"\.=|]|::|--|---)'
