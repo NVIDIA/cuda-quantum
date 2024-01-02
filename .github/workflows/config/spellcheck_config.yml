@@ -166,7 +166,7 @@ matrix:
       # Ignore words that start with a \ or @, e.g. @param used in doc comments
       - open: '[\\@](\w|[\\@&\$#<>%"\.=|]|::|--|---)'
         close: '(\s|$)'
-      # Ignore words before and after double columns
+      # Ignore words before and after double colons
       - open: '([a-zA-Z0-9_])*::'
         close: '([^a-zA-Z0-9_:]|$)'
       # Ignore words that contain any underscores, numbers, or uppercase letters
