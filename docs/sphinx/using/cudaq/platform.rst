@@ -45,8 +45,8 @@ Here is a simple example demonstrating its usage.
 .. tab:: Python
 
     .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async.py
-    :language: python
-    :start-after: [Begin Documentation]
+        :language: python
+        :start-after: [Begin Documentation]
 
 Depending on the number of GPUs available on the system, the :code:`nvidia-mqpu` platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
@@ -155,6 +155,7 @@ hosting all the simulator backends available in the installation, including thos
 To start the server, serving at a specific TCP/IP port, one can do the following.
 
 .. code-block:: console
+    
     cudaq_rest_server --port <port number>
 
 User code can then target this platform by specifying its target name (:code:`remote-sim`).
