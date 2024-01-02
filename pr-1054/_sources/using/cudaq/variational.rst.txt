@@ -18,7 +18,7 @@ gradients in :code:`<cudaq/gradients.h>`.
     // Define your parameterized ansatz
     struct ansatz {
       void operator()(double x0, double x1) __qpu__ {
-        cudaq::qreg<3> q;
+        cudaq::qarray<3> q;
         x(q[0]);
         ry(x0, q[1]);
         ry(x1, q[2]);
@@ -58,7 +58,7 @@ Here is an example:
     // Define your parameterized ansatz
     struct ansatz {
       void operator()(double x0, double x1) __qpu__ {
-        cudaq::qreg<3> q;
+        cudaq::qarray<3> q;
         x(q[0]);
         ry(x0, q[1]);
         ry(x1, q[2]);

@@ -23,9 +23,13 @@ of that instruction on all provided :code:`cudaq::qudits`, e.g. :code:`void x(cu
 :code:`cudaq::qubit` or on multiple :code:`cudaq::qubit`. 
 
 Implementations should provide overloads to support broadcasting of single-qubit
-intrinsic operations across a register of :code:`cudaq::qudit`.
-For example, :code:`x(cudaq::qreg<>&)` should apply a NOT operation on all :code:`cudaq::qubit` in the provided :code:`cudaq::qreg`. 
-A set of quantum intrinsic operations for the :code:`cudaq::qubit` then for example looks as follows, where :code:`NAME`, :code:`ROTATION_NAME`, and :code:`MEASURE_OP` stand for the names of single-qubit operations, single-qubit rotations, and measurement operations respectively: 
+intrinsic operations across a register of :code:`cudaq::qudit`.  For example,
+:code:`x(cudaq::qvector<>&)` should apply a NOT operation on all
+:code:`cudaq::qubit` in the provided :code:`cudaq::qvector`. A set of quantum
+intrinsic operations for the :code:`cudaq::qubit` then for example looks as
+follows, where :code:`NAME`, :code:`ROTATION_NAME`, and :code:`MEASURE_OP` stand
+for the names of single-qubit operations, single-qubit rotations, and
+measurement operations respectively: 
 
 .. code-block:: cpp 
 
@@ -39,17 +43,17 @@ A set of quantum intrinsic operations for the :code:`cudaq::qubit` then for exam
       void NAME(QubitArgs&... args) noexcept { ... }
   
       template<typename mod = base>
-      void NAME(const qreg& qr) noexcept { ... }
+      void NAME(const qvector& qr) noexcept { ... }
   
       template<typename mod = ctrl>
-      void NAME(qreg& ctrls, qubit& target) noexcept { ... }
+      void NAME(qvector& ctrls, qubit& target) noexcept { ... }
  
       // Single qubit rotation operations and ctrl / adj variants
       template <typename mod = base, typename ScalarAngle, typename... QubitArgs> 
       void ROTATION_NAME(ScalarAngle angle, QubitArgs &...args) noexcept { ... }
  
       bool MEASURE_OP(qubit &q) noexcept;
-      std::vector<bool> MEASURE_OP(qreg &q) noexcept;
+      std::vector<bool> MEASURE_OP(qvector &q) noexcept;
       double measure(cudaq::spin_op & term) noexcept { ... }
   }
 

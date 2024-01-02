@@ -9,11 +9,14 @@ __qpu__ void reflect_about_uniform(cudaq::qview<> q) {
   auto ctrlQubits = q.front(q.size() - 1);
   auto &lastQubit = q.back();
 
-  h(q);
-  x(q);
-  z<cudaq::ctrl>(ctrlQubits, lastQubit);
-  x(q);
-  h(q);
+  // Compute (U) Action (V) produces
+  // U V U::Adjoint
+  cudaq::compute_action(
+      [&]() {
+        h(q);
+        x(q);
+      },
+      [&]() { z<cudaq::ctrl>(ctrlQubits, lastQubit); });
 }
 
 struct run_grover {
