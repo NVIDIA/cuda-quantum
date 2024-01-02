@@ -158,7 +158,7 @@ matrix:
       - open: '(?P<open>`+)'
         close: '(?P=open)'
       # Ignore the first word after \command or @command, which is a code artifact
-      - open: '[\\@]([abcep]|em)(?:\s\S+)?'
+      - open: '[\\@]([acep])(?:\s\S+)?'
         close: '(\s|$)'
       # Ignore the doxygen \param command and the code artifact after it.
       - open: '[\\@]param(\s+\[[a-z]+\])?\s+(?:\S+)'
