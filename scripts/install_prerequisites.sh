@@ -147,14 +147,24 @@ fi
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
-  temp_install_if_command_unknown perl perl
+
+  # Not all perl installations include all necessary modules.
+  # To facilitate a consistent build across platforms and to minimize dependencies, 
+  # we just use our own perl version for the OpenSSL build.
+  wget https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
+  tar -xzf perl-5.38.2.tar.gz && cd perl-5.38.2
+  ./Configure -des -Dcc="$CC" -Dprefix=~/.perl5
+  make && make install
+  cd .. && rm -rf perl-5.38.2.tar.gz perl-5.38.2
+  # Additional perl modules can be installed with cpan, e.g.
+  # PERL_MM_USE_DEFAULT=1 ~/.perl5/bin/cpan App::cpanminus
 
   wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
   tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
-  ./Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
+  ~/.perl5/bin/perl Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
   make && make install
-  cd .. && rm -rf openssl-3.1.1*
+  cd .. && rm -rf openssl-3.1.1.tar.gz openssl-3.1.1 ~/.perl5
   remove_temp_installs
 fi
 

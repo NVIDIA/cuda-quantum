@@ -29,8 +29,7 @@ RUN ${PYTHON} -m ensurepip && ${PYTHON} -m pip install numpy
 
 # [Build Dependencies]
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        ${PYTHON}-devel perl-core \
-        wget git unzip
+        ${PYTHON}-devel wget git unzip
 RUN ${PYTHON} -m pip install \
         pytest lit fastapi uvicorn pydantic requests llvmlite \
         scipy==1.10.1 openfermionpyscf==0.5
@@ -102,8 +101,9 @@ ADD "$CUDAQ_REPO_ROOT/NOTICE" /cuda-quantum/NOTICE
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantumBuild]
-    CUDAQ_ENABLE_STATIC_LINKING=true CUDAQ_WERROR=false \
-    CUDAQ_PYTHON_SUPPORT=OFF \
+    CUDAQ_PYTHON_SUPPORT=OFF CUDAQ_WERROR=false \
+    CUDAQ_ENABLE_STATIC_LINKING=true \
+    LDFLAGS="-static-libgcc -static-libstdc++" \
     bash scripts/build_cudaq.sh -uv
     ## [<CUDAQuantumBuild]
 

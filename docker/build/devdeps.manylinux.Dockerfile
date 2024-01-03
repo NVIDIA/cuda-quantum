@@ -89,10 +89,8 @@ RUN LDFLAGS="$LLVM_BUILD_LINKER_FLAGS" \
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
-RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        glibc-static perl-core wget \
+RUN dnf install -y --nobest --setopt=install_weak_deps=False glibc-static \
     && bash /scripts/install_prerequisites.sh \
-    && dnf remove -y wget && dnf clean all \
     && rm -rf /scripts/install_prerequisites.sh
 
 # Install CUDA 11.8.

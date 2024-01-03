@@ -67,6 +67,11 @@ Build Dependencies
 In addition to the prerequisites listed above, you will need to install the
 following prerequisites in your build environment:
 
+FIXME: Check that the static curl version is used that we built in the pre-reqs.
+FIXME: Get rid of the pybind & python pieces
+FIXME: Update teh devdeps files to adjust to the change in the prereqs install.
+FIXME: Check whether we need openssl for using MPI - if we do, include it?
+
 - Python header files: The header files need to match the version of your Python
   installation, and can usually be installed via package manager for your
   distribution.
@@ -74,9 +79,6 @@ following prerequisites in your build environment:
   llvmlite. These packages can be downloaded from `PyPI <https://pypi.org/>`__
   using `PIP <https://pip.pypa.io/en/stable/installation/>`__. They are needed
   only for building and running CUDA Quantum tests.
-- `Perl <https://www.perl.org/get.html>`__ and its `core modules
-  <https://www.perl.com/article/what-is-the-perl-core-/>`__. Usually, this can
-  be installed via package manager for your distribution.
 - Standard C library: To create a self-contained, relocatable CUDA Quantum 
   installation, we recommend to statically link all dependencies. To do so, 
   please make sure you have the static version of the 
