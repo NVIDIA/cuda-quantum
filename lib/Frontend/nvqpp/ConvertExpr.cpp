@@ -2152,7 +2152,7 @@ bool QuakeBridgeVisitor::TraverseInitListExpr(clang::InitListExpr *x,
 
 bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   auto loc = toLocation(x);
-  auto size = x->getNumInits();
+  std::int32_t size = x->getNumInits();
   auto initListTy = popType();
   if (size == 0) {
     // Nothing in the list. Just allocate the type.
@@ -2191,8 +2191,8 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   // we allocate some memory for a variable and store the init list elements
   // there. Add the array size value
   auto structTy = dyn_cast<cc::StructType>(initListTy);
-  std::size_t structMems = structTy ? structTy.getMembers().size() : 0;
-  std::size_t numEles = structMems ? size / structMems : size;
+  std::int32_t structMems = structTy ? structTy.getMembers().size() : 0;
+  std::int32_t numEles = structMems ? size / structMems : size;
   Value arrSize = builder.create<arith::ConstantIntOp>(loc, numEles, 64);
 
   // Allocate the required memory chunk.
@@ -2219,8 +2219,8 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
             ArrayRef<cc::ComputePtrArg>{i / structMems, i % structMems});
       } else {
         auto ptrTy = cc::PointerType::get(structTy.getMembers()[i]);
-        ptr = builder.create<cc::ComputePtrOp>(loc, ptrTy, alloca,
-                                               ArrayRef<cc::ComputePtrArg>{i});
+        ptr = builder.create<cc::ComputePtrOp>(
+            loc, ptrTy, alloca, ArrayRef<cc::ComputePtrArg>{0, i});
       }
     } else {
       auto ptrTy = cc::PointerType::get(eleTy);

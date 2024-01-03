@@ -76,13 +76,13 @@ struct S1 {
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<f64>
 // CHECK:           call @_Z15debug_the_thingiid(%[[VAL_6]], %[[VAL_8]], %[[VAL_10]]) : (i32, i32, f64) -> ()
 // CHECK:           %[[VAL_11:.*]] = cc.alloca !cc.struct<"ResultThing" {i1, i1, i1, i32}>
-// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][0] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][0, 0] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_12]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_11]][1] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_11]][0, 1] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_13]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_11]][2] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_11]][0, 2] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_14]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_11]][3] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_11]][0, 3] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_15]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_16:.*]] = cc.load %[[VAL_11]] : !cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>
 // CHECK:           return %[[VAL_16]] : !cc.struct<"ResultThing" {i1, i1, i1, i32}>
@@ -112,13 +112,13 @@ struct S2 {
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<f64>
 // CHECK:           call @_Z15debug_the_thingiid(%[[VAL_6]], %[[VAL_8]], %[[VAL_10]]) : (i32, i32, f64) -> ()
 // CHECK:           %[[VAL_11:.*]] = cc.alloca !cc.struct<"ResultThing" {i1, i1, i1, i32}>
-// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][0] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][0, 0] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_12]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_11]][1] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_11]][0, 1] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_13]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_11]][2] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_11]][0, 2] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_14]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_11]][3] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_11]][0, 3] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_15]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_16:.*]] = cc.load %[[VAL_11]] : !cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>
 // CHECK:           return %[[VAL_16]] : !cc.struct<"ResultThing" {i1, i1, i1, i32}>
@@ -148,13 +148,13 @@ struct S3 {
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<f64>
 // CHECK:           call @_Z15debug_the_thingiid(%[[VAL_6]], %[[VAL_8]], %[[VAL_10]]) : (i32, i32, f64) -> ()
 // CHECK:           %[[VAL_11:.*]] = cc.alloca !cc.struct<"ResultThing" {i1, i1, i1, i32}>
-// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][0] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]][0, 0] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_12]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_11]][1] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_11]][0, 1] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_13]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_11]][2] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_11]][0, 2] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i1>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_14]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_11]][3] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_11]][0, 3] : (!cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_15]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_16:.*]] = cc.load %[[VAL_11]] : !cc.ptr<!cc.struct<"ResultThing" {i1, i1, i1, i32}>>
 // CHECK:           return %[[VAL_16]] : !cc.struct<"ResultThing" {i1, i1, i1, i32}>
