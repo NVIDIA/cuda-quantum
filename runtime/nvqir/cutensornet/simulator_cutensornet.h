@@ -57,6 +57,12 @@ public:
   /// @brief Return the state vector data
   virtual cudaq::State getStateData() override;
 
+  virtual void
+  setStateData(std::vector<std::complex<double>> &inputState) override {
+    throw std::runtime_error("Setting the internal state representation is not "
+                             "yet supported for CuTensorNet.\n");
+  }
+
   /// Clone API
   virtual nvqir::CircuitSimulator *clone() override;
 
