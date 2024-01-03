@@ -31,6 +31,10 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 # CMP0116: Ninja generators transform `DEPFILE`s from `add_custom_command()`
 # New in CMake 3.20. https://cmake.org/cmake/help/latest/policy/CMP0116.html
 if(POLICY CMP0116)
@@ -148,6 +152,11 @@ if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
   # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
   SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")	
 endif()
+if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
+  SET(CURL_LIBRARY "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")	
+  SET(CURL_INCLUDE_DIR "$ENV{CURL_INSTALL_PREFIX}/include")
+  SET(CMAKE_USE_SYSTEM_CURL TRUE)
+endif()
 if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
   SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
 endif()
@@ -170,7 +179,7 @@ if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
   SET(CUDAQ_ENABLE_STATIC_LINKING $ENV{CUDAQ_ENABLE_STATIC_LINKING})
 endif()
 if (CUDAQ_ENABLE_STATIC_LINKING)
-  # Using -static-libgcc -static-libstdc++ offers finer control here if needed.
+  # Using -static-libgcc -static-libstdc++ offers more fine grained control here if needed.
   # At the time of writing, there wasn't any benefit to using those over -static.
   # However, while this so far seems to be working reasonably well, this will
   # unfortunately also link glibc statically, which in general is likely to cause

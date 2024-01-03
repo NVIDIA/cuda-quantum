@@ -10,7 +10,9 @@
 
 # This scripts builds the clang and mlir project from the source in the LLVM submodule.
 # The binaries will be installed in the folder defined by the LLVM_INSTALL_PREFIX environment
-# variable, or in $HOME/.llvm if LLVM_INSTALL_PREFIX is not defined. 
+# variable, or in $HOME/.llvm if LLVM_INSTALL_PREFIX is not defined.
+# If Python bindings are generated, pybind11 will be built and installed in the location 
+# defined by PYBIND11_INSTALL_PREFIX unless that folder already exists.
 #
 # Usage:
 # bash scripts/build_llvm.sh
@@ -20,6 +22,7 @@
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
+PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
 # Process command line arguments
@@ -49,36 +52,43 @@ OPTIND=$__optind__
 
 working_dir=`pwd`
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-cd "$this_file_dir"
+echo "Configured C compiler: $CC"
+echo "Configured C++ compiler: $CXX"
 
+# Check if we build python bindings and build pybind11 from source if necessary
+projects=(`echo $llvm_projects | tr ';' ' '`)
+llvm_projects=`printf "%s;" "${projects[@]}"`
+if [ -z "${llvm_projects##*python-bindings;*}" ]; then
+  mlir_python_bindings=ON
+  projects=("${projects[@]/python-bindings}")
+
+  if [ ! -d "$PYBIND11_INSTALL_PREFIX" ] || [ -z "$(ls -A "$PYBIND11_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
+    echo "Building PyBind11..."
+    git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 
+    mkdir "tpls/pybind11/build" && cd "tpls/pybind11/build"
+    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX"
+    cmake --build . --target install --config Release
+  fi
+fi
+
+# Prepare the source and build directory
 if [ "$llvm_source" = "" ]; then
-  llvm_source=~/.llvm-project
-  cd $(git rev-parse --show-toplevel)
   echo "Cloning LLVM submodule..."
-
+  cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
+  llvm_source=~/.llvm-project
   llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
   llvm_commit="$(git submodule | grep tpls/llvm | cut -d ' ' -f1 | tr -d -)"
   git clone --filter=tree:0 "$llvm_repo" "$llvm_source"
   cd "$llvm_source" && git checkout $llvm_commit
 fi
 
-echo "Configured C compiler: $CC"
-echo "Configured C++ compiler: $CXX"
-
-# Prepare the build directory
 mkdir -p "$LLVM_INSTALL_PREFIX"
 mkdir -p "$llvm_source/build" && cd "$llvm_source/build"
 mkdir -p logs && rm -rf logs/* 
 
 # Specify which components we need to keep the size of the LLVM build down
 echo "Preparing LLVM build..."
-projects=(`echo $llvm_projects | tr ';' ' '`)
-llvm_projects=`printf "%s;" "${projects[@]}"`
-if [ -z "${llvm_projects##*python-bindings;*}" ]; then
-  mlir_python_bindings=ON
-  projects=("${projects[@]/python-bindings}")
-fi
-
 llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*clang;*}" ]; then
   echo "- including Clang components"

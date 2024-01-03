@@ -47,16 +47,19 @@ if(OPENSSL_FOUND)
   message(STATUS "OpenSSL Found, building REST Client.")
 
   include(FetchContent)
-  FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
-                         GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) 
+  FetchContent_Declare(cpr 
+                       GIT_REPOSITORY https://github.com/libcpr/cpr.git
+                       GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) 
   set(CURL_STATICLIB ON)
-  find_package(CURL COMPONENTS HTTP HTTPS QUIET)
+  find_package(CURL COMPONENTS HTTP HTTPS)
   if (CURL_FOUND)
-    message(STATUS "Curl found. Using system curl for CPR.")
-    set(CPR_USE_SYSTEM_CURL TRUE)
+    message(STATUS "Using system curl for CPR.")
+    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+  elseif (CMAKE_USE_SYSTEM_CURL)
+    message(FATAL_ERROR "CMAKE_USE_SYSTEM_CURL defined but not suitable package found. Make sure that `curl-config --protocols` lists HTTP and HTTPS.")
   else()
     message(STATUS "Curl not found. Building curl for CPR.")
-    set(CPR_USE_SYSTEM_CURL FALSE)
+    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
   endif()
   set(CPR_ENABLE_SSL ON) # needed for https requests
   set(CPR_FORCE_OPENSSL_BACKEND ON)
@@ -74,7 +77,7 @@ if(OPENSSL_FOUND)
   endif()
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
 endif()
 

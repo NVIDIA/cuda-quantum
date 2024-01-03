@@ -88,7 +88,6 @@ function exit_gracefully {
 set -e && exit_code=1
 trap exit_gracefully EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-cd "$this_file_dir"
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if [ ! -x "$(command -v cmake)" ]; then
@@ -144,7 +143,7 @@ if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
 fi
 
 # [OpenSSL] Needed for communication with external services
-if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"/openssl*)" ]; then
+if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(find "$OPENSSL_INSTALL_PREFIX" -name libssl.a)" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
@@ -169,7 +168,7 @@ if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(ls -A "$OPENSSL_INSTALL_PREFIX"
 fi
 
 # [CURL] Needed for communication with external services
-if [ ! -f "$CURL_INSTALL_PREFIX/lib/*.a" ]; then
+if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
@@ -177,8 +176,9 @@ if [ ! -f "$CURL_INSTALL_PREFIX/lib/*.a" ]; then
   tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
   ./configure --prefix="$CURL_INSTALL_PREFIX" \
+    --enable-shared=no --enable-static=yes \
     --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
-    --enable-shared=no --enable-static=yes
+    --without-zstd
   make && make install
   cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0
   remove_temp_installs
@@ -188,20 +188,6 @@ fi
 llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
 if [ ! -d "$llvm_dir" ]; then
   echo "Could not find llvm libraries."
-
-  if [ ! -d "$PYBIND11_INSTALL_PREFIX" ]; then
-    echo "Building PyBind11..."
-    repo_root="$(git rev-parse --show-toplevel)"
-    cd "$repo_root"
-
-    git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 
-    mkdir "tpls/pybind11/build" && cd "tpls/pybind11/build"
-    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX"
-    cmake --build . --target install --config Release
-  fi
-
-  # Build llvm libraries from source and install them in the install directory
-  cd "$working_dir"
   set +e && source "$this_file_dir/build_llvm.sh" -v && status=$? && set -e
   if [ ! $status -eq 0 ]; then
     echo "Failed to build LLVM libraries."

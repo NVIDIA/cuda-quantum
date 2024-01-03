@@ -62,20 +62,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 # - https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html#C_002b_002b-Dialect-Options
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
-RUN LLVM_INSTALL_PREFIX=/opt/llvm LLVM_SOURCE=/llvm-project \
-        source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
+ENV LLVM_INSTALL_PREFIX=/opt/llvm
+ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
+RUN LLVM_SOURCE=/llvm-project \
+    source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
     && rm -rf /llvm-project/build
 RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
     && source /opt/llvm/bootstrap/init_command.sh \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project
 RUN source /opt/llvm/bootstrap/init_command.sh && \
-    LLVM_INSTALL_PREFIX=/opt/llvm \
-        bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
+    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
 FROM llvmbuild as prereqs
@@ -83,7 +84,9 @@ ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
+    && export ZLIB_INSTALL_PREFIX=/usr/local/zlib \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
+    && export CURL_INSTALL_PREFIX=/usr/local/curl \
     # It would be nice to also build the prerequisites
     # using the same toolchain as CUDA Quantum by default.
     && source /opt/llvm/bootstrap/init_command.sh \
@@ -144,10 +147,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
 
 # Copy over additional prerequisites.
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
+ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
-ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
+ENV CURL_INSTALL_PREFIX=/usr/local/curl
 COPY --from=prereqs /usr/local/blas "$BLAS_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/zlib "$ZLIB_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/curl "$CURL_INSTALL_PREFIX"
 
 # Install additional tools for CUDA Quantum documentation generation.
 COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen

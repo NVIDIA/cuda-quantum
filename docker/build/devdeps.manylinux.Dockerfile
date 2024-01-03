@@ -65,6 +65,7 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
 # Build pybind11 - 
 # we should be able to use the same pybind version independent on what Python version we generate bindings for.
+ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         ninja-build cmake python3-devel \
     && mkdir /pybind11-project && cd /pybind11-project && git init \
@@ -72,7 +73,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
     && python3 -m ensurepip --upgrade && python3 -m pip install pytest \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 -DPYTHON_EXECUTABLE="$(which python3)" \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" \
     && cmake --build . --target install --config Release \
     && python3 -m pip uninstall -y pytest \
     && cd / && rm -rf /pybind11-project
@@ -88,7 +89,9 @@ RUN LDFLAGS="$LLVM_BUILD_LINKER_FLAGS" \
 # Install additional dependencies required to build the CUDA Quantum wheel.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
+ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
+ENV CURL_INSTALL_PREFIX=/usr/local/curl
 RUN dnf install -y --nobest --setopt=install_weak_deps=False glibc-static \
     && bash /scripts/install_prerequisites.sh \
     && rm -rf /scripts/install_prerequisites.sh

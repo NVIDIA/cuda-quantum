@@ -41,6 +41,7 @@ RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
     if [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then mv "$CUQUANTUM_INSTALL_PREFIX"/* "/usr/local/cudaq_assets/cuquantum"; fi && \
     if [ "$CUDAQ_INSTALL_PREFIX" != "/usr/local/cudaq" ]; then mv "$CUDAQ_INSTALL_PREFIX" "/usr/local/cudaq"; fi
 
+# FIXME: DO WE EVEN NEED OPENSSL IF WE STATICALLY LINK IT AGAINST CPR? MAYBE/ONLY FOR MPI?
 # We should be able to relocate this as long as we define the OPENSSL_ROOT_DIR environment variable.
 RUN if [ "$OPENSSL_INSTALL_PREFIX" != "/usr/local/openssl" ]; then mv "$OPENSSL_INSTALL_PREFIX" "/usr/local/openssl"; fi
 
