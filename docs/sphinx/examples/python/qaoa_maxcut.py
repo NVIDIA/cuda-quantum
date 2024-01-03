@@ -29,23 +29,23 @@ parameter_count: int = 2 * layer_count
 def kernel_qaoa() -> cudaq.Kernel:
     """QAOA ansatz for Max-Cut"""
     kernel, thetas = cudaq.make_kernel(list)
-    qreg = kernel.qalloc(qubit_count)
+    qvec = kernel.qalloc(qubit_count)
 
     # Create superposition
-    kernel.h(qreg)
+    kernel.h(qvec)
 
     # Loop over the layers
     for i in range(layer_count):
         # Loop over the qubits
         # Problem unitary
         for j in range(qubit_count):
-            kernel.cx(qreg[j], qreg[(j + 1) % qubit_count])
-            kernel.rz(2.0 * thetas[i], qreg[(j + 1) % qubit_count])
-            kernel.cx(qreg[j], qreg[(j + 1) % qubit_count])
+            kernel.cx(qvec[j], qvec[(j + 1) % qubit_count])
+            kernel.rz(2.0 * thetas[i], qvec[(j + 1) % qubit_count])
+            kernel.cx(qvec[j], qvec[(j + 1) % qubit_count])
 
         # Mixer unitary
         for j in range(qubit_count):
-            kernel.rx(2.0 * thetas[i + layer_count], qreg[j])
+            kernel.rx(2.0 * thetas[i + layer_count], qvec[j])
 
     return kernel
 

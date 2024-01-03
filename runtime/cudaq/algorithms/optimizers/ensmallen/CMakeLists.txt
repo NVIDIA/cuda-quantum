@@ -14,6 +14,7 @@ set(BLA_STATIC ON)
 find_package(BLAS REQUIRED)
 
 add_library(${LIBRARY_NAME} SHARED ensmallen.cpp)
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 target_compile_definitions(${LIBRARY_NAME} PRIVATE -DARMA_DONT_USE_LAPACK)
 
 set (ENSMALLEN_DEPENDENCIES "")

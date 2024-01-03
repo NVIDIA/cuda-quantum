@@ -381,11 +381,11 @@ You can then execute a kernel against the platform using the OQC Lucy device
 .. code:: python
 
     kernel = cudaq.make_kernel()
-    qreg = kernel.qalloc(2)
-    kernel.h(qreg[0])
-    kernel.x(qreg[1])
-    kernel.cx(qreg[0], qreg[1])
-    kernel.mz(qreg)
+    qvec = kernel.qalloc(2)
+    kernel.h(qvec[0])
+    kernel.x(qvec[1])
+    kernel.cx(qvec[0], qvec[1])
+    kernel.mz(qvec)
     str(cudaq.sample(kernel=kernel, shots_count=1000))
 
 

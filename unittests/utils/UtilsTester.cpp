@@ -8,8 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include "common/FmtCore.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <fmt/ranges.h>
 
 TEST(UtilsTester, checkRange) {
   {

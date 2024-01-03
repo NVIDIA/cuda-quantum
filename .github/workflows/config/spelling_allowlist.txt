@@ -15,6 +15,7 @@ CUDA
 CuPy
 DGX
 DOI
+Deuteron
 Fortran
 Fourier
 GHCR
@@ -92,6 +93,7 @@ canonicalizes
 codebase
 comparator
 comparators
+composability
 composable
 constructible
 controlled
@@ -151,6 +153,7 @@ nullary
 optimizer
 optimizers
 parallelization
+parameterization
 performant
 precompute
 precomputed
@@ -184,6 +187,7 @@ templated
 toolchain
 toolchains
 unary
+uncompute
 unitaries
 unitary
 unoptimized
