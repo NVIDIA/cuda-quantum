@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -384,7 +384,7 @@ void LinkedLibraryHolder::setTarget(
       if (serverHelperHandle)
         libHandles.emplace(potentialPath.string(), serverHelperHandle);
 
-      // This can only be set if there was a valid serverhelper
+      // This can only be set if there was a valid server helper
       backendConfigStr += ";override_qpu;py_remote_rest";
     }
   }

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -59,3 +59,5 @@ if (NOT ${PYDANTIC_result} EQUAL 0)
 endif()
 
 message(STATUS "CUDAQ_TEST_MOCK_SERVERS=TRUE and dependent modules available, building Python remote QPU tests.")
+
+add_subdirectory(mlir)

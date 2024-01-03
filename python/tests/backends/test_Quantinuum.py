@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -32,7 +32,7 @@ def startUpMockServer():
     f.close()
 
     cudaq.set_random_seed(13)
-    
+
     # Set the targeted QPU
     cudaq.set_target('quantinuum', url='http://localhost:{}'.format(port))
 
@@ -54,7 +54,12 @@ def configureTarget(startUpMockServer):
     # Set the targeted QPU with credentials
     cudaq.set_target('quantinuum',
                      url='http://localhost:{}'.format(port),
-                     credentials=startUpMockServer)
+                     credentials=startUpMockServer,
+                     ## [SKIP_TEST] : The following setting should happen 
+                     ## automatically by setting the 'override_rest_qpu' flag 
+                     ## to 'true' in LinkedLibraryHolder constructor. But, it 
+                     ## isn't, hence, explicitly setting it for sake of testing.
+                     override_qpu='py_remote_rest')
 
     yield "Running the test."
     cudaq.reset_target()
