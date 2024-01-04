@@ -25,14 +25,9 @@ ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 # [Prerequisites]
 ARG PYTHON=python3.11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON} glibc-static
-RUN ${PYTHON} -m ensurepip && ${PYTHON} -m pip install numpy
 
 # [Build Dependencies]
-RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        ${PYTHON}-devel wget git unzip
-RUN ${PYTHON} -m pip install \
-        pytest lit fastapi uvicorn pydantic requests llvmlite \
-        scipy==1.10.1 openfermionpyscf==0.5
+RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip
 
 ## [CUDA]
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
@@ -85,7 +80,6 @@ ADD "$CUDAQ_REPO_ROOT/docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
 ADD "$CUDAQ_REPO_ROOT/docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "$CUDAQ_REPO_ROOT/include" /cuda-quantum/include
 ADD "$CUDAQ_REPO_ROOT/lib" /cuda-quantum/lib
-ADD "$CUDAQ_REPO_ROOT/python" /cuda-quantum/python
 ADD "$CUDAQ_REPO_ROOT/runtime" /cuda-quantum/runtime
 ADD "$CUDAQ_REPO_ROOT/scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "$CUDAQ_REPO_ROOT/targettests" /cuda-quantum/targettests
@@ -103,7 +97,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantumBuild]
     CUDAQ_PYTHON_SUPPORT=OFF CUDAQ_WERROR=false \
     CUDAQ_ENABLE_STATIC_LINKING=true \
-    LDFLAGS="-static-libgcc -static-libstdc++" \
+    LDFLAGS='-static-libgcc -static-libstdc++' \
+    LLVM_PROJECTS='clang;lld;mlir' \
     bash scripts/build_cudaq.sh -uv
     ## [<CUDAQuantumBuild]
 

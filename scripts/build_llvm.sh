@@ -22,13 +22,13 @@
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
+LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'}
 PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
-llvm_projects="clang;lld;mlir;python-bindings"
 verbose=false
 
 __optind__=$OPTIND
@@ -38,8 +38,6 @@ while getopts ":c:s:p:v" opt; do
     c) build_configuration="$OPTARG"
     ;;
     s) llvm_source="$OPTARG"
-    ;;
-    p) llvm_projects="$OPTARG"
     ;;
     v) verbose=true
     ;;
@@ -56,7 +54,7 @@ echo "Configured C compiler: $CC"
 echo "Configured C++ compiler: $CXX"
 
 # Check if we build python bindings and build pybind11 from source if necessary
-projects=(`echo $llvm_projects | tr ';' ' '`)
+projects=(`echo $LLVM_PROJECTS | tr ';' ' '`)
 llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*python-bindings;*}" ]; then
   mlir_python_bindings=ON
@@ -78,7 +76,7 @@ if [ "$llvm_source" = "" ]; then
   cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
   llvm_source=~/.llvm-project
   llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
-  llvm_commit="$(git submodule | grep tpls/llvm | cut -d ' ' -f1 | tr -d -)"
+  llvm_commit="$(git submodule | grep tpls/llvm | cut -c2- | cut -d ' ' -f1)"
   git clone --filter=tree:0 "$llvm_repo" "$llvm_source"
   cd "$llvm_source" && git checkout $llvm_commit
 fi

@@ -52,8 +52,6 @@ function temp_install_if_command_unknown {
       dnf install -y --nobest --setopt=install_weak_deps=False $2
     else
       echo "No package manager was found to install $2." >&2
-      (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
-      if $is_sourced; then return ${exit_code:-0}; else exit ${exit_code:-0}; fi
     fi
     PKG_UNINSTALL="$PKG_UNINSTALL $2"
   fi
@@ -78,15 +76,14 @@ function remove_temp_installs {
 
 working_dir=`pwd`
 read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
-function exit_gracefully {
+function prepare_exit {
   cd "$working_dir" && remove_temp_installs
   if [ -z "$__errexit__" ]; then set +e; fi
   (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
-  if $is_sourced; then return ${exit_code:-0}; else exit ${exit_code:-0}; fi
 }
 
-set -e && exit_code=1
-trap exit_gracefully EXIT
+set -e
+trap 'prepare_exit && if $is_sourced; then return 1; else exit 1; fi' EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 # [Toolchain] CMake, ninja and C/C++ compiler
@@ -191,7 +188,7 @@ if [ ! -d "$llvm_dir" ]; then
   set +e && source "$this_file_dir/build_llvm.sh" -v && status=$? && set -e
   if [ ! $status -eq 0 ]; then
     echo "Failed to build LLVM libraries."
-    exit_gracefully
+    prepare_exit && if $is_sourced; then return 2; else exit 2; fi
   fi
 else 
   echo "Configured C compiler: $CC"
@@ -199,6 +196,6 @@ else
 fi
 
 echo "All prerequisites have been installed."
-# Make sure to call exit_gracefully so that we properly uninstalled all helper tools,
+# Make sure to call prepare_exit so that we properly uninstalled all helper tools,
 # and so that we are in the correct directory also when this script is sourced.
-exit_code=0 && exit_gracefully
+prepare_exit && if $is_sourced; then return 0; else exit 0; fi
