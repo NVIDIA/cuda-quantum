@@ -322,36 +322,32 @@ bool QuakeBridgeVisitor::TraverseCompoundStmt(clang::CompoundStmt *stmt,
                                               DataRecursionQueue *q) {
   auto loc = toLocation(stmt->getSourceRange());
   SymbolTableScope var_scope(symbolTable);
+  auto traverseAndCheck = [&](clang::Stmt *cs) {
+    LLVM_DEBUG(llvm::dbgs() << "[[[\n"; cs->dump());
+    if (!TraverseStmt(cs))
+      reportClangError(cs, mangler, "statement not supported in qpu kernel");
+    LLVM_DEBUG({
+      if (!typeStack.empty()) {
+        llvm::dbgs() << "\n\nERROR: type stack has garbage after stmt:\n";
+        for (auto t : llvm::reverse(typeStack))
+          t.dump();
+        typeStack.clear();
+      }
+      llvm::dbgs() << "]]]\n";
+    });
+  };
   if (skipCompoundScope) {
     skipCompoundScope = false;
-    for (auto *cs : stmt->body()) {
-      LLVM_DEBUG(llvm::dbgs() << "[[[\n"; cs->dump());
-      if (TraverseStmt(static_cast<clang::Stmt *>(cs))) {
-        LLVM_DEBUG({
-          if (!typeStack.empty()) {
-            llvm::dbgs() << "\n\nERROR: type stack has garbage after stmt:\n";
-            for (auto t : llvm::reverse(typeStack))
-              t.dump();
-            typeStack.clear();
-          }
-          llvm::dbgs() << "]]]\n";
-        });
-      } else {
-        reportClangError(cs, mangler, "statement not supported in qpu kernel");
-      }
-    }
+    for (auto *cs : stmt->body())
+      traverseAndCheck(static_cast<clang::Stmt *>(cs));
     return true;
   }
-  bool result = true;
   builder.create<cc::ScopeOp>(loc, [&](OpBuilder &builder, Location loc) {
     for (auto *cs : stmt->body())
-      if (!TraverseStmt(static_cast<clang::Stmt *>(cs))) {
-        result = false;
-        return;
-      }
+      traverseAndCheck(static_cast<clang::Stmt *>(cs));
     builder.create<cc::ContinueOp>(loc);
   });
-  return result;
+  return true;
 }
 
 // Shared implementation for lowering of `do while` and `while` loops.
@@ -464,6 +460,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
   bool result = true;
   auto loc = toLocation(x);
   auto *cond = x->getCond();
+  const auto initialValueDepth = valueStack.size();
   auto whileBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
     if (!result)
       return;
@@ -523,6 +520,18 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     builder.create<cc::LoopOp>(loc, ValueRange{}, postCondition, whileBuilder,
                                bodyBuilder);
   }
+  const auto finalValueDepth = valueStack.size();
+  if (finalValueDepth > initialValueDepth) {
+    [[maybe_unused]] auto vals =
+        lastValues(finalValueDepth - initialValueDepth);
+    LLVM_DEBUG({
+      llvm::dbgs() << "Garbage left after loop:\n";
+      for (auto v : vals)
+        v.dump();
+      llvm::dbgs() << "\n";
+    });
+  }
+
   return result;
 }
 
