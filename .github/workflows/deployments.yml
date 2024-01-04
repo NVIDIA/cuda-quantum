@@ -119,8 +119,9 @@ jobs:
           for input in `echo "$requested_platforms" | tr , ' ' | tr ';' ' '`; do
             platform_id=`echo $input | sed 's/linux\///g' | tr -d ' '`
             platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
+            minimal_base_image=`([ "$platform_id" == "amd64" ] && echo amd64/almalinux:8) || ([ "$platform_id" == "arm64" ] && echo arm64v8/almalinux:8) || echo`
             platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
-            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\"}}
+            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\",\"minimal_base_image\":\"$minimal_base_image\"}}
             platforms=`echo $platforms | jq ". |= . + $platform"`
           done
 
@@ -215,19 +216,21 @@ jobs:
       matrix_key: ${{ matrix.platform }}-python
 
   source_build:
-    name: Build from Source
+    name: Build from scratch
     needs: metadata
     if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: release/installer.Dockerfile
       build_target: cudaqbuild
       toolchain: gcc11
+      build_args: |
+        base_image=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
