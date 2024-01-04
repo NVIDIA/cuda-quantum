@@ -51,6 +51,7 @@ concurrency:
 jobs:
   metadata:
     name: Prepare build
+    if: github.event_name != 'push' || github.event.created
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -163,7 +164,7 @@ jobs:
   devdeps:
     name: Build dev dependencies
     needs: metadata
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
@@ -188,7 +189,7 @@ jobs:
   wheeldeps:
     name: Build wheel dependencies
     needs: metadata
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
     strategy:
       matrix:
         # There are currently no multi-platform manylinux images available.
@@ -213,10 +214,31 @@ jobs:
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-python
 
+  source_build:
+    name: Build from Source
+    needs: metadata
+    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: release/cudaq.archive.Dockerfile
+      toolchain: gcc11
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
+      pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-installer
+
   openmpi:
     name: Build Open MPI
     needs: metadata
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
@@ -343,4 +365,17 @@ jobs:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
+      environment: ghcr-deployment
+
+  binaries:
+    name: Create CUDA Quantum installer
+    needs: [metadata, config]
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/prebuilt_binaries.yml
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
       environment: ghcr-deployment

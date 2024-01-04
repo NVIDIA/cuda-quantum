@@ -171,7 +171,7 @@ if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
 
   wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
   tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
-  CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+  CFLAGS="-fPIC" CXXFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
   ./configure --prefix="$CURL_INSTALL_PREFIX" \
     --enable-shared=no --enable-static=yes \
     --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \

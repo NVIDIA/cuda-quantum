@@ -93,6 +93,9 @@ ADD "$CUDAQ_REPO_ROOT/CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "$CUDAQ_REPO_ROOT/LICENSE" /cuda-quantum/LICENSE
 ADD "$CUDAQ_REPO_ROOT/NOTICE" /cuda-quantum/NOTICE
 
+ARG release_version=
+ENV CUDA_QUANTUM_VERSION=$release_version
+
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantumBuild]
     CUDAQ_PYTHON_SUPPORT=OFF CUDAQ_WERROR=false \
