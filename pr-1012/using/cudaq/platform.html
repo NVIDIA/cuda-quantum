@@ -143,7 +143,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#remote-rest-server-platform">Remote REST Server Platform</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#auto-launch-rest-server">Auto-launch REST Server</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#rest-api-specification">REST API Specification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#manually-launch-rest-server">Manually Launch REST Server</a></li>
 </ul>
 </li>
 </ul>
@@ -680,22 +680,44 @@ e.g., <code class="code docutils literal notranslate"><span class="pre">mpirun</
 <section id="remote-rest-server-platform">
 <h2>Remote REST Server Platform<a class="headerlink" href="#remote-rest-server-platform" title="Permalink to this heading">¶</a></h2>
 <p>The remote simulator target (<code class="code docutils literal notranslate"><span class="pre">remote-sim</span></code>) encapsulates simulated QPUs
-as independent REST server instances, to which the CUDA Quantum runtime communicates via HTTP requests (REST API).
-to via HTTP requests (REST API).</p>
-<p>CUDA Quantum provides the REST server implementation as a standalone application (<code class="code docutils literal notranslate"><span class="pre">cudaq_rest_server</span></code>)
-hosting all the simulator backends available in the installation, including those that require MPI for multi-GPU computation.
-To start the server, serving at a specific TCP/IP port, one can do the following.</p>
+as independent REST server instances. The CUDA Quantum runtime communicates via HTTP requests (REST API) to these REST server instances.</p>
+<p>Please refer to the <a class="reference external" href="../../openapi.html">Open API Docs</a>  for the latest API information.</p>
+<p>CUDA Quantum provides the REST server implementation as a standalone application (<code class="code docutils literal notranslate"><span class="pre">cudaq_rest_server</span></code>),
+hosting all the simulator backends available in the installation. These backends include those that require MPI for multi-GPU computation.</p>
+<section id="auto-launch-rest-server">
+<h3>Auto-launch REST Server<a class="headerlink" href="#auto-launch-rest-server" title="Permalink to this heading">¶</a></h3>
+<p>The server app (<code class="code docutils literal notranslate"><span class="pre">cudaq_rest_server</span></code>) can be launch and shutdown automatically
+by using the auto-launch feature of the platform.
+Random TCP/IP ports, that are available for use, will be selected to launch those server processes.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ file.cpp --target remote-sim --remote-sim-auto-launch &lt;N&gt; --remote-sim-backend &lt;sim1[,sim2,...]&gt;</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-sim&quot;</span><span class="p">,</span> <span class="n">auto_launch</span><span class="o">=</span><span class="s2">&quot;&lt;N&gt;&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;sim1[,sim2,...]&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>In the above snippets, <code class="code docutils literal notranslate"><span class="pre">N</span></code> denotes the number of REST server instances (QPUs) to be launched.
+These servers will be shut down at the end of the execution.</p>
+</section>
+<section id="manually-launch-rest-server">
+<h3>Manually Launch REST Server<a class="headerlink" href="#manually-launch-rest-server" title="Permalink to this heading">¶</a></h3>
+<p>To start the server, serving at a specific TCP/IP port, one can do the following.</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cudaq_rest_server --port &lt;port number&gt;</span>
 </pre></div>
 </div>
 <p>User code can then target this platform by specifying its target name (<code class="code docutils literal notranslate"><span class="pre">remote-sim</span></code>).</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">C++</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ file.cpp --target remote-sim --remote-sim-url &lt;url1[,url2,...]&gt; --remote-sim-backend &lt;sim1[,sim2,...]&gt;</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">Python</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-sim&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;url1[,url2,...]&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;sim1[,sim2,...]&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -705,29 +727,6 @@ To start the server, serving at a specific TCP/IP port, one can do the following
 The number of QPUs (<code class="code docutils literal notranslate"><span class="pre">num_qpus()</span></code>) is equal to the number of URLs provided.</p>
 <p>Each QPU instance can be assigned a different backend simulator via the <code class="code docutils literal notranslate"><span class="pre">--remote-sim-backend</span></code> (<code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>) or <code class="code docutils literal notranslate"><span class="pre">backend</span></code> (Python)
 option. Otherwise, if a single backend is specified, all the QPUs are assumed to be using the same simulator.</p>
-<section id="auto-launch-rest-server">
-<h3>Auto-launch REST Server<a class="headerlink" href="#auto-launch-rest-server" title="Permalink to this heading">¶</a></h3>
-<p>The server app (<code class="code docutils literal notranslate"><span class="pre">cudaq_rest_server</span></code>) can be launch and shutdown automatically
-by using the auto-launch feature of the platform.
-Random TCP/IP ports, that are available for use, will be selected to launch those server processes.</p>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">C++</label><div class="tab-content docutils">
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ file.cpp --target remote-sim --remote-sim-auto-launch &lt;N&gt; --remote-sim-backend &lt;sim1[,sim2,...]&gt;</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-sim&quot;</span><span class="p">,</span> <span class="n">auto_launch</span><span class="o">=</span><span class="s2">&quot;&lt;N&gt;&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;sim1[,sim2,...]&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-<p>In the above snippets, <code class="code docutils literal notranslate"><span class="pre">N</span></code> denotes the number of REST server instances (QPUs) to be launched.
-These servers will be shut down at the end of the execution.</p>
-</section>
-<section id="rest-api-specification">
-<h3>REST API Specification<a class="headerlink" href="#rest-api-specification" title="Permalink to this heading">¶</a></h3>
-<p>Please refer to the <a class="reference external" href="../../openapi.html">Open API Docs</a>  for the latest API information.</p>
 </section>
 </section>
 </section>

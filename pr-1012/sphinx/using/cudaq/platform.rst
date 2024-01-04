@@ -147,11 +147,40 @@ Remote REST Server Platform
 +++++++++++++++++++++++++++
 
 The remote simulator target (:code:`remote-sim`) encapsulates simulated QPUs
-as independent REST server instances, to which the CUDA Quantum runtime communicates via HTTP requests (REST API). 
-to via HTTP requests (REST API).
+as independent REST server instances. The CUDA Quantum runtime communicates via HTTP requests (REST API) to these REST server instances. 
 
-CUDA Quantum provides the REST server implementation as a standalone application (:code:`cudaq_rest_server`)
-hosting all the simulator backends available in the installation, including those that require MPI for multi-GPU computation.
+Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
+
+CUDA Quantum provides the REST server implementation as a standalone application (:code:`cudaq_rest_server`),
+hosting all the simulator backends available in the installation. These backends include those that require MPI for multi-GPU computation.
+
+Auto-launch REST Server
+^^^^^^^^^^^^^^^^^^^^^^^
+
+The server app (:code:`cudaq_rest_server`) can be launch and shutdown automatically
+by using the auto-launch feature of the platform.
+Random TCP/IP ports, that are available for use, will be selected to launch those server processes.
+
+.. tab:: C++
+
+    .. code-block:: console
+
+        nvq++ file.cpp --target remote-sim --remote-sim-auto-launch <N> --remote-sim-backend <sim1[,sim2,...]>
+
+
+.. tab:: Python
+
+     .. code:: python 
+
+        cudaq.set_target("remote-sim", auto_launch="<N>", backend="sim1[,sim2,...]")
+
+
+In the above snippets, `N` denotes the number of REST server instances (QPUs) to be launched.
+These servers will be shut down at the end of the execution.
+
+Manually Launch REST Server
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 To start the server, serving at a specific TCP/IP port, one can do the following.
 
 .. code-block:: console
@@ -180,31 +209,3 @@ The number of QPUs (:code:`num_qpus()`) is equal to the number of URLs provided.
 Each QPU instance can be assigned a different backend simulator via the :code:`--remote-sim-backend` (`nvq++`) or :code:`backend` (Python)
 option. Otherwise, if a single backend is specified, all the QPUs are assumed to be using the same simulator.
 
-Auto-launch REST Server
-^^^^^^^^^^^^^^^^^^^^^^^
-
-The server app (:code:`cudaq_rest_server`) can be launch and shutdown automatically
-by using the auto-launch feature of the platform.
-Random TCP/IP ports, that are available for use, will be selected to launch those server processes.
-
-.. tab:: C++
-
-    .. code-block:: console
-
-        nvq++ file.cpp --target remote-sim --remote-sim-auto-launch <N> --remote-sim-backend <sim1[,sim2,...]>
-
-
-.. tab:: Python
-
-     .. code:: python 
-
-        cudaq.set_target("remote-sim", auto_launch="<N>", backend="sim1[,sim2,...]")
-
-
-In the above snippets, `N` denotes the number of REST server instances (QPUs) to be launched.
-These servers will be shut down at the end of the execution.
-
-REST API Specification 
-^^^^^^^^^^^^^^^^^^^^^^
-
-Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
