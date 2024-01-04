@@ -232,6 +232,7 @@ jobs:
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      checkout_submodules: true
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-installer
