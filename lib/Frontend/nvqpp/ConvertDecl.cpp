@@ -90,10 +90,9 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (isa<FunctionType, cc::ArrayType, cc::CallableType, cc::PointerType,
-              cc::StdvecType, cc::StructType, LLVM::LLVMStructType,
-              quake::ControlType, quake::RefType, quake::VeqType,
-              quake::WireType>(parmTy)) {
+      if (isa<FunctionType, cc::CallableType, cc::PointerType, cc::StdvecType,
+              LLVM::LLVMStructType, quake::ControlType, quake::RefType,
+              quake::VeqType, quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
