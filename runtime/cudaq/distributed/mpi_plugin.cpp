@@ -93,7 +93,7 @@ void MPIPlugin::broadcast(std::vector<double> &data, int rootRank) {
 }
 
 void MPIPlugin::broadcast(std::string &data, int rootRank) {
-  int32_t strLen = data.size();
+  std::int32_t strLen = data.size();
   HANDLE_MPI_ERROR(
       m_distributedInterface->Bcast(m_comm, &strLen, 1, INT_32, rootRank));
 
