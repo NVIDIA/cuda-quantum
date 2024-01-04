@@ -133,8 +133,7 @@ public:
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset);
 
-  /// List all available platforms, which correspond to `.qplt` files in the
-  /// platform directory.
+  /// List all available platforms
   static std::vector<std::string> list_platforms();
 
   static std::string demangle(char const *mangled) {

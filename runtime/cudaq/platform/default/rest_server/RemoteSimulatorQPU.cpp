@@ -54,10 +54,6 @@
 
 namespace {
 using namespace mlir;
-class RemoteQpuExecutionQueue : public cudaq::QuantumExecutionQueue {
-public:
-  std::thread::id getExecutionThreadId() const { return thread.get_id(); }
-};
 
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
@@ -67,7 +63,6 @@ private:
   std::string m_simName;
   cudaq::RestClient m_client;
   std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
-  std::thread::id m_executionQueueThreadId;
   std::mutex m_contextMutex;
   MLIRContext &m_mlirContext;
   static inline const std::vector<std::string> clientPasses = {};
@@ -98,13 +93,10 @@ public:
       : QPU(id), m_url(url), m_simName(simName), m_mlirContext(mlirContext) {
     cudaq::info("Create a remote QPU: id={}; url={}; simulator={}", qpu_id,
                 m_url, m_simName);
-    auto queue = std::make_unique<RemoteQpuExecutionQueue>();
-    m_executionQueueThreadId = queue->getExecutionThreadId();
-    execution_queue = std::move(queue);
   }
 
   std::thread::id getExecutionThreadId() const {
-    return m_executionQueueThreadId;
+    return execution_queue->getExecutionThreadId();
   }
 
   void enqueue(cudaq::QuantumTask &task) override {

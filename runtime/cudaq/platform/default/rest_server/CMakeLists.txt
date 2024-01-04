@@ -1,5 +1,5 @@
 set(LIBRARY_NAME cudaq-platform-remote-sim)
-add_library(${LIBRARY_NAME} SHARED RemoteRESTQPU.cpp RemoteRESTExecutionManager.cpp ../../common/QuantumExecutionQueue.cpp)
+add_library(${LIBRARY_NAME} SHARED RemoteSimulatorQPU.cpp RemoteRESTExecutionManager.cpp ../../common/QuantumExecutionQueue.cpp)
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
