@@ -16,12 +16,14 @@ struct VectorVectorReturner {
   std::vector<std::vector<double>>
   operator()(std::vector<std::vector<int>> theta) __qpu__ {
     std::vector<std::vector<double>> result;
-    // expected-error@+1{{statement not supported in qpu kernel}}
     for (std::size_t i = 0, N = theta.size(); i < N; ++i) {
       auto &v = theta[i];
+      // expected-error@+2{{not supported in qpu}}
       // expected-error@+1{{vector dereference}}
       auto &r = result[i];
+      // expected-error@+1{{not supported in qpu}}
       for (std::size_t j = 0, M = v.size(); j < M; ++j)
+        // expected-error@+1{{symbol is not accessible}}
         r[j] = v[j];
     }
     // expected-error@+1{{C++ ctor (not-default)}}
