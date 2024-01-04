@@ -396,7 +396,8 @@ protected:
   /// @brief Set the internal state representation. Each subtype will
   /// override this, allowing for exposure at the user-API level via
   /// the `cudaq::from_state` or a new `cudaq::set_state` function.
-  virtual void setStateData(std::vector<std::complex<double>> &inputState) = 0;
+  virtual void
+  setStateData(const std::vector<std::complex<double>> &inputState) = 0;
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in resetExecutionContext. Return true to indicate this is
