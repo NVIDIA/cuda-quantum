@@ -42,7 +42,7 @@ public:
   std::thread::id getExecutionThreadId() const;
 
 protected:
-  /// The `mutex`, used for locking when adding to the queue
+  /// The mutex, used for locking when adding to the queue
   std::mutex lock;
 
   /// The thread this queue executes on
