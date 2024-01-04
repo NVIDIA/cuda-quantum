@@ -64,6 +64,10 @@ following prerequisites in your build environment:
 
 FIXME: Check whether we need openssl for using MPI - if we do, include it?
 FIXME: Check if the caching of the minimal openmpi build works
+FIXME: Check that the bulleted item list in install.rst formats correctly now
+FIXME: Check that the deployment fails when the execution on the tensornet-mps fails
+FIXME: Check that the installation works with sudo
+FIXME: Make the installer activate the MPI support if possible?
 
 - Standard C library: To create a self-contained, relocatable CUDA Quantum 
   installation, we recommend to statically link all dependencies. To do so, 

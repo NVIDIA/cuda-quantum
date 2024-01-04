@@ -282,7 +282,7 @@ jobs:
   # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
-    needs: [devdeps, wheeldeps, openmpi]
+    needs: [devdeps, wheeldeps, source_build, openmpi]
     if: github.event_name == 'workflow_dispatch' && ! inputs.update_registry_cache
     runs-on: ubuntu-latest
 
@@ -372,10 +372,10 @@ jobs:
     needs: [metadata, config]
     strategy:
       matrix:
-        platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
     with:
-      platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
       environment: ghcr-deployment
