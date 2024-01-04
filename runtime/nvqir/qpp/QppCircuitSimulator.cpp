@@ -284,7 +284,8 @@ public:
                         {state.data(), state.data() + state.size()}};
   }
 
-  void setStateData(std::vector<std::complex<double>> &inputState) override {
+  void
+  setStateData(const std::vector<std::complex<double>> &inputState) override {
     cudaq::info("Manually setting the simulator state vector.");
     if (inputState.size() != stateDimension) {
       std::stringstream ss;

@@ -597,7 +597,7 @@ public:
   }
 
   // FIXME: Need this defined to prevent a build error.
-  void setStateData(std::vector<std::complex<double>> &inputState) override {
+  void setStateData(const std::vector<std::complex<double>> &inputState) override {
     throw std::runtime_error(
         "Setting the internal state representation is not yet supported for CuStateVec.\n");
   }
