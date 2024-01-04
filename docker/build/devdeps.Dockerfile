@@ -173,7 +173,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certifi
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ninja-build \
+        git ninja-build file \
         python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir \
         lit pytest numpy \

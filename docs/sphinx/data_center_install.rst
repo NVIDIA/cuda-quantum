@@ -301,8 +301,9 @@ it in a final step after installing CUDA Quantum on the host system.
 
 Assuming you have an existing CUDA-aware MPI installation on your host system, and
 a working C++ toolchain, you can active MPI support in CUDA Quantum by executing
-the `activate_custom_mpi.sh` script included in the CUDA Quantum `distributed_interfaces` directory.
-.. For more information about building and activating MPI plugins, see :ref:`this section <>`.
+the `activate_custom_mpi.sh` script included in the CUDA Quantum `distributed_interfaces` directory. For more information about building and activating MPI plugins, see ...
+
+TODO: maybe the installer should do that automatically - still need to mention how to do that retroactively, though.
 
 TODO: Code snippet
 
