@@ -236,9 +236,9 @@ public:
 
 //===----------------------------------------------------------------------===//
 //
-// Utilities to wrap a kernel call f(args...) as a generic one that takes a
+// Utilities to wrap a kernel call `f(args...)` as a generic one that takes a
 // single flat buffer argument. The buffer is deserialized into a typed
-// std::tuple for invocation.
+// `std::tuple` for invocation.
 //
 //===----------------------------------------------------------------------===//
 /// @cond
@@ -300,9 +300,9 @@ void invokeCallableWithSerializedArgs(const char *argData, std::size_t argSize,
       InvokeArgTs...>::invoke(std::forward<CallableT>(func), argData, argSize);
 }
 
-// Wrapper for quantum kernel invocation, i.e., kernel(arg...).
+// Wrapper for quantum kernel invocation, i.e., `kernel(args...)`.
 // In library mode, if the remote platform is used, we redirect it to the
-// platform's launchKernel instead of invoking it.
+// platform's `launchKernel` instead of invoking it.
 template <typename QuantumKernel, typename... Args>
 std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
                                                           Args &&...args) {
