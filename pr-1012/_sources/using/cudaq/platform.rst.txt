@@ -203,3 +203,8 @@ Random TCP/IP ports, that are available for use, will be selected to launch thos
 
 In the above snippets, `N` denotes the number of REST server instances (QPUs) to be launched.
 These servers will be shut down at the end of the execution.
+
+REST API Specification 
+^^^^^^^^^^^^^^^^^^^^^^
+
+Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
