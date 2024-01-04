@@ -48,7 +48,7 @@ COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
 RUN MPI_PATH=/usr/local/openmpi \
     bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
-## [Validate]
+## [ADD tools for validation]
 ADD scripts/validate_container.sh validate.sh
 ADD docs/sphinx/examples/cpp examples
-#RUN bash validate.sh
+

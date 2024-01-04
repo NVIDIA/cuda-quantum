@@ -29,8 +29,8 @@ case $1 in
         pkg_manager=zypper
         distro=opensuse15
     ;;
-    *) echo "No package manager configured for $1" >&2
-    (return 0 2>/dev/null) && return 1 || exit 1
+    *)  echo "No package manager configured for $1" >&2
+        (return 0 2>/dev/null) && return 1 || exit 1
     ;;
 esac
 

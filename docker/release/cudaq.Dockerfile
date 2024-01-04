@@ -41,10 +41,6 @@ RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
     if [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then mv "$CUQUANTUM_INSTALL_PREFIX"/* "/usr/local/cudaq_assets/cuquantum"; fi && \
     if [ "$CUDAQ_INSTALL_PREFIX" != "/usr/local/cudaq" ]; then mv "$CUDAQ_INSTALL_PREFIX" "/usr/local/cudaq"; fi
 
-# FIXME: DO WE EVEN NEED OPENSSL IF WE STATICALLY LINK IT AGAINST CPR? MAYBE/ONLY FOR MPI?
-# We should be able to relocate this as long as we define the OPENSSL_ROOT_DIR environment variable.
-RUN if [ "$OPENSSL_INSTALL_PREFIX" != "/usr/local/openssl" ]; then mv "$OPENSSL_INSTALL_PREFIX" "/usr/local/openssl"; fi
-
 FROM $base_image
 SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -63,8 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV OPENSSL_ROOT_DIR="/opt/openssl"
 COPY --from=cudaqbuild "/usr/local/openssl/" "$OPENSSL_ROOT_DIR"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-pip libpython3-dev \
-        libstdc++-12-dev \
+        python3 python3-pip libstdc++-12-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python

@@ -114,7 +114,6 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     mv "${CUDAQ_INSTALL_PREFIX}" "${archive}" && \
     mv "${CUQUANTUM_INSTALL_PREFIX}" "${archive}" && \
     mv "${CUTENSOR_INSTALL_PREFIX}" "${archive}" && \
-    #mv /usr/local/openssl "${archive}" && \
     mkdir -p "${archive}/llvm/bin" && mkdir -p "${archive}/llvm/lib" && \
     mv "${LLVM_INSTALL_PREFIX}/bin/"clang* "${archive}/llvm/bin/" && rm -rf "${archive}/llvm/bin/"clang-format* && \
     mv "${LLVM_INSTALL_PREFIX}/lib/"clang* "${archive}/llvm/lib/" && \

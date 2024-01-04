@@ -63,6 +63,7 @@ In addition to the prerequisites listed above, you will need to install the
 following prerequisites in your build environment:
 
 FIXME: Check whether we need openssl for using MPI - if we do, include it?
+FIXME: Check if the caching of the minimal openmpi build works
 
 - Standard C library: To create a self-contained, relocatable CUDA Quantum 
   installation, we recommend to statically link all dependencies. To do so, 
