@@ -129,9 +129,9 @@ cmake_args="-G Ninja "$repo_root" \
 # CMAKE_CUDA_COMPILER_WORKS checks do not seem to use that host compiler 
 # and cause a failure. We hence set CUDAHOSTCXX in the cmake invocation below.
 if $verbose; then 
-  PATH="$CURL_INSTALL_PREFIX/bin:$PATH" CUDAHOSTCXX="$CXX" cmake $cmake_args
+  CUDAHOSTCXX="$CXX" cmake $cmake_args
 else
-  PATH="$CURL_INSTALL_PREFIX/bin:$PATH" CUDAHOSTCXX="$CXX" cmake $cmake_args \
+  CUDAHOSTCXX="$CXX" cmake $cmake_args \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
