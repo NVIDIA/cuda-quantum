@@ -137,8 +137,6 @@ private:
   std::unique_ptr<ExecutionContext> m_deserializedContext;
   /// Holder of the reconstructed `spin_op`.
   std::unique_ptr<spin_op> m_deserializedSpinOp;
-  // Underlying code (IR) payload as a byte buffer.
-  std::vector<uint8_t> code;
   // Version number of this payload.
   // This needs to be bumped whenever a breaking change is introduced.
   // e.g., adding/removing non-optional fields, changing field names, etc.
@@ -166,15 +164,8 @@ public:
                       SCHEMA_VERSION, version));
   }
 
-  void setCode(const std::string &codeStr) {
-    code.assign(codeStr.begin(), codeStr.end());
-  }
-
-  std::string_view getCode() const {
-    return std::string_view(reinterpret_cast<const char *>(code.data()),
-                            code.size());
-  }
-
+  // Underlying code (IR) payload as a Base64 string.
+  std::string code;
   // Name of the entry-point kernel.
   std::string entryPoint;
   // Name of the NVQIR simulator to use.

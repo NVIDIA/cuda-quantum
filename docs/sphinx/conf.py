@@ -98,7 +98,7 @@ import ruamel.yaml
 import json
 current_path = os.path.dirname(os.path.realpath(__file__))
 # YAML file defines the spec
-yaml_file = current_path + '/api/rest/openapi.yml'
+yaml_file = current_path + '/api/rest/.openapi.yaml'
 yaml = ruamel.yaml.YAML(typ='safe')
 with open(yaml_file) as fpi:
     data = yaml.load(fpi)

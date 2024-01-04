@@ -22,6 +22,7 @@
 #include "nvqir/CircuitSimulator.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
+#include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -161,12 +162,15 @@ json processRequest(const std::string &reqBody) {
   auto mlirContext = cudaq::initializeMLIR();
   auto &platform = cudaq::get_platform();
   platform.set_exec_ctx(&request.executionContext);
+  std::vector<char> decodedCodeIr;
+  if (llvm::decodeBase64(request.code, decodedCodeIr))
+    throw std::runtime_error("Failed to decode input IR");
+
+  std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
   if (request.format == cudaq::CodeFormat::LLVM)
-    cudaq::invokeWrappedKernel(request.getCode(), request.entryPoint,
-                               request.args);
+    cudaq::invokeWrappedKernel(codeStr, request.entryPoint, request.args);
   else
-    invokeMlirKernel(mlirContext, request.getCode(), request.passes,
-                     request.entryPoint);
+    invokeMlirKernel(mlirContext, codeStr, request.passes, request.entryPoint);
   platform.reset_exec_ctx();
   json resultContextJs = request.executionContext;
   dlclose(handle);

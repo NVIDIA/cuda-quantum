@@ -158,7 +158,7 @@ public:
           llvm::MemoryBufferRef llvmBc(llvm::cantFail(section.getContents()),
                                        "Bitcode");
           request.format = cudaq::CodeFormat::LLVM;
-          request.setCode(llvmBc.getBuffer().str());
+          request.code = llvm::encodeBase64(llvmBc.getBuffer());
         }
       }
     } else {
@@ -217,7 +217,7 @@ public:
       opf.enableDebugInfo(/*enable=*/true,
                           /*pretty=*/false);
       moduleOp.print(outStr, opf);
-      request.setCode(mlirCode);
+      request.code = llvm::encodeBase64(mlirCode);
     }
 
     request.simulator = m_simName;
