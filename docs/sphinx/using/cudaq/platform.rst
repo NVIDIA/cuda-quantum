@@ -147,7 +147,7 @@ Remote REST Server Platform
 +++++++++++++++++++++++++++
 
 The remote simulator target (:code:`remote-sim`) encapsulates simulated QPUs
-as independent REST server instances, to which the CUDA Quantum runtime communicates via HTTP requests (REST API). 
+as independent REST server instances. The CUDA Quantum runtime communicates via HTTP requests (REST API) to these REST server instances. 
 
 Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
 
