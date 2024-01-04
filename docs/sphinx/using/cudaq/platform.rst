@@ -152,7 +152,7 @@ as independent REST server instances. The CUDA Quantum runtime communicates via 
 Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
 
 CUDA Quantum provides the REST server implementation as a standalone application (:code:`cudaq_rest_server`),
-hosting all the simulator backends available in the installation, including those that require MPI for multi-GPU computation.
+hosting all the simulator backends available in the installation. These backends include those that require MPI for multi-GPU computation.
 
 Auto-launch REST Server
 ^^^^^^^^^^^^^^^^^^^^^^^
