@@ -26,7 +26,7 @@ struct VectorVectorReturner {
         // expected-error@+1{{symbol is not accessible}}
         r[j] = v[j];
     }
-    // expected-error@+1{{C++ ctor (not-default)}}
+    // expected-error@+1{{C++ constructor (not-default)}}
     return result;
   }
 };
