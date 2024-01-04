@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Python Module Index &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Installation from Source &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
@@ -28,13 +29,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
- 
-
-    <script>
-      DOCUMENTATION_OPTIONS.COLLAPSE_INDEX = true;
-    </script>
-
-
+    <link rel="next" title="CUDA Quantum Versions" href="versions.html" />
+    <link rel="prev" title="Quantum Operations" href="api/default_ops.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -101,7 +97,7 @@
   
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install.html">   Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="install.html#local-installation">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install.html#docker">Docker</a></li>
@@ -401,19 +397,19 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="data_center_install.html">   Data Center Installation Guide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#prerequisites">Prerequisites</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#build-dependencies">Build Dependencies</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cutensor">cuTensor</a></li>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#toolchain">Toolchain</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">   Data Center Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#cuda">CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cuquantum">cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cutensor">cuTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#runtime-libraries">Runtime libraries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#mpi">MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#runtime-libraries">Runtime libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi">MPI</a></li>
 </ul>
 </li>
 </ul>
@@ -435,37 +431,306 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Python Module Index</li>
+      <li class="breadcrumb-item active">Installation from Source</li>
       <li class="wy-breadcrumbs-aside">
+            <a href="_sources/data_center_install.rst.txt" rel="nofollow"> View page source</a>
       </li>
-  </ul>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="api/default_ops.html" class="btn btn-neutral float-left" title="Quantum Operations" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="versions.html" class="btn btn-neutral float-right" title="CUDA Quantum Versions" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-
-   <h1>Python Module Index</h1>
-
-   <div class="modindex-jumpbox">
-   <a href="#cap-c"><strong>c</strong></a>
-   </div>
-
-   <table class="indextable modindextable">
-     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
-     <tr class="cap" id="cap-c"><td></td><td>
-       <strong>c</strong></td><td></td></tr>
-     <tr>
-       <td></td>
-       <td>
-       <a href="api/languages/python_api.html#module-cudaq"><code class="xref">cudaq</code></a></td><td>
-       <em></em></td></tr>
-   </table>
+  <section id="installation-from-source">
+<h1>Installation from Source<a class="headerlink" href="#installation-from-source" title="Permalink to this heading">¶</a></h1>
+<p>In most cases, you should not need to build CUDA Quantum from source. For the
+best experience, we recommend using a container runtime to avoid conflicts with
+other software tools installed on the system. Before proceeding with
+installation from source, we recommend you take a quick look at <a class="reference external" href="https://docs.sylabs.io/guides/2.6/user-guide/faq.html#what-is-so-special-about-singularity">Singularity</a>
+or <a class="reference external" href="https://docs.docker.com/engine/security/rootless/">Docker rootless mode</a>,
+which address common issue or concerns that are often the motivation for
+avoiding the use of containers. Our installation guide also contains
+instructions for how to <a class="reference internal" href="install.html#local-development-with-vscode"><span class="std std-ref">connect an IDE</span></a> to
+a running container.</p>
+<p>If you still want to build and install CUDA Quantum from source, you will need
+to ensure that all dependencies installed in the build and host system are
+compatible with your CUDA Quantum installation. The rest of this guide outlines
+specific compatibility requirements during the build and after installation, and
+walks through the installation steps.</p>
+<p>Also note that CUDA Quantum contains some components that are only included as
+pre-built binaries and not part of our open source repository. We are working on
+either open-sourcing these components or making pre-built binaries available for
+them in the future. Even without these components, almost all features of CUDA
+Quantum will be enabled in a source build, though some pieces may be less
+performant than in our pre-built images. At this time, the <a class="reference internal" href="using/simulators.html#nvidia-mgpu-backend"><span class="std std-ref">multi-GPU state
+vector simulator</span></a> backend will not be included if you
+build CUDA Quantum from source.</p>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading">¶</a></h2>
+<p>The following pre-requisites need to be satisfied both on the build system and
+on the host system, that is the system where the built CUDA Quantum binaries
+will be installed and used.</p>
+<ul class="simple">
+<li><p>Linux operating system. The instructions in this guide have been validated
+with the <a class="reference external" href="https://hub.docker.com/u/almalinux">AlmaLinux 8 image</a> that
+serves as the base image for the <a class="reference external" href="https://github.com/pypa/manylinux">manylinux_2_28 image</a>, and should work for the operating
+systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SELD/SLES 15.5, RHEL 8
+and 9, Rocky 8 and 9, and Ubuntu 22.04. Other operating systems may work, but
+have not been tested.</p></li>
+<li><p>CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
+architecture. Other architectures may work but are not tested and may require
+adjustments to the build instructions.</p></li>
+<li><p>Needed only on the host system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
+Hopper architecture and <a class="reference external" href="https://developer.nvidia.com/cuda-gpus">Compute Capability</a> 7+. Make sure you have the latest
+<a class="reference external" href="https://www.nvidia.com/download/index.aspx">drivers</a> installed for your
+GPU, and double check that the driver version listed by the <code class="code docutils literal notranslate"><span class="pre">nvidia-smi</span></code>
+command is 470.57.02 or newer.</p></li>
+</ul>
+<p>We strongly recommend using a virtual environment for the build that includes
+<em>only</em> the tools and dependencies listed in this guide. If you have additional
+software installed, you will need to make sure that the build is linking against
+the correct libraries and versions.</p>
+</section>
+<section id="build-dependencies">
+<h2>Build Dependencies<a class="headerlink" href="#build-dependencies" title="Permalink to this heading">¶</a></h2>
+<p>In addition to the prerequisites listed above, you will need to install the
+following prerequisites in your build environment:</p>
+<p>FIXME: Check whether we need openssl for using MPI - if we do, include it?
+FIXME: Check if the caching of the minimal openmpi build works
+FIXME: Check that the bulleted item list in install.rst formats correctly now
+FIXME: Check that the deployment fails when the execution on the tensornet-mps fails
+FIXME: Check that the installation works with sudo
+FIXME: Make the installer activate the MPI support if possible?</p>
+<ul class="simple">
+<li><p>Standard C library: To create a self-contained, relocatable CUDA Quantum
+installation, we recommend to statically link all dependencies. To do so,
+please make sure you have the static version of the
+<a class="reference external" href="https://www.gnu.org/software/libc/">GNU C Library</a>, including the
+POSIX Threads library, installed on your system. The necessary package(s) can
+usually be obtained via package manager for your distribution.</p></li>
+<li><p>Python version 3.8 or newer: The Python interpreter is required
+(only) for some of the LLVM build scripts and the Python version
+used for the build does not have to match the version on the host
+system.</p></li>
+<li><p><a class="reference external" href="https://www.gnu.org/software/bash/">Bash</a>: The CUDA Quantum build scripts
+and the commands listed in the rest of this document assume you are using
+<code class="code docutils literal notranslate"><span class="pre">bash</span></code> as the Shell for your build.</p></li>
+<li><p>Common tools: wget, git, unzip. The commands in the rest of this guide assume
+that these tools are present on the build system, but they can be replaced by
+other alternatives (such as, for example, manually going to a web page and
+downloading a file/folder).</p></li>
+</ul>
+<p>The above prerequisites are no longer needed once CUDA Quantum is built and
+do not need to be present on the host system.</p>
+<p>In addition to installing the needed build dependencies listed above, make sure
+to set the following environment variables prior to proceeding:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;InstallLocations<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;InstallLocations<span class="o">]</span>
+</pre></div>
+</div>
+<p>These environment variables <em>must</em> be set during the build. Their value can be
+chosen freely, but for now the path during the build needs to match the path
+where these libraries will be installed on the host system. We are working on
+making this more flexible in the future.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you deviate from the instructions below for installing one of the
+dependencies and instead install it for example via package manager, you will
+need to make sure that the installation path matches the path you set for the
+corresponding environment variable(s).</p>
+<p>Please do <strong>not</strong> set <code class="code docutils literal notranslate"><span class="pre">LLVM_INSTALL_PREFIX</span></code> to an existing directory;
+To avoid compatibility issues, it is important to use the same compiler
+to build the LLVM/MLIR dependencies from source as is later used to
+build CUDA Quantum itself.</p>
+</div>
+<section id="cuda">
+<h3>CUDA<a class="headerlink" href="#cuda" title="Permalink to this heading">¶</a></h3>
+<p>Building CUDA Quantum requires a full installation of the CUDA toolkit.
+The instructions are tested using version 11.8, but any CUDA 11 or 12 version
+should work, as long as the installed driver on both the build and the host
+system supports that CUDA version. We recommend using the latest CUDA version
+that is supported by your driver.</p>
+<p>Download a suitable [CUDA version](<a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">https://developer.nvidia.com/cuda-toolkit-archive</a>)
+following the installation guide for your platform in the online documentation
+linked on that page.</p>
+<p>Within the tested AlmaLinux 8 environment, for example, the following commands
+install CUDA 11.8:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;CUDAInstall<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;CUDAInstall<span class="o">]</span>
+</pre></div>
+</div>
+</section>
+<section id="cuquantum">
+<h3>cuQuantum<a class="headerlink" href="#cuquantum" title="Permalink to this heading">¶</a></h3>
+<p>Each version of CUDA Quantum is compatible only with a specific cuQuantum version.
+At present this is version 23.10. Newer versions of cuQuantum (if they exist)
+might be compatible but have not been tested.</p>
+<p>Make sure the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDA_ARCH_FOLDER</span></code> is set to either <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code>
+or <code class="code docutils literal notranslate"><span class="pre">sbsa</span></code> (for ARM64) depending on your processor architecture, and <code class="code docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>
+is set to the installed CUDA version.
+Install cuQuantum version 23.10 using the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;cuQuantumInstall<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;cuQuantumInstall<span class="o">]</span>
+</pre></div>
+</div>
+</section>
+<section id="cutensor">
+<h3>cuTensor<a class="headerlink" href="#cutensor" title="Permalink to this heading">¶</a></h3>
+<p>Depending on how you installed CUDA, the cuTensor library is usually not included
+in the installation. This library is used by some of the simulator backends.
+Please check the cuQuantum documentation to ensure you choose a version that is
+compatible with the used cuQuantum version, such as version 1.7.</p>
+<p>Make sure the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDA_ARCH_FOLDER</span></code> is set to either <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code>
+or <code class="code docutils literal notranslate"><span class="pre">sbsa</span></code> (for ARM64) depending on your processor architecture, and <code class="code docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>
+is set to the installed CUDA version.
+Install cuTensor version 1.7 using the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;cuTensorInstall<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;cuTensorInstall<span class="o">]</span>
+</pre></div>
+</div>
+</section>
+<section id="toolchain">
+<h3>Toolchain<a class="headerlink" href="#toolchain" title="Permalink to this heading">¶</a></h3>
+<p>The compiler toolchain used for the build needs to support C++20 and must be a supported
+[CUDA host compiler](<a class="reference external" href="https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers">https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers</a>)
+for the installed CUDA version.
+The following instructions have been tested with
+[GCC-11](<a class="reference external" href="https://gcc.gnu.org/index.html">https://gcc.gnu.org/index.html</a>) as your toolchain for building CUDA Quantum.
+If you use a different compiler, we recommend using an OpenMP-enabled compiler. At this
+time, we actively test building with GCC 11 and 12, as well as with Clang 16.
+Other toolchains may be supported but have not been tested.</p>
+<p>Within the tested AlmaLinux 8 environment, for example, the following commands
+install GCC 11:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;gccInstall<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;gccInstall<span class="o">]</span>
+</pre></div>
+</div>
+<p>Independent on which compiler toolchain you installed, set the following
+environment variables to point to the appropriate values to point to the
+respective compilers on your build system:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;ToolchainConfiguration<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;ToolchainConfiguration<span class="o">]</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>The variables CC and CXX <em>must</em> be set for the CUDA Quantum build.</p></li>
+<li><p>A Fortran compiler is needed (only) to build the OpenSSL dependency;
+if you have an existing OpenSSL installation that you set the
+<code class="code docutils literal notranslate"><span class="pre">OPENSSL_INSTALL_PREFIX</span></code> variable to, you can omit setting the FC
+environment variable.</p></li>
+<li><p>To use GPU-acceleration in CUDA Quantum, make sure to set CUDACXX to
+your CUDA compiler. If the CUDA compiler is not found when building CUDA Quantum, some components and backends will be omitted automatically during
+the build.</p></li>
+</ul>
+</section>
+</section>
+<section id="building-cuda-quantum">
+<h2>Building CUDA Quantum<a class="headerlink" href="#building-cuda-quantum" title="Permalink to this heading">¶</a></h2>
+<p>This installation guide has been written for a specific version/commit of CUDA Quantum.
+Make sure to obtain the source code for that version.
+Clone the CUDA Quantum <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a> and
+checkout the appropriate branch, tag, or commit.
+Note that the build scripts assume that they are run from within a git repository,
+and merely downloading the source code as ZIP archive hence will not work.</p>
+<p>From within the folder where you cloned the CUDA Quantum repository, run the following
+command to build CUDA Quantum:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>docker/release/installer.Dockerfile
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;CUDAQuantumBuild<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;CUDAQuantumBuild<span class="o">]</span>
+</pre></div>
+</div>
+<p>The CUDA Quantum build will compile or omit optional components automatically depending
+on whether the necessary pre-requisites are found in the build environment.
+Please check the build log to confirm that all desired components have been built. If
+you see a message that a component has been skipped, make sure you have all necessary
+prerequisites, have followed the instructions for installing the build dependencies,
+and the necessary environment variables as described in this document are set.</p>
+</section>
+<section id="installation-on-the-host">
+<h2>Installation on the Host<a class="headerlink" href="#installation-on-the-host" title="Permalink to this heading">¶</a></h2>
+<p>TODO: update this to describe how to get an archive that is extracted to
+the right locations (as we do for the installer).</p>
+<p>Make sure your host system satisfies the <a class="reference internal" href="#prerequisites">Prerequisites</a> listed above, and
+…
+For pre-built archives:
+tools to decompress tar.gz needed for extraction of a pre-built archive, and be mindful that the
+C++ standard library matches the gcc-11 compiler used to build the archive.
+…</p>
+<p>To make use of all CUDA Quantum features and components, install the CUDA Quantum
+runtime dependencies listed in the remaining sections on the host system.</p>
+<section id="runtime-libraries">
+<h3>Runtime libraries<a class="headerlink" href="#runtime-libraries" title="Permalink to this heading">¶</a></h3>
+<p>Make sure that the same standard library that was used during the
+CUDA Quantum build is present and discoverable on the host system.
+While not strictly necessary, we recommend that you install the toolchain
+that was used for the CUDA Quantum build on the host; you will need a compiler
+to enable MPI support, and using the same compiler as CUDA Quantum was built with
+guarantees that there are no incompatibilities.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>CUDA Quantum is configured to use its own linker, meaning the
+<a class="reference external" href="https://lld.llvm.org/">LLD</a> linker, by default. While this linker should be
+a drop-in replacement for system linkers, in rare cases it may be necessary to use
+your own linker instead. You can configure CUDA Quantum to use an external linker
+setting the <code class="code docutils literal notranslate"><span class="pre">NVQPP_LD_PATH</span></code> environment variable to point to it; for example
+<code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">NVQPP_LD_PATH=ld</span></code>.</p>
+</div>
+<p>Additionally, you will need to install the necessary CUDA runtime libraries to use
+GPU-acceleration in CUDA Quantum. While not necessary, we recommend installing
+the complete CUDA toolkit like you did for the CUDA Quantum build.
+If you prefer to only install the minimal set of runtime libraries, the following
+commands, for example, install the necessary packages for the AlmaLinux 8 environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;CUDARTInstall<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;CUDARTInstall<span class="o">]</span>
+</pre></div>
+</div>
+</section>
+<section id="mpi">
+<h3>MPI<a class="headerlink" href="#mpi" title="Permalink to this heading">¶</a></h3>
+<p>To work with all CUDA Quantum backends, a CUDA-aware MPI installation
+is required. Different MPI implementations are supported via a plugin infrastructure
+in CUDA Quantum. CUDA Quantum includes the necessary plugin for OpenMPI and MPICH.
+Any other MPI implementation requires implementing the plugin yourself, and activating
+it in a final step after installing CUDA Quantum on the host system.</p>
+<p>Assuming you have an existing CUDA-aware MPI installation on your host system, and
+a working C++ toolchain, you can active MPI support in CUDA Quantum by executing
+the <code class="code docutils literal notranslate"><span class="pre">activate_custom_mpi.sh</span></code> script included in the CUDA Quantum <code class="code docutils literal notranslate"><span class="pre">distributed_interfaces</span></code> directory. For more information about building and activating MPI plugins, see …</p>
+<p>TODO: maybe the installer should do that automatically - still need to mention how to do that retroactively, though.</p>
+<p>TODO: Code snippet</p>
+<p>If you do not have an existing CUDA-aware MPI installation, you can build one from source
+before activating the MPI plugin.
+The following commands build a sufficient CUDA-aware OpenMPI installation.
+To make best use of MPI, we recommend a more fully featured installation including
+additional configurations that fit your host system.
+The commands below assume you have the necessary prerequisites for the OpenMPI build
+installed on the build system. Within the tested AlmaLinux 8 environment, for example,
+the packages <code class="code docutils literal notranslate"><span class="pre">autoconf</span></code>, <code class="code docutils literal notranslate"><span class="pre">libtool</span></code>, <code class="code docutils literal notranslate"><span class="pre">flex</span></code>, and <code class="code docutils literal notranslate"><span class="pre">make</span></code> need to be installed.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;OpenMPIBuild<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;OpenMPIBuild<span class="o">]</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
 
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="api/default_ops.html" class="btn btn-neutral float-left" title="Quantum Operations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="versions.html" class="btn btn-neutral float-right" title="CUDA Quantum Versions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

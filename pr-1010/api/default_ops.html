@@ -29,7 +29,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="CUDA Quantum Versions" href="../versions.html" />
+    <link rel="next" title="Installation from Source" href="../data_center_install.html" />
     <link rel="prev" title="CUDA Quantum Python API" href="languages/python_api.html" /> 
 </head>
 
@@ -397,6 +397,23 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../data_center_install.html">   Data Center Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cuquantum">cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cutensor">cuTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#runtime-libraries">Runtime libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#mpi">MPI</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a></li>
 </ul>
 
@@ -421,7 +438,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="languages/python_api.html" class="btn btn-neutral float-left" title="CUDA Quantum Python API" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../versions.html" class="btn btn-neutral float-right" title="CUDA Quantum Versions" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../data_center_install.html" class="btn btn-neutral float-right" title="Installation from Source" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -440,8 +457,9 @@ for that target.</p>
 <p>Operations that implement unitary transformations of the quantum state are templated.
 The template argument allows to invoke the adjoint and controlled version of the quantum transformation, see the section on <a class="reference internal" href="#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a>.</p>
 <p>CUDA Quantum additionally provides overloads to support broadcasting of
-single-qubit operations across a register of qubits.
-For example, <code class="code docutils literal notranslate"><span class="pre">x(cudaq::qreg&lt;&gt;&amp;)</span></code> flips the state of each qubit in the provided <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code>.</p>
+single-qubit operations across a vector of qubits.  For example,
+<code class="code docutils literal notranslate"><span class="pre">x(cudaq::qvector&lt;&gt;&amp;)</span></code> flips the state of each qubit in the provided
+<code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>.</p>
 <section id="unitary-operations-on-qubits">
 <h2>Unitary Operations on Qubits<a class="headerlink" href="#unitary-operations-on-qubits" title="Permalink to this heading">¶</a></h2>
 <section id="x">
@@ -940,7 +958,7 @@ This is a non-linear transformation, and no template overloads are available.</p
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="languages/python_api.html" class="btn btn-neutral float-left" title="CUDA Quantum Python API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../versions.html" class="btn btn-neutral float-right" title="CUDA Quantum Versions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../data_center_install.html" class="btn btn-neutral float-right" title="Installation from Source" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

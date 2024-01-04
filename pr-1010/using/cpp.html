@@ -397,6 +397,23 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../data_center_install.html">   Data Center Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cuquantum">cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cutensor">cuTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#runtime-libraries">Runtime libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#mpi">MPI</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a></li>
 </ul>
 
@@ -450,8 +467,8 @@ simple “Hello World” example, specifically a CUDA Quantum kernel that prepar
 <span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 
-<span class="w">    </span><span class="c1">// Compile-time, std::array-like `qreg`.</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// Compile-time sized array like std::array</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
@@ -512,7 +529,7 @@ at an example of this:</p>
 
 <span class="k">struct</span><span class="w"> </span><span class="nc">ansatz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="kt">double</span><span class="w"> </span><span class="n">theta</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 <span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
@@ -570,7 +587,7 @@ by another pre-defined CUDA Quantum kernel expression. Let’s take a look at th
 <span class="k">struct</span><span class="w"> </span><span class="nc">ccnot_test</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// constrain the signature of the incoming kernel</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">takes_qubit</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="n">apply_x</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="n">qs</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">qs</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
 
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">qs</span><span class="p">);</span>
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">qs</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
@@ -587,7 +604,7 @@ by another pre-defined CUDA Quantum kernel expression. Let’s take a look at th
 <span class="w">  </span><span class="c1">// We can achieve the same thing as above via</span>
 <span class="w">  </span><span class="c1">// a lambda expression.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">ccnot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
 
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
@@ -651,8 +668,8 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 <span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 
-<span class="w">    </span><span class="c1">// Dynamic, vector-like `qreg`</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// Dynamically sized vector of qubits</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
@@ -997,7 +1014,7 @@ For more information about executing quantum kernels on different hardware backe
 <span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Maximally entangled state between 5 qubits.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
@@ -1060,7 +1077,7 @@ For more information about executing quantum kernels on different hardware backe
 <span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Maximally entangled state between 5 qubits.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>

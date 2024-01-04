@@ -397,6 +397,23 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="data_center_install.html">   Data Center Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cuquantum">cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cutensor">cuTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#runtime-libraries">Runtime libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#mpi">MPI</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="versions.html">   Other Versions</a></li>
 </ul>
 
@@ -440,7 +457,9 @@ guidance for application development on a remote host where CUDA Quantum is inst
 <li><p><strong>:ref:`Singularity &lt;install-singularity-image&gt;`</strong>: A <a class="reference external" href="https://docs.sylabs.io/guides/latest/user-guide/introduction.html">Singularity</a> container can easily be created based on our Docker images.</p></li>
 <li><p><strong>:ref:`PyPI &lt;install-python-wheels&gt;`</strong>: Additionally, we distribute pre-built Python wheels via <a class="reference external" href="https://pypi.org">PyPI</a>.</p></li>
 </ul>
-<p>If you would like to build CUDA Quantum from source instead, please follow the instructions on the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
+<p>If you would like to build CUDA Quantum from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.
+If, on the other hand, you want to contribute to the development of CUDA Quantum itself and hence want to
+build a custom version of CUDA Quantum from source, follow the instructions on the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a> instead.</p>
 <p>If you are unsure which option suits you best, we recommend using our <a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker image</span></a> to develop your applications in a controlled environment that does not depend on, or interfere with, other software
 that is installed on your system.</p>
 <section id="docker">

@@ -397,6 +397,23 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_center_install.html">   Data Center Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuquantum">cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cutensor">cuTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#runtime-libraries">Runtime libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#mpi">MPI</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
 </ul>
 
@@ -430,7 +447,8 @@
              
   <section id="runtime-versus-compile-time-kernels">
 <h1>Runtime Versus Compile-time Kernels<a class="headerlink" href="#runtime-versus-compile-time-kernels" title="Permalink to this heading">¶</a></h1>
-<p>The structure of the <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code> allows programmers to reason about
+<p>The structure of the <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector(N)</span></code> vs <code class="code docutils literal notranslate"><span class="pre">cudaq::qarray&lt;N&gt;</span></code>
+syntax allows programmers to reason about
 the definition of kernels in a couple of ways. Programmers can define
 quantum code that is generic and depends on runtime parameters, or they can
 define kernel expressions that are static and can be reasoned about and
@@ -441,7 +459,7 @@ a maximally entangled GHZ state:</p>
 <span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">N</span><span class="o">&gt;</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">ghz_compile_time</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
@@ -454,7 +472,7 @@ a maximally entangled GHZ state:</p>
 <span class="c1">// and therefore cannot be reasoned about at compile time</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">ghz_runtime</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()(</span><span class="kt">int</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
@@ -474,7 +492,7 @@ a maximally entangled GHZ state:</p>
 with regards to compile-time optimization. But this snippet should
 demonstrate how programmers can reason about the definition of quantum
 code with CUDA Quantum, and that compile-time optimizations will be more effective
-with code that relies on <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg&lt;N&gt;</span></code>-like semantics.</p>
+with code that relies on <code class="code docutils literal notranslate"><span class="pre">cudaq::qarray&lt;N&gt;</span></code>-like semantics.</p>
 </section>
 
 

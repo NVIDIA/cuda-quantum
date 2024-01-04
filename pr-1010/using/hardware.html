@@ -397,6 +397,23 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../data_center_install.html">   Data Center Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cuquantum">cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cutensor">cuTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#runtime-libraries">Runtime libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#mpi">MPI</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../versions.html">   Other Versions</a></li>
 </ul>
 
@@ -717,11 +734,11 @@ To set which OQC email, set the <code class="code docutils literal notranslate">
 </div>
 <p>You can then execute a kernel against the platform using the OQC Lucy device</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qreg</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qreg</span><span class="p">)</span>
+<span class="n">qvec</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qvec</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qvec</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qvec</span><span class="p">)</span>
 <span class="nb">str</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">))</span>
 </pre></div>
 </div>

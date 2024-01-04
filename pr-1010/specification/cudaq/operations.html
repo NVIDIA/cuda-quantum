@@ -397,6 +397,23 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_center_install.html">   Data Center Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuquantum">cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cutensor">cuTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#runtime-libraries">Runtime libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#mpi">MPI</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
 </ul>
 
@@ -451,9 +468,13 @@ of that instruction on all provided <code class="code docutils literal notransla
 <code class="code docutils literal notranslate"><span class="pre">x(cudaq::qubit&amp;,</span> <span class="pre">cudaq::qubit&amp;,</span> <span class="pre">cudaq::qubit&amp;)</span></code>, modeling the NOT operation on a single
 <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> or on multiple <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code>.</p>
 <p>Implementations should provide overloads to support broadcasting of single-qubit
-intrinsic operations across a register of <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>.
-For example, <code class="code docutils literal notranslate"><span class="pre">x(cudaq::qreg&lt;&gt;&amp;)</span></code> should apply a NOT operation on all <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> in the provided <code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code>.
-A set of quantum intrinsic operations for the <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> then for example looks as follows, where <code class="code docutils literal notranslate"><span class="pre">NAME</span></code>, <code class="code docutils literal notranslate"><span class="pre">ROTATION_NAME</span></code>, and <code class="code docutils literal notranslate"><span class="pre">MEASURE_OP</span></code> stand for the names of single-qubit operations, single-qubit rotations, and measurement operations respectively:</p>
+intrinsic operations across a register of <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>.  For example,
+<code class="code docutils literal notranslate"><span class="pre">x(cudaq::qvector&lt;&gt;&amp;)</span></code> should apply a NOT operation on all
+<code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> in the provided <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>. A set of quantum
+intrinsic operations for the <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> then for example looks as
+follows, where <code class="code docutils literal notranslate"><span class="pre">NAME</span></code>, <code class="code docutils literal notranslate"><span class="pre">ROTATION_NAME</span></code>, and <code class="code docutils literal notranslate"><span class="pre">MEASURE_OP</span></code> stand
+for the names of single-qubit operations, single-qubit rotations, and
+measurement operations respectively:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">base</span><span class="p">;</span>
 <span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">ctrl</span><span class="p">;</span>
@@ -464,17 +485,17 @@ A set of quantum intrinsic operations for the <code class="code docutils literal
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">NAME</span><span class="p">(</span><span class="n">QubitArgs</span><span class="o">&amp;</span><span class="p">...</span><span class="w"> </span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
 
 <span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">base</span><span class="o">&gt;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">NAME</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">qreg</span><span class="o">&amp;</span><span class="w"> </span><span class="n">qr</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">NAME</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">qvector</span><span class="o">&amp;</span><span class="w"> </span><span class="n">qr</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
 
 <span class="w">    </span><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctrl</span><span class="o">&gt;</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">NAME</span><span class="p">(</span><span class="n">qreg</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ctrls</span><span class="p">,</span><span class="w"> </span><span class="n">qubit</span><span class="o">&amp;</span><span class="w"> </span><span class="n">target</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">NAME</span><span class="p">(</span><span class="n">qvector</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ctrls</span><span class="p">,</span><span class="w"> </span><span class="n">qubit</span><span class="o">&amp;</span><span class="w"> </span><span class="n">target</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
 
 <span class="w">    </span><span class="c1">// Single qubit rotation operations and ctrl / adj variants</span>
 <span class="w">    </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">mod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">base</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="w"> </span><span class="nc">ScalarAngle</span><span class="p">,</span><span class="w"> </span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">QubitArgs</span><span class="o">&gt;</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">ROTATION_NAME</span><span class="p">(</span><span class="n">ScalarAngle</span><span class="w"> </span><span class="n">angle</span><span class="p">,</span><span class="w"> </span><span class="n">QubitArgs</span><span class="w"> </span><span class="o">&amp;</span><span class="p">...</span><span class="n">args</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
 
 <span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">MEASURE_OP</span><span class="p">(</span><span class="n">qubit</span><span class="w"> </span><span class="o">&amp;</span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MEASURE_OP</span><span class="p">(</span><span class="n">qreg</span><span class="w"> </span><span class="o">&amp;</span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">MEASURE_OP</span><span class="p">(</span><span class="n">qvector</span><span class="w"> </span><span class="o">&amp;</span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="p">;</span>
 <span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="nf">measure</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">term</span><span class="p">)</span><span class="w"> </span><span class="k">noexcept</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>

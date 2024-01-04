@@ -8,7 +8,7 @@ Let's see the output of :code:`nvq++` in verbose mode. Given a simple code like
 
     struct ghz {
       void operator()(int N) __qpu__ {
-        cudaq::qreg q(N);
+        cudaq::qvector q(N);
         h(q[0]);
         for (int i = 0; i < N - 1; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
@@ -158,7 +158,7 @@ and produce QIR. Recall the code snippet for the kernel
     // Define a quantum kernel
     struct ghz {
       auto operator()() __qpu__ {
-        cudaq::qreg q(5);
+        cudaq::qarray<5> q;
         h(q[0]);
         for (int i = 0; i < 4; i++) 
           x<cudaq::ctrl>(q[i], q[i + 1]);
