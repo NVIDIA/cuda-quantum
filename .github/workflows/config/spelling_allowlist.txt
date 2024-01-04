@@ -163,6 +163,8 @@ subclassed
 subclasses
 subclassing
 subcommand
+subexpression
+subexpressions
 subfolder
 submodule
 subscriptable
