@@ -14,7 +14,8 @@
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/installer.Dockerfile . --output out
 
 # [Operating System]
-FROM amd64/almalinux:8 as cudaqbuild
+ARG base_image=amd64/almalinux:8
+FROM ${base_image} as cudaqbuild
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
