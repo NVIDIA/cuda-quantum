@@ -120,5 +120,57 @@ jobs:
           (docker exec cuda-quantum bash -c nvq++) && installed=true || installed=false
           docker stop cuda-quantum
 
-          if ! $installed; then echo "Failed to install CUDA Quantum." >> /tmp/validation.out
-          else echo "Successfully installed CUDA Quantum." >> /tmp/validation.out; fi
+          if ! $installed; then echo "Failed to install CUDA Quantum." && exit 1
+          else echo "Successfully installed CUDA Quantum."; fi
+
+      - name: MPI validation
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: validation:local
+          shell: bash
+          run: |
+            set +e # Allow script to keep going through errors
+            for ex in `find examples/other/distributed/ -name '*.cpp'`; do
+              nvq++ -DCUDAQ_ENABLE_MPI_EXAMPLE=1 $ex
+              status=$?
+              if [ $status -eq 0 ]; then
+                mpiexec --allow-run-as-root -np 4 ./a.out
+                status=$?
+                if [ $status -eq 0 ]; then
+                  echo "Successfully ran $filename."
+                else
+                  echo "Failed to execute $filename."
+                  status_sum=$((status_sum+1))
+                fi
+              else
+                echo "Compilation failed for $filename."
+                status_sum=$((status_sum+1))
+              fi
+            done
+            set -e # Re-enable exit code error checking
+            if [ ! $status_sum -eq 0 ]; then
+              echo "::error::$status_sum examples failed; see the log for more detail."
+              exit $status_sum
+            fi
+
+      - name: Sanity checks
+        run: |
+          docker run --rm -dit --name cuda-quantum validation:local
+          (docker exec cuda-quantum bash validate.sh > /tmp/validation.out) && passed=true || passed=false
+          docker stop cuda-quantum
+
+          if ! $passed; then 
+            echo "::error::Validation failed; see job summary for more details."
+            exit 1
+          fi
+
+      - name: Create job summary
+        if: always() && !cancelled()
+        run: |
+          if [ -f /tmp/validation.out ]; then
+            echo "## Validation" >> $GITHUB_STEP_SUMMARY
+            echo "The validation of the CUDA Quantum installation produced the following output:" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
