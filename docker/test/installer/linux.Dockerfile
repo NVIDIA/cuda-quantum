@@ -35,8 +35,9 @@ ADD docker/test/installer/dependencies.sh /runtime_dependencies.sh
 RUN bash runtime_dependencies.sh ${base_image}
 
 ## [Install]
-ADD out/cuda_quantum.* .
-RUN ./cuda_quantum.$(uname -m) --accept
+ARG cuda_quantum_installer='cuda_quantum.*'
+ADD "${cuda_quantum_installer}" .
+RUN "$(ls "${cuda_quantum_installer}")" --accept
 
 ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"

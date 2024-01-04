@@ -79,20 +79,21 @@ read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
 function prepare_exit {
   cd "$working_dir" && remove_temp_installs
   if [ -z "$__errexit__" ]; then set +e; fi
-  (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 }
 
 set -e
-trap 'prepare_exit && if $is_sourced; then return 1; else exit 1; fi' EXIT
+trap 'prepare_exit && ((return 0 2>/dev/null) && return 1 || exit 1)' EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if [ ! -x "$(command -v cmake)" ]; then
+  echo "Installing CMake..."
   temp_install_if_command_unknown wget wget
   wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
   bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
 fi
 if [ ! -x "$(command -v ninja)" ]; then
+  echo "Installing Ninja..."
   temp_install_if_command_unknown unzip unzip
   wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
   unzip ninja-linux.zip
@@ -105,6 +106,7 @@ fi
 
 # [Blas] Needed for certain optimizers
 if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
+  echo "Installing BLAS..."
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
   if [ ! -x "$(command -v "$FC")" ]; then
@@ -127,6 +129,7 @@ fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
 if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
+  echo "Installing libz..."
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
@@ -141,6 +144,7 @@ fi
 
 # [OpenSSL] Needed for communication with external services
 if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(find "$OPENSSL_INSTALL_PREFIX" -name libssl.a)" ]; then
+  echo "Installing OpenSSL..."
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
@@ -166,6 +170,7 @@ fi
 
 # [CURL] Needed for communication with external services
 if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
+  echo "Installing Curl..."
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
@@ -184,12 +189,8 @@ fi
 # [LLVM/MLIR] Needed to build the CUDA Quantum toolchain
 llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
 if [ ! -d "$llvm_dir" ]; then
-  echo "Could not find llvm libraries."
-  set +e && source "$this_file_dir/build_llvm.sh" -v && status=$? && set -e
-  if [ ! $status -eq 0 ]; then
-    echo "Failed to build LLVM libraries."
-    prepare_exit && if $is_sourced; then return 2; else exit 2; fi
-  fi
+  echo "Installing LLVM libraries..."
+  bash "$this_file_dir/build_llvm.sh" -v
 else 
   echo "Configured C compiler: $CC"
   echo "Configured C++ compiler: $CXX"
@@ -198,4 +199,5 @@ fi
 echo "All prerequisites have been installed."
 # Make sure to call prepare_exit so that we properly uninstalled all helper tools,
 # and so that we are in the correct directory also when this script is sourced.
-prepare_exit && if $is_sourced; then return 0; else exit 0; fi
+prepare_exit && ((return 0 2>/dev/null) && return 0 || exit 0)
+

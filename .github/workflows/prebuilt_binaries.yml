@@ -22,7 +22,7 @@ jobs:
       contents: read
 
     outputs:
-      artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
+      artifact_name: ${{ steps.config.outputs.artifact_name }}
 
     steps:
       - name: Checkout repository
@@ -31,6 +31,7 @@ jobs:
       - name: Configure build
         id: config
         run: |
+          platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
@@ -39,6 +40,7 @@ jobs:
 
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "docker_output=type=local,dest=/tmp/install" >> $GITHUB_OUTPUT
+          echo "artifact_name=cudaq-${platform_id}-installer" >> $GITHUB_OUTPUT
 
       - name: Set up context for buildx
         run: |
@@ -63,7 +65,60 @@ jobs:
       - name: Upload installer
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ steps.prereqs.outputs.artifact_name }}
+          name: ${{ steps.config.outputs.artifact_name }}
           path: /tmp/wheels
           retention-days: 5
           if-no-files-found: error
+
+  create_test_config:
+    name: Prepare validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      json: "${{ steps.config.outputs.json }}"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - id: config
+        run: |
+          cpp_config=`cat .github/workflows/config/validation_config.json | jq ".cpp"`
+          operating_systems=`echo "$cpp_config" | jq '.[].operating_systems'`
+          echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
+
+  validation:
+    name: Validate installer
+    needs: [build_installer, create_test_config]
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        os_image: ${{ fromJSON(needs.create_test_config.outputs.json).os_images }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Load cuda-quantum installer
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.build_installer.outputs.artifact_name }}
+
+      - name: Install in clean environment
+        run: |
+          docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
+            --build-arg cuda_quantum_installer=cuda_quantum.$(uname -m) \
+            --build-arg base_image=${{ matrix.os_image }}
+
+          docker run --rm -dit --name cuda-quantum validation:local
+          (docker exec cuda-quantum bash -c nvq++) && installed=true || installed=false
+          docker stop cuda-quantum
+
+          if ! $installed; then echo "Failed to install CUDA Quantum." >> /tmp/validation.out
+          else echo "Successfully installed CUDA Quantum." >> /tmp/validation.out; fi

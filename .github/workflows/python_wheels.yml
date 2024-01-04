@@ -139,12 +139,6 @@ jobs:
         run: |
           python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
           operating_systems=`echo "$python_config" | jq '.[] | select(.version==${{ inputs.python_version }}).operating_systems'`
-
-          json="{\"os_images\":[]}"
-          for image in ${{ inputs.os_images }}; do
-            image=\'$image\'
-            json=`echo $json | jq ".os_images |= . + [\"$image\"]"`
-          done
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
   validation:

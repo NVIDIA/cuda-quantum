@@ -37,12 +37,14 @@ while getopts ":t:e:" opt; do
 done
 OPTIND=$__optind__
 
-function temp_install_if_command_unknown {
-    if [ ! -x "$(command -v $1)" ]; then
-        apt-get install -y --no-install-recommends $2
-        APT_UNINSTALL="$APT_UNINSTALL $2"
-    fi
-}
+if [ "$(type -t temp_install_if_command_unknown)" != "function" ]; then
+    function temp_install_if_command_unknown {
+        if [ ! -x "$(command -v $1)" ]; then
+            apt-get install -y --no-install-recommends $2
+            APT_UNINSTALL="$APT_UNINSTALL $2"
+        fi
+    }
+fi
 
 if [ "$toolchain" = "gcc11" ] ; then
 
