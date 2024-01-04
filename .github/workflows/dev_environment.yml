@@ -47,6 +47,11 @@ on:
         required: false
         type: string
         description: The commit to check out. Only used when pull_request_number is set.
+      checkout_submodules:
+        required: false
+        type: boolean
+        description: Whether to checkout submodules when checking out the repository.
+        default: false
       matrix_key:
         required: false
         type: string
@@ -276,6 +281,9 @@ jobs:
             echo "tar_archive=$tar_archive" >> $GITHUB_OUTPUT
             echo "docker_output=type=docker,dest=$tar_archive" >> $GITHUB_OUTPUT
           fi
+
+          echo -e '\n\n'
+          ls -R .git
 
       - name: Check out local cache
         uses: actions/cache/restore@v3
