@@ -11,7 +11,7 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   DOCKER_BUILDKIT=1 docker build -f docker/release/cudaq.archive.Dockerfile . --output out
+#   DOCKER_BUILDKIT=1 docker build -f docker/release/installer.Dockerfile . --output out
 
 # [Operating System]
 FROM amd64/almalinux:8 as cudaqbuild

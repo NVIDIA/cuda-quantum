@@ -55,7 +55,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/release/cudaq.archive.Dockerfile
+          file: ./docker/release/installer.Dockerfile
           build-args: |
             release_version=${{ steps.config.outputs.cudaq_version }}
           cache-from: |

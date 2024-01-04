@@ -225,7 +225,7 @@ command to build CUDA Quantum:
 
 .. code-block:: bash
 
-    .. literalinclude:: docker/release/cudaq.archive.Dockerfile
+    .. literalinclude:: docker/release/installer.Dockerfile
       :start-after: [>CUDAQuantumBuild]
       :end-before: [<CUDAQuantumBuild]
 
