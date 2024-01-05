@@ -277,12 +277,11 @@ std::invoke_result_t<QuantumKernel, Args...> invokeKernel(QuantumKernel &&fn,
                                                           Args &&...args) {
 #if defined(CUDAQ_REMOTE_SIM) && defined(CUDAQ_LIBRARY_MODE)
   if constexpr (has_name<QuantumKernel>::value) {
-    // kernel_builder kernel: it always has quake representation.
-    // In library mode, we just need to register it as a proper MLIR kernel.
+    // kernel_builder kernel: it always has quake representation; hence, no need
+    // to wrap the kernel (run as MLIR mode).
+    // Just need to JIT code to get it registered.
+    static_cast<cudaq::details::kernel_builder_base &>(fn).jitCode();
     auto serializedArgsBuffer = serializeArgs(std::forward<Args>(args)...);
-    cudaq::registry::cudaqRegisterKernelName(fn.name().c_str());
-    cudaq::registry::deviceCodeHolderAdd(fn.name().c_str(),
-                                         fn.to_quake().c_str());
     cudaq::get_platform().launchKernel(fn.name(), nullptr,
                                        (void *)serializedArgsBuffer.data(),
                                        serializedArgsBuffer.size(), 0);
