@@ -137,6 +137,7 @@ intrinsics
 iterable
 lookup
 lookups
+mutex
 namespace
 namespaces
 natively
@@ -163,6 +164,8 @@ subclassed
 subclasses
 subclassing
 subcommand
+subexpression
+subexpressions
 subfolder
 submodule
 subscriptable

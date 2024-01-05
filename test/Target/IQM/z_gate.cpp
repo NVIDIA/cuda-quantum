@@ -9,7 +9,7 @@
 #include <cudaq.h>
 
 // RUN: nvq++ %s --target iqm --emulate --iqm-machine Apollo -o %t.x && %t.x | FileCheck %s
-
+// RUN: nvq++ %s --target iqm --emulate --iqm-machine=Apollo -o %t.x && %t.x | FileCheck %s
 // CHECK: { 0:1000 }
 
 template <std::size_t N>

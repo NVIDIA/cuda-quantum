@@ -185,6 +185,11 @@ void broadcast(std::vector<double> &data, int rootRank) {
   commPlugin->broadcast(data, rootRank);
 }
 
+void broadcast(std::string &data, int rootRank) {
+  auto *commPlugin = getMpiPlugin();
+  commPlugin->broadcast(data, rootRank);
+}
+
 void finalize() {
   if (rank() == 0)
     cudaq::info("Finalizing MPI.");
