@@ -137,6 +137,7 @@ intrinsics
 iterable
 lookup
 lookups
+mutex
 namespace
 namespaces
 natively

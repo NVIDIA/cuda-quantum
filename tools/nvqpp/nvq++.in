@@ -721,6 +721,10 @@ for i in ${SRCS}; do
 done
 
 if ${DO_LINK}; then
+	if ${LIBRARY_MODE}; then
+		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
+	fi 
+
 	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified

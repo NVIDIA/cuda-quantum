@@ -176,4 +176,5 @@ Namespaces
 .. doxygenfunction:: cudaq::mpi::all_gather(std::vector<int> &global, const std::vector<int> &local)
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T&, const Func&)
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T &localValue, const BinaryFunction &function)
-.. doxygenfunction:: cudaq::mpi::broadcast
+.. doxygenfunction:: cudaq::mpi::broadcast(std::vector<double> &data, int rootRank)
+.. doxygenfunction:: cudaq::mpi::broadcast(std::string &data, int rootRank)

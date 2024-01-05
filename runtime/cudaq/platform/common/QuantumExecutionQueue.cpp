@@ -31,6 +31,10 @@ void QuantumExecutionQueue::enqueue(QuantumTask &t) {
   return;
 }
 
+std::thread::id QuantumExecutionQueue::getExecutionThreadId() const {
+  return thread.get_id();
+}
+
 void QuantumExecutionQueue::handler(void) {
   std::unique_lock<std::mutex> l(lock);
 
