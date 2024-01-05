@@ -373,7 +373,7 @@ private:
   /// @brief The CUDA Quantum Quake function arguments stored as `QuakeValue`s.
   std::vector<QuakeValue> arguments;
 
-  /// @brief Return a string representation of a the given spin operator.
+  /// @brief Return a string representation of the given spin operator.
   /// Throw an exception if the spin operator provided is not a single term.
   auto toPauliWord(const std::variant<std::string, spin_op> &term) {
     if (term.index()) {
