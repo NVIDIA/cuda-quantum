@@ -226,14 +226,14 @@ protected:
     // }
     cudaq::info("ADDING QUBITS TO STATE!!!!!!!!!!!!!\n\n\n\n\n");
     const std::vector<std::complex<double>> &inputState = {1. / sqrt(2), -1. / sqrt(2)};
+    std::vector<std::complex<float>> in_state(inputState.size());
 
     // Needs to be a complex float before running Memcpy.
     // In the future, we should consider supporting a complex<float> overload
     // across the `CircuitSimulator` API.
     void *newDeviceStateVector{nullptr};
-    std::vector<std::complex<float>> in_state;
-    std::transform(inputState.begin(), inputState.end(),
-                   [](std::complex<double> *val) {
+    std::transform(inputState.begin(), inputState.end(), in_state.begin(),
+                   [](std::complex<double> val) {
                      return static_cast<std::complex<float>>(val);
                    });
     HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
