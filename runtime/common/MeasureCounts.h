@@ -248,9 +248,10 @@ public:
                const std::string_view registerName = GlobalRegisterName);
 
   /// @brief Reorder the bits in an ExecutionResult
-  /// @param idx Vector of indices such that `newBitStr(:) = oldBitStr(idx(:))`
+  /// @param index Vector of indices such that
+  /// `newBitStr(:)=oldBitStr(index(:))`
   /// @param registerName register name to process (defaults to global)
-  void reorder(const std::vector<std::size_t> &idx,
+  void reorder(const std::vector<std::size_t> &index,
                const std::string_view registerName = GlobalRegisterName);
 
   /// @brief Range-based iterator begin function

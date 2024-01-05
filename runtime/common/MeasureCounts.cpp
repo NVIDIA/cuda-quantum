@@ -319,10 +319,9 @@ double sample_result::probability(std::string_view bitStr,
     return 0.0;
 
   const auto countIter = iter->second.counts.find(bitStr.data());
-  if (countIter == iter->second.counts.end())
-    return 0.0;
-  else
-    return (double)countIter->second / totalShots;
+  return (countIter == iter->second.counts.end())
+             ? 0.0
+             : (double)countIter->second / totalShots;
 }
 
 std::size_t sample_result::count(std::string_view bitStr,

@@ -20,12 +20,14 @@ struct Kernel {
 int main() {
   int i;
   auto f = [&]() __qpu__ { // expected-remark{{An inaccessible symbol}}
+    // `i` is a host variable, cannot be used in this kernel.
+    // expected-error@+2 {{statement not supported in qpu kernel}}
+    // expected-error@+1 {{symbol is not accessible in this kernel}}
     cudaq::qvector q(i);
-    // expected-error@-1 {{symbol is not accessible in this kernel}}
-    // expected-error@-2 {{statement not supported in qpu kernel}}
+    // declaration of `q` failed, so it's not available either.
+    // expected-error@+2 {{symbol is not accessible in this kernel}}
+    // expected-error@+1 {{statement not supported in qpu kernel}}
     mz(q);
-    // expected-error@-1 {{symbol is not accessible in this kernel}}
-    // expected-error@-2 {{statement not supported in qpu kernel}}
   };
   Kernel{}(f);
   return 0;
