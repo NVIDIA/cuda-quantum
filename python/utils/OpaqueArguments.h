@@ -233,7 +233,7 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
 
 /// @brief Return true if the given `py::args` represents a
 /// request for broadcasting sample or observe over all argument sets.
-/// Kernel arg types can be `int`, `float`, `list`, so
+/// Kernel argument types can be `int`, `float`, `list`, so
 /// we should check if `args[i]` is a `list` or `ndarray`.
 inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   if (args.empty())
