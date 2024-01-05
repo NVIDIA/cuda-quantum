@@ -373,6 +373,19 @@ private:
   /// @brief The CUDA Quantum Quake function arguments stored as `QuakeValue`s.
   std::vector<QuakeValue> arguments;
 
+  /// @brief Return a string representation of a the given spin operator.
+  /// Throw an exception if the spin operator provided is not a single term.
+  auto toPauliWord(const std::variant<std::string, spin_op> &term) {
+    if (term.index()) {
+      auto op = std::get<spin_op>(term);
+      if (op.num_terms() > 1)
+        throw std::runtime_error(
+            "exp_pauli requires a spin operator with a single term.");
+      return op.to_string(false);
+    }
+    return std::get<std::string>(term);
+  }
+
 public:
   /// @brief The constructor, takes the input `KernelBuilderType`s which is used
   /// to create the MLIR function type
@@ -637,7 +650,8 @@ public:
   /// representing a register of qubits.
   template <QuakeValueOrNumericType ParamT>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
-                 const std::string &pauliWord) {
+                 const std::variant<std::string, spin_op> &op) {
+    auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
       details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
@@ -649,8 +663,10 @@ public:
   /// @brief Apply a general Pauli rotation, exp(i theta P), takes a variadic
   /// list of QuakeValues representing a individual qubits.
   template <QuakeValueOrNumericType ParamT, typename... QubitArgs>
-  void exp_pauli(const ParamT &theta, const std::string &pauliWord,
+  void exp_pauli(const ParamT &theta,
+                 const std::variant<std::string, spin_op> &op,
                  QubitArgs &&...qubits) {
+    auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits...};
     if constexpr (std::is_floating_point_v<ParamT>)
       details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,

@@ -1139,34 +1139,11 @@ Args:
       .def(
           "exp_pauli",
           [](kernel_builder<> &self, py::object theta, const QuakeValue &qubits,
-             const std::string &pauliWord) {
+             const std::variant<std::string, spin_op> &term) {
             if (py::isinstance<py::float_>(theta))
-              self.exp_pauli(theta.cast<double>(), qubits, pauliWord);
+              self.exp_pauli(theta.cast<double>(), qubits, term);
             else if (py::isinstance<QuakeValue>(theta))
-              self.exp_pauli(theta.cast<QuakeValue &>(), qubits, pauliWord);
-            else
-              throw std::runtime_error(
-                  "Invalid `theta` argument type. Must be a "
-                  "`float` or a `QuakeValue`.");
-          },
-          "Apply a general Pauli tensor product rotation, `exp(i theta P)`, on "
-          "the specified qubit register. The Pauli tensor product is provided "
-          "as a string, e.g. `XXYX` for a 4-qubit term. The angle parameter "
-          "can be provided as a concrete float or a `QuakeValue`.")
-      .def(
-          "exp_pauli",
-          [](kernel_builder<> &self, py::object theta, const QuakeValue &qubits,
-             const spin_op &pauliWord) {
-            if (pauliWord.num_terms() > 1)
-              throw std::runtime_error(
-                  "exp_pauli requires SpinOperator with a single term.");
-                  
-            if (py::isinstance<py::float_>(theta))
-              self.exp_pauli(theta.cast<double>(), qubits,
-                             pauliWord.to_string(/*printCoeff*/ false));
-            else if (py::isinstance<QuakeValue>(theta))
-              self.exp_pauli(theta.cast<QuakeValue &>(), qubits,
-                             pauliWord.to_string(/*printCoeff*/ false));
+              self.exp_pauli(theta.cast<QuakeValue &>(), qubits, term);
             else
               throw std::runtime_error(
                   "Invalid `theta` argument type. Must be a "
