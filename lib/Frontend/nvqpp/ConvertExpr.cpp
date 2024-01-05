@@ -2187,7 +2187,7 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     return pushValue(last[0]);
   }
 
-  // These initializer expressions are not a quantum references. In this case,
+  // These initializer expressions are not quantum references. In this case,
   // we allocate some memory for a variable and store the init list elements
   // there. Add the array size value
   auto structTy = dyn_cast<cc::StructType>(initListTy);
@@ -2227,8 +2227,10 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
       ptr = builder.create<cc::ComputePtrOp>(loc, ptrTy, alloca,
                                              ArrayRef<cc::ComputePtrArg>{i});
     }
-    assert(ptr && (v.getType() ==
-                   cast<cc::PointerType>(ptr.getType()).getElementType()));
+    assert(ptr &&
+           (v.getType() ==
+            cast<cc::PointerType>(ptr.getType()).getElementType()) &&
+           "value type must match pointer element type");
     builder.create<cc::StoreOp>(loc, v, ptr);
   }
 
@@ -2296,7 +2298,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       }
     }
   } else if (isInNamespace(ctor, "std")) {
-    auto isVectorOfQubitRefs = [&]() {
+    bool isVectorOfQubitRefs = [&]() {
       if (auto *ctor = x->getConstructor()) {
         if (isInNamespace(ctor, "std") && ctor->getNameAsString() == "vector") {
           if (valueStack.empty())
@@ -2306,8 +2308,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         }
       }
       return false;
-    };
-    if (isVectorOfQubitRefs())
+    }();
+    if (isVectorOfQubitRefs)
       return true;
     if (ctorName == "function") {
       // Are we converting a lambda expr to a std::function?
