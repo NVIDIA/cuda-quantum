@@ -282,10 +282,10 @@ public:
       if (prefixPos == std::string::npos)
         return "";
       const auto endPos = str.find_first_of(";", prefixPos);
-      if (endPos == std::string::npos)
-        return str.substr(prefixPos + prefix.size() + 1);
-      else
-        return cudaq::split(str.substr(prefixPos + prefix.size() + 1), ';')[0];
+      return (endPos == std::string::npos)
+                 ? str.substr(prefixPos + prefix.size() + 1)
+                 : cudaq::split(str.substr(prefixPos + prefix.size() + 1),
+                                ';')[0];
     };
 
     auto urls = cudaq::split(getOpt(description, "url"), ',');
