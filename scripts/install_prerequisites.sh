@@ -86,6 +86,9 @@ trap 'prepare_exit && ((return 0 2>/dev/null) && return 1 || exit 1)' EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 # [Toolchain] CMake, ninja and C/C++ compiler
+if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+  source "$this_file_dir/install_toolchain.sh" -t gcc12
+fi
 if [ ! -x "$(command -v cmake)" ]; then
   echo "Installing CMake..."
   temp_install_if_command_unknown wget wget
@@ -94,14 +97,16 @@ if [ ! -x "$(command -v cmake)" ]; then
 fi
 if [ ! -x "$(command -v ninja)" ]; then
   echo "Installing Ninja..."
-  temp_install_if_command_unknown unzip unzip
-  wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
-  unzip ninja-linux.zip
-  mv ninja /usr/local/bin/
-  rm -rf ninja-linux.zip
-fi
-if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-  source "$this_file_dir/install_toolchain.sh" -t gcc12
+  temp_install_if_command_unknown wget wget
+  temp_install_if_command_unknown make make
+
+  # The pre-built binary for Linux on GitHub is built for x86_64 only, 
+  # see also https://github.com/ninja-build/ninja/issues/2284.
+  wget https://github.com/ninja-build/ninja/archive/refs/tags/v1.11.1.tar.gz
+  tar -xzvf v1.11.1.tar.gz && cd ninja-1.11.1
+  cmake -B build && cmake --build build
+  mv build/ninja /usr/local/bin/
+  rm -rf v1.11.1.tar.gz ninja-1.11.1
 fi
 
 # [Blas] Needed for certain optimizers
