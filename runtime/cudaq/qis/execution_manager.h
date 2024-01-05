@@ -127,8 +127,8 @@ public:
   /// End the control region
   virtual void endCtrlRegion(std::size_t n_controls) = 0;
 
-  //! Measure the qudit and return the observed state \f$(0,1,2,3,...)\f$; e.g.,
-  //! for qubits this can return 0 or 1.
+  // Measure the qudit and return the observed state \f$(0,1,2,3,...)\f$; e.g.,
+  // for qubits this can return 0 or 1.
   virtual int measure(const QuditInfo &target) = 0;
 
   /// Measure the current state in the given Pauli basis, return the expectation
