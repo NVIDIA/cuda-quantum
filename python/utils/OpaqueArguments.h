@@ -39,14 +39,15 @@ private:
   std::vector<OpaqueArgDeleter> deleters;
 
 public:
-  /// @brief Add an opaque argument and its deleter to this OpaqueArguments
+  /// @brief Add an opaque argument and its deletion function to this
+  /// OpaqueArguments
   template <typename ArgPointer, typename Deleter>
   void emplace_back(ArgPointer &&pointer, Deleter &&deleter) {
     args.emplace_back(pointer);
     deleters.emplace_back(deleter);
   }
 
-  /// @brief Return the args as a pointer to void*.
+  /// @brief Return the arguments as a pointer to `void*`.
   void **data() { return args.data(); }
 
   /// @brief Return the number of arguments
@@ -126,7 +127,7 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
 
 /// @brief For general function broadcasting over many argument
 /// sets, this function will create those argument sets from
-/// the input args.
+/// the input arguments.
 inline std::vector<py::args> createArgumentSet(py::args &args) {
   // we accept float, int, list so we will check here for
   // list[float], list[int], list[list], or ndarray for any,
@@ -230,10 +231,10 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
   }
 }
 
-/// @brief Return true if the given py::args represents a
+/// @brief Return true if the given `py::args` represents a
 /// request for broadcasting sample or observe over all argument sets.
-/// Kernel arg types can be int, float, list, so
-/// we should check if args[i] is a list or ndarray.
+/// Kernel arg types can be `int`, `float`, `list`, so
+/// we should check if `args[i]` is a `list` or `ndarray`.
 inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   if (args.empty())
     return false;
