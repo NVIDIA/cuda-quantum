@@ -52,15 +52,6 @@ concept QuakeValueOrNumericType = requires(T param) {
       std::is_same_v<std::remove_cvref_t<T>, QuakeValue>;
 };
 
-/// @brief Define a concept that can be a `QuakeValue` representing a
-/// string-like parameter, or a concrete string-like instance provided at
-/// runtime.
-template <typename T>
-concept QuakeValueOrStringType = requires(T param) {
-  std::is_convertible_v<T, std::string_view> ||
-      std::is_same_v<std::remove_cvref_t<T>, QuakeValue>;
-};
-
 /// @brief Define a floating point concept
 template <typename T>
 concept IntegralType = requires(T param) { std::is_integral_v<T>; };
@@ -82,7 +73,6 @@ concept KernelBuilderArgTypeIsValid =
 #else
 // Not C++ 2020: stub these out.
 #define QuakeValueOrNumericType typename
-#define QuakeValueOrStringType typename
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()
 #endif
 
@@ -656,10 +646,23 @@ public:
 
   /// @brief Apply a general Pauli rotation, exp(i theta P), takes a QuakeValue
   /// representing a register of qubits.
-  template <QuakeValueOrNumericType ParamT,
-            QuakeValueOrStringType StringOrQuakeValuePauli>
+  template <QuakeValueOrNumericType ParamT>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
-                 const StringOrQuakeValuePauli &pauliWord) {
+                 const std::string &pauliWord) {
+    std::vector<QuakeValue> qubitValues{qubits};
+    if constexpr (std::is_floating_point_v<ParamT>)
+      details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
+                         pauliWord);
+    else
+      details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
+  }
+
+  /// @brief Apply a general Pauli rotation, exp(i theta P), takes a QuakeValue
+  /// representing a register of qubits. This overload takes the
+  /// spin operator string as a `QuakeValue`.
+  template <QuakeValueOrNumericType ParamT>
+  void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
+                 const QuakeValue &pauliWord) {
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
       details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
