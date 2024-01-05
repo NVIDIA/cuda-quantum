@@ -28,39 +28,6 @@
 */
 
 namespace cudaq {
-
-/// @brief Wrapper for kernel address
-///
-/// This automatically handles kernels defined as struct/class or free
-/// functions.
-class KernelAddress {
-public:
-  KernelAddress() = default;
-  explicit KernelAddress(uint64_t address) : m_addr(address) {}
-
-  template <typename T,
-            typename = std::enable_if_t<!std::is_class_v<std::decay_t<T>>>>
-  static KernelAddress fromKernel(T *ptr) {
-    return KernelAddress(
-        static_cast<uint64_t>(reinterpret_cast<uintptr_t>(ptr)));
-  }
-
-  template <typename T,
-            typename = std::enable_if_t<std::is_class_v<std::decay_t<T>>>>
-  static KernelAddress fromKernel(T &&ref) {
-    return KernelAddress(
-        static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&ref)));
-  }
-
-  template <typename T>
-  std::enable_if_t<std::is_pointer<T>::value, T> toPtr() const {
-    return reinterpret_cast<T>(static_cast<uintptr_t>(m_addr));
-  }
-
-private:
-  uint64_t m_addr = 0;
-};
-
 /// @brief Fixed size buffer to write to
 class SerializeOutputBuffer {
 public:
