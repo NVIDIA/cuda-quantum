@@ -191,12 +191,12 @@ protected:
 
   /// @brief Increase the state size by the given number of qubits.
   void addQubitsToState(std::size_t count) override {
-    // if (count == 0)
-    //   return;
+    if (count == 0)
+      return;
 
-    // int dev;
-    // HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
-    // cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
+    int dev;
+    HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
+    cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
 
     if (!deviceStateVector) {
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
@@ -208,48 +208,21 @@ protected:
           reinterpret_cast<CudaDataType *>(deviceStateVector),
           stateDimension);
       HANDLE_ERROR(custatevecCreate(&handle));
+    } else {
+      // Allocate new state..
+      void *newDeviceStateVector;
+      HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
+                                   stateDimension * sizeof(CudaDataType)));
+      constexpr int32_t threads_per_block = 256;
+      uint32_t n_blocks =
+          (stateDimension + threads_per_block - 1) / threads_per_block;
+      setFirstNElements<<<n_blocks, threads_per_block>>>(
+          reinterpret_cast<CudaDataType *>(newDeviceStateVector),
+          reinterpret_cast<CudaDataType *>(deviceStateVector),
+          previousStateDimension);
+      cudaFree(deviceStateVector);
+      deviceStateVector = newDeviceStateVector;
     }
-    // } else {
-    //   // Allocate new state..
-    //   void *newDeviceStateVector;
-    //   HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
-    //                                stateDimension * sizeof(CudaDataType)));
-    //   constexpr int32_t threads_per_block = 256;
-    //   uint32_t n_blocks =
-    //       (stateDimension + threads_per_block - 1) / threads_per_block;
-    //   setFirstNElements<<<n_blocks, threads_per_block>>>(
-    //       reinterpret_cast<CudaDataType *>(newDeviceStateVector),
-    //       reinterpret_cast<CudaDataType *>(deviceStateVector),
-    //       previousStateDimension);
-    //   cudaFree(deviceStateVector);
-    //   deviceStateVector = newDeviceStateVector;
-    // }
-    const std::vector<std::complex<double>> &inputState = {1. / sqrt(2), 0., 0., -1. / sqrt(2)};
-    cudaq::info("ADDING QUBITS TO STATE!!!!!!!!!!!!!\n\n\n\n\n");
-
-    // Input state vector should be of size `2^(n_total_qubits_allocated)`.
-    auto inputSize = inputState.size();
-    if (inputSize != stateDimension) {
-      throw std::runtime_error(fmt::format("Input state vector of length: {} does span "
-                "the size of the entire system state vector (expected length = {})", 
-                inputSize, stateDimension));
-    }
-
-    // Needs to be a complex float before running Memcpy.
-    // In the future, we should consider supporting a complex<float> overload
-    // across the `CircuitSimulator` API.
-    std::vector<std::complex<float>> in_state(inputSize);
-    void *newDeviceStateVector{nullptr};
-    std::transform(inputState.begin(), inputState.end(), in_state.begin(),
-                   [](std::complex<double> val) {
-                     return static_cast<std::complex<float>>(val);
-                   });
-    HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
-                                 stateDimension * sizeof(CudaDataType)));
-    cudaMemcpy(newDeviceStateVector, in_state.data(),
-               in_state.size() * sizeof(std::complex<float>),
-               cudaMemcpyHostToDevice);
-    deviceStateVector = newDeviceStateVector;
   }
 
   /// @brief Increase the state size by one qubit.
@@ -625,6 +598,7 @@ public:
   }
 
   void setStateData(const std::vector<std::complex<double>> &inputState) override {
+    cudaq::info("Setting the internal state vector of CuStateVec.\n");
     // Input state vector should be of size `2^(n_total_qubits_allocated)`.
     auto inputSize = inputState.size();
     if (inputSize != stateDimension) {
