@@ -125,7 +125,7 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: release/installer.Dockerfile
-      build_target: cudaqbuild
+      build_target: prereqs
       toolchain: gcc11
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}

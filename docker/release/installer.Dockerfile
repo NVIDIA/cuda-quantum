@@ -15,7 +15,7 @@
 
 # [Operating System]
 ARG base_image=amd64/almalinux:8
-FROM ${base_image} as cudaqbuild
+FROM ${base_image} as prereqs
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
@@ -67,11 +67,11 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && \
     source scripts/configure_build.sh install-$install_before_build
 
+FROM prereqs as build
 # Checking out a CUDA Quantum commit is suboptimal, since the source code
 # version must match this file. At the same time, adding the entire current
 # directory will always rebuild CUDA Quantum, so instead just checking out
 # the required folders here. 
-ARG CUDA_QUANTUM_REPO=.
 ADD .git/index /cuda-quantum/.git/index
 ADD .git/modules/ /cuda-quantum/.git/modules/
 
@@ -107,6 +107,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [<CUDAQuantumBuild]
 
 ## [Build Tests]
+FROM build as assets
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \
     fi && cd /cuda-quantum && \
@@ -140,4 +141,4 @@ RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && 
         ./install.sh
 
 FROM scratch
-COPY --from=cudaqbuild /makeself/cuda_quantum.* . 
+COPY --from=assets /makeself/cuda_quantum.* . 
