@@ -26,15 +26,17 @@ __qpu__ void qarray_test(cudaq::qarray<4> a) {}
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<4>)
 
 struct Qernel0 {
-   void operator()() __qpu__ {
-      cudaq::qvector bits(2);
-      cudaq::qview scenicview = {bits};
-      mz(scenicview);
-   }
+  void operator()() __qpu__ {
+    cudaq::qvector bits(2);
+    cudaq::qview scenicview = {bits};
+    mz(scenicview);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel0()
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
