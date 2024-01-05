@@ -82,7 +82,7 @@ concept KernelBuilderArgTypeIsValid =
 #else
 // Not C++ 2020: stub these out.
 #define QuakeValueOrNumericType typename
-#define QuakeValueOrStringType typename 
+#define QuakeValueOrStringType typename
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()
 #endif
 
