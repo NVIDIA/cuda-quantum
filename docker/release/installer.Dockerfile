@@ -107,10 +107,10 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [<CUDAQuantumBuild]
 
 ## [Build Tests]
-RUN gpu_available=$([ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ]) && \
-    if $gpu_available; then exit 1; fi && \
-    if ! $gpu_available; then excludes="--label-exclude gpu_required"; fi && \
-    cd /cuda-quantum && ctest --output-on-failure --test-dir build -E ctest-nvqpp $excludes
+RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
+        excludes="--label-exclude gpu_required"; \
+    fi && cd /cuda-quantum && \
+    ctest --output-on-failure --test-dir build -E ctest-nvqpp $excludes
 # FIXME: Not yet working due to failure to find span
 #RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
 #    cd /cuda-quantum && source scripts/configure_build.sh && \
