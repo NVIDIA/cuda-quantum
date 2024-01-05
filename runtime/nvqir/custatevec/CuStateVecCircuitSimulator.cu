@@ -205,8 +205,7 @@ protected:
       uint32_t n_blocks =
           (stateDimension + threads_per_block - 1) / threads_per_block;
       initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
-          reinterpret_cast<CudaDataType *>(deviceStateVector),
-          stateDimension);
+          reinterpret_cast<CudaDataType *>(deviceStateVector), stateDimension);
       HANDLE_ERROR(custatevecCreate(&handle));
     } else {
       // Allocate new state..
