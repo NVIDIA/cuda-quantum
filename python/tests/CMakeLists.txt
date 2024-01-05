@@ -17,22 +17,22 @@ if (NOT CUDAQ_TEST_MOCK_SERVERS)
   return()
 endif()
 
-execute_process(COMMAND ${Python_EXECUTABLE} -c "import fastapi"
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import fastapi"
   OUTPUT_VARIABLE FASTAPI_output
   ERROR_VARIABLE FASTAPI_error
   RESULT_VARIABLE FASTAPI_result)
 
-execute_process(COMMAND ${Python_EXECUTABLE} -c "import pydantic"
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import pydantic"
   OUTPUT_VARIABLE PYDANTIC_output
   ERROR_VARIABLE PYDANTIC_error
   RESULT_VARIABLE PYDANTIC_result)
 
-execute_process(COMMAND ${Python_EXECUTABLE} -c "import llvmlite"
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import llvmlite"
   OUTPUT_VARIABLE LLVMLITE_output
   ERROR_VARIABLE LLVMLITE_error
   RESULT_VARIABLE LLVMLITE_result)
 
-execute_process(COMMAND ${Python_EXECUTABLE} -c "import uvicorn"
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import uvicorn"
   OUTPUT_VARIABLE UVICORN_output
   ERROR_VARIABLE UVICORN_error
   RESULT_VARIABLE UVICORN_result)

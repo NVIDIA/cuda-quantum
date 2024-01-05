@@ -236,7 +236,7 @@ add_subdirectory(Optimizer)
 
 if (CUDAQ_ENABLE_PYTHON)
   find_package(Python COMPONENTS Interpreter)
-  execute_process(COMMAND ${Python_EXECUTABLE} -c "import openfermionpyscf"
+  execute_process(COMMAND ${Python3_EXECUTABLE} -c "import openfermionpyscf"
     OUTPUT_VARIABLE PYSCF_output
     ERROR_VARIABLE  PYSCF_error
     RESULT_VARIABLE PYSCF_result)

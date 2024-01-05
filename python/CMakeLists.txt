@@ -14,7 +14,8 @@ else()
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
 endif()
 
-message(STATUS "Found Python version ${Python_VERSION}. Building CUDA Quantum Python API with ${Python_INCLUDE_DIRS}")
+find_package(Python3 COMPONENTS Interpreter)
+message(STATUS "Found Python version ${Python3_VERSION}. Building CUDA Quantum Python API with ${Python3_INCLUDE_DIRS}")
 
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
@@ -66,11 +67,11 @@ if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
 endif()
 
 # Do we have pytest and numpy? 
-execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version
+execute_process(COMMAND ${Python3_EXECUTABLE} -m pytest --version
   OUTPUT_VARIABLE PYTEST_output
   ERROR_VARIABLE  PYTEST_error
   RESULT_VARIABLE PYTEST_result)
-execute_process(COMMAND ${Python_EXECUTABLE} -c "import numpy"
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import numpy"
   OUTPUT_VARIABLE NUMPY_output
   ERROR_VARIABLE NUMPY_error
   RESULT_VARIABLE NUMPY_result)
