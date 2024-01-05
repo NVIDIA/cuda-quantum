@@ -67,11 +67,13 @@ In addition to the prerequisites listed above, you will need to install the
 following prerequisites in your build environment:
 
 FIXME: Check whether we need openssl for using MPI - if we do, include it?
+FIXME: Check if the caching of the installer prereqs works
 FIXME: Check if the caching of the minimal openmpi build works
 FIXME: Check that the bulleted item list in install.rst formats correctly now
 FIXME: Check that the deployment fails when the execution on the tensornet-mps fails
 FIXME: Check that the installation works with sudo
 FIXME: Make the installer activate the MPI support if possible?
+FIXME: filter validation examples to only run the ones that run quickly enough
 
 - Standard C library: We currently statically link *all* dependencies, including 
   the standard libraries. We may revise that in the future. 
