@@ -1,3 +1,13 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# OpenAPI description of CUDA Quantum Remote Simulator REST API.
+# It is rendered into the API HTML docs, to be included in the full CUDA Quantum documentation.
 swagger: "2.0"
 info:
   title: CUDA Quantum Remote Simulation Runtime REST API
