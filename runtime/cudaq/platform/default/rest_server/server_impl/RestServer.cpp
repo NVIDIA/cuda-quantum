@@ -42,19 +42,34 @@ cudaq::RestServer::RestServer(int port, const std::string &name) {
 void cudaq::RestServer::start() { m_impl->app.run(); }
 void cudaq::RestServer::stop() { m_impl->app.stop(); }
 cudaq::RestServer::~RestServer() = default;
+
+// Helper to invoke route handler: exceptions will be returned as 500 Internal
+// Server Error.
+static inline crow::response
+invokeRouteHandler(const cudaq::RestServer::RouteHandler &handler,
+                   const crow::request &req) {
+  try {
+    return handler(req.body).dump();
+  } catch (std::exception &e) {
+    const std::string errorMsg =
+        std::string("Unhandled exception encountered: ") + e.what();
+    return crow::response(500, errorMsg);
+  }
+}
+
 void cudaq::RestServer::addRoute(Method routeMethod, const char *route,
                                  RouteHandler handler) {
   switch (routeMethod) {
   case (Method::GET):
     m_impl->app.route_dynamic(route).methods("GET"_method)(
         [handler](const crow::request &req) {
-          return handler(req.body).dump();
+          return invokeRouteHandler(handler, req);
         });
     break;
   case (Method::POST):
     m_impl->app.route_dynamic(route).methods("POST"_method)(
         [handler](const crow::request &req) {
-          return handler(req.body).dump();
+          return invokeRouteHandler(handler, (req));
         });
     break;
   }
