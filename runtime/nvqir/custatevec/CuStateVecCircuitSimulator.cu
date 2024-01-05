@@ -224,13 +224,21 @@ protected:
     //   cudaFree(deviceStateVector);
     //   deviceStateVector = newDeviceStateVector;
     // }
+    const std::vector<std::complex<double>> &inputState = {1. / sqrt(2), 0., 0., -1. / sqrt(2)};
     cudaq::info("ADDING QUBITS TO STATE!!!!!!!!!!!!!\n\n\n\n\n");
-    const std::vector<std::complex<double>> &inputState = {1. / sqrt(2), -1. / sqrt(2)};
-    std::vector<std::complex<float>> in_state(inputState.size());
+
+    // Input state vector should be of size `2^(n_total_qubits_allocated)`.
+    auto inputSize = inputState.size();
+    if (inputSize != stateDimension) {
+      throw std::runtime_error(fmt::format("Input state vector of length: {} does span "
+                "the size of the entire system state vector (expected length = {})", 
+                inputSize, stateDimension));
+    }
 
     // Needs to be a complex float before running Memcpy.
     // In the future, we should consider supporting a complex<float> overload
     // across the `CircuitSimulator` API.
+    std::vector<std::complex<float>> in_state(inputSize);
     void *newDeviceStateVector{nullptr};
     std::transform(inputState.begin(), inputState.end(), in_state.begin(),
                    [](std::complex<double> val) {
@@ -616,10 +624,30 @@ public:
     }
   }
 
-  // FIXME: Need this defined to prevent a build error.
   void setStateData(const std::vector<std::complex<double>> &inputState) override {
-    throw std::runtime_error(
-        "Setting the internal state representation is not yet supported for CuStateVec.\n");
+    // Input state vector should be of size `2^(n_total_qubits_allocated)`.
+    auto inputSize = inputState.size();
+    if (inputSize != stateDimension) {
+      throw std::runtime_error(fmt::format("Input state vector of length: {} does span "
+                "the size of the entire system state vector (expected length = {})", 
+                inputSize, stateDimension));
+    }
+
+    // Needs to be a complex float before running Memcpy.
+    // In the future, we should consider supporting a complex<float> overload
+    // across the `CircuitSimulator` API.
+    std::vector<std::complex<float>> in_state(inputSize);
+    void *newDeviceStateVector{nullptr};
+    std::transform(inputState.begin(), inputState.end(), in_state.begin(),
+                   [](std::complex<double> val) {
+                     return static_cast<std::complex<float>>(val);
+                   });
+    HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
+                                 stateDimension * sizeof(CudaDataType)));
+    cudaMemcpy(newDeviceStateVector, in_state.data(),
+               in_state.size() * sizeof(std::complex<float>),
+               cudaMemcpyHostToDevice);
+    deviceStateVector = newDeviceStateVector;
   }
 
   std::string name() const override;
