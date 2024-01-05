@@ -41,6 +41,10 @@ will be installed and used.
   systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SELD/SLES 15.5, RHEL 8
   and 9, Rocky 8 and 9, and Ubuntu 22.04. Other operating systems may work, but
   have not been tested.
+- `GNU C library <https://www.gnu.org/software/libc/>`__. 
+  Make sure that the version on the host system is the same one
+  or newer than the version on the build system. Our own builds
+  use version 2.28.
 - CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
   architecture. Other architectures may work but are not tested and may require
   adjustments to the build instructions.
@@ -69,12 +73,13 @@ FIXME: Check that the deployment fails when the execution on the tensornet-mps f
 FIXME: Check that the installation works with sudo
 FIXME: Make the installer activate the MPI support if possible?
 
-- Standard C library: To create a self-contained, relocatable CUDA Quantum 
-  installation, we recommend to statically link all dependencies. To do so, 
-  please make sure you have the static version of the 
-  `GNU C Library <https://www.gnu.org/software/libc/>`__, including the
-  POSIX Threads library, installed on your system. The necessary package(s) can
-  usually be obtained via package manager for your distribution.
+- Standard C library: We currently statically link *all* dependencies, including 
+  the standard libraries. We may revise that in the future. 
+  To use the current build configuration, please make sure you have the 
+  static version of the `GNU C Library <https://www.gnu.org/software/libc/>`__, 
+  including the POSIX Threads library, installed on your system. 
+  The necessary package(s) can usually be obtained via package manager 
+  for your distribution.
 - Python version 3.8 or newer: The Python interpreter is required
   (only) for some of the LLVM build scripts and the Python version
   used for the build does not have to match the version on the host

@@ -172,6 +172,18 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-python', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-python', matrix.platform)] }}
 
+  binaries:
+    name: Create CUDA Quantum installer
+    needs: metadata
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+      fail-fast: false
+    uses: ./.github/workflows/prebuilt_binaries.yml
+    with:
+      platform: linux/${{ matrix.platform }}
+      build_cache: type=registry,ref=ghcr.io/nvidia/buildcache-cuda-quantum-installer-cudaqbuild-gcc11-${{ matrix.platform }}:${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+
   clean_up:
     name: Prepare cache clean-up
     runs-on: ubuntu-latest
