@@ -138,7 +138,14 @@ License at <https://github.com/madler/zlib/blob/master/LICENSE>
 
 ----------------------------------------------------------------
 
-curl - custom license
+OpenSSL - Apache License 2.0
+<https://www.openssl.org>
+
+Licenses at <https://www.openssl.org/source/license.html>
+
+----------------------------------------------------------------
+
+Curl - custom license
 <https://github.com/curl/curl/>
 
 Licenses at <https://github.com/curl/curl/tree/master/LICENSES>

@@ -181,11 +181,17 @@ if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
 
   wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
   tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
+  wget https://curl.haxx.se/ca/cacert.pem
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
   ./configure --prefix="$CURL_INSTALL_PREFIX" \
     --enable-shared=no --enable-static=yes \
     --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
-    --without-zstd
+    --with-ca-bundle=cacert.pem \
+    --without-zstd --without-brotli \
+    --disable-ftp --disable-tftp --disable-smtp --disable-ldap --disable-ldaps \
+    --disable-smb --disable-gopher --disable-telnet --disable-rtsp \
+    --disable-pop3 --disable-imap --disable-file  --disable-dict \
+    --disable-versioned-symbols --disable-manual
   make && make install
   cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0
   remove_temp_installs

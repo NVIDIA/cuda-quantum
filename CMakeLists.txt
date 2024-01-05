@@ -80,7 +80,6 @@ endif()
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-set(PYBIND11_FINDPYTHON 0)
 
 if(NOT CUDAQ_LLVM_VERSION)
   set(CUDAQ_LLVM_VERSION 16)
@@ -184,12 +183,15 @@ if (CUDAQ_ENABLE_STATIC_LINKING)
   # At the time of writing, there wasn't any benefit to using those over -static.
   # However, while this so far seems to be working reasonably well, this will
   # unfortunately also link glibc statically, which in general is likely to cause
-  # issues sooner or later. A better option might be to do something like this:
-  # https://blog.gibson.sh/2017/11/26/creating-portable-linux-binaries/
+  # issues sooner or later. A better option might be to include the required GNU C Library
+  # and have the nvq++ compiler dynamically pick the newer one of the included or system one.
+  # See also these posts:
+  # - https://blog.gibson.sh/2017/11/26/creating-portable-linux-binaries/
+  # - https://www.jertype.com/upgrading-glibc/
   # If the final application loads multiple dynamic libraries, and two or more
   # of those dynamic libraries are linked to different versions of the same static
   # libraries, then the different copies of those static libraries will conflict
-  # with each other.If we keep linking everything statically, we should at least set 
+  # with each other. If we keep linking everything statically, we should at least set 
   # CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN to 1, 
   # to avoid some of these issues.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
@@ -492,9 +494,6 @@ endif()
 
 # Directory setup
 # ==============================================================================
-if (CUDAQ_ENABLE_PYTHON)
-  add_subdirectory(tpls/pybind11)
-endif()
 
 add_subdirectory(cmake)
 add_subdirectory(include)
@@ -507,8 +506,12 @@ if (NOT CUDAQ_DISABLE_TOOLS)
 endif()
 add_subdirectory(utils)
 
-# Python setup
-# ==============================================================================
+if (CUDAQ_ENABLE_PYTHON)
+  find_package(Python COMPONENTS Interpreter Development)
+  add_subdirectory(tpls/pybind11)
+  add_subdirectory(python)
+endif()
+
 if(CUDAQ_BUILD_TESTS)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
@@ -529,12 +532,6 @@ if(CUDAQ_BUILD_TESTS)
     add_subdirectory(docs)
   endif()
   add_subdirectory(test)
-endif()
-
-# Users may specify  `-DCUDAQ_ENABLE_PYTHON=TRUE`, otherwise the python bindings
-# will not be built.
-if (CUDAQ_ENABLE_PYTHON)
-  add_subdirectory(python)
 endif()
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND) 
