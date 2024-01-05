@@ -80,7 +80,7 @@ endif()
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
-set(PYBIND11_FINDPYTHON 1)
+set(PYBIND11_FINDPYTHON 0)
 
 if(NOT CUDAQ_LLVM_VERSION)
   set(CUDAQ_LLVM_VERSION 16)
