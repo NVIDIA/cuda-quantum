@@ -14,18 +14,6 @@ else()
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
 endif()
 
-find_package(Python COMPONENTS Interpreter)
-
-if (NOT Python_FOUND)
-  message(STATUS "Python interpreter not found. Skipping Python API build.")
-  return()
-endif()
-
-if (${Python_VERSION} VERSION_LESS 3.0.0)
-  message(STATUS "Found Python version ${Python_VERSION}. Version must be greater than 3.0.0, skipping Python API build.")
-  return()
-endif()
-
 message(STATUS "Found Python version ${Python_VERSION}. Building CUDA Quantum Python API with ${Python_INCLUDE_DIRS}")
 
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")

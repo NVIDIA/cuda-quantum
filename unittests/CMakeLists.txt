@@ -70,16 +70,26 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     cudaq-platform-default
     cudaq-builder
     gtest_main)
+  set(TEST_LABELS "")
   if (${NVQIR_BACKEND} STREQUAL "dm")
-     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM)
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet")
-     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+    set(TEST_LABELS "gpu_required")
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet-mps")
-     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_BACKEND_TENSORNET_MPS)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_BACKEND_TENSORNET_MPS)
+    set(TEST_LABELS "gpu_required")
   endif()
-  gtest_discover_tests(${TEST_EXE_NAME})
+  if (${NVQIR_BACKEND} STREQUAL "custatevec-fp32" OR ${NVQIR_BACKEND} STREQUAL "custatevec-fp64")
+    set(TEST_LABELS "gpu_required")
+  endif()
+  if (${TEST_LABELS} STREQUAL "")
+    gtest_discover_tests(${TEST_EXE_NAME})
+  else()
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}")
+  endif()
 endmacro()
 
 # We will always have the QPP backend, create a tester for it
@@ -105,7 +115,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
     gtest_main)
-    gtest_discover_tests(test_mqpu)
+    gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required")
 
     if (MPI_CXX_FOUND)
       # Count the number of GPUs
@@ -127,6 +137,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
             configure_file("mqpu/run_mpi.sh.in"
                       "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
           add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 bash ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
+          set_tests_properties(MPITest PROPERTIES LABELS "gpu_required;mgpus_required")
         endif()
       endif()
     endif() 
