@@ -12,7 +12,7 @@ template <std::size_t N>
 struct ghz {
   auto operator()() __qpu__ {
 
-    // Compile-time, std::array-like `qreg`.
+    // Compile-time sized array like std::array
     cudaq::qarray<N> q;
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
