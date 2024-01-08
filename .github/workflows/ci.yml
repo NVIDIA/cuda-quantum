@@ -141,7 +141,7 @@ jobs:
   config:
     name: Configure build
     runs-on: ubuntu-latest
-    needs: [devdeps, wheeldeps]
+    needs: [devdeps, wheeldeps, source_build]
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
