@@ -111,6 +111,7 @@ coupler
 couplers
 cuQuantum
 cudaq
+dataflow
 deallocate
 deallocated
 deallocates
