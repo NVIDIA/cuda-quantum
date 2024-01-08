@@ -32,8 +32,8 @@
 namespace cudaq {
 
 void invokeWrappedKernel(std::string_view irString,
-                         const std::string &entryPointFn,
-                         const std::vector<uint8_t> &args) {
+                         const std::string &entryPointFn, void *args,
+                         std::uint64_t argsSize) {
 
   std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
   // Parse bitcode
@@ -124,9 +124,8 @@ void invokeWrappedKernel(std::string_view irString,
   auto wrapperSymbolAddr =
       llvm::cantFail(jit->lookup(mangledKernelNames.second));
   auto *fptrWrapper =
-      wrapperSymbolAddr
-          .toPtr<void (*)(const uint8_t *, unsigned long, void *)>();
+      wrapperSymbolAddr.toPtr<void (*)(const void *, unsigned long, void *)>();
   // Invoke the wrapper with serialized data and the kernel.
-  fptrWrapper(args.data(), args.size(), fptr);
+  fptrWrapper(args, argsSize, fptr);
 }
 } // namespace cudaq

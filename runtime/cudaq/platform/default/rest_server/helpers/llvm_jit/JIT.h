@@ -18,5 +18,5 @@ namespace cudaq {
 //  around an assert bug ("Resolving symbol outside this responsibility set").
 //  (2) skipping unnecessary `packFunctionArguments`.
 void invokeWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
-                         const std::vector<uint8_t> &serializedArgs);
+                         void *args, std::uint64_t argsSize);
 } // namespace cudaq

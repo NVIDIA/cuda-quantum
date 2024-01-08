@@ -6,47 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/RuntimeMLIR.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-
-#include "llvm/Bitcode/BitcodeReader.h"
-#include "llvm/Bitcode/BitcodeWriter.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IRReader/IRReader.h"
-#include "llvm/Support/Base64.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/SourceMgr.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
-#include "mlir/Dialect/Math/IR/Math.h"
-#include "mlir/ExecutionEngine/ExecutionEngine.h"
-#include "mlir/ExecutionEngine/OptUtils.h"
-#include "mlir/IR/ImplicitLocOpBuilder.h"
-#include "mlir/Parser/Parser.h"
-#include "mlir/Pass/PassManager.h"
-#include "mlir/Pass/PassRegistry.h"
-
+#include "RemoteKernelExecutor.h"
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
-#include "common/NoiseModel.h"
-#include "common/RestClient.h"
+#include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
-#include "cudaq/qis/qubit_qis.h"
-#include "cudaq/spin_op.h"
-#include <fstream>
-#include <iostream>
-#include <spdlog/cfg/env.h>
-
-#include "JsonConvert.h"
 #include "nvqir/CircuitSimulator.h"
+#include "llvm/Support/Program.h"
 #include <arpa/inet.h>
 #include <execinfo.h>
 #include <signal.h>
@@ -59,40 +27,20 @@ using namespace mlir;
 // reinstate the execution context and JIT-invoke the kernel.
 class RemoteSimulatorQPU : public cudaq::QPU {
 private:
-  std::string m_url;
   std::string m_simName;
-  cudaq::RestClient m_client;
   std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
   std::mutex m_contextMutex;
   MLIRContext &m_mlirContext;
-  static inline const std::vector<std::string> clientPasses = {};
-  static inline const std::vector<std::string> serverPasses = {
-      "func.func(unwind-lowering)",
-      "func.func(indirect-to-direct-calls)",
-      "inline",
-      "canonicalize",
-      "apply-op-specialization",
-      "func.func(memtoreg{quantum=0})",
-      "canonicalize",
-      "expand-measurements",
-      "cc-loop-normalize",
-      "cc-loop-unroll",
-      "canonicalize",
-      "func.func(add-dealloc)",
-      "func.func(quake-add-metadata)",
-      "canonicalize",
-      "func.func(lower-to-cfg)",
-      "func.func(combine-quantum-alloc)",
-      "canonicalize",
-      "cse",
-      "quake-to-qir"};
+  std::unique_ptr<cudaq::RemoteRuntimeClient> m_client;
 
 public:
   RemoteSimulatorQPU(MLIRContext &mlirContext, const std::string &url,
                      std::size_t id, const std::string &simName)
-      : QPU(id), m_url(url), m_simName(simName), m_mlirContext(mlirContext) {
-    cudaq::info("Create a remote QPU: id={}; url={}; simulator={}", qpu_id,
-                m_url, m_simName);
+      : QPU(id), m_simName(simName), m_mlirContext(mlirContext),
+        m_client(cudaq::registry::get<cudaq::RemoteRuntimeClient>("rest")) {
+    cudaq::info("Create a remote QPU: id={}; url={}; simulator={}", qpu_id, url,
+                m_simName);
+    m_client->setConfig({{"url", url}});
   }
 
   std::thread::id getExecutionThreadId() const {
@@ -118,110 +66,12 @@ public:
         throw std::runtime_error("Internal error: invalid execution context");
       return iter->second;
     }();
-    cudaq::RestRequest request(*executionContext);
-    request.entryPoint = name;
-    if (cudaq::__internal__::isLibraryMode(name)) {
-      if (args && voidStarSize > 0) {
-        cudaq::info("Serialize {} bytes of args.", voidStarSize);
-        request.args.resize(voidStarSize);
-        std::memcpy(request.args.data(), args, voidStarSize);
-      }
-      // Library mode: retrieve the embedded bitcode in the executable.
-      const auto path = llvm::sys::fs::getMainExecutable(nullptr, nullptr);
-      // Load the object file
-      auto [objBin, objBuffer] =
-          llvm::cantFail(llvm::object::ObjectFile::createObjectFile(path))
-              .takeBinary();
-      if (!objBin)
-        throw std::runtime_error("Failed to load binary object file");
-
-      if (kernelFunc) {
-        ::Dl_info info;
-        ::dladdr(reinterpret_cast<void *>(kernelFunc), &info);
-        const auto funcName = cudaq::quantum_platform::demangle(info.dli_sname);
-        cudaq::info("RemoteSimulatorQPU: retrieve name '{}' for kernel {}",
-                    funcName, name);
-        request.entryPoint = funcName;
-      }
-
-      for (const auto &section : objBin->sections()) {
-        // Get the bitcode section
-        if (section.isBitcode()) {
-          llvm::MemoryBufferRef llvmBc(llvm::cantFail(section.getContents()),
-                                       "Bitcode");
-          request.format = cudaq::CodeFormat::LLVM;
-          request.code = llvm::encodeBase64(llvmBc.getBuffer());
-        }
-      }
-    } else {
-      // Get the quake representation of the kernel
-      auto quakeCode = cudaq::get_quake_by_name(name);
-      request.passes = serverPasses;
-      request.format = cudaq::CodeFormat::MLIR;
-      auto module = parseSourceString<ModuleOp>(quakeCode, &m_mlirContext);
-      if (!module)
-        throw std::runtime_error("module cannot be parsed");
-
-      // Extract the kernel name
-      auto func = module->lookupSymbol<mlir::func::FuncOp>(
-          std::string("__nvqpp__mlirgen__") + name);
-
-      // Create a new Module to clone the function into
-      auto location = FileLineColLoc::get(&m_mlirContext, "<builder>", 1, 1);
-      ImplicitLocOpBuilder builder(location, &m_mlirContext);
-
-      // FIXME this should be added to the builder.
-      if (!func->hasAttr(cudaq::entryPointAttrName))
-        func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-      auto moduleOp = builder.create<ModuleOp>();
-      moduleOp.push_back(func.clone());
-
-      if (args) {
-        cudaq::info("Run Quake Synth.\n");
-        PassManager pm(&m_mlirContext);
-        pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
-        if (failed(pm.run(moduleOp)))
-          throw std::runtime_error("Could not successfully apply quake-synth.");
-      }
-
-      // Client-side passes
-      if (!clientPasses.empty()) {
-        PassManager pm(&m_mlirContext);
-        std::string errMsg;
-        llvm::raw_string_ostream os(errMsg);
-        const std::string pipeline =
-            std::accumulate(clientPasses.begin(), clientPasses.end(),
-                            std::string(), [](const auto &ss, const auto &s) {
-                              return ss.empty() ? s : ss + "," + s;
-                            });
-        if (failed(parsePassPipeline(pipeline, pm, os)))
-          throw std::runtime_error(
-              "Remote rest platform failed to add passes to pipeline (" +
-              errMsg + ").");
-
-        if (failed(pm.run(moduleOp)))
-          throw std::runtime_error(
-              "Remote rest platform: applying IR passes failed.");
-      }
-      std::string mlirCode;
-      llvm::raw_string_ostream outStr(mlirCode);
-      mlir::OpPrintingFlags opf;
-      opf.enableDebugInfo(/*enable=*/true,
-                          /*pretty=*/false);
-      moduleOp.print(outStr, opf);
-      request.code = llvm::encodeBase64(mlirCode);
-    }
-
-    request.simulator = m_simName;
-    request.seed = cudaq::get_random_seed();
-    // Don't let curl adding "Expect: 100-continue" header, which is not
-    // suitable for large requests, e.g., bitcode in the JSON request.
-    //  Ref: https://gms.tf/when-curl-sends-100-continue.html
-    std::map<std::string, std::string> headers{
-        {"Expect:", ""}, {"Content-type", "application/json"}};
-    json requestJson = request;
-    auto resultJs = m_client.post(m_url, "job", requestJson, headers, false);
-    resultJs.get_to(*executionContext);
+    std::string errorMsg;
+    const bool requestOkay =
+        m_client->sendRequest(m_mlirContext, *executionContext, m_simName, name,
+                              kernelFunc, args, voidStarSize, &errorMsg);
+    if (!requestOkay)
+      throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }
 
   void setExecutionContext(cudaq::ExecutionContext *context) override {

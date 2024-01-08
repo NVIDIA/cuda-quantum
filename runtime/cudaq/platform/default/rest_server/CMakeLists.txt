@@ -1,5 +1,11 @@
 set(LIBRARY_NAME cudaq-platform-remote-sim)
-add_library(${LIBRARY_NAME} SHARED RemoteSimulatorQPU.cpp RemoteRESTExecutionManager.cpp ../../common/QuantumExecutionQueue.cpp)
+add_library(${LIBRARY_NAME} SHARED 
+                              RemoteSimulatorQPU.cpp 
+                              RemoteRESTExecutionManager.cpp 
+                              RemoteRuntimeClient.cpp 
+                              ../../common/QuantumExecutionQueue.cpp 
+                              helpers/RestRemoteClient.cpp
+)
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
@@ -42,10 +48,16 @@ if (NOT CUDAQ_DISABLE_TOOLS)
   get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 
-  add_subdirectory(server_impl)
-  add_subdirectory(llvm_jit)
+  add_subdirectory(helpers/server_impl)
+  add_subdirectory(helpers/llvm_jit)
   
-  add_executable(cudaq_rest_server RestServerMain.cpp)
+  add_executable(cudaq_rest_server RestServerMain.cpp RemoteRuntimeServer.cpp helpers/RestRemoteServer.cpp)
+  target_include_directories(cudaq_rest_server 
+    PUBLIC 
+       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+       $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
+       $<INSTALL_INTERFACE:include>
+    PRIVATE . ../../)
   set_target_properties(cudaq_rest_server
     PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/"
