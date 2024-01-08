@@ -240,9 +240,10 @@ To install CUDA Quantum, execute the command
 
   To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries.
   ...
-..
+.. environment variables set in /etc/profile - make separate file in cudaq archive:
   export CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
   export PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
+  export LD_LIBRARY_PATH="${CUDA_QUANTUM_PATH}/lib:${LD_LIBRARY_PATH}"
   export CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
   bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 

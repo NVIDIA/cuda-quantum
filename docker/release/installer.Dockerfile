@@ -113,11 +113,35 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
 #    cd /cuda-quantum && source scripts/configure_build.sh && \
 #    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
 
-# [Build Assets]
+# [Installer]
+RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
+    cd /makeself && git checkout release-2.5.0
+
+## [Installation Scripts]
+ENV CUDAQ_INSTALL_PATH=/opt/nvidia/cudaq
 ADD "$CUDAQ_REPO_ROOT/scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
+RUN echo 'export CUDA_QUANTUM_PATH="${CUDA_QUANTUM_PATH:-'"${CUDAQ_INSTALL_PATH}"'}"' > set_env.sh && \
+    echo 'export PATH="${PATH:+$PATH:}${CUDA_QUANTUM_PATH}/bin"' >> set_env.sh && \
+    echo 'export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${CUDA_QUANTUM_PATH}/lib"' >> set_env.sh && \
+    echo 'export CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH:+$CPLUS_INCLUDE_PATH:}${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"' >> set_env.sh
+RUN mv /cuda-quantum/scripts/migrate_assets.sh install.sh && \
+    echo -e '\n\n\
+    this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"` \n\
+    if [ -f /etc/profile ] && [ -w /etc/profile ]; then \n\
+        cat "$this_file_dir/set_env.sh" >> /etc/profile \n\
+    fi \n\
+    if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then \n\
+        cat "$this_file_dir/set_env.sh" >> /etc/zprofile \n\
+    fi \n\n\
+    if [ -d "${MPI_PATH}" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
+        bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh" \n\
+    fi \n' >> install.sh
+
+## [Content]
 RUN source /cuda-quantum/scripts/configure_build.sh && \
     archive=/cuda_quantum && mkdir -p "${archive}" && \
-    cp "/cuda-quantum/scripts/migrate_assets.sh" "${archive}/install.sh" && \
+    mv install.sh "${archive}/install.sh" && \
+    mv set_env.sh "${archive}/set_env.sh" && \
     mv "${CUDAQ_INSTALL_PREFIX}/build_config.xml" "${archive}/build_config.xml" && \
     mv "${CUDAQ_INSTALL_PREFIX}" "${archive}" && \
     mv "${CUQUANTUM_INSTALL_PREFIX}" "${archive}" && \
@@ -129,12 +153,11 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     mv "${LLVM_INSTALL_PREFIX}/bin/lld" "${archive}/llvm/bin/lld" && \
     mv "${LLVM_INSTALL_PREFIX}/bin/ld.lld" "${archive}/llvm/bin/ld.lld"
 
-RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
-    cd /makeself && git checkout release-2.5.0 && \
-    ./makeself.sh --gzip --license /cuda-quantum/LICENSE \
+## [Self-extracting Archive]
+RUN bash /makeself/makeself.sh --gzip --license /cuda-quantum/LICENSE \
         /cuda_quantum cuda_quantum_installer.$(uname -m) \
         "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
-        ./install.sh
+        ./install.sh -t "${CUDAQ_INSTALL_PATH}"
 
 FROM scratch
-COPY --from=assets /makeself/cuda_quantum_installer.* . 
+COPY --from=assets cuda_quantum_installer.* . 

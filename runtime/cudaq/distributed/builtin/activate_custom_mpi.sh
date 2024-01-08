@@ -21,7 +21,7 @@
 #                ${MPI_PATH}/include is expected to contain the mpi.h header.
 #                ${MPI_PATH}/lib64 or ${MPI_PATH}/lib is expected to contain libmpi.so.
 #
-# Run: source <cuda quantum install dir>/distributed_interfaces/activate_custom_mpi.sh
+# Run: bash <cuda quantum install dir>/distributed_interfaces/activate_custom_mpi.sh
 # 
 # You could add $CUDAQ_MPI_COMM_LIB to your ~/.bashrc file to persist the environment variable.
 
@@ -29,7 +29,7 @@ if [ -z "${MPI_PATH}" ]
 then
     echo "Environment variable MPI_PATH is not set. Please set it to point to the MPI root directory!"
     echo "Note that MPI_PATH/include is expected to contain the mpi.h header."
-    return
+    (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
@@ -40,7 +40,7 @@ if [ -z "${CXX}" ]; then
         CXX="${MPI_PATH}/bin/mpic++"
     else
         echo "The nvq++ compiler was not found. Please make sure that it is on your path or set the environment variable CXX to a suitable C++ compiler to build the MPI plugin."
-        return
+        (return 0 2>/dev/null) && return 2 || exit 2
     fi
 fi
 
