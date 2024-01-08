@@ -109,7 +109,7 @@ if [ "$1" == "install-prereqs" ]; then
     export LDFLAGS="-static-libgcc -static-libstdc++"
     export LLVM_PROJECTS='clang;lld;mlir'
     this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-    source "$this_file_dir/install_prerequisites.sh"
+    bash "$this_file_dir/install_prerequisites.sh"
 fi
 
 if [ "$1" == "build-openmpi" ]; then
@@ -135,3 +135,6 @@ if [ "$1" == "build-openmpi" ]; then
     cd - && rm -rf ~/.openmpi-src
 # [<OpenMPIBuild]
 fi
+
+trap - ERR
+(return 0 2>/dev/null) && return 0 || exit 0

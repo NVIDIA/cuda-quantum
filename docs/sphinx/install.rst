@@ -199,7 +199,7 @@ To build the CUDA Quantum Python API from source using pip, run the following co
 .. code-block:: console
 
     git clone https://github.com/NVIDIA/cuda-quantum.git
-    cd cuda-quantum && ./scripts/install_prerequisites.sh
+    cd cuda-quantum && bash scripts/install_prerequisites.sh
     pip install .
 
 For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
