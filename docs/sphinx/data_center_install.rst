@@ -3,14 +3,21 @@ Installation from Source
 
 In most cases, you should not need to build CUDA Quantum from source. For the
 best experience, we recommend using a container runtime to avoid conflicts with
-other software tools installed on the system. Before proceeding with
-installation from source, we recommend you take a quick look at `Singularity
+other software tools installed on the system. Note that `Singularity
 <https://docs.sylabs.io/guides/2.6/user-guide/faq.html#what-is-so-special-about-singularity>`__
-or `Docker rootless mode <https://docs.docker.com/engine/security/rootless/>`__,
-which address common issue or concerns that are often the motivation for
-avoiding the use of containers. Our installation guide also contains
-instructions for how to :ref:`connect an IDE <local-development-with-vscode>` to
-a running container.
+or `Docker rootless mode <https://docs.docker.com/engine/security/rootless/>`__
+address common issue or concerns that are often the motivation for
+avoiding the use of containers. Singularity, for example, can be installed 
+in a user folder and its installation does not require admin permissions, see
+:ref:`this section <install-singularity-image>` for more detailed instructions 
+on how to do that. Our installation guide also contains instructions for how to 
+:ref:`connect an IDE <local-development-with-vscode>` to a running container.
+
+If you do not want use a container runtime, we also provide pre-built binaries.
+These binaries are built following the instructions in this guide and should work
+for you as long as your system meets the compatibility requirements listed under
+:ref:`Prerequisites <compatibility-prebuilt-binaries>`. To install them, please
+follow the instructions :ref:`here <install-prebuilt-binaries>`.
 
 If you still want to build and install CUDA Quantum from source, you will need
 to ensure that all dependencies installed in the build and host system are
@@ -18,14 +25,16 @@ compatible with your CUDA Quantum installation. The rest of this guide outlines
 specific compatibility requirements during the build and after installation, and
 walks through the installation steps.
 
-Also note that CUDA Quantum contains some components that are only included as
+Please note that CUDA Quantum contains some components that are only included as
 pre-built binaries and not part of our open source repository. We are working on
-either open-sourcing these components or making pre-built binaries available for
-them in the future. Even without these components, almost all features of CUDA
+either open-sourcing these components or making them available as separate downloads
+in the future. Even without these components, almost all features of CUDA
 Quantum will be enabled in a source build, though some pieces may be less
-performant than in our pre-built images. At this time, the :ref:`multi-GPU state
-vector simulator <nvidia-mgpu-backend>` backend will not be included if you
-build CUDA Quantum from source.
+performant than in the images or installer provide by us. 
+At this time, the :ref:`multi-GPU state vector simulator <nvidia-mgpu-backend>` 
+backend will not be included if you build CUDA Quantum from source.
+
+.. _compatibility-prebuilt-binaries:
 
 Prerequisites
 ------------------------------------
@@ -74,6 +83,7 @@ FIXME: Check that the deployment fails when the execution on the tensornet-mps f
 FIXME: Check that the installation works with sudo
 FIXME: Make the installer activate the MPI support if possible?
 FIXME: filter validation examples to only run the ones that run quickly enough
+FIXME: include mgpu backend...
 
 - Standard C library: We currently statically link *all* dependencies, including 
   the standard libraries. We may revise that in the future. 

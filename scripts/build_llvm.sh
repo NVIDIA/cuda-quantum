@@ -154,6 +154,8 @@ cmake_args="-G Ninja ../llvm \
   -DLLVM_BUILD_TESTS=OFF \
   -DLLVM_ENABLE_OCAMLDOC=OFF \
   -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
+  -DZLIB_ROOT=${ZLIB_INSTALL_PREFIX} \
+  -DZLIB_USE_STATIC_LIBS=TRUE \
   -DLLVM_ENABLE_ZSTD=OFF \
   -DLLVM_INSTALL_UTILS=ON"
 if $verbose; then

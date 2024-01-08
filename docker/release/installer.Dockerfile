@@ -46,9 +46,7 @@ ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
-ADD .git/modules/tpls/pybind11/refs /.git_modules/tpls/pybind11/refs
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
-ADD .git/modules/tpls/llvm/refs /.git_modules/tpls/llvm/refs
 
 # This is a hack so that we do not need to rebuild the prerequisites 
 # whenever we pick up a new CUDA Quantum commit (which is always in CI).
@@ -60,11 +58,9 @@ RUN cd /cuda-quantum && git init && \
             url_key=$(echo $path_key | sed 's/\.path/.url/') && \
             url=$(git config -f .gitmodules --get "$url_key") && \
             git update-index --add --cacheinfo 160000 \
-            $(cat /.git_modules/$local_path/HEAD) $local_path && \
-            mv /.git_modules/$local_path/refs .git/modules/$local_path/refs && \
-            mv /.git_modules/$local_path/packed-refs .git/modules/$local_path/packed-refs; \
+            $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
-    done && git submodule init && \
+    done && git submodule init && git submodule && \
     source scripts/configure_build.sh install-$install_before_build
 
 FROM prereqs as build
@@ -136,9 +132,9 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
     cd /makeself && git checkout release-2.5.0 && \
     ./makeself.sh --gzip --license /cuda-quantum/LICENSE \
-        /cuda_quantum cuda_quantum.$(uname -m) \
+        /cuda_quantum cuda_quantum_installer.$(uname -m) \
         "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
         ./install.sh
 
 FROM scratch
-COPY --from=assets /makeself/cuda_quantum.* . 
+COPY --from=assets /makeself/cuda_quantum_installer.* . 
