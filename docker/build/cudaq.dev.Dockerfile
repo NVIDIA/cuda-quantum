@@ -56,6 +56,7 @@ RUN if [ -n "$install" ]; \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         install=`echo $install | xargs` && export $install; \
+        Python3_EXECUTABLE="$(which python3)" \
         bash scripts/build_cudaq.sh -v; \
         if [ ! "$?" -eq "0" ]; then \
             exit 1; \
