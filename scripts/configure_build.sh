@@ -8,6 +8,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+trap '(return 0 2>/dev/null) && return 1 || exit 1' ERR
+
 # [>InstallLocations]
 export CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
 export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
@@ -20,12 +22,15 @@ export CURL_INSTALL_PREFIX=/usr/local/curl
 # [<InstallLocations]
 
 if [ "$1" == "install-cuda" ]; then
+    DISTRIBUTION=${DISTRIBUTION:-rhel8}
+    CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
+
 # [>CUDAInstall]
     CUDA_VERSION=11.8
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
-    # Go to the url above and set the variables below 
-    # to the distribution and subfolder for your platform.
-    DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64
+    # Go to the url above, set the variables below to a suitable distribution
+    # and subfolder for your platform, and uncomment the line below.
+    # DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64
 
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
@@ -34,12 +39,15 @@ if [ "$1" == "install-cuda" ]; then
 fi
 
 if [ "$1" == "install-cudart" ]; then
+    DISTRIBUTION=${DISTRIBUTION:-rhel8}
+    CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
+
 # [>CUDARTInstall]
     CUDA_VERSION=11.8
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
-    # Go to the url above and set the variables below 
-    # to the distribution and subfolder for your platform.
-    DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64
+    # Go to the url above, set the variables below to a suitable distribution
+    # and subfolder for your platform, and uncomment the line below.
+    # DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64
 
     version_suffix=$(echo ${CUDA_VERSION} | tr . -)
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
@@ -50,7 +58,8 @@ if [ "$1" == "install-cudart" ]; then
 fi
 
 if [ "$1" == "install-cuquantum" ]; then
-    CUDA_VERSION=11.8 CUDA_ARCH_FOLDER=x86_64
+    CUDA_VERSION=11.8
+    CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuQuantumInstall]
     CUQUANTUM_VERSION=23.10.0.6
@@ -65,7 +74,8 @@ if [ "$1" == "install-cuquantum" ]; then
 fi
 
 if [ "$1" == "install-cuquantum" ]; then
-    CUDA_VERSION=11.8 CUDA_ARCH_FOLDER=x86_64
+    CUDA_VERSION=11.8
+    CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuTensorInstall]
     CUTENSOR_VERSION=1.7.0.1
@@ -112,14 +122,16 @@ if [ "$1" == "build-openmpi" ]; then
     wget "${OPENMPI_DOWNLOAD_URL}/archive/v${OPENMPI_VERSION}.tar.gz" -O /tmp/openmpi.tar.gz
     mkdir -p ~/.openmpi-src && tar xf /tmp/openmpi.tar.gz --strip-components 1 -C ~/.openmpi-src
     rm -rf /tmp/openmpi.tar.gz && cd ~/.openmpi-src
-    ./autogen.pl && LDFLAGS=-Wl,--as-needed ./configure \
+    ./autogen.pl 
+    LDFLAGS=-Wl,--as-needed ./configure \
         --prefix=/usr/local/openmpi \
         --disable-getpwuid --disable-static \
         --disable-debug --disable-mem-debug --disable-event-debug \
         --disable-mem-profile --disable-memchecker \
         --without-verbs \
         --with-cuda=/usr/local/cuda
-    make -j$(nproc) && make -j$(nproc) install
+    make -j$(nproc) 
+    make -j$(nproc) install
     cd - && rm -rf ~/.openmpi-src
 # [<OpenMPIBuild]
 fi

@@ -17,6 +17,7 @@
 ARG base_image=amd64/almalinux:8
 FROM ${base_image} as prereqs
 SHELL ["/bin/bash", "-c"]
+
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         'dnf-command(config-manager)' && \

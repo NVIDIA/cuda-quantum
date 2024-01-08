@@ -347,7 +347,7 @@ jobs:
 
       - name: Check for existing image
         id: uploaded_image
-        if: inputs.update_registry_cache == ''
+        if: inputs.update_registry_cache == '' && inputs.build_target == ''
         run: |
           if ${{ inputs.environment != '' }}; then
             image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
@@ -396,7 +396,7 @@ jobs:
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         id: cache_upload
-        if: inputs.update_registry_cache == '' && steps.uploaded_image.outputs.image_hash == ''
+        if: steps.uploaded_image.outcome != 'skipped' && steps.uploaded_image.outputs.image_hash == ''
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
