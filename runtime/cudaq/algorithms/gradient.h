@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -85,7 +85,7 @@ public:
   }
 
   /// Compute the current iterations gradient vector and update the
-  /// provided vector<double reference (`dx`).
+  /// provided vector<double reference (\p dx).
   virtual void compute(const std::vector<double> &x, std::vector<double> &dx,
                        const spin_op &h, double funcAtX) = 0;
 
