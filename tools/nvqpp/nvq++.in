@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -317,37 +317,61 @@ fi
 # any target specific options.
 N=$#
 for (( i=1; i<=$N; i++ )); do
-	if [[ ${@:$i:1} == --target ]] || [[ ${@:$i:1} == -target ]]; then
+	arg=${@:$i:1}
+	if [[ "${arg}" == --target ]] || [[ "${arg}" == -target ]]; then
 		TARGET_CONFIG="${@:$i+1:1}"
+		break
+	fi
+	if [[ "${arg}" == --target=* ]] || [[ "${arg}" == -target=* ]]; then
+		TARGET_CONFIG="${arg#*=}"
 		break
 	fi
 done
 
 while [ $# -ne 0 ]; do
 	# Filter out any target-specific options.
-	if [[ $# -gt 1 ]] && [[ -n "${TARGET_CONFIG}" ]] && \
-	     [[ "$1" = --${TARGET_CONFIG}-* ]]; then
-		# Assume always has an additional value. Perform base64 encoding on the
-		# parameter value in case it has spaces. The runtime will be responsible
-		# for decoding the value.
-		ESC2="base64_"$(echo -n $2 | base64)
-		TARGET_ARGS+=($1 $ESC2)
-		shift 2
-		continue
+	if [[ $# -gt 1 ]] && [[ -n "${TARGET_CONFIG}" ]]; then
+		if [[ "$1" = --${TARGET_CONFIG}-* ]]; then
+			# Assume always has an additional value. Perform base64 encoding on
+			# the parameter value in case it has spaces. The runtime will be
+			# responsible for decoding the value.
+		    ESC2="base64_"$(echo -n $2 | base64)
+		    TARGET_ARGS+=($1 $ESC2)
+			shift 2
+			continue
+		elif [[ "$1" = --${TARGET_CONFIG}-*=* ]]; then
+			# Separate the value of argument. Perform base64 encoding on
+			# the parameter value in case it has spaces. The runtime will be
+			# responsible for decoding the value.
+			param="$1"
+		    ESC2="base64_"$(echo -n ${param#*=} | base64)
+		    TARGET_ARGS+=(${param%=*} $ESC2)
+			shift 1
+			continue
+		fi
 	fi
 
+	arg="$1"
 	# Otherwise, process the argument.
 	case "$1" in
 	--llvm-version)
 		llvm_suffix="$2"
 		shift
 		;;
+	--llvm-version=*)
+		llvm_suffix="${arg#*=}"
+		;;
 	--execution-manager | -em | -execution-manager)
 		LIBRARY_MODE_EXECUTION_MANAGER="$2"
 		shift
 		;;
+	--execution-manager=* | -em=* | -execution-manager=*)
+		LIBRARY_MODE_EXECUTION_MANAGER="${arg#*=}"
+		;;
 	--target | -target)
 		shift
+		;;
+	--target=* | -target=*)
 		;;
 	--emit-qir | -emit-qir)
 		EMIT_QIR=true
@@ -369,13 +393,22 @@ while [ $# -ne 0 ]; do
 		PLATFORM_LIBRARY="$2"
 		shift
 		;;
+	--platform=* | -platform=*)
+		PLATFORM_LIBRARY="${arg#*=}"
+		;;
 	--load | -load)
 		LINKLIBS="${LINKLIBS} -lcudaq-$2"
 		shift
 		;;
+	--load=* | -load=*)
+		LINKLIBS="${LINKLIBS} -lcudaq-${arg#*=}"
+		;;
 	--cmake-host-compiler)
 		CMAKE_FALLBACK_HOST_CXX="$2"
 		shift
+		;;
+	--cmake-host-compiler=*)
+		CMAKE_FALLBACK_HOST_CXX="${arg#*=}"
 		;;
 	-g)
 		COMPILER_FLAGS="${COMPILER_FLAGS} -g"
@@ -445,6 +478,10 @@ while [ $# -ne 0 ]; do
 		OUTPUTOPTS="-o $2"
 		OUTPUTFILE="$2"
 		shift
+		;;
+	-o=*)
+		OUTPUTOPTS="-o ${arg#*=}"
+		OUTPUTFILE="${arg#*=}"
 		;;
 	-D*)
 		DEFINED_VAR=$1
@@ -690,6 +727,10 @@ for i in ${SRCS}; do
 done
 
 if ${DO_LINK}; then
+	if ${LIBRARY_MODE}; then
+		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
+	fi 
+
 	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified

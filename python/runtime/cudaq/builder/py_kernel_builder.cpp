@@ -1139,11 +1139,11 @@ Args:
       .def(
           "exp_pauli",
           [](kernel_builder<> &self, py::object theta, const QuakeValue &qubits,
-             const std::string &pauliWord) {
+             const std::variant<std::string, spin_op> &term) {
             if (py::isinstance<py::float_>(theta))
-              self.exp_pauli(theta.cast<double>(), qubits, pauliWord);
+              self.exp_pauli(theta.cast<double>(), qubits, term);
             else if (py::isinstance<QuakeValue>(theta))
-              self.exp_pauli(theta.cast<QuakeValue &>(), qubits, pauliWord);
+              self.exp_pauli(theta.cast<QuakeValue &>(), qubits, term);
             else
               throw std::runtime_error(
                   "Invalid `theta` argument type. Must be a "
