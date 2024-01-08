@@ -90,6 +90,7 @@ jobs:
       tag_suffix: ${{ steps.build_info.outputs.tag_suffix }}
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       owner: ${{ steps.build_info.outputs.owner }}
+      pr_number: ${{ steps.build_info.outputs.pr_number }}
       image_name: ${{ steps.build_info.outputs.image_name }}
       image_title: ${{ steps.build_info.outputs.image_title }}
       image_id: ${{ steps.build_info.outputs.image_id }}
@@ -133,13 +134,18 @@ jobs:
           tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${toolchain:+$toolchain-}
           tag_suffix=""
 
+          if ${{ inputs.pull_request_number != '' }} || ${{ github.event.pull_request.number != '' }}; then
+            pr_number=${{ inputs.pull_request_number || github.event.pull_request.number}}
+          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
+            pr_number=`echo ${{ github.ref_name }} | cut -d / -f2`
+          fi
+
           if ${{ inputs.pull_request_commit != '' }}; then
             custom_tags="type=raw,value=${{ inputs.registry_cache_from || inputs.pull_request_commit }},priority=1000"
           elif ${{ github.event.pull_request.merged == true }}; then
             custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }},priority=1000"
-          elif ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
-            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}},priority=1000"
+          elif [ -n "$pr_number" ]; then
+            custom_tags="type=raw,value=pr-$pr_number,priority=1000"
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
@@ -150,6 +156,7 @@ jobs:
           echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
           echo "dockerfile=${{ inputs.dockerfile }}" >> $GITHUB_OUTPUT
           echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
+          echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker image
         id: metadata
@@ -223,21 +230,15 @@ jobs:
 
           # Local caches are always to and from a single location.
 
-          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
-          local_buildcache_key_suffix="-$(git rev-parse HEAD)"
-
-          if ${{ inputs.pull_request_number != '' }}; then
-            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}-${platform_id}"
+          if ${{ needs.metadata.outputs.pr_number != '' }}; then
+            local_cache_from=${{ needs.metadata.outputs.pr_number }}/merge
           else
-            if ${{ github.event.pull_request.merged == true }}; then
-              local_cache_from=${{ github.event.pull_request.number }}/merge
-            elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
-              local_cache_from=$(echo ${{ github.ref_name }} | cut -d / -f2)/merge
-            fi
-            local_cache_from=$(echo ${local_cache_from:-${{ github.ref_name }}} | tr . -)
-            local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
+            local_cache_from=$(echo ${{ github.ref_name }} | tr . -)
           fi
+          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
+          local_buildcache_key_suffix="-$(git rev-parse HEAD)"
+          local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
 
           if ${{ inputs.update_registry_cache != '' }}; then
             registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
@@ -264,6 +265,9 @@ jobs:
           {
             echo 'cache_from_registry<<multiline'
             for platform_id in $platform_ids; do
+              if ${{ needs.metadata.outputs.pr_number != '' }}; then
+                echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+              fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
               echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
             done
