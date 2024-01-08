@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -49,6 +49,9 @@ struct AnsatzMetadata {
   /// Track pre-existing measurements and attempt to remove them during
   /// processing
   SmallVector<Operation *> measurements;
+
+  /// Whether or not the mapping pass has been run
+  bool mappingPassRan = false;
 
   /// Map qubit indices to their mlir Value
   DenseMap<std::size_t, Value> qubitValues;
@@ -126,6 +129,7 @@ private:
       // Now replace the values in data
       data.nQubits = mapping_v2p.size();
       data.qubitValues = newQubitValues;
+      data.mappingPassRan = true;
     }
 
     // Count all measures
@@ -171,13 +175,20 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       return failure();
     }
 
+    // If the mapping pass was not run, we expect no pre-existing measurements.
+    if (!iter->second.mappingPassRan && !iter->second.measurements.empty()) {
+      std::string msg = "Cannot observe kernel with measures in it.\n";
+      funcOp.emitError(msg);
+      return failure();
+    }
     // Attempt to remove measurements. Note that the mapping pass may add
     // measurements to kernels that don't contain any measurements. For
     // observe kernels, we remove them here since we are adding specific
     // measurements below.
     for (auto *op : iter->second.measurements) {
       if (!op->getUsers().empty()) {
-        std::string msg = "Cannot observe kernel with measures in it.\n";
+        std::string msg =
+            "Cannot observe kernel with non dangling measurements.\n";
         funcOp.emitError(msg);
         return failure();
       }
