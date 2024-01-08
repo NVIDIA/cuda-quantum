@@ -7,9 +7,10 @@
 # ============================================================================ #
 
 ARG base_image=amd64/almalinux:8
+ARG base_image_mpibuild=${base_image}
 
 # [OpenMPI Installation]
-FROM amd64/almalinux:8 as mpibuild
+FROM ${base_image_mpibuild} as mpibuild
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
@@ -26,7 +27,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
 RUN source /cuda-quantum/scripts/configure_build.sh build-openmpi
 
 # [CUDA Quantum Installation]
-FROM $base_image
+FROM ${base_image}
 ARG base_image
 
 SHELL ["/bin/bash", "-c"]

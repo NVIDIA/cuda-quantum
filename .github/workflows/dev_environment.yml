@@ -239,9 +239,9 @@ jobs:
             local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
           fi
 
+          registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
+          build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
           if ${{ inputs.update_registry_cache != '' }}; then
-            registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.

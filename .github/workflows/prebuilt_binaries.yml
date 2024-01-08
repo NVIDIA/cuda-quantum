@@ -5,6 +5,11 @@ on:
         type: string
         required: false
         default: linux/amd64
+      platform_base_image:
+        required: false
+        type: string
+        default: amd64/almalinux:8
+        description: The image to use as a base image when building the installer.
       build_cache:
         type: string
         required: false
@@ -60,6 +65,8 @@ jobs:
           file: ./docker/release/installer.Dockerfile
           build-args: |
             release_version=${{ steps.config.outputs.cudaq_version }}
+            base_image=${{ inputs.platform_base_image }}
+          platforms: ${{ inputs.platform }}
           cache-from: |
             ${{ inputs.build_cache }}
           outputs: ${{ steps.config.outputs.docker_output }}
@@ -108,6 +115,8 @@ jobs:
           context: .
           file: ./docker/test/installer/linux.Dockerfile
           target: mpibuild
+          build-args: |
+            base_image_mpibuild=${{ inputs.platform_base_image }}
           platforms: ${{ inputs.platform }}
           cache-from: |
             ${{ steps.cache.outputs.build_cache }}
@@ -159,6 +168,7 @@ jobs:
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
             --build-arg cuda_quantum_installer=cuda_quantum_installer.$(uname -m) \
             --build-arg base_image=${{ matrix.os_image }}
+            --build-arg base_image_mpibuild=${{ inputs.platform_base_image }}
 
           docker run --rm -dit --name cuda-quantum validation:local
           (docker exec cuda-quantum bash -c nvq++) && installed=true || installed=false

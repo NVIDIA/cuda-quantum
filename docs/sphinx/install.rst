@@ -12,10 +12,10 @@ Local Installation
 
 The following sections contain instructions for how to install CUDA Quantum on your machine using
 
-- **:ref:`Docker <install-docker-image>`**: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
-- **:ref:`Singularity <install-singularity-image>`**: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
-- **:ref:`PyPI <install-python-wheels>`**: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
-- **:ref:`Pre-built binaries <install-prebuilt-binaries>`**: We also provide pre-built binaries, bundled as `self-extracting archive <https://makeself.io/>`__, that work across a range of Linux operating systems.
+- :ref:`Docker <install-docker-image>`: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
+- :ref:`Singularity <install-singularity-image>`: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
+- :ref:`PyPI <install-python-wheels>`: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
+- :ref:`Pre-built binaries <install-prebuilt-binaries>`: We also provide pre-built binaries, bundled as `self-extracting archive <https://makeself.io/>`__, that work across a range of Linux operating systems.
 
 If you would like to build CUDA Quantum from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for :doc:`data_center_install`. 
 If, on the other hand, you want to contribute to the development of CUDA Quantum itself and hence want to 

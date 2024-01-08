@@ -207,7 +207,7 @@ jobs:
 
   binaries:
     name: Create CUDA Quantum installer
-    needs: config
+    needs: [metadata, config]
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -215,6 +215,7 @@ jobs:
     uses: ./.github/workflows/prebuilt_binaries.yml
     with:
       platform: linux/${{ matrix.platform }}
+      platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
       build_cache:  ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
 
   clean_up:

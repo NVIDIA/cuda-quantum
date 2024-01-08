@@ -382,5 +382,6 @@ jobs:
     uses: ./.github/workflows/prebuilt_binaries.yml
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
       environment: ghcr-deployment
