@@ -38,6 +38,9 @@ public:
   /// Enqueue a Sampling task.
   void enqueue(QuantumTask &task);
 
+  /// Get id of the thread this queue executes on.
+  std::thread::id getExecutionThreadId() const;
+
 protected:
   /// The mutex, used for locking when adding to the queue
   std::mutex lock;

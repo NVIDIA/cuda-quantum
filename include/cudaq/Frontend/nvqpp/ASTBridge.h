@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -131,10 +131,11 @@ bool ignoredClass(clang::RecordDecl *x);
 /// The general design is to walk the tree in a post-order traversal and
 /// assemble the IR from the leaves back down the tree. Traversals over types
 /// should push Type values to the type stack. Traversals over expressions
-/// should create IR in the ModuleOp as well as push subexpressions on the stack
-/// for parent nodes. A parent node always knows how many children it needs to
-/// be constructed correctly. The types of expressions are carried along with
-/// the expressions in the IR and need not be duplicated on the type stack.
+/// should create IR in the ModuleOp as well as push subexpressions on the
+/// stack for parent nodes. A parent node always knows how many children it
+/// needs to be constructed correctly. The types of expressions are carried
+/// along with the expressions in the IR and need not be duplicated on the type
+/// stack.
 ///
 /// Unfortunately, clang's RecursiveASTVisitor doesn't always visit nodes in the
 /// AST and can skip visiting types or even some expressions.
@@ -306,6 +307,7 @@ public:
 
   bool TraverseMemberExpr(clang::MemberExpr *x,
                           DataRecursionQueue *q = nullptr);
+  bool VisitMemberExpr(clang::MemberExpr *x);
   bool TraverseBinaryOperator(clang::BinaryOperator *x,
                               DataRecursionQueue *q = nullptr);
   bool TraverseLambdaExpr(clang::LambdaExpr *x,
@@ -456,7 +458,7 @@ private:
   /// Returns true if \p decl is a function to lower to Quake.
   bool needToLowerFunction(const clang::FunctionDecl *decl);
 
-  // Helpers to convert an AST node's clang source range to an MLIR Location.
+  /// Helpers to convert an AST node's clang source range to an MLIR Location.
   template <typename A>
   mlir::Location toLocation(const A *x) {
     return toLocation(x->getSourceRange());
@@ -704,7 +706,7 @@ inline bool isCallOperator(clang::OverloadedOperatorKind kindValue) {
   return kindValue == clang::OverloadedOperatorKind::OO_Call;
 }
 
-// Is \p t of type `char *`?
+/// Is \p t of type `char *`?
 inline bool isCharPointerType(mlir::Type t) {
   if (auto ptrTy = dyn_cast<cc::PointerType>(t)) {
     mlir::Type eleTy = ptrTy.getElementType();
