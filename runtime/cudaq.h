@@ -273,6 +273,9 @@ void all_gather(std::vector<int> &global, const std::vector<int> &local);
 /// @brief Broadcast a vector from a process (rootRank) to all other processes.
 void broadcast(std::vector<double> &data, int rootRank);
 
+/// @brief Broadcast a string from a process (rootRank) to all other processes.
+void broadcast(std::string &data, int rootRank);
+
 /// @brief Finalize MPI. This function
 /// is a no-op if there CUDA Quantum has not been built
 /// against MPI.
