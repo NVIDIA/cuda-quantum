@@ -420,4 +420,4 @@ jobs:
             image_hash: ${{ needs.build.outputs.image_hash }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
             tar_archive: ${{ needs.build.outputs.tar_archive }}
-            build_cache: '${{ needs.build.outputs.build_cache }}'
+            build_cache: ${{ needs.build.outputs.build_cache }}
