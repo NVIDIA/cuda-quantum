@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -214,7 +214,8 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
 
 /// @brief Return true if the given `py::args` represents a request for
 /// broadcasting sample or observe over all argument sets. `args` types can be
-/// int, float, list, so  we should check if `args[i]` is a `list` or `ndarray`.
+/// `int`, `float`, `list`, so  we should check if `args[i]` is a `list` or
+/// `ndarray`.
 inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   if (args.empty())
     return false;
