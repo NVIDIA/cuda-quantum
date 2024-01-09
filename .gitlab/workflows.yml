@@ -12,6 +12,14 @@ workflow:
       variables:
         runner: hostname/xpl-dvt-55
         staged: "cuda-quantum-devdeps"
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-assets@sha256:\S+$/'
+      variables:
+        runner: hostname/core-plab-e114-arm-glr02.nvidia.com
+        staged: "cuda-quantum-assets"
+    - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-assets@sha256:\S+$/'
+      variables:
+        runner: hostname/xpl-dvt-55
+        staged: "cuda-quantum-assets"
     - when: always
 
 default:
@@ -31,6 +39,18 @@ Metadata:
     - echo "Commit branch is $CI_COMMIT_BRANCH"
     - echo "Commit title is $CI_COMMIT_TITLE"
     - echo "Staged is set to $staged"
+
+Installer:
+  rules:
+    - if: $staged == "cuda-quantum-assets"
+  stage: build
+  dependencies: []
+  image: $CI_COMMIT_TITLE
+  tags:
+    - $runner
+  interruptible: false
+  script:
+    - echo "Nothing implemented yet."
 
 Python Wheels:
   rules:
