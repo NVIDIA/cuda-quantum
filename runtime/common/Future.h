@@ -20,7 +20,7 @@ namespace details {
 /// CUDA Quantum kernel execution under a specific execution context.
 /// This type is returned from asynchronous execution calls. It
 /// encapsulates the job-specific circuit execution identifiers, the
-/// name of the qpu the job executed on, and any extra configuration
+/// name of the QPU the job executed on, and any extra configuration
 /// information needed to retrieve the results later from the server.
 /// This type can be persisted to file and read in later to retrieve
 /// execution results.
@@ -38,7 +38,7 @@ protected:
 
   // std::vector<std::string> jobNames;
 
-  /// @brief The name of the qpu this execution is targeting
+  /// @brief The name of the QPU this execution is targeting
   std::string qpuName;
 
   /// @brief Any pertinent server configuration this future
