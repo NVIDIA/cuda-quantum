@@ -94,8 +94,7 @@ def generate_H(gamma, nqubits, J, h):
 # This is the first-order Trotter gate decomposition
 def trotter_circuitA(kernel, qreg, hk, dt, n_qubits):
     for term in hk:
-        kernel.exp_pauli(dt * term.get_coefficient().real, qreg,
-                         term)
+        kernel.exp_pauli(dt * term.get_coefficient().real, qreg, term)
 
     return kernel
 
