@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -20,7 +20,7 @@ namespace cudaq {
 ///
 /// \details The cudaq::gradient tracks a std::function with signature
 /// void(std::vector<double>) representing the parameterized kernel
-/// ansatz. For ansatzae that do not follow this signature, a separate
+/// ansatz. For ansatzes that do not follow this signature, a separate
 /// Argument Mapper must be provided which takes std::vector<double> to
 /// a tuple of custom function arguments. All gradient subtypes should
 /// inherit the base class constructors (using gradient::gradient), but
@@ -85,7 +85,7 @@ public:
   }
 
   /// Compute the current iterations gradient vector and update the
-  /// provided vector<double reference (dx).
+  /// provided vector<double reference (\p dx).
   virtual void compute(const std::vector<double> &x, std::vector<double> &dx,
                        const spin_op &h, double funcAtX) = 0;
 
