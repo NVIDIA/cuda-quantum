@@ -336,16 +336,16 @@ while [ $# -ne 0 ]; do
 			# the parameter value in case it has spaces. The runtime will be
 			# responsible for decoding the value.
 			param="$1"
-		    ESC2="base64_"$(echo -n ${param#*=} | base64)
-		    TARGET_ARGS+=(${param%=*} $ESC2)
+			ESC2="base64_"$(echo -n ${param#*=} | base64)
+			TARGET_ARGS+=(${param%=*} $ESC2)
 			shift 1
 			continue
 		elif [[ "$1" = --${TARGET_CONFIG}-* ]]; then
 			# Assume always has an additional value. Perform base64 encoding on
 			# the parameter value in case it has spaces. The runtime will be
 			# responsible for decoding the value.
-		    ESC2="base64_"$(echo -n $2 | base64)
-		    TARGET_ARGS+=($1 $ESC2)
+			ESC2="base64_"$(echo -n $2 | base64)
+			TARGET_ARGS+=($1 $ESC2)
 			shift 2
 			continue
 		fi
