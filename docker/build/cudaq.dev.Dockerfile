@@ -17,11 +17,6 @@
 # 3) set the CC and CXX environment variable to use the same compiler toolchain
 #    as the LLVM dependencies have been built with.
 
-# To keep the default build environment image to a reasonable size, it does not 
-# contain the necessary dependencies to develop GPU-based components. You may hence
-# see a message along the lines of "no GPU detected" during the CUDA Quantum build.
-# Please install the necessary prerequisites listed in the CUDA Quantum build script,
-# or use a suitable base image, to enable developing these components.
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:ext-gcc12-main
 FROM $base_image
 

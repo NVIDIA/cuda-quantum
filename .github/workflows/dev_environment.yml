@@ -141,9 +141,11 @@ jobs:
           fi
 
           if ${{ inputs.pull_request_commit != '' }}; then
-            custom_tags="type=raw,value=${{ inputs.registry_cache_from || inputs.pull_request_commit }},priority=1000"
+            tag_name=`echo ${{ inputs.registry_cache_from || inputs.pull_request_commit }} | tr / -`
+            custom_tags="type=raw,value=${tag_name},priority=1000"
           elif ${{ github.event.pull_request.merged == true }}; then
-            custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }},priority=1000"
+            tag_name=`echo ${{ github.event.pull_request.base.ref }} | tr / -`
+            custom_tags="type=raw,value=${tag_name},priority=1000"
           elif [ -n "$pr_number" ]; then
             custom_tags="type=raw,value=pr-$pr_number,priority=1000"
           fi

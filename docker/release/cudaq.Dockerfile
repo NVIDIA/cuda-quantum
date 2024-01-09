@@ -12,7 +12,7 @@
 # This image requires specifing an image as argument that contains a CUDA Quantum installation
 # along with its development dependencies. This file then copies that installation into a more
 # minimal runtime environment. 
-# A suitable dev image can be obtained by building docker/build/cudaq.dev.Dockerfile.
+# A suitable base image can be obtained by building docker/build/cudaq.dev.Dockerfile.
 #
 # Usage:
 # Must be built from the repo root with:

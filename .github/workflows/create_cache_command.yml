@@ -137,7 +137,7 @@ jobs:
     uses: ./.github/workflows/dev_environment.yml
     with:
       platforms: linux/${{ matrix.platform }}
-      dockerfile: release/installer.Dockerfile
+      dockerfile: build/assets.Dockerfile
       build_target: prereqs
       toolchain: gcc11
       build_args: |

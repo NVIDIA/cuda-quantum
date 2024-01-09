@@ -13,6 +13,10 @@ on:
       build_cache:
         type: string
         required: false
+      toolchain:
+        required: true
+        type: string
+        description: The toolchain used to build the assets. The value is passed as build argument to Docker and used in tags and cache locations to distinguish different builds.
       environment:
         type: string
         required: false
@@ -21,13 +25,28 @@ name: Pre-built binaries
 
 jobs:
   build_installer:
-    name: Build CUDA Quantum installer
+    name: Build CUDA Quantum assets
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: write
+      id-token: write
 
     outputs:
+      image_hash: ${{ steps.config.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
       artifact_name: ${{ steps.config.outputs.artifact_name }}
+
+    environment:
+      name: ${{ inputs.environment || 'default' }}
+      url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+
+    # Needed for making local images available to the docker/build-push-action.
+    # See also https://stackoverflow.com/a/63927832.
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
 
     steps:
       - name: Checkout repository
@@ -35,19 +54,40 @@ jobs:
         with:
           submodules: true
 
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Configure build
         id: config
         run: |
-          platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          platform_tag=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
           if ${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') }}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             cudaq_version=0.0.0
           fi
 
+          repo_owner=${{ github.repository_owner }}
+          registry=${{ vars.registry || 'localhost:5000' }}
+          image_name=$registry/${repo_owner,,}/cuda-quantum-assets
+          tag_prefix=$platform_tag-${{ inputs.toolchain }}-
+
+          if ${{ github.event.pull_request.merged == true }}; then
+            tag_name=`echo ${{ github.event.pull_request.base.ref }} | tr / -`
+            custom_tags="type=raw,value=${tag_name},priority=1000"
+          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
+            pr_number=`echo ${{ github.ref_name }} | cut -d / -f2`
+            custom_tags="type=raw,value=pr-${pr_number},priority=1000"
+          fi
+
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
-          echo "docker_output=type=local,dest=/tmp/install" >> $GITHUB_OUTPUT
-          echo "artifact_name=cudaq-${platform_id}-installer" >> $GITHUB_OUTPUT
+          echo "image_name=$image_name" >> $GITHUB_OUTPUT
+          echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
+          echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
+          echo "artifact_name=cudaq-${platform_tag}-installer" >> $GITHUB_OUTPUT
 
       - name: Set up context for buildx
         run: |
@@ -58,6 +98,50 @@ jobs:
         with:
           endpoint: builder_context
 
+      - name: Extract metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.config.outputs.image_name }}
+          flavor: |
+            latest=false
+            prefix=${{ steps.config.outputs.tag_prefix }},onlatest=true
+          tags: |
+            type=ref,enable=${{ steps.config.outputs.custom_tags == '' }},event=branch
+            type=ref,enable=true,prefix=${{ steps.config.outputs.tag_prefix }}pr-,event=pr
+            type=ref,enable=true,event=tag
+            ${{ steps.config.outputs.custom_tags }}
+          labels: |
+            org.opencontainers.image.title=cuda-quantum-assets
+            org.opencontainers.image.description=Pre-built Linux binaries for CUDA Quantum
+
+      - name: Build assets
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/build/assets.Dockerfile
+          build-args: |
+            release_version=${{ steps.config.outputs.cudaq_version }}
+            base_image=${{ inputs.platform_base_image }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ inputs.platform }}
+          cache-from: |
+            ${{ inputs.build_cache }}
+          push: true
+
+      - name: Install Cosign
+        if: inputs.environment
+        uses: sigstore/cosign-installer@v3.1.1
+
+      - name: Sign image with GitHub OIDC Token
+        if: inputs.environment
+        env:
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
+          TAGS: ${{ steps.metadata.outputs.tags }}
+        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
       - name: Build installer
         uses: docker/build-push-action@v5
         with:
@@ -65,17 +149,15 @@ jobs:
           file: ./docker/release/installer.Dockerfile
           build-args: |
             release_version=${{ steps.config.outputs.cudaq_version }}
-            base_image=${{ inputs.platform_base_image }}
+            base_image=${{ steps.config.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
           platforms: ${{ inputs.platform }}
-          cache-from: |
-            ${{ inputs.build_cache }}
-          outputs: ${{ steps.config.outputs.docker_output }}
+          outputs: type=local,dest=/tmp/install
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.config.outputs.artifact_name }}
-          path: /tmp/wheels
+          path: /tmp/install
           retention-days: 5
           if-no-files-found: error
 
@@ -235,3 +317,35 @@ jobs:
             cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
+
+  staging:
+    name: Staging
+    needs: [build_installer, validation]
+    if: inputs.environment
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    steps:
+      - name: Create build info
+        id: staging
+        run: |
+          image_hash=${{ needs.build_installer.outputs.image_hash }}
+          platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+          artifact_name=installer_${platform_id}_publishing # changing the artifact name requires updating other workflows
+          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
+          info_file="$artifact_name.txt"
+          echo "info_file=$info_file" >> $GITHUB_OUTPUT
+
+          mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
+          echo "source-sha: ${{ github.sha }}" >> "$info_file"
+          echo "cuda-quantum-installer-image: $image_hash" >> "$info_file"
+          echo "platform: ${{ inputs.platform }}" >> "$info_file"
+
+      - name: Upload build info
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
+          path: ${{ steps.staging.outputs.info_file }}
+          retention-days: 30
+          if-no-files-found: error
