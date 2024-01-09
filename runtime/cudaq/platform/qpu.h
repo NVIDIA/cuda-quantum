@@ -109,7 +109,7 @@ public:
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
 
-  /// @brief Return whether this qpu has conditional feedback support
+  /// @brief Return whether this QPU has conditional feedback support
   virtual bool supportsConditionalFeedback() { return false; }
 
   /// Base class handling of shots is do-nothing,

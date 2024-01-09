@@ -26,7 +26,7 @@ namespace cudaq {
 /// The price payed for these advantages is reduced flexibility and complexity
 /// (cognitive overhead):
 ///   * Adding new edges is inefficient (see `addEdgeImpl`method)
-///   * The implementation is tricker than other forms.
+///   * The implementation is trickier than other forms.
 ///
 /// Since adding new edges is inefficient, this class suitable for graphs whose
 /// structure is fixed and given all at once.
