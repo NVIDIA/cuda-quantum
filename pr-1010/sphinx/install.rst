@@ -12,9 +12,10 @@ Local Installation
 
 The following sections contain instructions for how to install CUDA Quantum on your machine using
 
-- **:ref:`Docker <install-docker-image>`**: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
-- **:ref:`Singularity <install-singularity-image>`**: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
-- **:ref:`PyPI <install-python-wheels>`**: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
+- :ref:`Docker <install-docker-image>`: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
+- :ref:`Singularity <install-singularity-image>`: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
+- :ref:`PyPI <install-python-wheels>`: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
+- :ref:`Pre-built binaries <install-prebuilt-binaries>`: We also provide pre-built binaries, bundled as `self-extracting archive <https://makeself.io/>`__, that work across a range of Linux operating systems.
 
 If you would like to build CUDA Quantum from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for :doc:`data_center_install`. 
 If, on the other hand, you want to contribute to the development of CUDA Quantum itself and hence want to 
@@ -198,10 +199,53 @@ To build the CUDA Quantum Python API from source using pip, run the following co
 .. code-block:: console
 
     git clone https://github.com/NVIDIA/cuda-quantum.git
-    cd cuda-quantum && ./scripts/install_prerequisites.sh
+    cd cuda-quantum && bash scripts/install_prerequisites.sh
     pip install .
 
 For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
+
+.. _install-prebuilt-binaries:
+
+Pre-built binaries
+++++++++++++++++++++++++++++++++++++
+
+Starting with the 0.6.0 release, we provide pre-built binaries for using CUDA Quantum with C++.
+Support for using CUDA Quantum with Python can be installed side-by-side with the pre-built binaries
+for C++ by following the instructions on `PyPI.org <https://pypi.org/project/cuda-quantum>`__.
+The pre-built binaries work across a range of Linux operating systems listed under :ref:`dependencies-and-compatibility`. 
+
+Before installing our pre-built binaries, please make sure that your 
+operating system is using the `GNU C library <https://www.gnu.org/software/libc/>`__ 
+version 2.28 or newer. You can confirm this by checking the output of the command 
+`ldd --version`. If this command does not exist, or shows an older version than 2.28, 
+the easiest way to ensure you have the necessary libraries is usually to install the 
+GCC 12 toolchain via the package manager for your operating system.
+
+You can then download the `cuda_quantum_installer` for your processor architecture from
+the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. The installer is a `self-extracting archive <https://makeself.io/>`__ 
+that contains the pre-built binaries as well as a script to move them to the correct locations.
+The installation location of CUDA Quantum is not currently configurable and using the installer
+hence requires admin privileges on the system. We may revise that in the future; please see and
+upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/1075>`__.
+
+To install CUDA Quantum, execute the command
+
+.. check the signature of the installer...
+
+.. code-block:: console
+
+    sudo ./cuda_quantum_installer.$(uname -m) --accept
+
+.. note:: 
+
+  To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries.
+  ...
+.. environment variables set in /etc/profile - make separate file in cudaq archive:
+  export CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
+  export PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
+  export LD_LIBRARY_PATH="${CUDA_QUANTUM_PATH}/lib:${LD_LIBRARY_PATH}"
+  export CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
+  bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
 .. _local-development-with-vscode:
 
