@@ -50,6 +50,7 @@ QAOA
 QCaaS
 QIR
 QIS
+QMCMC
 QPU
 QPUs
 QTX
@@ -122,6 +123,7 @@ entanglers
 enum
 et
 executables
+exponentiated
 extensibility
 extremal
 fermionic

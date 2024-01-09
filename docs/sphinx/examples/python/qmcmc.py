@@ -1,8 +1,8 @@
 # To run with the default parameters use:
-# python qmcmc.py
+# `python qmcmc.py`
 #
 # For non-default values of the parameters use:
-# python3 qmcmc.py --num_iterations 30 --nqubits 13 --temperature 0.08 --shots_count 20
+# `python3 qmcmc.py --num_iterations 30 --nqubits 13 --temperature 0.08 --shots_count 20`
 #
 # This code is based on the quantum enhanced Markov
 # Chain Monte Carlo (QMCMC) algorithm presented in the
@@ -128,12 +128,12 @@ def main():
     T = args.temperature
     shots_count = args.shots_count
 
-    # Specify couplings J's and fields h's.
+    # Specify couplings `J`'s and fields `h`'s.
     J = np.ones((nqubits, nqubits))
     h = np.ones(nqubits)
 
-    # Generate a random initial bitstring instead of a spin config
-    # Convert it to its equivalent spin config later when needed
+    # Generate a random initial bitstring instead of a spin configuration
+    # Convert it to its equivalent spin configuration later when needed
     s = generate_random_bitstring(nqubits)
 
     # Iteration loop
