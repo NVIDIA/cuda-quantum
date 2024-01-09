@@ -91,8 +91,7 @@ def generate_H(gamma, nqubits, J, h):
 
 # This is the first-order Trotter gate decomposition for
 # an ordered list of Hamiltonians
-# This is the first-order Trotter gate decomposition
-def trotter_circuitA(kernel, qreg, hk, dt, n_qubits):
+def trotter_circuit(kernel, qreg, hk, dt, n_qubits):
     for term in hk:
         kernel.exp_pauli(dt * term.get_coefficient().real, qreg, term)
 
