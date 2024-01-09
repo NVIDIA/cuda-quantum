@@ -152,16 +152,20 @@ matrix:
       - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
         close: '(?P=open)$'
       # Ignore multiline content fenced by \code ... \endcode
-      - open: '(?s)^\s*(\\code)'
+      - open: '(?s)\\code'
         close: '\\endcode$'
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
-      # Ignore the first word after \command or @command, which is a code artifact
-      - open: '[\\@]([acep])(?:\s+\S)?'
-        close: '(\s|$)'
+      # Ignore paths of files (recognized by them having a file extension)
+      - open: '([A-Za-z_\\\/]+\.)+'
+        close: '($|(?=[^a-z]))'
+        content: '\S+?'
       # Ignore the doxygen \param command and the code artifact after it.
       - open: '[\\@]param(\s+\[\w+\])?(?:\s+\S)?'
+        close: '(\s|$)'
+      # Ignore the first word after \command or @command, which is a code artifact
+      - open: '[\\@]([acep])(?:\s+\S)?'
         close: '(\s|$)'
       # Ignore words that start with a \ or @, e.g. @param used in doc comments
       - open: '[\\@](\w|[\\@&\$#<>%"\.=|]|::|--|---)'

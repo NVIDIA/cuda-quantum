@@ -4,7 +4,7 @@ CUDA Quantum is a comprehensive framework for quantum programming. It features:
 
 - A programming model which extends C++ and Python with quantum kernels,
   enabling high-level programming in familiar languages
-- A high-performance quantum compiler, NVQ++, based on the industry standard
+- A high-performance quantum compiler, `nvq++`, based on the industry standard
   LLVM toolchain
 - Interoperability with all of the leading models and tools for accelerated
 computing, including CUDA, ISO standard parallelism, OpenMP, and OpenACC
@@ -67,7 +67,7 @@ You must configure MPI by setting the following environment variables:
 
 *If you do not set these variables you may encounter a segmentation fault.*
 
-**Important**: It is *not* sufficient to set these variable within the conda
+**Important**: It is *not* sufficient to set these variable within the Conda
 environment, like the commands above do for `LD_LIBRARY_PATH`.
 To avoid having to set them every time you launch a new
 shell, we recommend adding them to `~/.profile`
