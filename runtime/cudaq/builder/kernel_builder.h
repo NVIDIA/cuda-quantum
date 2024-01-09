@@ -373,6 +373,19 @@ private:
   /// @brief The CUDA Quantum Quake function arguments stored as `QuakeValue`s.
   std::vector<QuakeValue> arguments;
 
+  /// @brief Return a string representation of the given spin operator.
+  /// Throw an exception if the spin operator provided is not a single term.
+  auto toPauliWord(const std::variant<std::string, spin_op> &term) {
+    if (term.index()) {
+      auto op = std::get<spin_op>(term);
+      if (op.num_terms() > 1)
+        throw std::runtime_error(
+            "exp_pauli requires a spin operator with a single term.");
+      return op.to_string(false);
+    }
+    return std::get<std::string>(term);
+  }
+
 public:
   /// @brief The constructor, takes the input `KernelBuilderType`s which is used
   /// to create the MLIR function type
@@ -586,6 +599,44 @@ public:
     details::swap(*opBuilder, empty, qubits);
   }
 
+  /// @brief SWAP operation for performing a Fredkin gate between two qubits,
+  /// based on the state of input `control` qubit/s.
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void swap(const QuakeValue &control, const QuakeValue &first,
+            const QuakeValue &second) {
+    const std::vector<QuakeValue> ctrl{control};
+    const std::vector<QuakeValue> targets{first, second};
+    details::swap(*opBuilder, ctrl, targets);
+  }
+
+  /// @brief SWAP operation for performing a Fredkin gate between two qubits,
+  /// based on the state of an input vector of `controls`.
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void swap(const std::vector<QuakeValue> &controls, const QuakeValue &first,
+            const QuakeValue &second) {
+    const std::vector<QuakeValue> targets{first, second};
+    details::swap(*opBuilder, controls, targets);
+  }
+
+  /// @brief SWAP operation for performing a Fredkin gate between two qubits,
+  /// based on the state of a variadic input of control qubits and registers.
+  /// Note: the final two qubits in the variadic list will always be the qubits
+  /// that undergo a SWAP. This requires >=3 qubits in the arguments.
+  template <
+      typename mod, typename... QubitValues,
+      typename = typename std::enable_if_t<sizeof...(QubitValues) >= 3>,
+      typename = typename std::enable_if_t<std::is_same_v<mod, cudaq::ctrl>>>
+  void swap(QubitValues... args) {
+    std::vector<QuakeValue> values{args...};
+    // Up until the last two arguments will be our controls.
+    const std::vector<QuakeValue> controls(values.begin(), values.end() - 2);
+    // The last two args will be the two qubits to swap.
+    const std::vector<QuakeValue> targets(values.end() - 2, values.end());
+    details::swap(*opBuilder, controls, targets);
+  }
+
   /// @brief Reset the given qubit or qubits.
   void reset(const QuakeValue &qubit) { details::reset(*opBuilder, qubit); }
 
@@ -599,7 +650,8 @@ public:
   /// representing a register of qubits.
   template <QuakeValueOrNumericType ParamT>
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
-                 const std::string &pauliWord) {
+                 const std::variant<std::string, spin_op> &op) {
+    auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
       details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
@@ -611,8 +663,10 @@ public:
   /// @brief Apply a general Pauli rotation, exp(i theta P), takes a variadic
   /// list of QuakeValues representing a individual qubits.
   template <QuakeValueOrNumericType ParamT, typename... QubitArgs>
-  void exp_pauli(const ParamT &theta, const std::string &pauliWord,
+  void exp_pauli(const ParamT &theta,
+                 const std::variant<std::string, spin_op> &op,
                  QubitArgs &&...qubits) {
+    auto pauliWord = toPauliWord(op);
     std::vector<QuakeValue> qubitValues{qubits...};
     if constexpr (std::is_floating_point_v<ParamT>)
       details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,

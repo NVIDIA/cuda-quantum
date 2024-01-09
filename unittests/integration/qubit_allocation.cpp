@@ -21,6 +21,21 @@ struct test_allocation {
   }
 };
 
+struct test_resizing {
+  void operator()() __qpu__ {
+    // Start with an initial allocation of 2 qubits.
+    cudaq::qvector q(2);
+    cudaq::x(q);
+    auto result = mz(q[0]);
+    auto result1 = mz(q[1]);
+    if (result && result1) {
+      // Allocate two more qubits mid-circuit.
+      cudaq::qvector q2(2);
+      auto result2 = mz(q2);
+    }
+  }
+};
+
 CUDAQ_TEST(AllocationTester, checkSimple) {
   test_allocation{}();
 
@@ -33,3 +48,21 @@ CUDAQ_TEST(AllocationTester, checkSimple) {
   }
   EXPECT_EQ(c, 1000);
 }
+
+#ifndef CUDAQ_BACKEND_TENSORNET
+// Tests for a previous bug in the density simulator, where
+// the qubit ordering flipped after resizing the density matrix
+// with new qubits.
+CUDAQ_TEST(AllocationTester, checkDensityOrderingBug) {
+  test_resizing{}();
+
+  auto counts = cudaq::sample(test_resizing{});
+  EXPECT_EQ(1, counts.size());
+  int c = 0;
+  for (auto &[bits, count] : counts) {
+    c += count;
+    EXPECT_TRUE(bits == "1100");
+  }
+  EXPECT_EQ(c, 1000);
+}
+#endif

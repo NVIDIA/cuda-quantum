@@ -13,6 +13,7 @@ CUDA
 CuPy
 DGX
 DOI
+Deuteron
 Fourier
 GHCR
 GPU
@@ -83,6 +84,7 @@ canonicalizes
 codebase
 comparator
 comparators
+composability
 composable
 constructible
 controlled
@@ -135,6 +137,7 @@ intrinsics
 iterable
 lookup
 lookups
+mutex
 namespace
 namespaces
 natively
@@ -142,6 +145,7 @@ nullary
 optimizer
 optimizers
 parallelization
+parameterization
 precompute
 precomputed
 prepend
@@ -160,6 +164,8 @@ subclassed
 subclasses
 subclassing
 subcommand
+subexpression
+subexpressions
 subfolder
 submodule
 subscriptable
@@ -173,6 +179,7 @@ tablegen
 templated
 toolchain
 unary
+uncompute
 unitaries
 unitary
 unoptimized

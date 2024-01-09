@@ -12,17 +12,31 @@
 
 __qpu__ void qview_test(cudaq::qview<> v) {}
 
-__qpu__ void qvector_test(cudaq::qvector<> v) {}
-
-__qpu__ void qarray_test(cudaq::qarray<4> a) {}
-
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qview_test
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>)
+
+__qpu__ void qvector_test(cudaq::qvector<> v) {}
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qvector_test
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>)
 
+__qpu__ void qarray_test(cudaq::qarray<4> a) {}
+
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qarray_test
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<4>)
 
+struct Qernel0 {
+  void operator()() __qpu__ {
+    cudaq::qvector bits(2);
+    cudaq::qview scenicview = {bits};
+    mz(scenicview);
+  }
+};
 
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel0()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:           return
+// CHECK:         }
+// clang-format on

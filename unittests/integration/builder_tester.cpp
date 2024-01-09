@@ -429,19 +429,21 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
 }
 #endif
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// Skip, else fails with error - '"MPS simulator: Gates on 3 or more qubits are
+// unsupported. Encountered: swap[0][1,2]" thrown in the test body.'
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
 
   // Simple two-qubit swap.
   {
     auto kernel = cudaq::make_kernel();
-    auto q = kernel.qalloc(2);
-    // 0th qubit into the 1-state.
-    kernel.x(q[0]);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+    // `first` qubit into the 1-state.
+    kernel.x(first);
     // Swap their states and measure.
-    kernel.swap(q[0], q[1]);
-    // Measure.
-    kernel.mz(q);
+    kernel.swap(first, second);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
@@ -451,19 +453,129 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
   // Simple two-qubit swap.
   {
     auto kernel = cudaq::make_kernel();
-    auto q = kernel.qalloc(2);
-    // 1st qubit into the 1-state.
-    kernel.x(q[1]);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+    // `second` qubit into the 1-state.
+    kernel.x(second);
     // Swap their states and measure.
-    kernel.swap(q[0], q[1]);
-    // Measure.
-    kernel.mz(q);
+    kernel.swap(first, second);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
     EXPECT_NEAR(counts.count("10"), 1000, 0);
   }
+
+  // Single qubit controlled-SWAP.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto ctrl = kernel.qalloc();
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+    // ctrl and `first` in the 1-state.
+    kernel.x(ctrl);
+    kernel.x(first);
+    // Swap their states and measure.
+    kernel.swap<cudaq::ctrl>(ctrl, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("101"), 1000, 0);
+  }
+
+  // Multi-controlled SWAP with a ctrl register.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto ctrls = kernel.qalloc(3);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+
+    // Rotate `first` to |1> state.
+    kernel.x(first);
+
+    // Only a subset of controls in the |1> state.
+    kernel.x(ctrls[0]);
+    // No SWAP should occur.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    // Flip the rest of the controls to |1>.
+    kernel.x(ctrls[1]);
+    kernel.x(ctrls[2]);
+    // `first` and `second` should SWAP.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    std::string ctrls_state = "111";
+    // `first` is now |0>, `second` is now |1>.
+    std::string want_target = "01";
+    auto want_state = ctrls_state + want_target;
+    EXPECT_NEAR(counts.count(want_state), 1000, 0);
+  }
+
+  // Multi-controlled SWAP with a vector of ctrl qubits.
+  {
+    auto kernel = cudaq::make_kernel();
+    std::vector<cudaq::QuakeValue> ctrls{kernel.qalloc(), kernel.qalloc(),
+                                         kernel.qalloc()};
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+
+    // Rotate `second` to |1> state.
+    kernel.x(second);
+
+    // Only a subset of controls in the |1> state.
+    kernel.x(ctrls[0]);
+    // No SWAP should occur.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    // Flip the rest of the controls to |1>.
+    kernel.x(ctrls[1]);
+    kernel.x(ctrls[2]);
+    // `first` and `second` should SWAP.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    std::string ctrls_state = "111";
+    // `first` is now |1>, `second` is now |0>.
+    std::string want_target = "10";
+    auto want_state = ctrls_state + want_target;
+    EXPECT_NEAR(counts.count(want_state), 1000, 0);
+  }
+
+  // Multi-controlled SWAP with a variadic list of ctrl qubits.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto ctrls0 = kernel.qalloc(2);
+    auto ctrls1 = kernel.qalloc();
+    auto ctrls2 = kernel.qalloc(2);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+
+    // Rotate `second` to |1> state.
+    kernel.x(second);
+
+    // Only a subset of controls in the |1> state.
+    kernel.x(ctrls0);
+    // No SWAP should occur.
+    kernel.swap<cudaq::ctrl>(ctrls0, ctrls1, ctrls2, first, second);
+
+    // Flip the rest of the controls to |1>.
+    kernel.x(ctrls1);
+    kernel.x(ctrls2);
+    // `first` and `second` should SWAP.
+    kernel.swap<cudaq::ctrl>(ctrls0, ctrls1, ctrls2, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    std::string ctrls_state = "11111";
+    // `first` is now |1>, `second` is now |0>.
+    std::string want_target = "10";
+    auto want_state = ctrls_state + want_target;
+    EXPECT_NEAR(counts.count(want_state), 1000, 0);
+  }
 }
+#endif
 
 // Conditional execution on the tensornet backend is slow for a large number of
 // shots.
@@ -925,6 +1037,16 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
 }
 
 CUDAQ_TEST(BuilderTester, checkExpPauli) {
+  std::vector<double> h2_data{
+      3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
+      0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
+      0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
+      0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
+      2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
+      0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
+      0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
+      1, 1, 3, 3, -0.0454063, -0, 15};
+  cudaq::spin_op h(h2_data, 4);
   {
     auto [kernel, theta] = cudaq::make_kernel<double>();
     auto qubits = kernel.qalloc(4);
@@ -932,16 +1054,16 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
     kernel.x(qubits[1]);
     kernel.exp_pauli(theta, qubits, "XXXY");
     std::cout << kernel << "\n";
-    std::vector<double> h2_data{
-        3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
-        0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
-        0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
-        0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
-        2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
-        0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
-        0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
-        1, 1, 3, 3, -0.0454063, -0, 15};
-    cudaq::spin_op h(h2_data, 4);
+    const double e = cudaq::observe(kernel, h, 0.11);
+    EXPECT_NEAR(e, -1.13, 1e-2);
+  }
+  {
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(4);
+    kernel.x(qubits[0]);
+    kernel.x(qubits[1]);
+    kernel.exp_pauli(theta, qubits, cudaq::spin_op::from_word("XXXY"));
+    std::cout << kernel << "\n";
     const double e = cudaq::observe(kernel, h, 0.11);
     EXPECT_NEAR(e, -1.13, 1e-2);
   }
@@ -952,16 +1074,6 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
     kernel.x(qubits[1]);
     kernel.exp_pauli(theta, qubits, "XXXY");
     std::cout << kernel << "\n";
-    std::vector<double> h2_data{
-        3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
-        0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
-        0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
-        0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
-        2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
-        0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
-        0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
-        1, 1, 3, 3, -0.0454063, -0, 15};
-    cudaq::spin_op h(h2_data, 4);
     cudaq::optimizers::cobyla optimizer;
     optimizer.max_eval = 30;
     auto [e, opt] = optimizer.optimize(1, [&](std::vector<double> x) -> double {
@@ -978,16 +1090,6 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
     kernel.x(qubits[1]);
     kernel.exp_pauli(theta, "XXXY", qubits[0], qubits[1], qubits[2], qubits[3]);
     std::cout << kernel << "\n";
-    std::vector<double> h2_data{
-        3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
-        0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
-        0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
-        0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
-        2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
-        0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
-        0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
-        1, 1, 3, 3, -0.0454063, -0, 15};
-    cudaq::spin_op h(h2_data, 4);
     cudaq::optimizers::cobyla optimizer;
     optimizer.max_eval = 30;
     auto [e, opt] = optimizer.optimize(1, [&](std::vector<double> x) -> double {
