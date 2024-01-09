@@ -20,7 +20,7 @@ namespace cudaq {
 ///
 /// \details The cudaq::gradient tracks a std::function with signature
 /// void(std::vector<double>) representing the parameterized kernel
-/// ansatz. For ansatzae that do not follow this signature, a separate
+/// ansatz. For ansatzes that do not follow this signature, a separate
 /// Argument Mapper must be provided which takes std::vector<double> to
 /// a tuple of custom function arguments. All gradient subtypes should
 /// inherit the base class constructors (using gradient::gradient), but

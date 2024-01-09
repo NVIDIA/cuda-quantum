@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -27,7 +27,7 @@ private:
 
   /// @brief Raw pointer to the data, whether it is
   /// owned or not. This is what should be used primarily
-  /// in `matrix.cpp`.
+  /// in matrix.cpp.
   value_type *internalData;
 
   /// @brief The number of rows in this matrix

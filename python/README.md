@@ -77,8 +77,8 @@ MPI uses [SSH](https://en.wikipedia.org/wiki/Secure_Shell) or
 [RSH](https://en.wikipedia.org/wiki/Remote_Shell) to communicate with
 each node unless another resource manager, such as
 [SLURM](https://slurm.schedmd.com/overview.html), is used.
-If you are encountering an error `The value of the MCA parameter
-"plm_rsh_agent" was set to a path that could not be found`,
+If you are encountering an error "The value of the MCA parameter
+`plm_rsh_agent` was set to a path that could not be found",
 please make sure you have an SSH Client installed.
 
 ## Running CUDA Quantum

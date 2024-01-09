@@ -157,6 +157,10 @@ matrix:
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
+      # Ignore paths of files (recognized by them having a file extension)
+      - open: '([A-Za-z_\\\/]+\.)+'
+        close: '($|(?=[^a-z]))'
+        content: '\S+?'
       # Ignore the doxygen \param command and the code artifact after it.
       - open: '[\\@]param(\s+\[\w+\])?(?:\s+\S)?'
         close: '(\s|$)'

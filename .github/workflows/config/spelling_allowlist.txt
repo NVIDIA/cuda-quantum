@@ -2,7 +2,6 @@ API
 APIs
 AST
 Aer
-Autodoc
 BFGS
 CLA
 CLI
@@ -37,6 +36,7 @@ JupyterLab
 Kraus
 LLVM
 LSB
+MCA
 MLIR
 MPI
 MPS
@@ -80,7 +80,7 @@ accessor
 adjoint
 al
 ansatz
-ansatzae
+ansatzes
 arity
 auxillary
 backend
@@ -186,6 +186,7 @@ qudits
 reStructuredText
 runtime
 rvalue
+sexualized
 struct
 structs
 subclass

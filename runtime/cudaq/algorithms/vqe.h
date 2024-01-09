@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -198,7 +198,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE with a kernel
-///        callable with non-trivial (not std::vector<double>) argument
+///        callable with non-trivial (not `std::vector<double>`) argument
 ///        structure.
 ///
 /// \param kernel The CUDA Quantum callable with non-trivial function
@@ -272,7 +272,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE with a kernel
-///        callable with non-trivial (not std::vector<double>) argument
+///        callable with non-trivial (not `std::vector<double>`) argument
 ///        structure.
 ///
 /// \param shots The number samples to collect.
@@ -347,7 +347,7 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE with a kernel
-///        callable with non-trivial (not std::vector<double>) argument
+///        callable with non-trivial (not `std::vector<double>`) argument
 ///        structure and a specified gradient strategy.
 ///
 /// \param kernel The quantum callable with non-trivial function
