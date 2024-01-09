@@ -14,13 +14,10 @@ endif()
 add_subdirectory(remote)
 
 set(LIBRARY_NAME cudaq-platform-mqpu)
-enable_language(CUDA)
-find_package(CUDAToolkit REQUIRED)
 add_library(${LIBRARY_NAME} SHARED MultiQPUPlatform.cpp ../common/QuantumExecutionQueue.cpp)
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-       $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
@@ -38,7 +35,7 @@ target_link_libraries(${LIBRARY_NAME}
 )
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE qpu-emulated-qpu)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE gpu-emulated-qpu)
   add_target_config(nvidia-mqpu)
   add_target_config(nvidia-mqpu-fp64)
 endif()

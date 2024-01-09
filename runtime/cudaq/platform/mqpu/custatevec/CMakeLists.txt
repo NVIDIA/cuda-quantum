@@ -5,10 +5,12 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
-add_library(qpu-emulated-qpu OBJECT GPUEmulatedQPU.cpp)
-target_link_libraries(qpu-emulated-qpu PUBLIC 
+enable_language(CUDA)
+find_package(CUDAToolkit REQUIRED)
+add_library(gpu-emulated-qpu OBJECT GPUEmulatedQPU.cpp)
+target_link_libraries(gpu-emulated-qpu PUBLIC 
                         cudaq-common 
                         CUDA::cudart_static
                         spdlog::spdlog 
 )
+target_include_directories(gpu-emulated-qpu PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)
