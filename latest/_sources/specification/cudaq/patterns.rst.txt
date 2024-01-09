@@ -20,15 +20,15 @@ control :math:`V`. The CUDA Quantum specification requires the following syntax 
 
 .. code-block:: cpp
 
-  // Will invoke U V U^dag
-  cudaq::compute_action (
-       [&](){ 
-         /*U_code*/ 
-       }, 
-       [&]() { 
-         /*V_code*/ 
-       } 
-  ); 
+    // Will invoke U V U^dag
+    cudaq::compute_action (
+         [&](){ 
+           /*U_code*/ 
+         }, 
+         [&]() { 
+           /*V_code*/ 
+         } 
+    ); 
 
 Compiler implementations must add the uncompute segment
 and optimize on any controlled versions of this block of code. 
