@@ -509,7 +509,7 @@ add_subdirectory(utils)
 if (CUDAQ_ENABLE_PYTHON)
   set(PYBIND11_FINDPYTHON ON)
   # Manually call find_package due to https://github.com/pybind/pybind11/pull/4805.
-  find_package(Python 3 COMPONENTS Interpreter Development.Module)
+  find_package(Python 3 COMPONENTS Interpreter Development.Module REQUIRED)
   add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()
