@@ -6,7 +6,7 @@ processing units (QPUs), GPUs, and CPUs in one system.
 
 This Docker image contains contains all necessary tool for application
 development using CUDA Quantum in C++ or Python. This includes an installation
-of the NVQ++ compiler, the CUDA Quantum runtime, as well as a selection of
+of the `nvq++` compiler, the CUDA Quantum runtime, as well as a selection of
 integrated CPU and GPU backends for rapid application development and testing.
 To install additional software, run the installation command as administrator
 if necessary by using `sudo <command>` (no password is required).

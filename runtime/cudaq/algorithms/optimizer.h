@@ -70,9 +70,9 @@ public:
 /// to third party libraries. This interface provides an optimize(...) method
 /// that takes the number of objective function input parameters
 /// (the dimension), and a user-specified objective function that takes the
-/// function input parameters as a immutable (const) vector<double> reference
+/// function input parameters as a immutable (`const`) vector<double> reference
 /// and a mutable vector<double> reference modeling the current iteration
-/// gradient vector (df / dx_i, for all i parameters). This function
+/// gradient vector (dF / dx_i, for all i parameters). This function
 /// must return a scalar double, the value of this function at the
 /// current input parameters. The optimizer also
 /// exposes a method for querying whether the current optimization strategy
@@ -101,9 +101,9 @@ public:
   /// Run the optimization strategy defined by concrete sub-type
   /// implementations. Takes the number of variational parameters,
   /// and a custom objective function that takes the
-  /// function input parameters as a immutable (const) vector<double> reference
-  /// and a mutable vector<double> reference modeling the current iteration
-  /// gradient vector (df / dx_i, for all i parameters). This function
+  /// function input parameters as a immutable (`const`) vector<double>
+  /// reference and a mutable vector<double> reference modeling the current
+  /// iteration gradient vector (dF / dx_i, for all i parameters). This function
   /// must return a scalar double, the value of this function at the
   /// current input parameters.
   virtual optimization_result optimize(const int dim,

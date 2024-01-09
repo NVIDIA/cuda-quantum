@@ -17,7 +17,7 @@ namespace cudaq {
 template <std::size_t Levels>
 class qudit {
   /// Every qudit has a logical index in the global qudit register,
-  /// idx is this logical index, it must be
+  /// `idx` is this logical index, it must be
   /// provided at construction and is immutable.
   const std::size_t idx = 0;
 

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -106,7 +106,7 @@ std::string getCxxMangledDeclName(clang::GlobalDecl decl,
 std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler);
 
-/// Use this helper to convert a tag name to a `nvq++` mangled name.
+/// Use this helper to convert a tag name to an `nvq++` mangled name.
 inline std::string getCudaqKernelName(const std::string &tag) {
   return runtime::cudaqGenPrefixName + tag;
 }

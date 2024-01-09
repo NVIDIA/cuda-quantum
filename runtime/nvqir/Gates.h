@@ -195,7 +195,7 @@ struct t {
   const std::string name() const { return "t"; }
 };
 
-/// The Sdg Gate
+/// The `Sdg` (S†) Gate
 template <typename ScalarType = double>
 struct sdg {
   std::vector<ComplexT<ScalarType>>
@@ -205,7 +205,7 @@ struct sdg {
   const std::string name() const { return "sdg"; }
 };
 
-/// The Tdg Gate
+/// The `Tdg` (T†) Gate
 template <typename ScalarType = double>
 struct tdg {
   std::vector<ComplexT<ScalarType>>
