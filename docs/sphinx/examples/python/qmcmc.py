@@ -4,7 +4,7 @@
 # For non-default values of the parameters use:
 # python3 qmcmc.py --num_iterations 30 --nqubits 13 --temperature 0.08 --shots_count 20
 #
-# This code is based on the quantum enchanced Markov
+# This code is based on the quantum enhanced Markov
 # Chain Monte Carlo (QMCMC) algorithm presented in the
 # paper https://arxiv.org/pdf/2203.12497.pdf
 # The Hamiltonian here is exponentiated using the first
@@ -56,7 +56,7 @@ def generate_H(gamma, nqubits, J, h):
     H_mix = 0 * spin.i(0)
     count_problem_terms = 0
 
-    # Problem hamiltonian
+    # Problem Hamiltonian
     for k in range(1, nqubits):
         for j in range(k + 1, nqubits):
             H_prob -= J[j][k] * spin.z(j) * spin.z(k)
@@ -68,12 +68,12 @@ def generate_H(gamma, nqubits, J, h):
         H_list.append((gamma - 1.0) * h[j] * spin.z(j))
         count_problem_terms = count_problem_terms + 1
 
-    # Mixer hamiltonian
+    # Mixer Hamiltonian
     for j in range(1, nqubits):
         H_mix += spin.x(j)
         H_list.append(gamma * spin.x(j))
 
-    # Final hamiltonian
+    # Final Hamiltonian
     alpha = np.linalg.norm(H_mix.to_matrix()) / np.linalg.norm(
         H_prob.to_matrix())
     for i in range(count_problem_terms):
@@ -91,11 +91,11 @@ def generate_H(gamma, nqubits, J, h):
 
 # This is the first-order Trotter gate decomposition for
 # an ordered list of Hamiltonians
-def trotter_circuit(kernel, qreg, hk, dt, n_qubits):
+# This is the first-order Trotter gate decomposition
+def trotter_circuitA(kernel, qreg, hk, dt, n_qubits):
     for term in hk:
-        pauliString = str(term).split(' ')[1].rstrip()
-        kernel.exp_pauli(2. * dt * term.get_coefficient().real, qreg,
-                         pauliString)
+        kernel.exp_pauli(dt * term.get_coefficient().real, qreg,
+                         term)
 
     return kernel
 
@@ -153,7 +153,7 @@ def main():
 
         # Load initial bitstring into the circuit
         kernel = initial_state(kernel, q, s)
-        # First order trotterization
+        # First order Trotterization
         kernel = trotter_circuit(kernel, q, H_list, t, nqubits)
 
         # Sample the distribution
