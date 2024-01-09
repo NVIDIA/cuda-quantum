@@ -6,9 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(default)
-if (OPENSSL_FOUND)
-  add_subdirectory(orca)
-endif()
+add_library(mqpu_util OBJECT MQPUUtils.cpp)
+target_link_libraries(mqpu_util
+    PRIVATE
+        LLVMSupport
+        cudaq-common  
+        spdlog::spdlog 
+        fmt::fmt-header-only
+)
 
-add_subdirectory(mqpu)
+if (CUDA_FOUND AND CUSTATEVEC_ROOT)
+  target_compile_definitions(mqpu_util PRIVATE CUDAQ_ENABLE_CUDA)
+  target_link_libraries(mqpu_util PRIVATE CUDA::cudart_static)
+endif()

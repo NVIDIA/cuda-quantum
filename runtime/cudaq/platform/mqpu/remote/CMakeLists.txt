@@ -6,9 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(default)
-if (OPENSSL_FOUND)
-  add_subdirectory(orca)
-endif()
-
-add_subdirectory(mqpu)
+add_library(remote-simulator-qpu OBJECT RemoteSimulatorQPU.cpp)
+target_link_libraries(remote-simulator-qpu PUBLIC 
+                        cudaq-common 
+                        cudaq-mlir-runtime
+                        rest-remote-platform-client
+                    )

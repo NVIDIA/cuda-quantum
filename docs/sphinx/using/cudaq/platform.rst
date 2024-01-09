@@ -151,13 +151,13 @@ as independent REST server instances. The CUDA Quantum runtime communicates via 
 
 Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
 
-CUDA Quantum provides the REST server implementation as a standalone application (:code:`cudaq_rest_server`),
+CUDA Quantum provides the REST server implementation as a standalone application (:code:`cudaq-qpud`),
 hosting all the simulator backends available in the installation. These backends include those that require MPI for multi-GPU computation.
 
 Auto-launch REST Server
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The server app (:code:`cudaq_rest_server`) can be launch and shutdown automatically
+The server app (:code:`cudaq-qpud`) can be launch and shutdown automatically
 by using the auto-launch feature of the platform.
 Random TCP/IP ports, that are available for use, will be selected to launch those server processes.
 
@@ -185,7 +185,7 @@ To start the server, serving at a specific TCP/IP port, one can do the following
 
 .. code-block:: console
     
-    cudaq_rest_server --port <port number>
+    cudaq-qpud --port <port number>
 
 User code can then target this platform by specifying its target name (:code:`remote-sim`).
 
@@ -203,7 +203,7 @@ User code can then target this platform by specifying its target name (:code:`re
         cudaq.set_target("remote-sim", url="url1[,url2,...]", backend="sim1[,sim2,...]")
     
 
-When using this target, the user needs to provides a list of URLs where (:code:`cudaq_rest_server`) is serving.
+When using this target, the user needs to provides a list of URLs where (:code:`cudaq-qpud`) is serving.
 The number of QPUs (:code:`num_qpus()`) is equal to the number of URLs provided. 
 
 Each QPU instance can be assigned a different backend simulator via the :code:`--remote-sim-backend` (`nvq++`) or :code:`backend` (Python)

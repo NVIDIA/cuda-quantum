@@ -1,10 +1,15 @@
-set(LIBRARY_NAME cudaq-platform-remote-sim)
+# ============================================================================ #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+set(LIBRARY_NAME rest-remote-platform-client)
 add_library(${LIBRARY_NAME} SHARED 
-                              RemoteSimulatorQPU.cpp 
-                              RemoteRESTExecutionManager.cpp 
-                              RemoteRuntimeClient.cpp 
-                              ../../common/QuantumExecutionQueue.cpp 
                               helpers/RestRemoteClient.cpp
+                              RemoteRuntimeClient.cpp 
 )
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
@@ -13,91 +18,30 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
-target_link_libraries(${LIBRARY_NAME}
-  PUBLIC 
-    cudaq-em-default 
-    cudaq-spin 
-    cudaq-common 
-  PRIVATE 
-    cudaq
-    cudaq-mlir-runtime 
-    nvqir
-    MLIRTranslateLib
-    pthread
-    spdlog::spdlog 
-    fmt::fmt-header-only 
-)
-
-add_custom_target(EM_SYMLINK ALL DEPENDS ${LIBRARY_NAME} COMMAND ${CMAKE_COMMAND} -E create_symlink 
-  ${CMAKE_BINARY_DIR}/lib/$<TARGET_FILE_NAME:${LIBRARY_NAME}> 
-  ${CMAKE_BINARY_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}cudaq-em-remote-sim${CMAKE_SHARED_LIBRARY_SUFFIX})
-
+target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-mlir-runtime)
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-remote-sim-targets DESTINATION lib)
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
-  ${CMAKE_INSTALL_PREFIX}/lib/$<TARGET_FILE_NAME:${LIBRARY_NAME}>  \
-  ${CMAKE_INSTALL_PREFIX}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}cudaq-em-remote-sim${CMAKE_SHARED_LIBRARY_SUFFIX})"
-)
-
-add_target_config(remote-sim)
 
 if (NOT CUDAQ_DISABLE_TOOLS)
-  set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
-  get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
-  get_property(translation_libs GLOBAL PROPERTY MLIR_TRANSLATION_LIBS)
-  get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
-
   add_subdirectory(helpers/server_impl)
   add_subdirectory(helpers/llvm_jit)
-  
-  add_executable(cudaq_rest_server RestServerMain.cpp RemoteRuntimeServer.cpp helpers/RestRemoteServer.cpp)
-  target_include_directories(cudaq_rest_server 
+  add_library(rest-remote-platform-server SHARED RemoteRuntimeServer.cpp helpers/RestRemoteServer.cpp)
+  target_include_directories(rest-remote-platform-server 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<BUILD_INTERFACE:${CUDA_INCLUDE_DIRS}>
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
-  set_target_properties(cudaq_rest_server
-    PROPERTIES
-      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/"
-  )
-  target_link_libraries(cudaq_rest_server
+  target_link_libraries(rest-remote-platform-server
     PRIVATE
       rest_server_impl
       jit_util
-      ${dialect_libs}
-      ${translation_libs}
-      ${conversion_libs}
-      MLIRIR
-      MLIRParser
-      MLIRPass
-      MLIRTranslateLib
-      MLIRSupport
-      MLIROptLib
-      MLIRExecutionEngine
-      MLIRTransforms
-      MLIRTargetLLVMIRExport
-      MLIRLLVMCommonConversion
-      MLIRLLVMToLLVMIRTranslation
-      CCDialect
-      OptCodeGen
-      OptTransforms
-      QuakeDialect
-  )
-  target_link_libraries(cudaq_rest_server
-    PRIVATE
-      cudaq-common  
-      cudaq-spin  
-      cudaq
-      cudaq-mlir-runtime 
-      nvqir
+      cudaq 
       cudaq-em-default 
+      cudaq-mlir-runtime
       cudaq-platform-default
-      spdlog::spdlog 
-      fmt::fmt-header-only) 
-  target_link_options(cudaq_rest_server PRIVATE -Wl,--no-as-needed)
-  mlir_check_all_link_libraries(cudaq_rest_server)
-
-  install(TARGETS cudaq_rest_server DESTINATION bin)
+      nvqir
+  )
+  target_link_options(rest-remote-platform-server PRIVATE -Wl,--no-as-needed)
+  install(TARGETS rest-remote-platform-server DESTINATION lib)
 endif()

@@ -6,6 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "RemoteKernelExecutor.h"
+#include "common/RemoteKernelExecutor.h"
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::RemoteRuntimeClient::RegistryType)

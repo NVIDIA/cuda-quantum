@@ -13,14 +13,14 @@ import cudaq
 def has_rest_server():
     try:
         import subprocess
-        subprocess.check_output(["which", "cudaq_rest_server"])
+        subprocess.check_output(["which", "cudaq-qpud"])
         return True
     except:
         return False
 
 
 skipIfNoRestServer = pytest.mark.skipif(
-    not (has_rest_server()), reason="cudaq_rest_server not available")
+    not (has_rest_server()), reason="cudaq-qpud not available")
 
 num_qpus = 3
 

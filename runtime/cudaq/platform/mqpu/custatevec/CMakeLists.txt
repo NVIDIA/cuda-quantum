@@ -6,9 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(default)
-if (OPENSSL_FOUND)
-  add_subdirectory(orca)
-endif()
-
-add_subdirectory(mqpu)
+add_library(qpu-emulated-qpu OBJECT GPUEmulatedQPU.cpp)
+target_link_libraries(qpu-emulated-qpu PUBLIC 
+                        cudaq-common 
+                        CUDA::cudart_static
+                        spdlog::spdlog 
+)

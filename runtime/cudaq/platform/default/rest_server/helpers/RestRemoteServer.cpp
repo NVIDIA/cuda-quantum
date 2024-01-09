@@ -46,7 +46,7 @@
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
 
-#include "RemoteKernelExecutor.h"
+#include "common/RemoteKernelExecutor.h"
 
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);

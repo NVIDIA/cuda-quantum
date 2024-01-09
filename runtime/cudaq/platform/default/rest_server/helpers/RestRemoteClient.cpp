@@ -33,8 +33,8 @@
 #include "mlir/Pass/PassRegistry.h"
 
 #include "JsonConvert.h"
-#include "RemoteKernelExecutor.h"
 #include "common/Logger.h"
+#include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "cudaq.h"
 
