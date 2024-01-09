@@ -115,7 +115,7 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prereqs.outputs.artifact_name }}
           path: /tmp/wheels
@@ -159,7 +159,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Load cuda-quantum wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ needs.build_wheel.outputs.artifact_name }}
 
@@ -302,7 +302,7 @@ jobs:
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
-          artifact_name=python_info_$platform_id
+          artifact_name=python_${platform_id}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
@@ -313,7 +313,7 @@ jobs:
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
 
       - name: Upload build info
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}

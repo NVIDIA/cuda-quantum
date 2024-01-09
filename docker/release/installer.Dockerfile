@@ -127,7 +127,7 @@ RUN echo 'export CUDA_QUANTUM_PATH="${CUDA_QUANTUM_PATH:-'"${CUDAQ_INSTALL_PATH}
     echo 'export PATH="${PATH:+$PATH:}${CUDA_QUANTUM_PATH}/bin"' >> set_env.sh && \
     echo 'export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${CUDA_QUANTUM_PATH}/lib"' >> set_env.sh && \
     echo 'export CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH:+$CPLUS_INCLUDE_PATH:}${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"' >> set_env.sh
-RUN mv /cuda-quantum/scripts/migrate_assets.sh install.sh && \
+RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
     echo -e '\n\n\
     this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"` \n\
     if [ -f /etc/profile ] && [ -w /etc/profile ]; then \n\
@@ -139,6 +139,14 @@ RUN mv /cuda-quantum/scripts/migrate_assets.sh install.sh && \
     if [ -d "${MPI_PATH}" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
         bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh" \n\
     fi \n' >> install.sh
+
+## [Additional Assets]
+ARG assets=./assets
+COPY "$assets" /assets/
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    for folder in `find /assets/*$(uname -m)/* -maxdepth 0 -type d`; \
+    do bash /cuda-quantum/scripts/migrate_assets.sh -s "$folder" && rm -rf "$folder"; \
+    done
 
 ## [Content]
 RUN source /cuda-quantum/scripts/configure_build.sh && \

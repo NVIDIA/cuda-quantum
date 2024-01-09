@@ -238,7 +238,7 @@ jobs:
           echo "pr-base: ${{ needs.metadata.outputs.pull_request_base }}" >> metadata.txt
 
       - name: Upload cache keys
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cache_keys_ci
           path: cache_keys.txt
@@ -246,7 +246,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload metadata
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: metadata_ci
           path: metadata.txt

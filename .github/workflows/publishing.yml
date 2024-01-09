@@ -38,6 +38,7 @@ jobs:
       github_commit: ${{ steps.artifacts.outputs.github_commit }}
       docker_images: ${{ steps.artifacts.outputs.docker_images }}
       python_wheels: ${{ steps.artifacts.outputs.python_wheels }}
+      installers: ${{ steps.artifacts.outputs.installers }}
       releases: ${{ steps.artifacts.outputs.releases }}
       release_title: ${{ steps.artifacts.outputs.release_title }}
       release_version: ${{ steps.artifacts.outputs.release_version }}
@@ -72,13 +73,14 @@ jobs:
 
           docker_images="{\"info_files\":[]}"
           python_wheels="{\"info_files\":[]}"
+          installers="{\"info_files\":[]}"
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             url=`echo $artifact | jq -r '.url'`
-            if [ "${name#build_info}" != "$name" ] || [ "${name#python_info}" != "$name" ]; then
+            if [ "${name%_publishing}" != "$name" ]; then
               download "$url" "$name"
               platforms=`cat "$name.txt" | egrep -o 'platforms?: \S*' | cut -d ' ' -f 2`
-              image_hash=`cat "$name.txt" | grep -o -e "cuda-quantum-dev-image: \S*" -e "cuda-quantum-wheeldeps-image: \S*" | cut -d ' ' -f 2`
+              image_hash=`cat "$name.txt" | grep -o -e "cuda-quantum-dev-image: \S*" -e "cuda-quantum-installer-image: \S*" -e "cuda-quantum-wheeldeps-image: \S*" | cut -d ' ' -f 2`
               if [ -n "$(echo $platforms | grep ',')" ]; then runner=linux-amd64-cpu8
               else runner=$(echo $platforms | tr / -)-cpu8
               fi
@@ -93,13 +95,17 @@ jobs:
 
               releases+="$release_id "
               info={\"$name\":{\"release_id\":\"$release_id\",\"staging_branch\":\"$staging_branch\",\"runner\":\"$runner\",\"artifacts_url\":\"$artifacts_url\",\"platform\":\"$platforms\",\"image_hash\":\"$image_hash\"}}
-            fi
-            if [ "${name#build_info}" != "$name" ]; then
-              docker_images=`echo $docker_images | jq ".info_files |= . + [\"$name\"]"`
-              docker_images=`echo $docker_images | jq ". |= . + $info"`
-            elif [ "${name#python_info}" != "$name" ]; then
-              python_wheels=`echo $python_wheels | jq ".info_files |= . + [\"$name\"]"`
-              python_wheels=`echo $python_wheels | jq ". |= . + $info"`
+
+              if [ "${name#image}" != "$name" ]; then
+                docker_images=`echo $docker_images | jq ".info_files |= . + [\"$name\"]"`
+                docker_images=`echo $docker_images | jq ". |= . + $info"`
+              elif [ "${name#python}" != "$name" ]; then
+                python_wheels=`echo $python_wheels | jq ".info_files |= . + [\"$name\"]"`
+                python_wheels=`echo $python_wheels | jq ". |= . + $info"`
+              elif [ "${name#installer}" != "$name" ]; then
+                installers=`echo $installers | jq ".info_files |= . + [\"$name\"]"`
+                installers=`echo $installers | jq ". |= . + $info"`
+              fi
             elif [ "${name#deployment_info}" != "$name" ]; then
               download "$url" "$name"
               github_commit=`cat "$name.txt" | grep -o 'source-sha: \S*' | cut -d ' ' -f 2`
@@ -124,6 +130,7 @@ jobs:
           echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
           echo "docker_images=$(echo $docker_images)" >> $GITHUB_OUTPUT
           echo "python_wheels=$(echo $python_wheels)" >> $GITHUB_OUTPUT
+          echo "installers=$(echo $installers)" >> $GITHUB_OUTPUT
           echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "docs_archive=$docs_archive" >> $GITHUB_OUTPUT
@@ -151,7 +158,7 @@ jobs:
             image_hash=`cat "$1.txt" | grep -o "$2: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
 
-            echo "asset-name: $1" >> "$1.txt"
+            echo "asset-name: $1.txt" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
             echo "artifacts-url: $artifacts_url" >> "$1.txt"
             mkdir -p "$staging_folder" && mv "$1.txt" "$staging_folder/$file_id"
@@ -167,6 +174,10 @@ jobs:
 
           for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
             create_assets $file cuda-quantum-wheeldeps-image cuda-quantum-devdeps '${{ steps.artifacts.outputs.python_wheels }}'
+          done
+
+          for file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
+            create_assets $file cuda-quantum-installer-image cuda-quantum-installer '${{ steps.artifacts.outputs.installers }}'
           done
 
       - name: Wait for assets
@@ -205,6 +216,10 @@ jobs:
             delete_staging_branch $info_file '${{ steps.artifacts.outputs.python_wheels }}'
           done
 
+          for info_file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
+            delete_staging_branch $info_file '${{ steps.artifacts.outputs.installers }}'
+          done
+
       - name: Retrieve assets
         run: |
           assets_folder=/tmp/assets && mkdir "$assets_folder" && cd "$assets_folder"
@@ -215,7 +230,7 @@ jobs:
           function download_assets {
             mkdir "$1" && cd "$1"
             release_id=`echo "$2" | jq -r ".$1.release_id"`
-            while ! [ -f "$1" ]; do
+            while ! [ -f "$1.txt" ]; do
               echo "Download $release_id assets..."
               (gh release download $release_id -R ${{ github.repository }}) || true
               sleep 30
@@ -230,13 +245,17 @@ jobs:
           for file in ${{ join(fromJson(steps.artifacts.outputs.python_wheels).info_files, ' ') }}; do
             download_assets $file '${{ steps.artifacts.outputs.python_wheels }}'
           done
-         
+
+          for file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
+            download_assets $file '${{ steps.artifacts.outputs.installers }}'
+          done
+
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
   
       - name: Upload assets
         if: steps.artifacts.outputs.releases != ''
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: downstream_assets
           path: /tmp/assets
@@ -270,7 +289,7 @@ jobs:
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Load docker assets
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: downstream_assets
           path: /tmp/assets
@@ -441,7 +460,7 @@ jobs:
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Load wheel assets
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: downstream_assets
           path: /tmp/assets
@@ -458,9 +477,6 @@ jobs:
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
           cudaqwheeldeps_image=`cat $build_info | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip -j "$file" -d "$assets_folder" && rm "$file"; done 
-          echo "platform=$platform"
-          echo "platform_id=$platform_id"
-          echo "platform_arch=$platform_arch"
   
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "platform=$platform" >> $GITHUB_OUTPUT
@@ -494,7 +510,7 @@ jobs:
           outputs: ${{ steps.release_info.outputs.docker_output }}
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.release_info.outputs.platform_arch }}-wheels
           path: /tmp/wheels
@@ -648,8 +664,9 @@ jobs:
 
     steps:
       - name: Download cuda-quantum wheels
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
+          pattern: '*-wheels'
           path: wheelhouse
 
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
