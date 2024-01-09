@@ -60,7 +60,7 @@ public:
   /// Helper for callbacks when building a Region in a control-flow Op. This
   /// sets up the entry block, block arguments, and sets the insertion point of
   /// \p builder to the start of the new block. The calling context can get a
-  /// poiner to the new block by calling `builder.getBlock()`. Since this
+  /// pointer to the new block by calling `builder.getBlock()`. Since this
   /// extends InsertionGuard, an instance will preserve the insertion point of
   /// \p builder as a bonus.
   explicit RegionBuilderGuard(mlir::OpBuilder &builder, mlir::Location loc,

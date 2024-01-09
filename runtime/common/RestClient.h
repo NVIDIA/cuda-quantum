@@ -30,7 +30,7 @@ public:
                       const std::string_view path, nlohmann::json &postStr,
                       std::map<std::string, std::string> &headers,
                       bool enableLogging = true);
-  /// Get the contents of the remote server at the given url and path.
+  /// Get the contents of the remote server at the given URL and path.
   nlohmann::json get(const std::string_view remoteUrl,
                      const std::string_view path,
                      std::map<std::string, std::string> &headers);

@@ -33,7 +33,7 @@ public:
     }
   }
 
-  /// @brief Compute the `forward_difference` gradient for the arbitary
+  /// @brief Compute the `forward_difference` gradient for the arbitrary
   /// function, `func`, passed in by the user.
   std::vector<double>
   compute(const std::vector<double> &x,
