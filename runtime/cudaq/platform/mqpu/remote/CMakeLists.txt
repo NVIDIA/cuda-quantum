@@ -11,4 +11,5 @@ target_link_libraries(remote-simulator-qpu PUBLIC
                         cudaq-common 
                         cudaq-mlir-runtime
                         rest-remote-platform-client
+                        fmt::fmt-header-only
                     )

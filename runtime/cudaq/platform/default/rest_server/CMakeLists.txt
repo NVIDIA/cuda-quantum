@@ -18,7 +18,7 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE . ../../)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-mlir-runtime)
+target_link_libraries(${LIBRARY_NAME} PRIVATE cudaq cudaq-mlir-runtime fmt::fmt-header-only)
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 if (NOT CUDAQ_DISABLE_TOOLS)
@@ -41,6 +41,7 @@ if (NOT CUDAQ_DISABLE_TOOLS)
       cudaq-mlir-runtime
       cudaq-platform-default
       nvqir
+      fmt::fmt-header-only
   )
   target_link_options(rest-remote-platform-server PRIVATE -Wl,--no-as-needed)
   install(TARGETS rest-remote-platform-server DESTINATION lib)
