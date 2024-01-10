@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -307,7 +307,7 @@ LIBRARY_MODE=true
 CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
 CMAKE_FALLBACK_HOST_CXX=${CXX}
-TARGET_ARGS=
+TARGET_ARGS=()
 
 if [[ $# -eq 0 ]]; then
     SHOW_HELP=true
@@ -331,16 +331,22 @@ done
 while [ $# -ne 0 ]; do
 	# Filter out any target-specific options.
 	if [[ $# -gt 1 ]] && [[ -n "${TARGET_CONFIG}" ]]; then
-		if [[ "$1" = --${TARGET_CONFIG}-* ]]; then
-			# Assume always has an additional value
-			TARGET_ARGS="${TARGET_ARGS} $1 $2"
-			shift 2
-			continue
-		elif [[ "$1" = --${TARGET_CONFIG}-*=* ]]; then
-			# Separate the value of argument
+		if [[ "$1" = --${TARGET_CONFIG}-*=* ]]; then
+			# Separate the value of argument. Perform base64 encoding on
+			# the parameter value in case it has spaces. The runtime will be
+			# responsible for decoding the value.
 			param="$1"
-			TARGET_ARGS="${TARGET_ARGS} ${param%=*} ${param#*=}"
+			ESC2="base64_"$(echo -n ${param#*=} | base64)
+			TARGET_ARGS+=(${param%=*} $ESC2)
 			shift 1
+			continue
+		elif [[ "$1" = --${TARGET_CONFIG}-* ]]; then
+			# Assume always has an additional value. Perform base64 encoding on
+			# the parameter value in case it has spaces. The runtime will be
+			# responsible for decoding the value.
+			ESC2="base64_"$(echo -n $2 | base64)
+			TARGET_ARGS+=($1 $ESC2)
+			shift 2
 			continue
 		fi
 	fi
@@ -570,7 +576,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
-		. "${TARGET_CONFIG_FILE}" ${TARGET_ARGS}
+		. "${TARGET_CONFIG_FILE}" "${TARGET_ARGS[@]}"
 
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main and set the target
