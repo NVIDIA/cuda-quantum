@@ -100,8 +100,6 @@ public:
               new cudaq::AutoLaunchRestServerProcess());
           urls.emplace_back(m_remoteServers.back()->getUrl());
         }
-        // Allows some time for the servers to start
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       }
 
       // List of simulator names must either be one or the same length as the

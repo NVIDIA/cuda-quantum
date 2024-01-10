@@ -8,12 +8,13 @@
 
 #include "MQPUUtils.h"
 #include "common/Logger.h"
+#include "common/RestClient.h"
 #include "llvm/Support/Program.h"
 #include <arpa/inet.h>
 #include <execinfo.h>
 #include <signal.h>
 #include <sys/socket.h>
-
+#include <thread>
 #ifdef CUDAQ_ENABLE_CUDA
 #include "cuda_runtime_api.h"
 #endif
@@ -52,12 +53,36 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess() {
     throw std::runtime_error("Unable to find a TCP/IP port on the local "
                              "machine for auto-launch a REST server.");
   llvm::StringRef argv[] = {serverApp.get(), "--port", port.value()};
-  [[maybe_unused]] auto processInfo =
-      llvm::sys::ExecuteNoWait(serverApp.get(), argv, std::nullopt);
+  std::string errorMsg;
+  bool executionFailed = false;
+  auto processInfo = llvm::sys::ExecuteNoWait(
+      serverApp.get(), argv, std::nullopt, {}, 0, &errorMsg, &executionFailed);
+  if (executionFailed)
+    throw std::runtime_error("Failed to launch " + serverExeName + " at port " +
+                             port.value() + ": " + errorMsg);
   cudaq::info("Auto launch REST server at http://localhost:{} (PID {})",
               port.value(), processInfo.Pid);
   m_pid = processInfo.Pid;
   m_url = fmt::format("localhost:{}", port.value());
+  constexpr std::size_t MAX_RETRIES = 200;
+  constexpr std::size_t POLL_INTERVAL_MS = 10;
+  for (std::size_t i = 0; i < MAX_RETRIES; ++i) {
+    try {
+      static thread_local cudaq::RestClient restClient;
+      std::map<std::string, std::string> headers;
+      [[maybe_unused]] auto pingResult = restClient.get(m_url, "", headers);
+      cudaq::info("Successfully connected to the REST server at "
+                  "http://localhost:{} (PID {}) after {} milliseconds.",
+                  port.value(), processInfo.Pid, i * POLL_INTERVAL_MS);
+      return;
+    } catch (std::exception &e) {
+      // Wait and retry
+      std::this_thread::sleep_for(std::chrono::milliseconds(POLL_INTERVAL_MS));
+    }
+  }
+  throw std::runtime_error(fmt::format(
+      "Timeout Error: No response from the server after {} milliseconds.",
+      MAX_RETRIES * POLL_INTERVAL_MS));
 }
 
 cudaq::AutoLaunchRestServerProcess::~AutoLaunchRestServerProcess() {

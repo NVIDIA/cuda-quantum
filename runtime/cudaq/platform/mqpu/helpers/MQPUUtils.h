@@ -12,8 +12,8 @@
 
 namespace cudaq {
 // Helper struct to start a REST server (`cudaq-qpud`) instance on a random
-// TCP/IP port.
-// The server process is terminated automatically by the destructor.
+// TCP/IP port. This will wait until the server is ready to serve incoming HTTP
+// requests. The server process is terminated automatically by the destructor.
 struct AutoLaunchRestServerProcess {
   AutoLaunchRestServerProcess();
   ~AutoLaunchRestServerProcess();
