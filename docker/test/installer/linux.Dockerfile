@@ -40,10 +40,11 @@ RUN ln -s /usr/local/openmpi/bin/mpiexec /bin/mpiexec
 
 ## [Install]
 ARG cuda_quantum_installer='install_cuda_quantum.*'
-ADD "${cuda_quantum_installer}" .
+ADD "${cuda_quantum_installer}" install_cuda_quantum.sh
 RUN install="$(ls "${cuda_quantum_installer}")" && \
-    export MPI_PATH=/usr/local/openmpi; \
-    bash "$install" --accept
+    ## [>CUDAQuantumInstall]
+    MPI_PATH=/usr/local/openmpi bash install_cuda_quantum.* --accept
+    ## [<CUDAQuantumInstall]
 
 ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
