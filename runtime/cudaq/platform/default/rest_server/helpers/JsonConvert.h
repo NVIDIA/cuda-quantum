@@ -90,6 +90,7 @@ inline void to_json(json &j, const ExecutionContext &context) {
     j["spin"]["num_qubits"] = spinOpN;
     j["spin"]["data"] = spinOpRepr;
   }
+  j["registerNames"] = context.registerNames;
 }
 
 inline void from_json(const json &j, ExecutionContext &context) {
@@ -120,6 +121,7 @@ inline void from_json(const json &j, ExecutionContext &context) {
   j["simulationData"]["data"].get_to(stateData);
   context.simulationData =
       std::make_tuple(std::move(stateDim), std::move(stateData));
+  j["registerNames"].get_to(context.registerNames);
 }
 
 // Enum data to denote the payload format.
