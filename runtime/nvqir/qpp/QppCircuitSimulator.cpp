@@ -24,63 +24,51 @@ protected:
   /// The QPP state representation (qpp::ket or qpp::cmat)
   StateType state;
 
-  /// Convert from little endian to big endian.
-  std::size_t bigEndian(const int n_qubits, const int bit) {
-    return n_qubits - bit - 1;
+  /// @brief Convert internal qubit index to Q++ qubit index.
+  ///
+  /// In Q++, qubits are indexed from left to right, and thus q0 is the leftmost
+  /// qubit. Internally, in CUDA Quantum, qubits are index from right to left,
+  /// hence q0 is the rightmost qubit. Example:
+  /// ```
+  ///   Q++ indices:  0  1  2  3
+  ///                |0>|0>|0>|0>
+  ///                 3  2  1  0 : CUDA Quantum indices
+  /// ```
+  std::size_t convertQubitIndex(std::size_t qubitIndex) {
+    assert(stateDimension > 0 && "The state is empty, and thus has no qubits");
+    return std::log2(stateDimension) - qubitIndex - 1;
   }
 
   /// @brief Compute the expectation value <Z...Z> over the given qubit indices.
-  /// @param qubit_indices
-  /// @return expectation
-  double
-  calculateExpectationValue(const std::vector<std::size_t> &qubit_indices) {
-    const auto hasEvenParity =
-        [](std::size_t x,
-           const std::vector<std::size_t> &in_qubitIndices) -> bool {
-      size_t count = 0;
-      for (const auto &bitIdx : in_qubitIndices) {
-        if (x & (1ULL << bitIdx)) {
-          count++;
-        }
-      }
-      return (count % 2) == 0;
+  double calculateExpectationValue(const std::vector<std::size_t> &qubits) {
+    const auto hasEvenParity = [&qubits](std::size_t x) -> bool {
+      bool evenParity = true;
+      for (auto q : qubits)
+        if (x & (1ULL << q))
+          evenParity = !evenParity;
+      return evenParity;
     };
 
-    // First, convert all of the qubit indices to big endian.
-    std::vector<std::size_t> casted_qubit_indices;
-    for (auto index : qubit_indices) {
-      casted_qubit_indices.push_back(bigEndian(nQubitsAllocated, index));
-    }
-
-    std::vector<double> resultVec;
-    double result = 0.0;
+    std::vector<double> result;
     if constexpr (std::is_same_v<StateType, qpp::ket>) {
-      resultVec.resize(stateDimension);
+      result.resize(stateDimension);
 #ifdef CUDAQ_HAS_OPENMP
 #pragma omp parallel for
 #endif
-      for (std::size_t i = 0; i < stateDimension; ++i) {
-        resultVec[i] = (hasEvenParity(i, casted_qubit_indices) ? 1.0 : -1.0) *
-                       std::norm(state[i]);
-      }
+      for (std::size_t i = 0; i < stateDimension; ++i)
+        result[i] = (hasEvenParity(i) ? 1.0 : -1.0) * std::norm(state[i]);
     } else if constexpr (std::is_same_v<StateType, qpp::cmat>) {
       Eigen::VectorXcd diag = state.diagonal();
-      resultVec.resize(state.rows());
+      result.resize(state.rows());
 #ifdef CUDAQ_HAS_OPENMP
 #pragma omp parallel for
 #endif
-      for (Eigen::Index i = 0; i < state.rows(); i++) {
-        auto element = diag(i).real();
-        if (!hasEvenParity(i, casted_qubit_indices))
-          element *= -1.;
-        resultVec[i] = element;
-      }
+      for (Eigen::Index i = 0; i < state.rows(); ++i)
+        result[i] = hasEvenParity(i) ? diag(i).real() : -diag(i).real();
     }
 
     // Accumulate outside the for loop to ensure repeatability
-    result = std::accumulate(resultVec.begin(), resultVec.end(), 0.0);
-
-    return result;
+    return std::accumulate(result.begin(), result.end(), 0.0);
   }
 
   qpp::cmat toQppMatrix(const std::vector<std::complex<double>> &data,
@@ -96,21 +84,7 @@ protected:
   }
 
   /// @brief Grow the state vector by one qubit.
-  void addQubitToState() override {
-    // Update the state vector
-    if (state.size() == 0) {
-      // If this is the first time, allocate the state
-      state = qpp::ket::Zero(stateDimension);
-      state(0) = 1.0;
-    } else {
-      // If we are resizing an existing, allocate
-      // a zero state on a single qubit, and Kron-prod
-      // that with the existing state.
-      qpp::ket zero_state = qpp::ket::Zero(2);
-      zero_state(0) = 1.0;
-      state = qpp::kron(state, zero_state);
-    }
-  }
+  void addQubitToState() override { addQubitsToState(1); }
 
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
@@ -130,7 +104,7 @@ protected:
     // that with the existing state.
     qpp::ket zero_state = qpp::ket::Zero((1UL << count));
     zero_state(0) = 1.0;
-    state = qpp::kron(state, zero_state);
+    state = qpp::kron(zero_state, state);
 
     return;
   }
@@ -143,11 +117,21 @@ protected:
 
   void applyGate(const GateApplicationTask &task) override {
     auto matrix = toQppMatrix(task.matrix, task.targets.size());
-    if (task.controls.empty()) {
-      state = qpp::apply(state, matrix, task.targets);
+    // First, convert all of the qubit indices to big endian.
+    std::vector<std::size_t> controls;
+    for (auto index : task.controls) {
+      controls.push_back(convertQubitIndex(index));
+    }
+    std::vector<std::size_t> targets;
+    for (auto index : task.targets) {
+      targets.push_back(convertQubitIndex(index));
+    }
+
+    if (controls.empty()) {
+      state = qpp::apply(state, matrix, targets);
       return;
     }
-    state = qpp::applyCTRL(state, matrix, task.controls, task.targets);
+    state = qpp::applyCTRL(state, matrix, controls, targets);
   }
 
   /// @brief Set the current state back to the |0> state.
@@ -158,7 +142,8 @@ protected:
 
   /// @brief Measure the qubit and return the result. Collapse the
   /// state vector.
-  bool measureQubit(const std::size_t qubitIdx) override {
+  bool measureQubit(const std::size_t index) override {
+    const auto qubitIdx = convertQubitIndex(index);
     // If here, then we care about the result bit, so compute it.
     const auto measurement_tuple =
         qpp::measure(state, qpp::cmat::Identity(2, 2), {qubitIdx},
@@ -232,23 +217,29 @@ public:
 
   /// @brief Reset the qubit
   /// @param qubitIdx
-  void resetQubit(const std::size_t qubitIdx) override {
+  void resetQubit(const std::size_t index) override {
     flushGateQueue();
+    const auto qubitIdx = convertQubitIndex(index);
     state = qpp::reset(state, {qubitIdx});
   }
 
   /// @brief Sample the multi-qubit state.
-  cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
+  cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots) override {
     if (shots < 1) {
-      double expectationValue = calculateExpectationValue(measuredBits);
+      double expectationValue = calculateExpectationValue(qubits);
       cudaq::info("Computed expectation value = {}", expectationValue);
       return cudaq::ExecutionResult{{}, expectationValue};
     }
 
+    std::vector<std::size_t> measuredBits;
+    for (auto index : qubits) {
+      measuredBits.push_back(convertQubitIndex(index));
+    }
+
     auto sampleResult = qpp::sample(shots, state, measuredBits, 2);
     // Convert to what we expect
-    std::stringstream bitstring;
+    std::stringstream bitstream;
     cudaq::ExecutionResult counts;
 
     // Expectation value from the counts
@@ -256,21 +247,22 @@ public:
     for (auto [result, count] : sampleResult) {
       // Push back each term in the vector of bits to the bitstring.
       for (const auto &bit : result) {
-        bitstring << bit;
+        bitstream << bit;
       }
 
       // Add to the sample result
       // in mid-circ sampling mode this will append 1 bitstring
-      counts.appendResult(bitstring.str(), count);
-      auto par = cudaq::sample_result::has_even_parity(bitstring.str());
+      auto bitstring = bitstream.str();
+      counts.appendResult(bitstring, count);
+      auto par = cudaq::sample_result::has_even_parity(bitstring);
       auto p = count / (double)shots;
       if (!par) {
         p = -p;
       }
       expVal += p;
       // Reset the state.
-      bitstring.str("");
-      bitstring.clear();
+      bitstream.str("");
+      bitstream.clear();
     }
 
     counts.expectationValue = expVal;
