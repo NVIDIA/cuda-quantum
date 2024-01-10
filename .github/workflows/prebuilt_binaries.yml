@@ -173,6 +173,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: write
 
     outputs:
       build_cache: ${{ steps.cache.outputs.build_cache }}
@@ -223,6 +224,7 @@ jobs:
           cache-from: |
             ${{ steps.cache.outputs.build_cache }}
           cache-to: ${{ steps.cache.outputs.cache_to }}
+          # Do not push - the purpose of this is just to update the build cache
 
   create_test_config:
     name: Prepare validation
