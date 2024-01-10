@@ -175,9 +175,23 @@ void __quantum__rt__resetExecutionContext() {
 
 /// @brief QIR function for allocated a qubit array
 Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
+  std::vector<std::complex<double>> initState(std::pow(2, size), 0.0 + 0.0j);
+  // Setting to the 1-state instead of 0-state.
+  initState.back() = 1.0 + 0.j;
   cudaq::ScopedTrace trace("NVQIR::qubit_allocate_array", size);
   __quantum__rt__initialize(0, nullptr);
-  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(size);
+
+  std::vector<std::size_t> qubitIdxs;
+  if (initState.size() == 0) {
+    // the existing qubit allocation call for a given `size` of qubits
+    // that are added in the |0> state
+    qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(size);
+  } else {
+    // take the initial state that we hackily defined within this function
+    // and pass it off to the qubit allocation call.
+    qubitIdxs =
+        nvqir::getCircuitSimulatorInternal()->allocateQubits(size, initState);
+  }
   return vectorSizetToArray(qubitIdxs);
 }
 

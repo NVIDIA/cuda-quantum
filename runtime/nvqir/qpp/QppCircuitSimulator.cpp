@@ -135,6 +135,28 @@ protected:
     return;
   }
 
+  /// @brief Override for qubit allocation given a state vector.
+  void
+  addQubitsToState(std::size_t count,
+                   std::vector<std::complex<double>> &inputState) override {
+    if (count == 0)
+      return;
+
+    if (state.size() == 0) {
+      // If this is the first time, allocate the entire system
+      // state as the user provided state
+      state = qpp::ket::Map(inputState.data(), stateDimension);
+      return;
+    }
+
+    // If we are resizing an existing, we will Kronecker the user
+    // state onto the system state.
+    qpp::ket user_state = qpp::ket::Map(inputState.data(), stateDimension);
+    state = qpp::kron(state, user_state);
+
+    return;
+  }
+
   /// @brief Reset the qubit state.
   void deallocateStateImpl() override {
     StateType tmp;

@@ -224,6 +224,10 @@ protected:
     }
   }
 
+  void addQubitsToState(std::size_t count, std::vector<std::complex<double>> &inputState) override {
+    throw std::runtime_error("Not yet implemented.");
+  }
+
   /// @brief Increase the state size by one qubit.
   void addQubitToState() override {
     // Update the state vector

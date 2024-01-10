@@ -91,6 +91,12 @@ protected:
     state = qpp::kron(state, zero_state);
   }
 
+  void
+  addQubitsToState(std::size_t count,
+                   std::vector<std::complex<double>> &inputState) override {
+    throw std::runtime_error("Not yet implemented.");
+  }
+
   void setToZeroState() override {
     state = qpp::cmat::Zero(stateDimension, stateDimension);
     state(0, 0) = 1.0;
