@@ -36,13 +36,14 @@ RUN bash runtime_dependencies.sh ${base_image}
 
 ## [MPI Installation]
 COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
+RUN ln -s /usr/local/openmpi/bin/mpiexec /bin/mpiexec
 
 ## [Install]
 ARG cuda_quantum_installer='cuda_quantum_installer.*'
 ADD "${cuda_quantum_installer}" .
 RUN install="$(ls "${cuda_quantum_installer}")" && \
-    chmod +x "$install" && \
-    MPI_PATH=/usr/local/openmpi ./"$install" --accept
+    export MPI_PATH=/usr/local/openmpi; \
+    chmod +x "$install" && ./"$install" --accept
 
 ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
