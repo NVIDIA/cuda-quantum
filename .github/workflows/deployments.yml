@@ -222,7 +222,7 @@ jobs:
       matrix_key: ${{ matrix.platform }}-python
 
   source_build:
-    name: Build from scratch
+    name: Build cross-plat dependencies
     needs: metadata
     if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
     strategy:
