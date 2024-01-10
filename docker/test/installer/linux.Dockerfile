@@ -30,7 +30,6 @@ RUN source /cuda-quantum/scripts/configure_build.sh build-openmpi
 FROM ${base_image}
 ARG base_image
 
-SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 ADD docker/test/installer/dependencies.sh /runtime_dependencies.sh
 RUN bash runtime_dependencies.sh ${base_image}
@@ -39,10 +38,11 @@ RUN bash runtime_dependencies.sh ${base_image}
 COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
 
 ## [Install]
-ARG cuda_quantum_installer='cuda_quantum.*'
+ARG cuda_quantum_installer='cuda_quantum_installer.*'
 ADD "${cuda_quantum_installer}" .
-RUN MPI_PATH=/usr/local/openmpi \
-    ./"$(ls "${cuda_quantum_installer}")" --accept
+RUN install="$(ls "${cuda_quantum_installer}")" && \
+    chmod +x "$install" && \
+    MPI_PATH=/usr/local/openmpi ./"$install" --accept
 
 ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
