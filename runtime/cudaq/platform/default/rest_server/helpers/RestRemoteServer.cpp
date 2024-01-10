@@ -257,9 +257,10 @@ private:
     handleRequest(reqId, request.executionContext, request.simulator, codeStr,
                   request.entryPoint, request.args.data(), request.args.size(),
                   request.seed);
-    json resultContextJs = request.executionContext;
+    json resultJson;
+    resultJson["executionContext"] = request.executionContext;
     m_codeTransform.erase(reqId);
-    return resultContextJs;
+    return resultJson;
   }
 };
 } // namespace

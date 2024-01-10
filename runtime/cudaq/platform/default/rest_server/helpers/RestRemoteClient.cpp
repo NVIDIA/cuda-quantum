@@ -202,7 +202,14 @@ public:
       static thread_local cudaq::RestClient restClient;
       auto resultJs =
           restClient.post(m_url, "job", requestJson, headers, false);
-      resultJs.get_to(io_context);
+
+      if (!resultJs.contains("executionContext")) {
+        if (optionalErrorMsg)
+          *optionalErrorMsg = "Unexpected response from the REST server. "
+                              "Missing the required field 'executionContext'.";
+        return false;
+      }
+      resultJs["executionContext"].get_to(io_context);
       return true;
     } catch (std::exception &e) {
       if (optionalErrorMsg)

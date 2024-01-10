@@ -61,17 +61,21 @@ public:
                 "(simulator = {})",
                 name, qpu_id, m_simName);
 
-    cudaq::ExecutionContext *executionContext = [&]() {
+    cudaq::ExecutionContext *executionContextPtr =
+        [&]() -> cudaq::ExecutionContext * {
       std::scoped_lock<std::mutex> lock(m_contextMutex);
       const auto iter = m_contexts.find(std::this_thread::get_id());
       if (iter == m_contexts.end())
-        throw std::runtime_error("Internal error: invalid execution context");
+        return nullptr;
       return iter->second;
     }();
+    static cudaq::ExecutionContext defaultContext("sample", 1);
+    cudaq::ExecutionContext &executionContext =
+        executionContextPtr ? *executionContextPtr : defaultContext;
     std::string errorMsg;
     const bool requestOkay =
-        m_client->sendRequest(*m_mlirContext, *executionContext, m_simName,
-                              name, kernelFunc, args, voidStarSize, &errorMsg);
+        m_client->sendRequest(*m_mlirContext, executionContext, m_simName, name,
+                              kernelFunc, args, voidStarSize, &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
   }

@@ -97,9 +97,12 @@ inline void from_json(const json &j, ExecutionContext &context) {
   j.at("shots").get_to(context.shots);
   j.at("hasConditionalsOnMeasureResults")
       .get_to(context.hasConditionalsOnMeasureResults);
-  std::vector<ExecutionResult> results;
-  j.at("result").get_to(results);
-  context.result = sample_result(results);
+
+  if (j.contains("result")) {
+    std::vector<ExecutionResult> results;
+    j.at("result").get_to(results);
+    context.result = sample_result(results);
+  }
 
   if (j.contains("expectationValue")) {
     double expectationValue;
@@ -115,13 +118,17 @@ inline void from_json(const json &j, ExecutionContext &context) {
     context.spin = serializedSpinOps.release();
   }
 
-  std::vector<std::size_t> stateDim;
-  std::vector<std::complex<double>> stateData;
-  j["simulationData"]["dim"].get_to(stateDim);
-  j["simulationData"]["data"].get_to(stateData);
-  context.simulationData =
-      std::make_tuple(std::move(stateDim), std::move(stateData));
-  j["registerNames"].get_to(context.registerNames);
+  if (j.contains("simulationData")) {
+    std::vector<std::size_t> stateDim;
+    std::vector<std::complex<double>> stateData;
+    j["simulationData"]["dim"].get_to(stateDim);
+    j["simulationData"]["data"].get_to(stateData);
+    context.simulationData =
+        std::make_tuple(std::move(stateDim), std::move(stateData));
+  }
+
+  if (j.contains("registerNames"))
+    j["registerNames"].get_to(context.registerNames);
 }
 
 // Enum data to denote the payload format.
