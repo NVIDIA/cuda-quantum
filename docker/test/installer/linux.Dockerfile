@@ -38,19 +38,24 @@ RUN bash runtime_dependencies.sh ${base_image}
 COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
 RUN ln -s /usr/local/openmpi/bin/mpiexec /bin/mpiexec
 
+# Create new user `cudaq` with admin rights to confirm installation steps.
+RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
+    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN mkdir /home/cudaq && chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
+USER cudaq
+WORKDIR /home/cudaq
+
 ## [Install]
 ARG cuda_quantum_installer='install_cuda_quantum.*'
 ADD "${cuda_quantum_installer}" install_cuda_quantum.sh
-RUN install="$(ls "${cuda_quantum_installer}")" && \
+RUN echo "Installing CUDA Quantum..." \
     ## [>CUDAQuantumInstall]
-    MPI_PATH=/usr/local/openmpi bash install_cuda_quantum.* --accept
+    MPI_PATH=/usr/local/openmpi \
+    sudo -E bash install_cuda_quantum.* --accept && \
+    source /etc/profile
     ## [<CUDAQuantumInstall]
 
-ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
-ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
-ENV CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
-
 ## [ADD tools for validation]
-ADD scripts/validate_container.sh validate.sh
-ADD docs/sphinx/examples/cpp examples
+ADD scripts/validate_container.sh /home/cudaq/validate.sh
+ADD docs/sphinx/examples/cpp /home/cudaq/examples
 

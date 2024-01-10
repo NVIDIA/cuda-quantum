@@ -40,7 +40,8 @@ CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 if [ "$pkg_manager" == "apt-get" ]; then
     ## [Prerequisites]
-    apt-get update && apt-get install -y --no-install-recommends wget ca-certificates
+    apt-get update && apt-get install -y --no-install-recommends \
+        sudo wget ca-certificates
 
     ## [C++ standard library]
     apt-get install -y --no-install-recommends libstdc++-11-dev
@@ -54,7 +55,7 @@ if [ "$pkg_manager" == "apt-get" ]; then
 elif [ "$pkg_manager" == "dnf" ]; then
     ## [Prerequisites]
     dnf install -y --nobest --setopt=install_weak_deps=False \
-        'dnf-command(config-manager)'
+        sudo 'dnf-command(config-manager)'
 
     ## [C++ standard library]
     GCC_VERSION=$([ -z "$(dnf search gcc-toolset-11 2>&1 | grep -o "No matches found.")" ] && echo 11 || echo 12) # ok-ish for basic validation - should be 11
@@ -69,7 +70,7 @@ elif [ "$pkg_manager" == "dnf" ]; then
 elif [ "$pkg_manager" == "zypper" ]; then
     ## [Prerequisites]
     zypper clean --all && zypper --non-interactive up --no-recommends
-    zypper --non-interactive in --no-recommends gzip tar
+    zypper --non-interactive in --no-recommends sudo gzip tar
 
     ## [C++ standard library]
     zypper --non-interactive in --no-recommends gcc11
