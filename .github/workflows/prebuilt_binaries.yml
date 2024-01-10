@@ -95,11 +95,23 @@ jobs:
             custom_tags="type=raw,value=pr-${pr_number},priority=1000"
           fi
 
+          registry_cache=`echo "${{ inputs.build_cache }}" | (egrep -o 'type=registry,ref=[a-zA-Z0-9_:/\.-]*' || echo)`
+          registry_cache_image=`echo $registry_cache | rev | cut -d : -f2- | rev`
+
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
           echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
           echo "artifact_name=cudaq-${platform_tag}-installer" >> $GITHUB_OUTPUT
+          {
+            echo 'additional_build_caches<<multiline'
+            if ${{ github.event.pull_request.number != '' }}; then
+              echo "$registry_cache_image::pull-request-${{ github.event.pull_request.number }}"
+            elif [ -n "$registry_cache_image" ]; then
+              echo "$registry_cache_image:$(echo ${{ github.ref_name }} | tr / -)"
+            fi
+            echo multiline
+          } >> $GITHUB_OUTPUT
 
       - name: Set up context for buildx
         run: |
@@ -141,6 +153,7 @@ jobs:
           platforms: ${{ inputs.platform }}
           cache-from: |
             ${{ inputs.build_cache }}
+            ${{ steps.config.outputs.additional_build_caches }}
           push: true
 
       - name: Install Cosign
