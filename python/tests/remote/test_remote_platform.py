@@ -19,8 +19,8 @@ def has_rest_server():
         return False
 
 
-skipIfNoRestServer = pytest.mark.skipif(
-    not (has_rest_server()), reason="cudaq-qpud not available")
+skipIfNoRestServer = pytest.mark.skipif(not (has_rest_server()),
+                                        reason="cudaq-qpud not available")
 
 num_qpus = 3
 
@@ -28,7 +28,9 @@ num_qpus = 3
 @pytest.fixture(scope="session", autouse=True)
 @skipIfNoRestServer
 def startUpMockServer():
-    cudaq.set_target("remote-sim", auto_launch=str(num_qpus))
+    cudaq.set_target("remote-sim",
+                     remote_execution=True,
+                     auto_launch=str(num_qpus))
     yield
     cudaq.reset_target()
 

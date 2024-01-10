@@ -71,7 +71,7 @@ public:
                                 ';')[0];
     };
 
-    if (description.find("remote-execution") != std::string::npos) {
+    if (description.find("remote_execution") != std::string::npos) {
       if (!cudaq::registry::isRegistered<cudaq::QPU>("RemoteSimulatorQPU"))
         throw std::runtime_error(
             "Unable to retrieve RemoteSimulatorQPU implementation.");
