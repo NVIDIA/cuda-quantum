@@ -40,13 +40,14 @@ RUN echo 'export CUDA_QUANTUM_PATH="${CUDA_QUANTUM_PATH:-'"${CUDAQ_INSTALL_PATH}
 RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
     echo -e '\n\n\
     this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"` \n\
+    source "$this_file_dir/set_env.sh" \n\
     if [ -f /etc/profile ] && [ -w /etc/profile ]; then \n\
         cat "$this_file_dir/set_env.sh" >> /etc/profile \n\
     fi \n\
     if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then \n\
         cat "$this_file_dir/set_env.sh" >> /etc/zprofile \n\
     fi \n\n\
-    if [ -d "${MPI_PATH}" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
+    if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
         bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh" \n\
     fi \n' >> install.sh
 
