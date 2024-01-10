@@ -261,7 +261,7 @@ jobs:
       - id: config
         run: |
           cpp_config=`cat .github/workflows/config/validation_config.json | jq ".cpp"`
-          operating_systems=`echo "$cpp_config" | jq '.[].operating_systems'`
+          operating_systems=`echo "$cpp_config" | jq '.[] | select(.platform=="${{ inputs.platform }}").operating_systems'`
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
   validation:
