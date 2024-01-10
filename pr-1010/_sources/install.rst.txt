@@ -221,7 +221,7 @@ version 2.28 or newer. You can confirm this by checking the output of the comman
 the easiest way to ensure you have the necessary libraries is usually to install the 
 GCC 12 toolchain via the package manager for your operating system.
 
-You can then download the `cuda_quantum_installer` for your processor architecture from
+You can then download the `install_cuda_quantum` for your processor architecture from
 the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. The installer is a `self-extracting archive <https://makeself.io/>`__ 
 that contains the pre-built binaries as well as a script to move them to the correct locations.
 The installation location of CUDA Quantum is not currently configurable and using the installer
@@ -234,7 +234,7 @@ To install CUDA Quantum, execute the command
 
 .. code-block:: console
 
-    sudo ./cuda_quantum_installer.$(uname -m) --accept
+    sudo ./install_cuda_quantum.$(uname -m) --accept
 
 .. note:: 
 
@@ -245,6 +245,10 @@ To install CUDA Quantum, execute the command
   export PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
   export LD_LIBRARY_PATH="${CUDA_QUANTUM_PATH}/lib:${LD_LIBRARY_PATH}"
   export CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
+  bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
+
+.. activate MPI plugin retroactively:
+  export MPI_PATH=/usr/local/openmpi
   bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
 .. _local-development-with-vscode:
