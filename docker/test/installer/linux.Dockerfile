@@ -51,8 +51,7 @@ ADD "${cuda_quantum_installer}" install_cuda_quantum.sh
 RUN echo "Installing CUDA Quantum..." \
     ## [>CUDAQuantumInstall]
     MPI_PATH=/usr/local/openmpi \
-    sudo -E bash install_cuda_quantum.* --accept && \
-    source /etc/profile
+    sudo -E ./install_cuda_quantum.* --accept
     ## [<CUDAQuantumInstall]
 
 ## [ADD tools for validation]

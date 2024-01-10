@@ -40,12 +40,12 @@ RUN echo 'export CUDA_QUANTUM_PATH="${CUDA_QUANTUM_PATH:-'"${CUDAQ_INSTALL_PATH}
 RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
     echo -e '\n\n\
     this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"` \n\
-    source "$this_file_dir/set_env.sh" \n\
+    "$this_file_dir/cudaq/set_env.sh" \n\
     if [ -f /etc/profile ] && [ -w /etc/profile ]; then \n\
-        cat "$this_file_dir/set_env.sh" >> /etc/profile \n\
+        cat "$this_file_dir/cudaq/set_env.sh" >> /etc/profile \n\
     fi \n\
     if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then \n\
-        cat "$this_file_dir/set_env.sh" >> /etc/zprofile \n\
+        cat "$this_file_dir/cudaq/set_env.sh" >> /etc/zprofile \n\
     fi \n\n\
     if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
         bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh" \n\
@@ -56,7 +56,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     archive=/cuda_quantum && mkdir -p "${archive}" && \
     chmod a+x install.sh && chmod a+x set_env.sh && \
     mv install.sh "${archive}/install.sh" && \
-    mv set_env.sh "${archive}/set_env.sh" && \
+    mv set_env.sh "${archive}/cudaq/set_env.sh" && \
     mv "${CUDAQ_INSTALL_PREFIX}/build_config.xml" "${archive}/build_config.xml" && \
     mv "${CUDAQ_INSTALL_PREFIX}" "${archive}" && \
     mv "${CUQUANTUM_INSTALL_PREFIX}" "${archive}" && \
