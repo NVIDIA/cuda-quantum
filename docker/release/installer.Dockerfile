@@ -15,15 +15,24 @@
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/installer.Dockerfile . --output out
 
 ARG base_image=ghcr.io/nvidia/cuda-quantum-assets:amd64-gcc11-main
-FROM $base_image as assets
+ARG additional_components=none
+
+FROM $base_image as additional_components_none
+ONBUILD RUN echo "No additional components included."
+FROM $base_image as additional_components_assets
+ONBUILD COPY assets /assets
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    for folder in `find /assets/*$(uname -m)/* -maxdepth 0 -type d`; \
+    do bash /cuda-quantum/scripts/migrate_assets.sh -s "$folder" && rm -rf "$folder"; \
+    done
 
 # [Installer]
+FROM additional_components_${additional_components} as assets
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
     cd /makeself && git checkout release-2.5.0
 
 ## [Installation Scripts]
 ENV CUDAQ_INSTALL_PATH=/opt/nvidia/cudaq
-ADD "$CUDAQ_REPO_ROOT/scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
 RUN echo 'export CUDA_QUANTUM_PATH="${CUDA_QUANTUM_PATH:-'"${CUDAQ_INSTALL_PATH}"'}"' > set_env.sh && \
     echo 'export PATH="${PATH:+$PATH:}${CUDA_QUANTUM_PATH}/bin"' >> set_env.sh && \
     echo 'export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${CUDA_QUANTUM_PATH}/lib"' >> set_env.sh && \
@@ -40,14 +49,6 @@ RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
     if [ -d "${MPI_PATH}" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
         bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh" \n\
     fi \n' >> install.sh
-
-## [Additional Assets]
-ARG assets=./assets
-COPY "$assets" /assets/
-RUN source /cuda-quantum/scripts/configure_build.sh && \
-    for folder in `find /assets/*$(uname -m)/* -maxdepth 0 -type d`; \
-    do bash /cuda-quantum/scripts/migrate_assets.sh -s "$folder" && rm -rf "$folder"; \
-    done
 
 ## [Content]
 RUN source /cuda-quantum/scripts/configure_build.sh && \
