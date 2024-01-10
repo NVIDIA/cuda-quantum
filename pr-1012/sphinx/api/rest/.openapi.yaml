@@ -27,7 +27,12 @@ paths:
         200:
           description: Execution results.
           schema:
-            $ref: '#/definitions/ResultExecutionContext'
+            type: object
+            required:
+              - executionContext
+            properties:
+              executionContext:
+                $ref: '#/definitions/ResultExecutionContext'
 definitions:
   RestRequest:
     type: object

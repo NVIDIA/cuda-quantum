@@ -29,7 +29,15 @@
           "200": {
             "description": "Execution results.",
             "schema": {
-              "$ref": "#/definitions/ResultExecutionContext"
+              "type": "object",
+              "required": [
+                "executionContext"
+              ],
+              "properties": {
+                "executionContext": {
+                  "$ref": "#/definitions/ResultExecutionContext"
+                }
+              }
             }
           }
         }
