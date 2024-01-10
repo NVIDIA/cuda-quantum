@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -260,7 +260,7 @@ IQMServerHelper::generateRequestHeader() const {
 void IQMServerHelper::updatePassPipeline(
     const std::filesystem::path &platformPath, std::string &passPipeline) {
   // Note: the leading and trailing single quotes are needed in case there are
-  // spaces in the file.
+  // spaces in the filename.
   std::string pathToFile =
       std::string("'") +
       std::string(platformPath / std::string("mapping/iqm") /
