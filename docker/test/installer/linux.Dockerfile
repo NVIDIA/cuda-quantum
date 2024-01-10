@@ -35,19 +35,23 @@ ARG DEBIAN_FRONTEND=noninteractive
 ADD docker/test/installer/dependencies.sh /runtime_dependencies.sh
 RUN bash runtime_dependencies.sh ${base_image}
 
+## [MPI Installation]
+COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
+
 ## [Install]
 ARG cuda_quantum_installer='cuda_quantum.*'
 ADD "${cuda_quantum_installer}" .
-RUN "$(ls "${cuda_quantum_installer}")" --accept
+RUN MPI_PATH=/usr/local/openmpi \
+    ./"$(ls "${cuda_quantum_installer}")" --accept
 
 ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
 ENV CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
 
 ## [Enable MPI support]
-COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
-RUN MPI_PATH=/usr/local/openmpi \
-    bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
+#COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
+#RUN MPI_PATH=/usr/local/openmpi \
+#    bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
 ## [ADD tools for validation]
 ADD scripts/validate_container.sh validate.sh
