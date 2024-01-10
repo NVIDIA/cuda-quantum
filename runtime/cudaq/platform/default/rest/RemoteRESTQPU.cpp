@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -240,7 +240,7 @@ public:
           std::vector<char> decoded_vec;
           if (auto err = llvm::decodeBase64(split[i + 1], decoded_vec))
             throw std::runtime_error("DecodeBase64 error");
-          std::string decodedStr(decoded_vec.data());
+          std::string decodedStr(decoded_vec.data(), decoded_vec.size());
           cudaq::info("Decoded {} parameter from '{}' to '{}'", split[i],
                       split[i + 1], decodedStr);
           backendConfig.insert({split[i], decodedStr});
