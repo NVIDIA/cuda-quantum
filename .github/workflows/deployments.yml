@@ -370,7 +370,7 @@ jobs:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
-      environment: ghcr-deployment
+      create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
 
   binaries:
     name: Create CUDA Quantum installer

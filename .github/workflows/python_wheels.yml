@@ -18,9 +18,10 @@ on:
       devdeps_archive:
         required: false
         type: string
-      environment:
+      create_staging_info:
         required: false
-        type: string
+        type: boolean
+        default: false
 
 name: Python wheels
 
@@ -297,7 +298,7 @@ jobs:
   staging:
     name: Staging
     needs: [build_wheel, validation]
-    if: inputs.environment
+    if: inputs.create_staging_info
     runs-on: ubuntu-latest
     permissions: {}
 

@@ -606,6 +606,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Log in to the container registry
+        if: inputs.environment && vars.registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Restore CUDA Quantum build
         id: restore_cudaqdev
         if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
@@ -700,6 +708,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Log in to the container registry
+        if: inputs.environment && vars.registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Load cuda-quantum image
         id: restore
