@@ -95,6 +95,11 @@ definitions:
         type: boolean
         description: Flag to indicate that the kernel being executed in this context has conditional statements on measure results.
         example: "false"
+      registerNames:
+        type: array
+        items:
+          type: string 
+        description: For mid-circuit measurements in library mode keep track of the register names.
       spin:
         type: object
         description: Optional spin operator. Required for "observe" execution context.
@@ -117,6 +122,11 @@ definitions:
         type: boolean
         description: Flag to indicate that the kernel being executed in this context has conditional statements on measure results.
         example: "false"
+      registerNames:
+        type: array
+        items:
+          type: string 
+        description: For mid-circuit measurements in library mode keep track of the register names.
       spin:
         type: object
         description: Optional spin operator. Required for "observe" execution context.
