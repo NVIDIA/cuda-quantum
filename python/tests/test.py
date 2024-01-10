@@ -6,6 +6,10 @@ cudaq.set_target("qpp-cpu")
 kernel = cudaq.make_kernel()
 qubits = kernel.qalloc(4)
 
+# Allocate more qubits separately to make sure it's
+# all working correct.
+qubits = kernel.qalloc(4)
+
 # Should see the state vector in the |1>-state
 # because that's what has been temporarily hard-coded 
 # in `__quantum__rt__qubit_allocate_array`
