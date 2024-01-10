@@ -41,7 +41,8 @@ public:
   virtual void handleRequest(std::size_t reqId, ExecutionContext &io_context,
                              const std::string &backendSimName,
                              std::string_view ir, std::string_view kernelName,
-                             void *kernelArgs, std::uint64_t argsSize) = 0;
+                             void *kernelArgs, std::uint64_t argsSize,
+                             std::size_t seed) = 0;
 
   // Destructor
   virtual ~RemoteRuntimeServer() = default;

@@ -121,9 +121,11 @@ public:
                              cudaq::ExecutionContext &io_context,
                              const std::string &backendSimName,
                              std::string_view ir, std::string_view kernelName,
-                             void *kernelArgs,
-                             std::uint64_t argsSize) override {
+                             void *kernelArgs, std::uint64_t argsSize,
+                             std::size_t seed) override {
     void *handle = loadNvqirSimLib(backendSimName);
+    if (seed != 0)
+      cudaq::set_random_seed(seed);
     auto &platform = cudaq::get_platform();
     platform.set_exec_ctx(&io_context);
 
@@ -247,15 +249,14 @@ private:
     cudaq::RestRequest request(requestJson);
     const auto reqId = g_requestCounter++;
     m_codeTransform[reqId] = CodeTransformInfo(request.format, request.passes);
-    if (request.seed != 0)
-      cudaq::set_random_seed(request.seed);
     std::vector<char> decodedCodeIr;
     if (llvm::decodeBase64(request.code, decodedCodeIr)) {
       throw std::runtime_error("Failed to decode input IR");
     }
     std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
     handleRequest(reqId, request.executionContext, request.simulator, codeStr,
-                  request.entryPoint, request.args.data(), request.args.size());
+                  request.entryPoint, request.args.data(), request.args.size(),
+                  request.seed);
     json resultContextJs = request.executionContext;
     m_codeTransform.erase(reqId);
     return resultContextJs;
