@@ -53,6 +53,7 @@ RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
 ## [Content]
 RUN source /cuda-quantum/scripts/configure_build.sh && \
     archive=/cuda_quantum && mkdir -p "${archive}" && \
+    chmod a+x install.sh && chmod a+x set_env.sh && \
     mv install.sh "${archive}/install.sh" && \
     mv set_env.sh "${archive}/set_env.sh" && \
     mv "${CUDAQ_INSTALL_PREFIX}/build_config.xml" "${archive}/build_config.xml" && \
@@ -68,9 +69,9 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 
 ## [Self-extracting Archive]
 RUN bash /makeself/makeself.sh --gzip --license /cuda-quantum/LICENSE \
-        /cuda_quantum cuda_quantum_installer.$(uname -m) \
+        /cuda_quantum install_cuda_quantum.$(uname -m) \
         "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
-        ./install.sh -t "${CUDAQ_INSTALL_PATH}"
+        bash install.sh -t "${CUDAQ_INSTALL_PATH}"
 
 FROM scratch
-COPY --from=assets cuda_quantum_installer.* . 
+COPY --from=assets install_cuda_quantum.* . 

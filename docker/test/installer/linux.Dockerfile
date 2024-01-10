@@ -39,20 +39,15 @@ COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
 RUN ln -s /usr/local/openmpi/bin/mpiexec /bin/mpiexec
 
 ## [Install]
-ARG cuda_quantum_installer='cuda_quantum_installer.*'
+ARG cuda_quantum_installer='install_cuda_quantum.*'
 ADD "${cuda_quantum_installer}" .
 RUN install="$(ls "${cuda_quantum_installer}")" && \
     export MPI_PATH=/usr/local/openmpi; \
-    chmod +x "$install" && ./"$install" --accept
+    bash "$install" --accept
 
 ENV CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
 ENV PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
 ENV CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
-
-## [Enable MPI support]
-#COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
-#RUN MPI_PATH=/usr/local/openmpi \
-#    bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
 ## [ADD tools for validation]
 ADD scripts/validate_container.sh validate.sh
