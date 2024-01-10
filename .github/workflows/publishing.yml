@@ -339,7 +339,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to default registry
         if: steps.release_info.outputs.push_to_ngc != 'true'
@@ -497,7 +497,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Set up context for buildx
         run: |

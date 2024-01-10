@@ -81,6 +81,9 @@ jobs:
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
@@ -100,6 +103,9 @@ jobs:
         platform: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
@@ -122,6 +128,9 @@ jobs:
         platform: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/assets.Dockerfile
@@ -183,6 +192,9 @@ jobs:
         platform: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
@@ -198,6 +210,9 @@ jobs:
         python_version: ['3.9', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
       python_version: ${{ matrix.python_version }}
@@ -213,6 +228,9 @@ jobs:
         platform: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}

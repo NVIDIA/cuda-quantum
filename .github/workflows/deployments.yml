@@ -172,6 +172,9 @@ jobs:
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
@@ -198,6 +201,9 @@ jobs:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.manylinux.Dockerfile
@@ -224,6 +230,9 @@ jobs:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/assets.Dockerfile
@@ -249,6 +258,9 @@ jobs:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
@@ -309,6 +321,9 @@ jobs:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
@@ -350,6 +365,8 @@ jobs:
     uses: ./.github/workflows/docker_images.yml
     secrets:
       NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
@@ -366,6 +383,9 @@ jobs:
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
@@ -380,6 +400,9 @@ jobs:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}

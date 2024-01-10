@@ -20,7 +20,12 @@ on:
       environment:
         type: string
         required: false
-  
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_READONLY_TOKEN:
+        required: true
+
 name: Pre-built binaries
 
 jobs:
@@ -58,7 +63,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Login to GitHub CR
         uses: docker/login-action@v3
@@ -203,7 +208,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v3

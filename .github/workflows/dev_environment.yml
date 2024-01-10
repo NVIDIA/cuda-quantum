@@ -73,6 +73,11 @@ on:
       build_cache:
         description: "The location from which the build cache can be loaded in subsequent builds."
         value: ${{ jobs.finalize.outputs.build_cache }}
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_READONLY_TOKEN:
+        required: true
 
 name: CUDA Quantum cached dev images
 
@@ -218,7 +223,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
         uses: docker/login-action@v3
