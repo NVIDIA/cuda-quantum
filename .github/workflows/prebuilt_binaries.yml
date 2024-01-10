@@ -203,7 +203,7 @@ jobs:
       - name: Configure build
         id: cache
         run: |
-          build_cache=${{ inputs.build_cache }}-openmpi
+          build_cache=`echo "${{ inputs.build_cache }}" | 's/prereqs/openmpi/g'`
           cache_to="${build_cache},mode=max,ignore-error=false"
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
