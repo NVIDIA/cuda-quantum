@@ -15,6 +15,7 @@ namespace cudaq {
 namespace mpi {
 void initialize();
 void finalize();
+bool available();
 } // namespace mpi
 } // namespace cudaq
 
@@ -28,9 +29,11 @@ static llvm::cl::opt<int>
 
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv, "CUDA Quantum REST server\n");
-  cudaq::mpi::initialize();
+  if (cudaq::mpi::available())
+    cudaq::mpi::initialize();
   auto restServer = cudaq::registry::get<cudaq::RemoteRuntimeServer>("rest");
   restServer->init({{"port", std::to_string(port)}});
   restServer->start();
-  cudaq::mpi::finalize();
+  if (cudaq::mpi::available())
+    cudaq::mpi::finalize();
 }
