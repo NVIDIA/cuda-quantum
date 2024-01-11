@@ -47,20 +47,22 @@ RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
 
 ## [Content]
 RUN source /cuda-quantum/scripts/configure_build.sh && \
-    archive=/cuda_quantum_assets && mkdir -p "${archive}" && \
-    chmod a+x install.sh && chmod a+x set_env.sh && \
-    mv install.sh "${archive}/install.sh" && \
-    mv set_env.sh "${CUDAQ_INSTALL_PREFIX}/set_env.sh" && \
-    mv "${CUDAQ_INSTALL_PREFIX}/build_config.xml" "${archive}/build_config.xml" && \
-    mv "${CUDAQ_INSTALL_PREFIX}" "${archive}" && \
-    mv "${CUQUANTUM_INSTALL_PREFIX}" "${archive}" && \
-    mv "${CUTENSOR_INSTALL_PREFIX}" "${archive}" && \
-    mkdir -p "${archive}/llvm/bin" && mkdir -p "${archive}/llvm/lib" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/"clang* "${archive}/llvm/bin/" && rm -rf "${archive}/llvm/bin/"clang-format* && \
-    mv "${LLVM_INSTALL_PREFIX}/lib/"clang* "${archive}/llvm/lib/" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/llc" "${archive}/llvm/bin/llc" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/lld" "${archive}/llvm/bin/lld" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/ld.lld" "${archive}/llvm/bin/ld.lld"
+    assets=/cuda_quantum_assets && mkdir -p "${assets}" && \
+    chmod a+x install.sh "${CUDAQ_INSTALL_PREFIX}/set_env.sh" && \
+    mv install.sh "${assets}/install.sh" && \
+    ## [>CUDAQuantumAssets]
+    assets=${assets:-cuda_quantum_assets} && \
+    mv "${CUDAQ_INSTALL_PREFIX}/build_config.xml" "${assets}/build_config.xml" && \
+    mv "${CUDAQ_INSTALL_PREFIX}" "${assets}" && \
+    mv "${CUQUANTUM_INSTALL_PREFIX}" "${assets}" && \
+    mv "${CUTENSOR_INSTALL_PREFIX}" "${assets}" && \
+    mkdir -p "${assets}/llvm/bin" && mkdir -p "${assets}/llvm/lib" && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/"clang* "${assets}/llvm/bin/" && rm -rf "${assets}/llvm/bin/"clang-format* && \
+    mv "${LLVM_INSTALL_PREFIX}/lib/"clang* "${assets}/llvm/lib/" && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/llc" "${assets}/llvm/bin/llc" && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/lld" "${assets}/llvm/bin/lld" && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/ld.lld" "${assets}/llvm/bin/ld.lld"
+    ## [<CUDAQuantumAssets]
 
 ## [Self-extracting Archive]
 RUN bash /makeself/makeself.sh --gzip --license /cuda-quantum/LICENSE \

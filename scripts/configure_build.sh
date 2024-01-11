@@ -73,7 +73,7 @@ if [ "$1" == "install-cuquantum" ]; then
 # [<cuQuantumInstall]
 fi
 
-if [ "$1" == "install-cuquantum" ]; then
+if [ "$1" == "install-cutensor" ]; then
     CUDA_VERSION=11.8
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
