@@ -21,7 +21,7 @@ runs:
         ${{ inputs.run }}
         EOF
         chown $(id -u):$(id -g) $tmpFile
-        container=$(docker run -id ${{ inputs.image }})
+        container=$(docker run --user root -id ${{ inputs.image }})
         docker cp $tmpFile $container:$tmpFile
         docker exec $container ${{ inputs.shell }} $tmpFile
         docker stop $container
