@@ -50,12 +50,12 @@ ARG cuda_quantum_installer='install_cuda_quantum.*'
 ADD "${cuda_quantum_installer}" install_cuda_quantum.sh
 RUN echo "Installing CUDA Quantum..." && \
     ## [>CUDAQuantumInstall]
-    sudo chmod +x install_cuda_quantum.* && \
     MPI_PATH=/usr/local/openmpi \
-    sudo -E ./install_cuda_quantum.* --accept
+    sudo -E bash install_cuda_quantum.* --accept && . /etc/profile
     ## [<CUDAQuantumInstall]
 
 ## [ADD tools for validation]
 ADD scripts/validate_container.sh /home/cudaq/validate.sh
 ADD docs/sphinx/examples/cpp /home/cudaq/examples
+ENTRYPOINT ["bash", "-l"]
 
