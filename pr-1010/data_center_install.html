@@ -700,8 +700,8 @@ that was used for the CUDA Quantum build on the host.</p>
 <p>Copy the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file that you created following the instructions
 in the <a class="reference internal" href="#preparing-the-installation">Preparing the Installation</a> section onto the host system, and then
 run the commands</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span>install_cuda_quantum.*
-sudo<span class="w"> </span>-E<span class="w"> </span>./install_cuda_quantum.*<span class="w"> </span>--accept
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.*<span class="w"> </span>--accept
+.<span class="w"> </span>/opt/nvidia/cudaq/set_env.sh
 </pre></div>
 </div>
 <p>This will extract the built assets and move them to the correct locations.
