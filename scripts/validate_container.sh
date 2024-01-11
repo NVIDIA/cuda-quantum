@@ -189,10 +189,9 @@ echo "Total passed: $passed"
 echo "Total failed: $failed"
 echo "Skipped: $skipped"
 echo "============================="
-if [ "$failed" -eq "0" ]; then exit 5; else exit 10; fi
+if [ "$failed" -eq "0" ]; then exit 0; else exit 10; fi
 
 #FIXME: Check if the caching of the minimal openmpi build works
-#FIXME: Check that the deployment fails when the execution on the tensornet-mps fails
 #FIXME: filter validation examples to only run the ones that run quickly enough
 #FIXME: include mgpu backend...
 #FIXME: check rest qpus work without openssl on host
