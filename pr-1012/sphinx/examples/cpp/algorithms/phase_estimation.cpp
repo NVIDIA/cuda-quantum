@@ -78,11 +78,20 @@ struct r1PiGate {
   void operator()(cudaq::qubit &q) __qpu__ { r1(1., q); }
 };
 
+// Entry-point kernel running the quantum phase estimation algorithm with
+// specific state preparation and oracle kernels.
+struct run_qpe {
+  void operator()(const int nCountingQubits) __qpu__ {
+    qpe{}(
+        nCountingQubits, /*state_prep=*/[](cudaq::qubit &q) __qpu__ { x(q); },
+        /*oracle=*/r1PiGate{});
+  }
+};
+
 int main() {
 
   for (auto nQubits : std::vector<int>{2, 4, 6, 8}) {
-    auto counts = cudaq::sample(
-        qpe{}, nQubits, [](cudaq::qubit &q) __qpu__ { x(q); }, r1PiGate{});
+    auto counts = cudaq::sample(run_qpe{}, nQubits);
     auto mostProbable = counts.most_probable();
     double theta = cudaq::to_integer(mostProbable) / (double)(1UL << nQubits);
     auto piEstimate = 1. / (2 * theta);
