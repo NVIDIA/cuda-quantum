@@ -514,11 +514,6 @@ the correct libraries and versions.</p>
 <h2>Build Dependencies<a class="headerlink" href="#build-dependencies" title="Permalink to this heading">¶</a></h2>
 <p>In addition to the prerequisites listed above, you will need to install the
 following prerequisites in your build environment:</p>
-<p>FIXME: Check if the caching of the minimal openmpi build works
-FIXME: Check that the deployment fails when the execution on the tensornet-mps fails
-FIXME: Check that the installation works with sudo
-FIXME: filter validation examples to only run the ones that run quickly enough
-FIXME: include mgpu backend…</p>
 <ul class="simple">
 <li><p>Standard C library: We currently statically link <em>all</em> dependencies, including
 the standard libraries. We may revise that in the future.
@@ -533,7 +528,7 @@ used for the build does not have to match the version on the host
 system.</p></li>
 <li><p><a class="reference external" href="https://www.gnu.org/software/bash/">Bash</a>: The CUDA Quantum build scripts
 and the commands listed in the rest of this document assume you are using
-<code class="code docutils literal notranslate"><span class="pre">bash</span></code> as the Shell for your build.</p></li>
+<code class="code docutils literal notranslate"><span class="pre">bash</span></code> as the shell for your build.</p></li>
 <li><p>Common tools: wget, git, unzip. The commands in the rest of this guide assume
 that these tools are present on the build system, but they can be replaced by
 other alternatives (such as, for example, manually going to a web page and
@@ -549,8 +544,8 @@ to set the following environment variables prior to proceeding:</p>
 </pre></div>
 </div>
 <p>These environment variables <em>must</em> be set during the build. Their value can be
-chosen freely, but for now the path during the build needs to match the path
-where these libraries will be installed on the host system. We are working on
+chosen freely, but the paths specified during the build are also where the
+corresponding libraries will be installed on the host system. We are working on
 making this more flexible in the future.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -630,8 +625,7 @@ install GCC 11:</p>
 </pre></div>
 </div>
 <p>Independent on which compiler toolchain you installed, set the following
-environment variables to point to the appropriate values to point to the
-respective compilers on your build system:</p>
+environment variables to point to the respective compilers on your build system:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
 <span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;ToolchainConfiguration<span class="o">]</span>
 <span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;ToolchainConfiguration<span class="o">]</span>
@@ -644,8 +638,9 @@ if you have an existing OpenSSL installation that you set the
 <code class="code docutils literal notranslate"><span class="pre">OPENSSL_INSTALL_PREFIX</span></code> variable to, you can omit setting the FC
 environment variable.</p></li>
 <li><p>To use GPU-acceleration in CUDA Quantum, make sure to set CUDACXX to
-your CUDA compiler. If the CUDA compiler is not found when building CUDA Quantum, some components and backends will be omitted automatically during
-the build.</p></li>
+your CUDA compiler. If the CUDA compiler is not found when building
+CUDA Quantum, some components and backends will be omitted automatically
+during the build.</p></li>
 </ul>
 </section>
 </section>
@@ -667,9 +662,9 @@ command to build CUDA Quantum:</p>
 <p>The CUDA Quantum build will compile or omit optional components automatically depending
 on whether the necessary pre-requisites are found in the build environment.
 Please check the build log to confirm that all desired components have been built. If
-you see a message that a component has been skipped, make sure you have all necessary
-prerequisites, have followed the instructions for installing the build dependencies,
-and the necessary environment variables as described in this document are set.</p>
+you see a message that a component has been skipped, make sure you followed the
+instructions for installing the necessary prerequisites and build dependencies,
+and have set the necessary environment variables as described in this document.</p>
 </section>
 <section id="installation-on-the-host">
 <h2>Installation on the Host<a class="headerlink" href="#installation-on-the-host" title="Permalink to this heading">¶</a></h2>
@@ -685,12 +680,10 @@ C++ standard library matches the gcc-11 compiler used to build the archive.
 runtime dependencies listed in the remaining sections on the host system.</p>
 <section id="runtime-libraries">
 <h3>Runtime libraries<a class="headerlink" href="#runtime-libraries" title="Permalink to this heading">¶</a></h3>
-<p>Make sure that the same standard library that was used during the
+<p>Make sure that the same C++ standard library that was used during the
 CUDA Quantum build is present and discoverable on the host system.
 While not strictly necessary, we recommend that you install the toolchain
-that was used for the CUDA Quantum build on the host; you will need a compiler
-to enable MPI support, and using the same compiler as CUDA Quantum was built with
-guarantees that there are no incompatibilities.</p>
+that was used for the CUDA Quantum build on the host.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>CUDA Quantum is configured to use its own linker, meaning the
@@ -713,19 +706,9 @@ commands, for example, install the necessary packages for the AlmaLinux 8 enviro
 </section>
 <section id="mpi">
 <h3>MPI<a class="headerlink" href="#mpi" title="Permalink to this heading">¶</a></h3>
-<p>To work with all CUDA Quantum backends, a CUDA-aware MPI installation
-is required. Different MPI implementations are supported via a plugin infrastructure
-in CUDA Quantum. CUDA Quantum includes the necessary plugin for OpenMPI and MPICH.
-Any other MPI implementation requires implementing the plugin yourself, and activating
-it in a final step after installing CUDA Quantum on the host system.</p>
-<p>Assuming you have an existing CUDA-aware MPI installation on your host system, and
-a working C++ toolchain, you can active MPI support in CUDA Quantum by executing
-the <code class="code docutils literal notranslate"><span class="pre">activate_custom_mpi.sh</span></code> script included in the CUDA Quantum <code class="code docutils literal notranslate"><span class="pre">distributed_interfaces</span></code> directory. For more information about building and activating MPI plugins, see …</p>
-<p>TODO: maybe the installer should do that automatically - still need to mention how to do that retroactively, though.</p>
-<p>TODO: Code snippet</p>
-<p>If you do not have an existing CUDA-aware MPI installation, you can build one from source
-before activating the MPI plugin.
-The following commands build a sufficient CUDA-aware OpenMPI installation.
+<p>To work with all CUDA Quantum backends, a CUDA-aware MPI installation is required.
+If you do not have an existing CUDA-aware MPI installation, you can build one from
+source. The following commands build a sufficient CUDA-aware OpenMPI installation.
 To make best use of MPI, we recommend a more fully featured installation including
 additional configurations that fit your host system.
 The commands below assume you have the necessary prerequisites for the OpenMPI build
@@ -736,6 +719,18 @@ the packages <code class="code docutils literal notranslate"><span class="pre">a
 <span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;OpenMPIBuild<span class="o">]</span>
 </pre></div>
 </div>
+<p>Different MPI implementations are supported via a plugin infrastructure in CUDA Quantum.
+Once you have a CUDA-aware MPI installation on your host system, you can
+configure CUDA Quantum to use it by activating the necessary plugin.
+Plugins for OpenMPI and MPICH are included in CUDA Quantum and can be activated by
+setting the environment variable <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code> to the MPI installation folder
+and then running the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">bash &quot;${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh&quot;</span>
+</pre></div>
+</div>
+<p>If you use a different MPI implementation than OpenMPI or MPICH, you will need to
+implement the necessary plugin interface yourself prior to activating the plugin
+with the command above.</p>
 </section>
 </section>
 </section>

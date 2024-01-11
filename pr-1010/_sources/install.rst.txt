@@ -670,8 +670,8 @@ commands, for example, install the necessary packages for RHEL 8:
 
 More detailed instructions for your platform can be found in the online documentation
 of your selected [CUDA version](https://developer.nvidia.com/cuda-toolkit-archive). 
-Please make sure to install CUDA version 11.8 or newer, and confirm that your GPU driver
-supports that version.
+Please make sure to install CUDA version 11.8 or newer, and confirm that your 
+`GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA Quantum, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-11-8`) that also 
 includes the `nvcc` compiler.
