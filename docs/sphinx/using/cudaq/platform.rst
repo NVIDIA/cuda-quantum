@@ -209,3 +209,25 @@ The number of QPUs (:code:`num_qpus()`) is equal to the number of URLs provided.
 Each QPU instance can be assigned a different backend simulator via the :code:`--remote-sim-backend` (`nvq++`) or :code:`backend` (Python)
 option. Otherwise, if a single backend is specified, all the QPUs are assumed to be using the same simulator.
 
+Supported Kernel Arguments
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To invoke quantum kernels on the remote server, the (:code:`remote-sim`) platform will serialize
+runtime arguments into a flat memory buffer (`args` field of the request JSON).
+
+Currently, the following data types are supported.
+
+.. list-table:: 
+   :widths: 50 50 50
+   :header-rows: 1
+
+   * - Data type
+     - Example
+     - Serialization
+   * -  Trivial type (occupies a contiguous memory area)
+     -  `int`, `std::size_t`, `double`, etc.
+     - Byte data (via `memcopy`)
+   * - `std::vector` of trivial type
+     - `std::vector<int>`, `std::vector<double>`, etc. 
+     - Total vector size in bytes as a 64-bit integer followed by serialized data of all vector elements.
+  
