@@ -108,8 +108,7 @@ public:
       // Create a new Module to clone the function into
       auto location = FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
       ImplicitLocOpBuilder builder(location, &mlirContext);
-
-      // FIXME this should be added to the builder.
+      // Add entry-point attribute if not already set.
       if (!func->hasAttr(cudaq::entryPointAttrName))
         func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
       auto moduleOp = builder.create<ModuleOp>();
