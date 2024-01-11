@@ -32,8 +32,6 @@ Here is a simple example demonstrating its usage.
         :start-after: [Begin Documentation]
         :end-before: [End Documentation]
 
-    CUDA Quantum exposes asynchronous versions of the default :code:`cudaq::` algorithmic
-    primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`cudaq::sample_async` function in the above code snippet).
 
     One can specify the target multi-QPU architecture (:code:`nvidia-mqpu`) with the :code:`--target` flag:
     
@@ -47,6 +45,9 @@ Here is a simple example demonstrating its usage.
     .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async.py
         :language: python
         :start-after: [Begin Documentation]
+
+CUDA Quantum exposes asynchronous versions of the default :code:`cudaq` algorithmic
+primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`sample_async` function in the above code snippets).
 
 Depending on the number of GPUs available on the system, the :code:`nvidia-mqpu` platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
@@ -186,6 +187,12 @@ To start the server, serving at a specific TCP/IP port, one can do the following
 .. code-block:: console
     
     cudaq-qpud --port <port number>
+
+.. warning:: 
+
+    There is no authentication required to communicate with this server app. 
+    Hence, please make sure to either (1) use a non-public TCP/IP port for internal use or 
+    (2) use firewalls or other security mechanisms to manage user access. 
 
 User code can then target this platform by specifying its target name (:code:`remote-sim`).
 
