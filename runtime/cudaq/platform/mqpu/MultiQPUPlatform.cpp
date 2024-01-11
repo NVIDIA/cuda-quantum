@@ -77,8 +77,9 @@ public:
             "Unable to retrieve RemoteSimulatorQPU implementation.");
       auto urls = cudaq::split(getOpt(description, "url"), ',');
       auto sims = cudaq::split(getOpt(description, "backend"), ',');
+      // If no URL is provided, default to auto launching one server instance.
       const bool autoLaunch =
-          description.find("auto_launch") != std::string::npos;
+          description.find("auto_launch") != std::string::npos || urls.empty();
 
       const auto formatUrl = [](const std::string &url) -> std::string {
         auto formatted = url;
@@ -93,7 +94,10 @@ public:
         urls.clear();
         if (sims.empty())
           sims.emplace_back("qpp");
-        const int numInstances = std::stoi(getOpt(description, "auto_launch"));
+        const auto numInstanceStr = getOpt(description, "auto_launch");
+        // Default to launching one instance if no other setting is available.
+        const int numInstances =
+            numInstanceStr.empty() ? 1 : std::stoi(numInstanceStr);
         cudaq::info("Auto launch {} REST servers", numInstances);
         for (int i = 0; i < numInstances; ++i) {
           m_remoteServers.emplace_back(
