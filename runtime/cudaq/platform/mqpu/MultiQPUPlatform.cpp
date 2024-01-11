@@ -96,7 +96,7 @@ public:
         auto formatted = url;
         if (formatted.rfind("http", 0) != 0)
           formatted = std::string("http://") + formatted;
-        if (formatted.back() != '/')
+        if (!formatted.empty() && formatted.back() != '/')
           formatted += '/';
         return formatted;
       };
