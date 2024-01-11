@@ -61,14 +61,22 @@ public:
   void setTargetBackend(const std::string &description) override {
     const auto getOpt = [](const std::string &str,
                            const std::string &prefix) -> std::string {
-      const auto prefixPos = str.find(prefix);
-      if (prefixPos == std::string::npos)
+      // Return the first key-value configuration option found in the format:
+      // "<prefix>;<option>".
+      // Note: This expects an exact match of the prefix and the option value is
+      // the next one.
+      const auto splitParts = cudaq::split(str, ';');
+      if (splitParts.empty())
         return "";
-      const auto endPos = str.find_first_of(";", prefixPos);
-      return (endPos == std::string::npos)
-                 ? str.substr(prefixPos + prefix.size() + 1)
-                 : cudaq::split(str.substr(prefixPos + prefix.size() + 1),
-                                ';')[0];
+      for (std::size_t i = 0; i < splitParts.size() - 1; ++i) {
+        if (splitParts[i] == prefix) {
+          cudaq::debug(
+              "Retrieved option '{}' for the key '{}' from input string '{}'",
+              splitParts[i + 1], prefix, str);
+          return splitParts[i + 1];
+        }
+      }
+      return "";
     };
 
     if (description.find("remote_execution") != std::string::npos) {
@@ -77,6 +85,9 @@ public:
             "Unable to retrieve RemoteSimulatorQPU implementation.");
       auto urls = cudaq::split(getOpt(description, "url"), ',');
       auto sims = cudaq::split(getOpt(description, "backend"), ',');
+      // Default to qpp simulator if none provided.
+      if (sims.empty())
+        sims.emplace_back("qpp");
       // If no URL is provided, default to auto launching one server instance.
       const bool autoLaunch =
           description.find("auto_launch") != std::string::npos || urls.empty();
@@ -89,11 +100,8 @@ public:
           formatted += '/';
         return formatted;
       };
-
       if (autoLaunch) {
         urls.clear();
-        if (sims.empty())
-          sims.emplace_back("qpp");
         const auto numInstanceStr = getOpt(description, "auto_launch");
         // Default to launching one instance if no other setting is available.
         const int numInstances =
