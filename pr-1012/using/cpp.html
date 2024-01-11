@@ -571,17 +571,29 @@ by another pre-defined CUDA Quantum kernel expression. Let’s take a look at th
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="o">&amp;</span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
 <span class="p">};</span>
 
-<span class="k">struct</span><span class="w"> </span><span class="nc">ccnot_test</span><span class="w"> </span><span class="p">{</span>
+<span class="c1">// Generic kernel converting a gate operation into a control gate.</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">controlled_op</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// constrain the signature of the incoming kernel</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">takes_qubit</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="n">apply_x</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">qs</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">takes_qubit</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="n">apply_op</span><span class="p">,</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qview</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">control</span><span class="p">,</span>
+<span class="w">                  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="o">&amp;</span><span class="n">target</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Control U (apply_op) on the first two qubits of</span>
+<span class="w">    </span><span class="c1">// the allocated register.</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">control</span><span class="p">(</span><span class="n">apply_op</span><span class="p">,</span><span class="w"> </span><span class="n">control</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
 
+<span class="c1">// Constructing a `CCNOT` test using `controlled_op` kernel with `ApplyX` as the</span>
+<span class="c1">// base operation.</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">ccnot_test</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">qs</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// Bring the two control qubits into |1&gt; state.</span>
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">qs</span><span class="p">);</span>
 <span class="w">    </span><span class="n">x</span><span class="p">(</span><span class="n">qs</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
 
-<span class="w">    </span><span class="c1">// Control U (apply_x) on the first two qubits of</span>
+<span class="w">    </span><span class="c1">// Control U (apply_op) on the first two qubits of</span>
 <span class="w">    </span><span class="c1">// the allocated register.</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">control</span><span class="p">(</span><span class="n">apply_x</span><span class="p">,</span><span class="w"> </span><span class="n">qs</span><span class="p">.</span><span class="n">front</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="w"> </span><span class="n">qs</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">controlled_op</span><span class="p">{}(</span><span class="n">ApplyX</span><span class="p">{},</span><span class="w"> </span><span class="n">qs</span><span class="p">.</span><span class="n">front</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span><span class="w"> </span><span class="n">qs</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
 
 <span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">qs</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
@@ -608,7 +620,7 @@ by another pre-defined CUDA Quantum kernel expression. Let’s take a look at th
 <span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Observed: %s, %lu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">bits</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="n">count</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ccnot_test</span><span class="p">{},</span><span class="w"> </span><span class="n">ApplyX</span><span class="p">{});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ccnot_test</span><span class="p">{});</span>
 
 <span class="w">  </span><span class="c1">// Fine grain access to the bits and counts</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">[</span><span class="n">bits</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">counts2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
