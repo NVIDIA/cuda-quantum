@@ -132,11 +132,11 @@ inline void from_json(const json &j, ExecutionContext &context) {
 }
 
 // Enum data to denote the payload format.
-enum CodeFormat { MLIR, LLVM };
+enum class CodeFormat { MLIR, LLVM };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {
-                                             {MLIR, "MLIR"},
-                                             {LLVM, "LLVM"},
+                                             {CodeFormat::MLIR, "MLIR"},
+                                             {CodeFormat::LLVM, "LLVM"},
                                          });
 
 // Payload from client to server for a kernel execution.
