@@ -171,6 +171,7 @@ public:
       return false;
     size /= sizeof(T);
 
+    vec.reserve(size);
     for (std::size_t i = 0; i < size; ++i) {
       T elem;
       if (!SerializeArgs<T>::deserialize(buf, elem))
