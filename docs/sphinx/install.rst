@@ -238,9 +238,7 @@ To install CUDA Quantum, execute the command
 
 .. note:: 
 
-  To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries.
-  ...
-.. environment variables set in set_env.sh
+  To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. For more information see the corresponding section on :ref:`Additional CUDA Tools <cuda-dependencies-prebuilt-binaries>`.
 
 The installation automatically configures the necessary environment variables for
 using the CUDA Quantum toolchain. These configurations should persist across all POSIX shells.
@@ -630,7 +628,17 @@ Additional CUDA Tools
 ------------------------------------
 
 CUDA Quantum makes use of CUDA tools in certain backends and components. 
-If you install CUDA Quantum via `PyPI <https://pypi.org/project/cuda-quantum>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
+Depending on how you installed CUDA Quantum, you may need to install 
+certain CUDA libraries separately to take advantage of these.
+
+Installation via PyPI
+++++++++++++++++++++++++++++++++++++
+
+If you installed CUDA Quantum via `PyPI <https://pypi.org/project/cuda-quantum>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
+
+Installation In Container Images
+++++++++++++++++++++++++++++++++++++
+
 If you are using the CUDA Quantum container image, the image already contains all necessary runtime libraries to use all CUDA Quantum components. It does not, 
 however, contain all development dependencies for CUDA, such as, for example the `nvcc` compiler. You can install all CUDA development dependencies by running the command 
 
@@ -644,6 +652,29 @@ inside the container. Note that most Python packages that use GPU-acceleration, 
 
     python3 -m pip install cupy-cuda11x
 
+.. _cuda-dependencies-prebuilt-binaries:
+
+Installing Pre-built Binaries
+++++++++++++++++++++++++++++++++++++
+
+If you installed pre-built binaries for CUDA Quantum, you will need to install 
+the necessary CUDA runtime libraries to use GPU-acceleration in CUDA Quantum. 
+If you prefer to only install the minimal set of runtime libraries, the following 
+commands, for example, install the necessary packages for RHEL 8:
+
+.. code-block:: bash
+
+    .. literalinclude:: ../../scripts/configure_build.sh
+      :start-after: [>CUDARTInstall]
+      :end-before: [<CUDARTInstall]
+
+More detailed instructions for your platform can be found in the online documentation
+of your selected [CUDA version](https://developer.nvidia.com/cuda-toolkit-archive). 
+Please make sure to install CUDA version 11.8 or newer, and confirm that your GPU driver
+supports that version.
+While the above packages are sufficient to use GPU-acceleration within CUDA Quantum, 
+we recommend installing the complete CUDA toolkit (`cuda-toolkit-11-8`) that also 
+includes the `nvcc` compiler.
 
 .. _dependencies-and-compatibility:
 
