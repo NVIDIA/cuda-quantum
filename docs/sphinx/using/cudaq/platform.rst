@@ -154,7 +154,7 @@ Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API in
 CUDA Quantum provides the REST server implementation as a standalone application (:code:`cudaq-qpud`),
 hosting all the simulator backends available in the installation. These backends include those that require MPI for multi-GPU computation.
 
-Auto-launch REST Server
+Automatically Launch REST Server (Local)
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 The server app (:code:`cudaq-qpud`) can be launched and shutdown automatically
