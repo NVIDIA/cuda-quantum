@@ -94,7 +94,8 @@ public:
 
       const auto formatUrl = [](const std::string &url) -> std::string {
         auto formatted = url;
-        if (formatted.rfind("http", 0) != 0)
+        // Default to http:// if none provided.
+        if (!formatted.starts_with("http"))
           formatted = std::string("http://") + formatted;
         if (!formatted.empty() && formatted.back() != '/')
           formatted += '/';
