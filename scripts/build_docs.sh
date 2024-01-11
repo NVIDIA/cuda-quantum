@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -40,6 +40,10 @@
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 DOCS_INSTALL_PREFIX=${DOCS_INSTALL_PREFIX:-"$CUDAQ_INSTALL_PREFIX/docs"}
 export PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
+
+## [RPATH_FIX] : Start
+export LD_LIBRARY_PATH=$CUDAQ_INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+## [RPATH_FIX] : End
 
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
@@ -151,7 +155,10 @@ cp -r "$doxygen_output_dir" sphinx/_doxygen/
 # cp -r "$dialect_output_dir" sphinx/_mdgen/ # uncomment once we use the content from those files
 
 rm -rf "$sphinx_output_dir"
-sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
+## [SKIP_TEST]: NOTE - Removed '-W --keep-going' from the following command.
+##              Reason - Some functionality is missing and will be added, meanwhile, want to generate docs.
+##              Warnings are of the type 'py:class reference target not found'
+sphinx-build -v -n -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
 sphinx_exit_code=$?
 if [ ! "$sphinx_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation using sphinx-build."

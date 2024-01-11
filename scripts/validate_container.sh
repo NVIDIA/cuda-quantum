@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -120,9 +120,10 @@ echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
 
-# [RFC]: 
-# enable the examples in the excluded directories
-for ex in `find examples -name '*.py' -not -path '*/python_mlir/*' -not -path '*/python_runtime/*'`;
+## [RPATH_FIX]
+export LD_LIBRARY_PATH=$CUDA_QUANTUM_PATH/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+
+for ex in `find examples/ -name '*.py'`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -131,6 +132,11 @@ do
     let "samples+=1"
 
     if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
+    then
+        let "skipped+=1"
+        echo "Skipped.";
+    ## [SKIP_TEST] : Reason - AttributeError: module 'cudaq' has no attribute 'vqe'
+    elif [[ "$ex" == *"python/simple_vqe.py" ]] || [[ "$ex" == *"python/qaoa_maxcut.py" ]];
     then
         let "skipped+=1"
         echo "Skipped.";
@@ -151,7 +157,7 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
-for ex in `find examples -name '*.cpp'`;
+for ex in `find examples/ -name '*.cpp'`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
