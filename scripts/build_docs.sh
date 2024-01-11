@@ -41,10 +41,6 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 DOCS_INSTALL_PREFIX=${DOCS_INSTALL_PREFIX:-"$CUDAQ_INSTALL_PREFIX/docs"}
 export PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
 
-## [RPATH_FIX] : Start
-export LD_LIBRARY_PATH=$CUDAQ_INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-## [RPATH_FIX] : End
-
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 force_update=""

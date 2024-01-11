@@ -80,10 +80,6 @@ jobs:
           run: |
             cd $CUDAQ_REPO_ROOT
             python3 -m pip install iqm-client
-            ## [RPATH_FIX] : Start
-            export LD_LIBRARY_PATH=$CUDAQ_INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-            export PYTHONPATH=./build${PYTHONPATH:+:$PYTHONPATH}
-            ## [RPATH_FIX] : End
             ctest --output-on-failure --test-dir build -E ctest-nvqpp
             ctest_status=$?
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
@@ -102,10 +98,6 @@ jobs:
             cd $CUDAQ_REPO_ROOT
             python3 -m pip install mpi4py~=3.1
             rm -f build/lib/plugins/libcudaq-comm-plugin.so
-            ## [RPATH_FIX] : Start
-            export LD_LIBRARY_PATH=$CUDAQ_INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-            export PYTHONPATH=./build${PYTHONPATH:+:$PYTHONPATH}
-            ## [RPATH_FIX] : End
             ctest --test-dir build -R MPIApiTest -V
             mpi4py_status=$?   
             if [ ! $mpi4py_status -eq 0 ] ; then
@@ -126,10 +118,6 @@ jobs:
             else
               export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
             fi
-            ## [RPATH_FIX] : Start
-            export LD_LIBRARY_PATH=$CUDAQ_INSTALL_PREFIX/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-            export PYTHONPATH=./build${PYTHONPATH:+:$PYTHONPATH}
-            ## [RPATH_FIX] : End
             # Run the activation script
             source $CUDAQ_INSTALL_PREFIX/distributed_interfaces/activate_custom_mpi.sh
             external_plugin_build_status=$?
@@ -224,12 +212,6 @@ jobs:
             cd $CUDAQ_REPO_ROOT
             pip install iqm_client --user -vvv
             pip install . --user -vvv
-            ## [RPATH_FIX] : Start
-            install_loc=$(python3 -m pip show cuda-quantum | grep "Location")
-            install_loc="${loc#*Location: }"
-            export LD_LIBRARY_PATH=$install_loc/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-            export PYTHONPATH=./_skbuild${PYTHONPATH:+:$PYTHONPATH}
-            ## [RPATH_FIX] : End
             python3 -m pytest -v python/tests/ \
               --ignore python/tests/backends \
               --ignore python/tests/eager
@@ -238,7 +220,7 @@ jobs:
               echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-
+            ## [RFC] : Not sure why 'eager' some tests fail if run with the whole suite of tests
             python3 -m pytest -v python/tests/eager
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then

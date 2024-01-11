@@ -120,9 +120,6 @@ echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
 
-## [RPATH_FIX]
-export LD_LIBRARY_PATH=$CUDA_QUANTUM_PATH/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-
 for ex in `find examples/ -name '*.py'`;
 do 
     filename=$(basename -- "$ex")

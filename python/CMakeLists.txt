@@ -6,18 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-## TODO: Clean-up following from 'old' CMakeLists.txt
 add_subdirectory(utils)
 
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
-
-set(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/../../lib/" CACHE INTERNAL "")
-set(INSTALL_RPATH "$ORIGIN:$ORIGIN/../../lib/" CACHE INTERNAL "")
-
-# # set(ORIGINAL_VALUE ${BUILD_SHARED_LIBS})
-# SET(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 include(AddMLIRPython)
 
@@ -141,11 +134,14 @@ add_mlir_python_modules(CUDAQuantumPythonModules
 
 file (COPY cudaq DESTINATION ${MLIR_BINARY_DIR}/)
 
-# set(BUILD_SHARED_LIBS ${ORIGINAL_VALUE})
-set_target_properties(CUDAQuantumPythonModules CUDAQuantumPythonCAPI CUDAQuantumPythonSources.Extension
-                      PROPERTIES INSTALL_RPATH "$ORIGIN:$ORIGIN/../../lib/")
+## The Python bindings module for Quake dialect depends on CUDAQ libraires 
+## which it can't locate since they are in "../../lib" and the 'rapth' is set
+## to '$ORIGIN' by default.
+set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
+             APPEND PROPERTY INSTALL_RPATH "$ORIGIN:$ORIGIN/../../lib/")
 
 
+## TODO: Clean-up following from 'old' CMakeLists.txt
 ## FIXME: Delete '_pycudaq' target?
 set(LIBRARY_NAME _pycudaq)
 if (NOT SKBUILD)
@@ -215,23 +211,3 @@ if(CUDAQ_BUILD_TESTS)
     message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_BUILD_TESTS=TRUE but can't find numpy or pytest modules required for testing.")
   endif()
 endif()
-
-
-## The Python bindings module for Quake dialect depends on CUDAQ libraires 
-## which it can't locate since they are in "../../lib" and the 'rapth' is set
-## to '$ORIGIN' by default.
-
-## Following has no effect; edit a POST_BUILD custom operation? But, which target to tie it to?
-# set(QuakePyModule "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/mlir_cudaq/_mlir_libs/_quakeDialects.cpython-310-x86_64-linux-gnu.so")
-# if(CMAKE_INSTALL_COMPONENT STREQUAL "CUDAQuantumPythonModules" OR NOT CMAKE_INSTALL_COMPONENT)
-#   if(EXISTS "${QuakePyModule}")
-#     file(RPATH_CHANGE
-#          FILE "${QuakePyModule}"
-#          OLD_RPATH "\$ORIGIN"
-#          NEW_RPATH "\$ORIGIN/../../lib")
-#   endif()
-# endif()
-
-## Other options: 
-##  -- use patchelf as post-install step
-##  -- create symbolic links from top-level 'lib' directory to 'mlir_cudaq/_mlir_libs'
