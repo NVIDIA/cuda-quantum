@@ -14,8 +14,8 @@ using a command such as
 
 Once the :code:`nvcc` compiler is installed, it is possible to write
 CUDA kernels and have them execute on the system GPU. See NVIDIA's `An
-Easy Introduction to CUDA C and
-C++`<https://developer.nvidia.com/blog/easy-introduction-cuda-c-and-c/>`__
+Easy Introduction to CUDA C and C++
+<https://developer.nvidia.com/blog/easy-introduction-cuda-c-and-c/>`__
 for more information on getting started with CUDA.
 
 CUDA code uses a unique syntax and is, typically, saved in a file with
