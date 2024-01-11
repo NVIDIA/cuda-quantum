@@ -1179,9 +1179,7 @@ For more information about executing quantum kernels on different hardware backe
 <span class="c1"># for every execution call on your kernel.</span>
 <span class="c1"># To use different targets in the same file, you must update</span>
 <span class="c1"># it via another call to `cudaq.set_target()`</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span>
-                 <span class="n">url</span><span class="o">=</span><span class="s2">&quot;http://localhost/cocos&quot;</span><span class="p">,</span>
-                 <span class="o">**</span><span class="p">{</span><span class="s2">&quot;qpu-architecture&quot;</span><span class="p">:</span> <span class="s2">&quot;Adonis&quot;</span><span class="p">})</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;iqm&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;http://localhost/cocos&quot;</span><span class="p">,</span> <span class="n">qpu_architecture</span><span class="o">=</span><span class="s2">&quot;Adonis&quot;</span><span class="p">)</span>
 
 <span class="c1"># Adonis QPU architecture:</span>
 <span class="c1">#       QB1</span>
