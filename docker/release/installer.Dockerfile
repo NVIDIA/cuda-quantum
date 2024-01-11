@@ -66,7 +66,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 RUN bash /makeself/makeself.sh --gzip --license /cuda-quantum/LICENSE \
         /cuda_quantum_assets install_cuda_quantum.$(uname -m) \
         "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
-        bash install.sh
+        bash install.sh -t /opt/nvidia/cudaq
 
 FROM scratch
 COPY --from=assets install_cuda_quantum.* . 

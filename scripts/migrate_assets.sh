@@ -83,11 +83,15 @@ function move_artifacts {
     cd - > /dev/null
 }
 
-CUDA_QUANTUM_PATH=${CUDA_QUANTUM_PATH:-"$CUDAQ_INSTALL_PREFIX"}
-CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$CUDA_QUANTUM_PATH"}
-if [ -z "$CUDAQ_INSTALL_PREFIX" ]; then
+if [ -n "$target" ]; then
+    CUDA_QUANTUM_PATH="$target"
     CUDAQ_INSTALL_PREFIX=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-    CUDA_QUANTUM_PATH="${target:-/opt/nvidia/cudaq}"
+elif [ -z "$CUDA_QUANTUM_PATH" ] && [ -z "$CUDAQ_INSTALL_PREFIX" ]; then 
+    echo -e "\e[01;31mError: Neither CUDAQ_INSTALL_PREFIX nor CUDA_QUANTUM_PATH are defined.\e[0m" >&2
+    (return 0 2>/dev/null) && return 1 || exit 1
+else
+    CUDA_QUANTUM_PATH=${CUDA_QUANTUM_PATH:-"$CUDAQ_INSTALL_PREFIX"}
+    CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$CUDA_QUANTUM_PATH"}
 fi
 
 assets="${source:-$CUDAQ_INSTALL_PREFIX}"
