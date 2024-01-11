@@ -8,7 +8,7 @@
 
 // RUN: nvq++ -v %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck %s
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
-// RUN: nvq++ %s -o %t --target iqm --iqm-machine Adonis --mapping-file "%p/../Supplemental/Adonis Variant.txt" --emulate && %t
+// RUN: nvq++ %s -o %t --target iqm --iqm-machine Adonis --mapping_file "%p/../Supplemental/Adonis Variant.txt" --emulate && %t
 
 #include <cudaq.h>
 #include <iostream>

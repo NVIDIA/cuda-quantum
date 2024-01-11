@@ -51,7 +51,7 @@ def startUpMockServer():
         url="http://localhost:{}".format(port),
         **{
             "qpu-architecture": "Apollo",
-            "mapping-file": f"{git_top}/test/Supplemental/Apollo Variant.txt"
+            "mapping_file": f"{git_top}/test/Supplemental/Apollo Variant.txt"
         })
 
     yield "Running the tests."

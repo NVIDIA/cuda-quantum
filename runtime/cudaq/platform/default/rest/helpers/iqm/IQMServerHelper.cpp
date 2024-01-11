@@ -262,7 +262,7 @@ void IQMServerHelper::updatePassPipeline(
   // Note: the leading and trailing single quotes are needed in case there are
   // spaces in the filename.
   std::string pathToFile;
-  auto iter = backendConfig.find("mapping-file");
+  auto iter = backendConfig.find("mapping_file");
   if (iter != backendConfig.end()) {
     // Use provided path to file
     pathToFile = std::string("'") + iter->second + std::string("'");

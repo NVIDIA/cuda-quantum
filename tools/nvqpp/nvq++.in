@@ -114,7 +114,7 @@ function show_help {
 --load=<domain>
 	Load the domain-specific library, e.g. chemistry.
 
---mapping-file <path/to/file>
+--mapping_file <path/to/file>
 	Use the specified topology file during mapping (if mapping is needed).
 
 --[no-]device-code-loading
@@ -390,7 +390,7 @@ while [ $# -ne 0 ]; do
 	--disable-qubit-mapping | -disable-qubit-mapping)
 		DISABLE_QUBIT_MAPPING=true
 		;;
-	--mapping-file)
+	--mapping_file)
 		MAPPING_FILE="base64_"$(echo -n $2 | base64 --wrap=0)
 		shift
 		;;
@@ -592,7 +592,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
 			TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
 			if [ -n "${MAPPING_FILE}" ]; then
-				TARGET_CONFIG="${TARGET_CONFIG};mapping-file;${MAPPING_FILE}"
+				TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
 			fi
 			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
