@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -44,9 +44,15 @@ def startUpMockServer():
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    cudaq.set_target("iqm",
-                     url="http://localhost:{}".format(port),
-                     **{"qpu-architecture": "Apollo"})
+    with os.popen("git rev-parse --show-toplevel") as f:
+        git_top = f.read().strip()
+    cudaq.set_target(
+        "iqm",
+        url="http://localhost:{}".format(port),
+        **{
+            "qpu-architecture": "Apollo",
+            "mapping-file": f"{git_top}/test/Supplemental/Apollo Variant.txt"
+        })
 
     yield "Running the tests."
 
