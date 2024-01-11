@@ -226,7 +226,7 @@ Currently, the following data types are supported.
      - Serialization
    * -  Trivial type (occupies a contiguous memory area)
      -  `int`, `std::size_t`, `double`, etc.
-     - Byte data (via `memcopy`)
+     - Byte data (via `memcpy`)
    * - `std::vector` of trivial type
      - `std::vector<int>`, `std::vector<double>`, etc. 
      - Total vector size in bytes as a 64-bit integer followed by serialized data of all vector elements.
