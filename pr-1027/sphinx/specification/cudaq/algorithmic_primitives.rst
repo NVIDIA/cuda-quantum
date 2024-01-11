@@ -192,7 +192,7 @@ is written:
   If you don't specify any measurements in your kernel and allow the :code:`nvq++`
   compiler to perform passes that introduce ancilla qubits into your kernel, it
   may be difficult to discern which qubits are the ancilla qubits vs which ones
-  are your qubits. In this case, it is recommend that you provide explicit
+  are your qubits. In this case, it is recommended that you provide explicit
   measurements in your kernel in order to only receive measurements from your
   qubits and silently discard the measurements from the ancillary qubits.
 
