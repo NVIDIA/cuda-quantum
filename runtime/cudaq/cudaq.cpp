@@ -117,7 +117,7 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
 };
 
 bool available() {
-  auto *commPlugin = getMpiPlugin(true);
+  auto *commPlugin = getMpiPlugin(/*unsafe=*/true);
   return commPlugin != nullptr;
 }
 
