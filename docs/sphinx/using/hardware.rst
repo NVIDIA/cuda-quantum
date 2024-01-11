@@ -289,7 +289,7 @@ can be controlled with the ``cudaq::set_target()`` function.
 
 .. code:: python
 
-    cudaq.set_target("iqm", url="https://<IQM Server>/cocos", **{"qpu-architecture": "Adonis"})
+    cudaq.set_target("iqm", url="https://<IQM Server>/cocos", qpu_architecture="Adonis")
 
 To emulate the IQM Server locally, without submitting to the IQM Server,
 you can also set the ``emulate`` flag to ``True``. This will emit any target
