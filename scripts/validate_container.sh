@@ -191,7 +191,6 @@ echo "Skipped: $skipped"
 echo "============================="
 if [ "$failed" -eq "0" ]; then exit 0; else exit 10; fi
 
-#FIXME: Check if the caching of the minimal openmpi build works
 #FIXME: filter validation examples to only run the ones that run quickly enough
 #FIXME: include mgpu backend...
 #FIXME: check rest qpus work without openssl on host
