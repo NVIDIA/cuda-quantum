@@ -88,12 +88,9 @@ public:
     }
 
     // Set QPU architecture
-    iter = backendConfig.find("qpu_architecture");
+    iter = backendConfig.find("qpu-architecture");
     if (iter == backendConfig.end()) {
-      iter = backendConfig.find("qpu-architecture");
-      if (iter == backendConfig.end()) {
-        throw std::runtime_error("QPU architecture is not provided");
-      }
+      throw std::runtime_error("QPU architecture is not provided");
     }
     qpuArchitecture = iter->second;
     cudaq::debug("qpuArchitecture = {}", qpuArchitecture);
@@ -274,7 +271,7 @@ void IQMServerHelper::updatePassPipeline(
     pathToFile =
         std::string("'") +
         std::string(platformPath / std::string("mapping/iqm") /
-                    (backendConfig["qpu_architecture"] + std::string(".txt'")));
+                    (backendConfig["qpu-architecture"] + std::string(".txt'")));
   }
   passPipeline =
       std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);

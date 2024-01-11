@@ -49,8 +49,10 @@ def startUpMockServer():
     cudaq.set_target(
         "iqm",
         url="http://localhost:{}".format(port),
-        qpu_architecture="Apollo",
-        mapping_file=f"{git_top}/test/Supplemental/Apollo Variant.txt")
+        **{
+            "qpu-architecture": "Apollo",
+            "mapping_file": f"{git_top}/test/Supplemental/Apollo Variant.txt"
+        })
 
     yield "Running the tests."
 

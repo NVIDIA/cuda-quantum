@@ -1,6 +1,6 @@
 
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -22,7 +22,7 @@
 // the mock server has Apollo architecture
 
 std::string backendStringTemplate =
-    "iqm;emulate;false;qpu_architecture;{};url;"
+    "iqm;emulate;false;qpu-architecture;{};url;"
     "http://localhost:62443"; // add architecture
 
 CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
