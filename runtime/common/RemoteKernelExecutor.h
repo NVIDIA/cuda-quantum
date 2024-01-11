@@ -30,6 +30,8 @@ class RemoteRuntimeServer
     : public registry::RegisteredType<RemoteRuntimeServer> {
 public:
   // Initialization
+  // This accepts a dictionary of key-value strings specific to subclass
+  // implementations.
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) = 0;
   // Start the server.
