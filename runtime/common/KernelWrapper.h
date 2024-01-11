@@ -165,7 +165,7 @@ public:
   }
 
   static bool deserialize(SerializeInputBuffer &buf, std::vector<T> &vec) {
-    uint64_t size;
+    uint64_t size = 0;
     vec.clear();
     if (!SerializeArgs<uint64_t>::deserialize(buf, size))
       return false;
