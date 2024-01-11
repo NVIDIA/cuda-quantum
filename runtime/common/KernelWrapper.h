@@ -253,8 +253,15 @@ class WrapperFunctionHandlerHelper<void (*)(SignatureArgTs...), InvokeArgTs...>
                                           InvokeArgTs...> {};
 
 // Specialization for class member function
+// Non-const member function
 template <typename ClassT, typename... SignatureArgTs, typename... InvokeArgTs>
 class WrapperFunctionHandlerHelper<void (ClassT::*)(SignatureArgTs...),
+                                   InvokeArgTs...>
+    : public WrapperFunctionHandlerHelper<void(SignatureArgTs...),
+                                          InvokeArgTs...> {};
+// Const member function (e.g., lambda)
+template <typename ClassT, typename... SignatureArgTs, typename... InvokeArgTs>
+class WrapperFunctionHandlerHelper<void (ClassT::*)(SignatureArgTs...) const,
                                    InvokeArgTs...>
     : public WrapperFunctionHandlerHelper<void(SignatureArgTs...),
                                           InvokeArgTs...> {};

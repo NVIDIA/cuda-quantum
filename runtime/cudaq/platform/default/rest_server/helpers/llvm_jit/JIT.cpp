@@ -60,6 +60,18 @@ void invokeWrappedKernel(std::string_view irString,
                                         : entryPointFn;
     }();
     std::string mangledKernel, mangledWrapper;
+
+    // Lambda symbols has internal linkage, prevent them from being looked up.
+    // Hence, fix the linkage.
+    const auto fixUpLinkage = [](auto &func) {
+      if (func.hasInternalLinkage()) {
+        cudaq::info("Change linkage type for symbol {} from internal to "
+                    "external linkage.",
+                    func.getName().str());
+        func.setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
+      }
+    };
+
     for (auto &func : llvmModule->functions()) {
       auto demangledPtr =
           abi::__cxa_demangle(func.getName().data(), nullptr, nullptr, nullptr);
@@ -70,11 +82,13 @@ void invokeWrappedKernel(std::string_view irString,
           cudaq::info("Found symbol {} for {}.", func.getName().str(),
                       wrappedKernelSymbol);
           mangledWrapper = func.getName().str();
+          fixUpLinkage(func);
         }
         if (demangledName.rfind(funcName, 0) == 0) {
           cudaq::info("Found symbol {} for {}.", func.getName().str(),
                       funcName);
           mangledKernel = func.getName().str();
+          fixUpLinkage(func);
         }
       }
     }

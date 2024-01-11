@@ -8,7 +8,7 @@
 
 // clang-format off
 // RUN: nvq++ --target remote-sim --remote-sim-auto-launch 1 %s -o %t && %t 
-// RUN: nvq++ --enable-mlir --target remote-sim --remote-sim-auto-launch 1 %s -o %t && %t 
+// RUN: nvq++ --enable-mlir --target remote-sim --remote-sim-auto-launch 1 %s -o %t && %t
 // clang-format on
 
 #include <cudaq.h>
@@ -26,11 +26,29 @@ struct ghz {
 };
 
 int main() {
-  auto kernel = ghz<10>{};
-  auto counts = cudaq::sample(kernel);
-  counts.dump();
+  {
+    auto kernel = ghz<10>{};
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
 #ifndef SYNTAX_CHECK
-  assert(counts.size() == 2);  
+    assert(counts.size() == 2);
 #endif
+  }
+  {
+    // Kernels as lambda functions
+    const auto ghz = [](std::size_t N) __qpu__ {
+      cudaq::qvector q(N);
+      h(q[0]);
+      for (int i = 0; i < N - 1; i++) {
+        x<cudaq::ctrl>(q[i], q[i + 1]);
+      }
+      mz(q);
+    };
+    auto counts = cudaq::sample(ghz, 3);
+    counts.dump();
+#ifndef SYNTAX_CHECK
+    assert(counts.size() == 2);
+#endif
+  }
   return 0;
 }
