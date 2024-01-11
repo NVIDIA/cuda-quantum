@@ -114,7 +114,7 @@ function show_help {
 --load=<domain>
 	Load the domain-specific library, e.g. chemistry.
 
---mapping_file <path/to/file>
+--mapping-file <path/to/file>
 	Use the specified topology file during mapping (if mapping is needed).
 
 --[no-]device-code-loading
@@ -390,7 +390,7 @@ while [ $# -ne 0 ]; do
 	--disable-qubit-mapping | -disable-qubit-mapping)
 		DISABLE_QUBIT_MAPPING=true
 		;;
-	--mapping_file)
+	--mapping-file | -mapping-file)
 		MAPPING_FILE="base64_"$(echo -n $2 | base64 --wrap=0)
 		shift
 		;;
