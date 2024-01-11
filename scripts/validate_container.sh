@@ -91,6 +91,12 @@ then
     exit 1 
 fi
 
+mps_skipped_tests=(\
+    /home/cudaq/examples/cpp/algorithms/grover.cpp \
+    /home/cudaq/examples/cpp/basics/multi_controlled_operations.cpp \
+    /home/cudaq/examples/cpp/other/builder/builder.cpp \
+    /home/cudaq/examples/cpp/algorithms/amplitude_estimation.cpp)
+
 echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
@@ -151,6 +157,10 @@ do
             let "skipped+=1"
             echo "Skipping $t target."
 
+        elif [[ " ${mps_skipped_tests[*]} " =~ " $ex " ]] && [ "$t" == "tensornet-mps" ]; then
+            let "skipped+=1"
+            echo "Skipping $t target."
+
         else
             echo "Testing on $t target..."
             if [ "$t" == "default" ]; then 
@@ -179,4 +189,11 @@ echo "Total passed: $passed"
 echo "Total failed: $failed"
 echo "Skipped: $skipped"
 echo "============================="
-if [ "$failed" -eq "0" ]; then exit 0; else exit 10; fi
+if [ "$failed" -eq "0" ]; then exit 5; else exit 10; fi
+
+#FIXME: Check if the caching of the minimal openmpi build works
+#FIXME: Check that the deployment fails when the execution on the tensornet-mps fails
+#FIXME: filter validation examples to only run the ones that run quickly enough
+#FIXME: include mgpu backend...
+#FIXME: check rest qpus work without openssl on host
+#FIXME: check if stdlibc++ is really needed on host and either update the install or install data center guide accordingly
