@@ -30,7 +30,7 @@ pre-built binaries and not part of our open source repository. We are working on
 either open-sourcing these components or making them available as separate downloads
 in the future. Even without these components, almost all features of CUDA
 Quantum will be enabled in a source build, though some pieces may be less
-performant than in the images or installer provide by us. 
+performant. 
 At this time, the :ref:`multi-GPU state vector simulator <nvidia-mgpu-backend>` 
 backend will not be included if you build CUDA Quantum from source.
 
