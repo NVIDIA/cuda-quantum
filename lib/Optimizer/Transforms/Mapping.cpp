@@ -467,6 +467,12 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
         deviceDef = deviceDef.ltrim();
         if (deviceDef.consume_back(")")) {
           deviceFilename = deviceDef;
+          // Remove any leading and trailing single quotes that may have been
+          // added in order to pass files with spaces into the pass (required
+          // for parsePassPipeline).
+          if (deviceFilename.size() >= 2 && deviceFilename.front() == '\'' &&
+              deviceFilename.back() == '\'')
+            deviceFilename = deviceFilename.drop_front(1).drop_back(1);
           // Make sure the file exists before continuing
           if (!llvm::sys::fs::exists(deviceFilename)) {
             llvm::errs() << "Path " << deviceFilename << " does not exist\n";
