@@ -9,6 +9,7 @@
 #include "JsonConvert.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
+#include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -45,8 +46,6 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
-
-#include "common/RemoteKernelExecutor.h"
 
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
