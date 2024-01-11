@@ -152,8 +152,9 @@ fi
 
 cp "$repo_root/LICENSE" "$CUDAQ_INSTALL_PREFIX/LICENSE"
 cp "$repo_root/NOTICE" "$CUDAQ_INSTALL_PREFIX/NOTICE"
+cp "$repo_root/scripts/cudaq_set_env.sh" "$CUDAQ_INSTALL_PREFIX/set_env.sh"
 
-# The CUDA Quantum installation as built above is not fully self-container;
+# The CUDA Quantum installation as built above is not fully self-contained;
 # It will, in particular, break if the LLVM tools are not in the expected location.
 # We save any system configurations that are assumed by the installation with the installation.
 echo "<build_config>" > "$CUDAQ_INSTALL_PREFIX/build_config.xml"

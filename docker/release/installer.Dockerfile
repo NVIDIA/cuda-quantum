@@ -32,20 +32,14 @@ RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && 
     cd /makeself && git checkout release-2.5.0
 
 ## [Installation Scripts]
-ENV CUDAQ_INSTALL_PATH=/opt/nvidia/cudaq
-RUN echo 'export CUDA_QUANTUM_PATH="${CUDA_QUANTUM_PATH:-'"${CUDAQ_INSTALL_PATH}"'}"' > set_env.sh && \
-    echo 'export PATH="${PATH:+$PATH:}${CUDA_QUANTUM_PATH}/bin"' >> set_env.sh && \
-    echo 'export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${CUDA_QUANTUM_PATH}/lib"' >> set_env.sh && \
-    echo 'export CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH:+$CPLUS_INCLUDE_PATH:}${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"' >> set_env.sh
 RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
     echo -e '\n\n\
-    this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"` \n\
-    "$this_file_dir/cudaq/set_env.sh" \n\
+    . "${CUDA_QUANTUM_PATH}/set_env.sh" \n\
     if [ -f /etc/profile ] && [ -w /etc/profile ]; then \n\
-        cat "$this_file_dir/cudaq/set_env.sh" >> /etc/profile \n\
+        sed "/^\s*\(#\|$\)/d" "${CUDA_QUANTUM_PATH}/set_env.sh" | sed "/^CUDAQ_INSTALL_PATH=.*/ s@@CUDAQ_INSTALL_PATH=${CUDA_QUANTUM_PATH}@" >> /etc/profile \n\
     fi \n\
     if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then \n\
-        cat "$this_file_dir/cudaq/set_env.sh" >> /etc/zprofile \n\
+        sed "/^\s*\(#\|$\)/d" "${CUDA_QUANTUM_PATH}/set_env.sh" | sed "/^CUDAQ_INSTALL_PATH=.*/ s@@CUDAQ_INSTALL_PATH=${CUDA_QUANTUM_PATH}@" >> /etc/zprofile \n\
     fi \n\n\
     if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
         bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh" \n\
@@ -72,7 +66,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 RUN bash /makeself/makeself.sh --gzip --license /cuda-quantum/LICENSE \
         /cuda_quantum_assets install_cuda_quantum.$(uname -m) \
         "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
-        bash install.sh -t "${CUDAQ_INSTALL_PATH}"
+        bash install.sh
 
 FROM scratch
 COPY --from=assets install_cuda_quantum.* . 
