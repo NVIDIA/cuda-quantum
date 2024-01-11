@@ -144,6 +144,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#remote-rest-server-platform">Remote REST Server Platform</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#auto-launch-rest-server">Auto-launch REST Server</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#manually-launch-rest-server">Manually Launch REST Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
 </ul>
@@ -727,6 +728,35 @@ These servers will be shut down at the end of the execution.</p>
 The number of QPUs (<code class="code docutils literal notranslate"><span class="pre">num_qpus()</span></code>) is equal to the number of URLs provided.</p>
 <p>Each QPU instance can be assigned a different backend simulator via the <code class="code docutils literal notranslate"><span class="pre">--remote-sim-backend</span></code> (<code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>) or <code class="code docutils literal notranslate"><span class="pre">backend</span></code> (Python)
 option. Otherwise, if a single backend is specified, all the QPUs are assumed to be using the same simulator.</p>
+</section>
+<section id="supported-kernel-arguments">
+<h3>Supported Kernel Arguments<a class="headerlink" href="#supported-kernel-arguments" title="Permalink to this heading">¶</a></h3>
+<p>To invoke quantum kernels on the remote server, the (<code class="code docutils literal notranslate"><span class="pre">remote-sim</span></code>) platform will serialize
+runtime arguments into a flat memory buffer (<code class="code docutils literal notranslate"><span class="pre">args</span></code> field of the request JSON).</p>
+<p>Currently, the following data types are supported.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Data type</p></th>
+<th class="head"><p>Example</p></th>
+<th class="head"><p>Serialization</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Trivial type (occupies a contiguous memory area)</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">int</span></code>, <code class="code docutils literal notranslate"><span class="pre">std::size_t</span></code>, <code class="code docutils literal notranslate"><span class="pre">double</span></code>, etc.</p></td>
+<td><p>Byte data (via <code class="code docutils literal notranslate"><span class="pre">memcopy</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> of trivial type</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">std::vector&lt;int&gt;</span></code>, <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;double&gt;</span></code>, etc.</p></td>
+<td><p>Total vector size in bytes as a 64-bit integer followed by serialized data of all vector elements.</p></td>
+</tr>
+</tbody>
+</table>
 </section>
 </section>
 </section>
