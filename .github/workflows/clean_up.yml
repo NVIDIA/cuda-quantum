@@ -42,13 +42,13 @@ jobs:
 
     strategy:
       matrix:
-        image_name: [cuda-quantum-dev, cuda-quantum-devdeps, open-mpi]
+        image_name: [cuda-quantum-assets, cuda-quantum-dev, cuda-quantum-devdeps, open-mpi]
       fail-fast: false
 
     steps:
       # We need to keep a good number of untagged manifests, 
       # since each tagged image contains/depends on untagged components
-      - name: Delete untagged cuda-quantum-devdeps images
+      - name: Delete untagged images
         uses: actions/delete-package-versions@v4
         with: 
           package-name: ${{ matrix.image_name }}

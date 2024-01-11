@@ -47,21 +47,19 @@ RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
 
 ## [Content]
 RUN source /cuda-quantum/scripts/configure_build.sh && \
-    assets=/cuda_quantum_assets && mkdir -p "${assets}" && \
     chmod a+x install.sh "${CUDAQ_INSTALL_PREFIX}/set_env.sh" && \
-    mv install.sh "${assets}/install.sh" && \
+    mkdir cuda_quantum_assets && mv install.sh cuda_quantum_assets/install.sh && \
     ## [>CUDAQuantumAssets]
-    assets=${assets:-cuda_quantum_assets} && \
-    mv "${CUDAQ_INSTALL_PREFIX}/build_config.xml" "${assets}/build_config.xml" && \
-    mv "${CUDAQ_INSTALL_PREFIX}" "${assets}" && \
-    mv "${CUQUANTUM_INSTALL_PREFIX}" "${assets}" && \
-    mv "${CUTENSOR_INSTALL_PREFIX}" "${assets}" && \
-    mkdir -p "${assets}/llvm/bin" && mkdir -p "${assets}/llvm/lib" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/"clang* "${assets}/llvm/bin/" && rm -rf "${assets}/llvm/bin/"clang-format* && \
-    mv "${LLVM_INSTALL_PREFIX}/lib/"clang* "${assets}/llvm/lib/" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/llc" "${assets}/llvm/bin/llc" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/lld" "${assets}/llvm/bin/lld" && \
-    mv "${LLVM_INSTALL_PREFIX}/bin/ld.lld" "${assets}/llvm/bin/ld.lld"
+    mkdir -p cuda_quantum_assets/llvm/bin && mkdir -p cuda_quantum_assets/llvm/lib && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/"clang* cuda_quantum_assets/llvm/bin/ && \
+    mv "${LLVM_INSTALL_PREFIX}/lib/"clang* cuda_quantum_assets/llvm/lib/ && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/llc" cuda_quantum_assets/llvm/bin/llc && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/lld" cuda_quantum_assets/llvm/bin/lld && \
+    mv "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/llvm/bin/ld.lld && \
+    mv "${CUTENSOR_INSTALL_PREFIX}" cuda_quantum_assets && \
+    mv "${CUQUANTUM_INSTALL_PREFIX}" cuda_quantum_assets && \
+    mv "${CUDAQ_INSTALL_PREFIX}/build_config.xml" cuda_quantum_assets/build_config.xml && \
+    mv "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets
     ## [<CUDAQuantumAssets]
 
 ## [Self-extracting Archive]
