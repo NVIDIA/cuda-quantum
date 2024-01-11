@@ -40,8 +40,6 @@ int main() {
       (2 * shift);
   printf("Energy is %lf\n", energy);
   printf("Gradient is %lf\n", gradient);
-#ifndef SYNTAX_CHECK
   assert(std::abs(energy + 1.748794) < 1e-3);
-#endif
   return 0;
 }

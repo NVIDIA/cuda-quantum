@@ -32,17 +32,13 @@ void ansatz(double theta) __qpu__ {
 int main() {
   auto counts = cudaq::sample(ghz, 10);
   counts.dump();
-#ifndef SYNTAX_CHECK
   assert(counts.size() == 2);
-#endif
   using namespace cudaq::spin;
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                      .21829 * z(0) - 6.125 * z(1);
 
   double energy = cudaq::observe(ansatz, h, .59);
   printf("Energy is %lf\n", energy);
-#ifndef SYNTAX_CHECK
   assert(std::abs(energy + 1.748794) < 1e-3);
-#endif
   return 0;
 }

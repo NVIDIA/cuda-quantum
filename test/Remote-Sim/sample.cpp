@@ -30,9 +30,7 @@ int main() {
     auto kernel = ghz<10>{};
     auto counts = cudaq::sample(kernel);
     counts.dump();
-#ifndef SYNTAX_CHECK
     assert(counts.size() == 2);
-#endif
   }
   {
     // Kernels as lambda functions
@@ -46,9 +44,7 @@ int main() {
     };
     auto counts = cudaq::sample(ghz, 3);
     counts.dump();
-#ifndef SYNTAX_CHECK
     assert(counts.size() == 2);
-#endif
   }
   return 0;
 }

@@ -26,9 +26,7 @@ int main() {
   // H == Rx(pi)Ry(pi/2) (up to a global phase)
   auto counts = cudaq::sample(hGateTest{}, std::vector<double>{M_PI_2, M_PI});
   counts.dump();
-#ifndef SYNTAX_CHECK
   assert(counts.size() == 1);
   assert(counts.begin()->first == "0");
-#endif
   return 0;
 }

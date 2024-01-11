@@ -30,8 +30,6 @@ int main() {
   // parameters for the kernel
   double energy = cudaq::observe(ansatz{}, h, .59);
   printf("Energy is %lf\n", energy);
-#ifndef SYNTAX_CHECK
   assert(std::abs(energy + 1.748794) < 1e-3);
-#endif
   return 0;
 }

@@ -33,9 +33,7 @@ int main() {
     // parameters for the kernel
     double energy = cudaq::observe(ansatz, h, .59);
     printf("Energy is %lf\n", energy);
-#ifndef SYNTAX_CHECK
     assert(std::abs(energy + 1.748794) < 1e-3);
-#endif
   }
   {
     auto [ansatz, thetas] = cudaq::make_kernel<std::vector<double>>();
@@ -49,9 +47,7 @@ int main() {
     ansatz.x<cudaq::ctrl>(q[1], q[0]);
     double energy = cudaq::observe(ansatz, h, std::vector<double>{.59});
     printf("Energy is %lf\n", energy);
-#ifndef SYNTAX_CHECK
     assert(std::abs(energy + 1.748794) < 1e-3);
-#endif
   }
 
   {
