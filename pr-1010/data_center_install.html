@@ -413,8 +413,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#preparing-the-installation">Preparing the Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#installation-on-the-host">Installation on the Host</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#runtime-libraries">Runtime libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cuda-runtime-libraries">CUDA Runtime libraries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mpi">MPI</a></li>
 </ul>
 </li>
@@ -492,6 +493,8 @@ serves as the base image for the <a class="reference external" href="https://git
 systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SELD/SLES 15.5, RHEL 8
 and 9, Rocky 8 and 9, and Ubuntu 22.04. Other operating systems may work, but
 have not been tested.</p></li>
+<li><p><a class="reference external" href="https://www.gnu.org/software/bash/">Bash</a> shell. The CUDA Quantum
+build, install and run scripts expect to use <code class="code docutils literal notranslate"><span class="pre">/bin/bash</span></code>.</p></li>
 <li><p><a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>.
 Make sure that the version on the host system is the same one
 or newer than the version on the build system. Our own builds
@@ -526,9 +529,6 @@ for your distribution.</p></li>
 (only) for some of the LLVM build scripts and the Python version
 used for the build does not have to match the version on the host
 system.</p></li>
-<li><p><a class="reference external" href="https://www.gnu.org/software/bash/">Bash</a>: The CUDA Quantum build scripts
-and the commands listed in the rest of this document assume you are using
-<code class="code docutils literal notranslate"><span class="pre">bash</span></code> as the shell for your build.</p></li>
 <li><p>Common tools: wget, git, unzip. The commands in the rest of this guide assume
 that these tools are present on the build system, but they can be replaced by
 other alternatives (such as, for example, manually going to a web page and
@@ -536,6 +536,11 @@ downloading a file/folder).</p></li>
 </ul>
 <p>The above prerequisites are no longer needed once CUDA Quantum is built and
 do not need to be present on the host system.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The CUDA Quantum build scripts and the commands listed in the rest of this
+document assume you are using <code class="code docutils literal notranslate"><span class="pre">bash</span></code> as the shell for your build.</p>
+</div>
 <p>In addition to installing the needed build dependencies listed above, make sure
 to set the following environment variables prior to proceeding:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
@@ -666,22 +671,49 @@ you see a message that a component has been skipped, make sure you followed the
 instructions for installing the necessary prerequisites and build dependencies,
 and have set the necessary environment variables as described in this document.</p>
 </section>
+<section id="preparing-the-installation">
+<h2>Preparing the Installation<a class="headerlink" href="#preparing-the-installation" title="Permalink to this heading">¶</a></h2>
+<p>To easily migrate the built binaries to the host system, we recommend creating a
+<a class="reference external" href="https://makeself.io/">self-extracting archive</a>. To do so, download the
+<a class="reference external" href="https://github.com/megastep/makeself">makeself script(s)</a> and move the necessary
+files to install into a separate folder using the command</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>docker/release/installer.Dockerfile
+<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;CUDAQuantumAssets<span class="o">]</span>
+<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;CUDAQuantumAssets<span class="o">]</span>
+</pre></div>
+</div>
+<p>You can then create a self-extracting archive with the command</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./makeself.sh<span class="w"> </span>--gzip<span class="w"> </span>--license<span class="w"> </span>cuda_quantum_assets/cudaq/LICENSE<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>cuda_quantum_assets<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">&quot;CUDA Quantum toolkit for heterogeneous quantum-classical workflows&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>bash<span class="w"> </span>cudaq/migrate_assets.sh<span class="w"> </span>-t<span class="w"> </span>/opt/nvidia/cudaq
+</pre></div>
+</div>
+</section>
 <section id="installation-on-the-host">
 <h2>Installation on the Host<a class="headerlink" href="#installation-on-the-host" title="Permalink to this heading">¶</a></h2>
-<p>Make sure your host system satisfies the <a class="reference internal" href="#prerequisites">Prerequisites</a> listed above, and
-…
-For pre-built archives:
-tools to decompress tar.gz needed for extraction of a pre-built archive, and be mindful that the
-C++ standard library matches the gcc-11 compiler used to build the archive.
-…</p>
-<p>To make use of all CUDA Quantum features and components, install the CUDA Quantum
-runtime dependencies listed in the remaining sections on the host system.</p>
-<section id="runtime-libraries">
-<h3>Runtime libraries<a class="headerlink" href="#runtime-libraries" title="Permalink to this heading">¶</a></h3>
-<p>Make sure that the same C++ standard library that was used during the
+<p>Make sure your host system satisfies the <a class="reference internal" href="#prerequisites">Prerequisites</a> listed above,
+and that the same C++ standard library that was used during the
 CUDA Quantum build is present and discoverable on the host system.
 While not strictly necessary, we recommend that you install the toolchain
 that was used for the CUDA Quantum build on the host.</p>
+<p>Copy the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file that you created following the instructions
+in the <a class="reference internal" href="#preparing-the-installation">Preparing the Installation</a> section onto the host system, and then
+run the commands</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>chmod<span class="w"> </span>+x<span class="w"> </span>install_cuda_quantum.*
+sudo<span class="w"> </span>-E<span class="w"> </span>./install_cuda_quantum.*<span class="w"> </span>--accept
+</pre></div>
+</div>
+<p>This will extract the built assets and move them to the correct locations.
+The <code class="code docutils literal notranslate"><span class="pre">set_env.sh</span></code> script in <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code> defines the necessary environment
+variables to use CUDA Quantum. To avoid having to set them manually every time a
+new shell is opened, we highly recommend adding the following lines to
+the <code class="code docutils literal notranslate"><span class="pre">/etc/profile</span></code> file:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-f<span class="w"> </span>/opt/nvidia/cudaq/set_env.sh<span class="w"> </span><span class="o">]</span><span class="p">;</span>
+<span class="w">  </span>.<span class="w"> </span>/opt/nvidia/cudaq/set_env.sh
+<span class="k">fi</span>
+</pre></div>
+</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>CUDA Quantum is configured to use its own linker, meaning the
@@ -691,8 +723,14 @@ your own linker instead. You can configure CUDA Quantum to use an external linke
 setting the <code class="code docutils literal notranslate"><span class="pre">NVQPP_LD_PATH</span></code> environment variable to point to it; for example
 <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">NVQPP_LD_PATH=ld</span></code>.</p>
 </div>
-<p>Additionally, you will need to install the necessary CUDA runtime libraries to use
-GPU-acceleration in CUDA Quantum. While not necessary, we recommend installing
+<p>The remaining section in this document list additional runtime dependencies
+that are not included in the migrated assets and are needed to use some of the
+CUDA Quantum features and components, install the CUDA Quantum
+runtime dependencies listed in the remaining sections on the host system.</p>
+<section id="cuda-runtime-libraries">
+<h3>CUDA Runtime libraries<a class="headerlink" href="#cuda-runtime-libraries" title="Permalink to this heading">¶</a></h3>
+<p>To use GPU-acceleration in CUDA Quantum you will need to install the necessary
+CUDA runtime libraries. While not necessary, we recommend installing
 the complete CUDA toolkit like you did for the CUDA Quantum build.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for the AlmaLinux 8 environment:</p>
