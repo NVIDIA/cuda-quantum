@@ -190,9 +190,9 @@ private:
       return llvmModule;
     };
 
-    cudaq::info(" - Creating the MLIR ExecutionEngine");
+    cudaq::info("- Creating the MLIR ExecutionEngine");
     auto uniqueJit = llvm::cantFail(ExecutionEngine::create(module, opts));
-    cudaq::info("- JIT Engine created successfully.");
+    cudaq::info("- MLIR ExecutionEngine created successfully.");
     return uniqueJit;
   }
 
