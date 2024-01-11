@@ -221,7 +221,7 @@ version 2.28 or newer. You can confirm this by checking the output of the comman
 the easiest way to ensure you have the necessary libraries is usually to install the 
 GCC 12 toolchain via the package manager for your operating system.
 
-You can then download the `install_cuda_quantum` for your processor architecture from
+You can then download the `install_cuda_quantum` file for your processor architecture from
 the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. The installer is a `self-extracting archive <https://makeself.io/>`__ 
 that contains the pre-built binaries as well as a script to move them to the correct locations.
 The installation location of CUDA Quantum is not currently configurable and using the installer
@@ -230,26 +230,34 @@ upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/i
 
 To install CUDA Quantum, execute the command
 
-.. check the signature of the installer...
-
 .. code-block:: console
 
-    sudo ./install_cuda_quantum.$(uname -m) --accept
+    .. literalinclude:: ../../docker/test/installer/linux.Dockerfile
+      :start-after: [>CUDAQuantumInstall]
+      :end-before: [<CUDAQuantumInstall]
 
 .. note:: 
 
   To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries.
   ...
-.. environment variables set in /etc/profile - make separate file in cudaq archive:
-  export CUDA_QUANTUM_PATH=/opt/nvidia/cudaq
-  export PATH="${CUDA_QUANTUM_PATH}/bin:${PATH}"
-  export LD_LIBRARY_PATH="${CUDA_QUANTUM_PATH}/lib:${LD_LIBRARY_PATH}"
-  export CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
-  bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
+.. environment variables set in set_env.sh
 
-.. activate MPI plugin retroactively:
-  export MPI_PATH=/usr/local/openmpi
-  bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
+The installation automatically configures the necessary environment variables for
+using the CUDA Quantum toolchain. These configurations should persist across all POSIX shells.
+If you use a different shell, you should set the environment variables defined by the `set_env.sh` script in the CUDA Quantum installation folder (usually `/opt/nvidia/cudaq`).
+
+If an MPI installation is available in the directory defined by `MPI_PATH`, 
+the installer automatically enables MPI support in CUDA Quantum.
+If you do not have MPI installed on your system, you can simply
+leave that path empty, and CUDA Quantum will be installed without MPI support.
+If you install MPI at a later point in time, you can activate the MPI support in CUDA 
+Quantum by setting the `MPI_PATH` variable to its installation location and 
+executing the commands
+
+.. code-block:: console
+
+    MPI_PATH=/usr/local/openmpi # update this path as needed
+    bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
 .. _local-development-with-vscode:
 
