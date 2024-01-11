@@ -605,9 +605,10 @@ see <a class="reference internal" href="versions.html"><span class="doc">CUDA Qu
 </section>
 <section id="pre-built-binaries">
 <span id="install-prebuilt-binaries"></span><h3>Pre-built binaries<a class="headerlink" href="#pre-built-binaries" title="Permalink to this heading">¶</a></h3>
-<p>Starting with the 0.6.0 release, we provide pre-built binaries for using CUDA Quantum with C++.
-Support for using CUDA Quantum with Python can be installed side-by-side with the pre-built binaries
-for C++ by following the instructions on <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI.org</a>.
+<p>Starting with the 0.6.0 release, we provide pre-built binaries for using
+CUDA Quantum with C++. Support for using CUDA Quantum with Python can be installed
+side-by-side with the pre-built binaries for C++ by following the instructions on
+<a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI.org</a>.
 The pre-built binaries work across a range of Linux operating systems listed under <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a>.</p>
 <p>Before installing our pre-built binaries, please make sure that your
 operating system is using the <a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>
@@ -616,8 +617,11 @@ version 2.28 or newer. You can confirm this by checking the output of the comman
 the easiest way to ensure you have the necessary libraries is usually to install the
 GCC 12 toolchain via the package manager for your operating system.</p>
 <p>You can then download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture from
-the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>. The installer is a <a class="reference external" href="https://makeself.io/">self-extracting archive</a>
-that contains the pre-built binaries as well as a script to move them to the correct locations.
+the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>.
+The installer is a <a class="reference external" href="https://makeself.io/">self-extracting archive</a> that contains the
+pre-built binaries as well as a script to move them to the correct locations. You will need
+<code class="code docutils literal notranslate"><span class="pre">bash</span></code>, <code class="code docutils literal notranslate"><span class="pre">tar</span></code>, and <code class="code docutils literal notranslate"><span class="pre">gzip</span></code> (usually already installed on most Linux distributions) to run
+the installer.
 The installation location of CUDA Quantum is not currently configurable and using the installer
 hence requires admin privileges on the system. We may revise that in the future; please see and
 upvote the corresponding <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/1075">GitHub issue</a>.</p>

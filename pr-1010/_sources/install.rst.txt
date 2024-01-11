@@ -209,9 +209,10 @@ For more information about building the entire C++ and Python API from source, w
 Pre-built binaries
 ++++++++++++++++++++++++++++++++++++
 
-Starting with the 0.6.0 release, we provide pre-built binaries for using CUDA Quantum with C++.
-Support for using CUDA Quantum with Python can be installed side-by-side with the pre-built binaries
-for C++ by following the instructions on `PyPI.org <https://pypi.org/project/cuda-quantum>`__.
+Starting with the 0.6.0 release, we provide pre-built binaries for using 
+CUDA Quantum with C++. Support for using CUDA Quantum with Python can be installed 
+side-by-side with the pre-built binaries for C++ by following the instructions on 
+`PyPI.org <https://pypi.org/project/cuda-quantum>`__.
 The pre-built binaries work across a range of Linux operating systems listed under :ref:`dependencies-and-compatibility`. 
 
 Before installing our pre-built binaries, please make sure that your 
@@ -222,8 +223,11 @@ the easiest way to ensure you have the necessary libraries is usually to install
 GCC 12 toolchain via the package manager for your operating system.
 
 You can then download the `install_cuda_quantum` file for your processor architecture from
-the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. The installer is a `self-extracting archive <https://makeself.io/>`__ 
-that contains the pre-built binaries as well as a script to move them to the correct locations.
+the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. 
+The installer is a `self-extracting archive <https://makeself.io/>`__ that contains the 
+pre-built binaries as well as a script to move them to the correct locations. You will need
+`bash`, `tar`, and `gzip` (usually already installed on most Linux distributions) to run 
+the installer.
 The installation location of CUDA Quantum is not currently configurable and using the installer
 hence requires admin privileges on the system. We may revise that in the future; please see and
 upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/1075>`__.

@@ -251,8 +251,7 @@ and have set the necessary environment variables as described in this document.
 Installation on the Host
 ------------------------------------
 
-TODO: update this to describe how to get an archive that is extracted to 
-the right locations (as we do for the installer).
+
 
 Make sure your host system satisfies the `Prerequisites`_ listed above, and 
 ...
