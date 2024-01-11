@@ -157,7 +157,7 @@ hosting all the simulator backends available in the installation. These backends
 Auto-launch REST Server
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-The server app (:code:`cudaq-qpud`) can be launch and shutdown automatically
+The server app (:code:`cudaq-qpud`) can be launched and shutdown automatically
 by using the auto-launch feature of the platform.
 Random TCP/IP ports, that are available for use, will be selected to launch those server processes.
 
