@@ -78,8 +78,8 @@ struct r1PiGate {
   void operator()(cudaq::qubit &q) __qpu__ { r1(1., q); }
 };
 
-// Entry-point kernel running the QPE algorithm with specific state preparation
-// and oracle kernels.
+// Entry-point kernel running the quantum phase estimation algorithm with
+// specific state preparation and oracle kernels.
 struct run_qpe {
   void operator()(const int nCountingQubits) __qpu__ {
     qpe{}(
