@@ -116,7 +116,10 @@ public:
   cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
     return cudaq::SpinMeasureResult();
   }
-
+  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                       const cudaq::complex *state) override {
+    throw std::runtime_error("initializeState not implemented.");
+  }
   void resetQudit(const cudaq::QuditInfo &id) override {}
 };
 

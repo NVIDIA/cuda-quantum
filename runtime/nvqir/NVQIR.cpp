@@ -181,6 +181,13 @@ Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
   return vectorSizetToArray(qubitIdxs);
 }
 
+Array *__quantum__rt__qubit_allocate_array_with_state(uint64_t size, std::complex<double> * data) {
+  cudaq::ScopedTrace trace("NVQIR::qubit_allocate_array_with_data", size);
+  __quantum__rt__initialize(0, nullptr);
+  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(size, data);
+  return vectorSizetToArray(qubitIdxs);
+}
+
 /// @brief Once done, release the QIR qubit array
 void __quantum__rt__qubit_release_array(Array *arr) {
   cudaq::ScopedTrace trace("NVQIR::qubit_release_array", arr->size());

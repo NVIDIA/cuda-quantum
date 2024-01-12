@@ -31,6 +31,7 @@
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
+#include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -76,6 +77,32 @@ public:
       return success();
     }
 
+    // Let's count the number of users. If we have 1 user (= count -
+    // numDealloc(can be 0 or 1)), and it is the InitializeStateOp, then we want
+    // to erase this op, and then let the InitStateOp pattern create the proper
+    // QIR function call
+    {
+      std::size_t count = 0, numDeallocs = 0;
+      quake::InitializeStateOp maybeInit;
+      for (auto user : alloca->getUsers()) {
+        count++;
+        if (auto init = dyn_cast<quake::InitializeStateOp>(user))
+          maybeInit = init;
+
+        if (dyn_cast<quake::DeallocOp>(user))
+          numDeallocs++;
+      }
+      if (maybeInit) {
+        if (count - numDeallocs != 1)
+          return alloca->emitOpError(
+              "Invalid IR detected in LLVM lowering. quake.qinit op must be first "
+              "user of quake.alloca");
+
+        rewriter.replaceOp(alloca, maybeInit.getResult());
+        return success();
+      }
+    }
+
     // Create a QIR call to allocate the qubits.
     StringRef qir_qubit_array_allocate = cudaq::opt::QIRArrayQubitAllocateArray;
     auto array_qbit_type = cudaq::opt::getArrayType(context);
@@ -102,6 +129,58 @@ public:
     // Replace the AllocaOp with the QIR call.
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(alloca, array_qbit_type,
                                               symbolRef, sizeOperand);
+    return success();
+  }
+};
+
+class InitializeStateOpRewrite
+    : public ConvertOpToLLVMPattern<quake::InitializeStateOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::InitializeStateOp init, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+
+    auto loc = init->getLoc();
+    auto parentModule = init->getParentOfType<ModuleOp>();
+
+    auto qubits = init.getTargets();
+    auto allocaOp = qubits.getDefiningOp<quake::AllocaOp>();
+    auto ccState = init.getState();
+    Value sizeOperand;
+    if (allocaOp->getOperands().empty()) {
+      auto type = qubits.getType().cast<quake::VeqType>();
+      auto constantSize = type.getSize();
+      sizeOperand =
+          rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
+    } else {
+      sizeOperand = allocaOp->getOperands().front();
+      if (sizeOperand.getType().cast<IntegerType>().getWidth() < 64) {
+        sizeOperand = rewriter.create<LLVM::ZExtOp>(loc, rewriter.getI64Type(),
+                                                    sizeOperand);
+      }
+    }
+
+    auto array_qbit_type = cudaq::opt::getArrayType(rewriter.getContext());
+
+    // Add the new QIR function to the ModuleOp
+    {
+      OpBuilder::InsertionGuard guard(rewriter);
+      rewriter.setInsertionPointToStart(parentModule.getBody());
+      FunctionType funcTy = rewriter.getFunctionType(
+          SmallVector<Type>{sizeOperand.getType(), ccState.getType()},
+          array_qbit_type);
+      rewriter.create<func::FuncOp>(
+          loc, cudaq::opt::QIRArrayQubitAllocateArrayWithState, funcTy);
+      // func.setPrivate();
+    }
+
+    // Call the function,
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        init, cudaq::opt::QIRArrayQubitAllocateArrayWithState,
+        SmallVector<Type>{array_qbit_type},
+        SmallVector<Value>{sizeOperand, ccState});
     return success();
   }
 };
@@ -1477,7 +1556,6 @@ public:
     return failure();
   }
 };
-
 //===----------------------------------------------------------------------===//
 // Code generation: converts the Quake IR to QIR.
 //===----------------------------------------------------------------------===//
@@ -1509,26 +1587,28 @@ public:
 
     patterns.insert<GetVeqSizeOpRewrite, MxToMz, MyToMz, ReturnBitRewrite>(
         context);
-    patterns.insert<
-        AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
-        CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
-        ComputePtrOpPattern, ConcatOpRewrite, DeallocOpRewrite,
-        CreateStringLiteralOpPattern, DiscriminateOpPattern,
-        ExtractQubitOpRewrite, ExtractValueOpPattern, FuncToPtrOpPattern,
-        InsertValueOpPattern, InstantiateCallableOpPattern, LoadOpPattern,
-        ExpPauliRewrite, OneTargetRewrite<quake::HOp>,
-        OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
-        OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
-        OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,
-        OneTargetTwoParamRewrite<quake::PhasedRxOp>,
-        OneTargetOneParamRewrite<quake::RxOp>,
-        OneTargetOneParamRewrite<quake::RyOp>,
-        OneTargetOneParamRewrite<quake::RzOp>,
-        OneTargetTwoParamRewrite<quake::U2Op>,
-        OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite,
-        StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-        StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
-        UndefOpPattern>(typeConverter);
+    patterns.insert<AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
+                    CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
+                    ComputePtrOpPattern, ConcatOpRewrite, DeallocOpRewrite,
+                    CreateStringLiteralOpPattern, DiscriminateOpPattern,
+                    ExtractQubitOpRewrite, ExtractValueOpPattern,
+                    FuncToPtrOpPattern, InitializeStateOpRewrite,
+                    InsertValueOpPattern, InstantiateCallableOpPattern,
+                    LoadOpPattern, ExpPauliRewrite,
+                    OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
+                    OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
+                    OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
+                    OneTargetOneParamRewrite<quake::R1Op>,
+                    OneTargetTwoParamRewrite<quake::PhasedRxOp>,
+                    OneTargetOneParamRewrite<quake::RxOp>,
+                    OneTargetOneParamRewrite<quake::RyOp>,
+                    OneTargetOneParamRewrite<quake::RzOp>,
+                    OneTargetTwoParamRewrite<quake::U2Op>,
+                    OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite,
+                    StdvecDataOpPattern, StdvecInitOpPattern,
+                    StdvecSizeOpPattern, StoreOpPattern, SubveqOpRewrite,
+                    TwoTargetRewrite<quake::SwapOp>, UndefOpPattern>(
+        typeConverter);
     patterns.insert<MeasureRewrite<quake::MzOp>>(typeConverter, measureCounter);
 
     target.addLegalDialect<LLVM::LLVMDialect>();

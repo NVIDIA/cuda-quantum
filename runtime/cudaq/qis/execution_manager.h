@@ -17,6 +17,7 @@
 namespace cudaq {
 class ExecutionContext;
 using SpinMeasureResult = std::pair<double, sample_result>;
+using complex = std::complex<double>;
 
 /// A QuditInfo is a type encoding the number of \a levels and the \a id of the
 /// qudit to the ExecutionManager.
@@ -101,6 +102,10 @@ public:
 
   /// Reset the execution context
   virtual void resetExecutionContext() = 0;
+
+
+  virtual void initializeState(const std::vector<QuditInfo> &targets,
+                               const complex *state) = 0;
 
   /// Apply the quantum instruction with the given name, on the provided target
   /// qudits. Supports input of control qudits and rotational parameters. Can

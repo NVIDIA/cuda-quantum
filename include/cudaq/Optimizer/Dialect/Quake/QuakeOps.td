@@ -281,6 +281,26 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
   }];
 }
 
+def InitializeStateOp : QuakeOp<"qinit"> {
+  let summary = "Initialize the quantum state to a specific complex vector.";
+  let description = [{
+    Given a !cc.ptr pointing to a complex data array of size 2**N, where N is the number of qubits 
+    in the targets operand, initialize the state of those target qubits to 
+    the provided state vector. This operation returns a new quake.veq instance 
+    and subsequent uses of the original veq should be replaced during code generation. 
+    This is to support the immediate use of this operation after an initial allocation.
+  }];
+
+  let arguments = (ins VeqType:$targets, 
+                       cc_PointerType:$state);
+  let results = (outs VeqType:$initializedState);
+
+  let assemblyFormat = [{
+    `(` $targets `,` $state `)` `:` functional-type(operands, results) attr-dict
+  }];
+
+}
+
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
   let summary = "Relax the constant size on a !veq to be unknown.";
   let description = [{
