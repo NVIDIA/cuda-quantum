@@ -32,8 +32,6 @@ Here is a simple example demonstrating its usage.
         :start-after: [Begin Documentation]
         :end-before: [End Documentation]
 
-    CUDA Quantum exposes asynchronous versions of the default :code:`cudaq::` algorithmic
-    primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`cudaq::sample_async` function in the above code snippet).
 
     One can specify the target multi-QPU architecture (:code:`nvidia-mqpu`) with the :code:`--target` flag:
     
@@ -47,6 +45,9 @@ Here is a simple example demonstrating its usage.
     .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async.py
         :language: python
         :start-after: [Begin Documentation]
+
+CUDA Quantum exposes asynchronous versions of the default :code:`cudaq` algorithmic
+primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`sample_async` function in the above code snippets).
 
 Depending on the number of GPUs available on the system, the :code:`nvidia-mqpu` platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
@@ -154,10 +155,10 @@ Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API in
 CUDA Quantum provides the REST server implementation as a standalone application (:code:`cudaq-qpud`),
 hosting all the simulator backends available in the installation. These backends include those that require MPI for multi-GPU computation.
 
-Auto-launch REST Server
-^^^^^^^^^^^^^^^^^^^^^^^
+Automatically Launch REST Server (Local)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The server app (:code:`cudaq-qpud`) can be launch and shutdown automatically
+The server app (:code:`cudaq-qpud`) can be launched and shutdown automatically
 by using the auto-launch feature of the platform.
 Random TCP/IP ports, that are available for use, will be selected to launch those server processes.
 
@@ -186,6 +187,12 @@ To start the server, serving at a specific TCP/IP port, one can do the following
 .. code-block:: console
     
     cudaq-qpud --port <port number>
+
+.. warning:: 
+
+    There is no authentication required to communicate with this server app. 
+    Hence, please make sure to either (1) use a non-public TCP/IP port for internal use or 
+    (2) use firewalls or other security mechanisms to manage user access. 
 
 User code can then target this platform by specifying its target name (:code:`remote-sim`).
 
@@ -226,7 +233,7 @@ Currently, the following data types are supported.
      - Serialization
    * -  Trivial type (occupies a contiguous memory area)
      -  `int`, `std::size_t`, `double`, etc.
-     - Byte data (via `memcopy`)
+     - Byte data (via `memcpy`)
    * - `std::vector` of trivial type
      - `std::vector<int>`, `std::vector<double>`, etc. 
      - Total vector size in bytes as a 64-bit integer followed by serialized data of all vector elements.

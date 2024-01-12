@@ -142,7 +142,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#remote-rest-server-platform">Remote REST Server Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#auto-launch-rest-server">Auto-launch REST Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#automatically-launch-rest-server-local">Automatically Launch REST Server (Local)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#manually-launch-rest-server">Manually Launch REST Server</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
@@ -489,8 +489,6 @@ This target enables asynchronous parallel execution of quantum kernel tasks.</p>
 <span class="w">  </span><span class="p">}</span>
 </pre></div>
 </div>
-<p>CUDA Quantum exposes asynchronous versions of the default <code class="code docutils literal notranslate"><span class="pre">cudaq::</span></code> algorithmic
-primitive functions like <code class="code docutils literal notranslate"><span class="pre">sample</span></code> and <code class="code docutils literal notranslate"><span class="pre">observe</span></code> (e.g., <code class="code docutils literal notranslate"><span class="pre">cudaq::sample_async</span></code> function in the above code snippet).</p>
 <p>One can specify the target multi-QPU architecture (<code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code>) with the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flag:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ sample_async.cpp -target nvidia-mqpu</span>
 <span class="go">./a.out</span>
@@ -522,6 +520,8 @@ primitive functions like <code class="code docutils literal notranslate"><span c
 </div>
 </div>
 </div>
+<p>CUDA Quantum exposes asynchronous versions of the default <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> algorithmic
+primitive functions like <code class="code docutils literal notranslate"><span class="pre">sample</span></code> and <code class="code docutils literal notranslate"><span class="pre">observe</span></code> (e.g., <code class="code docutils literal notranslate"><span class="pre">sample_async</span></code> function in the above code snippets).</p>
 <p>Depending on the number of GPUs available on the system, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform will create the same number of virtual QPU instances.
 For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those <code class="code docutils literal notranslate"><span class="pre">GPUEmulatedQPU</span></code> instances.</p>
 <p>The results might look like the following 4 different random samplings:</p>
@@ -685,9 +685,9 @@ as independent REST server instances. The CUDA Quantum runtime communicates via 
 <p>Please refer to the <a class="reference external" href="../../openapi.html">Open API Docs</a>  for the latest API information.</p>
 <p>CUDA Quantum provides the REST server implementation as a standalone application (<code class="code docutils literal notranslate"><span class="pre">cudaq-qpud</span></code>),
 hosting all the simulator backends available in the installation. These backends include those that require MPI for multi-GPU computation.</p>
-<section id="auto-launch-rest-server">
-<h3>Auto-launch REST Server<a class="headerlink" href="#auto-launch-rest-server" title="Permalink to this heading">¶</a></h3>
-<p>The server app (<code class="code docutils literal notranslate"><span class="pre">cudaq-qpud</span></code>) can be launch and shutdown automatically
+<section id="automatically-launch-rest-server-local">
+<h3>Automatically Launch REST Server (Local)<a class="headerlink" href="#automatically-launch-rest-server-local" title="Permalink to this heading">¶</a></h3>
+<p>The server app (<code class="code docutils literal notranslate"><span class="pre">cudaq-qpud</span></code>) can be launched and shutdown automatically
 by using the auto-launch feature of the platform.
 Random TCP/IP ports, that are available for use, will be selected to launch those server processes.</p>
 <div class="tab-set docutils">
@@ -710,6 +710,12 @@ These servers will be shut down at the end of the execution.</p>
 <p>To start the server, serving at a specific TCP/IP port, one can do the following.</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cudaq-qpud --port &lt;port number&gt;</span>
 </pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>There is no authentication required to communicate with this server app.
+Hence, please make sure to either (1) use a non-public TCP/IP port for internal use or
+(2) use firewalls or other security mechanisms to manage user access.</p>
 </div>
 <p>User code can then target this platform by specifying its target name (<code class="code docutils literal notranslate"><span class="pre">remote-sim</span></code>).</p>
 <div class="tab-set docutils">
@@ -749,7 +755,7 @@ runtime arguments into a flat memory buffer (<code class="code docutils literal 
 <tbody>
 <tr class="row-even"><td><p>Trivial type (occupies a contiguous memory area)</p></td>
 <td><p><code class="code docutils literal notranslate"><span class="pre">int</span></code>, <code class="code docutils literal notranslate"><span class="pre">std::size_t</span></code>, <code class="code docutils literal notranslate"><span class="pre">double</span></code>, etc.</p></td>
-<td><p>Byte data (via <code class="code docutils literal notranslate"><span class="pre">memcopy</span></code>)</p></td>
+<td><p>Byte data (via <code class="code docutils literal notranslate"><span class="pre">memcpy</span></code>)</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> of trivial type</p></td>
 <td><p><code class="code docutils literal notranslate"><span class="pre">std::vector&lt;int&gt;</span></code>, <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;double&gt;</span></code>, etc.</p></td>
