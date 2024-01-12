@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -39,14 +39,14 @@ private:
   std::vector<OpaqueArgDeleter> deleters;
 
 public:
-  /// @brief Add an opaque argument and its deleter to this OpaqueArguments
+  /// @brief Add an opaque argument and its `deleter` to this OpaqueArguments
   template <typename ArgPointer, typename Deleter>
   void emplace_back(ArgPointer &&pointer, Deleter &&deleter) {
     args.emplace_back(pointer);
     deleters.emplace_back(deleter);
   }
 
-  /// @brief Return the args as a pointer to void*.
+  /// @brief Return the `args` as a pointer to void*.
   void **data() { return args.data(); }
 
   /// @brief Return the number of arguments
@@ -124,7 +124,7 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
 
 /// @brief For general function broadcasting over many argument
 /// sets, this function will create those argument sets from
-/// the input args.
+/// the input `args`.
 inline std::vector<py::args> createArgumentSet(py::args &args) {
   // we accept float, int, list so we will check here for
   // list[float], list[int], list[list], or ndarray for any,
@@ -182,7 +182,7 @@ inline std::vector<py::args> createArgumentSet(py::args &args) {
   return argSet;
 }
 
-/// @brief Convert py::args to an OpaqueArguments instance
+/// @brief Convert `py::args` to an OpaqueArguments instance
 inline void packArgs(OpaqueArguments &argData, py::args args) {
   for (auto &arg : args) {
     if (py::isinstance<py::float_>(arg)) {
@@ -212,10 +212,10 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
   }
 }
 
-/// @brief Return true if the given py::args represents a
-/// request for broadcasting sample or observe over all argument sets.
-/// Kernel arg types can be int, float, list, so
-/// we should check if args[i] is a list or ndarray.
+/// @brief Return true if the given `py::args` represents a request for
+/// broadcasting sample or observe over all argument sets. `args` types can be
+/// `int`, `float`, `list`, so  we should check if `args[i]` is a `list` or
+/// `ndarray`.
 inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   if (args.empty())
     return false;
