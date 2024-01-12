@@ -129,8 +129,8 @@ option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the c
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA Quantum C++ Clang-based Frontend." OFF)
 
-# We allow to pick up certain build configurations directly from the environment,
-# since this facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
+# Certain build configurations may be set directly in the environment.
+# This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
 if(NOT LLVM_DIR AND EXISTS "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
   SET(LLVM_DIR "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
 endif()
