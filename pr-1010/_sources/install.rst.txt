@@ -213,16 +213,19 @@ Starting with the 0.6.0 release, we provide pre-built binaries for using
 CUDA Quantum with C++. Support for using CUDA Quantum with Python can be installed 
 side-by-side with the pre-built binaries for C++ by following the instructions on 
 `PyPI.org <https://pypi.org/project/cuda-quantum>`__.
-The pre-built binaries work across a range of Linux operating systems listed under :ref:`dependencies-and-compatibility`. 
+The pre-built binaries work across a range of Linux operating systems listed 
+under :ref:`dependencies-and-compatibility`. 
 
 Before installing our pre-built binaries, please make sure that your 
 operating system is using the `GNU C library <https://www.gnu.org/software/libc/>`__ 
 version 2.28 or newer. You can confirm this by checking the output of the command 
 `ldd --version`. If this command does not exist, or shows an older version than 2.28, 
-the easiest way to ensure you have the necessary libraries is usually to install the 
-GCC 12 toolchain via the package manager for your operating system.
+please double check that your operating system is listed as 
+:ref:`supported <dependencies-and-compatibility>`. If you use an operating system
+with an older GNU C library version, you will need to build the installer from 
+source following the instructions in :doc:`data_center_install`.
 
-You can then download the `install_cuda_quantum` file for your processor architecture from
+You can download the `install_cuda_quantum` file for your processor architecture from
 the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. 
 The installer is a `self-extracting archive <https://makeself.io/>`__ that contains the 
 pre-built binaries as well as a script to move them to the correct locations. You will need
