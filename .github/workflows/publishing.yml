@@ -647,6 +647,7 @@ jobs:
               # Run with mpiexec
               mpiexec --allow-run-as-root -np 4 ./a.out
               status=$?
+              filename=$(basename -- "$ex")
               if [ $status -eq 0 ]; then
                 echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
               else

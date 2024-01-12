@@ -17,7 +17,7 @@ function error_exit {
 	if [ -x "$(command -v tput)" ]; then
 		RED=$(tput setaf 1)
 		NORMAL=$(tput sgr0)
-		echo "${RED}${message_content}${NORMAL}"
+		echo "${RED}${message_content}${NORMAL}" >&2
 	else
 	    echo -e "\e[01;31m${message_content}\e[0m" >&2
 	fi

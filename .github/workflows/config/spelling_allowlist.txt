@@ -35,11 +35,11 @@ JupyterLab
 Kraus
 LLVM
 LSB
+Max-Cut
 MLIR
 MPI
-MPS
-Max-Cut
 MPICH
+MPS
 NGC
 NVIDIA
 NVQIR

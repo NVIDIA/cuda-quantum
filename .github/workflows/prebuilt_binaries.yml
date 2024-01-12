@@ -311,7 +311,7 @@ jobs:
           (docker exec cuda-quantum bash -c "cat /etc/profile && nvq++") && installed=true || installed=false
           docker stop cuda-quantum
 
-          if ! $installed; then echo "Failed to install CUDA Quantum." # && exit 1 FIXME: UNCOMMENT
+          if ! $installed; then echo "Failed to install CUDA Quantum." && exit 1
           else echo "Successfully installed CUDA Quantum."; fi
 
       - name: MPI validation
@@ -327,6 +327,7 @@ jobs:
               if [ $status -eq 0 ]; then
                 mpiexec --allow-run-as-root -np 4 ./a.out
                 status=$?
+                filename=$(basename -- "$ex")
                 if [ $status -eq 0 ]; then
                   echo "Successfully ran $filename."
                 else

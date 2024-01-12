@@ -31,6 +31,8 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+# CMP0135: Timestamp for content downloaded with ExternalProject_Add()
+# New in CMake 3.24 https://cmake.org/cmake/help/latest/policy/CMP0135.html
 if(POLICY CMP0135)
   cmake_policy(SET CMP0135 NEW)
 endif()
