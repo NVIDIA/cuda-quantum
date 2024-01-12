@@ -119,11 +119,11 @@ while rdom; do
 done < "$build_config"
 
 if [ -d "$assets/cudaq" ]; then
-    chmod a+r "$(dirname "$CUDA_QUANTUM_PATH")"
     move_artifacts "$assets/cudaq" "$CUDA_QUANTUM_PATH"
     if [ ! -f "$CUDA_QUANTUM_PATH/build_config.yml" ]; then
         cp "$build_config" "$CUDA_QUANTUM_PATH/build_config.yml"
     fi
+    chmod a+rx "$(dirname "$CUDA_QUANTUM_PATH")"
 fi
 
 this_file=`readlink -f "${BASH_SOURCE[0]}"`
