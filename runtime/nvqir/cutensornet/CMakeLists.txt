@@ -33,7 +33,7 @@ endif()
 message(STATUS "CUTENSOR_LIB: ${CUTENSOR_LIB}")
 
 if(NOT CUTENSORNET_LIB OR NOT CUTENSORNET_INC)
-  message(FATAL_ERROR "\nUnable to find cutensornet installation. Please ensure it is correctly installed and and define CUTENSORNET_ROOT if necessary (currently set to: ${CUTENSORNET_ROOT}).")
+  message(FATAL_ERROR "\nUnable to find the cutensornet installation. Please ensure it is correctly installed and define CUTENSORNET_ROOT if necessary (currently set to: ${CUTENSORNET_ROOT}).")
 endif()
 message(STATUS "CUTENSORNET_LIB: ${CUTENSORNET_LIB}")
 message(STATUS "CUTENSORNET_INC: ${CUTENSORNET_INC}")

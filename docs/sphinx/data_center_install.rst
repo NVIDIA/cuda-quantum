@@ -8,7 +8,7 @@ other software tools installed on the system. Note that `Singularity
 or `Docker rootless mode <https://docs.docker.com/engine/security/rootless/>`__
 address common issue or concerns that are often the motivation for
 avoiding the use of containers. Singularity, for example, can be installed 
-in a user folder and its installation does not require admin permissions, see
+in a user folder and its installation does not require admin permissions; see
 :ref:`this section <install-singularity-image>` for more detailed instructions 
 on how to do that. Our installation guide also contains instructions for how to 
 :ref:`connect an IDE <local-development-with-vscode>` to a running container.
@@ -153,7 +153,7 @@ cuQuantum
 +++++++++++++++++++++++++++++++
 
 Each version of CUDA Quantum is compatible only with a specific cuQuantum version.
-At present this is version 23.10. Newer versions of cuQuantum (if they exist)
+As of CUDA Quantum 0.6, this is version 23.10. Newer versions of cuQuantum (if they exist)
 might be compatible but have not been tested.
 
 Make sure the environment variable `CUDA_ARCH_FOLDER` is set to either `x86_64`
@@ -314,12 +314,12 @@ the `/etc/profile` file:
   setting the `NVQPP_LD_PATH` environment variable to point to it; for example
   `export NVQPP_LD_PATH=ld`.
 
-The remaining section in this document list additional runtime dependencies 
+The remaining sections in this document list additional runtime dependencies 
 that are not included in the migrated assets and are needed to use some of the 
 CUDA Quantum features and components, install the CUDA Quantum 
 runtime dependencies listed in the remaining sections on the host system.
 
-CUDA Runtime libraries
+CUDA Runtime Libraries
 +++++++++++++++++++++++++++++++
 
 To use GPU-acceleration in CUDA Quantum you will need to install the necessary 

@@ -39,7 +39,7 @@ if [ -z "${CXX}" ]; then
     elif [ -x "$(command -v "${MPI_PATH}/bin/mpic++")" ]; then
         CXX="${MPI_PATH}/bin/mpic++"
     else
-        echo "The nvq++ compiler was not found. Please make sure that it is on your path or set the environment variable CXX to a suitable C++ compiler to build the MPI plugin."
+        echo "The nvq++ compiler was not found. Please make sure that its location is included in PATH or set the environment variable CXX to a suitable C++ compiler to build the MPI plugin."
         (return 0 2>/dev/null) && return 2 || exit 2
     fi
 fi
