@@ -10,7 +10,15 @@
 
 #include "execution_manager.h"
 
+using namespace std::complex_literals;
+
 namespace cudaq {
+using complex = std::complex<double>;
+
+namespace ket {
+inline static const std::vector<complex> zero{1. + 0i, 0. + 0i};
+inline static const std::vector<complex> one{0. + 0i, 1. + 0i};
+} // namespace ket
 
 /// The qudit models a general d-level quantum system.
 /// This type is templated on the number of levels d.
@@ -28,6 +36,25 @@ class qudit {
 public:
   /// Construct a qudit, will allocated a new unique index
   qudit() : idx(getExecutionManager()->getAvailableIndex(n_levels())) {}
+  qudit(const std::vector<complex> &state) : qudit() {
+    if (state.size() != Levels)
+      throw std::runtime_error(
+          "Invalid number of state vector elements for qudit allocation (" +
+          std::to_string(state.size()) + ").");
+
+    auto norm = std::inner_product(
+        state.begin(), state.end(), state.begin(), complex{0., 0.},
+        [](auto a, auto b) { return a + b; },
+        [](auto a, auto b) { return std::conj(a) * b; });
+    if (std::fabs(1.0 - norm) > 1e-12)
+      throw std::runtime_error("Invalid vector norm for qudit allocation.");
+
+    // FIXME Perform the initialization
+    getExecutionManager()->initializeState({QuditInfo(n_levels(), idx)},
+                                           state.data());
+  }
+  qudit(const std::initializer_list<complex> &list)
+      : qudit({list.begin(), list.end()}) {}
 
   // Qudits cannot be copied
   qudit(const qudit &q) = delete;

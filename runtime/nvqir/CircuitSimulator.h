@@ -132,7 +132,9 @@ public:
   virtual std::size_t allocateQubit() = 0;
 
   /// @brief Allocate `count` qubits.
-  virtual std::vector<std::size_t> allocateQubits(const std::size_t count) = 0;
+  virtual std::vector<std::size_t>
+  allocateQubits(std::size_t count,
+                 const std::complex<double> *state = nullptr) = 0;
 
   /// @brief Deallocate the qubit with give unique index
   virtual void deallocate(const std::size_t qubitIdx) = 0;
@@ -532,7 +534,11 @@ protected:
   }
 
   /// @brief Add the given number of qubits to the state.
-  virtual void addQubitsToState(std::size_t count) {
+  virtual void addQubitsToState(std::size_t count,
+                                const std::complex<double> *state = nullptr) {
+    if (state != nullptr)
+      throw std::runtime_error("State initialization must be handled by "
+                               "subclasses, override addQubitsToState.");
     for (std::size_t i = 0; i < count; i++)
       addQubitToState();
   }
@@ -753,7 +759,9 @@ public:
   }
 
   /// @brief Allocate `count` qubits.
-  std::vector<std::size_t> allocateQubits(std::size_t count) override {
+  std::vector<std::size_t>
+  allocateQubits(std::size_t count,
+                 const std::complex<double> *state = nullptr) override {
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());
@@ -778,7 +786,7 @@ public:
     stateDimension = calculateStateDim(nQubitsAllocated);
 
     // Tell the subtype to allocate more qubits
-    addQubitsToState(count);
+    addQubitsToState(count, state);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling

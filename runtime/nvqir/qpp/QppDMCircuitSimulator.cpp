@@ -75,9 +75,13 @@ protected:
     state = qpp::kron(state, zero_state);
   }
 
-  void addQubitsToState(std::size_t count) override {
+  void addQubitsToState(std::size_t count,
+                        const std::complex<double> *data = nullptr) override {
     if (count == 0)
       return;
+
+    if (data != nullptr)
+      throw std::runtime_error("init state not implemented for dm sim");
 
     if (state.size() == 0) {
       // If this is the first time, allocate the state
