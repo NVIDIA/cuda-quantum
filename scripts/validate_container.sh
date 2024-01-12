@@ -142,7 +142,12 @@ do
         then
             let "skipped+=1"
             echo "Skipping $t target.";
-
+        # Skipped these long-running tests for the "remote-sim" target to keep CI runtime managable.
+        # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
+        elif [[ "$t" == "remote-sim" ]] && [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* ]];
+        then
+            let "skipped+=1"
+            echo "Skipping $ex for $t target.";
         else
             echo "Testing on $t target..."
             if [ "$t" == "default" ]; then 
