@@ -461,14 +461,13 @@ version. Fortunately, <code class="code docutils literal notranslate"><span clas
 <p>Note that starting with version 12 of the CUDA toolkit, the C++ 20
 standard is supported.</p>
 <p>Our project can then be built with commands such as</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvcc<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>-c<span class="w"> </span>&lt;options&gt;<span class="w"> </span>my_proj.cu<span class="w"> </span>-o<span class="w"> </span>my_proj.o
-nvq++<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>-c<span class="w"> </span>&lt;options&gt;<span class="w"> </span>my_proj_quantum.cpp<span class="w"> </span>-o<span class="w"> </span>my_proj_quantum.o
-...
-nvq++<span class="w"> </span>my_proj.o<span class="w"> </span>my_proj_quantum.o<span class="w"> </span>...<span class="w"> </span>-o<span class="w"> </span>my_executable
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvcc<span class="w"> </span>-c<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>&lt;options&gt;<span class="w"> </span>my_proj.cu<span class="w"> </span>-o<span class="w"> </span>my_proj.o
+nvq++<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>&lt;options&gt;<span class="w"> </span>my_project_quantum.cpp<span class="w"> </span>my_proj.o<span class="w"> </span>-L<span class="w"> </span><span class="si">${</span><span class="nv">CUDA_INSTALL</span><span class="si">}</span>/lib64<span class="w"> </span>-lcudart<span class="w"> </span>-o<span class="w"> </span>my_executable
 </pre></div>
 </div>
-<p>Using <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> for the link step will make sure the CUDA Quantum runtime
-libraries are linked correctly to the executable program.</p>
+<p>Above, <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> is used for the link step will make sure the CUDA
+Quantum runtime libraries are linked correctly to the executable program.
+The CUDA runtime is explicitly added to this command.</p>
 </section>
 
 
