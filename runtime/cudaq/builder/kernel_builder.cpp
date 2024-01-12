@@ -45,6 +45,8 @@ namespace cudaq::details {
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
 
+/// @brief Return a code intrinsic for describing a global pointer to
+/// user-provided state vector data.
 static std::string getStateDataGlobalIntrinsic(std::size_t hashValue,
                                                std::size_t size) {
   return fmt::format(
@@ -60,6 +62,8 @@ static std::string getStateDataGlobalIntrinsic(std::size_t hashValue,
       hashValue, size);
 }
 
+/// @brief Return a code instrinsic for describing a function
+/// allowing clients to set the user-provided state vector data.
 static std::string getSetStateInstrinsic(std::size_t hashValue) {
   return fmt::format(fmt::runtime(R"#(
   llvm.func @nvqpp.set.state.{0}(%arg0: !llvm.ptr<struct<(f64,f64)>>) {{
@@ -515,17 +519,21 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
   auto *context = builder.getContext();
   auto parentModule =
       builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+
+  // Add the global for the state data to the module
   if (failed(parseSourceString(getStateDataGlobalIntrinsic(hash, size),
                                parentModule.getBody(),
                                ParserConfig{context, false})))
     throw std::runtime_error("Could not create code for state global data.");
 
+  // Add the function allowing one to set the state vector data to the module
   if (failed(parseSourceString(getSetStateInstrinsic(hash),
                                parentModule.getBody(),
                                ParserConfig{context, false})))
     throw std::runtime_error(
         "Could not create code for setting the state global data.");
 
+  // Allocate the qubits
   Value qubits = builder.create<quake::AllocaOp>(
       quake::VeqType::get(context, std::log2(size)));
 
@@ -536,7 +544,6 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
   auto llvmComplexPtrTy = LLVM::LLVMPointerType::get(llvmComplexTy);
   auto resTy = LLVM::LLVMStructType::getLiteral(
       context, SmallVector<Type>{llvmComplexPtrTy, builder.getI32Type()});
-
   auto globalData = parentModule.lookupSymbol<LLVM::GlobalOp>(
       fmt::format("nvqpp.state.{}", hash));
   auto addr = builder.create<LLVM::AddressOfOp>(
@@ -545,11 +552,15 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
   auto dataPtr =
       builder.create<LLVM::GEPOp>(LLVM::LLVMPointerType::get(llvmComplexPtrTy),
                                   addr, SmallVector<Value>{zero, zero});
+
+  // Load it but cast to a CC data type equivalent
   auto loaded = builder.create<LLVM::LoadOp>(llvmComplexPtrTy, dataPtr);
   auto casted = builder.create<cudaq::cc::CastOp>(
       cudaq::cc::PointerType::get(
           cudaq::cc::StructType::get(context, SmallVector<Type>{f64Ty, f64Ty})),
       loaded);
+
+  // Add the initialize state op
   qubits = builder.create<quake::InitializeStateOp>(qubits.getType(), qubits,
                                                     casted);
   return QuakeValue(builder, qubits);
@@ -982,7 +993,9 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // for the following we want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
 
-  for (auto &[stateHash, valueDataPair] : storage) {
+  // If we have any state vector data, we need to
+  // extract the function pointer to set that data, and then set it.
+  for (auto &[stateHash, data] : storage) {
     auto setStateFPtr =
         jit->lookup("nvqpp.set.state." + std::to_string(stateHash));
     if (!setStateFPtr)
@@ -990,8 +1003,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
           "cudaq::builder failed to get set state function.");
 
     auto setStateFunc = reinterpret_cast<void (*)(complex *)>(*setStateFPtr);
-    printf("TEST HERE AGAIN %lf\n", valueDataPair.second[0].real());
-    setStateFunc(valueDataPair.second);
+    setStateFunc(data);
   }
 
   // Incoming Args... have been converted to void **,

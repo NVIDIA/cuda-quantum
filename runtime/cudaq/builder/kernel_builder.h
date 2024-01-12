@@ -77,8 +77,9 @@ concept KernelBuilderArgTypeIsValid =
 
 namespace details {
 
-using StateVectorStorage =
-    std::map<std::size_t, std::pair<QuakeValue, cudaq::complex *>>;
+/// @brief Type describing user-provided state vector data.
+/// This maps the state vector unique hash to the vector data.
+using StateVectorStorage = std::map<std::size_t, cudaq::complex *>;
 
 // Define a `mlir::Type` generator in the `cudaq` namespace, this helps us keep
 // MLIR out of this public header
@@ -162,6 +163,7 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
 /// @brief Allocate a `qvector` from existing `QuakeValue` size
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
 
+/// @brief Allocate a `qvector` from a user provided state vector.
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, std::size_t hash,
                   std::size_t size);
 
@@ -393,6 +395,7 @@ private:
     return std::get<std::string>(term);
   }
 
+  /// @brief Compute a unique hash code for the given state vector data.
   std::size_t hashStateVector(const std::vector<cudaq::complex> &vec) const {
     auto seed = vec.size();
     for (auto &v : vec)
@@ -401,8 +404,8 @@ private:
     return seed;
   }
 
-  std::map<std::size_t, std::pair<QuakeValue, cudaq::complex *>>
-      stateVectorStorage;
+  /// @brief Storage for any user-provided state-vector data.
+  details::StateVectorStorage stateVectorStorage;
 
 public:
   /// @brief The constructor, takes the input `KernelBuilderType`s which is
@@ -448,12 +451,13 @@ public:
     return details::qalloc(*opBuilder.get(), size);
   }
 
-  // Not const here, user has to own the data.
+  // @brief Return a `QuakeValue` representing the allocated
+  // quantum register, initialized to the given state vector.
+  // Note - input argument os not const here, user has to own the data.
   QuakeValue qalloc(std::vector<cudaq::complex> &state) {
-    // Store the state here internally, need some unique key for it
     auto hash = hashStateVector(state);
     auto value = details::qalloc(*opBuilder.get(), hash, state.size());
-    stateVectorStorage.insert({hash, {value, state.data()}});
+    stateVectorStorage.insert({hash, state.data()});
     return value;
   }
   /// @brief Return a `QuakeValue` representing the constant floating-point
