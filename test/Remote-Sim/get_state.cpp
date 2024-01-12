@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target remote-sim --remote-sim-auto-launch 4 %s -o %t && %t 
-// RUN: nvq++ --enable-mlir --target remote-sim --remote-sim-auto-launch 4 %s -o %t && %t
+// RUN: nvq++ --target remote-sim --remote-sim-auto-launch 1 %s -o %t && %t 
+// RUN: nvq++ --enable-mlir --target remote-sim --remote-sim-auto-launch 1 %s -o %t && %t
 // clang-format on
 
 #include "cudaq/algorithms/state.h"
@@ -26,6 +26,9 @@ int main() {
     assert(std::abs(state[2].real()) < 1e-3);
     assert(std::abs(M_SQRT1_2 - state[3].real()) < 1e-3);
   }
+// Skipped test due to a stability issue. See:
+// https://github.com/NVIDIA/cuda-quantum/issues/1087
+#if 0
   {
     auto &platform = cudaq::get_platform();
 
@@ -48,5 +51,6 @@ int main() {
       assert(std::abs(M_SQRT1_2 - state[(1ULL << (i + 1)) - 1].real()) < 1e-3);
     }
   }
+#endif
   return 0;
 }

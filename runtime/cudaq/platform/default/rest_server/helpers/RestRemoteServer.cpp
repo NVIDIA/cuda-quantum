@@ -243,6 +243,8 @@ private:
   }
 
   json processRequest(const std::string &reqBody) {
+    // IMPORTANT: This assumes the REST server handles incoming requests
+    // sequentially.
     static std::size_t g_requestCounter = 0;
     auto requestJson = json::parse(reqBody);
     cudaq::RestRequest request(requestJson);

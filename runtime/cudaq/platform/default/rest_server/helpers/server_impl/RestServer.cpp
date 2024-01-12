@@ -38,6 +38,8 @@ cudaq::RestServer::RestServer(int port, const std::string &name) {
   m_impl->app.port(port);
   m_impl->app.server_name(name);
   m_impl->app.loglevel(crow::LogLevel::Warning);
+  // Note: don't enable multi-threading (`m_impl->app.multithreaded()`) since
+  // we're handling requests sequentially.
 }
 void cudaq::RestServer::start() { m_impl->app.run(); }
 void cudaq::RestServer::stop() { m_impl->app.stop(); }
