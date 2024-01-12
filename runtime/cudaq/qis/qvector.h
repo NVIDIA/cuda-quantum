@@ -35,7 +35,7 @@ public:
       auto numElements = std::log2(vector.size());
       if (std::floor(numElements) != numElements)
         throw std::runtime_error(
-          "Invalid state vector passed to qvector initialization - number of "
+            "Invalid state vector passed to qvector initialization - number of "
             "elements must be power of 2.");
     }
 

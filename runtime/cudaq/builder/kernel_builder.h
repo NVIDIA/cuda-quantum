@@ -162,7 +162,8 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
 /// @brief Allocate a `qvector` from existing `QuakeValue` size
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
 
-QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, std::size_t hash, std::size_t size);
+QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, std::size_t hash,
+                  std::size_t size);
 
 /// @brief Create a QuakeValue representing a constant floating-point number
 QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
@@ -231,7 +232,8 @@ jitCode(mlir::ImplicitLocOpBuilder &, mlir::ExecutionEngine *,
 /// @brief Invoke the function with the given kernel name.
 void invokeCode(mlir::ImplicitLocOpBuilder &builder, mlir::ExecutionEngine *jit,
                 std::string kernelName, void **argsArray,
-                std::vector<std::string> extraLibPaths, StateVectorStorage& storage);
+                std::vector<std::string> extraLibPaths,
+                StateVectorStorage &storage);
 
 /// @brief Invoke the provided kernel function.
 void call(mlir::ImplicitLocOpBuilder &builder, std::string &name,
@@ -394,7 +396,8 @@ private:
   std::size_t hashStateVector(const std::vector<cudaq::complex> &vec) const {
     auto seed = vec.size();
     for (auto &v : vec)
-      seed ^= std::hash<double>()(v.real()) + std::hash<double>()(v.imag()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= std::hash<double>()(v.real()) + std::hash<double>()(v.imag()) +
+              0x9e3779b9 + (seed << 6) + (seed >> 2);
     return seed;
   }
 
