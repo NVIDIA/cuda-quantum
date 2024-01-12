@@ -177,10 +177,8 @@ HELP
 }
 
 # Install directory is wherever this script is and up one directory
-install_dir="$(
-	cd -- "$(dirname "$0")/.." >/dev/null 2>&1
-	pwd -P
-)"
+this_file_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+install_dir="$(dirname "${this_file_dir}")"
 llvm_install_dir="@LLVM_BINARY_DIR@"
 llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"

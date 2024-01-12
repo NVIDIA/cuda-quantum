@@ -240,7 +240,7 @@ and merely downloading the source code as ZIP archive hence will not work.
 From within the folder where you cloned the CUDA Quantum repository, run the following
 command to build CUDA Quantum:
 
-.. literalinclude:: docker/build/assets.Dockerfile
+.. literalinclude:: ../../docker/build/assets.Dockerfile
     :language: bash
     :start-after: [>CUDAQuantumBuild]
     :end-before: [<CUDAQuantumBuild]
@@ -260,7 +260,7 @@ To easily migrate the built binaries to the host system, we recommend creating a
 `makeself script(s) <https://github.com/megastep/makeself>`__ and move the necessary 
 files to install into a separate folder using the command
 
-.. literalinclude:: docker/release/installer.Dockerfile
+.. literalinclude:: ../../docker/release/installer.Dockerfile
     :language: bash
     :start-after: [>CUDAQuantumAssets]
     :end-before: [<CUDAQuantumAssets]
@@ -356,7 +356,7 @@ Plugins for OpenMPI and MPICH are included in CUDA Quantum and can be activated 
 setting the environment variable `MPI_PATH` to the MPI installation folder 
 and then running the command
 
-.. code-block:: console
+.. code-block:: bash
 
     bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 

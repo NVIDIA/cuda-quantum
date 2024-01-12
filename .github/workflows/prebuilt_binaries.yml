@@ -308,7 +308,7 @@ jobs:
             --build-arg base_image_mpibuild=${{ inputs.platform_base_image }}
 
           docker run --rm -dit --name cuda-quantum validation:local
-          (docker exec cuda-quantum bash -c "cat /etc/profile && nvq++") && installed=true || installed=false
+          (docker exec cuda-quantum bash -c "nvq++ --help") && installed=true || installed=false
           docker stop cuda-quantum
 
           if ! $installed; then echo "Failed to install CUDA Quantum." && exit 1

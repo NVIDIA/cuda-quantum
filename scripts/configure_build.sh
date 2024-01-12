@@ -103,7 +103,7 @@ export CXX="${GCC_INSTALL_PREFIX}/root/usr/bin/g++"
 export CC="${GCC_INSTALL_PREFIX}/root/usr/bin/gcc"
 export FC="${GCC_INSTALL_PREFIX}/root/usr/bin/gfortran"
 export CUDACXX=/usr/local/cuda/bin/nvcc
-# [>ToolchainConfiguration]
+# [<ToolchainConfiguration]
 
 if [ "$1" == "install-prereqs" ]; then
     export LDFLAGS="-static-libgcc -static-libstdc++"
