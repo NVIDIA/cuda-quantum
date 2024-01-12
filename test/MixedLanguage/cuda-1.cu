@@ -11,15 +11,13 @@
 
 #include <stdio.h>
 
-void cudaq_kernel(); // CUDA Quantum code
-
 __global__ void saxpy(int n, float a, float *x, float *y) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   if (i < n)
     y[i] = a * x[i] + y[i];
 }
 
-int main() {
+void cuda_gpu_kernel() {
   int N = 1 << 20;
   float *x, *y, *d_x, *d_y;
   x = (float *)malloc(N * sizeof(float));
@@ -50,8 +48,4 @@ int main() {
   cudaFree(d_y);
   free(x);
   free(y);
-
-  cudaq_kernel(); // Call the CUDA Quantum kernel.
-
-  return 0;
 }

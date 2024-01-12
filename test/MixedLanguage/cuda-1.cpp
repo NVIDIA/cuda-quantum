@@ -8,16 +8,29 @@
 
 // REQUIRES: nvcc
 
-// RUN: (nvq++ -std=c++17 -c %s -o %t.1.o && \
-// RUN: nvcc -std=c++17 cuda-1.cu -o %t.2.o && \
-// RUN: nvq++ %t.1.o %t.2.o -o %t && echo "Success") | FileCheck %s
+// RUN: (nvcc -c -std=c++17 %p/cuda-1.cu -o %t.o && \
+// RUN: nvq++ -std=c++17 --enable-mlir %s %t.o -L `dirname $(which nvcc)`/../lib64 -lcudart -o %t && echo "Success") | \
+// RUN: FileCheck %s
 
 // CHECK-LABEL: Success
 
 #include <cudaq.h>
 
-__qpu__ void cudaq_kernel() {
-  cudaq::qubit q;
-  h(q);
-  x(q);
+struct CUDA_Quantum_Kernel {
+  void operator()() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+    x(q);
+  }
+};
+
+void cudaq_kernel() {
+  CUDA_Quantum_Kernel{}();
+}
+
+void cuda_gpu_kernel();
+
+int main() {
+  cuda_gpu_kernel();
+  cudaq_kernel();
 }
