@@ -463,17 +463,24 @@ in a user folder and its installation does not require admin permissions; see
 <a class="reference internal" href="install.html#install-singularity-image"><span class="std std-ref">this section</span></a> for more detailed instructions
 on how to do that. Our installation guide also contains instructions for how to
 <a class="reference internal" href="install.html#local-development-with-vscode"><span class="std std-ref">connect an IDE</span></a> to a running container.</p>
-<p>If you do not want use a container runtime, we also provide pre-built binaries.
-These binaries are built following the instructions in this guide and should work
-for you as long as your system meets the compatibility requirements listed under
-<a class="reference internal" href="#compatibility-prebuilt-binaries"><span class="std std-ref">Prerequisites</span></a>. To install them, please
-follow the instructions <a class="reference internal" href="install.html#install-prebuilt-binaries"><span class="std std-ref">here</span></a>.</p>
+<p>If you do not want use a container runtime, we also provide pre-built binaries
+for using CUDA Quantum with C++. These binaries are built following the instructions
+in this guide and should work for you as long as your system meets the compatibility
+requirements listed under <a class="reference internal" href="#compatibility-prebuilt-binaries"><span class="std std-ref">Prerequisites</span></a>.
+To install them, please follow the instructions <a class="reference internal" href="install.html#install-prebuilt-binaries"><span class="std std-ref">here</span></a>.</p>
 <p>If you still want to build and install CUDA Quantum from source, you will need
 to ensure that all dependencies installed in the build and host system are
 compatible with your CUDA Quantum installation. The rest of this guide outlines
 specific compatibility requirements during the build and after installation, and
 walks through the installation steps.</p>
-<p>Please note that CUDA Quantum contains some components that are only included as
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The build described in this guide does not include the support
+for building the Python support for CUDA Quantum. For more information about
+using CUDA Quantum from Python, please take a look at
+<a class="reference internal" href="install.html#install-python-wheels"><span class="std std-ref">this page</span></a>.</p>
+</div>
+<p>CUDA Quantum contains some components that are only included as
 pre-built binaries and not part of our open source repository. We are working on
 either open-sourcing these components or making them available as separate downloads
 in the future. Even without these components, almost all features of CUDA
@@ -543,9 +550,14 @@ document assume you are using <code class="code docutils literal notranslate"><s
 </div>
 <p>In addition to installing the needed build dependencies listed above, make sure
 to set the following environment variables prior to proceeding:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;InstallLocations<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;InstallLocations<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/cudaq
+<span class="nb">export</span><span class="w"> </span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/cuquantum
+<span class="nb">export</span><span class="w"> </span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/cutensor
+<span class="nb">export</span><span class="w"> </span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/llvm
+<span class="nb">export</span><span class="w"> </span><span class="nv">BLAS_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/blas
+<span class="nb">export</span><span class="w"> </span><span class="nv">ZLIB_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/zlib
+<span class="nb">export</span><span class="w"> </span><span class="nv">OPENSSL_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/openssl
+<span class="nb">export</span><span class="w"> </span><span class="nv">CURL_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/curl
 </pre></div>
 </div>
 <p>These environment variables <em>must</em> be set during the build. Their value can be
@@ -570,14 +582,20 @@ The instructions are tested using version 11.8, but any CUDA 11 or 12 version
 should work, as long as the installed driver on both the build and the host
 system supports that CUDA version. We recommend using the latest CUDA version
 that is supported by your driver.</p>
-<p>Download a suitable [CUDA version](<a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">https://developer.nvidia.com/cuda-toolkit-archive</a>)
+<p>Download a suitable <a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">CUDA version</a>
 following the installation guide for your platform in the online documentation
 linked on that page.</p>
 <p>Within the tested AlmaLinux 8 environment, for example, the following commands
 install CUDA 11.8:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;CUDAInstall<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;CUDAInstall<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.8
+<span class="w">    </span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
+<span class="w">    </span><span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
+<span class="w">    </span><span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
+<span class="w">    </span><span class="c1"># DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64</span>
+
+<span class="w">    </span>dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
+<span class="w">    </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>cuda-toolkit-<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
 </pre></div>
 </div>
 </section>
@@ -590,9 +608,14 @@ might be compatible but have not been tested.</p>
 or <code class="code docutils literal notranslate"><span class="pre">sbsa</span></code> (for ARM64) depending on your processor architecture, and <code class="code docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>
 is set to the installed CUDA version.
 Install cuQuantum version 23.10 using the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;cuQuantumInstall<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;cuQuantumInstall<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nv">CUQUANTUM_VERSION</span><span class="o">=</span><span class="m">23</span>.10.0.6
+<span class="w">    </span><span class="nv">CUQUANTUM_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
+
+<span class="w">    </span><span class="nv">cuquantum_archive</span><span class="o">=</span>cuquantum-linux-<span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span>-<span class="si">${</span><span class="nv">CUQUANTUM_VERSION</span><span class="si">}</span>_cuda<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span>-archive.tar.xz
+<span class="w">    </span>wget<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/linux-</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">cuquantum_archive</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="w">    </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>
+<span class="w">    </span>tar<span class="w"> </span>xf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cuquantum_archive</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--strip-components<span class="w"> </span><span class="m">1</span><span class="w"> </span>-C<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>
+<span class="w">    </span>rm<span class="w"> </span>-rf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cuquantum_archive</span><span class="si">}</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
 </section>
@@ -606,34 +629,41 @@ compatible with the used cuQuantum version, such as version 1.7.</p>
 or <code class="code docutils literal notranslate"><span class="pre">sbsa</span></code> (for ARM64) depending on your processor architecture, and <code class="code docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>
 is set to the installed CUDA version.
 Install cuTensor version 1.7 using the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;cuTensorInstall<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;cuTensorInstall<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nv">CUTENSOR_VERSION</span><span class="o">=</span><span class="m">1</span>.7.0.1
+<span class="w">    </span><span class="nv">CUTENSOR_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor
+
+<span class="w">    </span><span class="nv">cutensor_archive</span><span class="o">=</span>libcutensor-linux-<span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span>-<span class="si">${</span><span class="nv">CUTENSOR_VERSION</span><span class="si">}</span>-archive.tar.xz
+<span class="w">    </span>wget<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/linux-</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">cutensor_archive</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="w">    </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>tar<span class="w"> </span>xf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cutensor_archive</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--strip-components<span class="w"> </span><span class="m">1</span><span class="w"> </span>-C<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span>/lib/<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span>/*<span class="w"> </span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span>/lib/
+<span class="w">    </span>ls<span class="w"> </span>-d<span class="w"> </span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span>/lib/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cutensor_archive</span><span class="si">}</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
 </section>
 <section id="toolchain">
 <h3>Toolchain<a class="headerlink" href="#toolchain" title="Permalink to this heading">¶</a></h3>
 <p>The compiler toolchain used for the build needs to support C++20 and must be a supported
-[CUDA host compiler](<a class="reference external" href="https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers">https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers</a>)
+<a class="reference external" href="https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers">CUDA host compiler</a>
 for the installed CUDA version.
 The following instructions have been tested with
-[GCC-11](<a class="reference external" href="https://gcc.gnu.org/index.html">https://gcc.gnu.org/index.html</a>) as your toolchain for building CUDA Quantum.
+<a class="reference external" href="https://gcc.gnu.org/index.html">GCC-11</a> as your toolchain for building CUDA Quantum.
 If you use a different compiler, we recommend using an OpenMP-enabled compiler. At this
 time, we actively test building with GCC 11 and 12, as well as with Clang 16.
 Other toolchains may be supported but have not been tested.</p>
 <p>Within the tested AlmaLinux 8 environment, for example, the following commands
 install GCC 11:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;gccInstall<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;gccInstall<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nv">GCC_VERSION</span><span class="o">=</span><span class="m">11</span>
+<span class="w">    </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>gcc-toolset-<span class="si">${</span><span class="nv">GCC_VERSION</span><span class="si">}</span>
 </pre></div>
 </div>
 <p>Independent on which compiler toolchain you installed, set the following
 environment variables to point to the respective compilers on your build system:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;ToolchainConfiguration<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;ToolchainConfiguration<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GCC_INSTALL_PREFIX</span><span class="o">=</span>/opt/rh/gcc-toolset-11
+<span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root/usr/bin/g++&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root/usr/bin/gcc&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root/usr/bin/gfortran&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CUDACXX</span><span class="o">=</span>/usr/local/cuda/bin/nvcc
 </pre></div>
 </div>
 <ul class="simple">
@@ -659,9 +689,11 @@ Note that the build scripts assume that they are run from within a git repositor
 and merely downloading the source code as ZIP archive hence will not work.</p>
 <p>From within the folder where you cloned the CUDA Quantum repository, run the following
 command to build CUDA Quantum:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>docker/build/assets.Dockerfile
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;CUDAQuantumBuild<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;CUDAQuantumBuild<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="nv">CUDAQ_WERROR</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">CUDAQ_ENABLE_STATIC_LINKING</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">LDFLAGS</span><span class="o">=</span><span class="s1">&#39;-static-libgcc -static-libstdc++&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;lld;mlir&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-uv
 </pre></div>
 </div>
 <p>The CUDA Quantum build will compile or omit optional components automatically depending
@@ -677,9 +709,16 @@ and have set the necessary environment variables as described in this document.<
 <a class="reference external" href="https://makeself.io/">self-extracting archive</a>. To do so, download the
 <a class="reference external" href="https://github.com/megastep/makeself">makeself script(s)</a> and move the necessary
 files to install into a separate folder using the command</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>docker/release/installer.Dockerfile
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;CUDAQuantumAssets<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;CUDAQuantumAssets<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span>mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets/llvm/bin<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>cuda_quantum_assets/llvm/lib<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/&quot;</span>clang*<span class="w"> </span>cuda_quantum_assets/llvm/bin/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/lib/&quot;</span>clang*<span class="w"> </span>cuda_quantum_assets/llvm/lib/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/llc&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/llc<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/lld&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/lld<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/bin/ld.lld&quot;</span><span class="w"> </span>cuda_quantum_assets/llvm/bin/ld.lld<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/build_config.xml&quot;</span><span class="w"> </span>cuda_quantum_assets/build_config.xml<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>cuda_quantum_assets
 </pre></div>
 </div>
 <p>You can then create a self-extracting archive with the command</p>
@@ -734,9 +773,17 @@ CUDA runtime libraries. While not necessary, we recommend installing
 the complete CUDA toolkit like you did for the CUDA Quantum build.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for the AlmaLinux 8 environment:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;CUDARTInstall<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;CUDARTInstall<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.8
+<span class="w">    </span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
+<span class="w">    </span><span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
+<span class="w">    </span><span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
+<span class="w">    </span><span class="c1"># DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64</span>
+
+<span class="w">    </span><span class="nv">version_suffix</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
+<span class="w">    </span>dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
+<span class="w">    </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>cuda-nvtx-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
 </pre></div>
 </div>
 </section>
@@ -750,9 +797,23 @@ additional configurations that fit your host system.
 The commands below assume you have the necessary prerequisites for the OpenMPI build
 installed on the build system. Within the tested AlmaLinux 8 environment, for example,
 the packages <code class="code docutils literal notranslate"><span class="pre">autoconf</span></code>, <code class="code docutils literal notranslate"><span class="pre">libtool</span></code>, <code class="code docutils literal notranslate"><span class="pre">flex</span></code>, and <code class="code docutils literal notranslate"><span class="pre">make</span></code> need to be installed.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>..<span class="w"> </span>literalinclude::<span class="w"> </span>../../scripts/configure_build.sh
-<span class="w">  </span>:start-after:<span class="w"> </span><span class="o">[</span>&gt;OpenMPIBuild<span class="o">]</span>
-<span class="w">  </span>:end-before:<span class="w"> </span><span class="o">[</span>&lt;OpenMPIBuild<span class="o">]</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nv">OPENMPI_VERSION</span><span class="o">=</span><span class="m">4</span>.1.4
+<span class="w">    </span><span class="nv">OPENMPI_DOWNLOAD_URL</span><span class="o">=</span>https://github.com/open-mpi/ompi
+
+<span class="w">    </span>wget<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">OPENMPI_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/archive/v</span><span class="si">${</span><span class="nv">OPENMPI_VERSION</span><span class="si">}</span><span class="s2">.tar.gz&quot;</span><span class="w"> </span>-O<span class="w"> </span>/tmp/openmpi.tar.gz
+<span class="w">    </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/.openmpi-src<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>tar<span class="w"> </span>xf<span class="w"> </span>/tmp/openmpi.tar.gz<span class="w"> </span>--strip-components<span class="w"> </span><span class="m">1</span><span class="w"> </span>-C<span class="w"> </span>~/.openmpi-src
+<span class="w">    </span>rm<span class="w"> </span>-rf<span class="w"> </span>/tmp/openmpi.tar.gz<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/.openmpi-src
+<span class="w">    </span>./autogen.pl<span class="w"> </span>
+<span class="w">    </span><span class="nv">LDFLAGS</span><span class="o">=</span>-Wl,--as-needed<span class="w"> </span>./configure<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--prefix<span class="o">=</span>/usr/local/openmpi<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--disable-getpwuid<span class="w"> </span>--disable-static<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--disable-debug<span class="w"> </span>--disable-mem-debug<span class="w"> </span>--disable-event-debug<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--disable-mem-profile<span class="w"> </span>--disable-memchecker<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--without-verbs<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--with-cuda<span class="o">=</span>/usr/local/cuda
+<span class="w">    </span>make<span class="w"> </span>-j<span class="k">$(</span>nproc<span class="k">)</span><span class="w"> </span>
+<span class="w">    </span>make<span class="w"> </span>-j<span class="k">$(</span>nproc<span class="k">)</span><span class="w"> </span>install
+<span class="w">    </span><span class="nb">cd</span><span class="w"> </span>-<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span>~/.openmpi-src
 </pre></div>
 </div>
 <p>Different MPI implementations are supported via a plugin infrastructure in CUDA Quantum.
@@ -761,7 +822,7 @@ configure CUDA Quantum to use it by activating the necessary plugin.
 Plugins for OpenMPI and MPICH are included in CUDA Quantum and can be activated by
 setting the environment variable <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code> to the MPI installation folder
 and then running the command</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">bash &quot;${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_QUANTUM_PATH</span><span class="si">}</span><span class="s2">/distributed_interfaces/activate_custom_mpi.sh&quot;</span>
 </pre></div>
 </div>
 <p>If you use a different MPI implementation than OpenMPI or MPICH, you will need to

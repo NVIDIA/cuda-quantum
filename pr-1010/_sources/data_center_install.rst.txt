@@ -13,11 +13,11 @@ in a user folder and its installation does not require admin permissions; see
 on how to do that. Our installation guide also contains instructions for how to 
 :ref:`connect an IDE <local-development-with-vscode>` to a running container.
 
-If you do not want use a container runtime, we also provide pre-built binaries.
-These binaries are built following the instructions in this guide and should work
-for you as long as your system meets the compatibility requirements listed under
-:ref:`Prerequisites <compatibility-prebuilt-binaries>`. To install them, please
-follow the instructions :ref:`here <install-prebuilt-binaries>`.
+If you do not want use a container runtime, we also provide pre-built binaries
+for using CUDA Quantum with C++. These binaries are built following the instructions 
+in this guide and should work for you as long as your system meets the compatibility 
+requirements listed under :ref:`Prerequisites <compatibility-prebuilt-binaries>`. 
+To install them, please follow the instructions :ref:`here <install-prebuilt-binaries>`.
 
 If you still want to build and install CUDA Quantum from source, you will need
 to ensure that all dependencies installed in the build and host system are
@@ -25,7 +25,14 @@ compatible with your CUDA Quantum installation. The rest of this guide outlines
 specific compatibility requirements during the build and after installation, and
 walks through the installation steps.
 
-Please note that CUDA Quantum contains some components that are only included as
+.. note::
+  
+  The build described in this guide does not include the support
+  for building the Python support for CUDA Quantum. For more information about 
+  using CUDA Quantum from Python, please take a look at 
+  :ref:`this page <install-python-wheels>`.
+
+CUDA Quantum contains some components that are only included as
 pre-built binaries and not part of our open source repository. We are working on
 either open-sourcing these components or making them available as separate downloads
 in the future. Even without these components, almost all features of CUDA
@@ -104,11 +111,10 @@ do not need to be present on the host system.
 In addition to installing the needed build dependencies listed above, make sure
 to set the following environment variables prior to proceeding:
 
-.. code-block:: bash
-
-    .. literalinclude:: ../../scripts/configure_build.sh
-      :start-after: [>InstallLocations]
-      :end-before: [<InstallLocations]
+.. literalinclude:: ../../scripts/configure_build.sh
+    :language: bash
+    :start-after: [>InstallLocations]
+    :end-before: [<InstallLocations]
 
 These environment variables *must* be set during the build. Their value can be
 chosen freely, but the paths specified during the build are also where the
@@ -136,18 +142,17 @@ should work, as long as the installed driver on both the build and the host
 system supports that CUDA version. We recommend using the latest CUDA version
 that is supported by your driver.
 
-Download a suitable [CUDA version](https://developer.nvidia.com/cuda-toolkit-archive)
+Download a suitable `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__
 following the installation guide for your platform in the online documentation
 linked on that page.
 
 Within the tested AlmaLinux 8 environment, for example, the following commands
 install CUDA 11.8:
 
-.. code-block:: bash
-
-    .. literalinclude:: ../../scripts/configure_build.sh
-      :start-after: [>CUDAInstall]
-      :end-before: [<CUDAInstall]
+.. literalinclude:: ../../scripts/configure_build.sh
+    :language: bash
+    :start-after: [>CUDAInstall]
+    :end-before: [<CUDAInstall]
 
 cuQuantum
 +++++++++++++++++++++++++++++++
@@ -161,11 +166,10 @@ or `sbsa` (for ARM64) depending on your processor architecture, and `CUDA_VERSIO
 is set to the installed CUDA version.
 Install cuQuantum version 23.10 using the following commands:
 
-.. code-block:: bash
-
-    .. literalinclude:: ../../scripts/configure_build.sh
-      :start-after: [>cuQuantumInstall]
-      :end-before: [<cuQuantumInstall]
+.. literalinclude:: ../../scripts/configure_build.sh
+    :language: bash
+    :start-after: [>cuQuantumInstall]
+    :end-before: [<cuQuantumInstall]
 
 cuTensor
 +++++++++++++++++++++++++++++++
@@ -180,20 +184,19 @@ or `sbsa` (for ARM64) depending on your processor architecture, and `CUDA_VERSIO
 is set to the installed CUDA version.
 Install cuTensor version 1.7 using the following commands:
 
-.. code-block:: bash
-
-    .. literalinclude:: ../../scripts/configure_build.sh
-      :start-after: [>cuTensorInstall]
-      :end-before: [<cuTensorInstall]
+.. literalinclude:: ../../scripts/configure_build.sh
+    :language: bash
+    :start-after: [>cuTensorInstall]
+    :end-before: [<cuTensorInstall]
 
 Toolchain
 +++++++++++++++++++++++++++++++
 
 The compiler toolchain used for the build needs to support C++20 and must be a supported 
-[CUDA host compiler](https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers)
+`CUDA host compiler <https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers>`__
 for the installed CUDA version.
 The following instructions have been tested with
-[GCC-11](https://gcc.gnu.org/index.html) as your toolchain for building CUDA Quantum.
+`GCC-11 <https://gcc.gnu.org/index.html>`__ as your toolchain for building CUDA Quantum.
 If you use a different compiler, we recommend using an OpenMP-enabled compiler. At this
 time, we actively test building with GCC 11 and 12, as well as with Clang 16. 
 Other toolchains may be supported but have not been tested.
@@ -201,20 +204,18 @@ Other toolchains may be supported but have not been tested.
 Within the tested AlmaLinux 8 environment, for example, the following commands
 install GCC 11:
 
-.. code-block:: bash
-
-    .. literalinclude:: ../../scripts/configure_build.sh
-      :start-after: [>gccInstall]
-      :end-before: [<gccInstall]
+.. literalinclude:: ../../scripts/configure_build.sh
+    :language: bash
+    :start-after: [>gccInstall]
+    :end-before: [<gccInstall]
 
 Independent on which compiler toolchain you installed, set the following
 environment variables to point to the respective compilers on your build system:
 
-.. code-block:: bash
-
-    .. literalinclude:: ../../scripts/configure_build.sh
-      :start-after: [>ToolchainConfiguration]
-      :end-before: [<ToolchainConfiguration]
+.. literalinclude:: ../../scripts/configure_build.sh
+    :language: bash
+    :start-after: [>ToolchainConfiguration]
+    :end-before: [<ToolchainConfiguration]
 
 - The variables CC and CXX *must* be set for the CUDA Quantum build.
 - A Fortran compiler is needed (only) to build the OpenSSL dependency; 
@@ -239,11 +240,10 @@ and merely downloading the source code as ZIP archive hence will not work.
 From within the folder where you cloned the CUDA Quantum repository, run the following
 command to build CUDA Quantum:
 
-.. code-block:: bash
-
-    .. literalinclude:: docker/build/assets.Dockerfile
-      :start-after: [>CUDAQuantumBuild]
-      :end-before: [<CUDAQuantumBuild]
+.. literalinclude:: ../../docker/build/assets.Dockerfile
+    :language: bash
+    :start-after: [>CUDAQuantumBuild]
+    :end-before: [<CUDAQuantumBuild]
 
 The CUDA Quantum build will compile or omit optional components automatically depending
 on whether the necessary pre-requisites are found in the build environment.
@@ -260,11 +260,10 @@ To easily migrate the built binaries to the host system, we recommend creating a
 `makeself script(s) <https://github.com/megastep/makeself>`__ and move the necessary 
 files to install into a separate folder using the command
 
-.. code-block:: bash
-
-    .. literalinclude:: docker/release/installer.Dockerfile
-      :start-after: [>CUDAQuantumAssets]
-      :end-before: [<CUDAQuantumAssets]
+.. literalinclude:: ../../docker/release/installer.Dockerfile
+    :language: bash
+    :start-after: [>CUDAQuantumAssets]
+    :end-before: [<CUDAQuantumAssets]
 
 You can then create a self-extracting archive with the command
 
@@ -328,11 +327,10 @@ the complete CUDA toolkit like you did for the CUDA Quantum build.
 If you prefer to only install the minimal set of runtime libraries, the following 
 commands, for example, install the necessary packages for the AlmaLinux 8 environment:
 
-.. code-block:: bash
-
-    .. literalinclude:: ../../scripts/configure_build.sh
-      :start-after: [>CUDARTInstall]
-      :end-before: [<CUDARTInstall]
+.. literalinclude:: ../../scripts/configure_build.sh
+    :language: bash
+    :start-after: [>CUDARTInstall]
+    :end-before: [<CUDARTInstall]
 
 MPI
 +++++++++++++++++++++++++++++++
@@ -346,11 +344,10 @@ The commands below assume you have the necessary prerequisites for the OpenMPI b
 installed on the build system. Within the tested AlmaLinux 8 environment, for example,
 the packages `autoconf`, `libtool`, `flex`, and `make` need to be installed.
 
-.. code-block:: bash
-
-    .. literalinclude:: ../../scripts/configure_build.sh
-      :start-after: [>OpenMPIBuild]
-      :end-before: [<OpenMPIBuild]
+.. literalinclude:: ../../scripts/configure_build.sh
+    :language: bash
+    :start-after: [>OpenMPIBuild]
+    :end-before: [<OpenMPIBuild]
 
 Different MPI implementations are supported via a plugin infrastructure in CUDA Quantum.
 Once you have a CUDA-aware MPI installation on your host system, you can 
@@ -359,7 +356,7 @@ Plugins for OpenMPI and MPICH are included in CUDA Quantum and can be activated 
 setting the environment variable `MPI_PATH` to the MPI installation folder 
 and then running the command
 
-.. code-block:: console
+.. code-block:: bash
 
     bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
