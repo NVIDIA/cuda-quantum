@@ -298,7 +298,6 @@ def InitializeStateOp : QuakeOp<"qinit"> {
   let assemblyFormat = [{
     `(` $targets `,` $state `)` `:` functional-type(operands, results) attr-dict
   }];
-
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {

@@ -78,8 +78,9 @@ public:
 
     // Let's count the number of users. If we have 1 user (= count -
     // numDealloc(can be 0 or 1)), and it is the InitializeStateOp, then we want
-    // to erase this op, and then let the InitStateOp pattern create the proper
-    // QIR function call
+    // to replace this op with the result of the InitStateOp
+    // and then let the InitStateOp pattern create the proper
+    // QIR function call to allocate with state
     {
       std::size_t count = 0, numDeallocs = 0;
       quake::InitializeStateOp maybeInit;
@@ -93,9 +94,10 @@ public:
       }
       if (maybeInit) {
         if (count - numDeallocs != 1)
-          return alloca->emitOpError("Invalid IR detected in LLVM lowering. "
-                                     "quake.qinit op must be first "
-                                     "user of quake.alloca");
+          return alloca->emitOpError(
+              "Invalid IR detected in LLVM lowering. "
+              "quake.qinit op must be the only "
+              "user of quake.alloca apart from deallocations.");
 
         rewriter.replaceOp(alloca, maybeInit.getResult());
         return success();
@@ -132,6 +134,8 @@ public:
   }
 };
 
+// Lower quake.qinit to a QIR function to allocate the
+// qubits with the provided state vector.
 class InitializeStateOpRewrite
     : public ConvertOpToLLVMPattern<quake::InitializeStateOp> {
 public:
@@ -143,10 +147,15 @@ public:
 
     auto loc = init->getLoc();
     auto parentModule = init->getParentOfType<ModuleOp>();
+    auto array_qbit_type = cudaq::opt::getArrayType(rewriter.getContext());
 
+    // Get the qubits value and its AllocaOp defining operation
     auto qubits = init.getTargets();
     auto allocaOp = qubits.getDefiningOp<quake::AllocaOp>();
+    // Get the CC Pointer for the state
     auto ccState = init.getState();
+
+    // Get the size of the qubit register
     Value sizeOperand;
     if (allocaOp->getOperands().empty()) {
       auto type = qubits.getType().cast<quake::VeqType>();
@@ -161,9 +170,7 @@ public:
       }
     }
 
-    auto array_qbit_type = cudaq::opt::getArrayType(rewriter.getContext());
-
-    // Add the new QIR function to the ModuleOp
+    // Add the new QIR allocation function to the ModuleOp
     {
       OpBuilder::InsertionGuard guard(rewriter);
       rewriter.setInsertionPointToStart(parentModule.getBody());
@@ -172,10 +179,9 @@ public:
           array_qbit_type);
       rewriter.create<func::FuncOp>(
           loc, cudaq::opt::QIRArrayQubitAllocateArrayWithState, funcTy);
-      // func.setPrivate();
     }
 
-    // Call the function,
+    // Call the allocation function
     rewriter.replaceOpWithNewOp<func::CallOp>(
         init, cudaq::opt::QIRArrayQubitAllocateArrayWithState,
         SmallVector<Type>{array_qbit_type},
@@ -1555,6 +1561,7 @@ public:
     return failure();
   }
 };
+
 //===----------------------------------------------------------------------===//
 // Code generation: converts the Quake IR to QIR.
 //===----------------------------------------------------------------------===//
