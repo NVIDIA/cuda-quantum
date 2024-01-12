@@ -53,7 +53,7 @@ done
 OPTIND=$__optind__
 
 function move_artifacts {
-    cd "$1"
+    mkdir -p "$2" -m 755 && cd "$1"
     echo "Updating $2 with artifacts in $1:"
     for file in `find . -type f`; 
     do 
@@ -82,6 +82,7 @@ function move_artifacts {
         fi
     done
     cd - > /dev/null
+    find "$2" -type d -exec chmod 755 {} \;
 }
 
 if [ -n "$target" ]; then
@@ -118,6 +119,7 @@ while rdom; do
 done < "$build_config"
 
 if [ -d "$assets/cudaq" ]; then
+    chmod a+r "$(dirname "$CUDA_QUANTUM_PATH")"
     move_artifacts "$assets/cudaq" "$CUDA_QUANTUM_PATH"
     if [ ! -f "$CUDA_QUANTUM_PATH/build_config.yml" ]; then
         cp "$build_config" "$CUDA_QUANTUM_PATH/build_config.yml"
@@ -128,6 +130,6 @@ this_file=`readlink -f "${BASH_SOURCE[0]}"`
 remaining_files=(`find "$assets" -type f -not -path "$this_file" -not -path "$build_config"`)
 if [ ! ${#remaining_files[@]} -eq 0 ]; then
     rel_paths=(${remaining_files[@]##$assets/})
-    components=(`echo ${rel_paths%%/*} | uniq -u`)
+    components=(`echo "${rel_paths[@]%%/*}" | tr ' ' '\n' | uniq`)
     echo -e "\e[01;31mWarning: Some files in $assets have not been migrated since they already exit in their intended destination. To avoid compatibility issues, please make sure the following packages are not already installed on your system: ${components[@]}\e[0m" >&2
 fi
