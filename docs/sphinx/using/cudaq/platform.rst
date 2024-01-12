@@ -156,7 +156,7 @@ CUDA Quantum provides the REST server implementation as a standalone application
 hosting all the simulator backends available in the installation. These backends include those that require MPI for multi-GPU computation.
 
 Automatically Launch REST Server (Local)
-^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The server app (:code:`cudaq-qpud`) can be launched and shutdown automatically
 by using the auto-launch feature of the platform.
