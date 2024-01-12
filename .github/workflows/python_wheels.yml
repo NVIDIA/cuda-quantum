@@ -131,7 +131,7 @@ jobs:
         with:
           name: ${{ steps.prereqs.outputs.artifact_name }}
           path: /tmp/wheels
-          retention-days: 5
+          retention-days: 1
           if-no-files-found: error
 
   create_test_config:

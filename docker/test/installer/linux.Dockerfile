@@ -53,6 +53,7 @@ RUN echo "Installing CUDA Quantum..." && \
     MPI_PATH=/usr/local/openmpi \
     sudo -E bash install_cuda_quantum.* --accept && . /etc/profile
     ## [<CUDAQuantumInstall]
+RUN . /etc/profile && nvq++ --help
 
 ## [ADD tools for validation]
 ADD scripts/validate_container.sh /home/cudaq/validate.sh

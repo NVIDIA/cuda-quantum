@@ -60,11 +60,7 @@ function move_artifacts {
         if [ ! -f "$2/$file" ]; 
         then 
             echo -e "\tadding file $2/$file"
-            directory="$(dirname "$2/$file")"
-            if [ ! -d "$directory" ]; then
-                mkdir -p "$directory"
-                chmod a+rx "$directory" # need x permissions to see content
-            fi
+            mkdir -p "$(dirname "$2/$file")" -m 755 # need x permissions to see content
             mv "$file" "$2/$file"
             chmod a+rX "$2/$file" # add x permissions only for executables
         fi
@@ -74,11 +70,7 @@ function move_artifacts {
         if [ ! -f "$2/$symlink" ]; 
         then
             echo -e "\tadding symbolic link $2/$symlink"
-            directory="$(dirname "$2/$symlink")"
-            if [ ! -d "$directory" ]; then
-                mkdir -p "$directory"
-                chmod a+rx "$directory" # need x permissions to see content
-            fi
+            mkdir -p "$(dirname "$2/$symlink")" -m 755 # need x permissions to see content
             mv "$symlink" "$2/$symlink"
         fi
     done

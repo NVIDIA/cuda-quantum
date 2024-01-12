@@ -35,6 +35,7 @@ jobs:
 
     outputs:
       artifacts_url: ${{ steps.artifacts.outputs.artifacts_url }}
+      retrieved_assets: ${{ steps.assets_retrieval.outputs.artifact_name }}
       github_commit: ${{ steps.artifacts.outputs.github_commit }}
       docker_images: ${{ steps.artifacts.outputs.docker_images }}
       python_wheels: ${{ steps.artifacts.outputs.python_wheels }}
@@ -220,9 +221,12 @@ jobs:
             delete_staging_branch $info_file '${{ steps.artifacts.outputs.installers }}'
           done
 
-      - name: Retrieve assets
+      - name: Retrieve 
+        id: assets_retrieval
         run: |
           assets_folder=/tmp/assets && mkdir "$assets_folder" && cd "$assets_folder"
+          echo "artifact_name=downstream_assets_${{ github.run_id }}" >> $GITHUB_OUTPUT
+
           if ${{ steps.artifacts.outputs.docs_archive != '' }}; then
             unzip -d "documentation" ${{steps.artifacts.outputs.docs_archive}}
           fi
@@ -257,7 +261,7 @@ jobs:
         if: steps.artifacts.outputs.releases != ''
         uses: actions/upload-artifact@v4
         with:
-          name: downstream_assets
+          name: ${{ steps.assets_retrieval.outputs.artifact_name }}
           path: /tmp/assets
           retention-days: 1
           if-no-files-found: warn
@@ -291,7 +295,7 @@ jobs:
       - name: Load docker assets
         uses: actions/download-artifact@v4
         with:
-          name: downstream_assets
+          name: ${{ needs.assets.outputs.retrieved_assets }}
           path: /tmp/assets
 
       - name: Retrieve assets
@@ -468,7 +472,7 @@ jobs:
       - name: Load wheel assets
         uses: actions/download-artifact@v4
         with:
-          name: downstream_assets
+          name: ${{ needs.assets.outputs.retrieved_assets }}
           path: /tmp/assets
       
       - name: Retrieve assets
@@ -727,7 +731,7 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     steps:
-      - name: Clean up
+      - name: Clean up draft releases
         id: cleanup
         run: |
           # Delete the draft release(s) used to exchange data between GitLab and GitHub.
@@ -743,3 +747,22 @@ jobs:
           done
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+
+      - name: Delete artifacts
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const res = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            })
+
+            res.data.artifacts
+              .filter(({ name }) => name === '${{ needs.assets.outputs.retrieved_assets }}')
+              .forEach(({ id }) => {
+                github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: id,
+                })
+              })

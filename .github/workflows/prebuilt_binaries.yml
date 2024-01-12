@@ -102,7 +102,7 @@ jobs:
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
           echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
-          echo "artifact_name=cudaq-${platform_tag}-installer" >> $GITHUB_OUTPUT
+          echo "artifact_name=cudaq-${platform_tag}-installer-${{ github.run_id }}" >> $GITHUB_OUTPUT
           {
             echo 'additional_build_caches<<multiline'
             if ${{ github.event.pull_request.number != '' }}; then
@@ -184,7 +184,7 @@ jobs:
         with:
           name: ${{ steps.config.outputs.artifact_name }}
           path: /tmp/install
-          retention-days: 5
+          retention-days: 1
           if-no-files-found: error
 
   build_openmpi:
@@ -398,3 +398,30 @@ jobs:
           path: ${{ steps.staging.outputs.info_file }}
           retention-days: 30
           if-no-files-found: error
+
+  clean_up:
+    name: Prepare cache clean-up
+    needs: [build_installer, validation]
+    # We need to clean up even if the workflow is cancelled or fails.
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete artifacts
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const res = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            })
+
+            res.data.artifacts
+              .filter(({ name }) => name === '${{ needs.build_installer.outputs.artifact_name }}')
+              .forEach(({ id }) => {
+                github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: id,
+                })
+              })
