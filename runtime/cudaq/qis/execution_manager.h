@@ -103,7 +103,6 @@ public:
   /// Reset the execution context
   virtual void resetExecutionContext() = 0;
 
-
   virtual void initializeState(const std::vector<QuditInfo> &targets,
                                const complex *state) = 0;
 

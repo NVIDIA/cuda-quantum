@@ -546,8 +546,10 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
       builder.create<LLVM::GEPOp>(LLVM::LLVMPointerType::get(llvmComplexPtrTy),
                                   addr, SmallVector<Value>{zero, zero});
   auto loaded = builder.create<LLVM::LoadOp>(llvmComplexPtrTy, dataPtr);
-  auto casted = builder.create<cudaq::cc::CastOp>(cudaq::cc::PointerType::get(
-      cudaq::cc::StructType::get(context, SmallVector<Type>{f64Ty, f64Ty})), loaded);
+  auto casted = builder.create<cudaq::cc::CastOp>(
+      cudaq::cc::PointerType::get(
+          cudaq::cc::StructType::get(context, SmallVector<Type>{f64Ty, f64Ty})),
+      loaded);
   qubits = builder.create<quake::InitializeStateOp>(qubits.getType(), qubits,
                                                     casted);
   return QuakeValue(builder, qubits);
@@ -902,7 +904,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
   pm.addPass(createCanonicalizerPass());
-  
+
   if (failed(pm.run(module)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");

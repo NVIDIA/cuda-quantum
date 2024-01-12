@@ -31,7 +31,6 @@
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
-#include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -94,9 +93,9 @@ public:
       }
       if (maybeInit) {
         if (count - numDeallocs != 1)
-          return alloca->emitOpError(
-              "Invalid IR detected in LLVM lowering. quake.qinit op must be first "
-              "user of quake.alloca");
+          return alloca->emitOpError("Invalid IR detected in LLVM lowering. "
+                                     "quake.qinit op must be first "
+                                     "user of quake.alloca");
 
         rewriter.replaceOp(alloca, maybeInit.getResult());
         return success();
