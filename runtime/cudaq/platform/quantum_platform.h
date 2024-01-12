@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -94,7 +94,7 @@ public:
   /// Return whether this platform is simulating the architecture.
   bool is_simulator(const std::size_t qpu_id = 0) const;
 
-  /// @brief Return whether the qpu has conditional feedback support
+  /// @brief Return whether the QPU has conditional feedback support
   bool supports_conditional_feedback(const std::size_t qpu_id = 0) const;
 
   /// The name of the platform, which also corresponds to the name of the
@@ -133,8 +133,7 @@ public:
                     void *args, std::uint64_t voidStarSize,
                     std::uint64_t resultOffset);
 
-  /// List all available platforms, which correspond to .qplt files in the
-  /// platform directory.
+  /// List all available platforms
   static std::vector<std::string> list_platforms();
 
   static std::string demangle(char const *mangled) {

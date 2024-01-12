@@ -92,6 +92,17 @@ void MPIPlugin::broadcast(std::vector<double> &data, int rootRank) {
       m_comm, data.data(), data.size(), FLOAT_64, rootRank));
 }
 
+void MPIPlugin::broadcast(std::string &data, int rootRank) {
+  std::int32_t strLen = data.size();
+  HANDLE_MPI_ERROR(
+      m_distributedInterface->Bcast(m_comm, &strLen, 1, INT_32, rootRank));
+
+  if (rank() != rootRank)
+    data.resize(strLen);
+  HANDLE_MPI_ERROR(m_distributedInterface->Bcast(
+      m_comm, const_cast<char *>(data.data()), strLen, INT_8, rootRank));
+}
+
 void MPIPlugin::all_reduce(std::vector<double> &global,
                            const std::vector<double> &local, ReduceOp op) {
   HANDLE_MPI_ERROR(m_distributedInterface->Allreduce(
