@@ -155,7 +155,11 @@ do
             else
                 nvq++ $ex --target $t
             fi
-            ./a.out &> /dev/null
+            # DEBUG ONLY
+            export CUDAQ_LOG_LEVEL=info
+            ./a.out
+            # ./a.out &> /dev/null
+            # DEBUG ONLY
             status=$?
             echo "Exited with code $status"
             if [ "$status" -eq "0" ]; then 
