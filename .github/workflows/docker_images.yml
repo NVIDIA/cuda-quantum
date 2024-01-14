@@ -711,7 +711,9 @@ jobs:
           fi
 
       - name: Create job summary
-        if: always() && !cancelled()
+        # Debug: see the log
+        if: always()
+        # if: always() && !cancelled()
         run: |
           if [ -f /tmp/validation.out ]; then
             echo "## Validation" >> $GITHUB_STEP_SUMMARY
