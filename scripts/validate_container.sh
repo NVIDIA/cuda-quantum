@@ -142,9 +142,10 @@ do
         then
             let "skipped+=1"
             echo "Skipping $t target.";
-        # Skipped these long-running tests for the "remote-sim" target to keep CI runtime managable.
+        # Skipped long-running tests (variational optimization loops) for the "remote-sim" target to keep CI runtime managable.
         # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
-        elif [[ "$t" == "remote-sim" ]] && [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* ]];
+        # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-sim" target.
+        elif [[ "$t" == "remote-sim" ]] && [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"compute_actions"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* ]];
         then
             let "skipped+=1"
             echo "Skipping $ex for $t target.";
