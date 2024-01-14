@@ -12,29 +12,17 @@ struct ApplyX {
   void operator()(cudaq::qubit &q) __qpu__ { x(q); }
 };
 
-// Generic kernel converting a gate operation into a control gate.
-struct controlled_op {
-  // constrain the signature of the incoming kernel
-  void operator()(cudaq::takes_qubit auto &&apply_op, cudaq::qview<> control,
-                  cudaq::qubit &target) __qpu__ {
-    // Control U (apply_op) on the first two qubits of
-    // the allocated register.
-    cudaq::control(apply_op, control, target);
-  }
-};
-
-// Constructing a `CCNOT` test using `controlled_op` kernel with `ApplyX` as the
-// base operation.
 struct ccnot_test {
-  void operator()() __qpu__ {
+  // constrain the signature of the incoming kernel
+  void operator()(cudaq::takes_qubit auto &&apply_x) __qpu__ {
     cudaq::qvector qs(3);
-    // Bring the two control qubits into |1> state.
+
     x(qs);
     x(qs[1]);
 
-    // Control U (apply_op) on the first two qubits of
+    // Control U (apply_x) on the first two qubits of
     // the allocated register.
-    controlled_op{}(ApplyX{}, qs.front(2), qs[2]);
+    cudaq::control(apply_x, qs.front(2), qs[2]);
 
     mz(qs);
   }
@@ -61,7 +49,7 @@ int main() {
     printf("Observed: %s, %lu\n", bits.data(), count);
   }
 
-  auto counts2 = cudaq::sample(ccnot_test{});
+  auto counts2 = cudaq::sample(ccnot_test{}, ApplyX{});
 
   // Fine grain access to the bits and counts
   for (auto &[bits, count] : counts2) {
