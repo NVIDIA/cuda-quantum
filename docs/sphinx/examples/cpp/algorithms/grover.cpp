@@ -19,7 +19,7 @@ __qpu__ void reflect_about_uniform(cudaq::qview<> q) {
       [&]() { z<cudaq::ctrl>(ctrlQubits, lastQubit); });
 }
 
-struct grover_algorithm {
+struct run_grover {
   template <typename CallableKernel>
   __qpu__ auto operator()(const int n_qubits, const int n_iterations,
                           CallableKernel &&oracle) {
@@ -40,14 +40,7 @@ struct oracle {
   }
 };
 
-// Entry-point kernel running the Grover's algorithm with a specific oracle.
-struct run_grover {
-  __qpu__ auto operator()(const int n_qubits, const int n_iterations) {
-    grover_algorithm{}(n_qubits, n_iterations, oracle{});
-  }
-};
-
 int main() {
-  auto counts = cudaq::sample(run_grover{}, 3, 1);
+  auto counts = cudaq::sample(run_grover{}, 3, 1, oracle{});
   counts.dump();
 }
