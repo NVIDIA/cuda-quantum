@@ -16,7 +16,9 @@
 #include "cudaq/spin_op.h"
 #include "host_config.h"
 #include <functional>
+#if CUDAQ_USE_STD20
 #include <ranges>
+#endif
 #include <type_traits>
 #include <vector>
 
