@@ -400,7 +400,6 @@ public:
     std::transform(tgts.begin(), tgts.end(), tgtsInt.begin(),
                    [&](std::size_t x) { return static_cast<int>(x); });
     // our bit ordering is reversed.
-    std::reverse(tgtsInt.begin(), tgtsInt.end());
     size_t nIndexBits = nQubitsAllocated;
 
     // check the size of external workspace
@@ -552,10 +551,8 @@ public:
     // Use custatevec accessor to retrieve the view
     custatevecAccessorDescriptor_t accessor;
     const uint32_t nIndexBits = std::log2(stateDimension);
-    // Note: we use MSB bit ordering when reporting the state vector
-    // hence, bit ordering vector = [N-1, N-2, ..., 0]
     std::vector<int32_t> bitOrdering(nIndexBits);
-    std::iota(std::rbegin(bitOrdering), std::rend(bitOrdering), 0);
+    std::iota(std::begin(bitOrdering), std::end(bitOrdering), 0);
     std::size_t extraWorkspaceSizeInBytes = 0;
     // create accessor view
     HANDLE_ERROR(custatevecAccessorCreateView(
