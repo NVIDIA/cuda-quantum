@@ -95,11 +95,54 @@ public:
   static bool deserialize(SerializeInputBuffer &) { return true; }
 };
 
+namespace __internal {
+// Member detection idiom to detect if this is a class with `operator()`
+// invocation with any signature.
+// https://en.wikibooks.org/wiki/More_C++_Idioms/Member_Detector
+template <typename T>
+struct isCallableClassObj {
+private:
+  typedef char (&yes)[1];
+  typedef char (&no)[2];
+
+  struct Fallback {
+    void operator()();
+  };
+  struct Derived : T, Fallback {};
+
+  template <typename U, U>
+  struct Check;
+
+  template <typename>
+  static yes test(...);
+
+  template <typename C>
+  static no test(Check<void (Fallback::*)(), &C::operator()> *);
+
+public:
+  static const bool value = sizeof(test<Derived>(0)) == sizeof(yes);
+};
+
+// Check if this a callable: free functions or invocable class objects (e.g.,
+// lambdas, class with `operator()`)
+template <typename T>
+struct isCallable
+    : std::conditional<
+          std::is_pointer_v<T>, std::is_function<std::remove_pointer_t<T>>,
+          typename std::conditional<std::is_class_v<T>, isCallableClassObj<T>,
+                                    std::false_type>::type>::type {};
+
+} // namespace __internal
+
 // Non-empty list specialization for SerializeArgs.
 template <typename ArgT, typename... ArgTs>
 class SerializeArgs<ArgT, ArgTs...> {
 public:
   static std::size_t size(const ArgT &arg, const ArgTs &...args) {
+    static_assert(!__internal::isCallable<ArgT>::value,
+                  "Callable entry-point kernel arguments are not supported for "
+                  "the remote simulator platform in library mode. Please "
+                  "rewrite the entry point kernel or use MLIR mode.");
     return SerializeArgImpl<ArgT>::size(arg) +
            SerializeArgs<ArgTs...>::size(args...);
   }
