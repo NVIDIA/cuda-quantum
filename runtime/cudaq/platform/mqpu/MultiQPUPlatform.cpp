@@ -14,6 +14,7 @@
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/spin_op.h"
 #include "helpers/MQPUUtils.h"
+#include "llvm/Support/Base64.h"
 #include <fstream>
 #include <spdlog/cfg/env.h>
 
@@ -65,7 +66,7 @@ public:
       // "<prefix>;<option>".
       // Note: This expects an exact match of the prefix and the option value is
       // the next one.
-      const auto splitParts = cudaq::split(str, ';');
+      auto splitParts = cudaq::split(str, ';');
       if (splitParts.empty())
         return "";
       for (std::size_t i = 0; i < splitParts.size() - 1; ++i) {
@@ -73,6 +74,16 @@ public:
           cudaq::debug(
               "Retrieved option '{}' for the key '{}' from input string '{}'",
               splitParts[i + 1], prefix, str);
+          if (splitParts[i + 1].starts_with("base64_")) {
+            splitParts[i + 1].erase(0, 7); // erase "base64_"
+            std::vector<char> decoded_vec;
+            if (auto err = llvm::decodeBase64(splitParts[i + 1], decoded_vec))
+              throw std::runtime_error("DecodeBase64 error");
+            std::string decodedStr(decoded_vec.data(), decoded_vec.size());
+            cudaq::info("Decoded {} parameter from '{}' to '{}'", splitParts[i],
+                        splitParts[i + 1], decodedStr);
+            return decodedStr;
+          }
           return splitParts[i + 1];
         }
       }
