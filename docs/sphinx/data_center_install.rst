@@ -54,7 +54,7 @@ will be installed and used.
   with the `AlmaLinux 8 image <https://hub.docker.com/u/almalinux>`__ that
   serves as the base image for the `manylinux_2_28 image
   <https://github.com/pypa/manylinux>`__, and should work for the operating
-  systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SELD/SLES 15.5, RHEL 8
+  systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SLED/SLES 15.5, RHEL 8
   and 9, Rocky 8 and 9, and Ubuntu 22.04. Other operating systems may work, but
   have not been tested.
 - `Bash <https://www.gnu.org/software/bash/>`__ shell. The CUDA Quantum 
@@ -95,7 +95,7 @@ following prerequisites in your build environment:
   (only) for some of the LLVM build scripts and the Python version
   used for the build does not have to match the version on the host
   system.
-- Common tools: wget, git, unzip. The commands in the rest of this guide assume
+- Common tools: `wget`, `git`, `unzip`. The commands in the rest of this guide assume
   that these tools are present on the build system, but they can be replaced by
   other alternatives (such as, for example, manually going to a web page and
   downloading a file/folder).
@@ -217,12 +217,12 @@ environment variables to point to the respective compilers on your build system:
     :start-after: [>ToolchainConfiguration]
     :end-before: [<ToolchainConfiguration]
 
-- The variables CC and CXX *must* be set for the CUDA Quantum build.
+- The variables `CC` and `CXX` *must* be set for the CUDA Quantum build.
 - A Fortran compiler is needed (only) to build the OpenSSL dependency; 
   if you have an existing OpenSSL installation that you set the
-  `OPENSSL_INSTALL_PREFIX` variable to, you can omit setting the FC 
+  `OPENSSL_INSTALL_PREFIX` variable to, you can omit setting the `FC` 
   environment variable.
-- To use GPU-acceleration in CUDA Quantum, make sure to set CUDACXX to 
+- To use GPU-acceleration in CUDA Quantum, make sure to set `CUDACXX` to 
   your CUDA compiler. If the CUDA compiler is not found when building
   CUDA Quantum, some components and backends will be omitted automatically 
   during the build.
