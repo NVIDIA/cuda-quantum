@@ -51,13 +51,13 @@ jobs:
           docker pull ${{ inputs.image }}
           image_tag=`echo ${{ inputs.image }} | sed -e 's@.*\.io/\(\)@\1@'`
           image_labels=`docker inspect ${{ inputs.image }} --format='{{json .Config.Labels}}' \
-            | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]'`
+            | jq 'to_entries|map("\(.key)=\(.value|tostring)")|.[]'`
 
           echo "dockerfile=$dockerfile" >> $GITHUB_OUTPUT
           echo "tags=${{ vars.registry }}/${repo_owner,,}/${image_tag#${repo_owner,,}}" >> $GITHUB_OUTPUT
           {
             echo 'labels<<multiline'
-            for label in $image_labels; do echo "'$label'"; done
+            for label in "$image_labels"; do echo "'$label'"; done
             echo multiline
           } >> $GITHUB_OUTPUT
 
