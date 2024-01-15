@@ -44,7 +44,7 @@ if [ -z "${CXX}" ]; then
     fi
 fi
 
-echo "Using $CXX to build the MPI plugin."
+echo "Using $CXX to build the MPI plugin for MPI installation in $MPI_PATH."
 $CXX -shared -std=c++17 -fPIC \
     -I${MPI_PATH}/include \
     -I$this_file_dir/ \

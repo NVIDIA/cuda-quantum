@@ -15,8 +15,10 @@
 
 CUDAQ_INSTALL_PATH=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 if [ -n "${CUDAQ_INSTALL_PATH}" ]; then
+    # Prefix all paths such that running this script manually for a local installation
+    # ensures that the local installation takes precedence over a system-wide installation.
     export CUDA_QUANTUM_PATH="${CUDAQ_INSTALL_PATH}"
-    export PATH="${PATH:+$PATH:}${CUDA_QUANTUM_PATH}/bin"
-    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}${CUDA_QUANTUM_PATH}/lib"
-    export CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH:+$CPLUS_INCLUDE_PATH:}${CUDA_QUANTUM_PATH}/include:${CPLUS_INCLUDE_PATH}"
+    export PATH="${CUDA_QUANTUM_PATH}/bin${PATH:+:$PATH}"
+    export LD_LIBRARY_PATH="${CUDA_QUANTUM_PATH}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export CPLUS_INCLUDE_PATH="${CUDA_QUANTUM_PATH}/include${CPLUS_INCLUDE_PATH:+:$CPLUS_INCLUDE_PATH}"
 fi
