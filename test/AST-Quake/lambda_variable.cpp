@@ -16,7 +16,7 @@
 
 struct test3_callee {
   void operator()(std::function<void(cudaq::qubit &)> &&callback,
-                  cudaq::qreg<> &s) __qpu__ {
+                  cudaq::qvector<> &s) __qpu__ {
     callback(s[0]);
     callback(s[1]);
   }
@@ -24,7 +24,7 @@ struct test3_callee {
 
 struct test3_caller {
   void operator()() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     test3_callee{}(
         [](cudaq::qubit &r) __qpu__ {
           h(r);
@@ -67,7 +67,7 @@ struct test3_caller {
 // is resolved to in the AST.
 struct test4_callee {
    void operator()(cudaq::signature<void(cudaq::qubit &)> auto &&callback,
-                  cudaq::qreg<> &s) __qpu__ {
+                  cudaq::qvector<> &s) __qpu__ {
     callback(s[0]);
     callback(s[1]);
   }
@@ -75,7 +75,7 @@ struct test4_callee {
 
 struct test4_caller {
   void operator()() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     test4_callee{}(
         [](cudaq::qubit &r) __qpu__ {
           h(r);

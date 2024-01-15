@@ -37,7 +37,7 @@ std::bitset<nrOfBits> random_bits() {
 template <int nrOfBits>
 struct oracle {
   // expected-error@+1{{kernel argument type not supported}}
-  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs,
+  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qview<> qs,
                   cudaq::qubit &aux) __qpu__ {
 
     for (size_t i = 0; i < nrOfBits; i++) {
@@ -53,7 +53,7 @@ struct bernstein_vazirani {
   // expected-error@+1{{kernel argument type not supported}}
   auto operator()(std::bitset<nrOfBits> bitvector) __qpu__ {
 
-    cudaq::qreg<nrOfBits> qs;
+    cudaq::qarray<nrOfBits> qs;
     cudaq::qubit aux;
     h(aux);
     z(aux);

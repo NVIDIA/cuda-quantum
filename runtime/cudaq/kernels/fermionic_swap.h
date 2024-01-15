@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -35,8 +35,8 @@ __qpu__ void global_phase(double theta, cudaq::qubit &q) {
 /// Jordan-Wigner mapping represented by this unitary matrix:
 ///
 ///   |1  0                        0                        0         |
-///   |0  e^(i*phi/2)cos(phi/2)    -ie^(i*phi/2)sin(phi/2)  0         |
-///   |0  -ie^(i*phi/2)sin(phi/2)  e^{i*phi/2}cos(phi/2)    0         |
+///   |0  e^(i*phi/2)cos(phi/2)    -i*e^(i*phi/2)sin(phi/2) 0         |
+///   |0  -i*e^(i*phi/2)sin(phi/2) e^{i*phi/2}cos(phi/2)    0         |
 ///   |0  0                        0                        e^{i*phi} |
 /// @param phi Rotation angle (in rads)
 /// @param q0 First qubit operand

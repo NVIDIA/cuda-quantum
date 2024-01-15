@@ -17,7 +17,7 @@ struct thisWorks {
 struct test {
   template <typename Callable>
   void operator()(Callable &&callable) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     cudaq::control(callable, q[0], q[1]);
   }
 };

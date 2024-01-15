@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// RUN: nvq++ --target=qpp-cpu %s -o=%t
 // RUN: nvq++ --target qpp-cpu %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck --check-prefix=CHECK-QPP %s
 // RUN: CUDAQ_DEFAULT_SIMULATOR="density-matrix-cpu" nvq++ %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck --check-prefix=CHECK-DM %s
 // RUN: CUDAQ_DEFAULT_SIMULATOR="foo" nvq++ %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck %s
@@ -16,7 +17,7 @@
 
 struct ghz {
   auto operator()(int N) __qpu__ {
-    cudaq::qreg q(N);
+    cudaq::qvector q(N);
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);

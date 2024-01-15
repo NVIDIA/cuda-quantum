@@ -9,13 +9,13 @@
 #include <cudaq.h>
 
 // RUN: nvq++ %s --target iqm --emulate --iqm-machine Apollo -o %t.x && %t.x | FileCheck %s
-
+// RUN: nvq++ %s --target iqm --emulate --iqm-machine=Apollo -o %t.x && %t.x | FileCheck %s
 // CHECK: { 0:1000 }
 
 template <std::size_t N>
 struct kernel_with_z {
   auto operator()() __qpu__ {
-    cudaq::qreg<N> q;
+    cudaq::qarray<N> q;
     z<cudaq::ctrl>(q[0], q[1]);
     auto result = mz(q[0]);
   }

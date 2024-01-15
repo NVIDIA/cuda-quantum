@@ -63,7 +63,7 @@ public:
 
     // If this alloc is just returning a qubit
     if (auto resultType =
-            alloca.getResult().getType().dyn_cast_or_null<quake::RefType>()) {
+            dyn_cast_if_present<quake::RefType>(alloca.getResult().getType())) {
 
       StringRef qirQubitAllocate = cudaq::opt::QIRQubitAllocate;
       auto qubitType = cudaq::opt::getQubitType(context);
@@ -401,7 +401,8 @@ public:
     // __quantum__qis__NAME__ctl(Array*, Qubit*) Type
     SmallVector<Type> argTys = {qirArrayType, qirQubitPointerType};
     auto numTargetOperands = instOp.getTargets().size();
-    assert(numTargetOperands == 1 || numTargetOperands == 2);
+    if (numTargetOperands < 1 || numTargetOperands > 2)
+      return failure();
     if (numTargetOperands == 2)
       argTys.push_back(qirQubitPointerType);
     auto instOpQISFunctionType =
@@ -948,7 +949,8 @@ public:
     auto tupleTy = LLVM::LLVMStructType::getLiteral(ctx, resTy);
     auto tuplePtrTy = cudaq::opt::factory::getPointerType(tupleTy);
     auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
-    assert(structTy);
+    if (!structTy)
+      return failure();
     auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
     auto extract = rewriter.create<LLVM::ExtractValueOp>(
         loc, structTy.getBody()[1], operands[0], one);
@@ -970,7 +972,8 @@ public:
     auto operands = adaptor.getOperands();
     auto resTy = getTypeConverter()->convertType(callable.getType());
     auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
-    assert(structTy);
+    if (!structTy)
+      return failure();
     auto *ctx = rewriter.getContext();
     auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
     auto extract = rewriter.create<LLVM::ExtractValueOp>(
@@ -995,6 +998,8 @@ public:
     auto operands = adaptor.getOperands();
     auto *ctx = rewriter.getContext();
     auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
+    if (!structTy)
+      return failure();
     auto ptr0Ty = structTy.getBody()[0];
     auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
     auto rawFuncPtr =
@@ -1125,6 +1130,7 @@ public:
   matchAndRewrite(cudaq::cc::ComputePtrOp cp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto operands = adaptor.getOperands();
+    bool dropFirst = false;
     auto toTy = getTypeConverter()->convertType(cp.getType());
     Value base = operands[0];
     if (auto ptrTy = dyn_cast<LLVM::LLVMPointerType>(base.getType()))
@@ -1134,8 +1140,9 @@ public:
         auto ty = cudaq::opt::factory::getPointerType(arrTy.getElementType());
         base = rewriter.create<LLVM::BitcastOp>(cp.getLoc(), ty, base);
       }
-    auto gepOpnds = interleaveConstantsAndOperands(operands.drop_front(),
-                                                   cp.getRawConstantIndices());
+    auto gepOpnds = interleaveConstantsAndOperands(
+        operands.drop_front(),
+        cp.getRawConstantIndices().drop_front(dropFirst ? 1 : 0));
     rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cp, toTy, base, gepOpnds);
     return success();
   }
@@ -1541,8 +1548,9 @@ public:
     typeConverter.addConversion([](cudaq::cc::CallableType type) {
       return lambdaAsPairOfPointers(type.getContext());
     });
-    typeConverter.addConversion([](cudaq::cc::StdvecType type) {
-      return cudaq::opt::factory::stdVectorImplType(type.getElementType());
+    typeConverter.addConversion([&typeConverter](cudaq::cc::StdvecType type) {
+      auto eleTy = typeConverter.convertType(type.getElementType());
+      return cudaq::opt::factory::stdVectorImplType(eleTy);
     });
     typeConverter.addConversion([](quake::MeasureType type) {
       return IntegerType::get(type.getContext(), 1);
@@ -1553,6 +1561,7 @@ public:
         return cudaq::opt::factory::getPointerType(type.getContext());
       eleTy = typeConverter.convertType(eleTy);
       if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy)) {
+        // If array has a static size, it becomes an LLVMArrayType.
         assert(arrTy.isUnknownSize());
         return cudaq::opt::factory::getPointerType(
             typeConverter.convertType(arrTy.getElementType()));

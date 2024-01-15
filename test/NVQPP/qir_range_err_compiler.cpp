@@ -14,7 +14,7 @@
 #include <iostream>
 
 __qpu__ void init_state() {
-  cudaq::qreg<5> q;
+  cudaq::qarray<5> q;
   x(q[0]);
   mz(q[99]); // compiler can flag this as an error
 };

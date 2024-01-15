@@ -12,7 +12,7 @@
 
 struct C {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       cudaq::qubit w;
       auto singleQubit = mz(w);
       auto myRegister = mz(r);

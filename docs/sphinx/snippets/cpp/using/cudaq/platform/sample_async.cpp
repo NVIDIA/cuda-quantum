@@ -16,7 +16,7 @@
 int main() {
   // [Begin Documentation]
   auto kernelToBeSampled = [](int runtimeParam) __qpu__ {
-    cudaq::qreg q(runtimeParam);
+    cudaq::qvector q(runtimeParam);
     h(q);
     mz(q);
   };

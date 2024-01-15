@@ -3,7 +3,7 @@ on:
   schedule:
     - cron: 0 3 * * *
 
-name: Push to GHCR
+name: Update GHCR
 
 jobs:
   ghcr_config:

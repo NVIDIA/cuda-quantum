@@ -11,7 +11,7 @@
 #include <cudaq.h>
 
 __qpu__ void range_qubit() {
-  cudaq::qreg<10> qr;
+  cudaq::qarray<10> qr;
 
   for (auto &q : qr) {
     bool weevil = mx(q);

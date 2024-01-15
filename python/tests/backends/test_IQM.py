@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -44,9 +44,18 @@ def startUpMockServer():
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    cudaq.set_target("iqm",
-                     url="http://localhost:{}".format(port),
-                     **{"qpu-architecture": "Apollo"})
+    kwargs = dict()
+    kwargs["qpu-architecture"] = "Apollo"
+    # If we're in a git repo, test that we can provide a filename with spaces.
+    # If we are not in a git repo, then simply test without overriding
+    # mapping_file. (Testing a mapping_file with spaces is done elsewhere, and
+    # that isn't the main point of these tests.)
+    with os.popen("git rev-parse --show-toplevel") as f:
+        git_top = f.read().strip()
+        if os.path.isdir(git_top):
+            mapping_file = f"{git_top}/test/Supplemental/Apollo Variant.txt"
+            kwargs["mapping_file"] = mapping_file
+    cudaq.set_target("iqm", url="http://localhost:{}".format(port), **kwargs)
 
     yield "Running the tests."
 
