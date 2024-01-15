@@ -247,9 +247,11 @@ To install CUDA Quantum, execute the command
 
   To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. For more information see the corresponding section on :ref:`Additional CUDA Tools <cuda-dependencies-prebuilt-binaries>`.
 
-The installation automatically configures the necessary environment variables for
-using the CUDA Quantum toolchain. These configurations should persist across all POSIX shells.
-If you use a different shell, you should set the environment variables defined by the `set_env.sh` script in the CUDA Quantum installation folder (usually `/opt/nvidia/cudaq`).
+The installation ensures that the necessary environment variables for
+using the CUDA Quantum toolchain are set upon login for all POSIX shells.
+Confirm that the `nvq++` command is found. If it is not, please make sure 
+to set the environment variables defined by the `set_env.sh` script in the 
+CUDA Quantum installation folder (usually `/opt/nvidia/cudaq`).
 
 If an MPI installation is available in the directory defined by `MPI_PATH`, 
 the installer automatically enables MPI support in CUDA Quantum.

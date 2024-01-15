@@ -739,7 +739,7 @@ that was used for the CUDA Quantum build on the host.</p>
 <p>Copy the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file that you created following the instructions
 in the <a class="reference internal" href="#preparing-the-installation">Preparing the Installation</a> section onto the host system, and then
 run the commands</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.*<span class="w"> </span>--accept
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.*<span class="w"> </span>--accept
 .<span class="w"> </span>/opt/nvidia/cudaq/set_env.sh
 </pre></div>
 </div>
@@ -791,7 +791,11 @@ commands, for example, install the necessary packages for the AlmaLinux 8 enviro
 <h3>MPI<a class="headerlink" href="#mpi" title="Permalink to this heading">¶</a></h3>
 <p>To work with all CUDA Quantum backends, a CUDA-aware MPI installation is required.
 If you do not have an existing CUDA-aware MPI installation, you can build one from
-source. The following commands build a sufficient CUDA-aware OpenMPI installation.
+source. To do so, in addition to the CUDA runtime libraries listed above
+you will need to install the CUDA runtime development package
+(<code class="code docutils literal notranslate"><span class="pre">cuda-cudart-devel-${version_suffix}</span></code> or <code class="code docutils literal notranslate"><span class="pre">cuda-cudart-dev-${version_suffix}</span></code>,
+depending on your distribution).</p>
+<p>The following commands build a sufficient CUDA-aware OpenMPI installation.
 To make best use of MPI, we recommend a more fully featured installation including
 additional configurations that fit your host system.
 The commands below assume you have the necessary prerequisites for the OpenMPI build
@@ -815,6 +819,44 @@ the packages <code class="code docutils literal notranslate"><span class="pre">a
 <span class="w">    </span>make<span class="w"> </span>-j<span class="k">$(</span>nproc<span class="k">)</span><span class="w"> </span>install
 <span class="w">    </span><span class="nb">cd</span><span class="w"> </span>-<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span>~/.openmpi-src
 </pre></div>
+</div>
+<p>Confirm that you have a suitable MPI implementation installed. For OpenMPI and MPICH,
+for example, this can be done by compiling and running the following program:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// mpic++ mpi_cuda_check.cpp -o check.x &amp;&amp; mpiexec -np 1 ./check.x</span>
+<span class="c1">// ```</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mpi.h&quot;</span>
+<span class="cp">#if __has_include(&quot;mpi-ext.h&quot;)</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;mpi-ext.h&quot;</span>
+<span class="cp">#endif</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argv</span><span class="p">[])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">MPI_Init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">argv</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">exit_code</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">MPIX_Query_cuda_support</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;CUDA-aware MPI installation.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">exit_code</span><span class="o">=</span><span class="mi">0</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Missing CUDA support.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="n">exit_code</span><span class="o">=</span><span class="mi">1</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">MPI_Finalize</span><span class="p">();</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">exit_code</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are encountering an error similar to “The value of the MCA parameter <code class="code docutils literal notranslate"><span class="pre">plm_rsh_agent</span></code>
+was set to a path that could not be found”, please make sure you have an SSH Client installed
+or update the MCA parameter to another suitable agent.
+MPI uses [SSH](<a class="reference external" href="https://en.wikipedia.org/wiki/Secure_Shell">https://en.wikipedia.org/wiki/Secure_Shell</a>) or
+[RSH](<a class="reference external" href="https://en.wikipedia.org/wiki/Remote_Shell">https://en.wikipedia.org/wiki/Remote_Shell</a>) to communicate with each node
+unless another resource manager, such as
+[SLURM](<a class="reference external" href="https://slurm.schedmd.com/overview.html">https://slurm.schedmd.com/overview.html</a>), is used.</p>
 </div>
 <p>Different MPI implementations are supported via a plugin infrastructure in CUDA Quantum.
 Once you have a CUDA-aware MPI installation on your host system, you can

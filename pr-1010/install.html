@@ -639,9 +639,11 @@ upvote the corresponding <a class="reference external" href="https://github.com/
 <p class="admonition-title">Note</p>
 <p>To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. For more information see the corresponding section on <a class="reference internal" href="#cuda-dependencies-prebuilt-binaries"><span class="std std-ref">Additional CUDA Tools</span></a>.</p>
 </div>
-<p>The installation automatically configures the necessary environment variables for
-using the CUDA Quantum toolchain. These configurations should persist across all POSIX shells.
-If you use a different shell, you should set the environment variables defined by the <code class="code docutils literal notranslate"><span class="pre">set_env.sh</span></code> script in the CUDA Quantum installation folder (usually <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>).</p>
+<p>The installation ensures that the necessary environment variables for
+using the CUDA Quantum toolchain are set upon login for all POSIX shells.
+Confirm that the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> command is found. If it is not, please make sure
+to set the environment variables defined by the <code class="code docutils literal notranslate"><span class="pre">set_env.sh</span></code> script in the
+CUDA Quantum installation folder (usually <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>).</p>
 <p>If an MPI installation is available in the directory defined by <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code>,
 the installer automatically enables MPI support in CUDA Quantum.
 If you do not have MPI installed on your system, you can simply

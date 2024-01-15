@@ -289,7 +289,7 @@ run the commands
 
 .. code-block:: bash
 
-    sudo -E bash install_cuda_quantum.* --accept
+    sudo bash install_cuda_quantum.* --accept
     . /opt/nvidia/cudaq/set_env.sh
 
 This will extract the built assets and move them to the correct locations.
@@ -337,7 +337,12 @@ MPI
 
 To work with all CUDA Quantum backends, a CUDA-aware MPI installation is required. 
 If you do not have an existing CUDA-aware MPI installation, you can build one from 
-source. The following commands build a sufficient CUDA-aware OpenMPI installation.
+source. To do so, in addition to the CUDA runtime libraries listed above 
+you will need to install the CUDA runtime development package 
+(`cuda-cudart-devel-${version_suffix}` or `cuda-cudart-dev-${version_suffix}`, 
+depending on your distribution).
+
+The following commands build a sufficient CUDA-aware OpenMPI installation.
 To make best use of MPI, we recommend a more fully featured installation including
 additional configurations that fit your host system.
 The commands below assume you have the necessary prerequisites for the OpenMPI build
@@ -348,6 +353,21 @@ the packages `autoconf`, `libtool`, `flex`, and `make` need to be installed.
     :language: bash
     :start-after: [>OpenMPIBuild]
     :end-before: [<OpenMPIBuild]
+
+Confirm that you have a suitable MPI implementation installed. For OpenMPI and MPICH,
+for example, this can be done by compiling and running the following program:
+
+.. literalinclude:: ../../docker/test/installer/mpi_cuda_check.cpp
+    :language: cpp
+
+.. note::
+  If you are encountering an error similar to "The value of the MCA parameter `plm_rsh_agent` 
+  was set to a path that could not be found", please make sure you have an SSH Client installed
+  or update the MCA parameter to another suitable agent.
+  MPI uses [SSH](https://en.wikipedia.org/wiki/Secure_Shell) or
+  [RSH](https://en.wikipedia.org/wiki/Remote_Shell) to communicate with each node
+  unless another resource manager, such as
+  [SLURM](https://slurm.schedmd.com/overview.html), is used. 
 
 Different MPI implementations are supported via a plugin infrastructure in CUDA Quantum.
 Once you have a CUDA-aware MPI installation on your host system, you can 
@@ -366,3 +386,5 @@ with the command above.
 
 .. TODO:
   For more information about building and activating a custom MPI plugin, see ...
+
+
