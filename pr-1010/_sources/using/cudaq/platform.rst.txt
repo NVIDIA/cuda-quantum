@@ -115,7 +115,7 @@ C++
 .. code-block:: console
 
     nvq++ file.cpp -target nvidia-mqpu
-    mpirun -np <N> a.out
+    mpirun -np <N> ./a.out
 
 
 Python
