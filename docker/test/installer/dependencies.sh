@@ -8,6 +8,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+trap '(return 0 2>/dev/null) && return 1 || exit 1' ERR
+
 case $1 in
     *ubuntu*)
         pkg_manager=apt-get
@@ -62,7 +64,7 @@ elif [ "$pkg_manager" == "dnf" ]; then
     ## [C++ standard library]
     GCC_VERSION=$([ -z "$(dnf search gcc-toolset-11 2>&1 | grep -o "No matches found.")" ] && echo 11 || echo 12) # ok-ish for basic validation - should be 11
     package=$([ -z "$(dnf search gcc-toolset-$GCC_VERSION 2>&1 | grep -o "No matches found.")" ] && echo gcc-toolset-$GCC_VERSION || echo gcc-c++)
-    dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-${GCC_VERSION}
+    dnf install -y --nobest --setopt=install_weak_deps=False $package
     source /opt/rh/gcc-toolset-${GCC_VERSION}/enable
 
     ## [CUDA runtime libraries]
@@ -86,3 +88,6 @@ else
     echo "Installation via $pkg_manager is not yet implemented." >&2
     (return 0 2>/dev/null) && return 1 || exit 1
 fi
+
+trap - ERR
+(return 0 2>/dev/null) && return 0 || exit 0

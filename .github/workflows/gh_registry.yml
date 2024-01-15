@@ -117,10 +117,12 @@ jobs:
           original_name=`echo ${{ matrix.tag }} | rev | cut -d : -f2- | rev`
           external_images='${{ needs.ghcr_config.outputs.external_images }}'
           package_name=`echo $external_images | jq -r ".\"$original_name\".package_name"`
+          platforms=`echo $external_images | jq -r ".\"$original_name\".platforms"`
 
           # No need to specify labels - they propagate automatically
           echo "dockerfile=$dockerfile" >> $GITHUB_OUTPUT
           echo "tags=${{ vars.registry }}/${repo_owner,,}/$package_name" >> $GITHUB_OUTPUT
+          echo "platforms=$platforms" >> $GITHUB_OUTPUT
 
       - name: Push image to GHCR
         id: docker_build
@@ -130,5 +132,5 @@ jobs:
           file: ${{ steps.metadata.outputs.dockerfile }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          platforms: ${{ inputs.platforms }}
+          platforms: ${{ steps.metadata.outputs.platforms }}
           push: true

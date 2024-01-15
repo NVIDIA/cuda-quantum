@@ -329,8 +329,9 @@ jobs:
             sudo bash /install_sshclient.sh
 
             if ${{ contains(matrix.os_image, 'redhat' ) }}; then
-              sudo dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-11
-              source /opt/rh/gcc-toolset-11/enable
+              sudo dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-12
+              source /opt/rh/gcc-toolset-12/enable
+              export OMPI_CXX=g++
               /usr/local/openmpi/bin/mpic++ mpi_cuda_check.cpp -o check.x && \
               mpiexec -np 1 ./check.x
               status=$?
