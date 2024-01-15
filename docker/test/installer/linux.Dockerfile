@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 ARG base_image=amd64/almalinux:8
-ARG base_image_mpibuild=${base_image}
+ARG base_image_mpibuild=amd64/almalinux:8
 
 # [OpenMPI Installation]
 FROM ${base_image_mpibuild} as mpibuild
@@ -39,8 +39,8 @@ COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
 RUN ln -s /usr/local/openmpi/bin/mpiexec /bin/mpiexec
 
 # Create new user `cudaq` with admin rights to confirm installation steps.
-RUN adduser --disabled-password --gecos '' cudaq && adduser cudaq sudo \
-    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN useradd cudaq && mkdir -p /etc/sudoers.d && \
+    echo 'cudaq ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers.d/020_cudaq
 RUN chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
 USER cudaq
 WORKDIR /home/cudaq
