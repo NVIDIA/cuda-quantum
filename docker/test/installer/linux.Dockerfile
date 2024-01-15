@@ -35,11 +35,8 @@ ADD docker/test/installer/dependencies.sh /runtime_dependencies.sh
 RUN bash runtime_dependencies.sh ${base_image}
 
 ## [MPI Installation]
-ADD docker/test/installer/mpi_cuda_check.cpp mpi_cuda_check.cpp
 COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
-RUN ln -s /usr/local/openmpi/bin/mpiexec /bin/mpiexec && \
-    /usr/local/openmpi/bin/mpic++ mpi_cuda_check.cpp -o check.x && \
-    mpiexec -np 1 ./check.x
+RUN ln -s /usr/local/openmpi/bin/mpiexec /bin/mpiexec
 
 # Create new user `cudaq` with admin rights to confirm installation steps.
 RUN useradd cudaq && mkdir -p /etc/sudoers.d && \
@@ -60,6 +57,7 @@ RUN . /etc/profile && nvq++ --help
 
 ## [ADD tools for validation]
 ADD scripts/validate_container.sh /home/cudaq/validate.sh
+ADD docker/test/installer/mpi_cuda_check.cpp /home/cudaq/mpi_cuda_check.cpp
 ADD docs/sphinx/examples/cpp /home/cudaq/examples
 ENTRYPOINT ["bash", "-l"]
 
