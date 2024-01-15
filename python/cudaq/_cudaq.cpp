@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,7 +14,7 @@
 #include "runtime/cudaq/algorithms/py_sample.h"
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_vqe.h"
-#include "runtime/cudaq/builder/py_kernel_builder.h"
+#include "runtime/cudaq/builder/py_QuakeValue.h"
 #include "runtime/cudaq/kernels/py_chemistry.h"
 #include "runtime/cudaq/spin/py_matrix.h"
 #include "runtime/cudaq/spin/py_spin_op.h"
@@ -102,7 +102,6 @@ PYBIND11_MODULE(_pycudaq, mod) {
       "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");
 
   cudaq::bindRuntimeTarget(mod, holder);
-  cudaq::bindBuilder(mod);
   cudaq::bindQuakeValue(mod);
   cudaq::bindObserve(mod);
   cudaq::bindObserveResult(mod);

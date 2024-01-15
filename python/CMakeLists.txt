@@ -137,8 +137,12 @@ file (COPY cudaq DESTINATION ${MLIR_BINARY_DIR}/)
 ## The Python bindings module for Quake dialect depends on CUDAQ libraires 
 ## which it can't locate since they are in "../../lib" and the 'rapth' is set
 ## to '$ORIGIN' by default.
+set(_origin_prefix "\$ORIGIN")
+if(APPLE)
+  set(_origin_prefix "@loader_path")
+endif()
 set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
-             APPEND PROPERTY INSTALL_RPATH "$ORIGIN:$ORIGIN/../../lib/")
+             APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}:${_origin_prefix}/../../lib/")
 
 
 ## TODO: Clean-up following from 'old' CMakeLists.txt
@@ -153,7 +157,6 @@ pybind11_add_module(_pycudaq
                      cudaq/_cudaq.cpp 
                      runtime/cudaq/target/py_runtime_target.cpp 
                      runtime/cudaq/target/py_testing_utils.cpp
-                     runtime/cudaq/builder/py_kernel_builder.cpp
                      runtime/cudaq/builder/py_QuakeValue.cpp
                      runtime/cudaq/algorithms/py_observe.cpp
                      runtime/cudaq/algorithms/py_sample.cpp

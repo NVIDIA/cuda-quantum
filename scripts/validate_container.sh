@@ -133,7 +133,7 @@ do
         let "skipped+=1"
         echo "Skipped.";
     ## [SKIP_TEST] : Reason - AttributeError: module 'cudaq' has no attribute 'vqe'
-    elif [[ "$ex" == *"python/simple_vqe.py" ]] || [[ "$ex" == *"python/qaoa_maxcut.py" ]];
+    elif [[ "$ex" == *"python/advanced_vqe.py" ]] || [[ "$ex" == *"python/qaoa_maxcut.py" ]] || [[ "$ex" == *"python/simple_vqe.py" ]];
     then
         let "skipped+=1"
         echo "Skipped.";

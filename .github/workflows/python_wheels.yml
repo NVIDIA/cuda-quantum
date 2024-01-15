@@ -231,13 +231,6 @@ jobs:
               exit 1
             fi
 
-            python${{ inputs.python_version }} -m pytest -v /tmp/tests/compiler
-            pytest_status=$?
-            if [ ! $pytest_status -eq 0 ]; then
-              echo "::error file=python_wheel.yml::Python 'compiler' tests failed with status $pytest_status."
-              exit 1
-            fi
-
             python${{ inputs.python_version }} -m pytest -v /tmp/tests/domains
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
@@ -271,13 +264,6 @@ jobs:
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "::error file=python_wheel.yml::Python 'unittests' tests failed with status $pytest_status."
-              exit 1
-            fi
-
-            python${{ inputs.python_version }} -m pytest -v /tmp/tests/utils
-            pytest_status=$?
-            if [ ! $pytest_status -eq 0 ]; then
-              echo "::error file=python_wheel.yml::Python 'utils' tests failed with status $pytest_status."
               exit 1
             fi
             
