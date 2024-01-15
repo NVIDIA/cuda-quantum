@@ -41,7 +41,7 @@ RUN ln -s /usr/local/openmpi/bin/mpiexec /bin/mpiexec
 # Create new user `cudaq` with admin rights to confirm installation steps.
 RUN useradd cudaq && mkdir -p /etc/sudoers.d && \
     echo 'cudaq ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers.d/020_cudaq
-RUN mkdir -p /home/cudaq && chown -R cudaq /home/cudaq && chgrp -R cudaq /home/cudaq
+RUN mkdir -p /home/cudaq && chown -R cudaq /home/cudaq
 USER cudaq
 WORKDIR /home/cudaq
 

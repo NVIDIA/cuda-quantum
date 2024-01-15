@@ -3,7 +3,7 @@ on:
   schedule:
     - cron: 0 3 * * *
 
-name: Push to GHCR
+name: Update GHCR
 
 jobs:
   ghcr_config:
@@ -112,10 +112,11 @@ jobs:
         run: |
           dockerfile=image.Dockerfile
           echo 'FROM ${{ matrix.tag }}' > $dockerfile
+          repo_owner=${{ github.repository_owner }}
 
           original_name=`echo ${{ matrix.tag }} | rev | cut -d : -f2- | rev`
-          external_images=${{ fromJson(needs.ghcr_config.outputs.external_images) }}
-          package_name=`echo $external_images | jq ".\"$original_name\".package_name"`
+          external_images='${{ needs.ghcr_config.outputs.external_images }}'
+          package_name=`echo $external_images | jq -r ".\"$original_name\".package_name"`
 
           # No need to specify labels - they propagate automatically
           echo "dockerfile=$dockerfile" >> $GITHUB_OUTPUT

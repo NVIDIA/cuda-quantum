@@ -59,6 +59,7 @@ RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
     fi \n\n\
     if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
         bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh" \n\
+        chmod a+rX "${CUDA_QUANTUM_PATH}/distributed_interfaces/libcudaq_distributed_interface_mpi.so" \n\
     fi \n' >> install.sh
 
 ## [Content]

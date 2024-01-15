@@ -269,8 +269,6 @@ jobs:
       - name: Validate Python examples
         run: |
           docker run --rm -dit --name wheel-validation wheel_validation:local
-          validation_passed=true
-
           for file in `ls docs/sphinx/examples/python`; do
             echo "__Example ${file}:__" >> /tmp/validation.out
 
@@ -278,13 +276,16 @@ jobs:
             if $success; then 
               echo "Executed successfully." >> /tmp/validation.out
             else
+              status_sum=$((status_sum+1))
               echo "Failed." >> /tmp/validation.out
-              validation_passed=false
             fi
           done
 
           docker stop wheel-validation
-          if [ ! $validation_passed ]; then exit 1; fi
+          if [ ! $status_sum -eq 0 ]; then
+            echo "::error::$status_sum examples failed; see step summary for a list of failures."
+            exit $status_sum
+          fi
 
       - name: Create job summary
         if: always() && !cancelled() 
