@@ -58,7 +58,7 @@ class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   int m_port = -1;
   std::unique_ptr<cudaq::RestServer> m_server;
   std::unique_ptr<MLIRContext> m_mlirContext;
-
+  bool m_hasMpi = false;
   struct CodeTransformInfo {
     cudaq::CodeFormat format;
     std::vector<std::string> passes;
@@ -88,11 +88,12 @@ public:
     m_server->addRoute(cudaq::RestServer::Method::POST, "/job",
                        [&](const std::string &reqBody) {
                          std::string mutableReq = reqBody;
-                         if (cudaq::mpi::is_initialized())
+                         if (m_hasMpi)
                            cudaq::mpi::broadcast(mutableReq, 0);
                          return processRequest(reqBody);
                        });
     m_mlirContext = cudaq::initializeMLIR();
+    m_hasMpi = cudaq::mpi::is_initialized();
   }
   // Start the server.
   virtual void start() override {
@@ -100,11 +101,11 @@ public:
       throw std::runtime_error(
           "Fatal error: attempt to start the server before initialization. "
           "Please initialize the server.");
-    if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
+    if (!m_hasMpi || cudaq::mpi::rank() == 0) {
       // Only run this app on Rank 0;
       // the rest will wait for a broadcast.
       m_server->start();
-    } else if (cudaq::mpi::is_initialized()) {
+    } else if (m_hasMpi) {
       for (;;) {
         std::string jsonRequestBody;
         cudaq::mpi::broadcast(jsonRequestBody, 0);
