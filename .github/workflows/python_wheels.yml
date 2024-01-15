@@ -173,11 +173,20 @@ jobs:
         run: |
           os_image=${{ matrix.os_image }}
           distr=`echo $os_image | cut -d : -f 1 | cut -d / -f 1`
-          os_version=`echo ${os_image#$distr} | cut -c2-`
+          if ${{ inputs.create_staging_info }}; then
+            # Validate against the public images
+            base_image=$os_image
+          else
+            # If we are not staging, we instead validate the images
+            # pushed to GHCR to limit our pull rate on public registries.
+            repo_owner=${{ github.repository_owner }}
+            image_tag=`echo $os_image | sed -e 's@.*\.io/\(\)@\1@'`
+            base_image=ghcr.io/${repo_owner,,}/${image_tag#${repo_owner,,}}
+          fi
 
           wheelname=`echo cuda_quantum-*-manylinux_*_$(uname -m).whl`
           docker build -t wheel_validation:local -f "docker/test/$distr.Dockerfile" . \
-            --build-arg os_version=$os_version \
+            --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
             --build-arg preinstalled_modules="numpy pytest" \
@@ -225,7 +234,7 @@ jobs:
           run: |
             # Install openmpi and mpi4py by conda
             # Install conda
-            dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients.$(uname -m)
+            dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients
             mkdir -p ~/miniconda3
             wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/miniconda3/miniconda.sh
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
