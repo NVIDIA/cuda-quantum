@@ -114,7 +114,7 @@ jobs:
           echo 'FROM ${{ matrix.tag }}' > $dockerfile
 
           original_name=`echo ${{ matrix.tag }} | rev | cut -d : -f2- | rev`
-          external_images=${{ fromJson(needs.ghcr_config.outputs.external_images) }}
+          external_images='${{ needs.ghcr_config.outputs.external_images }}'
           package_name=`echo $external_images | jq ".\"$original_name\".package_name"`
 
           # No need to specify labels - they propagate automatically
