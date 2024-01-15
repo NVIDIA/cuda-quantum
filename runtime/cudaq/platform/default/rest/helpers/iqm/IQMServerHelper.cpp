@@ -261,10 +261,18 @@ void IQMServerHelper::updatePassPipeline(
     const std::filesystem::path &platformPath, std::string &passPipeline) {
   // Note: the leading and trailing single quotes are needed in case there are
   // spaces in the filename.
-  std::string pathToFile =
-      std::string("'") +
-      std::string(platformPath / std::string("mapping/iqm") /
-                  (backendConfig["qpu-architecture"] + std::string(".txt'")));
+  std::string pathToFile;
+  auto iter = backendConfig.find("mapping_file");
+  if (iter != backendConfig.end()) {
+    // Use provided path to file
+    pathToFile = std::string("'") + iter->second + std::string("'");
+  } else {
+    // Construct path to file
+    pathToFile =
+        std::string("'") +
+        std::string(platformPath / std::string("mapping/iqm") /
+                    (backendConfig["qpu-architecture"] + std::string(".txt'")));
+  }
   passPipeline =
       std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
 }
