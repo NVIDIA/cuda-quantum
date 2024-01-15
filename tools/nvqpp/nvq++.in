@@ -14,7 +14,7 @@
 function error_exit {
 	callerName=$(basename "$(caller 0)")
 	message_content="${callerName}:$(echo $(caller 0) | cut -d " " -f1): $1"
-	if [ -x "$(command -v tput)" ]; then
+	if [ -x "$(command -v tput)" ] && [ -n "$TERM"] ; then
 		RED=$(tput setaf 1)
 		NORMAL=$(tput sgr0)
 		echo "${RED}${message_content}${NORMAL}" >&2
