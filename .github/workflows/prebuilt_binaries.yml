@@ -314,6 +314,7 @@ jobs:
           shell: bash -l
           run: |
             set +e # Allow script to keep going through errors
+            sudo bash /install_sshclient.sh
             for ex in `find examples/other/distributed/ -name '*.cpp'`; do
               nvq++ -DCUDAQ_ENABLE_MPI_EXAMPLE=1 $ex
               status=$?

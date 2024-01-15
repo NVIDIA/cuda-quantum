@@ -42,6 +42,7 @@ if [ "$pkg_manager" == "apt-get" ]; then
     ## [Prerequisites]
     apt-get update && apt-get install -y --no-install-recommends \
         sudo wget ca-certificates
+    echo "apt-get install -y --no-install-recommends openssh-client" > install_sshclient.sh
 
     ## [C++ standard library]
     apt-get install -y --no-install-recommends libstdc++-11-dev
@@ -56,6 +57,7 @@ elif [ "$pkg_manager" == "dnf" ]; then
     ## [Prerequisites]
     dnf install -y --nobest --setopt=install_weak_deps=False \
         sudo 'dnf-command(config-manager)'
+    echo "dnf install -y --nobest --setopt=install_weak_deps=False openssh-clients" > install_sshclient.sh
 
     ## [C++ standard library]
     GCC_VERSION=$([ -z "$(dnf search gcc-toolset-11 2>&1 | grep -o "No matches found.")" ] && echo 11 || echo 12) # ok-ish for basic validation - should be 11
@@ -71,6 +73,7 @@ elif [ "$pkg_manager" == "zypper" ]; then
     ## [Prerequisites]
     zypper clean --all && zypper --non-interactive up --no-recommends
     zypper --non-interactive in --no-recommends sudo gzip tar
+    echo "zypper --non-interactive in --no-recommends openssh-clients" > install_sshclient.sh
 
     ## [C++ standard library]
     zypper --non-interactive in --no-recommends gcc11
