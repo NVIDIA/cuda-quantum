@@ -145,7 +145,7 @@ do
         # Skipped long-running tests (variational optimization loops) for the "remote-sim" target to keep CI runtime managable.
         # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
         # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-sim" target.
-        elif [[ "$t" == "remote-sim" ]] && [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"compute_actions"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* ]];
+        elif [[ "$t" == "remote-sim" ]] && [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* ]];
         then
             let "skipped+=1"
             echo "Skipping $ex for $t target.";
@@ -156,11 +156,7 @@ do
             else
                 nvq++ $ex --target $t
             fi
-            # DEBUG ONLY
-            export CUDAQ_LOG_LEVEL=info
-            ./a.out
-            # ./a.out &> /dev/null
-            # DEBUG ONLY
+            ./a.out &> /dev/null
             status=$?
             echo "Exited with code $status"
             if [ "$status" -eq "0" ]; then 
