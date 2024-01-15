@@ -43,7 +43,7 @@ jobs:
           echo "external_images=$(echo $external_images)" >> $GITHUB_OUTPUT
 
   delete_images:
-    name: Update images on GHCR
+    name: Delete old images on GHCR
     needs: ghcr_config
     runs-on: ubuntu-latest
     permissions:
@@ -71,10 +71,11 @@ jobs:
         with: 
           package-name: ${{ fromJson(needs.ghcr_config.outputs.external_images)[format('{0}', matrix.image)].package_name }}
           package-type: 'container'
-          min-versions-to-keep: 0
+          min-versions-to-keep: 1 # the used action does not support 0 here
+        continue-on-error: true
 
   push_images:
-    name: Push image to GHCR
+    name: Push new images to GHCR
     needs: [ghcr_config, delete_images]
     runs-on: ubuntu-latest
     permissions:

@@ -127,14 +127,14 @@ jobs:
         with: 
           package-name: buildcache-cuda-quantum-assets-openmpi-gcc11-arm64
           package-type: 'container'
-          min-versions-to-keep: 0
+          min-versions-to-keep: 1 # the used action does not support 0 here
 
       - name: Delete build caches for MPI asset (AMD64)
         uses: actions/delete-package-versions@v4
         with: 
           package-name: buildcache-cuda-quantum-assets-openmpi-gcc11-amd64
           package-type: 'container'
-          min-versions-to-keep: 0
+          min-versions-to-keep: 1 # the used action does not support 0 here
 
   pr_cleanup:
     name: Clean up PR related GitHub caches
