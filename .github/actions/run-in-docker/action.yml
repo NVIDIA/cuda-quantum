@@ -5,8 +5,12 @@ inputs:
     required: true
   run:
     required: true
+  user:
+    default: "root"
+    required: false
   shell:
     default: "bash"
+    required: false
 
 runs:
   using: "composite"
@@ -20,9 +24,9 @@ runs:
         cat > $tmpFile << 'EOF'
         ${{ inputs.run }}
         EOF
-        chown $(id -u):$(id -g) $tmpFile
-        container=$(docker run --user root -id ${{ inputs.image }})
+        container=$(docker run --user ${{ inputs.user }} -id ${{ inputs.image }})
         docker cp $tmpFile $container:$tmpFile
+        docker exec -it --user root $container chown -R ${{ inputs.user }}:${{ inputs.user }} $tmpFile
         docker exec $container ${{ inputs.shell }} $tmpFile
         docker stop $container
         rm $tmpFile
