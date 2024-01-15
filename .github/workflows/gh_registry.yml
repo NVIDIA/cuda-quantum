@@ -1,15 +1,15 @@
 on:
-    workflow_dispatch:
-      inputs:
-        image:
-          type: string
-          required: true
-          description: The full name of the image, including tag.
-        platforms:
-          type: string
-          required: false
-          description: The platform(s) for which the image should be available. 
-          default: linux/amd64,linux/arm64
+  workflow_dispatch:
+    inputs:
+      image:
+        type: string
+        required: true
+        description: The full name of the image, including tag.
+      platforms:
+        type: string
+        required: false
+        description: The platform(s) for which the image should be available. 
+        default: linux/amd64,linux/arm64
   
 name: Push to GHCR
 
@@ -55,7 +55,11 @@ jobs:
 
           echo "dockerfile=$dockerfile" >> $GITHUB_OUTPUT
           echo "tags=${{ vars.registry }}/${repo_owner,,}/${image_tag#${repo_owner,,}}" >> $GITHUB_OUTPUT
-          echo "labels='$image_labels'" >> $GITHUB_OUTPUT
+          {
+            echo 'labels<<multiline'
+            for label in $image_labels; do echo $label; done
+            echo multiline
+          } >> $GITHUB_OUTPUT
 
       - name: Push image
         id: docker_build
