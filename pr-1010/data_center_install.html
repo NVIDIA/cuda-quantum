@@ -497,7 +497,7 @@ will be installed and used.</p>
 <li><p>Linux operating system. The instructions in this guide have been validated
 with the <a class="reference external" href="https://hub.docker.com/u/almalinux">AlmaLinux 8 image</a> that
 serves as the base image for the <a class="reference external" href="https://github.com/pypa/manylinux">manylinux_2_28 image</a>, and should work for the operating
-systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SELD/SLES 15.5, RHEL 8
+systems CentOS 8, Debian 11 and 12, Fedora 38, OpenSUSE/SLED/SLES 15.5, RHEL 8
 and 9, Rocky 8 and 9, and Ubuntu 22.04. Other operating systems may work, but
 have not been tested.</p></li>
 <li><p><a class="reference external" href="https://www.gnu.org/software/bash/">Bash</a> shell. The CUDA Quantum
@@ -536,7 +536,7 @@ for your distribution.</p></li>
 (only) for some of the LLVM build scripts and the Python version
 used for the build does not have to match the version on the host
 system.</p></li>
-<li><p>Common tools: wget, git, unzip. The commands in the rest of this guide assume
+<li><p>Common tools: <code class="code docutils literal notranslate"><span class="pre">wget</span></code>, <code class="code docutils literal notranslate"><span class="pre">git</span></code>, <code class="code docutils literal notranslate"><span class="pre">unzip</span></code>. The commands in the rest of this guide assume
 that these tools are present on the build system, but they can be replaced by
 other alternatives (such as, for example, manually going to a web page and
 downloading a file/folder).</p></li>
@@ -667,12 +667,12 @@ environment variables to point to the respective compilers on your build system:
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>The variables CC and CXX <em>must</em> be set for the CUDA Quantum build.</p></li>
+<li><p>The variables <code class="code docutils literal notranslate"><span class="pre">CC</span></code> and <code class="code docutils literal notranslate"><span class="pre">CXX</span></code> <em>must</em> be set for the CUDA Quantum build.</p></li>
 <li><p>A Fortran compiler is needed (only) to build the OpenSSL dependency;
 if you have an existing OpenSSL installation that you set the
-<code class="code docutils literal notranslate"><span class="pre">OPENSSL_INSTALL_PREFIX</span></code> variable to, you can omit setting the FC
+<code class="code docutils literal notranslate"><span class="pre">OPENSSL_INSTALL_PREFIX</span></code> variable to, you can omit setting the <code class="code docutils literal notranslate"><span class="pre">FC</span></code>
 environment variable.</p></li>
-<li><p>To use GPU-acceleration in CUDA Quantum, make sure to set CUDACXX to
+<li><p>To use GPU-acceleration in CUDA Quantum, make sure to set <code class="code docutils literal notranslate"><span class="pre">CUDACXX</span></code> to
 your CUDA compiler. If the CUDA compiler is not found when building
 CUDA Quantum, some components and backends will be omitted automatically
 during the build.</p></li>
