@@ -24,7 +24,7 @@ runs:
         cat > $tmpFile << 'EOF'
         ${{ inputs.run }}
         EOF
-        container=$(docker run --user ${{ inputs.user }} -id ${{ inputs.image }})
+        container=$(docker run --user ${{ inputs.user }} --gpus all -id ${{ inputs.image }})
         docker cp $tmpFile $container:$tmpFile
         docker exec --user root $container chown -R ${{ inputs.user }}:${{ inputs.user }} $tmpFile
         docker exec $container ${{ inputs.shell }} $tmpFile

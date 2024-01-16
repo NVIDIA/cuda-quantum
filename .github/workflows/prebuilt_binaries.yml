@@ -260,9 +260,9 @@ jobs:
 
       - id: config
         run: |
-          cpp_config=`cat .github/workflows/config/validation_config.json | jq ".cpp"`
-          operating_systems=`echo "$cpp_config" | jq '.[] | select(.platform=="${{ inputs.platform }}").operating_systems'`
-          echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
+          config_file=".github/workflows/config/validation_config.json"
+          cpp_config=`cat "$config_file" | jq '.cpp[] | select(.platform=="${{ inputs.platform }}")'`
+          echo "json=$(echo $cpp_config)" >> $GITHUB_OUTPUT
 
   validation:
     name: Validate installer
@@ -274,7 +274,7 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ${{ fromJSON(needs.create_test_config.outputs.json).os_images }}
+        os_image: ${{ fromJSON(needs.create_test_config.outputs.json).operating_systems }}
       fail-fast: false
 
     steps:
@@ -301,15 +301,20 @@ jobs:
 
       - name: Install in clean environment
         run: |
+          config='${{ needs.create_test_config.outputs.json }}'
+          system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
+          additional_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
+
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
             --build-arg cuda_quantum_installer=install_cuda_quantum.$(uname -m) \
             --build-arg base_image=${{ matrix.os_image }} \
-            --build-arg base_image_mpibuild=${{ inputs.platform_base_image }}
+            --build-arg base_image_mpibuild=${{ inputs.platform_base_image }} \
+            $(echo $additional_build_args | xargs | sed "s/[^ ]*/--build-arg &/g")
 
       - name: Sanity checks
         run: |
-          docker run --rm -dit --name cuda-quantum validation:local
+          docker run --rm --gpus all -dit --name cuda-quantum validation:local
           (docker exec cuda-quantum bash -l validate.sh > /tmp/validation.out) && passed=true || passed=false
           docker stop cuda-quantum
 

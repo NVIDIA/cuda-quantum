@@ -740,7 +740,7 @@ jobs:
             docker pull $cudaq_image
           fi
 
-          docker run --rm -dit --name cuda-quantum $cudaq_image
+          docker run --rm --gpus all -dit --name cuda-quantum $cudaq_image
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
           (docker exec cuda-quantum bash validate_container.sh > /tmp/validation.out) && passed=true || passed=false
           docker stop cuda-quantum

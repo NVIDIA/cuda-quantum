@@ -29,10 +29,17 @@ RUN source /cuda-quantum/scripts/configure_build.sh build-openmpi
 # [CUDA Quantum Installation]
 FROM ${base_image}
 ARG base_image
-
 ARG DEBIAN_FRONTEND=noninteractive
+ARG libstdcpp_package
+ARG cudart_version
+ARG cuda_distribution
+
+## [Runtime dependencies]
 ADD docker/test/installer/dependencies.sh /runtime_dependencies.sh
-RUN bash runtime_dependencies.sh ${base_image}
+RUN LIBSTDCPP_PACKAGE=${libstdcpp_package} \
+    CUDART_VERSION=${cudart_version} \
+    CUDA_DISTRIBUTION=${cuda_distribution} \
+    bash runtime_dependencies.sh ${base_image}
 
 ## [MPI Installation]
 COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi

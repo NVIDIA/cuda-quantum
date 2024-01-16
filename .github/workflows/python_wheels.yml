@@ -190,7 +190,7 @@ jobs:
             --build-arg pip_install_flags=${{ matrix.pip_install_flags }} \
             --build-arg optional_dependencies=$([ "$(uname -m)" == "x86_64" ] && echo cudart)
 
-          docker run --rm -dit --name wheel-validation wheel_validation:local
+          docker run --rm --gpus all -dit --name wheel-validation wheel_validation:local
           (docker exec wheel-validation python${{ inputs.python_version }} -c "import cudaq") && imported=true || imported=false
           docker stop wheel-validation
 
@@ -268,7 +268,7 @@ jobs:
 
       - name: Validate Python examples
         run: |
-          docker run --rm -dit --name wheel-validation wheel_validation:local
+          docker run --rm --gpus all -dit --name wheel-validation wheel_validation:local
           for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/providers/*'`; do
             file="${ex#docs/sphinx/examples/python/}"
             echo "__Example ${file}:__" >> /tmp/validation.out
