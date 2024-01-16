@@ -39,7 +39,7 @@ ADD docker/test/installer/dependencies.sh /runtime_dependencies.sh
 RUN LIBSTDCPP_PACKAGE=${libstdcpp_package} \
     CUDART_VERSION=${cudart_version} \
     CUDA_DISTRIBUTION=${cuda_distribution} \
-    source runtime_dependencies.sh ${base_image} && \
+    . runtime_dependencies.sh ${base_image} && \
     # working around the fact that the installation of the dependecies includes
     # setting some environment variables that are expected to be persistent on
     # on the host system but would not persistent across docker commands
