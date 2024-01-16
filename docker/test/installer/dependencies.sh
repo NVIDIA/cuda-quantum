@@ -64,7 +64,7 @@ elif [ "$pkg_manager" == "dnf" ]; then
     dnf install -y --nobest --setopt=install_weak_deps=False ${LIBSTDCPP_PACKAGE}
     enable_script=`find / -path '*gcc*' -path '*'$GCC_VERSIONS'*' -name enable`
     if [ -n "$enable_script" ]; then
-        source "$enable_script"
+        . "$enable_script"
     fi
 
     ## [CUDA runtime libraries]
