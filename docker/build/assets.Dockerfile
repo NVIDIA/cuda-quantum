@@ -103,6 +103,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_ENABLE_STATIC_LINKING=true \
     LDFLAGS='-static-libgcc -static-libstdc++' \
     LLVM_PROJECTS='clang;lld;mlir' \
+    CUDAQ_INSTALL_IMPLICIT_RESOURCES="${GCC_INSTALL_PREFIX}/root" \
+    CMAKE_INSTALL_MODE=COPY \
     bash scripts/build_cudaq.sh -uv
     ## [<CUDAQuantumBuild]
 

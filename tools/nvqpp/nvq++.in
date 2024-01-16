@@ -187,6 +187,7 @@ llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 
 IS_RELOCATABLE_INSTALL=@CUDAQ_RELOCATABLE_BOOL@
+RESOURCES_DIR=@CUDAQ_RESOURCES_DIR@
 INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
 
 # If we are a relocatable package, then we
@@ -212,12 +213,6 @@ ECHO=false
 TOOLBIN="${install_dir}/bin/"
 LLVMBIN="${llvm_install_dir}/bin/"
 
-if [ -d "${llvm_install_dir}/bin" -a \
-	-x "${llvm_install_dir}/bin/llc${llvm_suffix}" -a \
-	-x "${llvm_install_dir}/bin/clang++${llvm_suffix}" ]; then
-	LLVMBIN="${llvm_install_dir}/bin/"
-fi
-
 # Compiler and linker flags
 COMPILER_FLAGS="-I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
@@ -226,6 +221,11 @@ CLANG_RESOURCE_DIR=""
 # clang / gcc system headers.
 if ${IS_RELOCATABLE_INSTALL}; then
 	CLANG_RESOURCE_DIR="-resource-dir ${install_dir}/lib/clang/@CUDAQ_LLVM_VERSION@"
+elif [ -n "${RESOURCES_DIR}" ]; then
+	# Not sure if this is really the best option.
+	# Including the headers as a fallback for existing system headers using
+	# -isystem-after<dir> could also be an option, similarly for libraries.
+	CLANG_RESOURCE_DIR="-resource-dir ${install_dir}/${RESOURCES_DIR}"
 fi
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@

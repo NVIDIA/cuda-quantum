@@ -162,6 +162,10 @@ endif()
 if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
   SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
 endif()
+if(NOT CUDAQ_INSTALL_IMPLICIT_RESOURCES)
+  set(CUDAQ_INSTALL_IMPLICIT_RESOURCES $ENV{CUDAQ_INSTALL_IMPLICIT_RESOURCES})
+endif()
+
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 SET(CMAKE_SKIP_INSTALL_RPATH FALSE)
@@ -373,6 +377,23 @@ add_custom_target(cudaq-doc)
 
 # Install
 # ==============================================================================
+
+if(CUDAQ_INSTALL_IMPLICIT_RESOURCES)
+  set(CUDAQ_IMPLICIT_LINK_DIRS "${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES}")
+  set(CUDAQ_IMPLICIT_INCLUDE_DIRS "${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES}")
+  list(FILTER CUDAQ_IMPLICIT_LINK_DIRS INCLUDE REGEX "^${CUDAQ_INSTALL_IMPLICIT_RESOURCES}/.+")
+  list(FILTER CUDAQ_IMPLICIT_INCLUDE_DIRS INCLUDE REGEX "^${CUDAQ_INSTALL_IMPLICIT_RESOURCES}/.+")
+
+  set(CUDAQ_RESOURCES_DIR "resources")
+  foreach(dir ${CUDAQ_IMPLICIT_LINK_DIRS})
+    file(RELATIVE_PATH rel_dir "${CUDAQ_INSTALL_IMPLICIT_RESOURCES}" "${dir}")
+    install(DIRECTORY "${dir}" DESTINATION "${CUDAQ_RESOURCES_DIR}/${rel_dir}")
+  endforeach()
+  foreach(dir ${INCLUDE_DIRECTORIES})
+    file(RELATIVE_PATH rel_dir "${CUDAQ_INSTALL_IMPLICIT_RESOURCES}" "${dir}")
+    install(DIRECTORY "${dir}" DESTINATION "${CUDAQ_RESOURCES_DIR}/${rel_dir}")
+  endforeach()
+endif()
 
 # If building normally, this will add the required 
 # system headers to the cudaq-quake include paths.
