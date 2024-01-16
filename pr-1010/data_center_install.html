@@ -838,10 +838,10 @@ for example, this can be done by compiling and running the following program:</p
 <span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">exit_code</span><span class="p">;</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">MPIX_Query_cuda_support</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;CUDA-aware MPI installation.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">exit_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">    </span><span class="n">exit_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Missing CUDA support.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">exit_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">    </span><span class="n">exit_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="w">  </span><span class="n">MPI_Finalize</span><span class="p">();</span>
 <span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">exit_code</span><span class="p">;</span>
