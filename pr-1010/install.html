@@ -655,10 +655,21 @@ executing the commands</p>
 <span class="go">bash &quot;${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh&quot;</span>
 </pre></div>
 </div>
+<p id="local-development-with-vscode">To develop C++ code, you most likely also want to install the
+<a class="reference external" href="https://en.cppreference.com/w/cpp/standard_library">C++ standard library</a>.
+There is no specific version required to be compatible with CUDA Quantum, but we
+recommend choosing a library that supports C++20 or newer. The C++ standard library
+is almost certainly available via the package manager for your system. Search for a
+package that contains <code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code> in the name, and choose a package with <code class="code docutils literal notranslate"><span class="pre">dev</span></code> or
+<code class="code docutils literal notranslate"><span class="pre">devel</span></code>, if available. If you don’t find such a package, you can alternatively install
+the complete GCC toolchain to obtain the standard library. If the package you installed
+includes a script to enable that version, you may need to run it to make the library
+discoverable. You can search for such a script with the command
+<code class="code docutils literal notranslate"><span class="pre">find</span> <span class="pre">/</span> <span class="pre">-path</span> <span class="pre">'*gcc*'</span> <span class="pre">-name</span> <span class="pre">enable</span></code>.</p>
 </section>
 </section>
 <section id="development-with-vs-code">
-<span id="local-development-with-vscode"></span><h2>Development with VS Code<a class="headerlink" href="#development-with-vs-code" title="Permalink to this heading">¶</a></h2>
+<h2>Development with VS Code<a class="headerlink" href="#development-with-vs-code" title="Permalink to this heading">¶</a></h2>
 <p>To facilitate application development with, for example, debugging, code completion, hover information, and so on,
 we recommend using <a class="reference external" href="https://code.visualstudio.com/">VS Code</a>. VS Code provides a seamless
 development experience on all platforms, and is also available without installation via web browser.

@@ -82,12 +82,13 @@ Build Dependencies
 ------------------------------------
 
 In addition to the prerequisites listed above, you will need to install the
-following prerequisites in your build environment:
+following prerequisites in your build environment prior to proceeding with 
+the build as described in the subsequent sections:
 
-- Standard C library: We currently statically link *all* dependencies, including 
+- GNU C library: We currently statically link *all* dependencies, including 
   the standard libraries. We may revise that in the future. 
   To use the current build configuration, please make sure you have the 
-  static version of the `GNU C Library <https://www.gnu.org/software/libc/>`__, 
+  static version of the `GNU C library <https://www.gnu.org/software/libc/>`__, 
   including the POSIX Threads library, installed on your system. 
   The necessary package(s) can usually be obtained via package manager 
   for your distribution.
@@ -277,12 +278,7 @@ You can then create a self-extracting archive with the command
 Installation on the Host
 ------------------------------------
 
-Make sure your host system satisfies the `Prerequisites`_ listed above,
-and that the same C++ standard library that was used during the
-CUDA Quantum build is present and discoverable on the host system. 
-While not strictly necessary, we recommend that you install the toolchain 
-that was used for the CUDA Quantum build on the host.
-
+Make sure your host system satisfies the `Prerequisites`_ listed above.
 Copy the `install_cuda_quantum` file that you created following the instructions
 in the `Preparing the Installation`_ section onto the host system, and then
 run the commands
@@ -313,10 +309,15 @@ the `/etc/profile` file:
   setting the `NVQPP_LD_PATH` environment variable to point to it; for example
   `export NVQPP_LD_PATH=ld`.
 
+To enable C++ development in general, you should also make sure that the
+`C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__ 
+is installed and discoverable on your host system.
+There is no specific version required to be compatible with CUDA Quantum, but we
+recommend a library that supports C++20 or newer.
+
 The remaining sections in this document list additional runtime dependencies 
 that are not included in the migrated assets and are needed to use some of the 
-CUDA Quantum features and components, install the CUDA Quantum 
-runtime dependencies listed in the remaining sections on the host system.
+CUDA Quantum features and components.
 
 CUDA Runtime Libraries
 +++++++++++++++++++++++++++++++
