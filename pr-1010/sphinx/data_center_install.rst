@@ -365,10 +365,10 @@ for example, this can be done by compiling and running the following program:
   If you are encountering an error similar to "The value of the MCA parameter `plm_rsh_agent` 
   was set to a path that could not be found", please make sure you have an SSH Client installed
   or update the MCA parameter to another suitable agent.
-  MPI uses [SSH](https://en.wikipedia.org/wiki/Secure_Shell) or
-  [RSH](https://en.wikipedia.org/wiki/Remote_Shell) to communicate with each node
+  MPI uses `SSH <https://en.wikipedia.org/wiki/Secure_Shell>`__ or
+  `RSH <https://en.wikipedia.org/wiki/Remote_Shell>`__ to communicate with each node
   unless another resource manager, such as
-  [SLURM](https://slurm.schedmd.com/overview.html), is used. 
+  `SLURM <https://slurm.schedmd.com/overview.html>`__, is used. 
 
 Different MPI implementations are supported via a plugin infrastructure in CUDA Quantum.
 Once you have a CUDA-aware MPI installation on your host system, you can 
