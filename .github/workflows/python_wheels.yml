@@ -164,6 +164,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Log in to GitHub CR
+        if: inputs.environment == ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Load cuda-quantum wheel
         uses: actions/download-artifact@v3
         with:
@@ -173,7 +181,7 @@ jobs:
         run: |
           os_image=${{ matrix.os_image }}
           distr=`echo $os_image | cut -d : -f 1 | cut -d / -f 1`
-          if ${{ inputs.create_staging_info }}; then
+          if ${{ inputs.environment != '' }}; then
             # Validate against the public images
             base_image=$os_image
           else
