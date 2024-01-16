@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG os_version=22.04
-FROM ubuntu:$os_version
+ARG base_image=ubuntu:22.04
+FROM ${base_image}
 
 ARG python_version=3.10
 ARG pip_install_flags="--user"
