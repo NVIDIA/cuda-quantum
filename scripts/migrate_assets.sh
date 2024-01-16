@@ -65,7 +65,7 @@ function move_artifacts {
             chmod a+rX "$2/$file" # add x permissions only for executables
         fi
     done
-    for symlink in `find -L . -xtype l -not -path '*/resources/*'`;
+    for symlink in `find -L . -xtype l`;
     do
         if [ ! -f "$2/$symlink" ]; 
         then
