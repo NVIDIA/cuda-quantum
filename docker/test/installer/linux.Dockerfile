@@ -39,7 +39,12 @@ ADD docker/test/installer/dependencies.sh /runtime_dependencies.sh
 RUN LIBSTDCPP_PACKAGE=${libstdcpp_package} \
     CUDART_VERSION=${cudart_version} \
     CUDA_DISTRIBUTION=${cuda_distribution} \
-    bash runtime_dependencies.sh ${base_image}
+    source runtime_dependencies.sh ${base_image} && \
+    # working around the fact that the installation of the dependecies includes
+    # setting some environment variables that are expected to be persistent on
+    # on the host system but would not persistent across docker commands
+    env | egrep -v "^(HOME=|USER=|MAIL=|LC_ALL=|LS_COLORS=|LANG=|HOSTNAME=|PWD=|TERM=|SHLVL=|LANGUAGE=|_=)" \
+        >> /etc/environment
 
 ## [MPI Installation]
 COPY --from=mpibuild /usr/local/openmpi/ /usr/local/openmpi
@@ -55,7 +60,8 @@ WORKDIR /home/cudaq
 ## [Install]
 ARG cuda_quantum_installer='install_cuda_quantum.*'
 ADD "${cuda_quantum_installer}" install_cuda_quantum.sh
-RUN echo "Installing CUDA Quantum..." && \
+RUN source /etc/environment && \
+    echo "Installing CUDA Quantum..." && \
     ## [>CUDAQuantumInstall]
     MPI_PATH=/usr/local/openmpi \
     sudo -E bash install_cuda_quantum.* --accept && . /etc/profile
