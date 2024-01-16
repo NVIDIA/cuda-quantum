@@ -59,8 +59,13 @@ elif [ "$pkg_manager" == "dnf" ]; then
     echo "dnf install -y --nobest --setopt=install_weak_deps=False openssh-clients" > install_sshclient.sh
 
     ## [C++ standard library]
-    dnf install -y --nobest --setopt=install_weak_deps=False ${LIBSTDCPP_PACKAGE:-'gcc-toolset-11'}
-    source /opt/rh/gcc-toolset-${GCC_VERSION}/enable
+    LIBSTDCPP_PACKAGE=${LIBSTDCPP_PACKAGE:-'gcc-toolset-11'}
+    GCC_VERSION=`echo $LIBSTDCPP_PACKAGE | (egrep -o '[0-9]+' || true)`
+    dnf install -y --nobest --setopt=install_weak_deps=False ${LIBSTDCPP_PACKAGE}
+    enable_script=`find / -path '*gcc*' -path '*'$GCC_VERSIONS'*' -name enable`
+    if [ -n "$enable_script" ]; then
+        source /opt/rh/$LIBSTDCPP_PACKAGE/enable
+    fi
 
     ## [CUDA runtime libraries]
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
