@@ -58,8 +58,14 @@ RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
         sed "/^\s*\(#\|$\)/d" "${CUDA_QUANTUM_PATH}/set_env.sh" | sed "/^CUDAQ_INSTALL_PATH=.*/ s@@CUDAQ_INSTALL_PATH=${CUDA_QUANTUM_PATH}@" >> /etc/zprofile \n\
     fi \n\n\
     if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
-        bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh" \n\
-        chmod a+rX "${CUDA_QUANTUM_PATH}/distributed_interfaces/libcudaq_distributed_interface_mpi.so" \n\
+        plugin_path="${CUDA_QUANTUM_PATH}/distributed_interfaces" \n\
+        bash "${plugin_path}/activate_custom_mpi.sh" || true \n\
+        if [ -f "$plugin_path/libcudaq_distributed_interface_mpi.so" ]; then \n\
+            chmod a+rX "$plugin_path/libcudaq_distributed_interface_mpi.so" \n\
+        else \n\
+            echo -e "\e[01;31mError: Failed to build MPI plugin.\e[0m" >&2 \n\
+            echo -e "\e[01;31mPlease make sure the necessary libraries and header files are discoverable and then build the plugin by running the script `${plugin_path}/activate_custom_mpi.sh`.\e[0m" >&2 \n\
+        fi \n\
     fi \n' >> install.sh
 
 ## [Content]
