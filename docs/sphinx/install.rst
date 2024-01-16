@@ -586,6 +586,92 @@ inside the container. Note that most Python packages that use GPU-acceleration, 
 
     python3 -m pip install cupy-cuda11x
 
+.. _distributed-computing-with-mpi:
+
+Distributed Computing with MPI
+------------------------------------
+
+CUDA Quantum supports the Message Passing Interface (MPI) parallelism via a runtime configurable plugin interface.
+Specifically, while a builtin plugin is shipped with the CUDA Quantum Docker image, users can also activate 
+a custom CUDA Quantum MPI plugin targeting their local MPI installation without recompiling or reinstalling the stack.
+
+CUDA Quantum MPI API for :ref:`C++ <mpi-namespace-cpp-api>` and :ref:`Python <mpi-submodule-python-api>` will then be delegated to the runtime discoverable plugin implementation.  
+
+The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can be picked up.
+
+.. tab:: Builtin
+
+  **Use case**: build from source, Docker containers
+
+  When a local MPI installation is detected at build time, CUDA Quantum will build an MPI plugin targeting this implementation when build from source.
+  Similarly, the :ref:`CUDA Quantum Docker image <install-docker-image>` is shipped with a builtin MPI plugin based on its optimized OpenMPI installation inside the image. 
+  No action is required to use this builtin plugin. 
+
+  .. note::
+
+    Manually-activated MPI plugin takes precedence over builtin plugin. 
+    For instance, the user may choose to reinstall a different MPI library inside the Docker container and 
+    activate a new CUDA Quantum MPI plugin. The newly-activated plugin will always be used even though a builtin one 
+    was shipped with the Docker image. 
+
+.. tab:: Manual Activation
+
+  **Use case**: data centers with custom MPI installation, CUDA Quantum binary distributions without MPI support (including Python wheels).
+
+  **Instructions:**
+
+  (1) Locate the CUDA Quantum `distributed_interfaces` sub-directory at the top-level of the CUDA Quantum installation directory.
+
+  (2) Execute the `activate_custom_mpi.sh` bash script.
+
+  .. code-block:: console
+
+    source $CUDAQ_INSTALL_DIR/distributed_interfaces/activate_custom_mpi.sh
+
+  This will build and install a custom MPI plugin targeting the currently-available MPI implementation.
+  
+  .. note::
+
+    This activation script requires the `MPI_PATH` environment variable being set to locate the MPI installation.
+    In particular, `${MPI_PATH}/include` is expected to contain the `mpi.h` header and 
+    `${MPI_PATH}/lib64` or `${MPI_PATH}/lib` is expected to contain `libmpi.so`.
+
+  .. note::
+
+    After the initial activation, if performed from the CUDA Quantum install directory,the activated will always be used to handle CUDA Quantum MPI API.
+
+  .. note::
+
+    Executing the activation script from the CUDA Quantum installation directory requires *write* permissions to that directory.
+    If that is not feasible, the user might copy the `distributed_interfaces` sub-directory to a local location and execute the 
+    activation script from there.
+
+    In this scenario, since the activated plugin (`libcudaq_distributed_interface_mpi.so`) is outside the CUDA Quantum installation,
+    CUDA Quantum requires users to set an environment variable `$CUDAQ_MPI_COMM_LIB` containing the path to that shared library.
+    This is done automatically when executing that activation script. Users may wish to persist that environment variable 
+    between bash sessions, e.g., via the `.bashrc` file.
+
+
+.. tab:: `mpi4py <https://mpi4py.readthedocs.io/>`__ Wrapper
+
+  **Use case**: Python users
+
+  Although we recommend manual MPI activation for optimized performance and compatibility, users may wish
+  to attain CUDA Quantum MPI support via the Python package manager (`pip`). 
+  CUDA Quantum provides an MPI plugin wrapper around the `mpi4py <https://mpi4py.readthedocs.io/>` Python package.
+
+  If no builtin nor manually-activated plugin can be detected, CUDA Quantum will try to locate the `mpi4py` package.
+  If found, CUDA Quantum MPI API calls will be redirected to the corresponding `mpi4py`API.
+
+  .. note::
+
+    The installation of `mpi4py` `pip` package does require a pre-installed MPI implementation on the system as well as 
+    basic compilation capabilities (e.g., a `C` language compiler).
+
+  .. note::
+
+    Manually-activated or builtin MPI plugins, if present in the CUDA Quantum install directory, will take precedence
+    over the one based on `mpi4py`. 
 
 .. _dependencies-and-compatibility:
 

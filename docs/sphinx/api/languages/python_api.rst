@@ -201,6 +201,8 @@ Noisy Simulation
 .. autoclass:: cudaq::KrausOperator
     :members:
 
+.. _mpi-submodule-python-api:
+
 MPI Submodule
 =============================
 
