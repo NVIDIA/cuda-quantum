@@ -49,7 +49,7 @@ public:
     if (std::fabs(1.0 - norm) > 1e-12)
       throw std::runtime_error("Invalid vector norm for qudit allocation.");
 
-    // FIXME Perform the initialization
+    // Perform the initialization
     getExecutionManager()->initializeState({QuditInfo(n_levels(), idx)},
                                            state.data());
   }
