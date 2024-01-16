@@ -190,6 +190,3 @@ echo "Total failed: $failed"
 echo "Skipped: $skipped"
 echo "============================="
 if [ "$failed" -eq "0" ]; then exit 0; else exit 10; fi
-
-#FIXME: filter validation examples to only run the ones that run quickly enough
-#FIXME: check if stdlibc++ is really needed on host and either update the install or install data center guide accordingly
