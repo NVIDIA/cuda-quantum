@@ -143,7 +143,7 @@ jobs:
           platform_id=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
           filename=${platform_id}_debug_build
 
-          docker run --gpus all --name cuda-quantum-dev cuda-quantum-dev:local
+          docker run --name cuda-quantum-dev cuda-quantum-dev:local
           docker export cuda-quantum-dev > $output_directory/$filename.tar
           docker rm -f cuda-quantum-dev
     
@@ -240,7 +240,7 @@ jobs:
           platform_id=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
           filename=${platform_id}_python_build
 
-          docker run --gpus all --name dev_env dev_env:local
+          docker run --name dev_env dev_env:local
           docker export dev_env > $output_directory/$filename.tar
           docker rm -f dev_env
     

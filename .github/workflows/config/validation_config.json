@@ -88,7 +88,25 @@
                 "ubuntu:22.04",
                 "redhat/ubi8:8.0",
                 "fedora:38"
-            ]
+            ],
+            "ubuntu:22.04": 
+            { 
+                "libstdcpp_package": "libstdc++-11-dev",
+                "cudart_version": 11.8,
+                "cuda_distribution": "ubuntu2204"
+            },
+            "redhat/ubi8:8.0": 
+            {
+                "libstdcpp_package": "gcc-toolset-12",
+                "cudart_version": 11.8,
+                "cuda_distribution": "rhel9"
+            },
+            "fedora:38": 
+            {
+                "libstdcpp_package": "gcc-c++",
+                "cudart_version": 11.8,
+                "cuda_distribution": "rhel9"
+            }
         }
     ]
 }
