@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG os_version=12
-FROM debian:$os_version
+ARG base_image=debian:12
+FROM ${base_image}
 SHELL ["/bin/bash", "-c"]
 
 ARG python_version=3.11

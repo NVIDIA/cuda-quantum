@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG os_version=leap:15.5
-FROM opensuse/$os_version
+ARG base_image=opensuse/leap:15.5
+FROM ${base_image}
 
 ARG python_version=3.11
 ARG pip_install_flags="--user"

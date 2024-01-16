@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG os_version=ubi9:9.2
-FROM redhat/$os_version
+ARG base_image=redhat/ubi9:9.2
+FROM ${base_image}
 
 ARG python_version=3.11
 ARG pip_install_flags="--user"
