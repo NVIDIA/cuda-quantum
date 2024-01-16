@@ -14,10 +14,10 @@ int main(int argc, char *argv[]) {
   int exit_code;
   if (MPIX_Query_cuda_support()) {
     printf("CUDA-aware MPI installation.\n");
-    exit_code = 0
+    exit_code = 0;
   } else {
     printf("Missing CUDA support.\n");
-    exit_code = 1
+    exit_code = 1;
   }
   MPI_Finalize();
   return exit_code;

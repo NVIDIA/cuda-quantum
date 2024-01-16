@@ -58,7 +58,7 @@
             },
             "redhat/ubi8:8.0": 
             {
-                "libstdcpp_package": "gcc-toolset-12",
+                "libstdcpp_package": "gcc-toolset-12-libstdc++-devel",
                 "cudart_version": 11.8,
                 "cuda_distribution": "rhel9"
             },
@@ -70,13 +70,13 @@
             },
             "opensuse/leap:15.5": 
             {
-                "libstdcpp_package": "gcc11",
+                "libstdcpp_package": "libstdc++6-devel-gcc11",
                 "cudart_version": 11.8,
                 "cuda_distribution": "opensuse15"
             },
             "fedora:38": 
             {
-                "libstdcpp_package": "gcc-c++",
+                "libstdcpp_package": "libstdc++",
                 "cudart_version": 11.8,
                 "cuda_distribution": "rhel9"
             }
@@ -97,13 +97,13 @@
             },
             "redhat/ubi8:8.0": 
             {
-                "libstdcpp_package": "gcc-toolset-12",
+                "libstdcpp_package": "gcc-toolset-12-libstdc++-devel",
                 "cudart_version": 11.8,
                 "cuda_distribution": "rhel9"
             },
             "fedora:38": 
             {
-                "libstdcpp_package": "gcc-c++",
+                "libstdcpp_package": "libstdc++",
                 "cudart_version": 11.8,
                 "cuda_distribution": "rhel9"
             }
