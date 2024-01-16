@@ -106,9 +106,9 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess() {
            (POLL_INTERVAL_MAX_MS - POLL_INTERVAL_MIN_MS) * i / MAX_RETRIES;
   };
   int totalWaitTimeMs = 0;
+  cudaq::RestClient restClient;
   for (std::size_t i = 0; i < MAX_RETRIES; ++i) {
     try {
-      static thread_local cudaq::RestClient restClient;
       std::map<std::string, std::string> headers;
       [[maybe_unused]] auto pingResult = restClient.get(m_url, "", headers);
       cudaq::info("Successfully connected to the REST server at "

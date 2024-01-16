@@ -198,7 +198,7 @@ public:
         {"Expect:", ""}, {"Content-type", "application/json"}};
     json requestJson = request;
     try {
-      static thread_local cudaq::RestClient restClient;
+      cudaq::RestClient restClient;
       auto resultJs =
           restClient.post(m_url, "job", requestJson, headers, false);
 
