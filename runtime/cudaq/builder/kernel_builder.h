@@ -229,7 +229,7 @@ void applyPasses(mlir::PassManager &);
 std::tuple<bool, mlir::ExecutionEngine *>
 jitCode(mlir::ImplicitLocOpBuilder &, mlir::ExecutionEngine *,
         std::unordered_map<mlir::ExecutionEngine *, std::size_t> &, std::string,
-        std::vector<std::string>);
+        std::vector<std::string>, StateVectorStorage&);
 
 /// @brief Invoke the function with the given kernel name.
 void invokeCode(mlir::ImplicitLocOpBuilder &builder, mlir::ExecutionEngine *jit,
@@ -823,7 +823,7 @@ public:
   void jitCode(std::vector<std::string> extraLibPaths = {}) override {
     auto [wasChanged, ptr] =
         details::jitCode(*opBuilder, jitEngine.get(), jitEngineToModuleHash,
-                         kernelName, extraLibPaths);
+                         kernelName, extraLibPaths, stateVectorStorage);
     // If we had a jitEngine, but the code changed, delete the one we had.
     if (jitEngine && wasChanged)
       details::deleteJitEngine(jitEngine.release());
