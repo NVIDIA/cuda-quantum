@@ -7,9 +7,7 @@
  ******************************************************************************/
 // clang-format off
 // RUN: nvq++ -std=c++17 --enable-mlir -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t
-// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
-// RUN:   nvq++ --enable-mlir -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t && %t | FileCheck %s; \
-// RUN: fi
+// RUN: nvq++ %cpp_std --enable-mlir -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <iostream>

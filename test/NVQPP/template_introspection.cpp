@@ -7,9 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
-// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
-// RUN:   nvq++ --enable-mlir %s -o %t && %t | FileCheck %s; \
-// RUN: fi
+// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 
