@@ -13,16 +13,23 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 namespace cudaq {
-using SingleIndices = std::vector<std::size_t>;
-using DoubleIndices = std::vector<std::size_t>;
-using Excitations =
-    std::tuple<std::vector<SingleIndices>, std::vector<DoubleIndices>>;
 
+/// @brief An excitation_list is a vector of lists of indices.
 using excitation_list = std::vector<std::vector<std::size_t>>;
 
-std::tuple<excitation_list, excitation_list, excitation_list, excitation_list,
-           excitation_list>
-get_uccsd_excitations(std::size_t numElectrons, std::size_t numQubits) {
+/// @brief UCCSD excitations for single and double excitations.
+struct excitations {
+  excitation_list singles_alpha;
+  excitation_list singles_beta;
+  excitation_list doubles_mixed;
+  excitation_list doubles_alpha;
+  excitation_list doubles_beta;
+};
+
+/// @brief Given the number of electrons and qubits that make up the
+/// system, return the single and double excitation indices.
+excitations get_uccsd_excitations(std::size_t numElectrons,
+                                  std::size_t numQubits) {
   auto numSpatialOrbs = numQubits / 2;
   // check rounding
   auto numOccupied = static_cast<std::size_t>(std::ceil(numElectrons / 2));
@@ -93,10 +100,11 @@ get_uccsd_excitations(std::size_t numElectrons, std::size_t numQubits) {
           doublesBeta.push_back({occupiedBeta[p], occupiedBeta[q],
                                  virtualBeta[r], virtualBeta[s]});
 
-  return std::make_tuple(singlesAlpha, singlesBeta, doublesMixed, doublesAlpha,
-                         doublesBeta);
+  return excitations{singlesAlpha, singlesBeta, doublesMixed, doublesAlpha,
+                     doublesBeta};
 }
 
+/// @brief Return the number of UCCSD ansatz parameters.
 auto uccsd_num_parameters(std::size_t numElectrons, std::size_t numQubits) {
   auto [singlesAlpha, singlesBeta, doublesMixed, doublesAlpha, doublesBeta] =
       get_uccsd_excitations(numElectrons, numQubits);
