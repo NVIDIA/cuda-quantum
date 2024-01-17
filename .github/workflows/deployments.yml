@@ -111,17 +111,16 @@ jobs:
             multi_platform="{\"ids\":[]}"
             platform_flag=`echo "$requested_platforms" | tr -d ' '`
             multi_platform=`echo $multi_platform | jq ".ids |= . + [\"multiplat\"]"`
-            platform={\"multiplat\":{\"docker_flag\":\"$platform_flag\",\"arch\":\"any\"}}
+            platform={\"multiplat\":{\"docker_flag\":\"$platform_flag\"}}
             multi_platform=`echo $multi_platform | jq ". |= . + $platform"`
           fi
 
           platforms="{\"ids\":[]}"
           for input in `echo "$requested_platforms" | tr , ' ' | tr ';' ' '`; do
             platform_id=`echo $input | sed 's/linux\///g' | tr -d ' '`
-            platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
             minimal_base_image=`([ "$platform_id" == "amd64" ] && echo amd64/almalinux:8) || ([ "$platform_id" == "arm64" ] && echo arm64v8/almalinux:8) || echo`
             platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
-            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\",\"minimal_base_image\":\"$minimal_base_image\"}}
+            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"minimal_base_image\":\"$minimal_base_image\"}}
             platforms=`echo $platforms | jq ". |= . + $platform"`
           done
 
@@ -209,7 +208,7 @@ jobs:
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
-        arch=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].arch }}
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
