@@ -46,6 +46,6 @@ Our project can then be built with commands such as
     nvcc -c -std=c++17 <options> my_proj.cu -o my_proj.o
     nvq++ -std=c++17 <options> my_project_quantum.cpp my_proj.o -L ${CUDA_INSTALL}/lib64 -lcudart -o my_executable
 
-Above, :code:`nvq++` is used for the link step will make sure the CUDA
+Above, :code:`nvq++` is used for the link step and will make sure the CUDA
 Quantum runtime libraries are linked correctly to the executable program.
 The CUDA runtime is explicitly added to this command.
