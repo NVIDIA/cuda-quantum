@@ -595,7 +595,8 @@ CUDA Quantum supports the Message Passing Interface (MPI) parallelism via a runt
 Specifically, while a builtin plugin is shipped with the CUDA Quantum Docker image, users can also activate 
 a custom CUDA Quantum MPI plugin targeting their local MPI installation without recompiling or reinstalling the stack.
 
-CUDA Quantum MPI API for :ref:`C++ <mpi-namespace-cpp-api>` and :ref:`Python <mpi-submodule-python-api>` will then be delegated to the runtime discoverable plugin implementation.  
+CUDA Quantum MPI API for :ref:`C++ <mpi-namespace-cpp-api>` and :ref:`Python <mpi-submodule-python-api>` will then be delegated 
+to the plugin implementation selected at runtime.  
 
 The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can be picked up.
 
@@ -661,7 +662,7 @@ The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can 
   CUDA Quantum provides an MPI plugin wrapper around the `mpi4py <https://mpi4py.readthedocs.io/>` Python package.
 
   If no builtin nor manually-activated plugin can be detected, CUDA Quantum will try to locate the `mpi4py` package.
-  If found, CUDA Quantum MPI API calls will be redirected to the corresponding `mpi4py`API.
+  If found, CUDA Quantum MPI API calls will be redirected to the corresponding `mpi4py` API.
 
   .. note::
 
