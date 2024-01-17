@@ -29,7 +29,7 @@ matrix:
       context_visible_first: true
       delimiters:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
       # Ignore apostrophy-s endings of words (e.g. NVIDIA's)
       - open: '(?=\S)'
@@ -84,7 +84,7 @@ matrix:
         close: '($|(?=[^a-z]))'
         content: '\u0027s'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
 
 - name: html
@@ -109,7 +109,7 @@ matrix:
       context_visible_first: true
       delimiters:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
 
 - name: cxx_headers
@@ -180,7 +180,7 @@ matrix:
       - open: '(^|\s)([A-Z]|_)'
         close: '($|\s|-)'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
 
 - name: cxx_examples
@@ -225,7 +225,7 @@ matrix:
       - open: '@\S'
         close: '(\s|$)'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
 
 - name: python
@@ -262,5 +262,5 @@ matrix:
       - open: '(^|\s)([A-Z]|_)'
         close: '($|\s|-)'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'

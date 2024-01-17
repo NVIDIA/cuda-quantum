@@ -11,11 +11,11 @@
 # This scripts moves CUDA Quantum assets to the correct locations.
 #
 # Usage:
-# bash scripts/migrate_assets.sh "$assets"
+# bash scripts/migrate_assets.sh -s "$assets"
 # -or-
-# bash scripts/migrate_assets.sh "$assets" "$build_config"
+# bash scripts/migrate_assets.sh -s "$assets" -c "$build_config"
 # -or-
-# sudo -E bash scripts/migrate_assets.sh "$assets"
+# sudo -E bash scripts/migrate_assets.sh -s "$assets"
 #
 # The assets variable should be set to the path of the directory
 # that contains the files to migrate to their correct location.
@@ -33,16 +33,36 @@
 # does not perform any validation regarding whether the copied
 # files are compatible or functional after moving them.
 
+# Process command line arguments
+(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
+__optind__=$OPTIND
+OPTIND=1
+while getopts ":c:s:t:" opt; do
+  case $opt in
+    c) config="$OPTARG"
+    ;;
+    s) source="$OPTARG"
+    ;;
+    t) target="$OPTARG"
+    ;;
+    \?) echo "Invalid command line option -$OPTARG" >&2
+    if $is_sourced; then return 1; else exit 1; fi
+    ;;
+  esac
+done
+OPTIND=$__optind__
+
 function move_artifacts {
-    cd "$1"
+    mkdir -p "$2" -m 755 && cd "$1"
     echo "Updating $2 with artifacts in $1:"
     for file in `find . -type f`; 
     do 
         if [ ! -f "$2/$file" ]; 
         then 
             echo -e "\tadding file $2/$file"
-            mkdir -p "$(dirname "$2/$file")"
+            mkdir -p "$(dirname "$2/$file")" -m 755 # need x permissions to see content
             mv "$file" "$2/$file"
+            chmod a+rX "$2/$file" # add x permissions only for executables
         fi
     done
     for symlink in `find -L . -xtype l`;
@@ -50,7 +70,7 @@ function move_artifacts {
         if [ ! -f "$2/$symlink" ]; 
         then
             echo -e "\tadding symbolic link $2/$symlink"
-            mkdir -p "$(dirname "$2/$symlink")"
+            mkdir -p "$(dirname "$2/$symlink")" -m 755 # need x permissions to see content
             mv "$symlink" "$2/$symlink"
         fi
     done
@@ -62,13 +82,22 @@ function move_artifacts {
         fi
     done
     cd - > /dev/null
+    find "$2" -type d -exec chmod 755 {} \;
 }
 
-CUDA_QUANTUM_PATH=${CUDA_QUANTUM_PATH:-"$CUDAQ_INSTALL_PREFIX"}
-CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$CUDA_QUANTUM_PATH"}
+if [ -n "$target" ]; then
+    CUDA_QUANTUM_PATH="$target"
+    CUDAQ_INSTALL_PREFIX=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+elif [ -z "$CUDA_QUANTUM_PATH" ] && [ -z "$CUDAQ_INSTALL_PREFIX" ]; then 
+    echo -e "\e[01;31mError: Neither CUDAQ_INSTALL_PREFIX nor CUDA_QUANTUM_PATH are defined.\e[0m" >&2
+    (return 0 2>/dev/null) && return 1 || exit 1
+else
+    CUDA_QUANTUM_PATH=${CUDA_QUANTUM_PATH:-"$CUDAQ_INSTALL_PREFIX"}
+    CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$CUDA_QUANTUM_PATH"}
+fi
 
-assets=${1:-"$CUDAQ_INSTALL_PREFIX"}
-build_config=${2:-"$assets/build_config.xml"}
+assets="${source:-$CUDAQ_INSTALL_PREFIX}"
+build_config="${config:-$assets/build_config.xml}"
 if [ ! -f "$build_config" ]; then 
     build_config="$CUDAQ_INSTALL_PREFIX/build_config.xml"
 fi
@@ -90,9 +119,17 @@ while rdom; do
 done < "$build_config"
 
 if [ -d "$assets/cudaq" ]; then
-    move_artifacts "$assets/cudaq" "$CUDAQ_INSTALL_PREFIX"
+    move_artifacts "$assets/cudaq" "$CUDA_QUANTUM_PATH"
+    if [ ! -f "$CUDA_QUANTUM_PATH/build_config.yml" ]; then
+        cp "$build_config" "$CUDA_QUANTUM_PATH/build_config.yml"
+    fi
+    chmod a+rx "$(dirname "$CUDA_QUANTUM_PATH")"
 fi
 
-if [ -n "$(find "$assets" -type f)" ]; then
-    echo "Warning: not all files in $assets have been migrated." 1>&2;
+this_file=`readlink -f "${BASH_SOURCE[0]}"`
+remaining_files=(`find "$assets" -type f -not -path "$this_file" -not -path "$build_config"`)
+if [ ! ${#remaining_files[@]} -eq 0 ]; then
+    rel_paths=(${remaining_files[@]##$assets/})
+    components=(`echo "${rel_paths[@]%%/*}" | tr ' ' '\n' | uniq`)
+    echo -e "\e[01;31mWarning: Some files in $assets have not been migrated since they already exit in their intended destination. To avoid compatibility issues, please make sure the following packages are not already installed on your system: ${components[@]}\e[0m" >&2
 fi
