@@ -22,7 +22,8 @@
 # toolchain, add support for it to the install_toolchain.sh script. If the toolchain is set to llvm, 
 # then the toolchain will be built from source.
 
-FROM ubuntu:22.04 as llvmbuild
+ARG base_image=ubuntu:22.04
+FROM ${base_image} as llvmbuild
 SHELL ["/bin/bash", "-c"]
 
 ARG llvm_commit
@@ -95,7 +96,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Pre-built binaries for doxygen are only available for x86_64.
-FROM ubuntu:22.04 as doxygenbuild
+FROM ${base_image} as doxygenbuild
 RUN if [ "$(uname -m)" != "x86_64" ]; then \
         apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
         # Fixed commit corresponding to release 1.9.7
@@ -112,7 +113,7 @@ RUN if [ "$(uname -m)" != "x86_64" ]; then \
         && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
 
-FROM ubuntu:22.04
+FROM ${base_image}
 SHELL ["/bin/bash", "-c"]
 
 # When a dialogue box would be needed during install, assume default configurations.

@@ -21,9 +21,8 @@
 
 # There are currently no multi-platform manylinux images available.
 # See https://github.com/pypa/manylinux/issues/1306.
-ARG arch=x86_64
-ARG manylinux_image=manylinux_2_28
-FROM quay.io/pypa/${manylinux_image}_${arch}:latest
+ARG base_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+FROM ${base_image}
 
 ARG distro=rhel8
 ARG llvm_commit
