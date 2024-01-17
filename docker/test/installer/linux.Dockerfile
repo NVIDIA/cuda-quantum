@@ -45,7 +45,7 @@ RUN export LIBSTDCPP_PACKAGE=${libstdcpp_package} && \
     # working around the fact that the installation of the dependecies includes
     # setting some environment variables that are expected to be persistent on
     # on the host system but would not persistent across docker commands
-    env | egrep -v "^(HOME=|USER=|MAIL=|LC_ALL=|LS_COLORS=|LANG=|HOSTNAME=|PWD=|TERM=|SHLVL=|LANGUAGE=|_=)" \
+    env | egrep "^(PATH=|MANPATH=|INFOPATH=|PCP_DIR=|LD_LIBRARY_PATH=|PKG_CONFIG_PATH=)" \
         >> /etc/environment
 
 ## [MPI Installation]

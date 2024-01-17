@@ -56,8 +56,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install CUDA Quantum runtime dependencies.
 
-ENV OPENSSL_ROOT_DIR="/opt/openssl"
-COPY --from=cudaqbuild "/usr/local/openssl/" "$OPENSSL_ROOT_DIR"
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip libstdc++-12-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \

@@ -240,6 +240,7 @@ To install CUDA Quantum, execute the command
 
 .. literalinclude:: ../../docker/test/installer/linux.Dockerfile
     :language: bash
+    :dedent:
     :start-after: [>CUDAQuantumInstall]
     :end-before: [<CUDAQuantumInstall]
 
@@ -684,6 +685,7 @@ commands, for example, install the necessary packages for RHEL 8:
 
 .. literalinclude:: ../../scripts/configure_build.sh
     :language: bash
+    :dedent:
     :start-after: [>CUDARTInstall]
     :end-before: [<CUDARTInstall]
 
