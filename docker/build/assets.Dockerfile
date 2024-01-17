@@ -114,7 +114,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
     # FIXME: Disabled nlopt doesn't seem to work properly
     excludes+=" --exclude-regex NloptTester|ctest-nvqpp" && \
     ctest --output-on-failure --test-dir build -E ctest-nvqpp $excludes
-# FIXME: Not yet working due to failure to find span
-#RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
-#    cd /cuda-quantum && source scripts/configure_build.sh && \
-#    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+RUN export CUDAQ_CPP_STD="c++17" && \
+    python3 -m ensurepip --upgrade && python3 -m pip install lit && \
+    cd /cuda-quantum && source scripts/configure_build.sh && \
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
