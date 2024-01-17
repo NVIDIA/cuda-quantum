@@ -183,7 +183,7 @@ template <typename Kernel>
 void doubleExcitation(Kernel &kernel, QuakeValue &qubits, std::size_t pOcc,
                       std::size_t qOcc, std::size_t rVirt, std::size_t sVirt,
                       QuakeValue &theta) {
-  std::size_t iOcc, jOcc, aVirt, bVirt;
+  std::size_t iOcc = 0, jOcc = 0, aVirt = 0, bVirt = 0;
   double multiplier = 1.;
   if ((pOcc < qOcc) && (rVirt < sVirt)) {
     iOcc = pOcc;
@@ -373,7 +373,7 @@ void doubleExcitation(Kernel &kernel, QuakeValue &qubits, std::size_t pOcc,
 __qpu__ void doubleExcitation(cudaq::qview<> qubits, std::size_t pOcc,
                               std::size_t qOcc, std::size_t rVirt,
                               std::size_t sVirt, double theta) {
-  std::size_t iOcc, jOcc, aVirt, bVirt;
+  std::size_t iOcc = 0, jOcc = 0, aVirt = 0, bVirt = 0;
   if ((pOcc < qOcc) && (rVirt < sVirt)) {
     iOcc = pOcc;
     jOcc = qOcc;
