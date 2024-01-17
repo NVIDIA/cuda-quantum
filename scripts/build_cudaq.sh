@@ -125,13 +125,16 @@ cmake_args="-G Ninja "$repo_root" \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON}"
-# Even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
-# CMAKE_CUDA_COMPILER_WORKS checks do not seem to use that host compiler 
-# and cause a failure. We hence set CUDAHOSTCXX in the cmake invocation below.
+# Note that even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
+# CMAKE_CUDA_COMPILER_WORKS checks do *not* use that host compiler unless the CUDAHOSTCXX 
+# environment variable is specified. Setting this variable may hence be necessary in 
+# some environments. On the other hand, this will also make CMake not detect CUDA, if 
+# the set host compiler is not officially supported. We hence don't set that variable 
+# here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
-  CUDAHOSTCXX="$CXX" cmake $cmake_args
+  cmake $cmake_args
 else
-  CUDAHOSTCXX="$CXX" cmake $cmake_args \
+  cmake $cmake_args \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 

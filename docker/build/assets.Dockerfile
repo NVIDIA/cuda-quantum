@@ -99,7 +99,9 @@ ENV CUDA_QUANTUM_VERSION=$release_version
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantumBuild]
-    CUDAQ_PYTHON_SUPPORT=OFF CUDAQ_WERROR=false \
+    CUDAQ_WERROR=false \
+    CUDAQ_PYTHON_SUPPORT=OFF \
+    CUDAHOSTCXX="$CXX" \
     CUDAQ_ENABLE_STATIC_LINKING=true \
     LDFLAGS='-static-libgcc -static-libstdc++' \
     LLVM_PROJECTS='clang;lld;mlir' \
