@@ -14,21 +14,24 @@
 #include "cudaq/optimizers.h"
 
 CUDAQ_TEST(GenerateExcitationsTester, checkSimple) {
+  std::size_t numElectrons = 2;
+  std::size_t numQubits = 4;
 
-  auto [singles, doubles] = cudaq::generateExcitations(2, 4);
-
-  EXPECT_EQ(2, singles.size());
-  EXPECT_EQ(1, doubles.size());
-
-  EXPECT_EQ(0, singles[0][0]);
-  EXPECT_EQ(2, singles[0][1]);
-  EXPECT_EQ(1, singles[1][0]);
-  EXPECT_EQ(3, singles[1][1]);
-
-  EXPECT_EQ(0, doubles[0][0]);
-  EXPECT_EQ(1, doubles[0][1]);
-  EXPECT_EQ(2, doubles[0][2]);
-  EXPECT_EQ(3, doubles[0][3]);
+  auto [singlesAlpha, singlesBeta, doublesMixed, doublesAlpha, doublesBeta] =
+      cudaq::get_uccsd_excitations(numElectrons, numQubits);
+  EXPECT_TRUE(doublesAlpha.empty());
+  EXPECT_TRUE(doublesBeta.empty());
+  EXPECT_TRUE(singlesAlpha.size() == 1);
+  EXPECT_EQ(singlesAlpha[0][0], 0);
+  EXPECT_EQ(singlesAlpha[0][1], 2);
+  EXPECT_EQ(singlesBeta[0][0], 1);
+  EXPECT_EQ(singlesBeta[0][1], 3);
+  EXPECT_EQ(doublesMixed[0][0], 0);
+  EXPECT_EQ(doublesMixed[0][1], 1);
+  EXPECT_EQ(doublesMixed[0][2], 3);
+  EXPECT_EQ(doublesMixed[0][3], 2);
+  EXPECT_TRUE(singlesBeta.size() == 1);
+  EXPECT_TRUE(doublesMixed.size() == 1);
 }
 
 CUDAQ_TEST(H2MoleculeTester, checkHamiltonian) {
