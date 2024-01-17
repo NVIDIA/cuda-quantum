@@ -59,16 +59,12 @@ elif [ "$pkg_manager" == "dnf" ]; then
     echo "dnf install -y --nobest --setopt=install_weak_deps=False openssh-clients" > install_sshclient.sh
 
     ## [C++ standard library]
-    LIBSTDCPP_PACKAGE=${LIBSTDCPP_PACKAGE:-'gcc-toolset-12-libstdc++-devel'}
+    LIBSTDCPP_PACKAGE=${LIBSTDCPP_PACKAGE:-'gcc-c++'}
     GCC_VERSION=`echo $LIBSTDCPP_PACKAGE | (egrep -o '[0-9]+' || true)`
     dnf install -y --nobest --setopt=install_weak_deps=False ${LIBSTDCPP_PACKAGE}
     enable_script=`find / -path '*gcc*' -path '*'$GCC_VERSIONS'*' -name enable`
     if [ -n "$enable_script" ]; then
         . "$enable_script"
-        # The script to enable the toolchain does not add the headers to the default
-        # include path. We hence do that manually here.
-        gcc_install_root="$(dirname "$enable_script")/root"
-        export CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH:+CPLUS_INCLUDE_PATH:}${gcc_install_root}/usr/include/"
     fi
 
     ## [CUDA runtime libraries]
@@ -82,7 +78,7 @@ elif [ "$pkg_manager" == "zypper" ]; then
     echo "zypper --non-interactive in --no-recommends openssh-clients" > install_sshclient.sh
 
     ## [C++ standard library]
-    zypper --non-interactive in --no-recommends ${LIBSTDCPP_PACKAGE:-'libstdc++-devel'}
+    zypper --non-interactive in --no-recommends ${LIBSTDCPP_PACKAGE:-'gcc13-c++'}
 
     ## [CUDA runtime libraries]
     zypper ar "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"

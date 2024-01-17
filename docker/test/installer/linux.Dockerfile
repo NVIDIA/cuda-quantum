@@ -28,8 +28,10 @@ RUN source /cuda-quantum/scripts/configure_build.sh build-openmpi
 
 # [CUDA Quantum Installation]
 FROM ${base_image}
-ARG base_image
+SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
+
+ARG base_image
 ARG libstdcpp_package
 ARG cudart_version
 ARG cuda_distribution
