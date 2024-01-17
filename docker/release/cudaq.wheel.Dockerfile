@@ -11,9 +11,9 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   DOCKER_BUILDKIT=1 docker build -f docker/build/cudaq.wheel.Dockerfile . --output out
+#   DOCKER_BUILDKIT=1 docker build -f docker/release/cudaq.wheel.Dockerfile . --output out
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-x86_64-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-gcc11-main
 FROM $base_image as wheelbuild
 
 ARG release_version=
@@ -28,8 +28,8 @@ RUN echo "Building MLIR bindings for python${python_version}" \
     && python${python_version} -m pip install --no-cache-dir numpy \
     && rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" \
     && export Python3_EXECUTABLE="$(which python${python_version})" \
-    && export CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
-    && bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
+    && LLVM_PROJECTS='clang;mlir;python-bindings' \
+        bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
 
 # Install additional dependencies
 # They might be optionally pulled in during auditwheel if necessary.
@@ -42,13 +42,16 @@ RUN echo "Building wheel for python${python_version}." \
     && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \
     && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/assets" \
     && $python -m pip install --no-cache-dir \
-        auditwheel cuquantum-cu11==23.10.0 \
+        auditwheel cuquantum-cu11==23.10.0 cutensor-cu11==1.7.0 \
     && cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location: .*$'` \
     && export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location: }/cuquantum" \
+    && cutensor_location=`$python -m pip show cutensor-cu11 | grep -e 'Location: .*$'` \
+    && export CUTENSOR_INSTALL_PREFIX="${cutensor_location#Location: }/cutensor" \
     && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1 $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so \
     && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so \
+    && ln -s $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so.1 $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
-        CUDAQ_BUILD_SELFCONTAINED=ON \
+        CUDAQ_ENABLE_STATIC_LINKING=ON \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
     && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \

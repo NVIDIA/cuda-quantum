@@ -2,6 +2,7 @@ API
 APIs
 AST
 Aer
+AlmaLinux
 BFGS
 CLA
 CLI
@@ -11,6 +12,7 @@ CPTP
 CPU
 CPUs
 CUDA
+CentOS
 Conda
 CuPy
 DGX
@@ -18,11 +20,13 @@ DOI
 Deuteron
 Doxygen
 FPGAs
+Fortran
 Fourier
 GHCR
 GPU
 GPUs
 GitHub
+HPC
 Hadamard
 Hadamards
 Hamiltonian
@@ -39,6 +43,7 @@ LSB
 MCA
 MLIR
 MPI
+MPICH
 MPS
 MSB
 Max-Cut
@@ -51,6 +56,9 @@ OpenACC
 OpenMP
 OpenMPI
 OpenQASM
+OpenSSL
+OpenSUSE
+POSIX
 Pauli
 Paulis
 PyPI
@@ -65,9 +73,12 @@ QTX
 Qiskit
 Quake
 Quantinuum
+RHEL
 RSA
 RSH
 SDK
+SLED
+SLES
 SLURM
 SVD
 TCP
@@ -110,6 +121,7 @@ cortex-cli
 coupler
 couplers
 cuQuantum
+cuTensor
 cudaq
 dataflow
 deallocate
@@ -121,6 +133,7 @@ decrement
 decrementing
 deserialize
 destructor
+discoverable
 discretization
 discretize
 discretized
@@ -158,6 +171,8 @@ instantiations
 intrinsics
 iterable
 iteratively
+linker
+linkers
 lookup
 lookups
 lvalue
@@ -172,6 +187,7 @@ optimizer
 optimizers
 parallelization
 parameterization
+performant
 precompute
 precomputed
 prepend
@@ -209,6 +225,7 @@ symplectic
 tablegen
 templated
 toolchain
+toolchains
 toolset
 trotterization
 unary
@@ -217,6 +234,7 @@ uncompute
 unitaries
 unitary
 unoptimized
+upvote
 variadic
 variational
 verifier
