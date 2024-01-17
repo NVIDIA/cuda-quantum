@@ -6,8 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
+// RUN:   nvq++ --enable-mlir %s -o %t && %t | FileCheck %s; \
+// RUN: fi
 
 #include <cudaq.h>
 
