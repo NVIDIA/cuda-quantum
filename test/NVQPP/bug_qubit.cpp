@@ -14,7 +14,7 @@
 // RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
-// RUN: cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
 
 #include <cudaq.h>
 #include <iostream>
