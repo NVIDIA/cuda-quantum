@@ -16,7 +16,6 @@
 #include "helpers/MQPUUtils.h"
 #include "llvm/Support/Base64.h"
 #include <fstream>
-#include <spdlog/cfg/env.h>
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
@@ -30,7 +29,7 @@ public:
   MultiQPUQuantumPlatform() {
     if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
       int nDevices = cudaq::getCudaGetDeviceCount();
-      auto envVal = spdlog::details::os::getenv("CUDAQ_MQPU_NGPUS");
+      auto envVal = std::getenv("CUDAQ_MQPU_NGPUS");
       if (!envVal.empty()) {
         int specifiedNDevices = 0;
         try {

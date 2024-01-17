@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 find_package(Python COMPONENTS Interpreter)
-if (OPENSSL_FOUND AND Python_FOUND AND CUDAQ_TEST_MOCK_SERVERS)
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
   add_subdirectory(oqc)
   add_subdirectory(quantinuum)
   add_subdirectory(ionq)

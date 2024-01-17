@@ -38,9 +38,9 @@ require an existing CUDA-aware MPI installation.
 To install the necessary dependencies, we recommend using
 [Conda](https://docs.conda.io/en/latest/). If you are not already using Conda,
 you can install a minimal version following the instructions
-[here](https://docs.conda.io/projects/miniconda/en/latest/index.html).
-The following commands will create and activate a complete environment for
-CUDA Quantum with all its dependencies:
+[here](https://docs.conda.io/projects/miniconda/en/latest/index.html). The
+following commands will create and activate a complete environment for CUDA
+Quantum with all its dependencies:
 
 [//]: # (Begin conda install)
 
@@ -68,18 +68,18 @@ You must configure MPI by setting the following environment variables:
 *If you do not set these variables you may encounter a segmentation fault.*
 
 **Important**: It is *not* sufficient to set these variable within the Conda
-environment, like the commands above do for `LD_LIBRARY_PATH`.
-To avoid having to set them every time you launch a new
-shell, we recommend adding them to `~/.profile`
-(create the file if it does not exist).
+environment, like the commands above do for `LD_LIBRARY_PATH`. To avoid having
+to set them every time you launch a new shell, we recommend adding them to
+`~/.profile` (create the file if it does not exist), and to `~/.bash_profile` or
+`~/.bash_login` if such a file exists.
 
 MPI uses [SSH](https://en.wikipedia.org/wiki/Secure_Shell) or
-[RSH](https://en.wikipedia.org/wiki/Remote_Shell) to communicate with
-each node unless another resource manager, such as
-[SLURM](https://slurm.schedmd.com/overview.html), is used.
-If you are encountering an error "The value of the MCA parameter
-`plm_rsh_agent` was set to a path that could not be found",
-please make sure you have an SSH Client installed.
+[RSH](https://en.wikipedia.org/wiki/Remote_Shell) to communicate with each node
+unless another resource manager, such as
+[SLURM](https://slurm.schedmd.com/overview.html), is used. If you are
+encountering an error "The value of the MCA parameter `plm_rsh_agent` was set to
+a path that could not be found", please make sure you have an SSH Client
+installed.
 
 ## Running CUDA Quantum
 
@@ -111,9 +111,10 @@ about contributing to the CUDA Quantum platform, please take a look at
 ## License
 
 CUDA Quantum is an open source project. The source code is available on
-[GitHub][github_link] and licensed under [Apache License 2.0](https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE).
-CUDA Quantum makes use of the NVIDIA cuQuantum SDK to enable high-performance
-simulation, which is held to its own respective license.
+[GitHub][github_link] and licensed under [Apache License
+2.0](https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE). CUDA Quantum
+makes use of the NVIDIA cuQuantum SDK to enable high-performance simulation,
+which is held to its own respective license.
 
 [github_link]: https://github.com/NVIDIA/cuda-quantum/
 

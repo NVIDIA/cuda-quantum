@@ -25,15 +25,16 @@ header:
     - '**/.*'
     - '**/.*/**'
     - '**/Doxyfile.in'
-    - 'docs/sphinx/examples'
     - 'CITATION.cff'
     - 'LICENSE'
     - 'NOTICE'
     - 'build'
     - 'examples'
     - 'tpls'
+    - 'docs/sphinx/examples'
     - 'docs/sphinx/_templates'
     - 'docs/sphinx/_static/cuda_quantum_icon.svg'
+    - 'docker/test/installer/mpi_cuda_check.cpp'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
 
   comment: on-failure

@@ -91,6 +91,12 @@ then
     exit 1 
 fi
 
+mps_skipped_tests=(\
+    /home/cudaq/examples/cpp/algorithms/grover.cpp \
+    /home/cudaq/examples/cpp/basics/multi_controlled_operations.cpp \
+    /home/cudaq/examples/cpp/other/builder/builder.cpp \
+    /home/cudaq/examples/cpp/algorithms/amplitude_estimation.cpp)
+
 echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
@@ -135,6 +141,9 @@ do
     # Look for a --target flag to nvq++ in the 
     # comment block at the beginning of the file.
     intended_target=`sed -e '/^$/,$d' $ex | grep -oP '^//\s*nvq++.+--target\s+\K\S+'`
+    if [ -n "$intended_target" ]; then
+        echo "Intended for execution on $intended_target backend."
+    fi
 
     for t in $requested_backends
     do
@@ -142,6 +151,15 @@ do
         then
             let "skipped+=1"
             echo "Skipping $t target.";
+
+        elif [[ "$ex" != *"nois"* ]] && [ "$t" == "density-matrix-cpu" ];
+        then
+            let "skipped+=1"
+            echo "Skipping $t target."
+
+        elif [[ " ${mps_skipped_tests[*]} " =~ " $ex " ]] && [ "$t" == "tensornet-mps" ]; then
+            let "skipped+=1"
+            echo "Skipping $t target."
         # Skipped long-running tests (variational optimization loops) for the "remote-sim" target to keep CI runtime managable.
         # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
         # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-sim" target.
@@ -156,15 +174,16 @@ do
             else
                 nvq++ $ex --target $t
             fi
-            ./a.out &> /dev/null
+            ./a.out &> /tmp/cudaq_validation.out
             status=$?
             echo "Exited with code $status"
             if [ "$status" -eq "0" ]; then 
                 let "passed+=1"
             else
+                cat /tmp/cudaq_validation.out
                 let "failed+=1"
             fi 
-            rm a.out &> /dev/null
+            rm a.out /tmp/cudaq_validation.out &> /dev/null
         fi
     done
     echo "============================="

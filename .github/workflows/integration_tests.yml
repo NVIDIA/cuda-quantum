@@ -39,7 +39,7 @@ jobs:
       - name: Get commit SHA
         id: commit-sha
         run: |
-          echo "sha=$(cat $CUDA_QUANTUM_PATH/assets/build_info | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
+          echo "sha=$(cat $CUDA_QUANTUM_PATH/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
 
       - name: Get code
         uses: actions/checkout@v3
