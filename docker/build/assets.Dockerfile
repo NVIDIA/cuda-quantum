@@ -114,7 +114,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
         excludes="--label-exclude gpu_required"; \
     fi && cd /cuda-quantum && \
     # FIXME: Disabled nlopt doesn't seem to work properly
-    # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102
+    # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1103
     excludes+=" --exclude-regex NloptTester|ctest-nvqpp" && \
     ctest --output-on-failure --test-dir build -E ctest-nvqpp $excludes
 RUN export CUDAQ_CPP_STD="c++17" && \
