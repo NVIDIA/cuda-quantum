@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std -v %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck %s
-// RUN: nvq++ -std=c++20 --enable-mlir %s -o %t
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 
 #include <cudaq.h>
 #include <iostream>

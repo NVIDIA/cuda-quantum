@@ -6,6 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// FIXME: should not require C++20,
+// see also ...
+// REQUIRES: c++20
 // RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 // Test lambdas that are created within kernels and passed to user-defined

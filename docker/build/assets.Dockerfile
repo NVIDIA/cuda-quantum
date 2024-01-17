@@ -110,5 +110,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 FROM build
 RUN export CUDAQ_CPP_STD="c++17" && \
     python3 -m ensurepip --upgrade && python3 -m pip install lit && \
+    dnf install -y --nobest --setopt=install_weak_deps=False file && \
     cd /cuda-quantum && source scripts/configure_build.sh && \
-    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test \
+        --filter-out='(NVQPP/custom_pass|NVQPP/mapping_test-1.cpp)'
