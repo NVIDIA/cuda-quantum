@@ -163,8 +163,6 @@ Namespaces
 .. doxygennamespace:: cudaq::registry
     :desc-only:
 
-.. _mpi-namespace-cpp-api:
-
 .. doxygennamespace:: cudaq::mpi
     :desc-only:
 
