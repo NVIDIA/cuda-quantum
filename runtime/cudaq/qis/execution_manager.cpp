@@ -9,13 +9,10 @@
 #include "execution_manager.h"
 #include "cudaq/platform.h"
 
-namespace cudaq {
-bool __nvqpp__MeasureResultBoolConversion(int result) {
+bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
   auto &platform = get_platform();
   auto *ctx = platform.get_exec_ctx();
   if (ctx && ctx->name == "tracer")
     ctx->registerNames.push_back("");
-
   return result == 1;
 }
-} // namespace cudaq

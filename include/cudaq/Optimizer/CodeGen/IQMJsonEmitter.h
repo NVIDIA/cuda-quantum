@@ -14,7 +14,7 @@
 
 namespace cudaq {
 
-/// Translates the given operation to IQM's json format code.
+/// Translates the given operation to IQM's JSON format code.
 mlir::LogicalResult translateToIQMJson(mlir::Operation *op,
                                        llvm::raw_ostream &os);
 

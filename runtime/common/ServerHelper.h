@@ -14,6 +14,7 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "Registry.h"
+#include <filesystem>
 
 namespace cudaq {
 
@@ -59,7 +60,7 @@ using OutputNamesType = std::map<std::size_t, ResultInfoType>;
 /// provides a hook for extracting results from a server response.
 class ServerHelper : public registry::RegisteredType<ServerHelper> {
 protected:
-  /// @brief All ServerHelpers can be configured at the nvq++ command line.
+  /// @brief All ServerHelpers can be configured at the `nvq++` command line.
   /// This map holds those configuration key-values
   BackendConfig backendConfig;
 
