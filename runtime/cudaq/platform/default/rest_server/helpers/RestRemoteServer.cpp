@@ -46,6 +46,7 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
+#include <filesystem>
 
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);

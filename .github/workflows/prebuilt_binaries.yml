@@ -364,6 +364,29 @@ jobs:
                 status_sum=$((status_sum+1))
               fi
             done
+            
+            # Execute simple remote simulator tests with the installer 
+            # because this target was skipped in validate.sh due to 
+            # incomplete MPI installation (need install_sshclient.sh).
+            for ex in `find examples/other/remote_sim/ -name '*.cpp'`; do
+              nvq++ --target remote-sim $ex
+              status=$?
+              filename=$(basename -- "$ex")
+              if [ $status -eq 0 ]; then
+                ./a.out
+                status=$?
+                if [ $status -eq 0 ]; then
+                  echo "Successfully ran $filename."
+                else
+                  echo "Failed to execute $filename."
+                  status_sum=$((status_sum+1))
+                fi
+              else
+                echo "Compilation failed for $filename."
+                status_sum=$((status_sum+1))
+              fi
+            done
+
             set -e # Re-enable exit code error checking
             if [ ! $status_sum -eq 0 ]; then
               echo "::error::$status_sum examples failed; see the log for more detail."

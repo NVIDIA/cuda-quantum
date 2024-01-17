@@ -37,6 +37,7 @@
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "cudaq.h"
+#include <dlfcn.h>
 
 namespace {
 using namespace mlir;

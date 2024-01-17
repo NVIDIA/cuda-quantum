@@ -29,30 +29,34 @@ public:
   MultiQPUQuantumPlatform() {
     if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
       int nDevices = cudaq::getCudaGetDeviceCount();
-      auto envVal = std::getenv("CUDAQ_MQPU_NGPUS");
-      if (!envVal.empty()) {
-        int specifiedNDevices = 0;
-        try {
-          specifiedNDevices = std::stoi(envVal);
-        } catch (...) {
-          throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment "
-                                   "variable, must be integer.");
+      // Skipped if CUDAQ was built with CUDA but no devices present at runtime.
+      if (nDevices > 0) {
+        const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
+        if (envVal != nullptr) {
+          int specifiedNDevices = 0;
+          try {
+            specifiedNDevices = std::stoi(envVal);
+          } catch (...) {
+            throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment "
+                                     "variable, must be integer.");
+          }
+
+          if (specifiedNDevices < nDevices)
+            nDevices = specifiedNDevices;
         }
 
-        if (specifiedNDevices < nDevices)
-          nDevices = specifiedNDevices;
+        if (nDevices == 0)
+          throw std::runtime_error(
+              "No GPUs available to instantiate platform.");
+
+        // Add a QPU for each GPU.
+        for (int i = 0; i < nDevices; i++)
+          platformQPUs.emplace_back(
+              cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
+
+        platformNumQPUs = platformQPUs.size();
+        platformCurrentQPU = 0;
       }
-
-      if (nDevices == 0)
-        throw std::runtime_error("No GPUs available to instantiate platform.");
-
-      // Add a QPU for each GPU.
-      for (int i = 0; i < nDevices; i++)
-        platformQPUs.emplace_back(
-            cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
-
-      platformNumQPUs = platformQPUs.size();
-      platformCurrentQPU = 0;
     }
   }
 

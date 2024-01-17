@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <sys/socket.h>
 #include <thread>
+#include <unistd.h>
 #ifdef CUDAQ_ENABLE_CUDA
 #include "cuda_runtime_api.h"
 #endif

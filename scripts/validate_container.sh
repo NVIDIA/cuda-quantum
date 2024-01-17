@@ -28,6 +28,25 @@ then echo "GPU detected." && nvidia-smi
 else echo "No GPU detected."
 fi 
 
+if [ -x "$(command -v ssh -V)" ]; 
+then ssh_available=true
+else ssh_available=false
+fi
+
+if $ssh_available; 
+then echo "SSH Client detected." 
+else echo "No SSH Client detected."
+fi 
+
+if [ -x "$(command -v mpiexec --version)" ]; 
+then mpi_available=true
+else mpi_available=false
+fi
+if $mpi_available; 
+then echo "MPI detected."
+else echo "No MPI detected."
+fi 
+
 export UCX_LOG_LEVEL=warning
 requested_backends=`\
     echo "default"
@@ -167,6 +186,11 @@ do
         then
             let "skipped+=1"
             echo "Skipping $ex for $t target.";
+        elif [[ "$t" == "remote-sim" &&  "$mpi_available" == true &&  "$ssh_available" == false ]];
+        then
+            # Don't run remote-sim if the MPI installation is incomplete (e.g., missing an ssh-client).
+            let "skipped+=1"
+            echo "Skipping $t target due to incomplete MPI installation.";
         else
             echo "Testing on $t target..."
             if [ "$t" == "default" ]; then 
