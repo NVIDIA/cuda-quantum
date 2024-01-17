@@ -631,8 +631,8 @@ The installation location of CUDA Quantum is not currently configurable and usin
 hence requires admin privileges on the system. We may revise that in the future; please see and
 upvote the corresponding <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/1075">GitHub issue</a>.</p>
 <p>To install CUDA Quantum, execute the command</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nv">MPI_PATH</span><span class="o">=</span>/usr/local/openmpi<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.*<span class="w"> </span>--accept<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>/etc/profile
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MPI_PATH</span><span class="o">=</span>/usr/local/openmpi<span class="w"> </span><span class="se">\</span>
+sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.*<span class="w"> </span>--accept<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>/etc/profile
 </pre></div>
 </div>
 <div class="admonition note">
@@ -989,17 +989,17 @@ however, contain all development dependencies for CUDA, such as, for example the
 the necessary CUDA runtime libraries to use GPU-acceleration in CUDA Quantum.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for RHEL 8:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.8
-<span class="w">    </span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
-<span class="w">    </span><span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
-<span class="w">    </span><span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
-<span class="w">    </span><span class="c1"># DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.8
+<span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
+<span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
+<span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
+<span class="c1"># DISTRIBUTION=rhel8 CUDA_ARCH_FOLDER=x86_64</span>
 
-<span class="w">    </span><span class="nv">version_suffix</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
-<span class="w">    </span>dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
-<span class="w">    </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
-<span class="w">        </span>cuda-nvtx-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
-<span class="w">        </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
+<span class="nv">version_suffix</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
+dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
+dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>cuda-nvtx-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
 </pre></div>
 </div>
 <p>More detailed instructions for your platform can be found in the online documentation

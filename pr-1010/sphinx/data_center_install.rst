@@ -114,6 +114,7 @@ to set the following environment variables prior to proceeding:
 
 .. literalinclude:: ../../scripts/configure_build.sh
     :language: bash
+    :dedent:
     :start-after: [>InstallLocations]
     :end-before: [<InstallLocations]
 
@@ -152,6 +153,7 @@ install CUDA 11.8:
 
 .. literalinclude:: ../../scripts/configure_build.sh
     :language: bash
+    :dedent:
     :start-after: [>CUDAInstall]
     :end-before: [<CUDAInstall]
 
@@ -169,6 +171,7 @@ Install cuQuantum version 23.10 using the following commands:
 
 .. literalinclude:: ../../scripts/configure_build.sh
     :language: bash
+    :dedent:
     :start-after: [>cuQuantumInstall]
     :end-before: [<cuQuantumInstall]
 
@@ -187,6 +190,7 @@ Install cuTensor version 1.7 using the following commands:
 
 .. literalinclude:: ../../scripts/configure_build.sh
     :language: bash
+    :dedent:
     :start-after: [>cuTensorInstall]
     :end-before: [<cuTensorInstall]
 
@@ -207,6 +211,7 @@ install GCC 11:
 
 .. literalinclude:: ../../scripts/configure_build.sh
     :language: bash
+    :dedent:
     :start-after: [>gccInstall]
     :end-before: [<gccInstall]
 
@@ -215,6 +220,7 @@ environment variables to point to the respective compilers on your build system:
 
 .. literalinclude:: ../../scripts/configure_build.sh
     :language: bash
+    :dedent:
     :start-after: [>ToolchainConfiguration]
     :end-before: [<ToolchainConfiguration]
 
@@ -243,6 +249,7 @@ command to build CUDA Quantum:
 
 .. literalinclude:: ../../docker/build/assets.Dockerfile
     :language: bash
+    :dedent:
     :start-after: [>CUDAQuantumBuild]
     :end-before: [<CUDAQuantumBuild]
 
@@ -263,6 +270,7 @@ files to install into a separate folder using the command
 
 .. literalinclude:: ../../docker/release/installer.Dockerfile
     :language: bash
+    :dedent:
     :start-after: [>CUDAQuantumAssets]
     :end-before: [<CUDAQuantumAssets]
 
@@ -330,6 +338,7 @@ commands, for example, install the necessary packages for the AlmaLinux 8 enviro
 
 .. literalinclude:: ../../scripts/configure_build.sh
     :language: bash
+    :dedent:
     :start-after: [>CUDARTInstall]
     :end-before: [<CUDARTInstall]
 
@@ -352,6 +361,7 @@ the packages `autoconf`, `libtool`, `flex`, and `make` need to be installed.
 
 .. literalinclude:: ../../scripts/configure_build.sh
     :language: bash
+    :dedent:
     :start-after: [>OpenMPIBuild]
     :end-before: [<OpenMPIBuild]
 
