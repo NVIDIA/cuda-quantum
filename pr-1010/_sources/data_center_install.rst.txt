@@ -312,8 +312,8 @@ the `/etc/profile` file:
 To enable C++ development in general, you should also make sure that the
 `C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__ 
 is installed and discoverable on your host system.
-There is no specific version required to be compatible with CUDA Quantum, but we
-recommend a library that supports C++20 or newer.
+CUDA Quantum supports the GNU C++ standard library (`libstdc++`), 
+version 11 or newer. Other libraries may work but can cause issues in certain cases.
 
 The remaining sections in this document list additional runtime dependencies 
 that are not included in the migrated assets and are needed to use some of the 

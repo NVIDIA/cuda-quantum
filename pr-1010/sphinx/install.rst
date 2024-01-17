@@ -270,15 +270,14 @@ executing the commands
 
 To develop C++ code, you most likely also want to install the
 `C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__.
-There is no specific version required to be compatible with CUDA Quantum, but we
-recommend choosing a library that supports C++20 or newer. The C++ standard library
-is almost certainly available via the package manager for your system. Search for a 
-package that contains `libstdc++` in the name, and choose a package with `dev` or 
-`devel`, if available. If you don't find such a package, you can alternatively install
-the complete GCC toolchain to obtain the standard library. If the package you installed
-includes a script to enable that version, you may need to run it to make the library 
-discoverable. You can search for such a script with the command 
-`find / -path '*gcc*' -name enable`.
+CUDA Quantum supports the GNU C++ standard library (`libstdc++`), 
+version 11 or newer. Other libraries may work but can cause issues in certain cases.
+The C++ standard library, including development headers, is almost certainly 
+available via the package manager for your system. To ensure the libraries and headers
+are discoverable, the easiest option is usually to install the complete GCC toolchain.
+Note that for certain distributions, you may need to manually enable that version 
+after installation by running a script called `enable`. You can search for such a 
+script with the command `find / -path '*gcc*' -name enable`.
 
 Development with VS Code
 ------------------------------------

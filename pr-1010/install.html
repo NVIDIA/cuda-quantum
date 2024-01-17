@@ -657,15 +657,14 @@ executing the commands</p>
 </div>
 <p id="local-development-with-vscode">To develop C++ code, you most likely also want to install the
 <a class="reference external" href="https://en.cppreference.com/w/cpp/standard_library">C++ standard library</a>.
-There is no specific version required to be compatible with CUDA Quantum, but we
-recommend choosing a library that supports C++20 or newer. The C++ standard library
-is almost certainly available via the package manager for your system. Search for a
-package that contains <code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code> in the name, and choose a package with <code class="code docutils literal notranslate"><span class="pre">dev</span></code> or
-<code class="code docutils literal notranslate"><span class="pre">devel</span></code>, if available. If you don’t find such a package, you can alternatively install
-the complete GCC toolchain to obtain the standard library. If the package you installed
-includes a script to enable that version, you may need to run it to make the library
-discoverable. You can search for such a script with the command
-<code class="code docutils literal notranslate"><span class="pre">find</span> <span class="pre">/</span> <span class="pre">-path</span> <span class="pre">'*gcc*'</span> <span class="pre">-name</span> <span class="pre">enable</span></code>.</p>
+CUDA Quantum supports the GNU C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code>),
+version 11 or newer. Other libraries may work but can cause issues in certain cases.
+The C++ standard library, including development headers, is almost certainly
+available via the package manager for your system. To ensure the libraries and headers
+are discoverable, the easiest option is usually to install the complete GCC toolchain.
+Note that for certain distributions, you may need to manually enable that version
+after installation by running a script called <code class="code docutils literal notranslate"><span class="pre">enable</span></code>. You can search for such a
+script with the command <code class="code docutils literal notranslate"><span class="pre">find</span> <span class="pre">/</span> <span class="pre">-path</span> <span class="pre">'*gcc*'</span> <span class="pre">-name</span> <span class="pre">enable</span></code>.</p>
 </section>
 </section>
 <section id="development-with-vs-code">

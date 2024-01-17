@@ -694,8 +694,6 @@ command to build CUDA Quantum:</p>
 <span class="w">    </span><span class="nv">CUDAQ_ENABLE_STATIC_LINKING</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span><span class="nv">LDFLAGS</span><span class="o">=</span><span class="s1">&#39;-static-libgcc -static-libstdc++&#39;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span><span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;lld;mlir&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="nv">CUDAQ_INSTALL_IMPLICIT_RESOURCES</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="nv">CMAKE_INSTALL_MODE</span><span class="o">=</span>COPY<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-uv
 </pre></div>
 </div>
@@ -764,8 +762,8 @@ setting the <code class="code docutils literal notranslate"><span class="pre">NV
 <p>To enable C++ development in general, you should also make sure that the
 <a class="reference external" href="https://en.cppreference.com/w/cpp/standard_library">C++ standard library</a>
 is installed and discoverable on your host system.
-There is no specific version required to be compatible with CUDA Quantum, but we
-recommend a library that supports C++20 or newer.</p>
+CUDA Quantum supports the GNU C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code>),
+version 11 or newer. Other libraries may work but can cause issues in certain cases.</p>
 <p>The remaining sections in this document list additional runtime dependencies
 that are not included in the migrated assets and are needed to use some of the
 CUDA Quantum features and components.</p>
