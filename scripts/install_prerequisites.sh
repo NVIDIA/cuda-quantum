@@ -158,7 +158,7 @@ if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(find "$OPENSSL_INSTALL_PREFIX" 
   # we just use our own perl version for the OpenSSL build.
   wget https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
   tar -xzf perl-5.38.2.tar.gz && cd perl-5.38.2
-  ./Configure -des -Dcc="$CC" -Dprefix=~/.perl5
+  ./Configure -des -Dcc="$CC" -Dprefix="$(echo ~)/.perl5"
   make && make install
   cd .. && rm -rf perl-5.38.2.tar.gz perl-5.38.2
   # Additional perl modules can be installed with cpan, e.g.
@@ -179,21 +179,36 @@ if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
+  # Curl relies on nghttp2 to support HTTP/2, which among other things,
+  # automatically decompresses gzip. See also:
+  # - https://github.com/curl/curl/issues/661
+  # - https://curl.se/docs/http2.html
+  wget https://github.com/nghttp2/nghttp2/releases/download/v1.58.0/nghttp2-1.58.0.tar.gz
+  tar -xzvf nghttp2-1.58.0.tar.gz && cd nghttp2-1.58.0
+  ./configure --prefix="$(echo ~)/.nghttp2" \
+    --enable-shared=no --enable-static=yes \
+    --enable-lib-only # openssl and zlib are only needed for the app and not the library
+  make && make install
+  cd .. && rm -rf nghttp2-1.58.0.tar.gz nghttp2-1.58.0
+
   wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
   tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
   wget https://curl.haxx.se/ca/cacert.pem
-  CFLAGS="-fPIC" CXXFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
+  PKG_CONFIG="pkg-config --static" \
+  CPPFLAGS="-DNGHTTP2_STATICLIB" CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+  LDFLAGS="-static -L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
   ./configure --prefix="$CURL_INSTALL_PREFIX" \
     --enable-shared=no --enable-static=yes \
     --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
+    --with-nghttp2="$(echo ~)/.nghttp2" \
     --with-ca-bundle=cacert.pem \
     --without-zstd --without-brotli \
     --disable-ftp --disable-tftp --disable-smtp --disable-ldap --disable-ldaps \
     --disable-smb --disable-gopher --disable-telnet --disable-rtsp \
     --disable-pop3 --disable-imap --disable-file  --disable-dict \
     --disable-versioned-symbols --disable-manual
-  make && make install
-  cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0
+  make curl_LDFLAGS=-all-static && make curl_LDFLAGS=-all-static install
+  cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0 ~/.nghttp2
   remove_temp_installs
 fi
 
