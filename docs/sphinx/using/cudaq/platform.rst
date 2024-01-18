@@ -144,7 +144,7 @@ CUDA Quantum provides MPI utility functions to initialize, finalize, or query (r
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
 e.g., :code:`mpirun`, :code:`mpiexec`, :code:`srun`, etc.
 
-Multi-GPU QPU simulation
+Remote `MQPU` Platform
 +++++++++++++++++++++++++++
 
 As shown in the above examples, the :code:`nvidia-mqpu` platform enables
