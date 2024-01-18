@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Allocating and Using Quantum Memory in CUDA Quantum &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Using CUDA and CUDA Quantum in a Project &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -29,8 +29,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Runtime Versus Compile-time Kernels" href="runtime_v_compile.html" />
-    <link rel="prev" title="What is a CUDA Quantum Kernel?" href="kernel.html" /> 
+    <link rel="next" title="CUDA Quantum by Example" href="../examples.html" />
+    <link rel="prev" title="Create your Own CUDA Quantum Compiler Pass" href="mlir_pass.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -132,37 +132,37 @@
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="../cudaq.html">   Learn the Basics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="prereqs.html">CUDA Quantum Prerequisites</a></li>
-<li class="toctree-l2"><a class="reference internal" href="compiling.html">Compiling CUDA Quantum Programs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="kernel.html">What is a CUDA Quantum Kernel?</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Allocating Quantum Memory</a></li>
-<li class="toctree-l2"><a class="reference internal" href="runtime_v_compile.html">Runtime Versus Compile-time Kernels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="generic_functions.html">Generic Library Functions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="builder.html">Creating Kernels at Runtime</a></li>
-<li class="toctree-l2"><a class="reference internal" href="variational.html">Variational Algorithms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="platform.html#python">Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cudaq.html">   Learn the Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/prereqs.html">CUDA Quantum Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/compiling.html">Compiling CUDA Quantum Programs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/kernel.html">What is a CUDA Quantum Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/allocating_quantum_memory.html">Allocating Quantum Memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/runtime_v_compile.html">Runtime Versus Compile-time Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/generic_functions.html">Generic Library Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/builder.html">Creating Kernels at Runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/variational.html">Variational Algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/platform.html">Multi-processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../cudaq/platform.html#c">C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../cudaq/platform.html#python">Python</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="verbose_out.html">Debugging and Verbose Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaq/verbose_out.html">Debugging and Verbose Logging</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../advanced.html">   Advanced Topics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../advanced/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../advanced/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../advanced/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">   Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../advanced/cmake_app.html">Downstream CMake Integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../advanced/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../advanced/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../advanced/cuda_gpu.html">Combining CUDA (GPU) with CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cmake_app.html">Downstream CMake Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq_ir.html">Working with CUDA Quantum IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Combining CUDA (GPU) with CUDA Quantum</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../examples.html">   Examples</a><ul>
@@ -439,110 +439,67 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../cudaq.html">CUDA Quantum Basics</a></li>
-      <li class="breadcrumb-item active">Allocating and Using Quantum Memory in CUDA Quantum</li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced CUDA Quantum Topics</a></li>
+      <li class="breadcrumb-item active">Using CUDA and CUDA Quantum in a Project</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/cudaq/allocating_quantum_memory.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/using/advanced/cuda_gpu.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="kernel.html" class="btn btn-neutral float-left" title="What is a CUDA Quantum Kernel?" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="runtime_v_compile.html" class="btn btn-neutral float-right" title="Runtime Versus Compile-time Kernels" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="mlir_pass.html" class="btn btn-neutral float-left" title="Create your Own CUDA Quantum Compiler Pass" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../examples.html" class="btn btn-neutral float-right" title="CUDA Quantum by Example" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="allocating-and-using-quantum-memory-in-cuda-quantum">
-<h1>Allocating and Using Quantum Memory in CUDA Quantum<a class="headerlink" href="#allocating-and-using-quantum-memory-in-cuda-quantum" title="Permalink to this heading">¶</a></h1>
-<p>CUDA Quantum provides a quantum memory model that enables one to think about
-general qudits of information, dynamic and static registers of those qudits,
-and whether those registers are owning or non-owning. The latter point
-very much follows the same pattern one sees in modern C++, where we have
-generic owning container types like the <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;T&gt;</span></code> and
-<code class="code docutils literal notranslate"><span class="pre">std::array&lt;T&gt;</span></code>, as well as non-owning container types like
-the <code class="code docutils literal notranslate"><span class="pre">std::span&lt;T&gt;</span></code>.</p>
-<p>To this end, CUDA Quantum defines a non-copyable unit of quantum information,
-the <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code> template type. Because it is non-copyable,
-instances of this type cannot be passed by value and must always be
-passed by reference, in an effort to avoid copying, or cloning, the underlying
-quantum information.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Thus far (as of this beta release), the majority of CUDA Quantum
-development work has focused on <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;2&gt;</span></code> (which we
-<code class="code docutils literal notranslate"><span class="pre">typedef</span></code> as <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code>) but the demonstrations and
-discussions that follow are meant to be general on qudits.</p>
-</div>
-<p>The CUDA Quantum quantum memory container types are the
-<code class="code docutils literal notranslate"><span class="pre">cudaq::qarray&lt;NQudits,</span> <span class="pre">Levels&gt;</span></code> and the
-<code class="code docutils literal notranslate"><span class="pre">cudaq::qview&lt;NQudits,</span> <span class="pre">Levels&gt;</span></code>, representing owning and non-owning
-semantics, respectively. Notice that the first template parameter represents
-the number of qudits contained. If the number of qubits is not known at compile
-time, one can use the <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code> container. These quantum memory
-types are specifically designed to throw compile-time errors when they are
-incorrectly used. An example of this for quantum memory and its underlying
-ownership model can be seen in this snippet.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">fooBad</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">fooGood</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="o">&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barBad</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barGood</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="o">&lt;&gt;&amp;</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">barGoodWithView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qview</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
-
-<span class="k">struct</span><span class="w"> </span><span class="nc">myEntryPointKernel</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">int</span><span class="w"> </span><span class="n">runtimeKnownInteger</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="c1">// Allocate array-like compile-time-known</span>
-<span class="w">    </span><span class="c1">// register of 2 qubits. Owns the qubits.</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
-<span class="w">    </span><span class="c1">// fooBad (a[0]); // Compile Error, cannot pass qubits by value (no copy)</span>
-<span class="w">    </span><span class="c1">// auto alias = a[0]; // Compile Error, cannot copy (auto defaults to by-value)</span>
-<span class="w">    </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">alias</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span><span class="w"> </span><span class="c1">// Must alias by reference</span>
-<span class="w">    </span><span class="n">fooGood</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span><span class="w"> </span><span class="c1">// Can pass by reference, no copy</span>
-
-<span class="w">    </span><span class="c1">// barBad(a); // Compile Error, cannot pass qarray by value</span>
-<span class="w">    </span><span class="n">barGood</span><span class="p">(</span><span class="n">a</span><span class="p">);</span><span class="w"> </span><span class="c1">// Can pass by reference, no copy</span>
-
-<span class="w">    </span><span class="c1">// Allocate vector-like register of qubits</span>
-<span class="w">    </span><span class="c1">// Owns the qubits</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">b</span><span class="p">(</span><span class="n">runtimeKnownInteger</span><span class="p">);</span>
-
-<span class="w">    </span><span class="c1">// Get the front 2 qubits, which returns</span>
-<span class="w">    </span><span class="c1">// a cudaq::qview&lt;&gt;, it does not own the qubits.</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">sub_view</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">front</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
-
-<span class="w">    </span><span class="c1">// cudaq::qview is non-owning, it can be passed by value</span>
-<span class="w">    </span><span class="n">barGoodWithView</span><span class="p">(</span><span class="n">sub_view</span><span class="p">);</span>
-
-<span class="w">    </span><span class="c1">// cudaq::qvector can also be passed to a kernel that accepts a view</span>
-<span class="w">    </span><span class="n">barGoodWithView</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
-
-<span class="w">    </span><span class="c1">// Front with no size provided will</span>
-<span class="w">    </span><span class="c1">// return a reference to the first qubit.</span>
-<span class="w">    </span><span class="c1">// You must define this as a reference variable.</span>
-<span class="w">    </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">frontQubit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">front</span><span class="p">();</span>
-
-<span class="w">    </span><span class="c1">// a, b go out of scope, qubits deallocated</span>
-<span class="w">    </span><span class="c1">// returned to infinite global register of qubits</span>
-<span class="w">    </span><span class="c1">// NOTE automated uncomputation not currently implemented.</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">};</span>
+  <section id="using-cuda-and-cuda-quantum-in-a-project">
+<h1>Using CUDA and CUDA Quantum in a Project<a class="headerlink" href="#using-cuda-and-cuda-quantum-in-a-project" title="Permalink to this heading">¶</a></h1>
+<p>It may be the case that a project that uses CUDA Quantum kernels may also
+want to use CUDA code to do computation on a GPU.  This is possible by using
+both the CUDA Toolkit and CUDA Quantum tools.</p>
+<p>If you are using a CUDA Quantum container, the CUDA Toolkit can be installed
+using a command such as</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apt-get<span class="w"> </span>install<span class="w"> </span>cuda-toolkit-11-8
 </pre></div>
 </div>
-<p><code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> and <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code> types are owning types and
-therefore cannot be passed by value to invoked pure quantum device kernels.
-In order to share allocated registers with other quantum function calls,
-one must pass by reference or define the invoked kernel to take the qubits
-as a <code class="code docutils literal notranslate"><span class="pre">cudaq::qview</span></code>. Note that all slicing operations intended to
-extract a sub-register from a given <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code> will return a
-non-owning <code class="code docutils literal notranslate"><span class="pre">qview</span></code>.</p>
+<p>Once the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler is installed, it is possible to write
+CUDA kernels and have them execute on the system GPU. See NVIDIA’s <a class="reference external" href="https://developer.nvidia.com/blog/easy-introduction-cuda-c-and-c/">An
+Easy Introduction to CUDA C and C++</a>
+for more information on getting started with CUDA.</p>
+<p>CUDA code uses a unique syntax and is, typically, saved in a file with
+the extension <code class="code docutils literal notranslate"><span class="pre">.cu</span></code>. For our example, assume we have written our
+CUDA code in the file <code class="code docutils literal notranslate"><span class="pre">my_proj.cu</span></code>.</p>
+<p>CUDA Quantum code is a library-based extension of C++ and uses
+standard conforming C++ syntax. Typically, a quantum kernel would be
+saved in a file with the <code class="code docutils literal notranslate"><span class="pre">.cpp</span></code> extension. Again for our
+example, let’s assume that we’ve written quantum kernels and saved
+them in the file <code class="code docutils literal notranslate"><span class="pre">my_proj_quantum.cpp</span></code>.</p>
+<p>There is a bit of a wrinkle to be aware of before we compile these two
+compilation units. Version 11 (and earlier) of CUDA <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code>
+supports the C++ 11, 14, and 17 standards and the default standard is
+determined by the host C++ compiler. The CUDA Quantum compiler,
+<code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>, defaults to the C++ 20 standard. To get around this
+limitation, the project makefiles should select a common C++ standard
+version. Fortunately, <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> does allow the use of C++ 17.</p>
+<p>Note that starting with version 12 of the CUDA toolkit, the C++ 20
+standard is supported.</p>
+<p>Our project can then be built with commands such as</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvcc<span class="w"> </span>-c<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>&lt;options&gt;<span class="w"> </span>my_proj.cu<span class="w"> </span>-o<span class="w"> </span>my_proj.o
+nvq++<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>&lt;options&gt;<span class="w"> </span>my_project_quantum.cpp<span class="w"> </span>my_proj.o<span class="w"> </span>-L<span class="w"> </span><span class="si">${</span><span class="nv">CUDA_INSTALL</span><span class="si">}</span>/lib64<span class="w"> </span>-lcudart<span class="w"> </span>-o<span class="w"> </span>my_executable
+</pre></div>
+</div>
+<p>Above, <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> is used for the link step and will make sure the CUDA
+Quantum runtime libraries are linked correctly to the executable program.
+The CUDA runtime is explicitly added to this command.</p>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="kernel.html" class="btn btn-neutral float-left" title="What is a CUDA Quantum Kernel?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="runtime_v_compile.html" class="btn btn-neutral float-right" title="Runtime Versus Compile-time Kernels" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="mlir_pass.html" class="btn btn-neutral float-left" title="Create your Own CUDA Quantum Compiler Pass" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../examples.html" class="btn btn-neutral float-right" title="CUDA Quantum by Example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
