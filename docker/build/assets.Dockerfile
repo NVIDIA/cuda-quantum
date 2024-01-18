@@ -118,7 +118,6 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
 
 ENV CUDAQ_CPP_STD="c++17"
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
-ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64"
 
 RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
     dnf install -y --nobest --setopt=install_weak_deps=False file which
