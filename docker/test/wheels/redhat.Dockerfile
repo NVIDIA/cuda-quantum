@@ -6,22 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG os_version=22.04
-FROM ubuntu:$os_version
+ARG base_image=redhat/ubi9:9.2
+FROM ${base_image}
 
-ARG python_version=3.10
+ARG python_version=3.11
 ARG pip_install_flags="--user"
 ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11"
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        python${python_version} python$(echo ${python_version} | cut -d . -f 1)-pip
+RUN dnf install -y --nobest --setopt=install_weak_deps=False \
+        python${python_version}.$(uname -m) \
+    && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
 
 ARG optional_dependencies=
-ARG cuda_quantum_wheel=cuda_quantum-0.0.0-cp310-cp310-manylinux_2_28_x86_64.whl
+ARG cuda_quantum_wheel=cuda_quantum-0.0.0-cp311-cp311-manylinux_2_28_x86_64.whl
 COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 COPY docs/sphinx/examples/python /tmp/examples/
 COPY python/tests /tmp/tests/

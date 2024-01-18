@@ -26,7 +26,7 @@ namespace cudaq {
 /// @param op MLIR operation
 /// @param output Output stream
 /// @param additionalPasses Additional passes to run at the end
-/// @param printIR Print IR to stderr
+/// @param printIR Print IR to `stderr`
 /// @param printIntermediateMLIR Print IR in between each pass
 using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
     mlir::Operation *, llvm::raw_string_ostream &, const std::string &, bool,

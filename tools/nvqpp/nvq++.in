@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,11 +11,16 @@
 # This is a skeleton driver script to compile C++ source that contains
 # CUDA Quantum code.
 
-RED=$(tput setaf 1)
-NORMAL=$(tput sgr0)
 function error_exit {
 	callerName=$(basename "$(caller 0)")
-	echo "${RED}${callerName}:$(echo $(caller 0) | cut -d " " -f1): $1${NORMAL}"
+	message_content="${callerName}:$(echo $(caller 0) | cut -d " " -f1): $1"
+	if [ -x "$(command -v tput)" ] && [ -n "$TERM" ]; then
+		RED=$(tput setaf 1)
+		NORMAL=$(tput sgr0)
+		echo "${RED}${message_content}${NORMAL}" >&2
+	else
+	    echo -e "\e[01;31m${message_content}\e[0m" >&2
+	fi
 	exit 1
 }
 
@@ -88,13 +93,13 @@ function show_help {
 	Set the Target name to <target>.
 
 --list-targets
-    List the available targets NVQ++ can compile to.
+	List the available targets NVQ++ can compile to.
 
 --emit-qir | -emit-qir
 	Emit the QIR output to <input file>.qir.ll and exit.
 
 --emulate | -emulate
-   For physical, remote QPU execution, enable local emulation for testing.
+	For physical, remote QPU execution, enable local emulation for testing.
 
 --platform=<lib> | -platform=<lib>
 	Set the platform library name to <lib>.
@@ -112,7 +117,10 @@ function show_help {
 	Enable the verbose option (-v) to the C++ compiler.
 
 --load=<domain>
-    Load the domain-specific library, e.g. chemistry.
+	Load the domain-specific library, e.g. chemistry.
+
+--mapping-file <path/to/file>
+	Use the specified topology file during mapping (if mapping is needed).
 
 --[no-]device-code-loading
 	Enable/disable device code loading pass.
@@ -258,6 +266,7 @@ ARGS=
 CUDAQ_QUAKE_ARGS=
 CUDAQ_OPT_ARGS=
 CUDAQ_TRANSLATE_ARGS=
+MAPPING_FILE=
 LLC_FLAGS=-O2
 DO_LINK=true
 SHOW_VERSION=false
@@ -307,7 +316,7 @@ LIBRARY_MODE=true
 CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
 CMAKE_FALLBACK_HOST_CXX=${CXX}
-TARGET_ARGS=
+TARGET_ARGS=()
 
 if [[ $# -eq 0 ]]; then
     SHOW_HELP=true
@@ -317,34 +326,61 @@ fi
 # any target specific options.
 N=$#
 for (( i=1; i<=$N; i++ )); do
-	if [[ ${@:$i:1} == --target ]] || [[ ${@:$i:1} == -target ]]; then
+	arg=${@:$i:1}
+	if [[ "${arg}" == --target ]] || [[ "${arg}" == -target ]]; then
 		TARGET_CONFIG="${@:$i+1:1}"
+		break
+	fi
+	if [[ "${arg}" == --target=* ]] || [[ "${arg}" == -target=* ]]; then
+		TARGET_CONFIG="${arg#*=}"
 		break
 	fi
 done
 
 while [ $# -ne 0 ]; do
 	# Filter out any target-specific options.
-	if [[ $# -gt 1 ]] && [[ -n "${TARGET_CONFIG}" ]] && \
-	     [[ "$1" = --${TARGET_CONFIG}-* ]]; then
-		# Assume always has an additional value
-		TARGET_ARGS="${TARGET_ARGS} $1 $2"
-		shift 2
-		continue
+	if [[ $# -gt 1 ]] && [[ -n "${TARGET_CONFIG}" ]]; then
+		if [[ "$1" = --${TARGET_CONFIG}-*=* ]]; then
+			# Separate the value of argument. Perform base64 encoding on
+			# the parameter value in case it has spaces. The runtime will be
+			# responsible for decoding the value.
+			param="$1"
+			ESC2="base64_"$(echo -n ${param#*=} | base64 --wrap=0)
+			TARGET_ARGS+=(${param%=*} $ESC2)
+			shift 1
+			continue
+		elif [[ "$1" = --${TARGET_CONFIG}-* ]]; then
+			# Assume always has an additional value. Perform base64 encoding on
+			# the parameter value in case it has spaces. The runtime will be
+			# responsible for decoding the value.
+			ESC2="base64_"$(echo -n $2 | base64 --wrap=0)
+			TARGET_ARGS+=($1 $ESC2)
+			shift 2
+			continue
+		fi
 	fi
 
+	arg="$1"
 	# Otherwise, process the argument.
 	case "$1" in
 	--llvm-version)
 		llvm_suffix="$2"
 		shift
 		;;
+	--llvm-version=*)
+		llvm_suffix="${arg#*=}"
+		;;
 	--execution-manager | -em | -execution-manager)
 		LIBRARY_MODE_EXECUTION_MANAGER="$2"
 		shift
 		;;
+	--execution-manager=* | -em=* | -execution-manager=*)
+		LIBRARY_MODE_EXECUTION_MANAGER="${arg#*=}"
+		;;
 	--target | -target)
 		shift
+		;;
+	--target=* | -target=*)
 		;;
 	--emit-qir | -emit-qir)
 		EMIT_QIR=true
@@ -359,6 +395,10 @@ while [ $# -ne 0 ]; do
 	--disable-qubit-mapping | -disable-qubit-mapping)
 		DISABLE_QUBIT_MAPPING=true
 		;;
+	--mapping-file | -mapping-file)
+		MAPPING_FILE="base64_"$(echo -n $2 | base64 --wrap=0)
+		shift
+		;;
 	--list-targets)
 		LIST_TARGETS=true
 		;;
@@ -366,13 +406,22 @@ while [ $# -ne 0 ]; do
 		PLATFORM_LIBRARY="$2"
 		shift
 		;;
+	--platform=* | -platform=*)
+		PLATFORM_LIBRARY="${arg#*=}"
+		;;
 	--load | -load)
 		LINKLIBS="${LINKLIBS} -lcudaq-$2"
 		shift
 		;;
+	--load=* | -load=*)
+		LINKLIBS="${LINKLIBS} -lcudaq-${arg#*=}"
+		;;
 	--cmake-host-compiler)
 		CMAKE_FALLBACK_HOST_CXX="$2"
 		shift
+		;;
+	--cmake-host-compiler=*)
+		CMAKE_FALLBACK_HOST_CXX="${arg#*=}"
 		;;
 	-g)
 		COMPILER_FLAGS="${COMPILER_FLAGS} -g"
@@ -442,6 +491,10 @@ while [ $# -ne 0 ]; do
 		OUTPUTOPTS="-o $2"
 		OUTPUTFILE="$2"
 		shift
+		;;
+	-o=*)
+		OUTPUTOPTS="-o ${arg#*=}"
+		OUTPUTFILE="${arg#*=}"
 		;;
 	-D*)
 		DEFINED_VAR=$1
@@ -536,13 +589,16 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
-		. "${TARGET_CONFIG_FILE}" ${TARGET_ARGS}
+		. "${TARGET_CONFIG_FILE}" "${TARGET_ARGS[@]}"
 
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main and set the target
 			# backend on the quantum_platform
 			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
 			TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
+			if [ -n "${MAPPING_FILE}" ]; then
+				TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
+			fi
 			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
 			OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
 			run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
@@ -687,6 +743,10 @@ for i in ${SRCS}; do
 done
 
 if ${DO_LINK}; then
+	if ${LIBRARY_MODE}; then
+		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
+	fi 
+
 	run ${LINKER_CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified

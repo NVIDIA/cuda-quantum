@@ -52,7 +52,7 @@ bool isSemiOpenPredicate(mlir::arith::CmpIPredicate p);
 bool isUnsignedPredicate(mlir::arith::CmpIPredicate p);
 
 /// A counted loop is defined to be a loop that will execute some compile-time
-/// constant number of iterations. We recognize a normalized, semi-open iterval
+/// constant number of iterations. We recognize a normalized, semi-open interval
 /// loop such as
 /// ```
 ///   for(i = 0; i < constant_number_of_iterations; ++i)
@@ -64,8 +64,8 @@ bool loopContainsBreak(cc::LoopOp op);
 bool isaConstantUpperBoundLoop(cc::LoopOp op, bool allowClosedInterval = true);
 
 /// An invariant loop is defined to be a loop that will execute some run-time
-/// invariant number of iterations. We recognize a normalized, semi-open iterval
-/// loop such as
+/// invariant number of iterations. We recognize a normalized, semi-open
+/// interval loop such as
 /// ```
 ///   for(i = 0; i < invariant_expression; ++i)
 /// ```
@@ -101,7 +101,7 @@ bool hasMonotonicControlInduction(cc::LoopOp loop, LoopComponents *c = nullptr);
 
 /// A monotonic loop is defined to be a loop that will execute some bounded
 /// number of iterations that can be predetermined before the loop, in fact,
-/// executes. A semi-open iterval loop such as
+/// executes. A semi-open interval loop such as
 /// ```
 ///   for(i = start; i < stop; i += step)
 /// ```

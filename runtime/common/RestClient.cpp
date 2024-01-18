@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,9 +9,44 @@
 #include "RestClient.h"
 #include "Logger.h"
 #include <cpr/cpr.h>
+#include <zlib.h>
 
 namespace cudaq {
 constexpr long validHttpCode = 205;
+
+/// Decompress GZIP data. Throws an exception on error.
+std::string decompress_gzip(const std::string &data) {
+  if (data.empty())
+    return data;
+
+  std::string decompressed;
+  z_stream zs{};
+  zs.avail_in = data.size();
+  zs.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(data.data()));
+
+  // Add 16 to indicate gzip decoding
+  if (inflateInit2(&zs, 16 + MAX_WBITS) != Z_OK)
+    throw std::runtime_error("inflateInit2 failed while decompressing.");
+
+  // Uncompress 32 KB at a time
+  constexpr auto buffSize = 32678;
+  auto buffer = std::make_unique<char[]>(buffSize);
+  int ret;
+  do {
+    zs.avail_out = buffSize;
+    zs.next_out = reinterpret_cast<Bytef *>(buffer.get());
+    ret = inflate(&zs, 0);
+    if (decompressed.size() < zs.total_out)
+      decompressed.append(buffer.get(), zs.total_out - decompressed.size());
+  } while (ret == Z_OK);
+
+  inflateEnd(&zs);
+
+  if (ret != Z_STREAM_END)
+    throw std::runtime_error("Exception during zlib decompression");
+
+  return decompressed;
+}
 
 nlohmann::json RestClient::post(const std::string_view remoteUrl,
                                 const std::string_view path,
@@ -62,6 +97,11 @@ nlohmann::json RestClient::get(const std::string_view remoteUrl,
                              std::to_string(r.status_code) + ": " +
                              r.error.message + ": " + r.text);
 
+  // cpr used to do this automatically but no longer does as of PR #1010
+  if (r.header["Content-Encoding"] == "gzip") {
+    auto tmp = decompress_gzip(r.text);
+    r.text = tmp;
+  }
   return nlohmann::json::parse(r.text);
 }
 

@@ -5,14 +5,22 @@ inputs:
     required: true
   run:
     required: true
+  user:
+    default: "root"
+    required: false
   shell:
     default: "bash"
+    required: false
 
 runs:
   using: "composite"
   steps:
     - shell: bash
       run: |
+        if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ]; 
+        then additional_run_args="--gpus all"
+        fi
+
         # Note: "bash -s << EOF" does not play nice with mpirun/mpiexec. It
         # silently skips any shell commands that come after the mpirun/mpiexec,
         # so don't use it. Use this instead, which seems to work better.
@@ -20,9 +28,10 @@ runs:
         cat > $tmpFile << 'EOF'
         ${{ inputs.run }}
         EOF
-        chown $(id -u):$(id -g) $tmpFile
-        container=$(docker run -id ${{ inputs.image }})
+
+        container=$(docker run --user ${{ inputs.user }} $additional_run_args -id ${{ inputs.image }})
         docker cp $tmpFile $container:$tmpFile
+        docker exec --user root $container chown -R ${{ inputs.user }} $tmpFile
         docker exec $container ${{ inputs.shell }} $tmpFile
         docker stop $container
         rm $tmpFile

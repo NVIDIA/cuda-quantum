@@ -7,8 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
-#include "llvm/Support/Registry.h"
+#include <string>
 
 namespace cudaq {
 namespace registry {

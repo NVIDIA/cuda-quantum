@@ -18,9 +18,15 @@ on:
       devdeps_archive:
         required: false
         type: string
-      environment:
+      create_staging_info:
         required: false
-        type: string
+        type: boolean
+        default: false
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_READONLY_TOKEN:
+        required: true
 
 name: Python wheels
 
@@ -92,6 +98,12 @@ jobs:
           # do not change this prefix without adjusting other workflows
           echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
 
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
       - name: Set up context for buildx
         run: |
           docker context create builder_context
@@ -107,7 +119,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/build/cudaq.wheel.Dockerfile
+          file: ./docker/release/cudaq.wheel.Dockerfile
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
             release_version=${{ steps.prereqs.outputs.cudaq_version }}
@@ -115,11 +127,11 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prereqs.outputs.artifact_name }}
           path: /tmp/wheels
-          retention-days: 5
+          retention-days: 1
           if-no-files-found: error
 
   create_test_config:
@@ -139,12 +151,6 @@ jobs:
         run: |
           python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
           operating_systems=`echo "$python_config" | jq '.[] | select(.version==${{ inputs.python_version }}).operating_systems'`
-
-          json="{\"os_images\":[]}"
-          for image in ${{ inputs.os_images }}; do
-            image=\'$image\'
-            json=`echo $json | jq ".os_images |= . + [\"$image\"]"`
-          done
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
   validation:
@@ -153,6 +159,7 @@ jobs:
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
+      packages: read
 
     strategy:
       matrix:
@@ -164,8 +171,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Log in to GitHub CR
+        if: inputs.environment == ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Load cuda-quantum wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ needs.build_wheel.outputs.artifact_name }}
 
@@ -173,11 +188,20 @@ jobs:
         run: |
           os_image=${{ matrix.os_image }}
           distr=`echo $os_image | cut -d : -f 1 | cut -d / -f 1`
-          os_version=`echo ${os_image#$distr} | cut -c2-`
+          if ${{ inputs.environment != '' }}; then
+            # Validate against the public images
+            base_image=$os_image
+          else
+            # If we are not staging, we instead validate the images
+            # pushed to GHCR to limit our pull rate on public registries.
+            repo_owner=${{ github.repository_owner }}
+            image_tag=`echo $os_image | sed -e 's@.*\.io/\(\)@\1@'`
+            base_image=ghcr.io/${repo_owner,,}/${image_tag#${repo_owner,,}}
+          fi
 
           wheelname=`echo cuda_quantum-*-manylinux_*_$(uname -m).whl`
-          docker build -t wheel_validation:local -f "docker/test/$distr.Dockerfile" . \
-            --build-arg os_version=$os_version \
+          docker build -t wheel_validation:local -f "docker/test/wheels/$distr.Dockerfile" . \
+            --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
             --build-arg preinstalled_modules="numpy pytest" \
@@ -225,7 +249,7 @@ jobs:
           run: |
             # Install openmpi and mpi4py by conda
             # Install conda
-            dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients.$(uname -m)
+            dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients
             mkdir -p ~/miniconda3
             wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/miniconda3/miniconda.sh
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
@@ -263,22 +287,24 @@ jobs:
       - name: Validate Python examples
         run: |
           docker run --rm -dit --name wheel-validation wheel_validation:local
-          validation_passed=true
-
-          for file in `ls docs/sphinx/examples/python`; do
+          for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/providers/*'`; do
+            file="${ex#docs/sphinx/examples/python/}"
             echo "__Example ${file}:__" >> /tmp/validation.out
 
             (docker exec wheel-validation bash -c "python${{ inputs.python_version }} /tmp/examples/$file" >> /tmp/validation.out) && success=true || success=false
             if $success; then 
               echo "Executed successfully." >> /tmp/validation.out
             else
+              status_sum=$((status_sum+1))
               echo "Failed." >> /tmp/validation.out
-              validation_passed=false
             fi
           done
 
           docker stop wheel-validation
-          if [ ! $validation_passed ]; then exit 1; fi
+          if [ ! $status_sum -eq 0 ]; then
+            echo "::error::$status_sum examples failed; see step summary for a list of failures."
+            exit $status_sum
+          fi
 
       - name: Create job summary
         if: always() && !cancelled() 
@@ -297,7 +323,7 @@ jobs:
   staging:
     name: Staging
     needs: [build_wheel, validation]
-    if: inputs.environment
+    if: inputs.create_staging_info
     runs-on: ubuntu-latest
     permissions: {}
 
@@ -308,7 +334,7 @@ jobs:
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
-          artifact_name=python_info_$platform_id
+          artifact_name=python_${platform_id}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
@@ -319,7 +345,7 @@ jobs:
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
 
       - name: Upload build info
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}

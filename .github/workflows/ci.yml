@@ -35,10 +35,23 @@ jobs:
       cache_base: ${{ steps.pr_info.outputs.pr_base }}
       llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
       pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
+      platform_config: ${{ steps.config.outputs.platforms }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - id: config
+        run: |
+          platforms="{}"
+          for platform_id in amd64 arm64; do
+            if [ "$platform_id" == "amd64" ]; then minimal_base_image=amd64/almalinux:8
+            elif [ "$platform_id" == "arm64" ]; then minimal_base_image=arm64v8/almalinux:8
+            fi
+            platform={\"$platform_id\":{\"minimal_base_image\":\"$minimal_base_image\"}}
+            platforms=`echo $platforms | jq ". |= . + $platform"`
+          done
+          echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
 
       - id: pr_info
         run: |
@@ -68,6 +81,9 @@ jobs:
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
@@ -87,19 +103,44 @@ jobs:
         platform: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
-        manylinux_image=manylinux_2_28
-        arch=${{ (matrix.platform == 'arm64' && 'aarch64') || (matrix.platform == 'amd64' && 'x86_64') || 'any' }}
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-python
+
+  source_build:
+    name: Load source build cache
+    needs: metadata
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/${{ matrix.platform }}
+      dockerfile: build/assets.Dockerfile
+      build_target: prereqs
+      toolchain: gcc11
+      build_args: |
+        base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
+      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      checkout_submodules: true
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-installer
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -108,7 +149,7 @@ jobs:
   config:
     name: Configure build
     runs-on: ubuntu-latest
-    needs: [devdeps, wheeldeps]
+    needs: [devdeps, wheeldeps, source_build]
 
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
@@ -150,6 +191,9 @@ jobs:
         platform: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
@@ -165,12 +209,32 @@ jobs:
         python_version: ['3.9', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
       devdeps_cache: ${{ fromJson(needs.config.outputs.json).cache_key[format('{0}-python', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config.outputs.json).tar_archive[format('{0}-python', matrix.platform)] }}
+
+  binaries:
+    name: Create CUDA Quantum installer
+    needs: [metadata, config]
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+      fail-fast: false
+    uses: ./.github/workflows/prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: linux/${{ matrix.platform }}
+      platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
+      build_cache:  ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
+      toolchain: gcc11
 
   clean_up:
     name: Prepare cache clean-up
@@ -192,7 +256,7 @@ jobs:
           echo "pr-base: ${{ needs.metadata.outputs.pull_request_base }}" >> metadata.txt
 
       - name: Upload cache keys
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cache_keys_ci
           path: cache_keys.txt
@@ -200,7 +264,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload metadata
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: metadata_ci
           path: metadata.txt
