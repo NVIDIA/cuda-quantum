@@ -147,7 +147,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#parallel-distribution-mode">Parallel distribution mode</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#multi-gpu-qpu-simulation">Multi-GPU QPU simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
@@ -700,17 +700,17 @@ Last but not least, the compiled executable (C++) or Python script needs to be l
 e.g., <code class="code docutils literal notranslate"><span class="pre">mpirun</span></code>, <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code>, <code class="code docutils literal notranslate"><span class="pre">srun</span></code>, etc.</p>
 </section>
 </section>
-<section id="multi-gpu-qpu-simulation">
-<h2>Multi-GPU QPU simulation<a class="headerlink" href="#multi-gpu-qpu-simulation" title="Permalink to this heading">¶</a></h2>
+<section id="remote-mqpu-platform">
+<h2>Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform<a class="headerlink" href="#remote-mqpu-platform" title="Permalink to this heading">¶</a></h2>
 <p>As shown in the above examples, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform enables
 multi-QPU distribution whereby each QPU is simulated by a single NVIDIA GPU.</p>
 <p>In use cases where the number of qubits requires
-the multi-node multi-GPU simulator (<code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code>) as the simulated QPU,
-multi-QPU distribution capability is provided by the remote simulator target (<code class="code docutils literal notranslate"><span class="pre">remote-sim</span></code>).</p>
+the multi-node multi-GPU simulator (<code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code>) to simulate each virtual QPU,
+the remote simulator target (<code class="code docutils literal notranslate"><span class="pre">remote-sim</span></code>) provides a platform that distributes the application code across multiple virtual QPUs. In contrast to the <code class="code docutils literal notranslate"><span class="pre">multi-qpu</span></code> platform, each virtual QPU is simulated by a <a class="reference internal" href="../simulators.html#nvidia-mgpu-backend"><span class="std std-ref">multi-GPU multi-node statevector simulator</span></a>.</p>
 <p>Specifically, this <code class="code docutils literal notranslate"><span class="pre">remote-sim</span></code> platform encapsulates simulated QPUs as independent
 HTTP REST server instances (<code class="code docutils literal notranslate"><span class="pre">cudaq-qpud</span></code>).</p>
 <p>For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
-4 virtual QPU instances, each manages 2 GPUs.</p>
+4 virtual QPU instances, each manages 2 GPUs. To do so, first launch a <code class="code docutils literal notranslate"><span class="pre">cudaq-qpud</span></code> server for each virtual QPU:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">CUDA_VISIBLE_DEVICES=0,1 mpirun -np 2 cudaq-qpud --port &lt;QPU 1 TCP/IP port number&gt;</span>
 <span class="go">CUDA_VISIBLE_DEVICES=2,3 mpirun -np 2 cudaq-qpud --port &lt;QPU 2 TCP/IP port number&gt;</span>
 <span class="go">CUDA_VISIBLE_DEVICES=4,5 mpirun -np 2 cudaq-qpud --port &lt;QPU 3 TCP/IP port number&gt;</span>

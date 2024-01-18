@@ -144,21 +144,21 @@ CUDA Quantum provides MPI utility functions to initialize, finalize, or query (r
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
 e.g., :code:`mpirun`, :code:`mpiexec`, :code:`srun`, etc.
 
-Multi-GPU QPU simulation
+Remote `MQPU` Platform
 +++++++++++++++++++++++++++
 
 As shown in the above examples, the :code:`nvidia-mqpu` platform enables
 multi-QPU distribution whereby each QPU is simulated by a single NVIDIA GPU.
 
 In use cases where the number of qubits requires
-the multi-node multi-GPU simulator (:code:`nvidia-mgpu`) as the simulated QPU, 
-multi-QPU distribution capability is provided by the remote simulator target (:code:`remote-sim`).
+the multi-node multi-GPU simulator (:code:`nvidia-mgpu`) to simulate each virtual QPU, 
+the remote simulator target (:code:`remote-sim`) provides a platform that distributes the application code across multiple virtual QPUs. In contrast to the :code:`multi-qpu` platform, each virtual QPU is simulated by a :ref:`multi-GPU multi-node statevector simulator <nvidia-mgpu-backend>`.
 
 Specifically, this :code:`remote-sim` platform encapsulates simulated QPUs as independent
 HTTP REST server instances (:code:`cudaq-qpud`). 
 
 For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
-4 virtual QPU instances, each manages 2 GPUs.
+4 virtual QPU instances, each manages 2 GPUs. To do so, first launch a :code:`cudaq-qpud` server for each virtual QPU:
 
 
 .. code-block:: console
