@@ -158,7 +158,7 @@ Specifically, this :code:`remote-sim` platform encapsulates simulated QPUs as in
 HTTP REST server instances (:code:`cudaq-qpud`). 
 
 For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
-4 virtual QPU instances, each manages 2 GPUs.
+4 virtual QPU instances, each manages 2 GPUs. To do so, first launch a :code:`cudaq-qpud` server for each virtual QPU:
 
 
 .. code-block:: console
