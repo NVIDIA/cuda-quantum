@@ -85,8 +85,8 @@ In addition to the prerequisites listed above, you will need to install the
 following prerequisites in your build environment prior to proceeding with 
 the build as described in the subsequent sections:
 
-- GNU C library: We currently statically link *all* dependencies, including 
-  the standard libraries. We may revise that in the future. 
+- GNU C library: We currently statically link dependencies, in some cases
+  including the standard libraries. We may revise that in the future. 
   To use the current build configuration, please make sure you have the 
   static version of the `GNU C library <https://www.gnu.org/software/libc/>`__, 
   including the POSIX Threads library, installed on your system. 
