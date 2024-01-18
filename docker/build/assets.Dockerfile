@@ -99,7 +99,9 @@ ENV CUDA_QUANTUM_VERSION=$release_version
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantumBuild]
-    CUDAQ_PYTHON_SUPPORT=OFF CUDAQ_WERROR=false \
+    CUDAQ_WERROR=false \
+    CUDAQ_PYTHON_SUPPORT=OFF \
+    CUDAHOSTCXX="$CXX" \
     CUDAQ_ENABLE_STATIC_LINKING=true \
     LDFLAGS='-static-libgcc -static-libstdc++' \
     LLVM_PROJECTS='clang;lld;mlir' \
@@ -112,8 +114,9 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
         excludes="--label-exclude gpu_required"; \
     fi && cd /cuda-quantum && \
     # FIXME: Disabled nlopt doesn't seem to work properly
+    # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102
     excludes+=" --exclude-regex NloptTester|ctest-nvqpp" && \
-    ctest --output-on-failure --test-dir build -E ctest-nvqpp $excludes
+    ctest --output-on-failure --test-dir build $excludes
 # FIXME: Not yet working due to failure to find span
 #RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
 #    cd /cuda-quantum && source scripts/configure_build.sh && \
