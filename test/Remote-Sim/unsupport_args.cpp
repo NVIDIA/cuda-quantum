@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target remote-sim %s 2>&1 | FileCheck %s
+// RUN: nvq++ --target remote-mqpu %s 2>&1 | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

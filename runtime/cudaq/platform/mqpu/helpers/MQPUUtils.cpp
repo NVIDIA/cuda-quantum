@@ -72,10 +72,11 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess() {
   if (!serverApp)
     throw std::runtime_error(
         "Unable to find CUDA Quantum REST server to launch.");
-  // Use process Id to seed the random port search to minimize collision.
+  // Use process Id + time to seed the random port search to minimize collision.
   // For example, multiple processes trying to auto-launch server app on the
   // same machine.
-  const auto port = getRandomAvailablePort(::getpid());
+  const auto port =
+      getRandomAvailablePort((::time(nullptr) & 0xFFFF) | (::getpid() << 16));
 
   if (!port.has_value())
     throw std::runtime_error("Unable to find a TCP/IP port on the local "

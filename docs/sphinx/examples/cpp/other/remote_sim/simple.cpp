@@ -8,14 +8,14 @@
 
 // Compile and run with:
 // ```
-// nvq++ --target remote-sim simple.cpp -o d2.x && ./d2.x
+// nvq++ --target remote-mqpu simple.cpp -o d2.x && ./d2.x
 // ```
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 
 // The example here shows a simple use case for the remote simulator platform
-// (`remote-sim`). Please refer to the documentation for more information about
+// (`remote-mqpu`). Please refer to the documentation for more information about
 // its features and command line options.
 
 int main() {

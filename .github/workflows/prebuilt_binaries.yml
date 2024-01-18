@@ -369,7 +369,7 @@ jobs:
             # because this target was skipped in validate.sh due to 
             # incomplete MPI installation (need install_sshclient.sh).
             for ex in `find examples/other/remote_sim/ -name '*.cpp'`; do
-              nvq++ --target remote-sim $ex
+              nvq++ --target remote-mqpu $ex
               status=$?
               filename=$(basename -- "$ex")
               if [ $status -eq 0 ]; then

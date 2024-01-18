@@ -42,4 +42,4 @@ endif()
   
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-mqpu-targets DESTINATION lib)
-add_target_config(remote-sim)
+add_target_config(remote-mqpu)

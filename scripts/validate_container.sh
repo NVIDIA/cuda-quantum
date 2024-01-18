@@ -179,16 +179,16 @@ do
         elif [[ " ${mps_skipped_tests[*]} " =~ " $ex " ]] && [ "$t" == "tensornet-mps" ]; then
             let "skipped+=1"
             echo "Skipping $t target."
-        # Skipped long-running tests (variational optimization loops) for the "remote-sim" target to keep CI runtime managable.
+        # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
         # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
-        # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-sim" target.
-        elif [[ "$t" == "remote-sim" ]] && [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* ]];
+        # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
+        elif [[ "$t" == "remote-mqpu" ]] && [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* ]];
         then
             let "skipped+=1"
             echo "Skipping $ex for $t target.";
-        elif [[ "$t" == "remote-sim" &&  "$mpi_available" == true &&  "$ssh_available" == false ]];
+        elif [[ "$t" == "remote-mqpu" &&  "$mpi_available" == true &&  "$ssh_available" == false ]];
         then
-            # Don't run remote-sim if the MPI installation is incomplete (e.g., missing an ssh-client).
+            # Don't run remote-mqpu if the MPI installation is incomplete (e.g., missing an ssh-client).
             let "skipped+=1"
             echo "Skipping $t target due to incomplete MPI installation.";
         else

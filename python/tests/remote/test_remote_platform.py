@@ -28,7 +28,7 @@ num_qpus = 3
 @pytest.fixture(scope="session", autouse=True)
 @skipIfNoRestServer
 def startUpMockServer():
-    cudaq.set_target("remote-sim",
+    cudaq.set_target("remote-mqpu",
                      remote_execution=True,
                      auto_launch=str(num_qpus))
     yield
