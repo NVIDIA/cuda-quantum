@@ -31,6 +31,8 @@ if (CMAKE_COMPILER_IS_GNUCXX)
   add_definitions(-flto=auto)
 endif()
 
+set(CMAKE_PLATFORM_NO_VERSIONED_SONAME 1)
+
 ################################################################################
 # Sources
 ################################################################################
@@ -135,7 +137,7 @@ add_mlir_python_modules(CUDAQuantumPythonModules
 file (COPY cudaq DESTINATION ${MLIR_BINARY_DIR}/)
 
 ## The Python bindings module for Quake dialect depends on CUDAQ libraires 
-## which it can't locate since they are in "../../lib" and the 'rapth' is set
+## which it can't locate since they are in "../../lib" and the 'rpath' is set
 ## to '$ORIGIN' by default.
 set(_origin_prefix "\$ORIGIN")
 if(APPLE)

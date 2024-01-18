@@ -14,7 +14,7 @@ import pytest
 
 import cudaq
 
-## [SKIP_TEST]: Reason - AssertionError at 'assert isinstance(arg, _cext.ir.Value)' on 'kernel.crx(value, controls, target)'
+## [SKIP_TEST]: Reason - AssertionError on 'assert isinstance(arg, _cext.ir.Value)' on 'kernel.crx(value, controls, target)'
 # def test_control_list_rotation():
 #     """Tests the controlled rotation gates, provided a list of controls."""
 #     kernel, value = cudaq.make_kernel(float)
