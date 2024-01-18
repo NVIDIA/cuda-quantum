@@ -136,7 +136,7 @@ jobs:
                 owner: context.repo.owner, 
                 repo: context.repo.repo, 
                 deployment_id: deployment.id, 
-                state: 'inactive' 
+                state: 'Inactive' 
                 });
                 return github.rest.repos.deleteDeployment({
                 owner: context.repo.owner,
