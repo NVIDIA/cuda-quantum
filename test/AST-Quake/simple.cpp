@@ -8,7 +8,7 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// RUN: cudaq-quake --emit-llvm-file %s | FileCheck --check-prefixes=CHECK %s
+// RUN: cudaq-quake %cpp_std --emit-llvm-file %s | FileCheck --check-prefixes=CHECK %s
 // RUN: FileCheck --check-prefixes=CHECK-LLVM %s < simple.ll
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz

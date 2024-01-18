@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --enable-mlir %s -o %t && %t
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
+// RUN:   nvq++ --enable-mlir %s -o %t && %t; \
+// RUN: fi
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t
 // clang-format on
 
 // The test here is the assert statement.

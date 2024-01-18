@@ -8,7 +8,7 @@
 
 // REQUIRES: nvcc
 
-// RUN: (nvcc -c -std=c++17 %p/cuda-1.cu -o %t.o && \
+// RUN: (nvcc -c -Xcompiler -fPIC -std=c++17 %p/cuda-1.cu -o %t.o && \
 // RUN: nvq++ -std=c++17 --enable-mlir %s %t.o -L `dirname $(which nvcc)`/../lib64 -lcudart -o %t && echo "Success") | \
 // RUN: FileCheck %s
 

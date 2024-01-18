@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // Tests for --disable-qubit-mapping:
-// RUN: nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
-// RUN: nvq++ -v %s -o %t --target iqm --iqm-machine Adonis --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
+// RUN: nvq++ %cpp_std -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
+// RUN: nvq++ %cpp_std -v %s -o %t --target iqm --iqm-machine Adonis --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
