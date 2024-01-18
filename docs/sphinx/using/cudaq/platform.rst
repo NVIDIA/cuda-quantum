@@ -184,7 +184,7 @@ at the end of the session.
 .. note:: 
     By default, auto launching daemon services do not support MPI parallelism. 
     Hence, multi-GPU backend capabilities are not available with auto-launch. 
-    See custom_remote_qpud_launch_ for more information about enabling remote multi-GPU
+    See :ref:`custom QPU daemon service launch <custom_remote_qpud_launch>` for more information about enabling remote multi-GPU
     QPU.
 
 .. _custom_remote_qpud_launch:

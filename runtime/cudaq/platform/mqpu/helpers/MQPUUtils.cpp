@@ -75,8 +75,11 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess() {
   // Use process Id + time to seed the random port search to minimize collision.
   // For example, multiple processes trying to auto-launch server app on the
   // same machine.
-  const auto port =
-      getRandomAvailablePort((::time(nullptr) & 0xFFFF) | (::getpid() << 16));
+  // Also, prevent collision when a single process (same PID) constructing
+  // multiple AutoLaunchRestServerProcess in a loop by making sure subsequent
+  // constructions are having different seeds.
+  static std::mt19937 gen(::getpid());
+  const auto port = getRandomAvailablePort(gen());
 
   if (!port.has_value())
     throw std::runtime_error("Unable to find a TCP/IP port on the local "

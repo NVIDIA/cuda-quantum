@@ -11,8 +11,8 @@ import cudaq
 # Number of remote QPUs to launch
 num_qpus = 2
 cudaq.set_target("remote-mqpu",
-                    remote_execution=True,
-                    auto_launch=str(num_qpus))
+                 remote_execution=True,
+                 auto_launch=str(num_qpus))
 target = cudaq.get_target()
 print("Number of QPUs:", target.num_qpus())
 
@@ -25,7 +25,7 @@ kernel.mz(qubits)
 
 count_futures = []
 for qpu in range(num_qpus):
-    count_futures.append(cudaq.sample_async(kernel, 5, qpu_id=qpu))
+    count_futures.append(cudaq.sample_async(kernel, 4 + qpu, qpu_id=qpu))
 
 for counts in count_futures:
     print(counts.get())

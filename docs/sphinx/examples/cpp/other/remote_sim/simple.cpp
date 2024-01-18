@@ -7,9 +7,12 @@
  ******************************************************************************/
 
 // Compile and run with:
+// clang-format off
 // ```
-// nvq++ --target remote-mqpu simple.cpp -o d2.x && ./d2.x
+//  nvq++ --target remote-mqpu --remote-mqpu-auto-launch 1 simple.cpp -o simple.x &&
+// ./simple.x
 // ```
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

@@ -81,6 +81,11 @@ endif()
 
 add_nvqpp_test(photonics_sim providers/photonics.cpp TARGET photonics)
 add_nvqpp_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.cpp TARGET remote-mqpu SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+set_tests_properties(
+  nvqpp_SampleAsyncRemote
+    PROPERTIES
+      ENVIRONMENT_MODIFICATION PATH=path_list_append:${CMAKE_BINARY_DIR}/bin
+)
 
 # Only add the python tests if we built the python API
 if (CUDAQ_ENABLE_PYTHON)
