@@ -144,49 +144,37 @@ CUDA Quantum provides MPI utility functions to initialize, finalize, or query (r
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
 e.g., :code:`mpirun`, :code:`mpiexec`, :code:`srun`, etc.
 
-Remote REST Server Platform
+Multi-GPU QPU simulation
 +++++++++++++++++++++++++++
 
-The remote simulator target (:code:`remote-sim`) encapsulates simulated QPUs
-as independent REST server instances. The CUDA Quantum runtime communicates via HTTP requests (REST API) to these REST server instances. 
+As shown in the above examples, the :code:`nvidia-mqpu` platform enables
+multi-QPU distribution whereby each QPU is simulated by a single NVIDIA GPU.
 
-Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
+In use cases where the number of qubits requires
+the multi-node multi-GPU simulator (:code:`nvidia-mgpu`) as the simulated QPU, 
+multi-QPU distribution capability is provided by the remote simulator target (:code:`remote-sim`).
 
-CUDA Quantum provides the REST server implementation as a standalone application (:code:`cudaq-qpud`),
-hosting all the simulator backends available in the installation. These backends include those that require MPI for multi-GPU computation.
+Specifically, this :code:`remote-sim` platform encapsulates simulated QPUs as independent
+HTTP REST server instances (:code:`cudaq-qpud`). 
 
-Automatically Launch REST Server (Local)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
+4 virtual QPU instances, each manages 2 GPUs.
 
-The server app (:code:`cudaq-qpud`) can be launched and shutdown automatically
-by using the auto-launch feature of the platform.
-Random TCP/IP ports, that are available for use, will be selected to launch those server processes.
-
-.. tab:: C++
-
-    .. code-block:: console
-
-        nvq++ file.cpp --target remote-sim --remote-sim-auto-launch <N> --remote-sim-backend <sim1[,sim2,...]>
-
-
-.. tab:: Python
-
-     .. code:: python 
-
-        cudaq.set_target("remote-sim", auto_launch="<N>", backend="sim1[,sim2,...]")
-
-
-In the above snippets, `N` denotes the number of REST server instances (QPUs) to be launched.
-These servers will be shut down at the end of the execution.
-
-Manually Launch REST Server
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-To start the server, serving at a specific TCP/IP port, one can do the following.
 
 .. code-block:: console
     
-    cudaq-qpud --port <port number>
+    CUDA_VISIBLE_DEVICES=0,1 mpirun -np 2 cudaq-qpud --port <QPU 1 TCP/IP port number>
+    CUDA_VISIBLE_DEVICES=2,3 mpirun -np 2 cudaq-qpud --port <QPU 2 TCP/IP port number>
+    CUDA_VISIBLE_DEVICES=4,5 mpirun -np 2 cudaq-qpud --port <QPU 3 TCP/IP port number>
+    CUDA_VISIBLE_DEVICES=6,7 mpirun -np 2 cudaq-qpud --port <QPU 4 TCP/IP port number>
+
+
+In the above code snippet, four :code:`nvidia-mgpu` daemons are started in MPI context via the :code:`mpirun` launcher.
+This activates MPI runtime environment required by the :code:`nvidia-mgpu` backend. Each QPU daemon is assigned a unique 
+TCP/IP port number via the :code:`--port` command-line option. The :code:`CUDA_VISIBLE_DEVICES` environment variable restricts the GPU devices 
+that each QPU daemon sees so that it targets specific GPUs. 
+
+With these invocations, each virtual QPU is locally addressable at the URL `localhost:<port>`. 
 
 .. warning:: 
 
@@ -194,35 +182,50 @@ To start the server, serving at a specific TCP/IP port, one can do the following
     Hence, please make sure to either (1) use a non-public TCP/IP port for internal use or 
     (2) use firewalls or other security mechanisms to manage user access. 
 
-User code can then target this platform by specifying its target name (:code:`remote-sim`).
+User code can then target these QPUs for multi-QPU workloads, such as asynchronous sample or observe shown above for the :code:`nvidia-mqpu` platform.
 
 .. tab:: C++
 
     .. code-block:: console
 
-        nvq++ file.cpp --target remote-sim --remote-sim-url <url1[,url2,...]> --remote-sim-backend <sim1[,sim2,...]>
+        nvq++ distributed.cpp --target remote-sim --remote-sim-url localhost:<port1>,localhost:<port2>,localhost:<port3>,localhost:<port4> --remote-sim-backend nvidia-mgpu
 
 
 .. tab:: Python
 
      .. code:: python 
 
-        cudaq.set_target("remote-sim", url="url1[,url2,...]", backend="sim1[,sim2,...]")
+        cudaq.set_target("remote-sim", url="localhost:<port1>,localhost:<port2>,localhost:<port3>,localhost:<port4>", backend="nvidia-mgpu")
     
 
-When using this target, the user needs to provides a list of URLs where (:code:`cudaq-qpud`) is serving.
-The number of QPUs (:code:`num_qpus()`) is equal to the number of URLs provided. 
+Each URL is treated as an independent QPU, hence the number of QPUs (:code:`num_qpus()`) is equal to the number of URLs provided. 
+The multi-node multi-GPU simulator backend (:code:`nvidia-mgpu`) is requested via the :code:`--remote-sim-backend` command-line option.
 
-Each QPU instance can be assigned a different backend simulator via the :code:`--remote-sim-backend` (`nvq++`) or :code:`backend` (Python)
-option. Otherwise, if a single backend is specified, all the QPUs are assumed to be using the same simulator.
+.. note:: 
+
+    The requested backend (:code:`nvidia-mgpu`) will be executed inside the context of the QPU daemon service, thus 
+    inherits its GPU resource allocation (two GPUs per backend simulator instance). 
 
 Supported Kernel Arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To invoke quantum kernels on the remote server, the (:code:`remote-sim`) platform will serialize
-runtime arguments into a flat memory buffer (`args` field of the request JSON).
+The platform serializes kernel invocation to QPU daemons via REST APIs. 
+Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
 
-Currently, the following data types are supported.
+In particular, runtime arguments are serialized into a flat memory buffer (`args` field of the request JSON).
+
+Depending on the :code:`nvq++` compilation mode (with or without :code:`--enable-mlir`), a subset of entry-point
+kernel argument types is supported.
+
+(1) In the MLIR mode (with :code:`--enable-mlir` option), all argument types are supported.
+
+.. note:: 
+    
+    The MLIR mode allows quantum kernels to be compiled with the CUDA Quantum MLIR-based compiler.
+    As a result, runtime arguments can be resolved by the CUDA Quantum compiler infrastructure to
+    support wider range of argument types.
+
+(2) In the library (non-MLIR) mode, the following argument types are supported for entry-point kernels.
 
 .. list-table:: 
    :widths: 50 50 50
@@ -238,3 +241,9 @@ Currently, the following data types are supported.
      - `std::vector<int>`, `std::vector<double>`, etc. 
      - Total vector size in bytes as a 64-bit integer followed by serialized data of all vector elements.
   
+In particular, complex data structures, such as nested vectors or class objects, are not supported.
+Passing kernels as arguments to the entry point kernel is also not supported.
+
+.. note:: 
+    These type limitations are only applied for arguments supplied to **entry-point** kernels.
+    Quantum kernels may call others passing arbitrary argument types in the library mode.
