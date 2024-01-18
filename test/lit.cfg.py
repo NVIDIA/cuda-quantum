@@ -56,8 +56,11 @@ cpp_stds = ['c++17', 'c++20', 'c++23']
 std_up_to = os.environ.get('CUDAQ_CPP_STD', 'c++23').lower()
 for std in cpp_stds[:bisect.bisect(cpp_stds, std_up_to)]:
     config.available_features.add(std)
-std_default = os.environ.get('CUDAQ_CPP_STD', 'c++20').lower()
-config.substitutions.append(('%cpp_std', '-std=' + std_default))
+std_default = os.environ.get('CUDAQ_CPP_STD')
+if std_default is None:
+    config.substitutions.append(('%cpp_std', ''))
+else:
+    config.substitutions.append(('%cpp_std', '-std=' + std_default.lower()))
 
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.

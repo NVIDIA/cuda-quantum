@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // FIXME: should not require C++20,
-// see also ...
+// tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102.
 // REQUIRES: c++20
 // RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
