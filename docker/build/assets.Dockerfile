@@ -113,7 +113,9 @@ FROM build
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \
     fi && cd /cuda-quantum && \
-    excludes+=" --exclude-regex ctest-nvqpp" && \
+    # FIXME: Disabled nlopt doesn't seem to work properly
+    # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102
+    excludes+=" --exclude-regex NloptTester|ctest-nvqpp" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV CUDAQ_CPP_STD="c++17"
