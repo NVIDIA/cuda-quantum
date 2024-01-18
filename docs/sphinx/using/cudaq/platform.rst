@@ -152,7 +152,7 @@ multi-QPU distribution whereby each QPU is simulated by a single NVIDIA GPU.
 
 In use cases where the number of qubits requires
 the multi-node multi-GPU simulator (:code:`nvidia-mgpu`) to simulate each virtual QPU, 
-multi-QPU distribution capability is provided by the remote simulator target (:code:`remote-sim`).
+the remote simulator target (:code:`remote-sim`) provides a platform that distributes the application code across multiple virtual QPUs. In contrast to the :code:`multi-qpu` platform, each virtual QPU is simulated by a :ref:`multi-GPU multi-node statevector simulator <nvidia-mgpu-backend>`.
 
 Specifically, this :code:`remote-sim` platform encapsulates simulated QPUs as independent
 HTTP REST server instances (:code:`cudaq-qpud`). 
