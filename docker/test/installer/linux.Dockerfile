@@ -16,7 +16,7 @@ SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 
 ## [Prerequisites]
-ADD docker/test/installer/dependencies.sh /runtime_dependencies.sh
+ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
 RUN bash runtime_dependencies.sh ${base_image_mpibuild}
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         autoconf libtool flex make wget \
@@ -37,7 +37,7 @@ ARG cudart_version
 ARG cuda_distribution
 
 ## [Runtime dependencies]
-ADD docker/test/installer/dependencies.sh /runtime_dependencies.sh
+ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
 RUN export LIBSTDCPP_PACKAGE=${libstdcpp_package} && \
     export CUDART_VERSION=${cudart_version} && \
     export CUDA_DISTRIBUTION=${cuda_distribution} && \
