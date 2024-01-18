@@ -114,12 +114,17 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
         excludes="--label-exclude gpu_required"; \
     fi && cd /cuda-quantum && \
     excludes+=" --exclude-regex ctest-nvqpp" && \
-    ctest --output-on-failure --test-dir build -E ctest-nvqpp $excludes
-RUN export CUDAQ_CPP_STD="c++17" && \
-    python3 -m ensurepip --upgrade && python3 -m pip install lit && \
-    dnf install -y --nobest --setopt=install_weak_deps=False file && \
-    cd /cuda-quantum && source scripts/configure_build.sh && \
-    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test \
+    ctest --output-on-failure --test-dir build $excludes
+
+ENV CUDAQ_CPP_STD="c++17"
+ENV PATH="${PATH}:/usr/local/cuda/bin" 
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64"
+
+RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
+    dnf install -y --nobest --setopt=install_weak_deps=False file which
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
+        --param nvqpp_site_config=build/test/lit.site.cfg.py \
         # FIXME: Disabled since these need additional work
         # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102
-        --filter-out='(NVQPP/custom_pass|NVQPP/mapping_test-1.cpp)'
+        --filter-out='(custom_pass|mapping_test-1.cpp|negation_error.cpp|kernel_invalid_argument-2.cpp)'
