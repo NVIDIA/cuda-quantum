@@ -20,4 +20,5 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
       Hardware Backends <using/hardware.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
+      Data Center Installation Guide <data_center_install.rst>
       Other Versions <versions.rst>

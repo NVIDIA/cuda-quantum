@@ -44,6 +44,8 @@ switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead.
 
   This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
+.. _nvidia-mgpu-backend:
+
 Multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
 
