@@ -151,7 +151,7 @@ As shown in the above examples, the :code:`nvidia-mqpu` platform enables
 multi-QPU distribution whereby each QPU is simulated by a single NVIDIA GPU.
 
 In use cases where the number of qubits requires
-the multi-node multi-GPU simulator (:code:`nvidia-mgpu`) as the simulated QPU, 
+the multi-node multi-GPU simulator (:code:`nvidia-mgpu`) to simulate each virtual QPU, 
 multi-QPU distribution capability is provided by the remote simulator target (:code:`remote-sim`).
 
 Specifically, this :code:`remote-sim` platform encapsulates simulated QPUs as independent
