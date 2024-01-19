@@ -776,7 +776,7 @@ The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can 
     between bash sessions, e.g., via the `.bashrc` file.
 
 
-.. tab:: `mpi4py <https://mpi4py.readthedocs.io/>`__ Wrapper
+.. tab:: mpi4py Wrapper
 
   **Use case**: Python users 
 
