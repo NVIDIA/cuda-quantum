@@ -128,6 +128,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#installing-pre-built-binaries">Installing Pre-built Binaries</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#updating-cuda-quantum">Updating CUDA Quantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#next-steps">Next Steps</a></li>
 </ul>
@@ -1011,6 +1012,26 @@ While the above packages are sufficient to use GPU-acceleration within CUDA Quan
 we recommend installing the complete CUDA toolkit (<code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-11-8</span></code>) that also
 includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler.</p>
 </section>
+</section>
+<section id="updating-cuda-quantum">
+<h2>Updating CUDA Quantum<a class="headerlink" href="#updating-cuda-quantum" title="Permalink to this heading">¶</a></h2>
+<p>If you installed the CUDA Quantum Python wheels, you can update to the latest release
+by running the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install --upgrade cuda-quantum</span>
+</pre></div>
+</div>
+<p>If you installed the CUDA Quantum pre-built binaries, you should first uninstall your
+current CUDA Quantum installation before installing the new version using the installer.
+To uninstall your current CUDA Quantum version, run the command</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">sudo bash &quot;${CUDA_QUANTUM_PATH}/uninstall.sh&quot; -y</span>
+</pre></div>
+</div>
+<p>The <code class="code docutils literal notranslate"><span class="pre">uninstall.sh</span></code> script is generated during installation, and will remove all files
+and folders that were created as part of the installation, whether they were modified
+in the meantime or not. It does not remove any additional files that existed prior
+to the installation or that you have added to the installation location since then.
+You can then download and install the new version of CUDA Quantum following the
+instructions <a class="reference internal" href="#install-prebuilt-binaries"><span class="std std-ref">above</span></a>.</p>
 </section>
 <section id="dependencies-and-compatibility">
 <span id="id8"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
