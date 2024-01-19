@@ -6,7 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// FIXME: should not require C++20,
+// tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102.
+// REQUIRES: c++20
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 // Test lambdas that are created within kernels and passed to user-defined
 // kernels as an argument. Since the lambda is an argument, it is not possible

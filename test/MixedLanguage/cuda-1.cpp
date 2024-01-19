@@ -5,26 +5,32 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-// clang-format off
-// RUN: nvq++ %cpp_std -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -std=c++17 --enable-mlir -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t
-// clang-format on
 
-#include <iostream>
+// REQUIRES: nvcc
+
+// RUN: (nvcc -c -Xcompiler -fPIC -std=c++17 %p/cuda-1.cu -o %t.o && \
+// RUN: nvq++ -std=c++17 --enable-mlir %s %t.o -L `dirname $(which nvcc)`/../lib64 -lcudart -o %t && echo "Success") | \
+// RUN: FileCheck %s
+
+// CHECK-LABEL: Success
+
+#include <cudaq.h>
+
+struct CUDA_Quantum_Kernel {
+  void operator()() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+    x(q);
+  }
+};
+
+void cudaq_kernel() {
+  CUDA_Quantum_Kernel{}();
+}
+
+void cuda_gpu_kernel();
 
 int main() {
-#if defined(TEST_DEF)
-  std::cout << "PASS\n";
-#else
-  std::cout << "FAIL\n";
-#endif
-  // CHECK: PASS
-
-#if defined(MY_VAR)
-  std::cout << MY_VAR << "\n";
-#else
-  std::cout << "FAIL\n";
-#endif
-  // CHECK: CUDAQ
-  return 0;
+  cuda_gpu_kernel();
+  cudaq_kernel();
 }
