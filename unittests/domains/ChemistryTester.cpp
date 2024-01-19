@@ -14,24 +14,53 @@
 #include "cudaq/optimizers.h"
 
 CUDAQ_TEST(GenerateExcitationsTester, checkSimple) {
-  std::size_t numElectrons = 2;
-  std::size_t numQubits = 4;
+  {
+    std::size_t numElectrons = 2;
+    std::size_t numQubits = 4;
 
-  auto [singlesAlpha, singlesBeta, doublesMixed, doublesAlpha, doublesBeta] =
-      cudaq::get_uccsd_excitations(numElectrons, numQubits);
-  EXPECT_TRUE(doublesAlpha.empty());
-  EXPECT_TRUE(doublesBeta.empty());
-  EXPECT_TRUE(singlesAlpha.size() == 1);
-  EXPECT_EQ(singlesAlpha[0][0], 0);
-  EXPECT_EQ(singlesAlpha[0][1], 2);
-  EXPECT_EQ(singlesBeta[0][0], 1);
-  EXPECT_EQ(singlesBeta[0][1], 3);
-  EXPECT_EQ(doublesMixed[0][0], 0);
-  EXPECT_EQ(doublesMixed[0][1], 1);
-  EXPECT_EQ(doublesMixed[0][2], 3);
-  EXPECT_EQ(doublesMixed[0][3], 2);
-  EXPECT_TRUE(singlesBeta.size() == 1);
-  EXPECT_TRUE(doublesMixed.size() == 1);
+    auto [singlesAlpha, singlesBeta, doublesMixed, doublesAlpha, doublesBeta] =
+        cudaq::get_uccsd_excitations(numElectrons, numQubits);
+    EXPECT_TRUE(doublesAlpha.empty());
+    EXPECT_TRUE(doublesBeta.empty());
+    EXPECT_TRUE(singlesAlpha.size() == 1);
+    EXPECT_EQ(singlesAlpha[0][0], 0);
+    EXPECT_EQ(singlesAlpha[0][1], 2);
+    EXPECT_EQ(singlesBeta[0][0], 1);
+    EXPECT_EQ(singlesBeta[0][1], 3);
+    EXPECT_EQ(doublesMixed[0][0], 0);
+    EXPECT_EQ(doublesMixed[0][1], 1);
+    EXPECT_EQ(doublesMixed[0][2], 3);
+    EXPECT_EQ(doublesMixed[0][3], 2);
+    EXPECT_TRUE(singlesBeta.size() == 1);
+    EXPECT_TRUE(doublesMixed.size() == 1);
+  }
+  {
+    std::size_t numElectrons = 4;
+    std::size_t numQubits = 8;
+
+    auto [singlesAlpha, singlesBeta, doublesMixed, doublesAlpha, doublesBeta] =
+        cudaq::get_uccsd_excitations(numElectrons, numQubits);
+
+    cudaq::excitation_list expectedSinglesAlpha{{0, 4}, {0, 6}, {2, 4}, {2, 6}};
+    cudaq::excitation_list expectedSinglesBeta{{1, 5}, {1, 7}, {3, 5}, {3, 7}};
+    cudaq::excitation_list expectedDoublesMixed{
+        {0, 1, 5, 4}, {0, 1, 5, 6}, {0, 1, 7, 4}, {0, 1, 7, 6},
+        {0, 3, 5, 4}, {0, 3, 5, 6}, {0, 3, 7, 4}, {0, 3, 7, 6},
+        {2, 1, 5, 4}, {2, 1, 5, 6}, {2, 1, 7, 4}, {2, 1, 7, 6},
+        {2, 3, 5, 4}, {2, 3, 5, 6}, {2, 3, 7, 4}, {2, 3, 7, 6}};
+    cudaq::excitation_list expectedDoublesAlpha{{0, 2, 4, 6}},
+        expectedDoublesBeta{{1, 3, 5, 7}};
+    EXPECT_TRUE(singlesAlpha.size() == 4);
+    EXPECT_EQ(singlesAlpha, expectedSinglesAlpha);
+    EXPECT_TRUE(singlesBeta.size() == 4);
+    EXPECT_EQ(singlesBeta, expectedSinglesBeta);
+    EXPECT_TRUE(doublesMixed.size() == 16);
+    EXPECT_EQ(doublesMixed, expectedDoublesMixed);
+    EXPECT_TRUE(doublesAlpha.size() == 1);
+    EXPECT_EQ(doublesAlpha, expectedDoublesAlpha);
+    EXPECT_TRUE(doublesBeta.size() == 1);
+    EXPECT_EQ(doublesBeta, expectedDoublesBeta);
+  }
 }
 
 CUDAQ_TEST(H2MoleculeTester, checkHamiltonian) {
