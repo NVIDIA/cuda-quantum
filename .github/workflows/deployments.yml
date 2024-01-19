@@ -41,6 +41,7 @@ on:
     branches:
       - 'releases/*'
       - 'experimental/*'
+      - 'features/*'
 
 name: Deployments # do not change name without updating workflow_run triggers
 
