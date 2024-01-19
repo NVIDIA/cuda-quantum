@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
+// REQUIRES: c++20
 // RUN: nvq++ --target remote-mqpu %s 2>&1 | FileCheck %s
 // clang-format on
 

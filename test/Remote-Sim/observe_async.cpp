@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
+// REQUIRES: c++20
 // RUN: nvq++ --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t 
 // RUN: nvq++ --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t
 // clang-format on
