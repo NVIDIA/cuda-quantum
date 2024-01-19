@@ -42,7 +42,7 @@ jobs:
 
     strategy:
       matrix:
-        image_name: [cuda-quantum-assets, cuda-quantum-dev, cuda-quantum-devdeps, open-mpi]
+        image_name: [cuda-quantum, cuda-quantum-assets, cuda-quantum-dev, cuda-quantum-devdeps, open-mpi]
       fail-fast: false
 
     steps:
