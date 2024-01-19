@@ -21,7 +21,7 @@ NVIDIA `MQPU` Platform
 
 The NVIDIA `MQPU` target (:code:`nvidia-mqpu`) provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
 Each QPU is simulated via a `cuStateVec` simulator backend. For more information about using multiple GPUs 
-to simulate each virtual QPU, please see :ref:`remote MQPU platform <remote-mqpu-platform>`.
+to simulate each virtual QPU, or using a different backend for virtual QPUs, please see :ref:`remote MQPU platform <remote-mqpu-platform>`.
 This target enables asynchronous parallel execution of quantum kernel tasks.
 
 Here is a simple example demonstrating its usage.
@@ -152,10 +152,10 @@ Remote `MQPU` Platform
 
 As shown in the above examples, the :code:`nvidia-mqpu` platform enables
 multi-QPU distribution whereby each QPU is simulated by a :ref:`single NVIDIA GPU <cuQuantum single-GPU>`.
-
 To run multi-QPU workloads on different simulator backends, one can use the :code:`remote-mqpu` platform,
 which encapsulates simulated QPUs as independent HTTP REST server instances. 
-Here is an example.
+The following code illustrates how to launch asynchronous sampling tasks on multiple virtual QPUs, 
+each simulated by a `tensornet` simulator backend.
 
 .. tab:: C++
 
@@ -168,7 +168,7 @@ Here is an example.
 
     .. code-block:: console
 
-        nvq++ sample_async.cpp -o sample_async.x --target remote-mqpu --remote-mqpu-auto-launch 2
+        nvq++ sample_async.cpp -o sample_async.x --target remote-mqpu --remote-mqpu-backend tensornet --remote-mqpu-auto-launch 2
         ./sample_async.x
 
 

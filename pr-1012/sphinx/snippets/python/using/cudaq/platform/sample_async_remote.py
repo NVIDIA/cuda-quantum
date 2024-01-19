@@ -12,6 +12,7 @@ import cudaq
 num_qpus = 2
 cudaq.set_target("remote-mqpu",
                  remote_execution=True,
+                 backend="tensornet",
                  auto_launch=str(num_qpus))
 target = cudaq.get_target()
 print("Number of QPUs:", target.num_qpus())
