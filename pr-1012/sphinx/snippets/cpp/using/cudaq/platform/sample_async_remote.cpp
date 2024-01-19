@@ -16,11 +16,10 @@
 
 int main() {
   // [Begin Documentation]
-  auto kernelToBeSampled = [](int runtimeParam) __qpu__ {
-    cudaq::qvector q(runtimeParam);
-    h(q);
-    mz(q);
-  };
+  auto [kernelToBeSampled, runtimeParam] = cudaq::make_kernel<int>();
+  auto q = kernelToBeSampled.qalloc(runtimeParam);
+  kernelToBeSampled.h(q);
+  kernelToBeSampled.mz(q);
 
   // Get the quantum_platform singleton
   auto &platform = cudaq::get_platform();

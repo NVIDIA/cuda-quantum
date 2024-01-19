@@ -25,7 +25,7 @@ kernel.mz(qubits)
 
 count_futures = []
 for qpu in range(num_qpus):
-    count_futures.append(cudaq.sample_async(kernel, 5, qpu_id=qpu))
+    count_futures.append(cudaq.sample_async(kernel, 4 + qpu, qpu_id=qpu))
 
 for counts in count_futures:
     print(counts.get())

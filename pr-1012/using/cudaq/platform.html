@@ -710,11 +710,10 @@ which encapsulates simulated QPUs as independent HTTP REST server instances.
 Here is an example.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernelToBeSampled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">runtimeParam</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">runtimeParam</span><span class="p">);</span>
-<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
-<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
-<span class="w">  </span><span class="p">};</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">kernelToBeSampled</span><span class="p">,</span><span class="w"> </span><span class="n">runtimeParam</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernelToBeSampled</span><span class="p">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">runtimeParam</span><span class="p">);</span>
+<span class="w">  </span><span class="n">kernelToBeSampled</span><span class="p">.</span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="n">kernelToBeSampled</span><span class="p">.</span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// Get the quantum_platform singleton</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">platform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_platform</span><span class="p">();</span>
@@ -769,7 +768,7 @@ Here is an example.</p>
 
 <span class="n">count_futures</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="k">for</span> <span class="n">qpu</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qpus</span><span class="p">):</span>
-    <span class="n">count_futures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu</span><span class="p">))</span>
+    <span class="n">count_futures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">qpu</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu</span><span class="p">))</span>
 
 <span class="k">for</span> <span class="n">counts</span> <span class="ow">in</span> <span class="n">count_futures</span><span class="p">:</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
