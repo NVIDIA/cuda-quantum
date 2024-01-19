@@ -229,7 +229,7 @@ void applyPasses(mlir::PassManager &);
 std::tuple<bool, mlir::ExecutionEngine *>
 jitCode(mlir::ImplicitLocOpBuilder &, mlir::ExecutionEngine *,
         std::unordered_map<mlir::ExecutionEngine *, std::size_t> &, std::string,
-        std::vector<std::string>, StateVectorStorage&);
+        std::vector<std::string>, StateVectorStorage &);
 
 /// @brief Invoke the function with the given kernel name.
 void invokeCode(mlir::ImplicitLocOpBuilder &builder, mlir::ExecutionEngine *jit,
