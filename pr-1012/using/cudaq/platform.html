@@ -744,6 +744,7 @@ Here is an example.</p>
 <span class="w">  </span><span class="p">}</span>
 </pre></div>
 </div>
+<p>The code above is saved in <code class="code docutils literal notranslate"><span class="pre">sample_async.cpp</span></code> and compiled with the following command, targeting the <code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code> platform:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ sample_async.cpp -o sample_async.x --target remote-mqpu --remote-mqpu-auto-launch 2</span>
 <span class="go">./sample_async.x</span>
 </pre></div>
@@ -784,9 +785,8 @@ at the end of the session.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>By default, auto launching daemon services do not support MPI parallelism.
-Hence, multi-GPU backend capabilities are not available with auto-launch.
-See <a class="reference internal" href="#custom-remote-qpud-launch"><span class="std std-ref">custom QPU daemon service launch</span></a> for more information about enabling remote multi-GPU
-QPU.</p>
+Hence, using the <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend to simulate each virtual QPU requires
+manually launching each server instance. How to do that is explained in the rest of this section.</p>
 </div>
 <p id="custom-remote-qpud-launch">To customize how many and which GPUs are used for simulating each virtual QPU, one can launch each server manually.
 For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
