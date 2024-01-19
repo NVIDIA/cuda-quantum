@@ -54,7 +54,7 @@ OPTIND=$__optind__
 [ -n "$target" ] && install=true || install=false
 
 if $install; then
-    CUDA_QUANTUM_PATH="$target"
+    CUDA_QUANTUM_PATH="$target" && mkdir -p "$CUDA_QUANTUM_PATH"
     CUDAQ_INSTALL_PREFIX=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 elif [ -z "$CUDA_QUANTUM_PATH" ] && [ -z "$CUDAQ_INSTALL_PREFIX" ]; then 
     echo -e "\e[01;31mError: Neither CUDAQ_INSTALL_PREFIX nor CUDA_QUANTUM_PATH are defined.\e[0m" >&2
@@ -80,16 +80,17 @@ echo "Using build configuration $build_config."
 echo "The script to remove the migrated files can be found in $remove_assets."
 
 read -r -d '' confirmation_prompt << 'EOP'
-if [ "$1" == "-y" ]; then choice=y
-else read -p "Continue (y/n)?" -r choice
+if [ "$1" == "-y" ]; then continue=true
+else
+    while true; do
+        read -p "Continue (y/n)?" -r choice < /dev/tty
+        case "$choice" in
+            y|Y ) continue=true && break;;
+            n|N ) continue=false && break;;
+            * ) echo "Please enter y or n.";;
+        esac
+    done
 fi
-while true; do
-    case "$choice" in 
-    y|Y ) continue=true && break;;
-    n|N ) continue=false && break;;
-    * ) read -p "Please enter y or n." -r choice;;
-    esac
-done
 EOP
 
 function move_artifacts {
