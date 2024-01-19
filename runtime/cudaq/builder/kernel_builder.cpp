@@ -840,7 +840,8 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
 std::tuple<bool, ExecutionEngine *>
 jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
         std::unordered_map<ExecutionEngine *, std::size_t> &jitHash,
-        std::string kernelName, std::vector<std::string> extraLibPaths, StateVectorStorage& stateVectorStorage) {
+        std::string kernelName, std::vector<std::string> extraLibPaths,
+        StateVectorStorage &stateVectorStorage) {
 
   // Start of by getting the current ModuleOp
   auto block = builder.getBlock();
@@ -910,10 +911,10 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
   pm.addPass(cudaq::opt::createGenerateKernelExecution());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  // We want quantum allocations to stay where they are if 
+  // We want quantum allocations to stay where they are if
   // we are simulating and have user-provided state vectors.
-  // This check could be better / smarter probably, in tandem 
-  // with some synth strategy to rewrite initState with circuit 
+  // This check could be better / smarter probably, in tandem
+  // with some synth strategy to rewrite initState with circuit
   // synthesis result
   if (stateVectorStorage.empty())
     optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
