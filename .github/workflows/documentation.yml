@@ -98,6 +98,8 @@ jobs:
             elif ${{ github.event.workflow_run.name != 'CI' }} && [ "$head_branch" != "${head_branch#experimental/}" ]; then
               echo "Documentation for experimental features will not be published."
               echo "Instead, please edit the README in docker/release/ to describe the feature and link any additional resources."
+            elif ${{ github.event.workflow_run.name != 'CI' }} && [ "$head_branch" != "${head_branch#features/}" ]; then
+              echo "Documentation for feature branches will not be published."
             else
               version=`echo ${head_branch#releases/} | (egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$" || true)`
               echo "target_folder=${version#v}" >> $GITHUB_OUTPUT
