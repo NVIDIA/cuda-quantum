@@ -697,6 +697,31 @@ While the above packages are sufficient to use GPU-acceleration within CUDA Quan
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-11-8`) that also 
 includes the `nvcc` compiler.
 
+Updating CUDA Quantum
+--------------------------------
+
+If you installed the CUDA Quantum Python wheels, you can update to the latest release
+by running the command 
+
+.. code-block:: console
+
+    python3 -m pip install --upgrade cuda-quantum
+
+If you installed the CUDA Quantum pre-built binaries, you should first uninstall your 
+current CUDA Quantum installation before installing the new version using the installer. 
+To uninstall your current CUDA Quantum version, run the command
+
+.. code-block:: console
+
+    sudo bash "${CUDA_QUANTUM_PATH}/uninstall.sh" -y
+
+The `uninstall.sh` script is generated during installation, and will remove all files 
+and folders that were created as part of the installation, whether they were modified 
+in the meantime or not. It does not remove any additional files that existed prior 
+to the installation or that you have added to the installation location since then. 
+You can then download and install the new version of CUDA Quantum following the
+instructions :ref:`above <install-prebuilt-binaries>`.
+
 .. _dependencies-and-compatibility:
 
 Dependencies and Compatibility
