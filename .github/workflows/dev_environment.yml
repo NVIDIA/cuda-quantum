@@ -47,6 +47,11 @@ on:
         required: false
         type: string
         description: The commit to check out. Only used when pull_request_number is set.
+      checkout_submodules:
+        required: false
+        type: boolean
+        description: Whether to checkout submodules when checking out the repository.
+        default: false
       matrix_key:
         required: false
         type: string
@@ -68,6 +73,11 @@ on:
       build_cache:
         description: "The location from which the build cache can be loaded in subsequent builds."
         value: ${{ jobs.finalize.outputs.build_cache }}
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_READONLY_TOKEN:
+        required: true
 
 name: CUDA Quantum cached dev images
 
@@ -85,6 +95,7 @@ jobs:
       tag_suffix: ${{ steps.build_info.outputs.tag_suffix }}
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       owner: ${{ steps.build_info.outputs.owner }}
+      pr_number: ${{ steps.build_info.outputs.pr_number }}
       image_name: ${{ steps.build_info.outputs.image_name }}
       image_title: ${{ steps.build_info.outputs.image_title }}
       image_id: ${{ steps.build_info.outputs.image_id }}
@@ -128,13 +139,20 @@ jobs:
           tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${toolchain:+$toolchain-}
           tag_suffix=""
 
+          if ${{ inputs.pull_request_number != '' }} || ${{ github.event.pull_request.number != '' }}; then
+            pr_number=${{ inputs.pull_request_number || github.event.pull_request.number}}
+          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
+            pr_number=`echo ${{ github.ref_name }} | cut -d / -f2`
+          fi
+
           if ${{ inputs.pull_request_commit != '' }}; then
-            custom_tags="type=raw,value=${{ inputs.registry_cache_from || inputs.pull_request_commit }},priority=1000"
+            tag_name=`echo ${{ inputs.registry_cache_from || inputs.pull_request_commit }} | tr / -`
+            custom_tags="type=raw,value=${tag_name},priority=1000"
           elif ${{ github.event.pull_request.merged == true }}; then
-            custom_tags="type=raw,value=${{ github.event.pull_request.base.ref }},priority=1000"
-          elif ${{ inputs.pull_request_number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
-            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            custom_tags="type=raw,value=pr-${pr_number:-${{ inputs.pull_request_number }}},priority=1000"
+            tag_name=`echo ${{ github.event.pull_request.base.ref }} | tr / -`
+            custom_tags="type=raw,value=${tag_name},priority=1000"
+          elif [ -n "$pr_number" ]; then
+            custom_tags="type=raw,value=pr-$pr_number,priority=1000"
           fi
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
@@ -145,6 +163,7 @@ jobs:
           echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
           echo "dockerfile=${{ inputs.dockerfile }}" >> $GITHUB_OUTPUT
           echo "owner=${repo_owner,,}" >> $GITHUB_OUTPUT
+          echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker image
         id: metadata
@@ -189,6 +208,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
+          submodules: ${{ inputs.checkout_submodules }}
 
       - name: Set up context for buildx
         run: |
@@ -199,8 +219,14 @@ jobs:
         with:
           endpoint: builder_context
 
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
       - name: Log in to GitHub CR
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -217,21 +243,15 @@ jobs:
 
           # Local caches are always to and from a single location.
 
-          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
-          local_buildcache_key_suffix="-$(git rev-parse HEAD)"
-
-          if ${{ inputs.pull_request_number != '' }}; then
-            local_buildcache_key="${{ inputs.pull_request_number }}/merge-cuda-quantum-${cache_id}-${platform_id}"
+          if ${{ needs.metadata.outputs.pr_number != '' }}; then
+            local_cache_from=${{ needs.metadata.outputs.pr_number }}/merge
           else
-            if ${{ github.event.pull_request.merged == true }}; then
-              local_cache_from=${{ github.event.pull_request.number }}/merge
-            elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
-              local_cache_from=$(echo ${{ github.ref_name }} | cut -d / -f2)/merge
-            fi
-            local_cache_from=$(echo ${local_cache_from:-${{ github.ref_name }}} | tr . -)
-            local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
+            local_cache_from=$(echo ${{ github.ref_name }} | tr . -)
           fi
+          platform_id=`echo "${{ inputs.platforms }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
+          local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
+          local_buildcache_key_suffix="-$(git rev-parse HEAD)"
+          local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
 
           if ${{ inputs.update_registry_cache != '' }}; then
             registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
@@ -242,6 +262,8 @@ jobs:
             # We hence create a build cache only upon request.
             build_cache="${local_buildcache_key}"
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
+          else 
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           fi
 
           # Registry caches pull from a separate cache for each platform
@@ -256,6 +278,9 @@ jobs:
           {
             echo 'cache_from_registry<<multiline'
             for platform_id in $platform_ids; do
+              if ${{ needs.metadata.outputs.pr_number != '' }}; then
+                echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+              fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
               echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
             done
@@ -335,7 +360,7 @@ jobs:
 
       - name: Check for existing image
         id: uploaded_image
-        if: inputs.update_registry_cache == ''
+        if: inputs.update_registry_cache == '' && inputs.build_target == ''
         run: |
           if ${{ inputs.environment != '' }}; then
             image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
@@ -384,7 +409,7 @@ jobs:
 
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         id: cache_upload
-        if: inputs.update_registry_cache == '' && steps.uploaded_image.outputs.image_hash == ''
+        if: steps.uploaded_image.outcome != 'skipped' && steps.uploaded_image.outputs.image_hash == ''
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.cache.outputs.tar_archive }}

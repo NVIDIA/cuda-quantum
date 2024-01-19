@@ -11,11 +11,16 @@
 # This is a skeleton driver script to compile C++ source that contains
 # CUDA Quantum code.
 
-RED=$(tput setaf 1)
-NORMAL=$(tput sgr0)
 function error_exit {
 	callerName=$(basename "$(caller 0)")
-	echo "${RED}${callerName}:$(echo $(caller 0) | cut -d " " -f1): $1${NORMAL}"
+	message_content="${callerName}:$(echo $(caller 0) | cut -d " " -f1): $1"
+	if [ -x "$(command -v tput)" ] && [ -n "$TERM" ]; then
+		RED=$(tput setaf 1)
+		NORMAL=$(tput sgr0)
+		echo "${RED}${message_content}${NORMAL}" >&2
+	else
+	    echo -e "\e[01;31m${message_content}\e[0m" >&2
+	fi
 	exit 1
 }
 

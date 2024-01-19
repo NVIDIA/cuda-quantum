@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // Note: change |& to 2>&1| if running in bash
-// RUN: cudaq-quake %s |& FileCheck %s
+// RUN: cudaq-quake %cpp_std %s |& FileCheck %s
 // RUN: cudaq-quake -std=c++17 %s |& FileCheck %s
 
 #include <cudaq.h>

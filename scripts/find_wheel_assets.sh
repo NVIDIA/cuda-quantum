@@ -24,15 +24,11 @@ if [ ! -d $1 ] ; then
 fi
 
 for config_file in `find $1/*.config -maxdepth 0 -type f`; do 
-    current_dir="$(dirname "${config_file}")" 
-    current_dir=$(cd $current_dir; pwd) 
-    target_name=${config_file##*/} 
-    target_name=${target_name%.config}             
-    if [ -n "$RESULT_CONFIG" ]; then 
-        RESULT_CONFIG="$RESULT_CONFIG;$current_dir/libnvqir-$target_name.so;$current_dir/$target_name.config"; 
-    else 
-        RESULT_CONFIG="$current_dir/libnvqir-$target_name.so;$current_dir/$target_name.config"; 
-    fi 
+    current_dir="$(dirname "${config_file}")"
+    current_dir=$(cd $current_dir; pwd)
+    target_name=${config_file##*/}
+    target_name=${target_name%.config}
+    RESULT_CONFIG="${RESULT_CONFIG:+$RESULT_CONFIG;}$current_dir/libnvqir-$target_name.so;$current_dir/$target_name.config"; 
 done 
 
 echo $RESULT_CONFIG
