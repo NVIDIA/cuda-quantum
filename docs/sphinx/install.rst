@@ -731,7 +731,7 @@ The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can 
   **Use case**: 
   
   (1) Using the CUDA Quantum Docker image on systems that have a different MPI implementation.
-  For instance, supercomputing centers often have a vendor-optimized MPI library pre-installed on
+  For instance, HPC data centers often have a vendor-optimized MPI library pre-installed on
   their system, which need to be swapped with the MPI library in the Docker image at runtime.
   With manual activation, a custom CUDA Quantum MPI plugin can be built against the system MPI library, 
   guaranteeing runtime compatibility when MPI injection into the container occurs. 
