@@ -134,6 +134,7 @@ function move_artifacts {
             exit 1
         fi
     done
+    echo '  rmdir -p "'$2'" 2> /dev/null || true' >> "$remove_assets"
     echo 'fi' >> "$remove_assets"
     cd - > /dev/null
     find "$2" -type d -exec chmod 755 {} \;
