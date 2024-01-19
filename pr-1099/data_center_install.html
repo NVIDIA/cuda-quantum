@@ -527,8 +527,8 @@ the correct libraries and versions.</p>
 following prerequisites in your build environment prior to proceeding with
 the build as described in the subsequent sections:</p>
 <ul class="simple">
-<li><p>GNU C library: We currently statically link <em>all</em> dependencies, including
-the standard libraries. We may revise that in the future.
+<li><p>GNU C library: We currently statically link dependencies, in some cases
+including the standard libraries. We may revise that in the future.
 To use the current build configuration, please make sure you have the
 static version of the <a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>,
 including the POSIX Threads library, installed on your system.
@@ -691,7 +691,9 @@ Note that the build scripts assume that they are run from within a git repositor
 and merely downloading the source code as ZIP archive hence will not work.</p>
 <p>From within the folder where you cloned the CUDA Quantum repository, run the following
 command to build CUDA Quantum:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="nv">CUDAQ_WERROR</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_WERROR</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAHOSTCXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$CXX</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_ENABLE_STATIC_LINKING</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">LDFLAGS</span><span class="o">=</span><span class="s1">&#39;-static-libgcc -static-libstdc++&#39;</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;lld;mlir&#39;</span><span class="w"> </span><span class="se">\</span>
