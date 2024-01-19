@@ -164,6 +164,8 @@ Here is an example.
         :start-after: [Begin Documentation]
         :end-before: [End Documentation]
 
+    The code above is saved in `sample_async.cpp` and compiled with the following command, targeting the :code:`remote-mqpu` platform:
+
     .. code-block:: console
 
         nvq++ sample_async.cpp -o sample_async.x --target remote-mqpu --remote-mqpu-auto-launch 2
