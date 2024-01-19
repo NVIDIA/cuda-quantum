@@ -245,7 +245,7 @@ Supported Kernel Arguments
 The platform serializes kernel invocation to QPU daemons via REST APIs. 
 Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
 Runtime arguments are serialized into a flat memory buffer (`args` field of the request JSON). 
-For more information about argument type serialization, please see type_serialization_table_.
+For more information about argument type serialization, please see :ref:`the table below <type_serialization_table>`.
 
 When using a remote backend to simulate each virtual QPU, 
 by default, we currently do not support passing complex data structures, 
