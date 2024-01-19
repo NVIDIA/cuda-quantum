@@ -99,7 +99,7 @@ async_sample_result pySampleAsync(kernel_builder<> &builder,
   std::hash<std::string> hasher;
   // Create a unique integer key that combines the kernel name
   // and the validated args.
-  std::size_t uniqueHash = hasher(kernelName) + hasher(py::str(args));
+  std::size_t uniqueHash = hasher(kernelName) + hasher(py::str(args)) + qpu_id;
   // Add the opaque args to the holder and pack the args into it
   asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
   packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
