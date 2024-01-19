@@ -717,18 +717,30 @@ The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can 
 
   When a local MPI installation is detected at build time, CUDA Quantum will build an MPI plugin targeting this implementation when build from source.
   Similarly, the :ref:`CUDA Quantum Docker image <install-docker-image>` is shipped with a builtin MPI plugin based on its optimized OpenMPI installation inside the image. 
-  No action is required to use this builtin plugin. 
+  No action is required to use this built-in plugin. 
 
   .. note::
 
     Manually-activated MPI plugin takes precedence over builtin plugin. 
     For instance, the user may choose to reinstall a different MPI library inside the Docker container and 
-    activate a new CUDA Quantum MPI plugin. The newly-activated plugin will always be used even though a builtin one 
+    activate a new CUDA Quantum MPI plugin. The newly-activated plugin will always be used even though a built-in one 
     was shipped with the Docker image. 
 
 .. tab:: Manual Activation
 
-  **Use case**: data centers with custom MPI installation, CUDA Quantum binary distributions without MPI support (including Python wheels).
+  **Use case**: 
+  
+  (1) Using the CUDA Quantum Docker image on systems that have a different MPI implementation.
+  For instance, supercomputing centers often have a vendor-optimized MPI library pre-installed on
+  their system, which need to be swapped with the MPI library in the Docker image at runtime.
+  With manual activation, a custom CUDA Quantum MPI plugin can be built against the system MPI library, 
+  guaranteeing runtime compatibility when MPI injection into the container occurs. 
+
+  (2) Post-deployment MPI activation for CUDA Quantum binaries that do not have MPI support.
+  Depending on the distribution channel, CUDA Quantum binaries may not come with any pre-built
+  MPI plugin. For example, CUDA Quantum Python wheels from PyPI and :ref:`pre-built binaries <install-prebuilt-binaries>` 
+  do not have a built-in MPI plugin. CUDA Quantum MPI capabilities can be activated post-installation
+  against the MPI library available on the local system.
 
   **Instructions:**
 
@@ -766,24 +778,26 @@ The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can 
 
 .. tab:: `mpi4py <https://mpi4py.readthedocs.io/>`__ Wrapper
 
-  **Use case**: Python users
+  **Use case**: Python users 
 
-  Although we recommend manual MPI activation for optimized performance and compatibility, users may wish
-  to attain CUDA Quantum MPI support via the Python package manager (`pip`). 
-  CUDA Quantum provides an MPI plugin wrapper around the `mpi4py <https://mpi4py.readthedocs.io/>` Python package.
-
-  If no builtin nor manually-activated plugin can be detected, CUDA Quantum will try to locate the `mpi4py` package.
+  If manual activation of CUDA Quantum MPI plugin is not feasible, users may attain MPI support via the 
+  the `mpi4py <https://mpi4py.readthedocs.io/>` Python package. On a system with no builtin nor manually-activated plugin, 
+  CUDA Quantum will try to locate the `mpi4py` package.
   If found, CUDA Quantum MPI API calls will be redirected to the corresponding `mpi4py` API.
-
+ 
   .. note::
 
     The installation of `mpi4py` `pip` package does require a pre-installed MPI implementation on the system as well as 
     basic compilation capabilities (e.g., a `C` language compiler).
-
+  
   .. note::
-
-    Manually-activated or builtin MPI plugins, if present in the CUDA Quantum install directory, will take precedence
-    over the one based on `mpi4py`. 
+    
+    Using `mpi4py`-based plugin does incur runtime overhead due to function call indirection.
+    For example, CUDA Quantum MPI API would need to invoke a `mpi4py` Python wrapper of the underlying
+    MPI API rather than invoking it directly.
+    
+    Hence, we recommend manual MPI activation if possible. Manually-activated or builtin MPI plugins, if present in the CUDA Quantum install directory, 
+    will take precedence over the one based on `mpi4py`. 
 
 .. _dependencies-and-compatibility:
 
