@@ -98,7 +98,7 @@ function move_artifacts {
 
     # Prompting for confirmation to remove the copied files in that folder:
     echo 'echo "Cleaning up '$2':"' >> "$remove_assets"
-    echo $confirmation_prompt >> "$remove_assets"
+    echo "$confirmation_prompt" >> "$remove_assets"
     echo 'if $continue; then' >> "$remove_assets"
 
     for file in `find . -type f`; 
@@ -221,7 +221,7 @@ if $install; then
     # The script will prompt for confirmation before doing that, since this also 
     # removes the build configuration and the script itself.
     echo 'echo "Removing folder'$CUDA_QUANTUM_PATH':"' >> "$remove_assets"
-    echo $confirmation_prompt >> "$remove_assets"
+    echo "$confirmation_prompt" >> "$remove_assets"
     echo 'if $continue; then' >> "$remove_assets"
     echo "  rm -rf \"$CUDA_QUANTUM_PATH\" && echo Uninstalled CUDA Quantum." >> "$remove_assets"
     echo 'fi' >> "$remove_assets"
