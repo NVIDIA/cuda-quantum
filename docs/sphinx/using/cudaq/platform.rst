@@ -184,10 +184,9 @@ in the background. The remote QPU daemon service, :code:`cudaq-qpud`, will also 
 at the end of the session.
 
 .. note:: 
-    By default, auto launching daemon services do not support MPI parallelism. 
-    Hence, multi-GPU backend capabilities are not available with auto-launch. 
-    See :ref:`custom QPU daemon service launch <custom_remote_qpud_launch>` for more information about enabling remote multi-GPU
-    QPU.
+    By default, auto launching daemon services do not support MPI parallelism.
+    Hence, using the `nvidia-mgpu` backend to simulate each virtual QPU requires 
+    manually launching each server instance. How to do that is explained in the rest of this section.
 
 .. _custom_remote_qpud_launch:
 
