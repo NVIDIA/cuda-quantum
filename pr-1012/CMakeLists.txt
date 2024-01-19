@@ -80,6 +80,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
 endif()
 
 add_nvqpp_test(photonics_sim providers/photonics.cpp TARGET photonics)
+add_nvqpp_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.cpp TARGET remote-mqpu SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 
 # Only add the python tests if we built the python API
 if (CUDAQ_ENABLE_PYTHON)
@@ -110,7 +111,8 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(DepolarizingNoise noise_depolarization.py)
   add_pycudaq_test(PhaseFlipNoise noise_phase_flip.py)
   add_pycudaq_test(KrausNoise noise_kraus_operator.py)
-
+  add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  
   if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
     add_pycudaq_test(SampleAsync using/cudaq/platform/sample_async.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     add_pycudaq_test(ObserveMQPU using/cudaq/platform/observe_mqpu.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)

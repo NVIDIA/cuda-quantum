@@ -7,15 +7,18 @@
  ******************************************************************************/
 
 // Compile and run with:
+// clang-format off
 // ```
-// nvq++ --target remote-sim simple.cpp -o d2.x && ./d2.x
+//  nvq++ --target remote-mqpu --remote-mqpu-auto-launch 1 simple.cpp -o simple.x &&
+// ./simple.x
 // ```
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 
 // The example here shows a simple use case for the remote simulator platform
-// (`remote-sim`). Please refer to the documentation for more information about
+// (`remote-mqpu`). Please refer to the documentation for more information about
 // its features and command line options.
 
 int main() {
