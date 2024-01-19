@@ -182,8 +182,8 @@ function update_profile {
     echo "Configuring CUDA Quantum environment variables in $1."
     echo 'CUDAQ_INSTALL_PATH="'${CUDA_QUANTUM_PATH}'"' >> "$1"
     echo '. "${CUDAQ_INSTALL_PATH}/set_env.sh"' >> "$1"
-    echo "sed '/^CUDAQ_INSTALL_PATH=/d' \"$1\"" >> "$remove_assets"
-    echo "sed '/"'${CUDAQ_INSTALL_PATH}'"\/set_env.sh/d' \"$1\"" >> "$remove_assets"
+    echo "sed -i '/^CUDAQ_INSTALL_PATH=/d' \"$1\"" >> "$remove_assets"
+    echo "sed -i '/"'${CUDAQ_INSTALL_PATH}'"\/set_env.sh/d' \"$1\"" >> "$remove_assets"
 }
 
 if $install; then

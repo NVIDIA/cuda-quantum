@@ -50,7 +50,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     ## [<CUDAQuantumAssets]
 
 ## [Self-extracting Archive]
-RUN bash /makeself/makeself.sh --gzip --license /cuda-quantum/LICENSE \
+RUN bash /makeself/makeself.sh --gzip --sha256 --license /cuda-quantum/LICENSE \
         /cuda_quantum_assets install_cuda_quantum.$(uname -m) \
         "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
         bash install.sh -t /opt/nvidia/cudaq
