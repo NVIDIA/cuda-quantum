@@ -152,6 +152,7 @@ entangler
 entanglers
 enum
 et
+excitations
 executables
 exponentiated
 expressivity
