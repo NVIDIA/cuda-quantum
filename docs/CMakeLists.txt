@@ -116,7 +116,11 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(DepolarizingNoise noise_depolarization.py)
   add_pycudaq_test(PhaseFlipNoise noise_phase_flip.py)
   add_pycudaq_test(KrausNoise noise_kraus_operator.py)
-  add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  
+  if (CUTENSORNET_ROOT AND CUDA_FOUND) 
+    # This example uses tensornet backend.
+    add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  endif()
   
   if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
     add_pycudaq_test(SampleAsync using/cudaq/platform/sample_async.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
