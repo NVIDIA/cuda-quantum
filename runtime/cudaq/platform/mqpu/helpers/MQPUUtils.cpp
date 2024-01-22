@@ -50,7 +50,7 @@ static std::optional<std::string> getRandomAvailablePort(int seed) {
   for (std::size_t i = 0; i < MAX_RETRIES; ++i) {
     const auto randomPort = portDistr(gen);
     if (portAvailable(randomPort)) {
-      // Randomly delay some duration, then recheck the port against.
+      // Randomly delay some duration, then recheck the port again.
       // This is to mitigate potential race condition between port checking and
       // REST server process claiming the port.
       const int delayMs = delayDistr(gen);
@@ -65,20 +65,20 @@ static std::optional<std::string> getRandomAvailablePort(int seed) {
   return {};
 }
 
-cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess() {
+cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(int seed_offset = 0) {
   cudaq::info("Auto launch REST server");
   const std::string serverExeName = "cudaq-qpud";
   auto serverApp = llvm::sys::findProgramByName(serverExeName.c_str());
   if (!serverApp)
     throw std::runtime_error(
         "Unable to find CUDA Quantum REST server to launch.");
-  // Use process Id + time to seed the random port search to minimize collision.
+  // Use process Id to seed the random port search to minimize collision.
   // For example, multiple processes trying to auto-launch server app on the
   // same machine.
   // Also, prevent collision when a single process (same PID) constructing
-  // multiple AutoLaunchRestServerProcess in a loop by making sure subsequent
-  // constructions are having different seeds.
-  static std::mt19937 gen(::getpid());
+  // multiple AutoLaunchRestServerProcess in a loop by allowing to pass an offset
+  // for the seed.
+  static std::mt19937 gen(::getpid() * 100 + seed_offset);
   const auto port = getRandomAvailablePort(gen());
 
   if (!port.has_value())

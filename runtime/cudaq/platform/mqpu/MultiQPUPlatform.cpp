@@ -124,7 +124,7 @@ public:
         cudaq::info("Auto launch {} REST servers", numInstances);
         for (int i = 0; i < numInstances; ++i) {
           m_remoteServers.emplace_back(
-              std::make_unique<cudaq::AutoLaunchRestServerProcess>());
+              std::make_unique<cudaq::AutoLaunchRestServerProcess>(i));
           urls.emplace_back(m_remoteServers.back()->getUrl());
         }
       }
