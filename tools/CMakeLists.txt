@@ -15,3 +15,7 @@ if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   add_subdirectory(fixup-linkage)
   add_subdirectory(nvqpp)
 endif()
+
+if (NOT CUDAQ_DISABLE_TOOLS)
+  add_subdirectory(cudaq-qpud)
+endif()
