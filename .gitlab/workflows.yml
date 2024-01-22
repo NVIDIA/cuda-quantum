@@ -126,6 +126,7 @@ Installer:
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
     - mkdir cudaq_mgmn_svsim && cd cudaq_mgmn_svsim && git init
     - git fetch --depth 1 https://$READ_ACCESS_TOKEN:$READ_ACCESS_TOKEN@$CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO $CUDAQ_MGMN_SVSIM_COMMIT && git checkout FETCH_HEAD
+    - . /cuda-quantum/scripts/configure_build.sh
     - (bash build.sh $READ_ACCESS_TOKEN && built=true) || built=false
     - mkdir -p ../artifacts/$(uname -m)/mgmn_svsim && mv artifacts/* ../artifacts/$(uname -m)/mgmn_svsim
     - cd .. && rm -rf cudaq_mgmn_svsim
