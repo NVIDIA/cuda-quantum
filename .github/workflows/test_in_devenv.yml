@@ -82,7 +82,9 @@ jobs:
             python3 -m pip install iqm-client
             ctest --output-on-failure --test-dir build -E ctest-nvqpp
             ctest_status=$?
-            /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
+            # TEST only
+            for i in {1..50}; do /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test; done
+            # TEST only
             lit_status=$?
             if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status)."
