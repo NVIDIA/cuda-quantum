@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
+#include "common/KernelWrapper.h"
 #include "common/ObserveResult.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
@@ -223,7 +224,8 @@ observe_result observe(QuantumKernel &&kernel, spin_op H, Args &&...args) {
   auto kernelName = cudaq::getKernelName(kernel);
   return details::runObservation(
              [&kernel, &args...]() mutable {
-               kernel(std::forward<Args>(args)...);
+               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                   std::forward<Args>(args)...);
              },
              H, platform, shots, kernelName)
       .value();
@@ -259,7 +261,8 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
   // Run the observation
   auto result = details::runObservation(
                     [&kernel, &args...]() mutable {
-                      kernel(std::forward<Args>(args)...);
+                      cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                          std::forward<Args>(args)...);
                     },
                     op, platform, shots, kernelName)
                     .value();
@@ -436,7 +439,8 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel, spin_op H,
 
   return details::runObservation(
              [&kernel, &args...]() mutable {
-               kernel(std::forward<Args>(args)...);
+               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                   std::forward<Args>(args)...);
              },
              H, platform, shots, kernelName)
       .value();
@@ -462,7 +466,8 @@ observe_result observe(const observe_options &options, QuantumKernel &&kernel,
 
   auto ret = details::runObservation(
                  [&kernel, &args...]() mutable {
-                   kernel(std::forward<Args>(args)...);
+                   cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                       std::forward<Args>(args)...);
                  },
                  H, platform, shots, kernelName)
                  .value();
@@ -491,7 +496,8 @@ auto observe_async(const std::size_t qpu_id, QuantumKernel &&kernel, spin_op &H,
 #if CUDAQ_USE_STD20
   return details::runObservationAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        kernel(std::forward<Args>(args)...);
+        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...);
       },
       H, platform, shots, kernelName, qpu_id);
 #else
@@ -523,7 +529,8 @@ auto observe_async(std::size_t shots, std::size_t qpu_id,
 #if CUDAQ_USE_STD20
   return details::runObservationAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        kernel(std::forward<Args>(args)...);
+        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...);
       },
       H, platform, shots, kernelName, qpu_id);
 #else

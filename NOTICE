@@ -151,3 +151,17 @@ Curl - custom license
 Licenses at <https://github.com/curl/curl/tree/master/LICENSES>
 
 ----------------------------------------------------------------
+
+ASIO - Boost Software License - Version 1.0
+<https://github.com/chriskohlhoff/asio>
+
+License at <https://github.com/chriskohlhoff/asio/blob/master/asio/LICENSE_1_0.txt>
+
+----------------------------------------------------------------
+
+Crow - BSD-3-Clause
+<https://github.com/CrowCpp/Crow>
+
+License at <https://github.com/CrowCpp/Crow/blob/master/LICENSE>
+
+----------------------------------------------------------------
