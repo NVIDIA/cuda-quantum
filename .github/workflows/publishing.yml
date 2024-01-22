@@ -601,7 +601,7 @@ jobs:
       - name: Basic validation (GPU backends)
         shell: bash
         run: |
-          set +e # Allow script to keep going through errors
+          status_sum=0 && set +e # Allow script to keep going through errors
           # Skip some tests (multi-controlled gates) for the MPS backend (https://github.com/NVIDIA/cuda-quantum/issues/884)
           mps_skipped_tests=(/home/cudaq/examples/cpp/algorithms/grover.cpp /home/cudaq/examples/cpp/basics/multi_controlled_operations.cpp /home/cudaq/examples/cpp/other/builder/builder.cpp /home/cudaq/examples/cpp/algorithms/amplitude_estimation.cpp)
           for file in `ls $CUDA_QUANTUM_PATH/targets/*.config`; do
@@ -642,7 +642,7 @@ jobs:
       - name: MPI validation 
         shell: bash
         run: |
-          set +e # Allow script to keep going through errors
+          status_sum=0 && set +e # Allow script to keep going through errors
           for ex in `find /home/cudaq/examples/other/distributed/ -name '*.cpp'`; do
             # Set CUDAQ_ENABLE_MPI_EXAMPLE to activate these examples.
             nvq++ -DCUDAQ_ENABLE_MPI_EXAMPLE=1 $ex

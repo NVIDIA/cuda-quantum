@@ -358,6 +358,7 @@ jobs:
             . /etc/profile
             set +e # Allow script to keep going through errors
             sudo bash /install_sshclient.sh
+            status_sum=0
 
             if ${{ contains(matrix.os_image, 'redhat' ) }}; then
               sudo dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-12
