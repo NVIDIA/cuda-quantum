@@ -355,7 +355,7 @@ jobs:
               exit 102
             fi
 
-            env -i bash -l
+            . /etc/profile
             set +e # Allow script to keep going through errors
             sudo bash /install_sshclient.sh
 
