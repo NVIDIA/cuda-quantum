@@ -114,6 +114,9 @@ Installer:
     paths:
       - artifacts/**/mgmn_svsim/
     expire_in: 1 day
+  before_script:
+    - mkdir -p $HOME/.docker
+    - echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
   script:
     - echo "Building mgmn_svsim for $(uname -m) architecture."
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
