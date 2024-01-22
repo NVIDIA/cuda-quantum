@@ -372,6 +372,7 @@ jobs:
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-ext', matrix.platform)] }}
       build_docs: true
+      trigger_workflow: deployments
       environment: ghcr-deployment
 
   python_wheels:
