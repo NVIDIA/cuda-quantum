@@ -222,7 +222,7 @@ if $install; then
     # Final step upon uninstalling is to delete the CUDA_QUANTUM_PATH folder itself.
     # The script will prompt for confirmation before doing that, since this also 
     # removes the build configuration and the script itself.
-    echo 'echo "Removing folder'$CUDA_QUANTUM_PATH':"' >> "$remove_assets"
+    echo 'echo "Removing remaining configurationa and scripts in '$CUDA_QUANTUM_PATH' - "' >> "$remove_assets"
     echo "$confirmation_prompt" >> "$remove_assets"
     echo 'if $continue; then' >> "$remove_assets"
     echo "  rm -rf \"$CUDA_QUANTUM_PATH\" && echo Uninstalled CUDA Quantum." >> "$remove_assets"
