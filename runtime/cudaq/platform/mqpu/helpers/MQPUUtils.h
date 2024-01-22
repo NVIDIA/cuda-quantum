@@ -15,7 +15,7 @@ namespace cudaq {
 // TCP/IP port. This will wait until the server is ready to serve incoming HTTP
 // requests. The server process is terminated automatically by the destructor.
 struct AutoLaunchRestServerProcess {
-  AutoLaunchRestServerProcess();
+  AutoLaunchRestServerProcess(int seed_offset);
   ~AutoLaunchRestServerProcess();
   std::string getUrl() const;
   AutoLaunchRestServerProcess(const AutoLaunchRestServerProcess &) = delete;

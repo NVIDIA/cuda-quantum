@@ -287,6 +287,8 @@ jobs:
       - name: Validate Python examples
         run: |
           docker run --rm -dit --name wheel-validation wheel_validation:local
+          status_sum=0
+
           for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/providers/*'`; do
             file="${ex#docs/sphinx/examples/python/}"
             echo "__Example ${file}:__" >> /tmp/validation.out
