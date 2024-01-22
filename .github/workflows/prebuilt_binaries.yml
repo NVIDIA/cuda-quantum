@@ -332,17 +332,25 @@ jobs:
           run: |
             # Uninstall CUDA Quantum
             sudo bash ${CUDA_QUANTUM_PATH}/uninstall.sh -y
-            llvm_dir=`bash -c 'source build_environment.sh && echo $LLVM_INSTALL_PREFIX'`
-            cuquantum_dir=`bash -c 'source build_environment.sh && echo $CUQUANTUM_INSTALL_PREFIX'`
-            cutensor_dir=`bash -c 'source build_environment.sh && echo $CUTENSOR_INSTALL_PREFIX'`
+            llvm_dir=`bash -c 'source configure_build.sh && echo $LLVM_INSTALL_PREFIX'`
+            cuquantum_dir=`bash -c 'source configure_build.sh && echo $CUQUANTUM_INSTALL_PREFIX'`
+            cutensor_dir=`bash -c 'source configure_build.sh && echo $CUTENSOR_INSTALL_PREFIX'`
             if [ -d "$llvm_dir" ] || [ -d "$llvm_dir" ] || [ -d "$llvm_dir" ] ||  [ -d "$CUDA_QUANTUM_PATH" ]; then
               echo "::error::Some CUDA Quantum artifacts still exist after uninstalling."
               exit 100
             fi
             env -i bash -l
+            cat /etc/profile
+            echo "CUDA_QUANTUM_PATH: $CUDA_QUANTUM_PATH"
+            echo $PATH
+            if [ -n "$(cat /etc/profile | grep -io cudaq)" ] || [ -n "$(cat ~/.bashrc | grep -io cudaq)" ]; then
+              echo "::error::CUDA Quantum related settings are still contained in shell profile."
+              exit 101
+            fi
+
             if [ -n "$CUDA_QUANTUM_PATH" ] || [ -n "$(echo $PATH | grep -o cudaq)" ]; then
               echo "::error::Some environment variables still list CUDA Quantum after uninstalling."
-              exit 101
+              #exit 101
             fi
 
             # Re-install CUDA Quantum

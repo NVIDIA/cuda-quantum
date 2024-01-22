@@ -210,7 +210,7 @@ if $install; then
     fi
     if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then
         plugin_path="${CUDA_QUANTUM_PATH}/distributed_interfaces"
-        bash "${plugin_path}/activate_custom_mpi.sh" || true
+        bash "${plugin_path}/activate_custom_mpi.sh" && rm -f mpi_comm_impl.o || true
         if [ -f "$plugin_path/libcudaq_distributed_interface_mpi.so" ]; then
             chmod a+rX "$plugin_path/libcudaq_distributed_interface_mpi.so"
         else
