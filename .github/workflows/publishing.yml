@@ -177,8 +177,9 @@ jobs:
             create_assets $file cuda-quantum-wheeldeps-image cuda-quantum-devdeps '${{ steps.artifacts.outputs.python_wheels }}'
           done
 
+          # FIXME: should be cuda-quantum-assets-image
           for file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
-            create_assets $file cuda-quantum-assets-image cuda-quantum-assets '${{ steps.artifacts.outputs.installers }}'
+            create_assets $file cuda-quantum-installer-image cuda-quantum-assets '${{ steps.artifacts.outputs.installers }}'
           done
 
       - name: Wait for assets
