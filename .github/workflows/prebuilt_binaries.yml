@@ -174,7 +174,6 @@ jobs:
           context: .
           file: ./docker/release/installer.Dockerfile
           build-args: |
-            release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ steps.config.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
           platforms: ${{ inputs.platform }}
           outputs: type=local,dest=/tmp/install
@@ -452,7 +451,7 @@ jobs:
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
-          echo "cuda-quantum-installer-image: $image_hash" >> "$info_file"
+          echo "cuda-quantum-assets-image: $image_hash" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
 
       - name: Upload build info
