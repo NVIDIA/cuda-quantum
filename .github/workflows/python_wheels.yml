@@ -267,7 +267,7 @@ jobs:
                   # Replace Python version
                   line=${line//3.10/$python_version}
                   # Install the wheel file
-                  line=${line//pip install cuda-quantum/pip install /tmp/cuda_quantum-0.0.0-*-manylinux_*_$(uname -m).whl}
+                  line=${line//pip install cuda-quantum/pip install /tmp/cuda_quantum-*-manylinux_*_$(uname -m).whl}
                   eval "$line"
               fi
             done <<< "$conda_script"
