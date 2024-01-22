@@ -46,7 +46,6 @@ Metadata:
     - echo "Commit title is $CI_COMMIT_TITLE"
     - echo "Staged is set to $staged"
     - docker login ghcr.io
-    - docker pull ghcr.io/nvidia/cuda-quantum-assets@sha256:9ceabe44f936d5fa82b2a598b5783c3baf3a651e2f6dfdd8b535e4eca1d491d0
 
 Python Wheels:
   rules:
@@ -122,9 +121,6 @@ Installer:
     paths:
       - artifacts/**/mgmn_svsim/
     expire_in: 1 day
-  before_script:
-    - mkdir -p $HOME/.docker
-    - echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
   script:
     - echo "Building mgmn_svsim for $(uname -m) architecture."
     - echo "Checking out commit $CUDAQ_MGMN_SVSIM_COMMIT on $CI_SERVER_HOST/$CUDAQ_MGMN_SVSIM_REPO."
