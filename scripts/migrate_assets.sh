@@ -102,7 +102,7 @@ function move_artifacts {
     echo "$confirmation_prompt" >> "$remove_assets"
     echo 'if $continue; then' >> "$remove_assets"
 
-    for file in `find . -type f`; 
+    find . -type f -print0 | while IFS= read -r -d '' file; do
     do 
         if [ ! -f "$2/$file" ]; 
         then 

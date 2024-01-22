@@ -707,7 +707,7 @@ by running the command
 
     python3 -m pip install --upgrade cuda-quantum
 
-If you installed the CUDA Quantum pre-built binaries, you should first uninstall your 
+If you previously installed the CUDA Quantum pre-built binaries, you should first uninstall your 
 current CUDA Quantum installation before installing the new version using the installer. 
 To uninstall your current CUDA Quantum version, run the command
 
