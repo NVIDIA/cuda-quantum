@@ -1027,12 +1027,12 @@ to the plugin implementation selected at runtime.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Built-in</label><div class="tab-content docutils">
 <p><strong>Use case</strong>: build from source, Docker containers</p>
-<p>When a local MPI installation is detected at build time, CUDA Quantum will build an MPI plugin targeting this implementation when build from source.
-Similarly, the <a class="reference internal" href="#install-docker-image"><span class="std std-ref">CUDA Quantum Docker image</span></a> is shipped with a builtin MPI plugin based on its optimized OpenMPI installation inside the image.
+<p>When a local MPI installation is detected at build time, CUDA Quantum will build an MPI plugin targeting this implementation.
+Similarly, the <a class="reference internal" href="#install-docker-image"><span class="std std-ref">CUDA Quantum Docker image</span></a> is shipped with a built-in MPI plugin based on an optimized OpenMPI installation included in the image.
 No action is required to use this built-in plugin.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Manually-activated MPI plugin takes precedence over builtin plugin.
+<p>A manually activated MPI plugin takes precedence over a built-in plugin.
 For instance, the user may choose to reinstall a different MPI library inside the Docker container and
 activate a new CUDA Quantum MPI plugin. The newly-activated plugin will always be used even though a built-in one
 was shipped with the Docker image.</p>
@@ -1048,7 +1048,7 @@ guaranteeing runtime compatibility when MPI injection into the container occurs.
 <p>(2) Post-deployment MPI activation for CUDA Quantum binaries that do not have MPI support.
 Depending on the distribution channel, CUDA Quantum binaries may not come with any pre-built
 MPI plugin. For example, CUDA Quantum Python wheels from PyPI and <a class="reference internal" href="#install-prebuilt-binaries"><span class="std std-ref">pre-built binaries</span></a>
-do not have a built-in MPI plugin. CUDA Quantum MPI capabilities can be activated post-installation
+do not include a built-in MPI plugin. CUDA Quantum MPI capabilities can be activated post-installation
 against the MPI library available on the local system.</p>
 <p><strong>Instructions:</strong></p>
 <ol class="arabic simple">
@@ -1065,32 +1065,26 @@ against the MPI library available on the local system.</p>
 In particular, <code class="code docutils literal notranslate"><span class="pre">${MPI_PATH}/include</span></code> is expected to contain the <code class="code docutils literal notranslate"><span class="pre">mpi.h</span></code> header and
 <code class="code docutils literal notranslate"><span class="pre">${MPI_PATH}/lib64</span></code> or <code class="code docutils literal notranslate"><span class="pre">${MPI_PATH}/lib</span></code> is expected to contain <code class="code docutils literal notranslate"><span class="pre">libmpi.so</span></code>.</p>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>After the initial activation, if performed from the CUDA Quantum install directory,the activated will always be used to handle CUDA Quantum MPI API.</p>
-</div>
+<p>After the initial activation, the newly built <code class="code docutils literal notranslate"><span class="pre">libcudaq_distributed_interface_mpi.so</span></code> in the installation directory will always be used to handle CUDA Quantum MPI API.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Executing the activation script from the CUDA Quantum installation directory requires <em>write</em> permissions to that directory.
-If that is not feasible, the user might copy the <code class="code docutils literal notranslate"><span class="pre">distributed_interfaces</span></code> sub-directory to a local location and execute the
+If you do not have the necessary permissions, copy the <code class="code docutils literal notranslate"><span class="pre">distributed_interfaces</span></code> sub-directory to a local location and execute the
 activation script from there.</p>
 <p>In this scenario, since the activated plugin (<code class="code docutils literal notranslate"><span class="pre">libcudaq_distributed_interface_mpi.so</span></code>) is outside the CUDA Quantum installation,
-CUDA Quantum requires users to set an environment variable <code class="code docutils literal notranslate"><span class="pre">$CUDAQ_MPI_COMM_LIB</span></code> containing the path to that shared library.
-This is done automatically when executing that activation script. Users may wish to persist that environment variable
-between bash sessions, e.g., via the <code class="code docutils literal notranslate"><span class="pre">.bashrc</span></code> file.</p>
+you must set the environment variable <code class="code docutils literal notranslate"><span class="pre">$CUDAQ_MPI_COMM_LIB</span></code> to the path of that shared library.
+This is done automatically when executing that activation script, but you may wish to persist that environment variable
+between bash sessions, e.g., by adding it to the <code class="code docutils literal notranslate"><span class="pre">.bashrc</span></code> file.</p>
 </div>
 </div>
 <input class="tab-input" id="tab-set--0-input--3" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--3">mpi4py Wrapper</label><div class="tab-content docutils">
 <p><strong>Use case</strong>: Python users</p>
-<p>If manual activation of CUDA Quantum MPI plugin is not feasible, users may attain MPI support via the
-the <code class="code docutils literal notranslate"><span class="pre">mpi4py</span> <span class="pre">&lt;https://mpi4py.readthedocs.io/&gt;</span></code> Python package. On a system with no builtin nor manually-activated plugin,
-CUDA Quantum will try to locate the <code class="code docutils literal notranslate"><span class="pre">mpi4py</span></code> package.
+<p>If you have not manually activated a CUDA Quantum MPI plugin can attain MPI support via the
+the <code class="code docutils literal notranslate"><span class="pre">mpi4py</span> <span class="pre">&lt;https://mpi4py.readthedocs.io/&gt;</span></code> Python package. Please follow the
+<a class="reference external" href="https://pypi.org/project/cuda-quantum/#description">instructions on PyPI</a> for installing
+that package. On a system with no built-in nor manually activated plugin,
+CUDA Quantum will automatically try to locate the <code class="code docutils literal notranslate"><span class="pre">mpi4py</span></code> package.
 If found, CUDA Quantum MPI API calls will be redirected to the corresponding <code class="code docutils literal notranslate"><span class="pre">mpi4py</span></code> API.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The installation of <code class="code docutils literal notranslate"><span class="pre">mpi4py</span></code> <code class="code docutils literal notranslate"><span class="pre">pip</span></code> package does require a pre-installed MPI implementation on the system as well as
-basic compilation capabilities (e.g., a <code class="code docutils literal notranslate"><span class="pre">C</span></code> language compiler).</p>
-</div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Using <code class="code docutils literal notranslate"><span class="pre">mpi4py</span></code>-based plugin does incur runtime overhead due to function call indirection.
