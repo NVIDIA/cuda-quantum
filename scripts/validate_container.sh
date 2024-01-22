@@ -198,15 +198,7 @@ do
             else
                 nvq++ $ex --target $t
             fi
-            if [ "$t" == "remote-mqpu" ]; then 
-                # In containers without GPUs (e.g., deployment validation),
-                # UCX does not work properly.
-                # "PML ucx cannot be selected (No components were able to be opened in the pml framework)".
-                # Hence, don't enforce UCX when running these tests.
-                OMPI_MCA_pml='' ./a.out &> /tmp/cudaq_validation.out
-            else
-                ./a.out &> /tmp/cudaq_validation.out
-            fi
+            ./a.out &> /tmp/cudaq_validation.out
             status=$?
             echo "Exited with code $status"
             if [ "$status" -eq "0" ]; then 
