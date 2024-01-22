@@ -760,9 +760,7 @@ The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can 
     In particular, `${MPI_PATH}/include` is expected to contain the `mpi.h` header and 
     `${MPI_PATH}/lib64` or `${MPI_PATH}/lib` is expected to contain `libmpi.so`.
 
-  .. note::
-
-    After the initial activation, if performed from the CUDA Quantum install directory,the activated will always be used to handle CUDA Quantum MPI API.
+  After the initial activation, the newly built `libcudaq_distributed_interface_mpi.so` in the installation directory will always be used to handle CUDA Quantum MPI API.
 
   .. note::
 
@@ -771,9 +769,9 @@ The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can 
     activation script from there.
 
     In this scenario, since the activated plugin (`libcudaq_distributed_interface_mpi.so`) is outside the CUDA Quantum installation,
-    CUDA Quantum requires users to set an environment variable `$CUDAQ_MPI_COMM_LIB` containing the path to that shared library.
-    This is done automatically when executing that activation script. Users may wish to persist that environment variable 
-    between bash sessions, e.g., via the `.bashrc` file.
+    you must set the environment variable `$CUDAQ_MPI_COMM_LIB` to the path of that shared library.
+    This is done automatically when executing that activation script, but you may wish to persist that environment variable 
+    between bash sessions, e.g., by adding it to the `.bashrc` file.
 
 
 .. tab:: mpi4py Wrapper
@@ -781,15 +779,12 @@ The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can 
   **Use case**: Python users 
 
   If you have not manually activated a CUDA Quantum MPI plugin can attain MPI support via the 
-  the `mpi4py <https://mpi4py.readthedocs.io/>` Python package. On a system with no builtin nor manually-activated plugin, 
+  the `mpi4py <https://mpi4py.readthedocs.io/>` Python package. Please follow the 
+  `instructions on PyPI <https://pypi.org/project/cuda-quantum/#description>`__ for installing 
+  that package. On a system with no built-in nor manually activated plugin, 
   CUDA Quantum will automatically try to locate the `mpi4py` package.
   If found, CUDA Quantum MPI API calls will be redirected to the corresponding `mpi4py` API.
- 
-  .. note::
-
-    The installation of `mpi4py` `pip` package does require a pre-installed MPI implementation on the system as well as 
-    basic compilation capabilities (e.g., a `C` language compiler).
-  
+   
   .. note::
     
     Using `mpi4py`-based plugin does incur runtime overhead due to function call indirection.
