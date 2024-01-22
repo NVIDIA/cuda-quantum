@@ -50,9 +50,11 @@ public:
               "No GPUs available to instantiate platform.");
 
         // Add a QPU for each GPU.
-        for (int i = 0; i < nDevices; i++)
+        for (int i = 0; i < nDevices; i++) {
           platformQPUs.emplace_back(
               cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
+          platformQPUs.back()->setId(i);
+        }
 
         platformNumQPUs = platformQPUs.size();
         platformCurrentQPU = 0;
