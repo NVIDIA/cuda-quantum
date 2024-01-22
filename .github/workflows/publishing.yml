@@ -487,12 +487,16 @@ jobs:
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
           assets_image=`cat $build_info | grep -o 'cuda-quantum-assets-image: \S*' | cut -d ' ' -f 2`
+          platform_base_image=`cat $build_info | grep -o 'platform-base-image: \S*' | cut -d ' ' -f 2`
+          openmpi_buildcache=`cat $build_info | grep -o 'openmpi-build-cache: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
           echo "assets_image=$assets_image" >> $GITHUB_OUTPUT
+          echo "platform_base_image=$platform_base_image" >> $GITHUB_OUTPUT
+          echo "openmpi_buildcache=$openmpi_buildcache" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
@@ -663,7 +667,7 @@ jobs:
 
   config:
     name: Configure validation
-    needs: [cudaq_hpc, cudaq_wheels]
+    needs: [cudaq_hpc, cudaq_installer, cudaq_wheels]
     runs-on: ubuntu-latest
 
     outputs:
@@ -682,9 +686,58 @@ jobs:
           images=`echo '${{ steps.read_json.outputs.result }}' | jq '[.image_hash[] | select(. != "")]'`
           echo "docker_images=$(echo $images)" >> $GITHUB_OUTPUT
 
+  installer_validation:
+    name: Installer validation
+    needs: [assets, cudaq_installer]
+    runs-on: linux-amd64-gpu-v100-latest-1
+
+    container:
+      image: redhat/ubi8:8.0
+      options: --user root
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+        TERM: xterm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.assets.outputs.github_commit }}
+
+      - name: Load installer
+        uses: actions/download-artifact@v4
+        with:
+          name: x86_64-installer
+          path: /tmp/install
+
+      - name: Install runtime dependencies
+        run: |
+          dnf install -y --nobest --setopt=install_weak_deps=False \
+            'dnf-command(config-manager)' gcc-toolset-12
+          enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
+          . "$enable_script"
+          . scripts/configure_build install-cudart
+
+      - name: Install and run sanity checks
+        shell: bash
+        run: |
+          . /tmp/install/install_cuda_quantum.* --accept
+          bash validate_container.sh nvidia nvidia-mgpu tensornet > /tmp/validation.out
+
+      - name: Create summary
+        if: always() && !cancelled()
+        run: |
+          if [ -f /tmp/validation.out ]; then
+            echo "## Validation" >> $GITHUB_STEP_SUMMARY
+            echo "The validation of the CUDA Quantum installation produced the following output:" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
   image_validation:
-    name: Validation
-    needs: [assets, config]
+    name: Docker image validation
+    needs: config
     runs-on: linux-amd64-gpu-v100-latest-1
 
     strategy:
