@@ -66,7 +66,7 @@ static std::optional<std::string> getRandomAvailablePort(int seed) {
 }
 
 cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
-    int seed_offset = 0) {
+    int seed_offset) {
   cudaq::info("Auto launch REST server");
   const std::string serverExeName = "cudaq-qpud";
   auto serverApp = llvm::sys::findProgramByName(serverExeName.c_str());
