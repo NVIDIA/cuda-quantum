@@ -128,6 +128,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#installing-pre-built-binaries">Installing Pre-built Binaries</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -142,10 +143,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
 </ul>
@@ -2688,6 +2692,18 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPUD0Ev">
 <span class="target" id="classcudaq_1_1QPU_1a3a66227bdbd3c46981cd068ae1814057"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">~QPU</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq3QPUD0Ev" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The destructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU5setIdENSt6size_tE">
+<span class="target" id="classcudaq_1_1QPU_1a839ee0e4a992dc05855f5c31892b0ad7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setId</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">_qpuId</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU5setIdENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Set the current <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> Id. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq3QPU20getExecutionThreadIdEv">
+<span class="target" id="classcudaq_1_1QPU_1a79378c8539dd40594956b157b31d469e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">thread</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">id</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getExecutionThreadId</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq3QPU20getExecutionThreadIdEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get id of the thread this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>’s queue executes on. </p>
 </dd></dl>
 
 <dl class="cpp function">

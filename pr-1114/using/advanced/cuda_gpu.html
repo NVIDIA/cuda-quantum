@@ -128,6 +128,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#installing-pre-built-binaries">Installing Pre-built Binaries</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -142,10 +143,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../cudaq/variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../cudaq/platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../cudaq/platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../cudaq/platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cudaq/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../cudaq/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../cudaq/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
 </ul>
@@ -457,7 +461,8 @@
 <h1>Using CUDA and CUDA Quantum in a Project<a class="headerlink" href="#using-cuda-and-cuda-quantum-in-a-project" title="Permalink to this heading">¶</a></h1>
 <p>It may be the case that a project that uses CUDA Quantum kernels may also
 want to use CUDA code to do computation on a GPU.  This is possible by using
-both the CUDA Toolkit and CUDA Quantum tools.</p>
+both the CUDA Toolkit and CUDA Quantum tools. More about programming GPUs
+in CUDA can be found in the <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html">Quick Start Guide</a>.</p>
 <p>If you are using a CUDA Quantum container, the CUDA Toolkit can be installed
 using a command such as</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apt-get<span class="w"> </span>install<span class="w"> </span>cuda-toolkit-11-8
