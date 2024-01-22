@@ -21,9 +21,8 @@
 
 # There are currently no multi-platform manylinux images available.
 # See https://github.com/pypa/manylinux/issues/1306.
-ARG arch=x86_64
-ARG manylinux_image=manylinux_2_28
-FROM quay.io/pypa/${manylinux_image}_${arch}:latest
+ARG base_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+FROM ${base_image}
 
 ARG distro=rhel8
 ARG llvm_commit
@@ -65,6 +64,7 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
 # Build pybind11 - 
 # we should be able to use the same pybind version independent on what Python version we generate bindings for.
+ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         ninja-build cmake python3-devel \
     && mkdir /pybind11-project && cd /pybind11-project && git init \
@@ -72,27 +72,26 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
     && python3 -m ensurepip --upgrade && python3 -m pip install pytest \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 -DPYTHON_EXECUTABLE="$(which python3)" \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" \
     && cmake --build . --target install --config Release \
     && python3 -m pip uninstall -y pytest \
     && cd / && rm -rf /pybind11-project
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
-ENV LLVM_BUILD_LINKER_FLAGS="-static-libgcc -static-libstdc++"
-RUN export CMAKE_EXE_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" CMAKE_SHARED_LINKER_FLAGS="$LLVM_BUILD_LINKER_FLAGS" \
-    && bash /scripts/build_llvm.sh -s /llvm-project -p "clang;lld;mlir" -c Release -v
+RUN LLVM_PROJECTS='clang;mlir' \
+    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v
     # No clean up of the build or source directory,
     # since we need to re-build llvm for each python version to get the bindings.
 
 # Install additional dependencies required to build the CUDA Quantum wheel.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
+ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
-RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        glibc-static perl-core wget cmake \
+ENV CURL_INSTALL_PREFIX=/usr/local/curl
+RUN dnf install -y --nobest --setopt=install_weak_deps=False glibc-static \
     && bash /scripts/install_prerequisites.sh \
-    && dnf remove -y wget cmake && dnf clean all \
     && rm -rf /scripts/install_prerequisites.sh
 
 # Install CUDA 11.8.

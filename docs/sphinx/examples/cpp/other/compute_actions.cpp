@@ -85,13 +85,15 @@ int main(int argc, char **argv) {
                               15};
   cudaq::spin_op H(h2_data, /*nQubits*/ 4);
 
-  const auto param_space = cudaq::linspace(-M_PI, M_PI, 50);
+  const auto param_space = cudaq::linspace(-M_PI, M_PI, 10);
+  printf("Using the hand-coded kernel\n");
   for (const auto &param : param_space) {
     // `E(params...) = <psi(params...) | H | psi(params...)>`
     double energy_at_param = cudaq::observe(ansatz_handcoded{}, H, param);
     printf("<H>(%lf) = %lf\n", param, energy_at_param);
   }
 
+  printf("Using the kernel written with cudaq::compute_action\n");
   for (const auto &param : param_space) {
     // `E(params...) = <psi(params...) | H | psi(params...)>`
     double energy_at_param =

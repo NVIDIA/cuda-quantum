@@ -6,17 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG os_version=ubi9:9.2
-FROM redhat/$os_version
+ARG base_image=debian:12
+FROM ${base_image}
+SHELL ["/bin/bash", "-c"]
 
 ARG python_version=3.11
-ARG pip_install_flags="--user"
+ARG pip_install_flags=""
 ARG preinstalled_modules="numpy pytest nvidia-cublas-cu11"
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        python${python_version}.$(uname -m) \
-    && python${python_version} -m ensurepip --upgrade
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python${python_version} python${python_version}-venv
+
+# We need to make sure the virtual Python environment remains
+# activated for all subsequent commands.
+ENV VIRTUAL_ENV=/opt/venv
+RUN python${python_version} -m venv "$VIRTUAL_ENV"
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN if [ -n "$preinstalled_modules" ]; then \
         echo $preinstalled_modules | xargs python${python_version} -m pip install; \
     fi
@@ -28,5 +34,9 @@ COPY docs/sphinx/examples/python /tmp/examples/
 COPY python/tests /tmp/tests/
 COPY python/README.md /tmp/README.md
 
+RUN if [ -n "$pip_install_flags" ]; then \
+        # We can't install with a --user flag in a virtual environment unless we enable this.
+        sed -i 's/include-system-site-packages = false/include-system-site-packages = true/' $VIRTUAL_ENV/pyvenv.cfg; \
+    fi
 RUN python${python_version} -m pip install ${pip_install_flags} /tmp/$cuda_quantum_wheel
 RUN if [ -n "$optional_dependencies" ]; then python${python_version} -m pip install cuda-quantum[$optional_dependencies]; fi

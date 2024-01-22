@@ -12,7 +12,7 @@
 # This image requires specifing an image as argument that contains a CUDA Quantum installation
 # along with its development dependencies. This file then copies that installation into a more
 # minimal runtime environment. 
-# A suitable dev image can be obtained by building docker/build/cudaq.dev.Dockerfile.
+# A suitable base image can be obtained by building docker/build/cudaq.dev.Dockerfile.
 #
 # Usage:
 # Must be built from the repo root with:
@@ -41,9 +41,6 @@ RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
     if [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then mv "$CUQUANTUM_INSTALL_PREFIX"/* "/usr/local/cudaq_assets/cuquantum"; fi && \
     if [ "$CUDAQ_INSTALL_PREFIX" != "/usr/local/cudaq" ]; then mv "$CUDAQ_INSTALL_PREFIX" "/usr/local/cudaq"; fi
 
-# We should be able to relocate this as long as we define the OPENSSL_ROOT_DIR environment variable.
-RUN if [ "$OPENSSL_INSTALL_PREFIX" != "/usr/local/openssl" ]; then mv "$OPENSSL_INSTALL_PREFIX" "/usr/local/openssl"; fi
-
 FROM $base_image
 SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -59,12 +56,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install CUDA Quantum runtime dependencies.
 
-ENV OPENSSL_ROOT_DIR="/opt/openssl"
-COPY --from=cudaqbuild "/usr/local/openssl/" "$OPENSSL_ROOT_DIR"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-pip libpython3-dev \
-        libstdc++-12-dev \
-        libcurl4-openssl-dev \
+        python3 python3-pip libstdc++-12-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
@@ -83,7 +76,7 @@ COPY --from=cudaqbuild "/usr/local/cudaq_assets" "$CUDA_QUANTUM_PATH/assets"
 # be a good/better option in the future, for now we make sure to copy the dependencies to the 
 # expected locations. The CUDQ Quantum installation contains an xml file that lists these.
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
-RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" \
+RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$CUDA_QUANTUM_PATH/assets" \
     && rm -rf "$CUDA_QUANTUM_PATH/assets" \
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 

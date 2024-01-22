@@ -14,6 +14,7 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "Registry.h"
+#include <filesystem>
 
 namespace cudaq {
 
