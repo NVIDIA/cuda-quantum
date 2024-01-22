@@ -35,6 +35,9 @@ stages:
 
 Metadata:
   stage: metadata
+  image: docker:latest
+  services:
+    - docker:dind
   before_script:
     - mkdir -p $HOME/.docker
     - echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
