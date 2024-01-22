@@ -20,6 +20,7 @@
 #include <filesystem>
 #include <map>
 #include <regex>
+#include <shared_mutex>
 #include <signal.h>
 #include <string>
 #include <vector>
@@ -114,6 +115,11 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
 
   return g_plugin.get();
 };
+
+bool available() {
+  auto *commPlugin = getMpiPlugin(/*unsafe=*/true);
+  return commPlugin != nullptr;
+}
 
 void initialize() {
   auto *commPlugin = getMpiPlugin();
@@ -212,6 +218,15 @@ std::string demangle_kernel(const char *name) {
 bool globalFalse = false;
 } // namespace cudaq::__internal__
 
+// Shared mutex to guard concurrent access to global kernel data (e.g.,
+// `quakeRegistry`, `kernelRegistry`, `argsCreators`, `lambdaNames`).
+// These global variables might be accessed (write or read) concurrently, e.g.,
+// async. execution of kernels or via CUDA Quantum API (e.g.,
+// `get_quake_by_name`). Note: currently, we use a single mutex for all static
+// global variables for simplicity since these containers are small and not
+// frequently accessed.
+static std::shared_mutex globalRegistryMutex;
+
 //===----------------------------------------------------------------------===//
 // Registry that maps device code keys to strings of device code. The map is
 // created at program startup and can be used to find code to be
@@ -221,6 +236,7 @@ bool globalFalse = false;
 static std::vector<std::pair<std::string, std::string>> quakeRegistry;
 
 void cudaq::registry::deviceCodeHolderAdd(const char *key, const char *code) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   quakeRegistry.emplace_back(key, code);
 }
 
@@ -237,21 +253,25 @@ static std::map<std::string, cudaq::KernelArgsCreator> argsCreators;
 static std::map<std::string, std::string> lambdaNames;
 
 void cudaq::registry::cudaqRegisterKernelName(const char *kernelName) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   kernelRegistry.emplace_back(kernelName);
 }
 
 void cudaq::registry::cudaqRegisterArgsCreator(const char *name,
                                                char *rawFunctor) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   argsCreators.insert(
       {std::string(name), reinterpret_cast<KernelArgsCreator>(rawFunctor)});
 }
 
 void cudaq::registry::cudaqRegisterLambdaName(const char *name,
                                               const char *value) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   lambdaNames.insert({std::string(name), std::string(value)});
 }
 
 bool cudaq::__internal__::isKernelGenerated(const std::string &kernelName) {
+  std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
   for (auto regName : kernelRegistry)
     if (kernelName == regName)
       return true;
@@ -277,6 +297,7 @@ void set_target_backend(const char *backend) {
 }
 
 KernelArgsCreator getArgsCreator(const std::string &kernelName) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   return argsCreators[kernelName];
 }
 
@@ -287,6 +308,7 @@ std::string get_quake_by_name(const std::string &kernelName,
 
   // Find the quake code
   std::optional<std::string> result;
+  std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
   for (auto [k, v] : quakeRegistry) {
     if (k == kernelName) {
       // Exact match. Return the code.
