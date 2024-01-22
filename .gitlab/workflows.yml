@@ -40,18 +40,6 @@ Metadata:
     - echo "Commit title is $CI_COMMIT_TITLE"
     - echo "Staged is set to $staged"
 
-Installer:
-  rules:
-    - if: $staged == "cuda-quantum-assets"
-  stage: build
-  dependencies: []
-  image: $CI_COMMIT_TITLE
-  tags:
-    - $runner
-  interruptible: false
-  script:
-    - echo "Nothing implemented yet."
-
 Python Wheels:
   rules:
     - if: $staged == "cuda-quantum-devdeps"
@@ -66,8 +54,7 @@ Python Wheels:
       - artifacts
     expire_in: 1 day
   before_script:
-  # Download wheels from deployment artifacts 
-  # Install GitHub CLI
+    # Install GitHub CLI
     - dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
     - dnf install -y gh jq
     - upstream_url=https://github.com/NVIDIA/cuda-quantum && export GH_TOKEN=$GITHUB_TOKEN
@@ -117,6 +104,7 @@ Python Wheels:
 MGMN SV Simulator:
   rules:
     - if: $staged == "cuda-quantum-dev"
+    - if: $staged == "cuda-quantum-assets"
   stage: build
   dependencies: []
   image: $CI_COMMIT_TITLE
