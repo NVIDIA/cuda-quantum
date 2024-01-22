@@ -65,7 +65,8 @@ static std::optional<std::string> getRandomAvailablePort(int seed) {
   return {};
 }
 
-cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(int seed_offset = 0) {
+cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
+    int seed_offset = 0) {
   cudaq::info("Auto launch REST server");
   const std::string serverExeName = "cudaq-qpud";
   auto serverApp = llvm::sys::findProgramByName(serverExeName.c_str());
@@ -76,8 +77,8 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(int seed_offset 
   // For example, multiple processes trying to auto-launch server app on the
   // same machine.
   // Also, prevent collision when a single process (same PID) constructing
-  // multiple AutoLaunchRestServerProcess in a loop by allowing to pass an offset
-  // for the seed.
+  // multiple AutoLaunchRestServerProcess in a loop by allowing to pass an
+  // offset for the seed.
   static std::mt19937 gen(::getpid() * 100 + seed_offset);
   const auto port = getRandomAvailablePort(gen());
 
