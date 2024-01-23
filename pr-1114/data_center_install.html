@@ -129,6 +129,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#updating-cuda-quantum">Updating CUDA Quantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -730,7 +731,7 @@ mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</spa
 </pre></div>
 </div>
 <p>You can then create a self-extracting archive with the command</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./makeself.sh<span class="w"> </span>--gzip<span class="w"> </span>--license<span class="w"> </span>cuda_quantum_assets/cudaq/LICENSE<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./makeself.sh<span class="w"> </span>--gzip<span class="w"> </span>--sha256<span class="w"> </span>--license<span class="w"> </span>cuda_quantum_assets/cudaq/LICENSE<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda_quantum_assets<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span><span class="s2">&quot;CUDA Quantum toolkit for heterogeneous quantum-classical workflows&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>bash<span class="w"> </span>cudaq/migrate_assets.sh<span class="w"> </span>-t<span class="w"> </span>/opt/nvidia/cudaq
