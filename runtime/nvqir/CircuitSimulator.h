@@ -62,6 +62,14 @@ public:
     // do nothing
   }
 
+  /// @brief Hook for clients to provide a new pointer to a
+  /// `CircuitSimulator` sub-type's specific `SimulatorState` data.
+  virtual std::unique_ptr<cudaq::SimulationState>
+  createSimulationState(const std::vector<std::size_t> &shape,
+                        const std::vector<std::complex<double>> &data) const {
+    throw std::runtime_error("createSimulationState not yet implemented.");
+  }
+
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -391,7 +399,10 @@ protected:
 
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
-  virtual cudaq::State getStateData() { return {}; }
+  virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() {
+    throw std::runtime_error(
+        "Simulation data not available for this simulator backend.");
+  }
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in resetExecutionContext. Return true to indicate this is
@@ -904,7 +915,7 @@ public:
     // Set the state data if requested.
     if (executionContext->name == "extract-state") {
       flushGateQueue();
-      executionContext->simulationData = getStateData();
+      executionContext->simulationState = getSimulationState();
     }
 
     // Deallocate the deferred qubits, but do so

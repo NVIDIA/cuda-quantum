@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "cudaq/algorithms/state.h"
 #include "cudaq/kernels/fermionic_swap.h"
 #include "cudaq/kernels/givens_rotation.h"
 #include <random>

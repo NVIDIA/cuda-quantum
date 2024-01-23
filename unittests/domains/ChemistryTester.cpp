@@ -135,11 +135,9 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
     for (std::size_t i = 0; i < eigenVectors.rows(); i++)
       expectedData[i] = eigenVectors(i, 0);
     auto groundState = cudaq::get_state(ansatz, std::get<1>(res));
-    cudaq::state expectedState(std::make_tuple(
-        std::vector<std::size_t>{eigenVectors.rows()}, expectedData));
 
     // Make sure our UCCSD state at the optimal parameters is the ground state
-    EXPECT_NEAR(1.0, groundState.overlap(expectedState), 1e-6);
+    EXPECT_NEAR(1.0, groundState.overlap(expectedData), 1e-6);
   }
 
   {

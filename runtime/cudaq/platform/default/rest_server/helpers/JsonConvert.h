@@ -7,9 +7,12 @@
  ******************************************************************************/
 
 #pragma once
+
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
+
+#include "cudaq/simulators.h"
 
 /*! \file JsonConvert.h
     \brief Utility to support JSON serialization between the client and server.
@@ -79,9 +82,19 @@ inline void to_json(json &j, const ExecutionContext &context) {
   if (context.expectationValue.has_value()) {
     j["expectationValue"] = context.expectationValue.value();
   }
-  j["simulationData"] = json();
-  j["simulationData"]["dim"] = std::get<0>(context.simulationData);
-  j["simulationData"]["data"] = std::get<1>(context.simulationData);
+  j["simulationState"] = json();
+  j["simulationState"]["dim"] = context.simulationState->getDataShape();
+  std::complex<double> *hostPtr = nullptr;
+  if (context.simulationState->isDeviceData())
+    hostPtr = reinterpret_cast<std::complex<double> *>(
+        context.simulationState->toHost());
+  else
+    hostPtr = reinterpret_cast<std::complex<double> *>(
+        context.simulationState->ptr());
+
+  j["simulationState"]["data"] = std::vector<std::complex<double>>(
+      hostPtr, hostPtr + context.simulationState->getNumElements());
+
   if (context.spin.has_value() && context.spin.value() != nullptr) {
     const std::vector<double> spinOpRepr =
         context.spin.value()->getDataRepresentation();
@@ -123,8 +136,10 @@ inline void from_json(const json &j, ExecutionContext &context) {
     std::vector<std::complex<double>> stateData;
     j["simulationData"]["dim"].get_to(stateDim);
     j["simulationData"]["data"].get_to(stateData);
-    context.simulationData =
-        std::make_tuple(std::move(stateDim), std::move(stateData));
+
+    // Create the simulation specific SimulationState
+    context.simulationState =
+        cudaq::get_simulator()->createSimulationState(stateDim, stateData);
   }
 
   if (j.contains("registerNames"))
