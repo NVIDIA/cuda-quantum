@@ -77,6 +77,10 @@ concept KernelBuilderArgTypeIsValid =
 
 namespace details {
 
+/// @brief Type describing user-provided state vector data.
+/// This maps the state vector unique hash to the vector data.
+using StateVectorStorage = std::map<std::size_t, cudaq::complex *>;
+
 // Define a `mlir::Type` generator in the `cudaq` namespace, this helps us keep
 // MLIR out of this public header
 
@@ -159,6 +163,10 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
 /// @brief Allocate a `qvector` from existing `QuakeValue` size
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
 
+/// @brief Allocate a `qvector` from a user provided state vector.
+QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, std::size_t hash,
+                  std::size_t size);
+
 /// @brief Create a QuakeValue representing a constant floating-point number
 QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
 
@@ -221,12 +229,13 @@ void applyPasses(mlir::PassManager &);
 std::tuple<bool, mlir::ExecutionEngine *>
 jitCode(mlir::ImplicitLocOpBuilder &, mlir::ExecutionEngine *,
         std::unordered_map<mlir::ExecutionEngine *, std::size_t> &, std::string,
-        std::vector<std::string>);
+        std::vector<std::string>, StateVectorStorage &);
 
 /// @brief Invoke the function with the given kernel name.
 void invokeCode(mlir::ImplicitLocOpBuilder &builder, mlir::ExecutionEngine *jit,
                 std::string kernelName, void **argsArray,
-                std::vector<std::string> extraLibPaths);
+                std::vector<std::string> extraLibPaths,
+                StateVectorStorage &storage);
 
 /// @brief Invoke the provided kernel function.
 void call(mlir::ImplicitLocOpBuilder &builder, std::string &name,
@@ -386,9 +395,21 @@ private:
     return std::get<std::string>(term);
   }
 
+  /// @brief Compute a unique hash code for the given state vector data.
+  std::size_t hashStateVector(const std::vector<cudaq::complex> &vec) const {
+    auto seed = vec.size();
+    for (auto &v : vec)
+      seed ^= std::hash<double>()(v.real()) + std::hash<double>()(v.imag()) +
+              0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
+  }
+
+  /// @brief Storage for any user-provided state-vector data.
+  details::StateVectorStorage stateVectorStorage;
+
 public:
-  /// @brief The constructor, takes the input `KernelBuilderType`s which is used
-  /// to create the MLIR function type
+  /// @brief The constructor, takes the input `KernelBuilderType`s which is
+  /// used to create the MLIR function type
   kernel_builder(std::vector<details::KernelBuilderType> &types)
       : context(details::initializeContext(), details::deleteContext),
         opBuilder(nullptr, [](mlir::ImplicitLocOpBuilder *) {}),
@@ -430,6 +451,15 @@ public:
     return details::qalloc(*opBuilder.get(), size);
   }
 
+  // @brief Return a `QuakeValue` representing the allocated
+  // quantum register, initialized to the given state vector.
+  // Note - input argument is not const here, user has to own the data.
+  QuakeValue qalloc(std::vector<cudaq::complex> &state) {
+    auto hash = hashStateVector(state);
+    auto value = details::qalloc(*opBuilder.get(), hash, state.size());
+    stateVectorStorage.insert({hash, state.data()});
+    return value;
+  }
   /// @brief Return a `QuakeValue` representing the constant floating-point
   /// value.
   QuakeValue constantVal(double val) {
@@ -793,7 +823,7 @@ public:
   void jitCode(std::vector<std::string> extraLibPaths = {}) override {
     auto [wasChanged, ptr] =
         details::jitCode(*opBuilder, jitEngine.get(), jitEngineToModuleHash,
-                         kernelName, extraLibPaths);
+                         kernelName, extraLibPaths, stateVectorStorage);
     // If we had a jitEngine, but the code changed, delete the one we had.
     if (jitEngine && wasChanged)
       details::deleteJitEngine(jitEngine.release());
@@ -817,7 +847,7 @@ public:
       jitCode(extraLibPaths);
     }
     details::invokeCode(*opBuilder, jitEngine.get(), kernelName, argsArray,
-                        extraLibPaths);
+                        extraLibPaths, stateVectorStorage);
   }
 
   /// @brief The call operator for the kernel_builder, takes as input the

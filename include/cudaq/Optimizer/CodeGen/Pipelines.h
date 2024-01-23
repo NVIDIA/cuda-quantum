@@ -57,6 +57,9 @@ void addPipelineToQIR(mlir::PassManager &pm,
   if constexpr (QIRProfile) {
     cudaq::opt::addQIRProfilePipeline(pm, convertTo);
   }
+
+  // Make sure we don't have any leftover dead code
+  pm.addPass(mlir::createCanonicalizerPass());
 }
 
 inline void addPipelineToOpenQASM(mlir::PassManager &pm) {

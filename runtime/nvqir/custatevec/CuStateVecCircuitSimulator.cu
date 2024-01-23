@@ -190,9 +190,13 @@ protected:
   }
 
   /// @brief Increase the state size by the given number of qubits.
-  void addQubitsToState(std::size_t count) override {
+  void addQubitsToState(std::size_t count,
+                        const std::complex<double> *state = nullptr) override {
     if (count == 0)
       return;
+
+    if (state != nullptr)
+      throw std::runtime_error("init state not implemented here yet.");
 
     int dev;
     HANDLE_CUDA_ERROR(cudaGetDevice(&dev));

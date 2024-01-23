@@ -45,6 +45,43 @@ namespace cudaq::details {
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
 
+/// @brief Return a code intrinsic for describing a global pointer to
+/// user-provided state vector data.
+static std::string getStateDataGlobalIntrinsic(std::size_t hashValue,
+                                               std::size_t size) {
+  return fmt::format(
+      fmt::runtime(
+          R"#(llvm.mlir.global external local_unnamed_addr @nvqpp.state.{}() {{addr_space = 0 : i32, alignment = 8 : i64, dso_local}} : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> {{
+    %0 = llvm.mlir.null : !llvm.ptr<struct<(f64,f64)>>
+    %1 = llvm.mlir.constant({} : i32) : i32
+    %2 = llvm.mlir.undef : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)>
+    %3 = llvm.insertvalue %0, %2[0] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
+    %4 = llvm.insertvalue %1, %3[1] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
+    llvm.return %4 : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)>
+  }})#"),
+      hashValue, size);
+}
+
+/// @brief Return a code instrinsic for describing a function
+/// allowing clients to set the user-provided state vector data.
+static std::string getSetStateInstrinsic(std::size_t hashValue) {
+  return fmt::format(fmt::runtime(R"#(
+  llvm.func @nvqpp.set.state.{0}(%arg0: !llvm.ptr<struct<(f64,f64)>>) {{
+    %0 = llvm.mlir.null : !llvm.ptr<struct<(f64,f64)>>
+    %1 = llvm.mlir.constant(0 : i32) : i32
+    %2 = llvm.mlir.undef : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)>
+    %3 = llvm.insertvalue %0, %2[0] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
+    %4 = llvm.insertvalue %1, %3[1] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
+    %5 = llvm.mlir.addressof @nvqpp.state.{0} : !llvm.ptr<struct<(ptr<struct<(f64, f64)>>, i32)>>
+    %6 = llvm.mlir.constant(0 : i64) : i64
+    %7 = llvm.getelementptr inbounds %5[%6, 0] : (!llvm.ptr<struct<(ptr<struct<(f64, f64)>>, i32)>>, i64) -> !llvm.ptr<ptr<struct<(f64, f64)>>>
+    llvm.store %arg0, %7 : !llvm.ptr<ptr<struct<(f64, f64)>>>
+    llvm.return
+  }}
+)#"),
+                     hashValue);
+}
+
 KernelBuilderType mapArgToType(double &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float64Type::get(ctx); });
@@ -477,6 +514,58 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
   return QuakeValue(builder, qubits);
 }
 
+QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
+                  std::size_t size) {
+  auto *context = builder.getContext();
+  auto parentModule =
+      builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+
+  // Add the global for the state data to the module
+  if (failed(parseSourceString(getStateDataGlobalIntrinsic(hash, size),
+                               parentModule.getBody(),
+                               ParserConfig{context, false})))
+    throw std::runtime_error("Could not create code for state global data.");
+
+  // Add the function allowing one to set the state vector data to the module
+  if (failed(parseSourceString(getSetStateInstrinsic(hash),
+                               parentModule.getBody(),
+                               ParserConfig{context, false})))
+    throw std::runtime_error(
+        "Could not create code for setting the state global data.");
+
+  // Allocate the qubits
+  Value qubits = builder.create<quake::AllocaOp>(
+      quake::VeqType::get(context, std::log2(size)));
+
+  // Get the pointer to the global
+  auto f64Ty = builder.getF64Type();
+  auto llvmComplexTy = LLVM::LLVMStructType::getLiteral(
+      context, SmallVector<Type>{f64Ty, f64Ty});
+  auto llvmComplexPtrTy = LLVM::LLVMPointerType::get(llvmComplexTy);
+  auto resTy = LLVM::LLVMStructType::getLiteral(
+      context, SmallVector<Type>{llvmComplexPtrTy, builder.getI32Type()});
+  auto globalData = parentModule.lookupSymbol<LLVM::GlobalOp>(
+      fmt::format("nvqpp.state.{}", hash));
+  auto addr = builder.create<LLVM::AddressOfOp>(
+      LLVM::LLVMPointerType::get(resTy), globalData.getSymName());
+  auto zero = builder.create<LLVM::ConstantOp>(builder.getI64Type(), 0);
+  auto dataPtr =
+      builder.create<LLVM::GEPOp>(LLVM::LLVMPointerType::get(llvmComplexPtrTy),
+                                  addr, SmallVector<Value>{zero, zero});
+
+  // Load it but cast to a CC data type equivalent
+  auto loaded = builder.create<LLVM::LoadOp>(llvmComplexPtrTy, dataPtr);
+  auto casted = builder.create<cudaq::cc::CastOp>(
+      cudaq::cc::PointerType::get(
+          cudaq::cc::StructType::get(context, SmallVector<Type>{f64Ty, f64Ty})),
+      loaded);
+
+  // Add the initialize state op
+  qubits = builder.create<quake::InitializeStateOp>(qubits.getType(), qubits,
+                                                    casted);
+  return QuakeValue(builder, qubits);
+}
+
 QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val) {
   llvm::APFloat d(val);
   Value constant =
@@ -751,7 +840,8 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
 std::tuple<bool, ExecutionEngine *>
 jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
         std::unordered_map<ExecutionEngine *, std::size_t> &jitHash,
-        std::string kernelName, std::vector<std::string> extraLibPaths) {
+        std::string kernelName, std::vector<std::string> extraLibPaths,
+        StateVectorStorage &stateVectorStorage) {
 
   // Start of by getting the current ModuleOp
   auto block = builder.getBlock();
@@ -821,10 +911,17 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
   pm.addPass(cudaq::opt::createGenerateKernelExecution());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
+  // We want quantum allocations to stay where they are if
+  // we are simulating and have user-provided state vectors.
+  // This check could be better / smarter probably, in tandem
+  // with some synth strategy to rewrite initState with circuit
+  // synthesis result
+  if (stateVectorStorage.empty())
+    optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
+  pm.addPass(createCanonicalizerPass());
 
   if (failed(pm.run(module)))
     throw std::runtime_error(
@@ -893,7 +990,8 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
 void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                 std::string kernelName, void **argsArray,
-                std::vector<std::string> extraLibPaths) {
+                std::vector<std::string> extraLibPaths,
+                StateVectorStorage &storage) {
 
   assert(jit != nullptr && "JIT ExecutionEngine was null.");
   cudaq::info("kernel_builder invoke kernel with args.");
@@ -901,6 +999,19 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR
   // for the following we want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
+
+  // If we have any state vector data, we need to
+  // extract the function pointer to set that data, and then set it.
+  for (auto &[stateHash, data] : storage) {
+    auto setStateFPtr =
+        jit->lookup("nvqpp.set.state." + std::to_string(stateHash));
+    if (!setStateFPtr)
+      throw std::runtime_error(
+          "cudaq::builder failed to get set state function.");
+
+    auto setStateFunc = reinterpret_cast<void (*)(complex *)>(*setStateFPtr);
+    setStateFunc(data);
+  }
 
   // Incoming Args... have been converted to void **,
   // now we convert to void * altLaunchKernel args.
@@ -938,9 +1049,9 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
 
   // Strategy - we want to clone this ModuleOp because we have to
   // add a valid terminator (func.return), but it is not gauranteed that
-  // the programmer is done building up the kernel even though they've asked to
-  // look at the quake code. So we'll clone here, and add the return op (we have
-  // to or the print out string will be invalid (verifier failed)).
+  // the programmer is done building up the kernel even though they've asked
+  // to look at the quake code. So we'll clone here, and add the return op
+  // (we have to or the print out string will be invalid (verifier failed)).
   auto clonedModule = module.clone();
 
   func::FuncOp unwrappedParentFunc = llvm::cast<func::FuncOp>(parentFunc);
