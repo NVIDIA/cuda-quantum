@@ -724,7 +724,7 @@ jobs:
         run: |
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
-          bash validate_container.sh nvidia nvidia-mgpu tensornet > /tmp/validation.out
+          bash scripts/validate_container.sh nvidia nvidia-mgpu tensornet > /tmp/validation.out
 
       - name: Create summary
         if: always() && !cancelled()
