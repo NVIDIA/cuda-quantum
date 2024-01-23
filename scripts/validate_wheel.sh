@@ -56,8 +56,8 @@ while IFS= read -r line; do
     line=${line//3.10/$python_version}
     line=${line//pip install cuda-quantum/pip install "$cudaq_wheel"}
     if [ -n "$(echo $line | grep "conda activate")" ]; then
-        command=$(echo "$line" | sed "s#conda activate#$(conda info --base)/bin/activate#")
-        source $command
+        conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
+        source $(conda info --base)/bin/activate $conda_env
     elif [ -n "$(echo $line | tr -d '[:space:]')" ]; then
         eval "$line"
     fi
