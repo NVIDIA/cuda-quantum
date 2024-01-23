@@ -95,10 +95,10 @@ CUDAQ_TEST(AsyncTester, checkGetStateAsync) {
   std::vector<std::complex<double>> expectedVec(1 << 5, 0.0);
   expectedVec[0] = M_SQRT1_2;
   expectedVec[expectedVec.size() - 1] = M_SQRT1_2;
-  cudaq::state expectedState({{expectedVec.size()}, expectedVec});
-  EXPECT_NEAR(cc0State.overlap(expectedState), 1.0, 1e-3);
-  EXPECT_NEAR(cc1State.overlap(expectedState), 1.0, 1e-3);
-  EXPECT_NEAR(cc2State.overlap(expectedState), 1.0, 1e-3);
-  EXPECT_NEAR(cc3State.overlap(expectedState), 1.0, 1e-3);
+
+  EXPECT_NEAR(cc0State.overlap(expectedVec), 1.0, 1e-3);
+  EXPECT_NEAR(cc1State.overlap(expectedVec), 1.0, 1e-3);
+  EXPECT_NEAR(cc2State.overlap(expectedVec), 1.0, 1e-3);
+  EXPECT_NEAR(cc3State.overlap(expectedVec), 1.0, 1e-3);
 }
 #endif

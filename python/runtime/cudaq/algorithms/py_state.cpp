@@ -12,24 +12,15 @@
 #include "py_state.h"
 #include "utils/OpaqueArguments.h"
 
-#include "cudaq/algorithms/state.h"
+#include "common/Logger.h"
+#include "cudaq/algorithms/get_state.h"
 
 namespace cudaq {
 
-/// @brief Extract the state data
-void extractStateData(py::buffer_info &info, complex *data) {
-  if (info.format != py::format_descriptor<complex>::format())
-    throw std::runtime_error(
-        "Incompatible buffer format, must be np.complex128.");
-
-  if (info.ndim > 2)
-    throw std::runtime_error("Incompatible buffer shape.");
-
-  std::size_t size = info.shape[0];
-  if (info.shape.size() == 2)
-    size *= info.shape[1];
-  memcpy(data, info.ptr, sizeof(complex) * (size));
-}
+/// @brief If we have any implicit device-to-host data transfers
+/// we will store that data here and ensure it is deleted properly.
+std::vector<std::unique_ptr<void, std::function<void(void *)>>>
+    hostDataFromDevice;
 
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 state pyGetState(kernel_builder<> &kernel, py::args args) {
@@ -45,64 +36,92 @@ state pyGetState(kernel_builder<> &kernel, py::args args) {
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod) {
 
+  // A cudaq.State instance can not be constructed from Python code.
+  // It should only be constructed from an internal simulator, and that
+  // handle to the data (the cudaq.State instance) is returned to the user.
+  // State-relevant data can be generated from a cudaq.State with
+  // pertinent cudaq.State methods. (e.g. the overlap with an existing state
+  // reference). These methods should first and foremost operate on
+  // cudaq.State references. For ease of use, we also allow user-specified
+  // py::buffer_info adherent types (e.g. Numpy arrays). In the case where
+  // a py::buffer_info type is provided, care must be taken to ensure the data
+  // is made available in the right memory space (e.g. transferred from host
+  // to GPU memory). We should also allow a user to leverage GPU device memory
+  // for these types of computations, with something like CuPy.
+
   py::class_<state>(
       mod, "State", py::buffer_protocol(),
       "A data-type representing the quantum state of the internal simulator. "
       "Returns a state vector by default. If the target is set to "
-      "`density-matrix-cpu`, "
-      "a density matrix will be returned.\n")
-      .def_buffer([](state &self) -> py::buffer_info {
+      "`density-matrix-cpu`, a density matrix will be returned. This type is "
+      "not user-constructible and instances can only be retrieved via the "
+      "`cudaq.get_state(...)` function. \n")
+      .def_buffer([](const state &self) -> py::buffer_info {
+        // This method is used by Pybind to enable interoperability
+        // with NumPy array data. We therefore must be careful since the
+        // state data may actually be on GPU device.
+
+        // Get the data pointer.
+        // Data may be on GPU device, if so we must make a copy to host.
+        // If users do not want this copy, the will have to operate apart from
+        // Numpy
+        void *dataPtr = nullptr;
+        if (self.data_holder()->isDeviceData()) {
+          // This is device data, transfer to host, which gives us
+          // ownership of a new data pointer on host. Store it globally
+          // here so we ensure that it gets cleaned up.
+          hostDataFromDevice.emplace_back(
+              self.data_holder()->toHost(), [](void *data) {
+                cudaq::info("freeing data that was copied from GPU device for "
+                            "compatibility with NumPy");
+                free(data);
+              });
+          dataPtr = hostDataFromDevice.back().get();
+        } else
+          dataPtr = self.data_holder()->ptr();
+
+        // We need to know the precision of the simulation data
+        // to get the data type size and the format descriptor
+        auto precision = self.data_holder()->getPrecision();
+        auto [dataTypeSize, desc] =
+            precision == SimulationState::precision::fp32
+                ? std::make_tuple(
+                      sizeof(std::complex<float>),
+                      py::format_descriptor<std::complex<float>>::format())
+                : std::make_tuple(
+                      sizeof(std::complex<double>),
+                      py::format_descriptor<std::complex<double>>::format());
+
+        // Get the shape of the data. Return buffer info in a
+        // correctly shaped manner.
         auto shape = self.get_shape();
-        if (shape.size() != 1) {
-          return py::buffer_info(
-              self.get_data(), sizeof(std::complex<double>), /*itemsize */
-              py::format_descriptor<std::complex<double>>::format(),
-              2,                    /* ndim */
-              {shape[0], shape[1]}, /* shape */
-              {sizeof(std::complex<double>) * shape[1],
-               sizeof(std::complex<double>)}, /* strides */
-              true                            /* readonly */
+        if (shape.size() != 1)
+          return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
+                                 desc, 2,               /* ndim */
+                                 {shape[0], shape[1]},  /* shape */
+                                 {dataTypeSize * static_cast<ssize_t>(shape[1]),
+                                  dataTypeSize}, /* strides */
+                                 true            /* readonly */
           );
-        }
-        return py::buffer_info(
-            self.get_data(), sizeof(std::complex<double>), /*itemsize */
-            py::format_descriptor<std::complex<double>>::format(), 1, /* ndim */
-            {shape[0]}, /* shape */
-            {sizeof(std::complex<double>)});
+
+        return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
+                               desc, 1,               /* ndim */
+                               {shape[0]},            /* shape */
+                               {dataTypeSize});
       })
-      .def(py::init([](const py::buffer &b) {
-             py::buffer_info info = b.request();
-             std::vector<std::size_t> shape;
-             for (auto s : info.shape)
-               shape.push_back(s);
-             std::size_t size = shape[0];
-             if (shape.size() == 2)
-               size *= shape[1];
-             std::vector<complex> v(size);
-             extractStateData(info, v.data());
-             auto t = std::make_tuple(shape, v);
-             return state(t);
-           }),
-           R"#(Construct the :class:`State` from an existing array of data.
+      .def(
+          "device_ptr",
+          [](state &self) {
+            if (!self.data_holder()->isDeviceData())
+              PyErr_WarnEx(PyExc_RuntimeWarning,
+                           "[cudaq warning] device pointer requested on state "
+                           "vector in host memory. Returning host pointer, do "
+                           "not pass to GPU library like cuPy.",
+                           1);
 
-Note:
-  The underlying data-type within the array must be `np.complex128`.
-
-.. code-block:: python
-
-  # Example:
-  import numpy as np
-  
-  # Define a simple state vector.
-  numpy_vector = np.array([0,1], dtype=np.complex128)
-  # Initialize a `cudaq.State` from the numpy array.
-  # In this case, the `State` will represent a state vector.
-  state_vector = cudaq.State(numpy_vector)
-  
-  # Define a simple density matrix.
-  numpy_matrix = np.array([[0,1],[1,0]], dtype=np.complex128)
-  # Return a `cudaq.State` for this density matrix.
-  density_matrix = cudaq.State(numpy_matrix))#")
+            return reinterpret_cast<intptr_t>(self.data_holder()->ptr());
+          },
+          "Return the GPU device pointer for this `cudaq.State` instance data.")
       .def(
           "__getitem__", [](state &s, std::size_t idx) { return s[idx]; },
           R"#(Return the `index`-th element of the state vector.
@@ -150,7 +169,8 @@ index pair.
              return ss.str();
            })
       .def(
-          "overlap", [](state &s, state &other) { return s.overlap(other); },
+          "overlap",
+          [](state &self, state &other) { return self.overlap(other); },
           "Compute the overlap between the provided :class:`State`'s.")
       .def(
           "overlap",
@@ -162,13 +182,51 @@ index pair.
             std::size_t size = shape[0];
             if (shape.size() == 2)
               size *= shape[1];
-            std::vector<complex> v(size);
-            extractStateData(info, v.data());
-            auto t = std::make_tuple(shape, v);
-            state ss(t);
-            return self.overlap(ss);
+
+            if (self.get_shape() != shape)
+              throw std::runtime_error(
+                  "overlap error - invalid shape of input buffer.");
+
+            return self.overlap(reinterpret_cast<complex *>(info.ptr));
           },
-          "Compute the overlap between the provided :class:`State`'s.");
+          "Compute the overlap between the provided :class:`State`'s.")
+      .def("overlap", [](state &self, py::object other) {
+        // Make sure this is a CuPy array
+        if (!py::hasattr(other, "data"))
+          throw std::runtime_error("invalid overlap operation on py::object - "
+                                   "only cupy array supported.");
+        auto data = other.attr("data");
+        if (!py::hasattr(data, "ptr"))
+          throw std::runtime_error("invalid overlap operation on py::object - "
+                                   "only cupy array supported.");
+
+        // This is a cupy device pointer.
+
+        // Start by ensuring it is of complex type
+        auto typeStr = py::str(other.attr("dtype")).cast<std::string>();
+        if (typeStr == "float64")
+          throw std::runtime_error(
+              "float64 cupy array passed to state.overlap. input must be of "
+              "complex type, please add to your cupy array creation "
+              "`dtype=cupy.complex64` if simulation "
+              "is FP32 and `dtype=cupy.complex128` if simulation if FP64.");
+        auto precision = self.data_holder()->getPrecision();
+        if (typeStr == "complex64") {
+          if (precision == cudaq::SimulationState::precision::fp64)
+            throw std::runtime_error("underying simulation state is FP64, but "
+                                     "input cupy array is FP32.");
+        } else if (typeStr == "complex128") {
+          if (precision == cudaq::SimulationState::precision::fp32)
+            throw std::runtime_error("underying simulation state is FP32, but "
+                                     "input cupy array is FP64.");
+        } else
+          throw std::runtime_error("invalid cupy element type " + typeStr);
+
+        // Cast the device ptr and perform the overlap
+        long ptr = data.attr("ptr").cast<long>();
+        void *casted = reinterpret_cast<void *>(ptr);
+        return self.overlap(casted);
+      });
 
   mod.def(
       "get_state",

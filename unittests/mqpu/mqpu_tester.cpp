@@ -7,7 +7,6 @@
  ******************************************************************************/
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
-#include <cudaq/algorithms/state.h>
 #include <gtest/gtest.h>
 #include <random>
 
