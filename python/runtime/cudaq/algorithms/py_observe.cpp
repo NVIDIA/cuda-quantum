@@ -27,15 +27,6 @@ enum class PyParType { thread, mpi };
 /// @brief Default qpu id value set to 0
 constexpr int defaultQpuIdValue = 0;
 
-/// @brief Global cache map of OpaqueArguments
-///
-/// For asynchronous execution, we need to construct OpaqueArguments
-/// outside of the async lambda invocation. If we don't, then we will be
-/// using Python types outside of the current GIL context. Bad things happen
-/// then.
-std::unordered_map<std::size_t, std::unique_ptr<OpaqueArguments>>
-    asyncArgsHolder;
-
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
 observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
                          py::args args, int shots,
@@ -73,37 +64,33 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
 
   // Ensure the user input is correct.
   auto validatedArgs = validateInputArguments(kernel, args);
-  std::hash<std::string> hasher;
-
-  // Create a unique integer key that combines the kernel name
-  // and the validated args.
-  std::size_t uniqueHash = hasher(kernel.name()) + hasher(py::str(args));
-
-  // Add the opaque args to the holder and pack the args into it.
-  // Note: this pyObserveAsync is executed in a loop (over spin_operator slices)
-  // on the main Python thread, while posting functors to other threads
-  // (runObservationAsync below). These functors are expected to operate on the
-  // same (kernel + params) configuration, hence, making sure that we don't
-  // overwrite asyncArgsHolder while running the spin_operator slicing loop
-  // (this pyObserveAsync function).
-  if (asyncArgsHolder.find(uniqueHash) == asyncArgsHolder.end()) {
-    asyncArgsHolder.emplace(uniqueHash, std::make_unique<OpaqueArguments>());
-    packArgs(*asyncArgsHolder.at(uniqueHash).get(), validatedArgs);
-  }
 
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
+
+  // JIT the code
   kernel.jitCode();
+
+  // Get the kernel name
   auto name = kernel.name();
+
   // Get the platform, first check that the given qpu_id is valid
   auto &platform = cudaq::get_platform();
+  if (qpu_id >= platform.num_qpus())
+    throw std::runtime_error(
+        fmt::format("[observe_async] invalid qpu_id (num_qpus={}, qpu_id={})",
+                    platform.num_qpus(), qpu_id));
 
-  // Launch the asynchronous execution.
+  // Create the argument holder and pack the runtime arguments
+  auto argsHolder = std::make_unique<OpaqueArguments>();
+  packArgs(*argsHolder, validatedArgs);
+
+  // Launch the asynchronous task.
   return details::runObservationAsync(
-      [&kernel, uniqueHash]() mutable {
-        auto &argData = asyncArgsHolder.at(uniqueHash);
-        kernel.jitAndInvoke(argData->data());
-      },
+      detail::make_copyable_function(
+          [&kernel, argData = std::move(argsHolder)]() mutable {
+            kernel.jitAndInvoke(argData->data());
+          }),
       spin_operator, platform, shots, name, qpu_id);
 }
 
