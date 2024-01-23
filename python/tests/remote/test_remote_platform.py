@@ -9,24 +9,10 @@ import pytest
 import os, math
 import cudaq
 
-
-def has_rest_server():
-    try:
-        import subprocess
-        subprocess.check_output(["which", "cudaq-qpud"])
-        return True
-    except:
-        return False
-
-
-skipIfNoRestServer = pytest.mark.skipif(not (has_rest_server()),
-                                        reason="cudaq-qpud not available")
-
 num_qpus = 3
 
 
 @pytest.fixture(scope="session", autouse=True)
-@skipIfNoRestServer
 def startUpMockServer():
     cudaq.set_target("remote-mqpu",
                      remote_execution=True,
@@ -35,14 +21,12 @@ def startUpMockServer():
     cudaq.reset_target()
 
 
-@skipIfNoRestServer
 def test_setup():
     target = cudaq.get_target()
     numQpus = target.num_qpus()
     assert numQpus == num_qpus
 
 
-@skipIfNoRestServer
 def test_sample():
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
@@ -64,7 +48,6 @@ def test_sample():
     assert "11" in counts
 
 
-@skipIfNoRestServer
 def test_observe():
     # Create the parameterized ansatz
     kernel, theta = cudaq.make_kernel(float)
@@ -89,7 +72,6 @@ def test_observe():
     assert abs(res.expectation() - expected_energy) < energy_tol
 
 
-@skipIfNoRestServer
 def test_multi_qpus():
     # Create the parameterized ansatz
     kernel, theta = cudaq.make_kernel(float)
