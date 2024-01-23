@@ -100,7 +100,7 @@ inline void to_json(json &j, const ExecutionContext &context) {
     j["simulationData"]["dim"] = std::vector<std::size_t>{};
     j["simulationData"]["data"] = std::vector<std::complex<double>>{};
   }
-  
+
   if (context.spin.has_value() && context.spin.value() != nullptr) {
     const std::vector<double> spinOpRepr =
         context.spin.value()->getDataRepresentation();
