@@ -82,19 +82,25 @@ inline void to_json(json &j, const ExecutionContext &context) {
   if (context.expectationValue.has_value()) {
     j["expectationValue"] = context.expectationValue.value();
   }
-  j["simulationState"] = json();
-  j["simulationState"]["dim"] = context.simulationState->getDataShape();
-  std::complex<double> *hostPtr = nullptr;
-  if (context.simulationState->isDeviceData())
-    hostPtr = reinterpret_cast<std::complex<double> *>(
-        context.simulationState->toHost());
-  else
-    hostPtr = reinterpret_cast<std::complex<double> *>(
-        context.simulationState->ptr());
 
-  j["simulationState"]["data"] = std::vector<std::complex<double>>(
-      hostPtr, hostPtr + context.simulationState->getNumElements());
+  j["simulationData"] = json();
+  if (context.simulationState) {
+    j["simulationData"]["dim"] = context.simulationState->getDataShape();
+    std::complex<double> *hostPtr = nullptr;
+    if (context.simulationState->isDeviceData())
+      hostPtr = reinterpret_cast<std::complex<double> *>(
+          context.simulationState->toHost());
+    else
+      hostPtr = reinterpret_cast<std::complex<double> *>(
+          context.simulationState->ptr());
 
+    j["simulationData"]["data"] = std::vector<std::complex<double>>(
+        hostPtr, hostPtr + context.simulationState->getNumElements());
+  } else {
+    j["simulationData"]["dim"] = std::vector<std::size_t>{};
+    j["simulationData"]["data"] = std::vector<std::complex<double>>{};
+  }
+  
   if (context.spin.has_value() && context.spin.value() != nullptr) {
     const std::vector<double> spinOpRepr =
         context.spin.value()->getDataRepresentation();
