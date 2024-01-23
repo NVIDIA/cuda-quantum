@@ -635,7 +635,7 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.release_info.outputs.platform_arch }}-wheels
+          name: ${{ steps.release_info.outputs.platform_arch }}-py${{ matrix.python_version }}-wheels
           path: /tmp/wheels
           retention-days: 1
           if-no-files-found: error
