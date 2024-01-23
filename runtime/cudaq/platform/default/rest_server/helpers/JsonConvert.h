@@ -144,8 +144,10 @@ inline void from_json(const json &j, ExecutionContext &context) {
     j["simulationData"]["data"].get_to(stateData);
 
     // Create the simulation specific SimulationState
-    context.simulationState =
-        cudaq::get_simulator()->createSimulationState(stateDim, stateData);
+    // FIXME no simulator available client-side for creating
+    // this SimulationState instance.
+    // context.simulationState =
+    //     cudaq::get_simulator()->createSimulationState(stateDim, stateData);
   }
 
   if (j.contains("registerNames"))
