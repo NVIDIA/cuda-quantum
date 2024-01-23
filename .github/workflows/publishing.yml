@@ -470,8 +470,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.assets.outputs.github_commit }}
 
       - name: Load build assets
         uses: actions/download-artifact@v4
