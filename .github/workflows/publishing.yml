@@ -717,6 +717,7 @@ jobs:
             'dnf-command(config-manager)' gcc-toolset-12
           enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
           . "$enable_script"
+          echo "working dir: $(pwd)" && ls -l && ls -l scripts
           . scripts/configure_build install-cudart
 
       - name: Install and run sanity checks
