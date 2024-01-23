@@ -27,15 +27,6 @@ enum class PyParType { thread, mpi };
 /// @brief Default qpu id value set to 0
 constexpr int defaultQpuIdValue = 0;
 
-/// @brief Global cache map of OpaqueArguments
-///
-/// For asynchronous execution, we need to construct OpaqueArguments
-/// outside of the async lambda invocation. If we don't, then we will be
-/// using Python types outside of the current GIL context. Bad things happen
-/// then.
-std::unordered_map<std::size_t, std::unique_ptr<OpaqueArguments>>
-    asyncArgsHolder;
-
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
 observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
                          py::args args, int shots,
