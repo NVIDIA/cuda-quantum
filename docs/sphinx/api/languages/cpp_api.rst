@@ -51,7 +51,7 @@ Common
 .. doxygenclass:: cudaq::sample_result
     :members:
 
-.. doxygentypedef:: cudaq::SimulationState
+.. doxygenclass:: cudaq::SimulationState
 
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:
