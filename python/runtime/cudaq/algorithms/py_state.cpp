@@ -176,16 +176,10 @@ index pair.
           "overlap",
           [](state &self, py::buffer &other) {
             py::buffer_info info = other.request();
-            std::vector<std::size_t> shape;
-            for (auto s : info.shape)
-              shape.push_back(s);
-            std::size_t size = shape[0];
-            if (shape.size() == 2)
-              size *= shape[1];
-
-            if (self.get_shape() != shape)
-              throw std::runtime_error(
-                  "overlap error - invalid shape of input buffer.");
+            for (std::size_t i = 0; auto shapeElement : info.shape)
+              if (shapeElement != self.get_shape()[i++])
+                throw std::runtime_error(
+                    "overlap error - invalid shape of input buffer.");
 
             return self.overlap(reinterpret_cast<complex *>(info.ptr));
           },
