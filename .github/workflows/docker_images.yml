@@ -612,6 +612,7 @@ jobs:
     runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -722,6 +723,9 @@ jobs:
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ${{ needs.metadata.outputs.runner }}
+    permissions:
+      contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -765,7 +769,7 @@ jobs:
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.
-          (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && bash validate_container.sh" > /tmp/validation.out) && passed=true || passed=false
+          (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && bash validate_container.sh" | tee /tmp/validation.out) && passed=true || passed=false
           docker stop cuda-quantum
 
           if ! $passed; then 
