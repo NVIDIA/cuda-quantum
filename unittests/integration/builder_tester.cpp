@@ -1221,6 +1221,25 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
 
 #ifndef CUDAQ_BACKEND_DM
 
+// FIXME Get other backends updated to support this
+// TEST(BuilderTester, checkFromStateVector) {
+//   {
+//     std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+//     auto kernel = cudaq::make_kernel();
+//     auto qubits = kernel.qalloc(vec);
+//     std::cout << kernel << "\n";
+//     auto counts = cudaq::sample(kernel);
+//     counts.dump();
+//     EXPECT_EQ(counts.size(), 2);
+//     std::size_t counter = 0;
+//     for (auto &[k, v] : counts) {
+//       counter += v;
+//       EXPECT_TRUE(k == "00" || k == "11");
+//     }
+//     EXPECT_EQ(counter, 1000);
+//   }
+// }
+
 CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
   auto kernel = cudaq::make_kernel();
   auto q = kernel.qalloc(2);
