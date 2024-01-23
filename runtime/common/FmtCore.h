@@ -17,7 +17,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
-/// @brief Provide a custom formatter for complex data types
+/// @brief Provide a custom format tool for complex data types
 template <>
 struct fmt::formatter<std::complex<double>> {
   template <typename ParseContext>
