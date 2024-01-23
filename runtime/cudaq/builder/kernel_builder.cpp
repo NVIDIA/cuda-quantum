@@ -874,10 +874,11 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
   pm.addPass(cudaq::opt::createGenerateKernelExecution());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  // We want quantum allocations to stay where they are if we are simulating and
-  // have user-provided state vectors. This check could be better / smarter
-  // probably, in tandem with some synth strategy to rewrite initState with
-  // circuit synthesis result
+  // We want quantum allocations to stay where they are if
+  // we are simulating and have user-provided state vectors.
+  // This check could be better / smarter probably, in tandem
+  // with some synth strategy to rewrite initState with circuit
+  // synthesis result
   if (stateVectorStorage.empty())
     optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
@@ -972,8 +973,8 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
 
-  // If we have any state vector data, we need to extract the function pointer
-  // to set that data, and then set it.
+  // If we have any state vector data, we need to
+  // extract the function pointer to set that data, and then set it.
   for (auto &[stateHash, data] : storage) {
     auto setStateFPtr =
         jit->lookup("nvqpp.set.state." + std::to_string(stateHash));
@@ -985,8 +986,8 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     setStateFunc(data);
   }
 
-  // Incoming Args... have been converted to void **, now we convert to void *
-  // altLaunchKernel args.
+  // Incoming Args... have been converted to void **,
+  // now we convert to void * altLaunchKernel args.
   auto argCreatorName = properName + ".argsCreator";
   auto expectedPtr = jit->lookup(argCreatorName);
   if (!expectedPtr) {
@@ -1019,11 +1020,11 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
   auto parentFunc = block->getParentOp();
   auto module = parentFunc->getParentOfType<ModuleOp>();
 
-  // Strategy - we want to clone this ModuleOp because we have to add a valid
-  // terminator (func.return), but it is not gauranteed that the programmer is
-  // done building up the kernel even though they've asked to look at the quake
-  // code. So we'll clone here, and add the return op (we have to or the print
-  // out string will be invalid (verifier failed)).
+  // Strategy - we want to clone this ModuleOp because we have to
+  // add a valid terminator (func.return), but it is not gauranteed that
+  // the programmer is done building up the kernel even though they've asked
+  // to look at the quake code. So we'll clone here, and add the return op
+  // (we have to or the print out string will be invalid (verifier failed)).
   auto clonedModule = module.clone();
 
   func::FuncOp unwrappedParentFunc = llvm::cast<func::FuncOp>(parentFunc);
