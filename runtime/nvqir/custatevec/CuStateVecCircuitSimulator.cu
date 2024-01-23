@@ -548,37 +548,9 @@ public:
       return cudaq::State{{stateDimension}, {}};
 
     std::vector<std::complex<ScalarType>> tmp(stateDimension);
-    // Use custatevec accessor to retrieve the view
-    custatevecAccessorDescriptor_t accessor;
-    const uint32_t nIndexBits = std::log2(stateDimension);
-    std::vector<int32_t> bitOrdering(nIndexBits);
-    std::iota(std::begin(bitOrdering), std::end(bitOrdering), 0);
-    std::size_t extraWorkspaceSizeInBytes = 0;
-    // create accessor view
-    HANDLE_ERROR(custatevecAccessorCreateView(
-        handle, deviceStateVector, cuStateVecCudaDataType, nIndexBits,
-        &accessor, bitOrdering.data(), bitOrdering.size(),
-        /*maskBitString*/ nullptr, /*maskOrdering*/ nullptr,
-        /*maskLen*/ 0, &extraWorkspaceSizeInBytes));
-    // allocate external workspace if necessary
-    void *extraWorkspace = nullptr;
-    if (extraWorkspaceSizeInBytes > 0)
-      HANDLE_CUDA_ERROR(cudaMalloc(&extraWorkspace, extraWorkspaceSizeInBytes));
-
-    // set external workspace
-    HANDLE_ERROR(custatevecAccessorSetExtraWorkspace(
-        handle, accessor, extraWorkspace, extraWorkspaceSizeInBytes));
-
-    // get all state vector components: [0, stateDimension)
-    HANDLE_ERROR(custatevecAccessorGet(handle, accessor, tmp.data(),
-                                       /*begin*/ 0,
-                                       /*end*/
-                                       stateDimension));
-    // destroy descriptor
-    HANDLE_ERROR(custatevecAccessorDestroy(accessor));
-    // free extra workspace if allocated
-    if (extraWorkspaceSizeInBytes > 0)
-      HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
+    cudaMemcpy(tmp.data(), deviceStateVector,
+               stateDimension * sizeof(std::complex<ScalarType>),
+               cudaMemcpyDeviceToHost);
 
     if constexpr (std::is_same_v<ScalarType, float>) {
       std::vector<std::complex<double>> data;
