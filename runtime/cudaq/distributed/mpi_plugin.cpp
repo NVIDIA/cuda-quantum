@@ -23,6 +23,13 @@ namespace {
 } // namespace
 
 namespace cudaq {
+bool MPIPlugin::isValidInterfaceLib(
+    const std::string &distributedInterfaceLib) {
+  const bool dlOpenOk =
+      dlopen(distributedInterfaceLib.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  return dlOpenOk;
+}
+
 MPIPlugin::MPIPlugin(const std::string &distributedInterfaceLib) {
   if (!dlopen(distributedInterfaceLib.c_str(), RTLD_GLOBAL | RTLD_NOW)) {
     const std::string errorMsg(dlerror());
