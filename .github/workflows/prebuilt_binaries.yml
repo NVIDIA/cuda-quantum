@@ -323,15 +323,42 @@ jobs:
             exit 1
           fi
 
-      - name: MPI validation
+      - name: Additional validation (MPI and uninstall)
         uses: ./.github/actions/run-in-docker
         with:
           image: validation:local
           user: cudaq
           shell: bash -l
           run: |
+            # Uninstall CUDA Quantum
+            install_dir="$CUDA_QUANTUM_PATH"
+            sudo bash ${CUDA_QUANTUM_PATH}/uninstall.sh -y
+            llvm_dir=`bash -c 'source configure_build.sh && echo $LLVM_INSTALL_PREFIX'`
+            cuquantum_dir=`bash -c 'source configure_build.sh && echo $CUQUANTUM_INSTALL_PREFIX'`
+            cutensor_dir=`bash -c 'source configure_build.sh && echo $CUTENSOR_INSTALL_PREFIX'`
+            if [ -d "$llvm_dir" ] || [ -d "$cuquantum_dir" ] || [ -d "$cutensor_dir" ] ||  [ -d "$CUDA_QUANTUM_PATH" ]; then
+              echo "::error::Some CUDA Quantum artifacts still exist after uninstalling."
+              exit 100
+            fi
+
+            unset CUDA_QUANTUM_PATH && PATH=$(getconf PATH) && . /etc/profile
+            if [ -n "$(bash -lc "echo $CUDA_QUANTUM_PATH")" ] || [ -n "$(bash -lc "echo $PATH | grep $install_dir")" ]; then 
+              echo "::error::CUDA Quantum related settings are still contained in shell profile."
+              exit 101
+            fi
+
+            # Re-install CUDA Quantum
+            MPI_PATH=/usr/local/openmpi \
+            sudo -E bash install_cuda_quantum.* --accept | tee install_log.txt
+            if [ -n "$(cat install_log.txt | grep -i warning)" ]; then
+              echo "::error::Re-installation produced a warning. Check the log for more detail."
+              exit 102
+            fi
+
+            . /etc/profile
             set +e # Allow script to keep going through errors
             sudo bash /install_sshclient.sh
+            status_sum=0
 
             if ${{ contains(matrix.os_image, 'redhat' ) }}; then
               sudo dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-12
@@ -364,6 +391,29 @@ jobs:
                 status_sum=$((status_sum+1))
               fi
             done
+            
+            # Execute simple remote simulator tests with the installer 
+            # because this target was skipped in validate.sh due to 
+            # incomplete MPI installation (need install_sshclient.sh).
+            for ex in `find examples/other/remote_sim/ -name '*.cpp'`; do
+              nvq++ --target remote-mqpu $ex
+              status=$?
+              filename=$(basename -- "$ex")
+              if [ $status -eq 0 ]; then
+                ./a.out
+                status=$?
+                if [ $status -eq 0 ]; then
+                  echo "Successfully ran $filename."
+                else
+                  echo "Failed to execute $filename."
+                  status_sum=$((status_sum+1))
+                fi
+              else
+                echo "Compilation failed for $filename."
+                status_sum=$((status_sum+1))
+              fi
+            done
+
             set -e # Re-enable exit code error checking
             if [ ! $status_sum -eq 0 ]; then
               echo "::error::$status_sum examples failed; see the log for more detail."

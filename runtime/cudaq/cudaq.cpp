@@ -116,6 +116,11 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
   return g_plugin.get();
 };
 
+bool available() {
+  auto *commPlugin = getMpiPlugin(/*unsafe=*/true);
+  return commPlugin != nullptr;
+}
+
 void initialize() {
   auto *commPlugin = getMpiPlugin();
   commPlugin->initialize();

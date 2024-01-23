@@ -617,6 +617,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
         uses: docker/login-action@v3
@@ -720,6 +727,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
         uses: docker/login-action@v3
@@ -749,7 +763,9 @@ jobs:
 
           docker run --rm -dit --name cuda-quantum $cudaq_image
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
-          (docker exec cuda-quantum bash validate_container.sh > /tmp/validation.out) && passed=true || passed=false
+          # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
+          # Hence, don't enforce UCX when running these tests.
+          (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && bash validate_container.sh" > /tmp/validation.out) && passed=true || passed=false
           docker stop cuda-quantum
 
           if ! $passed; then 

@@ -31,45 +31,9 @@ FROM additional_components_${additional_components} as assets
 RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
     cd /makeself && git checkout release-2.5.0
 
-## [Installation Scripts]
-RUN cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
-    # Note: Generally, the idea is to set the necessary environment variables
-    # to make CUDA Quantum discoverable in login shells and for all users. 
-    # Non-login shells should inherit them from the original login shell. 
-    # If we cannot modify /etc/profile, we instead modify ~/.bashrc, which 
-    # is always executed by all interactive non-login shells.
-    # The reason for this is that bash is a bit particular when it comes to user
-    # level profiles for login-shells in the sense that there isn't one specific
-    # file that is guaranteed to execute; it first looks for .bash_profile, 
-    # then for .bash_login and .profile, and *only* the first file it finds is 
-    # executed. Hence, the reliable and non-disruptive way to configure 
-    # environment variables at the user level is to instead edit .bashrc.
-    echo -e '\n\n\
-    . "${CUDA_QUANTUM_PATH}/set_env.sh" \n\
-    if [ -f /etc/profile ] && [ -w /etc/profile ]; then \n\
-        echo "Configuring CUDA Quantum environment variables in /etc/profile." \n\
-        sed "/^\s*\(#\|$\)/d" "${CUDA_QUANTUM_PATH}/set_env.sh" | sed "/^CUDAQ_INSTALL_PATH=.*/ s@@CUDAQ_INSTALL_PATH=${CUDA_QUANTUM_PATH}@" >> /etc/profile \n\
-    else \n\
-        echo "Configuring CUDA Quantum environment variables in ~/.bashrc." \n\
-        sed "/^\s*\(#\|$\)/d" "${CUDA_QUANTUM_PATH}/set_env.sh" | sed "/^CUDAQ_INSTALL_PATH=.*/ s@@CUDAQ_INSTALL_PATH=${CUDA_QUANTUM_PATH}@" >> ~/.bashrc \n\
-    fi \n\
-    if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then \n\
-        echo "Configuring CUDA Quantum environment variables in /etc/zprofile." \n\
-        sed "/^\s*\(#\|$\)/d" "${CUDA_QUANTUM_PATH}/set_env.sh" | sed "/^CUDAQ_INSTALL_PATH=.*/ s@@CUDAQ_INSTALL_PATH=${CUDA_QUANTUM_PATH}@" >> /etc/zprofile \n\
-    fi \n\n\
-    if [ -d "${MPI_PATH}" ] && [ -n "$(ls -A "${MPI_PATH}"/* 2> /dev/null)" ] && [ -x "$(command -v "${CUDA_QUANTUM_PATH}/bin/nvq++")" ]; then \n\
-        plugin_path="${CUDA_QUANTUM_PATH}/distributed_interfaces" \n\
-        bash "${plugin_path}/activate_custom_mpi.sh" || true \n\
-        if [ -f "$plugin_path/libcudaq_distributed_interface_mpi.so" ]; then \n\
-            chmod a+rX "$plugin_path/libcudaq_distributed_interface_mpi.so" \n\
-        else \n\
-            echo -e "\e[01;31mError: Failed to build MPI plugin.\e[0m" >&2 \n\
-            echo -e "\e[01;31mPlease make sure the necessary libraries and header files are discoverable and then build the plugin by running the script `${plugin_path}/activate_custom_mpi.sh`.\e[0m" >&2 \n\
-        fi \n\
-    fi \n' >> install.sh
-
 ## [Content]
 RUN source /cuda-quantum/scripts/configure_build.sh && \
+    cp /cuda-quantum/scripts/migrate_assets.sh install.sh && \
     chmod a+x install.sh "${CUDAQ_INSTALL_PREFIX}/set_env.sh" && \
     mkdir cuda_quantum_assets && mv install.sh cuda_quantum_assets/install.sh && \
     ## [>CUDAQuantumAssets]
@@ -86,7 +50,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     ## [<CUDAQuantumAssets]
 
 ## [Self-extracting Archive]
-RUN bash /makeself/makeself.sh --gzip --license /cuda-quantum/LICENSE \
+RUN bash /makeself/makeself.sh --gzip --sha256 --license /cuda-quantum/LICENSE \
         /cuda_quantum_assets install_cuda_quantum.$(uname -m) \
         "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
         bash install.sh -t /opt/nvidia/cudaq
