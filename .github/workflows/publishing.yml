@@ -177,9 +177,8 @@ jobs:
             create_assets $file cuda-quantum-wheeldeps-image cuda-quantum-devdeps '${{ steps.artifacts.outputs.python_wheels }}'
           done
 
-          # FIXME: should be cuda-quantum-assets-image
           for file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
-            create_assets $file cuda-quantum-installer-image cuda-quantum-assets '${{ steps.artifacts.outputs.installers }}'
+            create_assets $file cuda-quantum-assets-image cuda-quantum-assets '${{ steps.artifacts.outputs.installers }}'
           done
 
       - name: Wait for assets
@@ -487,7 +486,7 @@ jobs:
           platform=`cat $build_info | grep -o 'platform: \S*' | cut -d ' ' -f 2`
           platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
           platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
-          assets_image=`cat $build_info | grep -o 'cuda-quantum-installer-image: \S*' | cut -d ' ' -f 2`
+          assets_image=`cat $build_info | grep -o 'cuda-quantum-assets-image: \S*' | cut -d ' ' -f 2`
           platform_base_image=`cat $build_info | grep -o 'platform-base-image: \S*' | cut -d ' ' -f 2`
           openmpi_buildcache=`cat $build_info | grep -o 'openmpi-build-cache: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
@@ -741,6 +740,9 @@ jobs:
     name: Docker image validation
     needs: config
     runs-on: linux-amd64-gpu-v100-latest-1
+    permissions:
+      contents: read
+      packages: read
 
     strategy:
       matrix:
