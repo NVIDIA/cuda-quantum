@@ -292,6 +292,19 @@ jobs:
           ref: ${{ needs.assets.outputs.github_commit }}
           token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Load docker assets
         uses: actions/download-artifact@v4
         with:
@@ -338,12 +351,6 @@ jobs:
           echo "assets_folder=$assets_folder" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-
-      - name: Log in to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to default registry
         if: steps.release_info.outputs.push_to_ngc != 'true'
@@ -479,7 +486,7 @@ jobs:
         id: release_info
         run: |
           release_id=${{ fromJson(needs.assets.outputs.installers)[format('{0}', matrix.info_file)].release_id }}
-          assets_folder=appppppssets && mkdir "$assets_folder" && cd "$assets_folder"
+          assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
           cp -r /tmp/assets/${{ matrix.info_file }}/. "$(pwd)"
 
           build_info=${{ matrix.info_file }}*
