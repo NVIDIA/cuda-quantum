@@ -721,15 +721,13 @@ jobs:
           . "$enable_script"
           . scripts/configure_build.sh install-cudart
 
-      # TODO: Add nvidia-mgpu to the arguments for validate_container.sh
-      # (Currently missing an rpath, since it is not finding libcustatevec.so.1)
       - name: Install and run sanity checks
         shell: bash
         run: |
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
-          bash -l scripts/validate_container.sh nvidia tensornet | tee /tmp/validation.out
+          bash -l scripts/validate_container.sh nvidia nvidia-mgpu tensornet tensornet-mps | tee /tmp/validation.out
 
       - name: Create summary
         if: always() && !cancelled()
