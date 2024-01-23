@@ -722,8 +722,8 @@ jobs:
       - name: Install and run sanity checks
         shell: bash
         run: |
-          whoami && ls -l /tmp/install/
-          source /tmp/install/install_cuda_quantum.* --accept
+          chmod +x /tmp/install/install_cuda_quantum.*
+          /tmp/install/install_cuda_quantum.* --accept
           bash validate_container.sh nvidia nvidia-mgpu tensornet > /tmp/validation.out
 
       - name: Create summary
