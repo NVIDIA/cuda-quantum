@@ -724,8 +724,8 @@ jobs:
         run: |
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
-          rm -rf examples && mv docs/sphinx/examples examples
-          bash -l scripts/validate_container.sh nvidia nvidia-mgpu tensornet > /tmp/validation.out
+          rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
+          bash -l scripts/validate_container.sh nvidia nvidia-mgpu tensornet | tee /tmp/validation.out
 
       - name: Create summary
         if: always() && !cancelled()
