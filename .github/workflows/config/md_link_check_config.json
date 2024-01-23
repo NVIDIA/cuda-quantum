@@ -20,9 +20,6 @@
       },
       {
         "pattern": "^https://vscode.dev/"
-      },
-      {
-        "pattern": "openapi.html"
       }
     ]
 }

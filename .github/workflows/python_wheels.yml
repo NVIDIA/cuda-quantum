@@ -267,7 +267,7 @@ jobs:
                   # Replace Python version
                   line=${line//3.10/$python_version}
                   # Install the wheel file
-                  line=${line//pip install cuda-quantum/pip install /tmp/cuda_quantum-*-manylinux_*_$(uname -m).whl}
+                  line=${line//pip install cuda-quantum/pip install /tmp/cuda_quantum-0.0.0-*-manylinux_*_$(uname -m).whl}
                   eval "$line"
               fi
             done <<< "$conda_script"
@@ -287,8 +287,6 @@ jobs:
       - name: Validate Python examples
         run: |
           docker run --rm -dit --name wheel-validation wheel_validation:local
-          status_sum=0
-
           for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/providers/*'`; do
             file="${ex#docs/sphinx/examples/python/}"
             echo "__Example ${file}:__" >> /tmp/validation.out

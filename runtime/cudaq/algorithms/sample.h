@@ -9,7 +9,6 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/KernelWrapper.h"
 #include "common/MeasureCounts.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
@@ -220,18 +219,14 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
 #if CUDAQ_USE_STD20
   return details::runSampling(
              [&kernel, ... args = std::forward<Args>(args)]() mutable {
-               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                   std::forward<Args>(args)...);
+               kernel(std::forward<Args>(args)...);
              },
              platform, kernelName, shots)
       .value();
 #else
   return details::runSampling(
-             [&]() mutable {
-               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                   std::forward<Args>(args)...);
-             },
-             platform, kernelName, shots)
+             [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+             kernelName, shots)
       .value();
 #endif
 }
@@ -270,18 +265,14 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
 #if CUDAQ_USE_STD20
   return details::runSampling(
              [&kernel, ... args = std::forward<Args>(args)]() mutable {
-               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                   std::forward<Args>(args)...);
+               kernel(std::forward<Args>(args)...);
              },
              platform, kernelName, shots)
       .value();
 #else
   return details::runSampling(
-             [&]() mutable {
-               cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                   std::forward<Args>(args)...);
-             },
-             platform, kernelName, shots)
+             [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+             kernelName, shots)
       .value();
 #endif
 }
@@ -323,17 +314,13 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
 #if CUDAQ_USE_STD20
   auto ret = details::runSampling(
                  [&kernel, ... args = std::forward<Args>(args)]() mutable {
-                   cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                       std::forward<Args>(args)...);
+                   kernel(std::forward<Args>(args)...);
                  },
                  platform, kernelName, shots)
                  .value();
 #else
   auto ret = details::runSampling(
-                 [&]() mutable {
-                   cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                       std::forward<Args>(args)...);
-                 },
+                 [&]() mutable { kernel(std::forward<Args>(args)...); },
                  platform, kernelName, shots)
                  .value();
 #endif
@@ -379,8 +366,7 @@ async_sample_result sample_async(const std::size_t qpu_id,
 #if CUDAQ_USE_STD20
   return details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                            std::forward<Args>(args)...);
+        kernel(std::forward<Args>(args)...);
       },
       platform, kernelName, shots, qpu_id);
 #else
@@ -431,8 +417,7 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
 #if CUDAQ_USE_STD20
   return details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                            std::forward<Args>(args)...);
+        kernel(std::forward<Args>(args)...);
       },
       platform, kernelName, shots, qpu_id);
 #else

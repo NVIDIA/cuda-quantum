@@ -45,8 +45,8 @@ jobs:
         run: |
           platforms="{}"
           for platform_id in amd64 arm64; do
-            if [ "$platform_id" == "amd64" ]; then minimal_base_image=ghcr.io/nvidia/amd64/almalinux:8
-            elif [ "$platform_id" == "arm64" ]; then minimal_base_image=ghcr.io/nvidia/arm64v8/almalinux:8
+            if [ "$platform_id" == "amd64" ]; then minimal_base_image=amd64/almalinux:8
+            elif [ "$platform_id" == "arm64" ]; then minimal_base_image=arm64v8/almalinux:8
             fi
             platform={\"$platform_id\":{\"minimal_base_image\":\"$minimal_base_image\"}}
             platforms=`echo $platforms | jq ". |= . + $platform"`

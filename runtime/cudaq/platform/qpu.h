@@ -99,16 +99,6 @@ public:
   QPU(QPU &&) = default;
   /// The destructor
   virtual ~QPU() = default;
-  /// Set the current QPU Id
-  void setId(std::size_t _qpuId) { qpu_id = _qpuId; }
-
-  /// Get id of the thread this QPU's queue executes on.
-  // If no execution_queue has been constructed, returns a 'null' id (does not
-  // represent a thread of execution).
-  std::thread::id getExecutionThreadId() const {
-    return execution_queue ? execution_queue->getExecutionThreadId()
-                           : std::thread::id();
-  }
 
   virtual void setNoiseModel(const noise_model *model) { noiseModel = model; }
 

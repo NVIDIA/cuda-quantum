@@ -3,9 +3,7 @@ Using CUDA and CUDA Quantum in a Project
 
 It may be the case that a project that uses CUDA Quantum kernels may also
 want to use CUDA code to do computation on a GPU.  This is possible by using
-both the CUDA Toolkit and CUDA Quantum tools. More about programming GPUs
-in CUDA can be found in the `Quick Start Guide
-<https://docs.nvidia.com/cuda/cuda-quick-start-guide/index.html>`__.
+both the CUDA Toolkit and CUDA Quantum tools.
 
 If you are using a CUDA Quantum container, the CUDA Toolkit can be installed
 using a command such as
