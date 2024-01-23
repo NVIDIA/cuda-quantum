@@ -143,23 +143,24 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
         endif()
       endif()
     endif() 
+
+  add_executable(test_gpu_get_state main.cpp gpu/get_state_tester.cu)
+  # Need to force the link to nvqir-qpp here if gcc.
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_gpu_get_state PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_compile_options(test_gpu_get_state PRIVATE -Wno-suggest-override)
+  target_include_directories(test_gpu_get_state PRIVATE .)
+  target_link_libraries(test_gpu_get_state
+    PRIVATE 
+    cudaq
+    cudaq-builder
+    cudaq-platform-mqpu
+    nvqir-custatevec-fp64
+    gtest_main)
+    gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required")
 endif() 
 
-add_executable(test_gpu_get_state main.cpp gpu/get_state_tester.cu)
-# Need to force the link to nvqir-qpp here if gcc.
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_gpu_get_state PRIVATE -Wl,--no-as-needed)
-endif()
-target_compile_options(test_gpu_get_state PRIVATE -Wno-suggest-override)
-target_include_directories(test_gpu_get_state PRIVATE .)
-target_link_libraries(test_gpu_get_state
-  PRIVATE 
-  cudaq
-  cudaq-builder
-  cudaq-platform-mqpu
-  nvqir-custatevec-fp64
-  gtest_main)
-  gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required")
 
 if(TARGET nvqir-tensornet)
   message(STATUS "Building cutensornet backend tests.")
