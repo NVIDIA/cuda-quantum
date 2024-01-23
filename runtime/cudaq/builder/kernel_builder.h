@@ -453,7 +453,7 @@ public:
 
   // @brief Return a `QuakeValue` representing the allocated
   // quantum register, initialized to the given state vector.
-  // Note - input argument os not const here, user has to own the data.
+  // Note - input argument is not const here, user has to own the data.
   QuakeValue qalloc(std::vector<cudaq::complex> &state) {
     auto hash = hashStateVector(state);
     auto value = details::qalloc(*opBuilder.get(), hash, state.size());
