@@ -253,7 +253,6 @@ jobs:
           for file in ${{ join(fromJson(steps.artifacts.outputs.installers).info_files, ' ') }}; do
             download_assets $file '${{ steps.artifacts.outputs.installers }}'
           done
-
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
   
@@ -290,7 +289,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ needs.assets.outputs.github_commit }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -474,7 +472,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ needs.assets.outputs.github_commit }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Load build assets
         uses: actions/download-artifact@v4
@@ -580,7 +577,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ needs.assets.outputs.github_commit }}
-          token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Load wheel assets
         uses: actions/download-artifact@v4
@@ -723,13 +719,12 @@ jobs:
             'dnf-command(config-manager)' gcc-toolset-12
           enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
           . "$enable_script"
-          echo "working dir: $(pwd)" && ls -l && ls -l scripts
           . scripts/configure_build.sh install-cudart
 
       - name: Install and run sanity checks
         shell: bash
         run: |
-          . /tmp/install/install_cuda_quantum.* --accept
+          source /tmp/install/install_cuda_quantum.* --accept
           bash validate_container.sh nvidia nvidia-mgpu tensornet > /tmp/validation.out
 
       - name: Create summary
