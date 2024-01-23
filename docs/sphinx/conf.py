@@ -93,31 +93,6 @@ master_doc = 'index'
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['**/_*', '.DS_Store']
 
-# Generate OpenAPI spec for the REST API
-import ruamel.yaml
-import json
-current_path = os.path.dirname(os.path.realpath(__file__))
-# YAML file defines the spec
-yaml_file = current_path + '/api/rest/.openapi.yaml'
-yaml = ruamel.yaml.YAML(typ='safe')
-with open(yaml_file) as fpi:
-    data = yaml.load(fpi)
-json_spec = json.dumps(data, indent=2)
-
-# Auto-generate the HTML file with the embedded OpenAPI spec.
-html_template_file = current_path + '/_templates/openapi.html'
-with open(html_template_file, 'r') as file:
-  filedata = file.read()
-# Replace the placeholder with the spec
-filedata = filedata.replace("##SPEC_JSON##", json_spec)
-html_output_file = current_path + '/Output/openapi.html'
-os.makedirs(os.path.dirname(html_output_file), exist_ok=True)
-# Write the file out again
-with open(html_output_file, 'w') as file:
-  file.write(filedata)
-# Add this to `html_extra_path` so that it is copied to the deployed docs.
-html_extra_path = ['Output/openapi.html']
-
 # The reST default role (used for this markup: `text`) to use for all documents.
 default_role = 'code' # NOTE: the following may be a better choice to error on the side of flagging anything that is referenced but but not declared
 #default_role = 'cpp:any' # see https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cross-referencing

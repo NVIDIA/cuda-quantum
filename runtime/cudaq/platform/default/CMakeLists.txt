@@ -36,7 +36,6 @@ install(EXPORT cudaq-platform-default-targets
 
 if (OPENSSL_FOUND)
   add_subdirectory(rest)
-  add_subdirectory(rest_server)
 endif()
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
