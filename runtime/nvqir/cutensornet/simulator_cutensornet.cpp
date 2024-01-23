@@ -248,19 +248,6 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   }
 }
 
-/// @brief Return the state vector data
-cudaq::State SimulatorTensorNetBase::getStateData() {
-  LOG_API_TIME();
-  if (m_state->getNumQubits() > 64)
-    throw std::runtime_error("State vector data is too large.");
-  // Handle empty state (e.g., no qubit allocation)
-  if (!m_state)
-    return cudaq::State{{0}, {}};
-
-  const uint64_t svDim = 1ull << m_state->getNumQubits();
-  return cudaq::State{{svDim}, m_state->getStateVector()};
-}
-
 nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
 void SimulatorTensorNetBase::addQubitsToState(std::size_t count) {
   LOG_API_TIME();
