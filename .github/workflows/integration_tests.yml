@@ -32,14 +32,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: backend-validation
     container:
-      image: nvcr.io/nvidia/nightly/cuda-quantum:latest
+      image: nvcr.io/nvidia/nightly/cuda-quantum:latest-base
       options: --user root
 
     steps:
       - name: Get commit SHA
         id: commit-sha
         run: |
-          echo "sha=$(cat $CUDA_QUANTUM_PATH/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
+          echo "sha=677043136f67833a8d370e014f56e125a117ab37" >> $GITHUB_OUTPUT
 
       - name: Get code
         uses: actions/checkout@v3
@@ -50,6 +50,7 @@ jobs:
       - name: Get tests
         id: gettests
         run: |
+          apt update && apt install --no-install-recommends -y curl jq
           if [ -n "${{ inputs.single_test_name }}" ]; then
             if [ -e ${{ inputs.single_test_name }} ]; then
               echo "testlist=${{ inputs.single_test_name }}" >> $GITHUB_OUTPUT
