@@ -480,7 +480,7 @@ jobs:
         id: release_info
         run: |
           release_id=${{ fromJson(needs.assets.outputs.installers)[format('{0}', matrix.info_file)].release_id }}
-          assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
+          assets_folder=appppppssets && mkdir "$assets_folder" && cd "$assets_folder"
           cp -r /tmp/assets/${{ matrix.info_file }}/. "$(pwd)"
 
           build_info=${{ matrix.info_file }}*
@@ -718,7 +718,7 @@ jobs:
           enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
           . "$enable_script"
           echo "working dir: $(pwd)" && ls -l && ls -l scripts
-          . scripts/configure_build install-cudart
+          . scripts/configure_build.sh install-cudart
 
       - name: Install and run sanity checks
         shell: bash
