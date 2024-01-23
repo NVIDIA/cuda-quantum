@@ -9,9 +9,11 @@
 #include "MQPUUtils.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Program.h"
 #include <arpa/inet.h>
 #include <execinfo.h>
+#include <filesystem>
 #include <random>
 #include <signal.h>
 #include <sys/socket.h>
@@ -69,7 +71,11 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
     int seed_offset) {
   cudaq::info("Auto launch REST server");
   const std::string serverExeName = "cudaq-qpud";
-  auto serverApp = llvm::sys::findProgramByName(serverExeName.c_str());
+  const std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+  const auto binPath = cudaqLibPath.parent_path().parent_path() / "bin";
+  cudaq::info("Search for {} in {} directory.", serverExeName, binPath.c_str());
+  auto serverApp =
+      llvm::sys::findProgramByName(serverExeName.c_str(), {binPath.c_str()});
   if (!serverApp)
     throw std::runtime_error(
         "Unable to find CUDA Quantum REST server to launch.");
