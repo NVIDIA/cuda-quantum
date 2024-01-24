@@ -40,6 +40,10 @@ double state::overlap(const std::vector<complex> &hostData) {
   return internal->overlap(hostData);
 }
 
+double state::overlap(const std::vector<std::complex<float>> &hostData) {
+  return internal->overlap(hostData);
+}
+
 double state::overlap(void *deviceOrHostPointer) {
   return internal->overlap(deviceOrHostPointer);
 }

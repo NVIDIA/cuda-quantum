@@ -51,6 +51,10 @@ public:
   /// data.
   double overlap(const std::vector<complex> &hostData);
 
+  /// @brief Compute the overlap of this state with user-provided host vector
+  /// data.
+  double overlap(const std::vector<std::complex<float>> &hostData);
+
   /// @brief Compute the overlap of this state with a user-provided host data
   /// pointer. The size of this data array is assumed to be the same size as
   /// this state's data.

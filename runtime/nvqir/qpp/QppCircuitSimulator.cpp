@@ -62,6 +62,11 @@ struct QppState : public cudaq::SimulationState {
         .real();
   }
 
+  double overlap(const std::vector<std::complex<float>> &data) override {
+    throw std::runtime_error(
+        "qpp state vector requires FP64 data for overlap computation.");
+  }
+
   double overlap(void *data) override {
     return state.transpose()
         .dot(Eigen::Map<qpp::ket>(reinterpret_cast<cudaq::complex *>(data),

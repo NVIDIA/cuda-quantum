@@ -92,13 +92,17 @@ CUDAQ_TEST(AsyncTester, checkGetStateAsync) {
   auto cc1State = cc1.get();
   auto cc2State = cc2.get();
   auto cc3State = cc3.get();
-  std::vector<std::complex<double>> expectedVec(1 << 5, 0.0);
-  expectedVec[0] = M_SQRT1_2;
-  expectedVec[expectedVec.size() - 1] = M_SQRT1_2;
 
-  EXPECT_NEAR(cc0State.overlap(expectedVec), 1.0, 1e-3);
-  EXPECT_NEAR(cc1State.overlap(expectedVec), 1.0, 1e-3);
-  EXPECT_NEAR(cc2State.overlap(expectedVec), 1.0, 1e-3);
-  EXPECT_NEAR(cc3State.overlap(expectedVec), 1.0, 1e-3);
+  if (cc0State.data_holder()->getPrecision() ==
+      cudaq::SimulationState::precision::fp32) {
+    std::vector<std::complex<float>> expectedVec(1 << 5, 0.0);
+    expectedVec[0] = M_SQRT1_2;
+    expectedVec[expectedVec.size() - 1] = M_SQRT1_2;
+
+    EXPECT_NEAR(cc0State.overlap(expectedVec), 1.0, 1e-3);
+    EXPECT_NEAR(cc1State.overlap(expectedVec), 1.0, 1e-3);
+    EXPECT_NEAR(cc2State.overlap(expectedVec), 1.0, 1e-3);
+    EXPECT_NEAR(cc3State.overlap(expectedVec), 1.0, 1e-3);
+  }
 }
 #endif

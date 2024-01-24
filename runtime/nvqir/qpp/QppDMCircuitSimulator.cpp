@@ -68,6 +68,11 @@ struct QppDmState : public cudaq::SimulationState {
     return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
   }
 
+  double overlap(const std::vector<std::complex<float>> &data) override {
+    throw std::runtime_error(
+        "qpp state vector requires FP64 data for overlap computation.");
+  }
+
   double overlap(void *other) override {
 
     // Create rho and sigma matrices

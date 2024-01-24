@@ -181,7 +181,28 @@ index pair.
                 throw std::runtime_error(
                     "overlap error - invalid shape of input buffer.");
 
-            return self.overlap(reinterpret_cast<complex *>(info.ptr));
+            if (info.itemsize == 16) {
+              if (self.data_holder()->getPrecision() ==
+                  SimulationState::precision::fp32)
+                throw std::runtime_error(
+                    "simulation state is FP32 but provided state buffer for "
+                    "overlap is FP64.");
+
+              return self.overlap(reinterpret_cast<complex *>(info.ptr));
+            }
+
+            if (info.itemsize == 8) {
+              if (self.data_holder()->getPrecision() ==
+                  SimulationState::precision::fp64)
+                throw std::runtime_error(
+                    "simulation state is FP64 but provided state buffer for "
+                    "overlap is FP32.");
+              return self.overlap(
+                  reinterpret_cast<std::complex<float> *>(info.ptr));
+            }
+
+            throw std::runtime_error(
+                "invalid buffer element type size for overlap computation.");
           },
           "Compute the overlap between the provided :class:`State`'s.")
       .def("overlap", [](state &self, py::object other) {
