@@ -241,6 +241,7 @@ jobs:
             done
 
       - name: Full wheel tests
+        if: matrix.os_image == 'ubuntu:22.04'
         uses: ./.github/actions/run-in-docker
         with:
           image: ubuntu:22.04
@@ -249,7 +250,6 @@ jobs:
           run: |
             wheelname=`echo cuda_quantum-*-manylinux_*_$(uname -m).whl`
             echo "wheelname: $wheelname"
-            ls -lR /repo
             cd /repo
             cp -r docs/sphinx/examples/python /tmp/examples/
             cp -r python/tests /tmp/tests/
@@ -257,7 +257,8 @@ jobs:
             cp python/README.md /tmp/README.md
             cp scripts/wheel_validate.sh /tmp/validate.sh
             cd /tmp 
-            source validate.sh -w /tmp/cuda_quantum-*.whl -f /tmp -p 3.10 
+            apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
+            source validate.sh -w /tmp/cuda_quantum-*.whl -f /tmp -p ${{ inputs.python_version }} 
 
       - name: Run Python MPI tests
         if: matrix.os_image == 'redhat/ubi9:9.2'
