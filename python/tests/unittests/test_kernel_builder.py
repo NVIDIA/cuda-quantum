@@ -451,8 +451,6 @@ def test_ctrl_t():
     assert counts["0010011"] == 1000
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AssertionError on 'assert isinstance(arg, _cext.ir.Value)' from 'kernel.cr1(angle, qubits[0], qubits[1])'")
 def test_cr1_gate():
     """Tests the accuracy of the overloads for the controlled-r1 gate."""
     kernel, angle = cudaq.make_kernel(float)
@@ -486,8 +484,6 @@ def test_cr1_gate():
     assert counts["0010011"] == 1000
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AssertionError on 'assert isinstance(arg, _cext.ir.Value)' from 'kernel.crx(angle, qubits[0], qubits[1])'")
 def test_crx_gate():
     """Tests the accuracy of the overloads for the controlled-rx gate."""
     kernel, angle = cudaq.make_kernel(float)
@@ -520,8 +516,6 @@ def test_crx_gate():
     assert counts["0011111"] == 1000
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AssertionError on 'assert isinstance(arg, _cext.ir.Value)' from 'kernel.cry(angle, qubits[0], qubits[1])'")
 def test_cry_gate():
     """Tests the accuracy of the overloads for the controlled-ry gate."""
     kernel, angle = cudaq.make_kernel(float)
@@ -554,8 +548,6 @@ def test_cry_gate():
     assert counts["0011111"] == 1000
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AssertionError on 'assert isinstance(arg, _cext.ir.Value)' from 'kernel.crz(angle, qubits[0], qubits[1])'")
 def test_crz_gate():
     """Tests the accuracy of the overloads for the controlled-rz gate."""
     kernel, angle = cudaq.make_kernel(float)
@@ -666,8 +658,6 @@ def test_cswap_gate_mixed_ctrls():
     assert counts[want_state] == 1000
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AssertionError on 'assert isinstance(arg, _cext.ir.Value)' from 'kernel.crx(value, [q1, q2], target)'")
 def test_crx_control_list():
     kernel, value = cudaq.make_kernel(float)
     target = kernel.qalloc()
@@ -697,8 +687,6 @@ def test_crx_control_list():
     assert result["1110"] == 1000
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AssertionError on 'assert isinstance(arg, _cext.ir.Value)' from 'kernel.cry(value, [q1, q2], target)'")
 def test_cry_control_list():
     kernel, value = cudaq.make_kernel(float)
     target = kernel.qalloc()
@@ -726,8 +714,6 @@ def test_cry_control_list():
     assert result["1110"] == 1000
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AssertionError on 'assert isinstance(arg, _cext.ir.Value)' from 'kernel.crz(value, [q1, q2, q3], target)'")
 def test_crz_control_list():
     kernel, value = cudaq.make_kernel(float)
     target = kernel.qalloc()
@@ -759,8 +745,6 @@ def test_crz_control_list():
     assert result["1111"] == 1000
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AssertionError on 'assert isinstance(arg, _cext.ir.Value)' from 'kernel.cr1(value, [q1, q2, q3], target)'")
 def test_cr1_control_list():
     kernel, value = cudaq.make_kernel(float)
     target = kernel.qalloc()
@@ -874,9 +858,9 @@ def test_can_progressively_build():
 def test_recursive_calls():
     kernel1, qubit1 = cudaq.make_kernel(cudaq.qubit)
     # print(kernel1)
-    
+
     kernel2, qubit2 = cudaq.make_kernel(cudaq.qubit)
-    kernel2.apply_call(kernel1, qubit2) 
+    kernel2.apply_call(kernel1, qubit2)
     # print(kernel2)
 
     kernel3 = cudaq.make_kernel()
@@ -965,6 +949,7 @@ def test_exp_pauli():
     # invalidOp = cudaq.SpinOperator.from_word('XXXY') + cudaq.SpinOperator.from_word("YYYX")
     # with pytest.raises(RuntimeError) as error:
     #     kernel.exp_pauli(theta, qubits, invalidOp)
+
 
 def test_givens_rotation_op():
     cudaq.reset_target()

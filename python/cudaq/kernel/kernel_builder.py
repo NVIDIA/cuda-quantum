@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -149,6 +149,8 @@ def __singleTargetSingleParameterControlOperation(self,
         if isinstance(parameter, float):
             fty = mlirTypeFromPyType(float, self.ctx)
             paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
+        elif isinstance(parameter, QuakeValue):
+            paramVal = parameter.mlirValue
 
         __generalOperation(self,
                            opName, [paramVal],
