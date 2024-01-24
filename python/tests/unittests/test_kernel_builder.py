@@ -617,8 +617,6 @@ def test_cswap_gate_ctrl_list(control_count):
     assert counts[want_state] == 1000
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="This test seems to 'hang' on `kernel.cswap(controls_register, first, second)`.")
 def test_cswap_gate_mixed_ctrls():
     """
     Tests the controlled-SWAP gate given a list of a mix of ctrl

@@ -500,8 +500,18 @@ class PyKernel(object):
             kernel.swap(qubits[0], qubits[1]))
         ```
         """
+        fwdControls = None
+        if isinstance(controls, list):
+            fwdControls = [c.mlirValue for c in controls]
+        elif quake.RefType.isinstance(
+                controls.mlirValue.type) or quake.VeqType.isinstance(
+                    controls.mlirValue.type):
+            fwdControls = [controls.mlirValue]
+        else:
+            raise RuntimeError("invalid control type for cswap.")
+
         with self.insertPoint, self.loc:
-            quake.SwapOp([], [], [c.mlirValue for c in controls],
+            quake.SwapOp([], [], fwdControls,
                          [qubitA.mlirValue, qubitB.mlirValue])
 
     def swap(self, qubitA, qubitB):
