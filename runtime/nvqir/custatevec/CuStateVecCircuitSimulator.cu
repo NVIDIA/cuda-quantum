@@ -548,9 +548,9 @@ public:
       return cudaq::State{{stateDimension}, {}};
 
     std::vector<std::complex<ScalarType>> tmp(stateDimension);
-    cudaMemcpy(tmp.data(), deviceStateVector,
+    HANDLE_CUDA_ERROR(cudaMemcpy(tmp.data(), deviceStateVector,
                stateDimension * sizeof(std::complex<ScalarType>),
-               cudaMemcpyDeviceToHost);
+               cudaMemcpyDeviceToHost));
 
     if constexpr (std::is_same_v<ScalarType, float>) {
       std::vector<std::complex<double>> data;
