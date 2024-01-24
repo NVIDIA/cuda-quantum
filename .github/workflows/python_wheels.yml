@@ -249,7 +249,8 @@ jobs:
           run: |
             wheelname=`echo cuda_quantum-*-manylinux_*_$(uname -m).whl`
             echo "wheelname: $wheelname"
-            ls
+            ls -lR /repo
+            cd /repo
             cp -r docs/sphinx/examples/python /tmp/examples/
             cp -r python/tests /tmp/tests/
             cp $wheelname /tmp/$wheelname
