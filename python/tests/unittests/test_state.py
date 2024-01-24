@@ -22,6 +22,7 @@ def test_state_vector_simple():
     backend. Begins with a kernel, converts to state, then checks
     its member functions.
     """
+    cudaq.reset_target()
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
@@ -30,8 +31,9 @@ def test_state_vector_simple():
     # Get the quantum state, which should be a vector.
     got_state = cudaq.get_state(kernel)
 
+    # Data type needs to be the same as the internal state vector
     want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
-                          dtype=np.complex128)
+                          dtype=np.complex64)
 
     # Check the indexing operators on the State class
     # while also checking their values
@@ -55,6 +57,12 @@ def test_state_vector_simple():
     # Check the overlap overload with itself.
     assert np.isclose(got_state.overlap(got_state), 1.0)
 
+    # Can't use FP64 with FP32 data
+    want_state_bad_datatype = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
+                          dtype=np.complex128)
+    with pytest.raises(Exception) as error:
+        got_state.overlap(want_state_bad_datatype)
+
 
 def test_state_vector_integration():
     """
@@ -75,7 +83,7 @@ def test_state_vector_integration():
     kernel.cz(qubits[0], qubits[1])
 
     want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
-                 dtype=np.complex128)
+                 dtype=np.complex64)
 
     def objective(x):
         got_state = cudaq.get_state(kernel, x)
@@ -194,7 +202,7 @@ def test_state_vector_async():
     # Note: rx(pi)ry(pi/2) == -i*H (with a global phase)
     future = cudaq.get_state_async(kernel, np.pi, np.pi / 2.)
     want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
-                          dtype=np.complex128)
+                          dtype=np.complex64)
     state = future.get()
     assert np.allclose(state, want_state, atol=1e-3)
     # Check invalid qpu_id

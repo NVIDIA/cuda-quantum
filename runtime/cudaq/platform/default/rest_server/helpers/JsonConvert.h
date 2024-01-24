@@ -113,6 +113,11 @@ struct RemoteJsonSimulationState : public SimulationState {
     return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
   }
 
+  double overlap(const std::vector<std::complex<float>> &data) override {
+    throw std::runtime_error("remote rest json state vector requires FP64 data "
+                             "for overlap computation.");
+  }
+
   double overlap(void *data) override {
     throw std::runtime_error(
         "[remote json state] overlap with pointer is not supported.");

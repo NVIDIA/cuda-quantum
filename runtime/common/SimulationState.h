@@ -47,6 +47,10 @@ public:
   virtual double overlap(const std::vector<complex> &hostData) = 0;
 
   /// @brief Compute the overlap of this state representation with
+  /// the provided host data vector.
+  virtual double overlap(const std::vector<std::complex<float>> &hostData) = 0;
+
+  /// @brief Compute the overlap of this state representation with
   /// the provided data pointer.
   virtual double overlap(void *deviceOrHostPointer) = 0;
 

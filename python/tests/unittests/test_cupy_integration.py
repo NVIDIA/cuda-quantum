@@ -39,6 +39,7 @@ def test_state_vector_simple_py_float():
 
 
 def test_state_vector_simple_cfp32():
+    cudaq.reset_target()
     # Test overlap with device state vector
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(2)
