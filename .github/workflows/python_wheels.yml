@@ -248,11 +248,11 @@ jobs:
           shell: bash
           mount: ${{ github.workspace }}
           run: |
-            wheelname=`find -type f -name cuda_quantum-*-manylinux_*_$(uname -m).whl`
-            echo "wheelname: $wheelname"
             cd /repo
             cp -r docs/sphinx/examples/python /tmp/examples/
             cp -r python/tests /tmp/tests/
+            wheelname=`find -type f -name cuda_quantum-*-manylinux_*_$(uname -m).whl`
+            echo "wheelname: $wheelname"
             cp $wheelname /tmp/
             cp python/README.md /tmp/README.md
             cp scripts/wheel_validate.sh /tmp/validate.sh
