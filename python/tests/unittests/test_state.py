@@ -22,6 +22,7 @@ def test_state_vector_simple():
     backend. Begins with a kernel, converts to state, then checks
     its member functions.
     """
+    cudaq.reset_target()
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
@@ -68,6 +69,7 @@ def test_state_vector_integration():
     An integration test on the state vector class. Uses a CUDA Quantum
     optimizer to find the correct kernel parameters for a Bell state.
     """
+    cudaq.reset_target()
     # Make a general 2 qubit SO4 rotation.
     kernel, parameters = cudaq.make_kernel(list)
     qubits = kernel.qalloc(2)
