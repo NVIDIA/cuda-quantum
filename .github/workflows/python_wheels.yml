@@ -240,6 +240,16 @@ jobs:
               fi
             done
 
+      - name: Full wheel tests
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: ubuntu:22.04
+          shell: bash
+          run: |
+            wheelname=`echo cuda_quantum-*-manylinux_*_$(uname -m).whl`
+            echo "wheelname: $wheelname"
+            ls
+
       - name: Run Python MPI tests
         if: matrix.os_image == 'redhat/ubi9:9.2'
         uses: ./.github/actions/run-in-docker
