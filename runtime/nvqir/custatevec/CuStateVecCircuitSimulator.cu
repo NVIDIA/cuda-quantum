@@ -300,8 +300,7 @@ public:
 
     if (!isDevicePointer(other)) {
       // otherwise we have to copy the data
-      std::vector<std::complex<double>> dataAsVec(casted, casted + size);
-      thrust::device_vector<ThrustComplex<ScalarType>> otherDevPtr(dataAsVec);
+      thrust::device_vector<ThrustComplex<ScalarType>> otherDevPtr(casted, casted+size);
       return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
                                    otherDevPtr.begin(),
                                    ThrustComplex<ScalarType>(0.0),
