@@ -27,6 +27,8 @@ public:
   virtual std::size_t getNumQubits() const = 0;
 
   virtual std::size_t getNumElements() const {
+    if (getDataShape().empty())
+      return 0;
     std::size_t ret = getDataShape()[0];
     for (std::size_t i = 1; i < getDataShape().size(); i++)
       ret *= getDataShape()[i];
