@@ -570,6 +570,7 @@ private:
   bool visitImplicitCode : 1 = false;
   bool inRecType : 1 = false;
   bool allowUnknownRecordType : 1 = false;
+  bool initializerIsGlobal : 1 = false;
 };
 } // namespace details
 
