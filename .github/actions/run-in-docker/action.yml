@@ -11,6 +11,9 @@ inputs:
   shell:
     default: "bash"
     required: false
+  mount:
+    default: ""
+    required: false
 
 runs:
   using: "composite"
@@ -19,6 +22,10 @@ runs:
       run: |
         if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ]; 
         then additional_run_args="--gpus all"
+        fi
+
+        if ${{ inputs.mount != '' }}; then
+          additional_run_args="$additional_run_args --mount type=bind,source=${{ inputs.mount }},target=/repo"
         fi
 
         # Note: "bash -s << EOF" does not play nice with mpirun/mpiexec. It
