@@ -8,11 +8,10 @@
 
 #pragma once
 
+#include "common/EigenDense.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
-
-#include "cudaq/simulators.h"
 
 /*! \file JsonConvert.h
     \brief Utility to support JSON serialization between the client and server.
@@ -35,6 +34,123 @@ void from_json(const json &j, std::complex<T> &p) {
 } // namespace std
 
 namespace cudaq {
+struct RemoteJsonSimulationState : public SimulationState {
+  std::vector<std::size_t> m_shape;
+  std::vector<std::complex<double>> m_data;
+  RemoteJsonSimulationState(const std::vector<std::size_t> &shape,
+                            const std::vector<std::complex<double>> &data)
+      : m_shape(shape), m_data(data) {}
+
+  std::size_t getNumQubits() const override {
+    if (m_shape.size() == 1)
+      return std::log2(m_data.size());
+
+    return std::log2(m_shape[0]);
+  }
+
+  std::vector<std::size_t> getDataShape() const override { return m_shape; }
+
+  double overlap(const cudaq::SimulationState &other) override {
+    if (other.getDataShape() != getDataShape())
+      throw std::runtime_error(
+          "[remote json state] overlap error - other state "
+          "dimension not equal to this state dimension.");
+
+    if (other.isDeviceData())
+      throw std::runtime_error("remote qpu simulation data cannot compute "
+                               "overlap with GPU state data.");
+
+    if (m_shape.size() == 1) {
+      return Eigen::Map<Eigen::VectorXcd>(
+                 const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
+          .transpose()
+          .dot(Eigen::Map<Eigen::VectorXcd>(
+              reinterpret_cast<cudaq::complex *>(other.ptr()),
+              other.getDataShape()[0]))
+          .real();
+    }
+
+    // Create rho and sigma matrices
+    Eigen::MatrixXcd rho = Eigen::Map<Eigen::MatrixXcd>(
+        m_data.data(), getDataShape()[0], getDataShape()[1]);
+    Eigen::MatrixXcd sigma = Eigen::Map<Eigen::MatrixXcd>(
+        reinterpret_cast<cudaq::complex *>(other.ptr()),
+        other.getDataShape()[0], other.getDataShape()[1]);
+
+    // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
+    // sqrt(det(rho)*det(sigma))
+    auto detprod = rho.determinant() * sigma.determinant();
+    return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
+  }
+
+  double overlap(const std::vector<cudaq::complex> &data) override {
+    if (data.size() != getDataShape()[0])
+      throw std::runtime_error(
+          "[remote json state] overlap error - other state "
+          "dimension not equal to this state dimension.");
+    if (m_shape.size() == 1) {
+      return Eigen::Map<Eigen::VectorXcd>(
+                 const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
+          .transpose()
+          .dot(Eigen::Map<Eigen::VectorXcd>(
+              reinterpret_cast<cudaq::complex *>(
+                  const_cast<cudaq::complex *>(data.data())),
+              m_shape[0]))
+          .real();
+    }
+
+    // Create rho and sigma matrices
+    Eigen::MatrixXcd rho = Eigen::Map<Eigen::MatrixXcd>(
+        m_data.data(), getDataShape()[0], getDataShape()[1]);
+    Eigen::MatrixXcd sigma = Eigen::Map<Eigen::MatrixXcd>(
+        reinterpret_cast<cudaq::complex *>(
+            const_cast<cudaq::complex *>(data.data())),
+        m_shape[0], m_shape[1]);
+
+    // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
+    // sqrt(det(rho)*det(sigma))
+    auto detprod = rho.determinant() * sigma.determinant();
+    return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
+  }
+
+  double overlap(void *data) override {
+    throw std::runtime_error(
+        "[remote json state] overlap with pointer is not supported.");
+  }
+
+  cudaq::complex vectorElement(std::size_t idx) override {
+    if (m_shape.size() != 1)
+      throw std::runtime_error("[remote rest json] vectorElement not supported "
+                               "for density matrix data.");
+    return m_data[idx];
+  }
+  cudaq::complex matrixElement(std::size_t idx, std::size_t jdx) override {
+    if (m_shape.size() != 2)
+      throw std::runtime_error("[remote rest json] matrixElement not supported "
+                               "for state vector data.");
+    return Eigen::Map<Eigen::MatrixXcd>(m_data.data(), m_shape[0],
+                                        m_shape[1])(idx, jdx);
+  }
+
+  void dump(std::ostream &os) const override {
+    if (m_shape.size() == 1)
+      os << Eigen::Map<Eigen::VectorXcd>(
+                const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
+         << "\n";
+  }
+
+  void *ptr() const override {
+    return reinterpret_cast<void *>(
+        const_cast<std::complex<double> *>(m_data.data()));
+  }
+
+  precision getPrecision() const override {
+    return cudaq::SimulationState::precision::fp64;
+  }
+
+  void destroyState() override {}
+};
+
 // `ExecutionResult` serialization.
 // Here, we capture full data (not just bit string statistics) since the remote
 // platform can populate simulator-only data, such as `expectationValue`.
@@ -144,10 +260,8 @@ inline void from_json(const json &j, ExecutionContext &context) {
     j["simulationData"]["data"].get_to(stateData);
 
     // Create the simulation specific SimulationState
-    // FIXME no simulator available client-side for creating
-    // this SimulationState instance.
-    // context.simulationState =
-    //     cudaq::get_simulator()->createSimulationState(stateDim, stateData);
+    context.simulationState =
+        std::make_unique<RemoteJsonSimulationState>(stateDim, stateData);
   }
 
   if (j.contains("registerNames"))
