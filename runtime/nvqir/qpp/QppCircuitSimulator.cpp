@@ -9,6 +9,7 @@
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/Gates.h"
 
+#include <bit>
 #include <iostream>
 #include <qpp.h>
 #include <set>
@@ -42,11 +43,10 @@ protected:
   /// @brief Compute the expectation value <Z...Z> over the given qubit indices.
   double calculateExpectationValue(const std::vector<std::size_t> &qubits) {
     const auto hasEvenParity = [&qubits](std::size_t x) -> bool {
-      bool evenParity = true;
+      std::size_t bitmask = 0;
       for (auto q : qubits)
-        if (x & (1ULL << q))
-          evenParity = !evenParity;
-      return evenParity;
+        bitmask |= (1ULL << q);
+      return std::popcount(x & bitmask) % 2 == 0;
     };
 
     std::vector<double> result;
