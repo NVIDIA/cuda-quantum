@@ -819,6 +819,7 @@ def test_ctrl_rotation_integration():
     want_0_state = extra_mapping_qubits + "111110"
     assert result[want_1_state] == 505
     assert result[want_0_state] == 495
+    cudaq.reset_target()
 
 
 def test_can_progressively_build():

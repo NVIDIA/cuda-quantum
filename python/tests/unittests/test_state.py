@@ -22,7 +22,6 @@ def test_state_vector_simple():
     backend. Begins with a kernel, converts to state, then checks
     its member functions.
     """
-    cudaq.reset_target()
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
