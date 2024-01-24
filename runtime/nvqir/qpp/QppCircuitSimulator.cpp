@@ -43,23 +43,23 @@ struct QppState : public cudaq::SimulationState {
     if (other.getDataShape() != getDataShape())
       throw std::runtime_error("[qpp-state] overlap error - other state "
                                "dimension not equal to this state dimension.");
-    return state.transpose()
-        .dot(Eigen::Map<qpp::ket>(
-            reinterpret_cast<cudaq::complex *>(other.ptr()),
-            other.getDataShape()[0]))
-        .real();
+    return std::abs(state.transpose()
+                        .dot(Eigen::Map<qpp::ket>(
+                            reinterpret_cast<cudaq::complex *>(other.ptr()),
+                            other.getDataShape()[0]))
+                        .real());
   }
 
   double overlap(const std::vector<cudaq::complex> &data) override {
     if (data.size() != getDataShape()[0])
       throw std::runtime_error("[qpp-state] overlap error - other state "
                                "dimension not equal to this state dimension.");
-    return state.transpose()
-        .dot(
-            Eigen::Map<qpp::ket>(reinterpret_cast<cudaq::complex *>(
-                                     const_cast<cudaq::complex *>(data.data())),
-                                 data.size()))
-        .real();
+    return std::abs(state.transpose()
+                        .dot(Eigen::Map<qpp::ket>(
+                            reinterpret_cast<cudaq::complex *>(
+                                const_cast<cudaq::complex *>(data.data())),
+                            data.size()))
+                        .real());
   }
 
   double overlap(const std::vector<std::complex<float>> &data) override {
@@ -68,10 +68,11 @@ struct QppState : public cudaq::SimulationState {
   }
 
   double overlap(void *data) override {
-    return state.transpose()
-        .dot(Eigen::Map<qpp::ket>(reinterpret_cast<cudaq::complex *>(data),
-                                  getDataShape()[0]))
-        .real();
+    return std::abs(
+        state.transpose()
+            .dot(Eigen::Map<qpp::ket>(reinterpret_cast<cudaq::complex *>(data),
+                                      getDataShape()[0]))
+            .real());
   }
 
   cudaq::complex vectorElement(std::size_t idx) override { return state[idx]; }

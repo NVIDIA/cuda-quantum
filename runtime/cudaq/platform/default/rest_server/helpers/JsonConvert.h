@@ -61,13 +61,14 @@ struct RemoteJsonSimulationState : public SimulationState {
                                "overlap with GPU state data.");
 
     if (m_shape.size() == 1) {
-      return Eigen::Map<Eigen::VectorXcd>(
-                 const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
-          .transpose()
-          .dot(Eigen::Map<Eigen::VectorXcd>(
-              reinterpret_cast<cudaq::complex *>(other.ptr()),
-              other.getDataShape()[0]))
-          .real();
+      return std::abs(
+          Eigen::Map<Eigen::VectorXcd>(
+              const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
+              .transpose()
+              .dot(Eigen::Map<Eigen::VectorXcd>(
+                  reinterpret_cast<cudaq::complex *>(other.ptr()),
+                  other.getDataShape()[0]))
+              .real());
     }
 
     // Create rho and sigma matrices
@@ -89,14 +90,15 @@ struct RemoteJsonSimulationState : public SimulationState {
           "[remote json state] overlap error - other state "
           "dimension not equal to this state dimension.");
     if (m_shape.size() == 1) {
-      return Eigen::Map<Eigen::VectorXcd>(
-                 const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
-          .transpose()
-          .dot(Eigen::Map<Eigen::VectorXcd>(
-              reinterpret_cast<cudaq::complex *>(
-                  const_cast<cudaq::complex *>(data.data())),
-              m_shape[0]))
-          .real();
+      return std::abs(
+          Eigen::Map<Eigen::VectorXcd>(
+              const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
+              .transpose()
+              .dot(Eigen::Map<Eigen::VectorXcd>(
+                  reinterpret_cast<cudaq::complex *>(
+                      const_cast<cudaq::complex *>(data.data())),
+                  m_shape[0]))
+              .real());
     }
 
     // Create rho and sigma matrices
