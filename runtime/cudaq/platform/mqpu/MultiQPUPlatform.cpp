@@ -155,6 +155,23 @@ public:
 
       platformNumQPUs = platformQPUs.size();
     }
+    if (description.find("nvcf") != std::string::npos) {
+      platformQPUs.clear();
+      if (!cudaq::registry::isRegistered<cudaq::QPU>("RemoteSimulatorQPU"))
+        throw std::runtime_error(
+            "Unable to retrieve RemoteSimulatorQPU implementation.");
+
+      // Populate the information and add the QPUs
+      auto qpu = cudaq::registry::get<cudaq::QPU>("RemoteSimulatorQPU");
+      qpu->setId(0);
+      const std::string configStr = fmt::format("target;nvcf;simulator;qpp");
+      qpu->setTargetBackend(configStr);
+      threadToQpuId[std::hash<std::thread::id>{}(qpu->getExecutionThreadId())] =
+          0;
+      platformQPUs.emplace_back(std::move(qpu));
+
+      platformNumQPUs = platformQPUs.size();
+    }
   }
 };
 } // namespace

@@ -14,6 +14,8 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 
+#include <fstream>
+
 namespace {
 using namespace mlir;
 
@@ -42,6 +44,12 @@ public:
       throw std::invalid_argument("Unexpected backend configuration string. "
                                   "Expecting a ';'-separated key-value pairs.");
     for (std::size_t i = 0; i < parts.size(); i += 2) {
+      if (parts[i] == "target") {
+        if (parts[i + 1] == "nvcf" || parts[i + 1] == "NVCF")
+          m_client = cudaq::registry::get<cudaq::RemoteRuntimeClient>("NVCF");
+        const std::string nvcfApiKey = searchAPIKey();
+        m_client->setConfig({{"api-key", nvcfApiKey}});
+      }
       if (parts[i] == "url")
         m_client->setConfig({{"url", parts[i + 1]}});
       if (parts[i] == "simulator")
@@ -94,6 +102,40 @@ public:
     cudaq::info("RemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
     std::scoped_lock<std::mutex> lock(m_contextMutex);
     m_contexts.erase(std::this_thread::get_id());
+  }
+  private:
+  std::string searchAPIKey(const std::string &userSpecifiedConfigFile = "") {
+    std::string hwConfig;
+    // Allow someone to tweak this with an environment variable
+    if (auto creds = std::getenv("CUDAQ_NVCF_CREDENTIALS"))
+      hwConfig = std::string(creds);
+    else if (!userSpecifiedConfigFile.empty())
+      hwConfig = userSpecifiedConfigFile;
+    else
+      hwConfig = std::string(getenv("HOME")) + std::string("/.nvcf_config");
+    if (cudaq::fileExists(hwConfig)) {
+      std::ifstream stream(hwConfig);
+      std::string contents((std::istreambuf_iterator<char>(stream)),
+                           std::istreambuf_iterator<char>());
+      std::vector<std::string> lines;
+      lines = cudaq::split(contents, '\n');
+      for (const std::string &l : lines) {
+        std::vector<std::string> keyAndValue = cudaq::split(l, ':');
+        if (keyAndValue.size() != 2)
+          throw std::runtime_error("Ill-formed configuration file (" +
+                                   hwConfig +
+                                   "). Key-value pairs must be in `<key> : "
+                                   "<value>` format. (One per line)");
+        cudaq::trim(keyAndValue[0]);
+        cudaq::trim(keyAndValue[1]);
+        if (keyAndValue[0] == "key" || keyAndValue[0] == "apikey")
+          return keyAndValue[1];
+      }
+    }
+
+    throw std::runtime_error("Cannot find NVCF Config file with credentials "
+                             "(~/.nvcf_config).");
+    return "";
   }
 };
 } // namespace
