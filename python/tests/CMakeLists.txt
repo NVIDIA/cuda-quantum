@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 # Tests that generate MLIR and are run through both pytest and FileCheck.
+add_subdirectory(compiler)
 add_subdirectory(mlir)
 
 if (MPI_CXX_FOUND AND CUDA_FOUND)

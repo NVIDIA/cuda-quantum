@@ -156,7 +156,6 @@ else()
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
 endif()
 pybind11_add_module(_pycudaq 
-                     cudaq/_cudaq.cpp 
                      runtime/cudaq/target/py_runtime_target.cpp 
                      runtime/cudaq/target/py_testing_utils.cpp
                      runtime/cudaq/builder/py_QuakeValue.cpp

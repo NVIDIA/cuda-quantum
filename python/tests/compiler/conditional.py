@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../.. pytest -rP  %s | FileCheck %s
+# RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import os
 
@@ -43,6 +43,8 @@ def test_kernel_conditional():
     kernel()
     assert kernel.arguments == []
     assert kernel.argument_count == 0
+
+    # Check the MLIR.
     print(kernel)
 
 

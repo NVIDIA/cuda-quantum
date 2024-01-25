@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../../.. python3 %s | FileCheck %s
+# RUN: PYTHONPATH=../../ python3 %s | FileCheck %s
 
 from mlir_cudaq.ir import *
 from mlir_cudaq.dialects import quake

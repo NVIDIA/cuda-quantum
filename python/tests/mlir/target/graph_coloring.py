@@ -6,9 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../../../.. python3 %s 
-# RUN: PYTHONPATH=../../../../.. python3 %s --force-eager-exec-mode
-# RUN: PYTHONPATH=../../../../.. python3 %s --target quantinuum --emulate 
+# RUN: PYTHONPATH=../../.. python3 %s 
+# RUN: PYTHONPATH=../../.. python3 %s --force-eager-exec-mode
+# RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate 
 
 import sys
 import numpy as np 

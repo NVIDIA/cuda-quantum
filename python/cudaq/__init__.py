@@ -36,17 +36,21 @@ optimizers = cudaq_runtime.optimizers
 gradients = cudaq_runtime.gradients
 
 # Runtime Functions
+initialize_cudaq = cudaq_runtime.initialize_cudaq
 set_target = cudaq_runtime.set_target
 reset_target = cudaq_runtime.reset_target
 has_target = cudaq_runtime.has_target
 get_target = cudaq_runtime.get_target
+get_targets = cudaq_runtime.get_targets
 set_random_seed = cudaq_runtime.set_random_seed
 mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus
 set_noise = cudaq_runtime.set_noise
+unset_noise = cudaq_runtime.unset_noise
 
 # Noise Modeling
 KrausChannel = cudaq_runtime.KrausChannel
+KrausOperator = cudaq_runtime.KrausOperator
 NoiseModel = cudaq_runtime.NoiseModel
 DepolarizationChannel = cudaq_runtime.DepolarizationChannel
 AmplitudeDampingChannel = cudaq_runtime.AmplitudeDampingChannel
@@ -60,8 +64,8 @@ observe_async = cudaq_runtime.observe_async
 AsyncSampleResult = cudaq_runtime.AsyncSampleResult
 AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 
+ComplexMatrix = cudaq_runtime.ComplexMatrix
 to_qir = cudaq_runtime.get_qir
-
 testing = cudaq_runtime.testing
 
 
