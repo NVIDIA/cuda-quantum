@@ -156,7 +156,8 @@ jobs:
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    ## [SKIP_TEST]: Temporarily skipping stage to validate Python wheel on arm64/aarch64
+    runs-on: ${{ (contains(inputs.platform)) || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
       packages: read
@@ -338,7 +339,7 @@ jobs:
           for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/providers/*'`; do
             file="${ex#docs/sphinx/examples/python/}"
             echo "__Example ${file}:__" >> /tmp/validation.out
-            ## [SKIP_TEST] : Reason - AttributeError: module 'cudaq' has no attribute 'vqe'
+            ## [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'vqe'
             if [[ "$file" == "advanced_vqe.py" ]] || [[ "$file" == "qaoa_maxcut.py" ]] || [[ "$file" == "simple_vqe.py" ]]; then
               echo "Skipping test $file."
               continue

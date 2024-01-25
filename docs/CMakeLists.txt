@@ -61,7 +61,7 @@ endif()
 set(NGPUS 0)
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   add_nvqpp_test(SampleAsync using/cudaq/platform/sample_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
-  ## [SKIP_TEST] : Reason - AttributeError: module 'cudaq' has no attribute 'parallel'
+  ## [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'parallel'
   # add_nvqpp_test(ObserveMQPU using/cudaq/platform/observe_mqpu.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
   # # Add the MPI test if MPI was found and there are more than 2 GPUs
   # if (MPI_CXX_FOUND)
@@ -126,7 +126,7 @@ if (CUDAQ_ENABLE_PYTHON)
   
   if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
     add_pycudaq_test(SampleAsync using/cudaq/platform/sample_async.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
-    ## [SKIP_TEST] : Reason - AttributeError: module 'cudaq' has no attribute 'parallel'
+    ## [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'parallel'
     # add_pycudaq_test(ObserveMQPU using/cudaq/platform/observe_mqpu.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     # if (MPI_CXX_FOUND AND ${NGPUS} GREATER_EQUAL 2)
     #   add_pycudaq_test(ObserveMQPU_MPI using/cudaq/platform/observe_mqpu_mpi.py 

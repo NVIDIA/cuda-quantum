@@ -209,7 +209,7 @@ jobs:
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
-        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
