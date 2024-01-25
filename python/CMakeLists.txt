@@ -107,7 +107,7 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
 add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
   INSTALL_COMPONENT CUDAQuantumPythonModules
   INSTALL_DESTINATION mlir_cudaq/_mlir_libs
-  OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/mlir_cudaq/_mlir_libs"
+  OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python/mlir_cudaq/_mlir_libs"
   RELATIVE_INSTALL_ROOT "../.."
   DECLARED_SOURCES
     CUDAQuantumPythonSources
@@ -122,7 +122,7 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
 ################################################################################
 
 add_mlir_python_modules(CUDAQuantumPythonModules
-  ROOT_PREFIX "${MLIR_BINARY_DIR}/mlir_cudaq"
+  ROOT_PREFIX "${MLIR_BINARY_DIR}/python/mlir_cudaq"
   INSTALL_PREFIX "mlir_cudaq"
   DECLARED_SOURCES
     CUDAQuantumPythonSources
@@ -134,7 +134,7 @@ add_mlir_python_modules(CUDAQuantumPythonModules
     CUDAQuantumPythonCAPI
   )
 
-file (COPY cudaq DESTINATION ${MLIR_BINARY_DIR}/)
+file (COPY cudaq DESTINATION ${MLIR_BINARY_DIR}/python)
 
 ## The Python bindings module for Quake dialect depends on CUDAQ libraires 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
@@ -186,10 +186,10 @@ if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION .)
   install(TARGETS _pycudaq DESTINATION cudaq)
   # Also move these to the build directory for testing.
-  file (COPY cudaq DESTINATION ${CMAKE_BINARY_DIR}/)
+  file (COPY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python/)
   add_custom_command(TARGET _pycudaq POST_BUILD 
       COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:_pycudaq> 
-              ${CMAKE_BINARY_DIR}/cudaq)
+              ${CMAKE_BINARY_DIR}/python/cudaq)
 else()
   install(TARGETS _pycudaq LIBRARY DESTINATION cudaq)
 endif()

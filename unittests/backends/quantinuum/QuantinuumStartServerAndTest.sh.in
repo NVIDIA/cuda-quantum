@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,7 +9,7 @@
 # ============================================================================ #
 
 # Launch the fake server
-PYTHONPATH=@CMAKE_BINARY_DIR@ @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/quantinuum/__init__.py &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/quantinuum/__init__.py &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 sleep 3
