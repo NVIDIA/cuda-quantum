@@ -42,10 +42,10 @@ protected:
 
   /// @brief Compute the expectation value <Z...Z> over the given qubit indices.
   double calculateExpectationValue(const std::vector<std::size_t> &qubits) {
-    const auto hasEvenParity = [&qubits](std::size_t x) -> bool {
-      std::size_t bitmask = 0;
-      for (auto q : qubits)
-        bitmask |= (1ULL << q);
+    std::size_t bitmask = 0;
+    for (auto q : qubits)
+      bitmask |= (1ULL << q);
+    const auto hasEvenParity = [&bitmask](std::size_t x) -> bool {
       return std::popcount(x & bitmask) % 2 == 0;
     };
 
