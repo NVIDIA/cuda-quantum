@@ -15,13 +15,17 @@ import numpy as np
 
 import cudaq
 
+
 def test_qreg_iter():
+
     @cudaq.kernel(jit=True)
-    def foo(N:int):
+    def foo(N: int):
         q = cudaq.qvector(N)
         for r in q:
             x(r)
+
     print(foo)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__foo(
 # CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {

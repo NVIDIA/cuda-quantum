@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../../.. pytest -rP  %s | FileCheck %s
+# RUN: PYTHONPATH=../../.. pytest -rP  %s | FileCheck %s
 
 import os
 
@@ -120,6 +120,53 @@ def test_kernel_conditional_with_sample():
 # CHECK:           cc.if(%[[VAL_2]]) {
 # CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 # CHECK:           }
+# CHECK:           return
+# CHECK:         }
+
+
+def test_cif_extract_ref_bug():
+    """
+    Tests a previous bug where the `extract_ref` for a qubit
+    would get hidden within a conditional. This would result in
+    the runtime error "operator #0 does not dominate this use".
+    """
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+
+    kernel.x(qubits[0])
+    measure = kernel.mz(qubits[0], "measure0")
+
+    def then():
+        kernel.x(qubits[1])
+
+    kernel.c_if(measure, then)
+
+    # With bug, any use of `qubits[1]` again would throw a
+    # runtime error.
+    kernel.x(qubits[1])
+    kernel.x(qubits[1])
+
+    result = cudaq.sample(kernel)
+    # Should have measured everything in the |11> state at the end.
+    assert result.get_register_counts("__global__")["11"] == 1000
+
+    # Check the MLIR.
+    print(kernel)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_1]] name "measure0" : (!quake.ref) -> !quake.measure
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_12]] :
+# CHECK:           cc.if(%[[VAL_2]]) {
+# CHECK:             %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
+# CHECK:             quake.x %[[VAL_3]] : (!quake.ref) -> ()
+# CHECK:           }
+# CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
+# CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 

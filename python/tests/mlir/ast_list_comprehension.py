@@ -15,16 +15,18 @@ import numpy as np
 
 import cudaq
 
+
 def test_list_comprehension():
-    
+
     @cudaq.kernel(jit=True)
-    def kernel(): 
+    def kernel():
         q = cudaq.qvector(6)
         [h(r) for r in q]
         x(q[0])
         x.ctrl(q[1], q[2])
-        
+
     print(kernel)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
 # CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 6 : i64

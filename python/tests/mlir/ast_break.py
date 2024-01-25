@@ -15,19 +15,21 @@ import numpy as np
 
 import cudaq
 
+
 def test_break():
-    
+
     @cudaq.kernel(jit=True, verbose=False)
-    def kernel(x : float): 
+    def kernel(x: float):
         q = cudaq.qvector(4)
         for i in range(10):
             x = x + x**2
             if x > 5:
                 break
-            ry(x, q[i%4])
-        
+            ry(x, q[i % 4])
+
     print(kernel)
     kernel(1.2)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
 # CHECK-SAME:                                        %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {

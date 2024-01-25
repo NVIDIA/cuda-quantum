@@ -15,17 +15,19 @@ import numpy as np
 
 import cudaq
 
+
 def test_list_init():
-    
+
     @cudaq.kernel(jit=True)
-    def kernel(): 
+    def kernel():
         q = cudaq.qvector(6)
         params = [1., 2., 3., 4.]
         for i, p in enumerate(params):
             ry(p, q[i])
-        
+
     print(kernel)
     kernel()
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64

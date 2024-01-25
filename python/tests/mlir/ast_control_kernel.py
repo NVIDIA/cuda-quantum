@@ -15,18 +15,21 @@ import numpy as np
 
 import cudaq
 
+
 def test_control_kernel():
+
     @cudaq.kernel(jit=True)
-    def applyX(q:cudaq.qubit):
+    def applyX(q: cudaq.qubit):
         x(q)
-    
+
     @cudaq.kernel(jit=True)
     def bell():
         q = cudaq.qvector(2)
         h(q[0])
         cudaq.control(applyX, [q[0]], q[1])
-    
+
     print(bell)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__applyX(
 # CHECK-SAME:                                        %[[VAL_0:.*]]: !quake.ref) {

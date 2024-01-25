@@ -15,8 +15,9 @@ import numpy as np
 
 import cudaq
 
+
 def test_slice():
-    
+
     # slice upper bound should be exclusive
 
     @cudaq.kernel(jit=True)
@@ -32,7 +33,7 @@ def test_slice():
         y(slice[0])
         y(slice[1])
 
-        slice2 = q[1:3] # should give q[1], q[2]
+        slice2 = q[1:3]  # should give q[1], q[2]
 
         z(slice2[0])
         z(slice2[1])
@@ -40,16 +41,17 @@ def test_slice():
         # bad, will get mlir error
         # z(slice2[2])
 
-        l = [1,2,3,4,5]
-        subl = l[2:4] # should give l[2] = 3, l[3] = 4
+        l = [1, 2, 3, 4, 5]
+        subl = l[2:4]  # should give l[2] = 3, l[3] = 4
         for i, el in enumerate(subl):
-            ry(el, q[i%q.size()])
+            ry(el, q[i % q.size()])
 
         # Can get last qubit
         rz(np.pi, q[-1])
 
     print(slice)
     slice()
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 3 : i64

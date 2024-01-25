@@ -15,20 +15,22 @@ import numpy as np
 
 import cudaq
 
+
 def test_elif():
-    
+
     @cudaq.kernel(jit=True, verbose=True)
-    def cost(thetas:np.ndarray): # can pass 1D ndarray or list
+    def cost(thetas: np.ndarray):  # can pass 1D ndarray or list
         q = cudaq.qvector(4)
         for i, theta in enumerate(thetas):
-            if i % 2.0: # asserting we convert 2.0 to 2
-                ry(theta, q[i%4])
+            if i % 2.0:  # asserting we convert 2.0 to 2
+                ry(theta, q[i % 4])
             else:
-                rx(theta, q[i%4])
-    
+                rx(theta, q[i % 4])
+
     print(cost)
-    cost(np.asarray([1., 2., 3.,4.,5.,6.]))
-    cost([1., 2., 3.,4.,5.,6.])
+    cost(np.asarray([1., 2., 3., 4., 5., 6.]))
+    cost([1., 2., 3., 4., 5., 6.])
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost(
 # CHECK-SAME:                                      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {

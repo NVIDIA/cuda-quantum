@@ -15,17 +15,19 @@ import numpy as np
 
 import cudaq
 
+
 def test_iterate_list_init():
-    
+
     @cudaq.kernel(jit=True)
-    def kernel(x : float): 
+    def kernel(x: float):
         q = cudaq.qvector(4)
         for i in [0, 1, 2, 3]:
             x = x + i
-            ry(x, q[i%4])
-        
+            ry(x, q[i % 4])
+
     print(kernel)
     kernel(1.2)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
 # CHECK-SAME:                                        %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {

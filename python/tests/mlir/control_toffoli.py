@@ -1,5 +1,3 @@
-
-
 # ============================================================================ #
 # Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
@@ -17,9 +15,11 @@ import numpy as np
 
 import cudaq
 
+
 def test_tuple_assign():
+
     @cudaq.kernel(jit=True)
-    def fancyCnot(a:cudaq.qubit, b:cudaq.qubit):
+    def fancyCnot(a: cudaq.qubit, b: cudaq.qubit):
         x.ctrl(a, b)
 
     @cudaq.kernel(jit=True)
@@ -28,8 +28,9 @@ def test_tuple_assign():
         ctrl = q.front()
         x(ctrl, q[2])
         cudaq.control(fancyCnot, [ctrl], q[1], q[2])
-    
+
     print(toffoli)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__toffoli() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>

@@ -15,21 +15,25 @@ import numpy as np
 
 import cudaq
 
+
 def test_qft():
+
     @cudaq.kernel(jit=True)
     def iqft(qubits: cudaq.qview):
         N = qubits.size()
-        for i in range(N//2):
-            swap(qubits[i], qubits[N-i-1])
+        for i in range(N // 2):
+            swap(qubits[i], qubits[N - i - 1])
 
-        for i in range(N-1):
+        for i in range(N - 1):
             h(qubits[i])
             j = i + 1
             for y in range(i, -1, -1):
-                r1.ctrl(-np.pi / 2**(j-y), qubits[j], qubits[y])
+                r1.ctrl(-np.pi / 2**(j - y), qubits[j], qubits[y])
 
-        h(qubits[N-1])
+        h(qubits[N - 1])
+
     print(iqft)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__iqft(
 # CHECK-SAME:                                      %[[VAL_0:.*]]: !quake.veq<?>) {

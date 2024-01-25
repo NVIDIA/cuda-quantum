@@ -9,14 +9,14 @@
 # RUN: PYTHONPATH=../../../.. python3 %s | FileCheck %s
 
 from mlir_cudaq.ir import *
-from mlir_cudaq.dialects import quake 
+from mlir_cudaq.dialects import quake
 from mlir_cudaq.dialects import builtin, func, arith
 
 with Context() as ctx:
     quake.register_dialect()
     m = Module.create(loc=Location.unknown())
     with InsertionPoint(m.body), Location.unknown():
-        f = func.FuncOp('main', ([],[]))
+        f = func.FuncOp('main', ([], []))
         entry_block = f.add_entry_block()
         with InsertionPoint(entry_block):
             t = quake.RefType.get(ctx)
@@ -30,10 +30,10 @@ with Context() as ctx:
 
             qveq = quake.AllocaOp(v)
             dyn = quake.AllocaOp(quake.VeqType.get(ctx), size=s)
-            quake.HOp([],[],[],[qubit])
-            quake.XOp([],[],[qubit],[target])
+            quake.HOp([], [], [], [qubit])
+            quake.XOp([], [], [qubit], [target])
             ret = func.ReturnOp([])
-    
+
     print(str(m))
 
 # CHECK-LABEL:   func.func @main() {

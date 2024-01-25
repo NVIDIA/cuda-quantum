@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../../.. pytest -rP  %s | FileCheck %s
+# RUN: PYTHONPATH=../../.. pytest -rP  %s | FileCheck %s
 
 import os
 
@@ -26,14 +26,15 @@ def test_kernel_non_param_1q():
     # Allocating a register of size 1 returns just a qubit.
     qubit = kernel.qalloc(1)
     # Apply each gate to the qubit.
-    kernel.h(qubit[0])
-    kernel.x(qubit[0])
-    kernel.y(qubit[0])
+    kernel.h(target=qubit[0])
+    kernel.x(target=qubit[0])
+    kernel.y(target=qubit[0])
     kernel.z(qubit[0])
     kernel.t(qubit[0])
     kernel.s(qubit[0])
     kernel.tdg(qubit[0])
     kernel.sdg(qubit[0])
+    kernel()
     # Kernel arguments should still be an empty list.
     assert kernel.arguments == []
     # Kernel should still have 0 parameters.
@@ -68,10 +69,11 @@ def test_kernel_param_1q():
     qubit = kernel.qalloc(1)
     # Apply each parameterized gate to the qubit.
     # Test both with and without keyword arguments.
-    kernel.rx(parameter, qubit[0])
+    kernel.rx(parameter=parameter, target=qubit[0])
     kernel.ry(parameter, qubit[0])
     kernel.rz(parameter, qubit[0])
     kernel.r1(parameter, qubit[0])
+    kernel(3.14)
     # Should have 1 argument and parameter.
     got_arguments = kernel.arguments
     got_argument_count = kernel.argument_count

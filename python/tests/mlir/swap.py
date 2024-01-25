@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../../.. pytest -rP  %s | FileCheck %s
+# RUN: PYTHONPATH=../../.. pytest -rP  %s | FileCheck %s
 
 import pytest
 
@@ -31,6 +31,7 @@ def test_swap_2q():
     assert kernel.arguments == []
     assert kernel.argument_count == 0
     print(kernel)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>

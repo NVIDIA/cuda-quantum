@@ -15,12 +15,14 @@ import cudaq
 
 cudaq.enable_jit()
 
-@cudaq.kernel 
+
+@cudaq.kernel
 def foo():
-    q0, q1, q2 = cudaq.qlist(3) 
+    q0, q1, q2 = cudaq.qlist(3)
     x(q0)
     y(q1)
     z(q2)
+
 
 print(foo)
 

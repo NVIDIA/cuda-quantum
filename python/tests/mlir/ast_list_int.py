@@ -15,18 +15,20 @@ import numpy as np
 
 import cudaq
 
+
 def test_list_int():
-    
+
     @cudaq.kernel(jit=True)
-    def oracle(register: cudaq.qview,
-            auxillary_qubit: cudaq.qubit, hidden_bitstring: list[int]):
+    def oracle(register: cudaq.qview, auxillary_qubit: cudaq.qubit,
+               hidden_bitstring: list[int]):
         # Also test out len() here, should convert to stdvec_size
         x = len(hidden_bitstring)
         for index, bit in enumerate(hidden_bitstring):
             if bit == 1:
                 x.ctrl(register[index], auxillary_qubit)
-    
+
     print(oracle)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__oracle(
 # CHECK-SAME:                                        %[[VAL_0:.*]]: !quake.veq<?>,

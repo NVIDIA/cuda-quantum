@@ -15,15 +15,18 @@ import numpy as np
 
 import cudaq
 
+
 def test_control_kernel():
+
     @cudaq.kernel(jit=True, verbose=True)
-    def reflect(qubits:cudaq.qview):
-        ctrls = qubits.front(qubits.size()-1)
+    def reflect(qubits: cudaq.qview):
+        ctrls = qubits.front(qubits.size() - 1)
         last = qubits.back()
-        compute = lambda : (h(qubits), x(qubits))
+        compute = lambda: (h(qubits), x(qubits))
         cudaq.compute_action(compute, lambda: z.ctrl(ctrls, last))
 
     print(reflect)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__reflect(
 # CHECK-SAME:                                         %[[VAL_0:.*]]: !quake.veq<?>) {

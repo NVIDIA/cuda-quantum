@@ -15,14 +15,17 @@ import numpy as np
 
 import cudaq
 
+
 def test_tuple_assign():
+
     @cudaq.kernel(jit=True)
     def test():
         q, r, s = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
         x(q, s)
         swap.ctrl(q, r, s)
-    
+
     print(test)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref

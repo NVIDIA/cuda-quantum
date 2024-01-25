@@ -15,18 +15,20 @@ import numpy as np
 
 import cudaq
 
+
 def test_synth_and_qir():
+
     @cudaq.kernel(jit=True)
-    def ghz(numQubits:int):
+    def ghz(numQubits: int):
         qubits = cudaq.qvector(numQubits)
         h(qubits.front())
-        for i, qubitIdx in enumerate(range(numQubits-1)):
-            x.ctrl(qubits[i], qubits[qubitIdx+1])
-
+        for i, qubitIdx in enumerate(range(numQubits - 1)):
+            x.ctrl(qubits[i], qubits[qubitIdx + 1])
 
     print(cudaq.to_qir(ghz))
     ghz_synth = cudaq.synthesize(ghz, 5)
     print(cudaq.to_qir(ghz_synth, profile='qir-base'))
+
 
 # CHECK:    %[[VAL_0:.*]] = tail call
 # CHECK:    %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64

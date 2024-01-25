@@ -15,18 +15,20 @@ import numpy as np
 
 import cudaq
 
+
 def test_while():
-    
+
     @cudaq.kernel(jit=True)
-    def cost(): 
+    def cost():
         q = cudaq.qvector(6)
         i = 5
         while i > 0:
             ry(np.pi, q[i])
-            i -= 1 
-        
+            i -= 1
+
     print(cost)
     # cost()
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
@@ -52,15 +54,19 @@ def test_while():
 # CHECK:           return
 # CHECK:         }
 
+
 def test_complex_conditional():
+
     @cudaq.kernel(jit=True)
-    def cost(): 
+    def cost():
         q = cudaq.qvector(6)
         i = 5
-        while i > 0 and i < 14 and i != 2: 
+        while i > 0 and i < 14 and i != 2:
             ry(np.pi, q[i])
-            i -= 1 
+            i -= 1
+
     print(cost)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64

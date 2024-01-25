@@ -19,9 +19,9 @@ import cudaq
 def test_recursive_calls():
     kernel1, qubit1 = cudaq.make_kernel(cudaq.qubit)
     # print(kernel1)
-    
+
     kernel2, qubit2 = cudaq.make_kernel(cudaq.qubit)
-    kernel2.apply_call(kernel1, qubit2) 
+    kernel2.apply_call(kernel1, qubit2)
     # print(kernel2)
 
     kernel3 = cudaq.make_kernel()
@@ -30,6 +30,7 @@ def test_recursive_calls():
     kernel3.apply_call(kernel2, qubit3)
 
     print(kernel3)
+
 
 # CHECK-LABEL:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:    %[[VAL_0:.*]] = quake.alloca !quake.veq<1>

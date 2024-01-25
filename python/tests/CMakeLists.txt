@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 # Tests that generate MLIR and are run through both pytest and FileCheck.
-add_subdirectory(compiler)
+add_subdirectory(mlir)
 
 if (MPI_CXX_FOUND AND CUDA_FOUND)
   add_subdirectory(parallel)
@@ -59,5 +59,3 @@ if (NOT ${PYDANTIC_result} EQUAL 0)
 endif()
 
 message(STATUS "CUDAQ_TEST_MOCK_SERVERS=TRUE and dependent modules available, building Python remote QPU tests.")
-
-add_subdirectory(mlir)

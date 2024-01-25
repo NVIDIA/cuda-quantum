@@ -15,18 +15,20 @@ import numpy as np
 
 import cudaq
 
+
 def test_elif():
-    
+
     @cudaq.kernel(jit=True)
-    def cost(thetas:np.ndarray): # can pass 1D ndarray or list
+    def cost(thetas: np.ndarray):  # can pass 1D ndarray or list
         q = cudaq.qvector(4)
         i = 0
         for theta in thetas:
             ry(theta, q[i])
             i += 1
-    
+
     print(cost)
-    cost(np.asarray([1., 2., 3.,4.]))
+    cost(np.asarray([1., 2., 3., 4.]))
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost(
 # CHECK-SAME:                                      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {

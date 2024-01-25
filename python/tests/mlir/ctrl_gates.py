@@ -6,9 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-## [SKIP_TEST]: FileCheck input needs to be updated.
-##              Once fixed, append '| FileCheck %s' to the following command
-# RUN: PYTHONPATH=../../.. pytest -rP  %s
+# RUN: PYTHONPATH=../../.. pytest -rP  %s | FileCheck %s
 
 import os
 

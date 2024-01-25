@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../../.. pytest -rP  %s | FileCheck %s
+# RUN: PYTHONPATH=../../.. pytest -rP  %s | FileCheck %s
 
 import os
 
@@ -36,6 +36,7 @@ def test_kernel_qreg():
     assert kernel.arguments == []
     assert kernel.argument_count == 0
     print(kernel)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
