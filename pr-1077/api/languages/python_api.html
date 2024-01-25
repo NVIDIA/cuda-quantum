@@ -330,9 +330,12 @@
 <li class="toctree-l3"><a class="reference internal" href="#backend-configuration">Backend Configuration</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.set_target"><code class="docutils literal notranslate"><span class="pre">set_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
 </ul>
@@ -341,6 +344,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
@@ -645,6 +649,17 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cudaq.get_targets">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_targets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.get_targets" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_targets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd></dd></dl>
+
+<p>Return all available <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> instances on the current system.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cudaq.set_target">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overloaded function.</p>
@@ -688,6 +703,28 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <dd></dd></dl>
 
 <p>Set the underlying noise model.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.unset_noise">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">unset_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.unset_noise" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">unset_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Clear backend simulation from any existing noise models.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.initialize_cudaq">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">initialize_cudaq</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.initialize_cudaq" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">initialize_cudaq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">\*\*kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Initialize the CUDA Quantum environment.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -775,6 +812,58 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <dt class="sig sig-object py" id="cudaq.qreg">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">qreg</span></span><a class="headerlink" href="#cudaq.qreg" title="Permalink to this definition">¶</a></dt>
 <dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">qvector</span></code></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.ComplexMatrix">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">ComplexMatrix</span></span><a class="headerlink" href="#cudaq.ComplexMatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a> is a thin wrapper around a matrix of complex&lt;double&gt; elements.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ComplexMatrix.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ComplexMatrix.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ComplexMatrix" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.12)"><span class="pre">complex</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return the matrix element at i, j.</p>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ComplexMatrix" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.12)"><span class="pre">complex</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return the matrix element at i, j.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ComplexMatrix.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ComplexMatrix.__str__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ComplexMatrix" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Write this matrix to a string representation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ComplexMatrix.minimal_eigenvalue">
+<span class="sig-name descname"><span class="pre">minimal_eigenvalue</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ComplexMatrix.minimal_eigenvalue" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">minimal_eigenvalue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ComplexMatrix" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.12)"><span class="pre">complex</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the lowest eigenvalue for this <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a>.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -1053,7 +1142,7 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4125307970</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4193493342</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
@@ -1075,10 +1164,10 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <span class="sig-name descname"><span class="pre">to_matrix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.to_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">to_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SpinOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix</span></span></span></dt>
+<span class="sig-name descname"><span class="pre">to_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SpinOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.ComplexMatrix" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ComplexMatrix</span></a></span></span></dt>
 <dd></dd></dl>
 
-<p>Return <code class="code docutils literal notranslate"><span class="pre">self</span></code> as a <code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code>.</p>
+<p>Return <code class="code docutils literal notranslate"><span class="pre">self</span></code> as a <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1540,16 +1629,16 @@ to the specified <code class="code docutils literal notranslate"><span class="pr
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.KrausChannel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">KrausChannel</span></span><a class="headerlink" href="#cudaq.KrausChannel" title="Permalink to this definition">¶</a></dt>
-<dd><p>The <code class="code docutils literal notranslate"><span class="pre">KrausChannel</span></code> is composed of a list of <code class="xref py py-class docutils literal notranslate"><span class="pre">KrausOperator</span></code>’s and is applied to a specific qubit or set of qubits.</p>
+<dd><p>The <code class="code docutils literal notranslate"><span class="pre">KrausChannel</span></code> is composed of a list of <a class="reference internal" href="#cudaq.KrausOperator" title="cudaq.KrausOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausOperator</span></code></a>’s and is applied to a specific qubit or set of qubits.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.KrausChannel.__getitem__">
 <span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.KrausChannel.__getitem__" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.KrausChannel" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausChannel"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausChannel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausOperator</span></span></span></dt>
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.KrausChannel" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausChannel"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausChannel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.KrausOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
-<p>Return the <code class="xref py py-class docutils literal notranslate"><span class="pre">KrausOperator</span></code> at the given index in this <a class="reference internal" href="#cudaq.KrausChannel" title="cudaq.KrausChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausChannel</span></code></a>.</p>
+<p>Return the <a class="reference internal" href="#cudaq.KrausOperator" title="cudaq.KrausOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausOperator</span></code></a> at the given index in this <a class="reference internal" href="#cudaq.KrausChannel" title="cudaq.KrausChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausChannel</span></code></a>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1557,10 +1646,28 @@ to the specified <code class="code docutils literal notranslate"><span class="pr
 <span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.KrausChannel.append" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.KrausChannel" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausChannel"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausChannel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausOperator</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">append</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.KrausChannel" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausChannel"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausChannel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.KrausOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.KrausOperator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
 <dd></dd></dl>
 
-<p>Add a <code class="xref py py-class docutils literal notranslate"><span class="pre">KrausOperator</span></code> to this <a class="reference internal" href="#cudaq.KrausChannel" title="cudaq.KrausChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausChannel</span></code></a>.</p>
+<p>Add a <a class="reference internal" href="#cudaq.KrausOperator" title="cudaq.KrausOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausOperator</span></code></a> to this <a class="reference internal" href="#cudaq.KrausChannel" title="cudaq.KrausChannel"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausChannel</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.KrausOperator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">KrausOperator</span></span><a class="headerlink" href="#cudaq.KrausOperator" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <code class="code docutils literal notranslate"><span class="pre">KrausOperator</span></code> is represented by a matrix and serves as an element of a quantum channel such that <code class="code docutils literal notranslate"><span class="pre">Sum</span> <span class="pre">Ki</span> <span class="pre">Ki^dag</span> <span class="pre">=</span> <span class="pre">I.</span></code></p>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.KrausOperator.col_count">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">col_count</span></span><a class="headerlink" href="#cudaq.KrausOperator.col_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of columns in the matrix representation of this <a class="reference internal" href="#cudaq.KrausOperator" title="cudaq.KrausOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausOperator</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.KrausOperator.row_count">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">row_count</span></span><a class="headerlink" href="#cudaq.KrausOperator.row_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of rows in the matrix representation of this <a class="reference internal" href="#cudaq.KrausOperator" title="cudaq.KrausOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">KrausOperator</span></code></a>.</p>
 </dd></dl>
 
 </dd></dl>

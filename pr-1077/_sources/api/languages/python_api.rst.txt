@@ -67,15 +67,12 @@ Backend Configuration
 
 .. autofunction:: cudaq::has_target
 .. autofunction:: cudaq::get_target
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'get_targets'. Did you mean: 'get_target'?
-.. .. autofunction:: cudaq::get_targets
+.. autofunction:: cudaq::get_targets
 .. autofunction:: cudaq::set_target
 .. autofunction:: cudaq::reset_target
 .. autofunction:: cudaq::set_noise
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'unset_noise'. Did you mean: 'set_noise'?
-.. .. autofunction:: cudaq::unset_noise
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'initialize_cudaq'
-.. .. automethod:: cudaq::initialize_cudaq
+.. autofunction:: cudaq::unset_noise
+.. automethod:: cudaq::initialize_cudaq
 .. automethod:: cudaq::num_available_gpus
 .. automethod:: cudaq::set_random_seed
 
@@ -105,10 +102,9 @@ Data Types
 .. autoclass:: cudaq::qubit
 .. autoclass:: cudaq::qreg
 
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'ComplexMatrix'
-.. .. autoclass:: cudaq::ComplexMatrix
-..     :members:
-..     :special-members: __getitem__, __str__
+.. autoclass:: cudaq::ComplexMatrix
+    :members:
+    :special-members: __getitem__, __str__
 
 .. autoclass:: cudaq::SpinOperator
     :members:
@@ -210,9 +206,8 @@ Noisy Simulation
     :members:
     :special-members: __getitem__
 
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'KrausOperator'
-.. .. autoclass:: cudaq::KrausOperator
-..     :members:
+.. autoclass:: cudaq::KrausOperator
+    :members:
 
 .. [SKIP_TEST]: Reason - No module named 'cudaq.mpi'
 .. MPI Submodule
