@@ -39,7 +39,12 @@ std::complex<double> state::operator[](std::size_t idx) {
   if (shape.size() != 1)
     throw std::runtime_error("Cannot request 1-d index into density matrix. "
                              "Must be a state vector.");
-  return stateData[idx];
+  std::size_t numQubits = std::log2(stateData.size());
+  std::size_t newIdx = 0;
+  for (std::size_t i = 0; i < numQubits; ++i)
+    if (idx & (1ULL << i))
+      newIdx |= (1ULL << ((numQubits - 1) - i));
+  return stateData[newIdx];
 }
 
 std::complex<double> state::operator()(std::size_t idx, std::size_t jdx) {

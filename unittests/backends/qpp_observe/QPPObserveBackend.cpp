@@ -38,11 +38,11 @@ public:
         auto [bsf, coeffs] = term.get_raw_data();
         for (std::size_t i = 0; i < nQ; i++) {
           if (bsf[0][i] && bsf[0][i + nQ])
-            cached = ::qpp::apply(cached, Y, {i});
+            cached = ::qpp::apply(cached, Y, {convertQubitIndex(i)});
           else if (bsf[0][i])
-            cached = ::qpp::apply(cached, X, {i});
+            cached = ::qpp::apply(cached, X, {convertQubitIndex(i)});
           else if (bsf[0][i + nQ])
-            cached = ::qpp::apply(cached, Z, {i});
+            cached = ::qpp::apply(cached, Z, {convertQubitIndex(i)});
         }
 
         sum += coeffs[0].real() * state.transpose().dot(cached).real();
