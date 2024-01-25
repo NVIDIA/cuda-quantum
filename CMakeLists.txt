@@ -506,6 +506,9 @@ endif()
 if (NOT CUDAQ_DISABLE_TOOLS)
   add_subdirectory(tools)
 endif()
+# Always add cudaq-qpud executable/tool (including Python wheels)
+add_subdirectory(tools/cudaq-qpud)
+
 add_subdirectory(utils)
 
 if (CUDAQ_ENABLE_PYTHON)

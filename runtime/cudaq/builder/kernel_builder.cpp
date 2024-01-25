@@ -292,7 +292,7 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
   // Map the QuakeValues to MLIR Values
   SmallVector<Value> mlirValues;
   for (std::size_t i = 0; auto &v : values) {
-    Type argType = otherFuncCloned.getArgumentTypes()[i];
+    Type argType = otherFuncCloned.getArgumentTypes()[i++];
     Value value = v.getValue();
     Type inType = value.getType();
     auto inAsVeqTy = inType.dyn_cast_or_null<quake::VeqType>();
