@@ -241,7 +241,6 @@ jobs:
             done
 
       - name: Run Python MPI tests
-        if: matrix.os_image == 'redhat/ubi9:9.2'
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
