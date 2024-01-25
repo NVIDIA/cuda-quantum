@@ -125,7 +125,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // Place just q0 in the 1-state with X-gate.
     qppBackend.x(q0);
     // State vector should now be `|1> <0| = (0 0 1 0)`.
-    want_state = qpp::kron(getOneState(1), getZeroState(1));
+    want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("10");
     got_bitstring = getSampledBitString(qppBackend, {0, 1});
@@ -278,7 +278,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     qpp::ket psi_q0 = qpp::ket::Ones(2);
     psi_q0 *= 1 / std::sqrt(2);
     // State vector for the system is now `|q0> <0|`.
-    want_state = qpp::kron(psi_q0, getZeroState(1));
+    want_state = qpp::kron(getZeroState(1), psi_q0);
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
 
@@ -287,7 +287,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // `|q1> = |q0> = 1/sqrt(2) * (1 1)`.
     qpp::ket psi_q1 = psi_q0;
     // State vector now `|q0> <q1|`.
-    want_state = qpp::kron(psi_q0, psi_q1);
+    want_state = qpp::kron(psi_q1, psi_q0);
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
 
@@ -738,8 +738,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     // Apply CPHASE between q0 and q1 again at `theta=pi`.
     qppBackend.r1(M_PI, /* ctrls */ {q0}, q1);
 
-    // CPHASE shouldn't affect `|01>`
-    want_state = qpp::kron(getZeroState(1), getOneState(1));
+    want_state = qpp::kron(getOneState(1), getZeroState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
@@ -755,8 +754,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     // Apply CPHASE between q0 and q1 at `theta=pi`.
     qppBackend.r1(M_PI, /* ctrls */ {q0}, q1);
 
-    // CPHASE shouldn't affect `|10>`
-    want_state = qpp::kron(getOneState(1), getZeroState(1));
+    want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
 
@@ -811,7 +809,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Apply controlled-X between q0 and q1
     qppBackend.x(/* ctrls */ {q0}, /* target */ q1);
     // controlled-X shouldn't affect `|01>`
-    want_state = qpp::kron(getZeroState(1), getOneState(1));
+    want_state = qpp::kron(getOneState(1), getZeroState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
@@ -826,7 +824,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Apply controlled-X between q0 and q1
     qppBackend.x(/* ctrls */ {q0}, /* target */ q1);
     // controlled-X should take `|11>` -> `|10>`
-    want_state = qpp::kron(getOneState(1), getZeroState(1));
+    want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("10");
@@ -884,7 +882,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Apply controlled-Z between q0 and q1
     qppBackend.z(/* ctrls */ {q0}, /* target */ q1);
     // controlled-X shouldn't affect `|01>`
-    want_state = qpp::kron(getZeroState(1), getOneState(1));
+    want_state = qpp::kron(getOneState(1), getZeroState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
@@ -914,7 +912,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Apply controlled-Z between q0 and q1
     qppBackend.z(/* ctrls */ {q0}, /* target */ q1);
     // controlled-Z shouldn't affect `|10>`
-    want_state = qpp::kron(getOneState(1), getZeroState(1));
+    want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     // EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("10");
@@ -959,7 +957,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Apply CH between q0 and q1
     qppBackend.h(/* ctrls */ {q0}, /* target */ q1);
     // CH shouldn't affect `|01>`
-    want_state = qpp::kron(getZeroState(1), getOneState(1));
+    want_state = qpp::kron(getOneState(1), getZeroState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
@@ -971,11 +969,9 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Flip q0 to the 1-state with an X-gate.
     // Total system state is now `|11>`.
     qppBackend.x(q0);
-    // Apply CH between q0 and q1
     qppBackend.h(/* ctrls */ {q0}, /* target */ q1);
-    // CH should take `|11>` state vector to (0,0,1/sqrt(2),-1/sqrt(2))
     want_state = (-1. / sqrt(2)) * getOneState(2);
-    want_state(2) = 1.0 / sqrt(2);
+    want_state(1) = 1.0 / sqrt(2);
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
 
@@ -987,11 +983,9 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
 
     // Flip q0 to the 1 state. Total system state is now `|10>`.
     qppBackend.x(q0);
-    // Apply CH between q0 and q1
     qppBackend.h(/* ctrls */ {q0}, /* target */ q1);
-    // CH should take `|10>` state vector to (0,0,1/sqrt(2),1/sqrt(2))
     want_state = (1. / sqrt(2)) * getOneState(2);
-    want_state(2) = 1.0 / sqrt(2);
+    want_state(1) = 1.0 / sqrt(2);
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
 
@@ -1032,7 +1026,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Apply CS between q0 and q1
     qppBackend.s(/* ctrls */ {q0}, /* target */ q1);
     // CS shouldn't affect `|01>`
-    want_state = qpp::kron(getZeroState(1), getOneState(1));
+    want_state = qpp::kron(getOneState(1), getZeroState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
@@ -1048,7 +1042,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Apply CS between q0 and q1
     qppBackend.s(/* ctrls */ {q0}, /* target */ q1);
     // CH shouldn't affect `|10>`
-    want_state = qpp::kron(getOneState(1), getZeroState(1));
+    want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
 
@@ -1080,7 +1074,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Flip q0 to the 1 state.
     qppBackend.x(q0);
     // Ensure the state is now `|10>`
-    want_state = qpp::kron(getOneState(1), getZeroState(1));
+    want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("10");
@@ -1092,7 +1086,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Swap the qubit states with SWAP gate.
     qppBackend.swap(/* source */ q0, /* target */ q1);
     // Ensure the state is now `|01>`
-    want_state = qpp::kron(getZeroState(1), getOneState(1));
+    want_state = qpp::kron(getOneState(1), getZeroState(1));
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
@@ -1151,7 +1145,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
 
     // Place q0 in the 1 state
     qppBackend.x(q0);
-    want_state = qpp::kron(getOneState(1), getZeroState(1));
+    want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("10");
     got_bitstring = getSampledBitString(qppBackend, {0, 1});
@@ -1218,7 +1212,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
 
     // Place q0 in the 1 state
     qppBackend.x(q0);
-    want_state = qpp::kron(getOneState(1), getZeroState(1));
+    want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("10");
     got_bitstring = getSampledBitString(qppBackend, {0, 1});
@@ -1232,7 +1226,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     qppBackend.x(q1);
     qppBackend.resetQubit(q0);
     // State should've flipped to `|01>`
-    want_state = qpp::kron(getZeroState(1), getOneState(1));
+    want_state = qpp::kron(getOneState(1), getZeroState(1));
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("01");
     got_bitstring = getSampledBitString(qppBackend, {0, 1});
