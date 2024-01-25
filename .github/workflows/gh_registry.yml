@@ -15,6 +15,7 @@ jobs:
 
     outputs:
       external_images: ${{ steps.ghcr_config.outputs.external_images }}
+      internal_images: ${{ steps.ghcr_config.outputs.internal_images }}
 
     steps:
       - name: Checkout repository
@@ -41,6 +42,20 @@ jobs:
               external_images=`echo $external_images | jq ".tags |= . + [\"$source:$tag\"]"`
             done
           done
+
+          config=`cat .github/workflows/config/ghcr_config.json | jq ".internal_images"`
+          images=`echo "$config" | jq '.[].name'`
+          internal_images="{\"package_names\":[]}"
+          for image in $images; do
+            image_data=`echo "$config" | jq ".[] | select(.name==$image)"`
+            package_name=`echo $image_data | jq -r '.name'`
+            nr_tags_to_keep=`echo $image_data | jq -r '.tags_to_keep'`
+            internal_images=`echo $internal_images | jq ".package_names |= . + [\"$package_name\"]"`
+            info={\"$package_name\":{\"nr_tags_to_keep\":\"$nr_tags_to_keep\"}}
+            internal_images=`echo $internal_images | jq ". |= . + $info"`
+          done
+
+          echo "internal_images=$(echo $internal_images)" >> $GITHUB_OUTPUT
           echo "external_images=$(echo $external_images)" >> $GITHUB_OUTPUT
 
   delete_images:
@@ -136,3 +151,35 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ steps.metadata.outputs.platforms }}
           push: true
+
+  delete_internal_images:
+    name: Clean up internal images on GHCR
+    needs: ghcr_config
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
+    strategy:
+      matrix:
+        package_name: ${{ fromJson(needs.ghcr_config.outputs.internal_images).package_names }}
+      fail-fast: false
+
+    steps:
+      - name: Login to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Delete old images
+        uses: actions/delete-package-versions@v4
+        with: 
+          package-name: ${{ matrix.package_name }}
+          package-type: 'container'
+          min-versions-to-keep: ${{ fromJson(needs.ghcr_config.outputs.internal_images)[format('{0}', matrix.package_name)].nr_tags_to_keep }}
+        continue-on-error: true

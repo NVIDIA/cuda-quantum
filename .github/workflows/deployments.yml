@@ -41,6 +41,7 @@ on:
     branches:
       - 'releases/*'
       - 'experimental/*'
+      - 'features/*'
 
 name: Deployments # do not change name without updating workflow_run triggers
 
@@ -285,7 +286,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'deployments.yml',
-              ref: '${{ needs.metadata.outputs.pull_request_base }}',
+              ref: '${{ needs.metadata.outputs.pull_request_base || github.ref_name }}',
               inputs: {
                 platforms: 'linux/arm64,linux/amd64',
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',

@@ -31,7 +31,7 @@ RUN apt-get install -y --no-install-recommends \
         # just here for convenience:
         curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \
-        apt-get install -y --no-install-recommends gcc \
+        apt-get install -y --no-install-recommends gcc libpython3-dev \
         && pip install --no-cache-dir jupyterlab matplotlib; \
         if [ -n "$MPI_ROOT" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \

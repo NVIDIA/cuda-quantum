@@ -82,11 +82,14 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
         // The mpi4py-based plugin
         const auto pyPluginLibFile =
             pluginsPath / fmt::format("libcudaq-py-comm-plugin.{}", libSuffix);
-        if (std::filesystem::exists(pluginLibFile)) {
+        if (std::filesystem::exists(pluginLibFile) &&
+            cudaq::MPIPlugin::isValidInterfaceLib(pluginLibFile.c_str())) {
           cudaq::info("Load builtin MPI comm plugin from  at '{}'",
                       pluginLibFile.c_str());
           g_plugin = std::make_unique<cudaq::MPIPlugin>(pluginLibFile.c_str());
-        } else if (std::filesystem::exists(pyPluginLibFile)) {
+        } else if (std::filesystem::exists(pyPluginLibFile) &&
+                   cudaq::MPIPlugin::isValidInterfaceLib(
+                       pyPluginLibFile.c_str())) {
           cudaq::info("Try loading mpi4py MPI comm plugin from  at '{}'",
                       pyPluginLibFile.c_str());
           g_plugin =
@@ -115,6 +118,11 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
 
   return g_plugin.get();
 };
+
+bool available() {
+  auto *commPlugin = getMpiPlugin(/*unsafe=*/true);
+  return commPlugin != nullptr;
+}
 
 void initialize() {
   auto *commPlugin = getMpiPlugin();

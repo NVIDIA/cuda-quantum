@@ -1,4 +1,27 @@
 {
+    "internal_images":
+    [
+        {
+            "name": "cuda-quantum",
+            "tags_to_keep": 6
+        },
+        {
+            "name": "cuda-quantum-dev",
+            "tags_to_keep": 50
+        },
+        {
+            "name": "cuda-quantum-assets",
+            "tags_to_keep": 20
+        },
+        {
+            "name": "cuda-quantum-devdeps",
+            "tags_to_keep": 100
+        },
+        {
+            "name": "open-mpi",
+            "tags_to_keep": 10
+        }
+    ],    
     "external_images":
     [
         {
@@ -15,6 +38,22 @@
             "tags": 
             [
                 "latest"
+            ]
+        },
+        {
+            "source": "amd64/almalinux",
+            "platforms": "linux/amd64",
+            "tags": 
+            [
+                "8"
+            ]
+        },
+        {
+            "source": "arm64v8/almalinux",
+            "platforms": "linux/arm64",
+            "tags": 
+            [
+                "8"
             ]
         },
         {
