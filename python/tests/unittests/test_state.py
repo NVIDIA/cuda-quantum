@@ -23,6 +23,15 @@ def test_state_vector_simple():
     its member functions.
     """
     cudaq.reset_target()
+    target = cudaq.get_target()
+    print(target)
+    dtype = np.complex64 
+    wrongDtype = np.complex128
+    if target.name == 'qpp-cpu' or target.name == 'custatevec_fp64':
+        dtype = np.complex128 
+        wrongDtype = np.complex64
+
+
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
@@ -33,7 +42,7 @@ def test_state_vector_simple():
 
     # Data type needs to be the same as the internal state vector
     want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
-                          dtype=np.complex64)
+                          dtype=dtype)
 
     # Check the indexing operators on the State class
     # while also checking their values
@@ -59,7 +68,7 @@ def test_state_vector_simple():
 
     # Can't use FP64 with FP32 data
     want_state_bad_datatype = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
-                          dtype=np.complex128)
+                          dtype=wrongDtype)
     with pytest.raises(Exception) as error:
         got_state.overlap(want_state_bad_datatype)
 
@@ -70,6 +79,12 @@ def test_state_vector_integration():
     optimizer to find the correct kernel parameters for a Bell state.
     """
     cudaq.reset_target()
+    target = cudaq.get_target()
+    print(target)
+    dtype = np.complex64 
+    if target.name == 'qpp-cpu' or target.name == 'custatevec_fp64':
+        dtype = np.complex128 
+
     # Make a general 2 qubit SO4 rotation.
     kernel, parameters = cudaq.make_kernel(list)
     qubits = kernel.qalloc(2)
@@ -84,7 +99,7 @@ def test_state_vector_integration():
     kernel.cz(qubits[0], qubits[1])
 
     want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
-                 dtype=np.complex64)
+                 dtype=dtype)
 
     def objective(x):
         got_state = cudaq.get_state(kernel, x)
@@ -191,6 +206,11 @@ def test_state_density_matrix_integration():
 
 def test_state_vector_async():
     """Tests `cudaq.get_state_async` on a simple kernel."""
+    target = cudaq.get_target()
+    print(target)
+    dtype = np.complex64 
+    if target.name == 'qpp-cpu' or target.name == 'custatevec_fp64':
+        dtype = np.complex128 
 
     kernel, theta, phi = cudaq.make_kernel(float, float)
     qubits = kernel.qalloc(2)
@@ -203,7 +223,7 @@ def test_state_vector_async():
     # Note: rx(pi)ry(pi/2) == -i*H (with a global phase)
     future = cudaq.get_state_async(kernel, np.pi, np.pi / 2.)
     want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
-                          dtype=np.complex64)
+                          dtype=dtype)
     state = future.get()
     assert np.allclose(state, want_state, atol=1e-3)
     # Check invalid qpu_id
