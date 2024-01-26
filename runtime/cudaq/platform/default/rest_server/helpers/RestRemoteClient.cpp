@@ -242,6 +242,15 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
     return fmt::format("https://{}/nvcf/exec/functions/{}", m_baseUrl,
                        m_functionId);
   }
+  std::string nvcfAssetUrl() const {
+    return fmt::format("https://{}/nvcf/assets", m_baseUrl);
+  }
+  std::map<std::string, std::string> &getHeaders() const {
+    static std::map<std::string, std::string> header{
+        {"Authorization", fmt::format("Bearer {}", m_apiKey)},
+        {"Content-type", "application/json"}};
+    return header;
+  };
 
 public:
   virtual void setConfig(
@@ -269,17 +278,32 @@ public:
             kernelName;
       return false;
     }
-    std::map<std::string, std::string> headers{
-        {"Authorization", fmt::format("Bearer {}", m_apiKey)},
-        {"Content-type", "application/json"}};
+    // Max message size that we can send in the body
+    constexpr std::size_t MAX_SIZE_BYTES = 250 * 1ULL << 10; // 250KB
     json requestJson;
-    requestJson["requestBody"] = request;
+    auto jobHeader = getHeaders();
+    if (request.code.size() > MAX_SIZE_BYTES) {
+      const auto assetId = uploadRequest(request);
+      if (!assetId.has_value()) {
+        if (optionalErrorMsg)
+          *optionalErrorMsg = "Failed to upload request as NVCF assets";
+        return false;
+      }
+      jobHeader["NVCF-INPUT-ASSET-REFERENCES"] = assetId.value();
+      std::cout << "Upload request as asset: " << assetId.value() << "\n";
+      json requestBody;
+      requestBody["inputAssetReferences"] = assetId.value();
+      requestJson["requestBody"] = requestBody;
+    } else {
+      requestJson["requestBody"] = request;
+    }
+
     try {
-      static thread_local cudaq::RestClient restClient;
+      cudaq::RestClient restClient;
       cudaq::debug("Sending NVCF request to ", nvcfUrl());
       cudaq::debug("Request: \n", requestJson.dump());
       auto resultJs =
-          restClient.post(nvcfUrl(), "", requestJson, headers, true);
+          restClient.post(nvcfUrl(), "", requestJson, jobHeader, true);
 
       cudaq::debug("Response: \n", resultJs.dump());
       if (!resultJs.contains("status") || resultJs["status"] != "fulfilled") {
@@ -309,6 +333,32 @@ public:
       if (optionalErrorMsg)
         *optionalErrorMsg = e.what();
       return false;
+    }
+  }
+
+  // Upload IR as an NVCF asset.
+  // Return asset Id
+  std::optional<std::string>
+  uploadRequest(const cudaq::RestRequest &jobRequest) {
+    json requestJson;
+    requestJson["contentType"] = "application/json";
+    requestJson["description"] = "cudaq-nvcf-job";
+    try {
+      cudaq::RestClient restClient;
+      auto resultJs =
+          restClient.post(nvcfAssetUrl(), "", requestJson, getHeaders(), true);
+      std::cout << "Response:\n" << resultJs.dump() << "\n";
+      const std::string uploadUrl = resultJs["uploadUrl"];
+      const std::string assetId = resultJs["assetId"];
+      std::map<std::string, std::string> uploadHeader;
+      // This must match the request to create the upload link
+      uploadHeader["Content-Type"] = "application/json";
+      uploadHeader["x-amz-meta-nvcf-asset-description"] = "cudaq-nvcf-job";
+      json jobRequestJs = jobRequest;
+      restClient.put(uploadUrl, "", jobRequestJs, uploadHeader, true);
+      return assetId;
+    } catch (...) {
+      return {};
     }
   }
 };

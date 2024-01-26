@@ -34,7 +34,11 @@ public:
   nlohmann::json get(const std::string_view remoteUrl,
                      const std::string_view path,
                      std::map<std::string, std::string> &headers);
-
+  /// Put the message to the remote path at the provided URL.
+  void put(const std::string_view remoteUrl,
+                     const std::string_view path, nlohmann::json &postStr,
+                     std::map<std::string, std::string> &headers,
+                     bool enableLogging = true);
   ~RestClient() = default;
 };
 } // namespace cudaq

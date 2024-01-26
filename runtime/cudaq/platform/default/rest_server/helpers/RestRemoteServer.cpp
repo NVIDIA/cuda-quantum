@@ -47,6 +47,8 @@
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include "mlir/Transforms/Passes.h"
 #include <filesystem>
+#include <fstream>
+#include <streambuf>
 
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
@@ -79,20 +81,39 @@ public:
           "Invalid TCP/IP port requested. Valid range: [1024, 65535].");
     m_server = std::make_unique<cudaq::RestServer>(m_port);
     m_server->addRoute(cudaq::RestServer::Method::GET, "/",
-                       [](const std::string &reqBody) {
+                       [](const std::string &reqBody, const std::unordered_multimap<std::string, std::string> & headers) {
                          // Return an empty JSON string,
                          // e.g., for client to ping the server.
                          return json();
                        });
 
     // New simulation request.
-    m_server->addRoute(cudaq::RestServer::Method::POST, "/job",
-                       [&](const std::string &reqBody) {
-                         std::string mutableReq = reqBody;
-                         if (m_hasMpi)
-                           cudaq::mpi::broadcast(mutableReq, 0);
-                         return processRequest(reqBody);
-                       });
+    m_server->addRoute(
+        cudaq::RestServer::Method::POST, "/job",
+        [&](const std::string &reqBody,
+            const std::unordered_multimap<std::string, std::string> &headers) {
+          std::string mutableReq;
+          const auto dirIter = headers.find("NVCF-ASSET-DIR");
+          const auto assetIdIter = headers.find("NVCF-FUNCTION-ASSET-IDS");
+          if (dirIter != headers.end() && assetIdIter != headers.end()) {
+            const std::string dir = dirIter->second;
+            const auto ids = cudaq::split(assetIdIter->second, ',');
+            assert(ids.size() == 1);
+            std::filesystem::path assetFile =
+                std::filesystem::path(dir) / ids[0];
+            assert(std::filesystem::exists(assetFile));
+            std::ifstream t(assetFile);
+            std::string requestFromFile((std::istreambuf_iterator<char>(t)),
+                                        std::istreambuf_iterator<char>());
+            mutableReq = requestFromFile;
+          } else {
+            mutableReq = reqBody;
+          }
+
+          if (m_hasMpi)
+            cudaq::mpi::broadcast(mutableReq, 0);
+          return processRequest(reqBody);
+        });
     m_mlirContext = cudaq::initializeMLIR();
     m_hasMpi = cudaq::mpi::is_initialized();
   }

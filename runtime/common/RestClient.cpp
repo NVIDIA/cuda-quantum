@@ -77,6 +77,33 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
   return nlohmann::json::parse(r.text);
 }
 
+void RestClient::put(const std::string_view remoteUrl,
+                               const std::string_view path,
+                               nlohmann::json &post,
+                               std::map<std::string, std::string> &headers,
+                               bool enableLogging) {
+  if (headers.empty())
+    headers.insert(std::make_pair("Content-type", "application/json"));
+
+  cpr::Header cprHeaders;
+  for (auto &kv : headers)
+    cprHeaders.insert({kv.first, kv.second});
+
+  // Allow caller to disable logging for things like passwords/tokens
+  if (enableLogging)
+    cudaq::info("Putting to {}/{} with data = {}", remoteUrl, path,
+                post.dump());
+
+  auto actualPath = std::string(remoteUrl) + std::string(path);
+  auto r = cpr::Put(cpr::Url{actualPath}, cpr::Body(post.dump()), cprHeaders,
+                    cpr::VerifySsl(false));
+
+  if (r.status_code > validHttpCode || r.status_code == 0)
+    throw std::runtime_error("HTTP PUT Error - status code " +
+                             std::to_string(r.status_code) + ": " +
+                             r.error.message + ": " + r.text);
+}
+
 nlohmann::json RestClient::get(const std::string_view remoteUrl,
                                const std::string_view path,
                                std::map<std::string, std::string> &headers) {
