@@ -31,6 +31,12 @@ CUDAQ_TEST(GetStateTester, checkGPUDeviceState) {
   // Check overlap with host vector
   EXPECT_NEAR(1.0, state.overlap(hostState), 1e-3);
 
+  {
+    // If you pass the wrong data precision, you'll get an exception
+    std::vector<std::complex<float>> hostStateFloat{M_SQRT1_2, 0, 0, M_SQRT1_2};
+    EXPECT_ANY_THROW(state.overlap(hostStateFloat););
+  }
+
   // Copies host data to device
   thrust::host_vector<thrust::complex<double>> hostVector(4);
   hostVector[0] = M_SQRT1_2;
