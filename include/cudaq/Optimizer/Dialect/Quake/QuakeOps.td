@@ -284,15 +284,18 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
 def InitializeStateOp : QuakeOp<"qinit"> {
   let summary = "Initialize the quantum state to a specific complex vector.";
   let description = [{
-    Given a !cc.ptr pointing to a complex data array of size 2**N, where N is the number of qubits 
-    in the targets operand, initialize the state of those target qubits to 
-    the provided state vector. This operation returns a new quake.veq instance 
-    and subsequent uses of the original veq should be replaced during code generation. 
-    This is to support the immediate use of this operation after an initial allocation.
+    Given a !cc.ptr pointing to a complex data array of size 2**N, where N is
+    the number of qubits in the targets operand, initialize the state of those
+    target qubits to the provided state vector. This operation returns a new
+    quake.veq instance. There should be no other uses of the input veq value,
+    \em{targets}, that was allocated. This supports a RAII (resource allocation
+    is initialization) semantics on the qubits in the vector.
   }];
 
-  let arguments = (ins VeqType:$targets, 
-                       cc_PointerType:$state);
+  let arguments = (ins
+    VeqType:$targets, 
+    cc_PointerType:$state
+  );
   let results = (outs VeqType:$initializedState);
 
   let assemblyFormat = [{
