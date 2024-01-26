@@ -140,10 +140,9 @@ void bindPyState(py::module &mod) {
   # Example:
   import numpy as np
 
-  # Define a simple state vector.
-  vector = np.array([1,0], dtype=np.complex128)
-  state = cudaq.State(vector)
-  # Return the 0-th entry (1.0).
+  # Create a simple state vector.
+  state = cudaq.get_state(kernel)
+  # Return the 0-th entry.
   value = state[0])#")
       .def(
           "__getitem__",
@@ -158,11 +157,11 @@ index pair.
   # Example:
   import numpy as np
 
-  # Define a simple density matrix.
-  matrix = np.array([[1,0],[0,1]], dtype=np.complex128)
-  density = cudaq.State(matrix)
-  # Return the upper-left most entry of the matrix (= 1.0).
-  value = density[0,0])#")
+  # Create a simple density matrix.
+  cudaq.set_target('density-matrix-cpu')
+  densityMatrix = cudaq.get_state(kernel)
+  # Return the upper-left most entry of the matrix.
+  value = densityMatrix[0,0])#")
       .def(
           "dump",
           [](state &self) {
@@ -237,11 +236,11 @@ index pair.
         auto precision = self.data_holder()->getPrecision();
         if (typeStr == "complex64") {
           if (precision == cudaq::SimulationState::precision::fp64)
-            throw std::runtime_error("underying simulation state is FP64, but "
+            throw std::runtime_error("underlying simulation state is FP64, but "
                                      "input cupy array is FP32.");
         } else if (typeStr == "complex128") {
           if (precision == cudaq::SimulationState::precision::fp32)
-            throw std::runtime_error("underying simulation state is FP32, but "
+            throw std::runtime_error("underlying simulation state is FP32, but "
                                      "input cupy array is FP64.");
         } else
           throw std::runtime_error("invalid cupy element type " + typeStr);

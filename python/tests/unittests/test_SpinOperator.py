@@ -280,10 +280,10 @@ def test_matrix():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
     mat = hamiltonian.to_matrix()
-    assert assert_close(-1.74, np.linalg.eigvals(mat)[0], 1e-2)
+    assert assert_close(-1.74, np.min(np.linalg.eigvals(mat)), 1e-2)
     print(mat)
-    want_matrix = np.array([[.00029, 0, 0, 0], [0, 12.2503, -4.2866, 0],
-                            [0, -4.2866, -.43629, 0], [0, 0, 0, 11.8137]])
+    want_matrix = np.array([[.00029, 0, 0, 0], [0, -.43629, -4.2866, 0],
+                            [0, -4.2866, 12.2503, 0], [0, 0, 0, 11.8137]])
 
     got_matrix = np.array(mat, copy=False)
     assert np.allclose(want_matrix, got_matrix, rtol=1e-3)
