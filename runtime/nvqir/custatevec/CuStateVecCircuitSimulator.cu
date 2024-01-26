@@ -117,11 +117,6 @@ private:
 
   void extractValues(std::complex<ScalarType> *value, std::size_t start,
                      std::size_t end) const {
-    // FIXME Wait for Brunos PR on this, should be able to just
-    // get the element with cudaMemcpy
-    // cudaMemcpy(&value,
-    //            reinterpret_cast<std::complex<ScalarType> *>(devicePtr) + idx,
-    //            sizeof(std::complex<ScalarType>), cudaMemcpyDeviceToHost);
     cudaDataType_t cuStateVecCudaDataType = CUDA_C_64F;
     if constexpr (std::is_same_v<ScalarType, float>) {
       cuStateVecCudaDataType = CUDA_C_32F;
