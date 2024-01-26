@@ -117,42 +117,43 @@ private:
 
   void extractValues(std::complex<ScalarType> *value, std::size_t start,
                      std::size_t end) const {
-    cudaDataType_t cuStateVecCudaDataType = CUDA_C_64F;
-    if constexpr (std::is_same_v<ScalarType, float>) {
-      cuStateVecCudaDataType = CUDA_C_32F;
-    }
-
     checkAndSetDevice();
 
-    custatevecAccessorDescriptor_t accessor;
-    const uint32_t nIndexBits = std::log2(size);
-    // Note: we use MSB bit ordering when reporting the state vector
-    // hence, bit ordering vector = [N-1, N-2, ..., 0]
-    std::vector<int32_t> bitOrdering(nIndexBits);
-    std::iota(std::rbegin(bitOrdering), std::rend(bitOrdering), 0);
-    std::size_t extraWorkspaceSizeInBytes = 0;
-    // create accessor view
-    HANDLE_ERROR(custatevecAccessorCreateView(
-        handle, devicePtr, cuStateVecCudaDataType, nIndexBits, &accessor,
-        bitOrdering.data(), bitOrdering.size(),
-        /*maskBitString*/ nullptr, /*maskOrdering*/ nullptr,
-        /*maskLen*/ 0, &extraWorkspaceSizeInBytes));
-    // allocate external workspace if necessary
-    void *extraWorkspace = nullptr;
-    if (extraWorkspaceSizeInBytes > 0)
-      HANDLE_CUDA_ERROR(cudaMalloc(&extraWorkspace, extraWorkspaceSizeInBytes));
+    HANDLE_CUDA_ERROR(cudaMemcpy(
+        value, reinterpret_cast<std::complex<ScalarType> *>(devicePtr) + start,
+        (end - start) * sizeof(std::complex<ScalarType>),
+        cudaMemcpyDeviceToHost));
 
-    // set external workspace
-    HANDLE_ERROR(custatevecAccessorSetExtraWorkspace(
-        handle, accessor, extraWorkspace, extraWorkspaceSizeInBytes));
+    // custatevecAccessorDescriptor_t accessor;
+    // const uint32_t nIndexBits = std::log2(size);
+    // // Note: we use MSB bit ordering when reporting the state vector
+    // // hence, bit ordering vector = [N-1, N-2, ..., 0]
+    // std::vector<int32_t> bitOrdering(nIndexBits);
+    // std::iota(std::rbegin(bitOrdering), std::rend(bitOrdering), 0);
+    // std::size_t extraWorkspaceSizeInBytes = 0;
+    // // create accessor view
+    // HANDLE_ERROR(custatevecAccessorCreateView(
+    //     handle, devicePtr, cuStateVecCudaDataType, nIndexBits, &accessor,
+    //     bitOrdering.data(), bitOrdering.size(),
+    //     /*maskBitString*/ nullptr, /*maskOrdering*/ nullptr,
+    //     /*maskLen*/ 0, &extraWorkspaceSizeInBytes));
+    // // allocate external workspace if necessary
+    // void *extraWorkspace = nullptr;
+    // if (extraWorkspaceSizeInBytes > 0)
+    //   HANDLE_CUDA_ERROR(cudaMalloc(&extraWorkspace,
+    //   extraWorkspaceSizeInBytes));
 
-    HANDLE_ERROR(
-        custatevecAccessorGet(handle, accessor, &value[0], start, end));
-    // destroy descriptor
-    HANDLE_ERROR(custatevecAccessorDestroy(accessor));
-    // free extra workspace if allocated
-    if (extraWorkspaceSizeInBytes > 0)
-      HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
+    // // set external workspace
+    // HANDLE_ERROR(custatevecAccessorSetExtraWorkspace(
+    //     handle, accessor, extraWorkspace, extraWorkspaceSizeInBytes));
+
+    // HANDLE_ERROR(
+    //     custatevecAccessorGet(handle, accessor, &value[0], start, end));
+    // // destroy descriptor
+    // HANDLE_ERROR(custatevecAccessorDestroy(accessor));
+    // // free extra workspace if allocated
+    // if (extraWorkspaceSizeInBytes > 0)
+    //   HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
   }
 
   bool isDevicePointer(void *ptr) const {
