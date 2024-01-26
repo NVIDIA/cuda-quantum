@@ -52,7 +52,9 @@ public:
   virtual cudaq::ExecutionResult observe(const cudaq::spin_op &op) override;
 
   /// @brief Add qubits to the underlying quantum state
-  virtual void addQubitsToState(std::size_t count) override;
+  virtual void
+  addQubitsToState(std::size_t count,
+                   const std::complex<double> *state = nullptr) override;
 
   /// @brief Return the state vector data
   virtual cudaq::State getStateData() override;
