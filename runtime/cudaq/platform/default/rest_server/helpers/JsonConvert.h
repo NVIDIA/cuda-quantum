@@ -209,16 +209,18 @@ inline void to_json(json &j, const ExecutionContext &context) {
   j["simulationData"] = json();
   if (context.simulationState) {
     j["simulationData"]["dim"] = context.simulationState->getDataShape();
-    std::complex<double> *hostPtr = nullptr;
-    if (context.simulationState->isDeviceData())
-      hostPtr = reinterpret_cast<std::complex<double> *>(
-          context.simulationState->toHost());
-    else
-      hostPtr = reinterpret_cast<std::complex<double> *>(
+    std::vector<std::complex<double>> hostData(
+        context.simulationState->getNumElements());
+    if (context.simulationState->isDeviceData()) {
+      context.simulationState->toHost(hostData.data());
+      j["simulationData"]["data"] = hostData;
+    } else {
+      auto *ptr = reinterpret_cast<std::complex<double> *>(
           context.simulationState->ptr());
+      j["simulationData"]["data"] = std::vector<std::complex<double>>(
+          ptr, ptr + context.simulationState->getNumElements());
+    }
 
-    j["simulationData"]["data"] = std::vector<std::complex<double>>(
-        hostPtr, hostPtr + context.simulationState->getNumElements());
   } else {
     j["simulationData"]["dim"] = std::vector<std::size_t>{};
     j["simulationData"]["data"] = std::vector<std::complex<double>>{};

@@ -203,7 +203,7 @@ public:
       throw std::runtime_error(
           "[custatevec-state] overlap error - precision mismatch.");
     }
-    
+
     // Check if input vector is on the right GPU device,
     // if so, compute on device
     thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrABegin(
@@ -300,7 +300,8 @@ public:
 
     if (!isDevicePointer(other)) {
       // otherwise we have to copy the data
-      thrust::device_vector<ThrustComplex<ScalarType>> otherDevPtr(casted, casted+size);
+      thrust::device_vector<ThrustComplex<ScalarType>> otherDevPtr(
+          casted, casted + size);
       return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
                                    otherDevPtr.begin(),
                                    ThrustComplex<ScalarType>(0.0),
@@ -339,11 +340,10 @@ public:
   }
 
   bool isDeviceData() const override { return true; }
-  void *toHost() const override {
-    // Clients hold ownership on this data.
-    std::complex<ScalarType> *value = new std::complex<ScalarType>[size];
-    extractValues(value, 0, size);
-    return reinterpret_cast<void *>(&value[0]);
+  void toHost(void *userData) const override {
+    extractValues(reinterpret_cast<std::complex<ScalarType> *>(userData), 0,
+                  size);
+    return;
   }
 
   void *ptr() const override { return devicePtr; }
@@ -607,12 +607,6 @@ public:
 
   /// The destructor
   virtual ~CuStateVecCircuitSimulator() = default;
-
-  std::unique_ptr<cudaq::SimulationState> createSimulationState(
-      const std::vector<std::size_t> &shape,
-      const std::vector<std::complex<double>> &data) const override {
-    return std::make_unique<CusvState<ScalarType>>(shape, data);
-  }
 
   void setRandomSeed(std::size_t randomSeed) override {
     randomEngine = std::mt19937(randomSeed);

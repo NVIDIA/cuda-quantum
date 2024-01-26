@@ -62,14 +62,6 @@ public:
     // do nothing
   }
 
-  /// @brief Hook for clients to provide a new pointer to a
-  /// `CircuitSimulator` sub-type's specific `SimulatorState` data.
-  virtual std::unique_ptr<cudaq::SimulationState>
-  createSimulationState(const std::vector<std::size_t> &shape,
-                        const std::vector<std::complex<double>> &data) const {
-    throw std::runtime_error("createSimulationState not yet implemented.");
-  }
-
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,

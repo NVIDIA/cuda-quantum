@@ -247,12 +247,6 @@ public:
     qpp::RandomDevices::get_instance().get_prng().seed(seed);
   }
 
-  std::unique_ptr<cudaq::SimulationState> createSimulationState(
-      const std::vector<std::size_t> &shape,
-      const std::vector<std::complex<double>> &data) const override {
-    return std::make_unique<QppState>(shape, data);
-  }
-
   bool canHandleObserve() override {
     // Do not compute <H> from matrix if shots based sampling requested
     if (executionContext &&
