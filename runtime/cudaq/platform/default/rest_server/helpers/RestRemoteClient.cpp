@@ -276,12 +276,21 @@ public:
     requestJson["requestBody"] = request;
     try {
       static thread_local cudaq::RestClient restClient;
-      std::cout << "sending request to: " << nvcfUrl() << "\n";
+      cudaq::debug("Sending NVCF request to ", nvcfUrl());
+      cudaq::debug("Request: \n", requestJson.dump());
       auto resultJs =
           restClient.post(nvcfUrl(), "", requestJson, headers, true);
 
-      std::cout << "Response: \n" << resultJs.dump() << "\n";
-
+      cudaq::debug("Response: \n", resultJs.dump());
+      if (!resultJs.contains("status") || resultJs["status"] != "fulfilled") {
+        if (optionalErrorMsg)
+          *optionalErrorMsg =
+              std::string(
+                  "Failed to complete the simulation request. Status: ") +
+              (resultJs.contains("status") ? std::string(resultJs["status"])
+                                           : std::string("unknown"));
+        return false;
+      }
       if (!resultJs.contains("response")) {
         if (optionalErrorMsg)
           *optionalErrorMsg = "Unexpected response from the NVCF invocation. "

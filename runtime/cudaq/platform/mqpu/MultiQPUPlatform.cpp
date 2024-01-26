@@ -164,7 +164,11 @@ public:
       // Populate the information and add the QPUs
       auto qpu = cudaq::registry::get<cudaq::QPU>("RemoteSimulatorQPU");
       qpu->setId(0);
-      const std::string configStr = fmt::format("target;nvcf;simulator;qpp");
+      auto simName = getOpt(description, "backend");
+      if (simName.empty())
+        simName = "custatevec-fp32";
+      const std::string configStr =
+          fmt::format("target;nvcf;simulator;{}", simName);
       qpu->setTargetBackend(configStr);
       threadToQpuId[std::hash<std::thread::id>{}(qpu->getExecutionThreadId())] =
           0;
