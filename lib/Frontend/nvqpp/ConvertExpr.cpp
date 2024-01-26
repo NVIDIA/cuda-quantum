@@ -2189,10 +2189,11 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
 
   // These initializer expressions are not quantum references. In this case,
   // we allocate some memory for a variable and store the init list elements
-  // there. Add the array size value
+  // there.
   auto structTy = dyn_cast<cc::StructType>(initListTy);
   std::int32_t structMems = structTy ? structTy.getMembers().size() : 0;
   std::int32_t numEles = structMems ? size / structMems : size;
+  // Generate the array size value.
   Value arrSize = builder.create<arith::ConstantIntOp>(loc, numEles, 64);
 
   // Allocate the required memory chunk.
@@ -2201,6 +2202,34 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
       return arrTy.getElementType();
     return initListTy;
   }();
+
+  if (initializerIsGlobal) {
+    static unsigned counter = 0;
+    auto *ctx = builder.getContext();
+    auto globalTy = cc::ArrayType::get(ctx, eleTy, size);
+    SmallVector<Attribute> values;
+    auto f64Ty = builder.getF64Type();
+    for (Value v : last) {
+      auto fp = opt::factory::maybeValueOfFloatConstant(v);
+      assert(fp);
+      values.push_back(FloatAttr::get(f64Ty, *fp));
+    }
+    // NB: Unfortunately, the LLVM-IR dialect doesn't lower DenseF64ArrayAttr to
+    // LLVM IR without throwing errors.
+    auto tensorTy = RankedTensorType::get(size, eleTy);
+    auto f64Attr = DenseElementsAttr::get(tensorTy, values);
+    // Create a unique name.
+    std::string name = "__nvqpp__rodata_init_" + std::to_string(counter++);
+    {
+      OpBuilder::InsertionGuard guard(builder);
+      builder.setInsertionPointToEnd(module.getBody());
+      builder.create<cc::GlobalOp>(loc, globalTy, name, f64Attr,
+                                   /*constant=*/true);
+    }
+    auto ptrTy = cc::PointerType::get(globalTy);
+    auto globalInit = builder.create<cc::AddressOfOp>(loc, ptrTy, name);
+    return pushValue(globalInit);
+  }
   Value alloca = (numEles > 1)
                      ? builder.create<cc::AllocaOp>(loc, eleTy, arrSize)
                      : builder.create<cc::AllocaOp>(loc, eleTy);
@@ -2242,12 +2271,16 @@ bool QuakeBridgeVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
   if (x->isElidable())
     return true;
   [[maybe_unused]] auto typeStackDepth = typeStack.size();
+  bool saveInitializerIsGlobal = initializerIsGlobal;
   if (x->getConstructor()) {
     if (!TraverseType(x->getType()))
       return false;
     assert(typeStack.size() == typeStackDepth + 1);
+    if (x->isStdInitListInitialization() && isa<quake::VeqType>(peekType()))
+      initializerIsGlobal = true;
   }
   auto result = Base::TraverseCXXConstructExpr(x);
+  initializerIsGlobal = saveInitializerIsGlobal;
   assert(typeStack.size() == typeStackDepth || raisedError);
   return result;
 }
@@ -2282,12 +2315,28 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         return pushValue(builder.create<quake::AllocaOp>(loc, veq1Ty));
       }
     } else if (x->getNumArgs() == 1) {
-      if (ctorName == "qreg" || ctorName == "qvector") {
+      if (ctorName == "qreg") {
         // This is a cudaq::qreg(std::size_t).
         auto sizeVal = popValue();
         assert(isa<IntegerType>(sizeVal.getType()));
         return pushValue(builder.create<quake::AllocaOp>(
             loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
+      }
+      if (ctorName == "qvector") {
+        auto initials = popValue();
+        auto *ctx = builder.getContext();
+        if (isa<IntegerType>(initials.getType())) {
+          // This is the cudaq::qvector(std::size_t) ctor.
+          return pushValue(builder.create<quake::AllocaOp>(
+              loc, quake::VeqType::getUnsized(ctx), initials));
+        }
+        // Otherwise, it is the cudaq::qvector(std::vector<complex>) ctor.
+        auto ptrTy = cast<cc::PointerType>(initials.getType());
+        auto arrTy = cast<cc::ArrayType>(ptrTy.getElementType());
+        auto veqTy = quake::VeqType::get(ctx, arrTy.getSize());
+        auto alloc = builder.create<quake::AllocaOp>(loc, veqTy);
+        return pushValue(builder.create<quake::InitializeStateOp>(
+            loc, veqTy, alloc, initials));
       }
       if ((ctorName == "qspan" || ctorName == "qview") &&
           isa<quake::VeqType>(peekValue().getType())) {

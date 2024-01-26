@@ -989,6 +989,22 @@ public:
 // Conversion patterns for CC dialect ops.
 //===----------------------------------------------------------------------===//
 
+class AddressOfOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::AddressOfOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  // One-to-one conversion to llvm.addressof op.
+  LogicalResult
+  matchAndRewrite(cudaq::cc::AddressOfOp addr, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    Type type = getTypeConverter()->convertType(addr.getType());
+    auto name = addr.getGlobalName();
+    rewriter.replaceOpWithNewOp<LLVM::AddressOfOp>(addr, type, name);
+    return success();
+  }
+};
+
 class AllocaOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::AllocaOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
@@ -1273,6 +1289,29 @@ public:
     auto operands = adaptor.getOperands();
     auto toTy = getTypeConverter()->convertType(ftp.getType());
     rewriter.replaceOpWithNewOp<LLVM::BitcastOp>(ftp, toTy, operands);
+    return success();
+  }
+};
+
+class GlobalOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::GlobalOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  // Replace the cc.global with an llvm.global, updating the types, etc.
+  LogicalResult
+  matchAndRewrite(cudaq::cc::GlobalOp global, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = global.getLoc();
+    auto ptrTy = cast<cudaq::cc::PointerType>(global.getType());
+    auto eleTy = ptrTy.getElementType();
+    Type type = getTypeConverter()->convertType(eleTy);
+    auto name = global.getSymName();
+    bool isReadOnly = global.getConstant();
+    Attribute initializer = global.getValue().value_or(Attribute{});
+    rewriter.create<mlir::LLVM::GlobalOp>(loc, type, isReadOnly,
+                                          LLVM::Linkage::Private, name,
+                                          initializer, /*alignment=*/0);
+    rewriter.eraseOp(global);
     return success();
   }
 };
@@ -1593,28 +1632,27 @@ public:
 
     patterns.insert<GetVeqSizeOpRewrite, MxToMz, MyToMz, ReturnBitRewrite>(
         context);
-    patterns.insert<AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
-                    CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
-                    ComputePtrOpPattern, ConcatOpRewrite, DeallocOpRewrite,
-                    CreateStringLiteralOpPattern, DiscriminateOpPattern,
-                    ExtractQubitOpRewrite, ExtractValueOpPattern,
-                    FuncToPtrOpPattern, InitializeStateOpRewrite,
-                    InsertValueOpPattern, InstantiateCallableOpPattern,
-                    LoadOpPattern, ExpPauliRewrite,
-                    OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
-                    OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
-                    OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
-                    OneTargetOneParamRewrite<quake::R1Op>,
-                    OneTargetTwoParamRewrite<quake::PhasedRxOp>,
-                    OneTargetOneParamRewrite<quake::RxOp>,
-                    OneTargetOneParamRewrite<quake::RyOp>,
-                    OneTargetOneParamRewrite<quake::RzOp>,
-                    OneTargetTwoParamRewrite<quake::U2Op>,
-                    OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite,
-                    StdvecDataOpPattern, StdvecInitOpPattern,
-                    StdvecSizeOpPattern, StoreOpPattern, SubveqOpRewrite,
-                    TwoTargetRewrite<quake::SwapOp>, UndefOpPattern>(
-        typeConverter);
+    patterns.insert<
+        AddressOfOpPattern, AllocaOpRewrite, AllocaOpPattern,
+        CallableClosureOpPattern, CallableFuncOpPattern, CallCallableOpPattern,
+        CastOpPattern, ComputePtrOpPattern, ConcatOpRewrite, DeallocOpRewrite,
+        CreateStringLiteralOpPattern, DiscriminateOpPattern,
+        ExtractQubitOpRewrite, ExtractValueOpPattern, FuncToPtrOpPattern,
+        GlobalOpPattern, InitializeStateOpRewrite, InsertValueOpPattern,
+        InstantiateCallableOpPattern, LoadOpPattern, ExpPauliRewrite,
+        OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
+        OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
+        OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
+        OneTargetOneParamRewrite<quake::R1Op>,
+        OneTargetTwoParamRewrite<quake::PhasedRxOp>,
+        OneTargetOneParamRewrite<quake::RxOp>,
+        OneTargetOneParamRewrite<quake::RyOp>,
+        OneTargetOneParamRewrite<quake::RzOp>,
+        OneTargetTwoParamRewrite<quake::U2Op>,
+        OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite,
+        StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
+        StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
+        UndefOpPattern>(typeConverter);
     patterns.insert<MeasureRewrite<quake::MzOp>>(typeConverter, measureCounter);
 
     target.addLegalDialect<LLVM::LLVMDialect>();

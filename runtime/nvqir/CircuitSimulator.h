@@ -13,7 +13,6 @@
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
-
 #include <cstdarg>
 #include <cstddef>
 #include <queue>
