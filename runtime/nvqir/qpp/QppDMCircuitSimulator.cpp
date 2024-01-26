@@ -191,12 +191,6 @@ public:
   virtual ~QppNoiseCircuitSimulator() = default;
   std::string name() const override { return "dm"; }
 
-  std::unique_ptr<cudaq::SimulationState> createSimulationState(
-      const std::vector<std::size_t> &shape,
-      const std::vector<std::complex<double>> &data) const override {
-    return std::make_unique<QppDmState>(shape, data);
-  }
-
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     flushGateQueue();
     return std::make_unique<QppDmState>(std::move(state));

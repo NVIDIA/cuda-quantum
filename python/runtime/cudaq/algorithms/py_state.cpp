@@ -70,12 +70,21 @@ void bindPyState(py::module &mod) {
           // This is device data, transfer to host, which gives us
           // ownership of a new data pointer on host. Store it globally
           // here so we ensure that it gets cleaned up.
-          hostDataFromDevice.emplace_back(
-              self.data_holder()->toHost(), [](void *data) {
-                cudaq::info("freeing data that was copied from GPU device for "
-                            "compatibility with NumPy");
-                free(data);
-              });
+          void *hostData = nullptr;
+          if (self.data_holder()->getPrecision() ==
+              SimulationState::precision::fp32) {
+            hostData =
+                new std::complex<float>[self.data_holder()->getNumElements()];
+          } else {
+            hostData =
+                new std::complex<double>[self.data_holder()->getNumElements()];
+          }
+          self.data_holder()->toHost(hostData);
+          hostDataFromDevice.emplace_back(hostData, [](void *data) {
+            cudaq::info("freeing data that was copied from GPU device for "
+                        "compatibility with NumPy");
+            free(data);
+          });
           dataPtr = hostDataFromDevice.back().get();
         } else
           dataPtr = self.data_holder()->ptr();

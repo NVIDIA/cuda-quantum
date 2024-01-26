@@ -92,8 +92,8 @@ public:
   virtual precision getPrecision() const = 0;
 
   /// @brief Transfer data from device to host, return the data
-  /// and ownership is on the client.
-  virtual void *toHost() const {
+  /// to the pointer provided by the client.
+  virtual void toHost(void *clientAllocatedData) const {
     throw std::runtime_error("SimulationState::toHost not implemented.");
   }
 

@@ -44,17 +44,18 @@ CUDAQ_TEST(GetStateTester, checkGPUDeviceState) {
               1e-3);
 
   // check can get device to host
-  auto *copiedFromDevice =
-      reinterpret_cast<std::complex<double> *>(state.data_holder()->toHost());
-  std::vector<std::complex<double>> copied(copiedFromDevice,
-                                           copiedFromDevice + 4);
-  EXPECT_NEAR(1. / std::sqrt(2.), state[0].real(), 1e-3);
-  EXPECT_NEAR(0., state[1].real(), 1e-3);
-  EXPECT_NEAR(0., state[2].real(), 1e-3);
-  EXPECT_NEAR(1. / std::sqrt(2.), state[3].real(), 1e-3);
-  free(copiedFromDevice);
+  {
+    std::vector<std::complex<double>> clientData(
+        state.data_holder()->getNumElements());
+    state.data_holder()->toHost(clientData.data());
+    EXPECT_NEAR(1. / std::sqrt(2.), clientData[0].real(), 1e-3);
+    EXPECT_NEAR(0., clientData[1].real(), 1e-3);
+    EXPECT_NEAR(0., clientData[2].real(), 1e-3);
+    EXPECT_NEAR(1. / std::sqrt(2.), clientData[3].real(), 1e-3);
+    // clientData deleted
+  }
 
-  // Can use cudaMalloc and memcpy to test data. 
+  // Can use cudaMalloc and memcpy to test data.
   void *devPtr2 = nullptr;
   cudaMalloc((void **)&devPtr2, 4 * sizeof(std::complex<double>));
   cudaMemcpy(devPtr2, hostState.data(), 4 * sizeof(std::complex<double>),
