@@ -165,7 +165,7 @@ public:
     for (auto &block : func.getRegion())
       for (auto &op : block) {
         if (auto alloc = dyn_cast_or_null<quake::AllocaOp>(&op)) {
-          if (alloc.getSize())
+          if (alloc.getSize() || alloc.hasInitializedState())
             return;
           analysis.allocations.push_back(alloc);
           auto size = allocationSize(alloc);
