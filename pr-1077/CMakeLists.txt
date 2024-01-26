@@ -130,7 +130,7 @@ if (CUDAQ_ENABLE_PYTHON)
     # add_pycudaq_test(ObserveMQPU using/cudaq/platform/observe_mqpu.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     # if (MPI_CXX_FOUND AND ${NGPUS} GREATER_EQUAL 2)
     #   add_pycudaq_test(ObserveMQPU_MPI using/cudaq/platform/observe_mqpu_mpi.py 
-                        # LABELS "gpu_required;mgpus_required"
+    #                     LABELS "gpu_required;mgpus_required"
     #                     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python
     #                     LAUNCH_COMMAND "${MPIEXEC} --allow-run-as-root -np 2")
     # endif()
