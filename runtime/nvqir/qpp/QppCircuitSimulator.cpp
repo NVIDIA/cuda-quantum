@@ -121,7 +121,6 @@ protected:
       return;
 
     if (state.size() == 0) {
-      cudaq::info("state was empty\n");
       // If this is the first time, allocate the state
       if (stateData == nullptr) {
         state = qpp::ket::Zero(stateDimension);
@@ -129,7 +128,6 @@ protected:
       } else
         state = qpp::ket::Map(const_cast<std::complex<double> *>(stateData),
                               stateDimension);
-
       return;
     }
 
@@ -141,13 +139,10 @@ protected:
       zero_state(0) = 1.0;
       state = qpp::kron(state, zero_state);
     } else {
-      qpp::ket initState =
-          qpp::ket::Map(const_cast<std::complex<double> *>(stateData), count);
+      qpp::ket initState = qpp::ket::Map(
+          const_cast<std::complex<double> *>(stateData), (1UL << count));
       state = qpp::kron(state, initState);
     }
-
-    cudaq::info("new state size after allocation " +
-                std::to_string(state.size()));
     return;
   }
 
@@ -175,31 +170,23 @@ protected:
   /// @brief Measure the qubit and return the result. Collapse the
   /// state vector.
   bool measureQubit(const std::size_t qubitIdx) override {
-    cudaq::info("State vector length before `qpp::measure` call " +
-                std::to_string(state.size()));
-    cudaq::info("qubit idx: " + std::to_string(qubitIdx));
     // If here, then we care about the result bit, so compute it.
-    // const auto measurement_tuple =
-    //     qpp::measure(state, qpp::cmat::Identity(2, 2), {qubitIdx},
-    //                  /*qudit dimension=*/2, /*destructive measmt=*/false);
     const auto measurement_tuple =
         qpp::measure(state, qpp::cmat::Identity(2, 2), {qubitIdx},
                      /*qudit dimension=*/2, /*destructive measmt=*/false);
-    cudaq::info("Here");
-    // const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
-    // const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
-    // const auto &collapsed_state = post_meas_states[measurement_result];
-    // if constexpr (std::is_same_v<StateType, qpp::ket>) {
-    //   state = Eigen::Map<const StateType>(collapsed_state.data(),
-    //                                       collapsed_state.size());
-    // } else {
-    //   state = Eigen::Map<const StateType>(collapsed_state.data(),
-    //                                       collapsed_state.rows(),
-    //                                       collapsed_state.cols());
-    // }
-    // cudaq::info("Measured qubit {} -> {}", qubitIdx, measurement_result);
-    // return measurement_result == 1 ? true : false;
-    return 0;
+    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
+    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+    const auto &collapsed_state = post_meas_states[measurement_result];
+    if constexpr (std::is_same_v<StateType, qpp::ket>) {
+      state = Eigen::Map<const StateType>(collapsed_state.data(),
+                                          collapsed_state.size());
+    } else {
+      state = Eigen::Map<const StateType>(collapsed_state.data(),
+                                          collapsed_state.rows(),
+                                          collapsed_state.cols());
+    }
+    cudaq::info("Measured qubit {} -> {}", qubitIdx, measurement_result);
+    return measurement_result == 1 ? true : false;
   }
 
 public:

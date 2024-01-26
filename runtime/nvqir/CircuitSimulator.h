@@ -783,7 +783,6 @@ public:
 
     previousStateDimension = stateDimension;
     nQubitsAllocated += count;
-    cudaq::info("nQubitsAllocated " + std::to_string(nQubitsAllocated));
     stateDimension = calculateStateDim(nQubitsAllocated);
 
     // Tell the subtype to allocate more qubits
