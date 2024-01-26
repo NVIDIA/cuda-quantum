@@ -34,6 +34,9 @@ void from_json(const json &j, std::complex<T> &p) {
 } // namespace std
 
 namespace cudaq {
+
+/// @brief Implement `SimulationState` to handle state data
+/// coming from the remote server.
 struct RemoteJsonSimulationState : public SimulationState {
   std::vector<std::size_t> m_shape;
   std::vector<std::complex<double>> m_data;

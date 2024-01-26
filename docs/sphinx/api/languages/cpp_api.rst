@@ -65,6 +65,8 @@ Common
 
 .. doxygentypedef:: cudaq::complex_matrix::value_type
 
+.. doxygenclass:: cudaq::RemoteJsonSimulationState
+
 Noise Modeling 
 ================
 .. doxygentypedef:: cudaq::complex
