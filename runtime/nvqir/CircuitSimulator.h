@@ -14,7 +14,6 @@
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
 #include "common/Timing.h"
-
 #include <cstdarg>
 #include <cstddef>
 #include <queue>
