@@ -7,5 +7,6 @@
  ******************************************************************************/
 
 #pragma once
-#pragma message("cudaq/algorithms/state.h is deprecated, use cudaq/algorithms/get_state.h")
+#pragma message(                                                               \
+        "cudaq/algorithms/state.h is deprecated, use cudaq/algorithms/get_state.h")
 #include "cudaq/algorithms/get_state.h"
