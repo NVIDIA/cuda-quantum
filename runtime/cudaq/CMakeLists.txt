@@ -18,7 +18,10 @@ add_library(${LIBRARY_NAME}
                 algorithms/state.cpp
                 platform/quantum_platform.cpp 
                 qis/execution_manager.cpp
-                utils/cudaq_utils.cpp)
+                utils/cudaq_utils.cpp
+                distributed/mpi_plugin.cpp)
+
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
 if (CUDA_FOUND)
   enable_language(CUDA)
@@ -48,11 +51,6 @@ else()
     PRIVATE nvqir fmt::fmt-header-only)
 endif()
 
-if (MPI_CXX_FOUND)
-  target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_MPI)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE MPI::MPI_CXX)
-endif()
-
 add_subdirectory(qis/managers)
 add_subdirectory(algorithms)
 add_subdirectory(platform)
@@ -65,3 +63,14 @@ install(EXPORT cudaq-targets
         FILE CUDAQTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
+
+# Install CUDAQ MPI interface header, reference implementation, and build script
+# for manual activation on a local system if needed.
+install(
+  FILES
+      distributed/distributed_capi.h
+      distributed/builtin/mpi_comm_impl.cpp
+      distributed/builtin/activate_custom_mpi.sh
+  DESTINATION distributed_interfaces
+  PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ
+)

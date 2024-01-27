@@ -41,6 +41,7 @@ on:
     branches:
       - 'releases/*'
       - 'experimental/*'
+      - 'features/*'
 
 name: Deployments # do not change name without updating workflow_run triggers
 
@@ -51,6 +52,7 @@ concurrency:
 jobs:
   metadata:
     name: Prepare build
+    if: github.event_name != 'push' || github.event.created
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -110,16 +112,16 @@ jobs:
             multi_platform="{\"ids\":[]}"
             platform_flag=`echo "$requested_platforms" | tr -d ' '`
             multi_platform=`echo $multi_platform | jq ".ids |= . + [\"multiplat\"]"`
-            platform={\"multiplat\":{\"docker_flag\":\"$platform_flag\",\"arch\":\"any\"}}
+            platform={\"multiplat\":{\"docker_flag\":\"$platform_flag\"}}
             multi_platform=`echo $multi_platform | jq ". |= . + $platform"`
           fi
 
           platforms="{\"ids\":[]}"
           for input in `echo "$requested_platforms" | tr , ' ' | tr ';' ' '`; do
             platform_id=`echo $input | sed 's/linux\///g' | tr -d ' '`
-            platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
+            minimal_base_image=`([ "$platform_id" == "amd64" ] && echo amd64/almalinux:8) || ([ "$platform_id" == "arm64" ] && echo arm64v8/almalinux:8) || echo`
             platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
-            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"arch\":\"$platform_arch\"}}
+            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"minimal_base_image\":\"$minimal_base_image\"}}
             platforms=`echo $platforms | jq ". |= . + $platform"`
           done
 
@@ -142,7 +144,7 @@ jobs:
           echo "environment=$environment" >> $GITHUB_OUTPUT
 
       - name: Upload deployment info
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: deployment_info # changing the artifact name requires updating other workflows
           path: deployment_info.txt
@@ -163,13 +165,16 @@ jobs:
   devdeps:
     name: Build dev dependencies
     needs: metadata
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
         toolchain: [llvm, clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.Dockerfile
@@ -188,7 +193,7 @@ jobs:
   wheeldeps:
     name: Build wheel dependencies
     needs: metadata
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
     strategy:
       matrix:
         # There are currently no multi-platform manylinux images available.
@@ -196,12 +201,15 @@ jobs:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.manylinux.Dockerfile
       toolchain: gcc11
       build_args: |
-        arch=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].arch }}
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
@@ -213,15 +221,46 @@ jobs:
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-python
 
+  source_build:
+    name: Build cross-platform dependencies
+    needs: metadata
+    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: build/assets.Dockerfile
+      build_target: prereqs
+      toolchain: gcc11
+      build_args: |
+        base_image=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
+      pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      checkout_submodules: true
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-installer
+
   openmpi:
     name: Build Open MPI
     needs: metadata
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.created) || (github.event_name == 'workflow_run' && needs.metadata.outputs.pull_request_number != '')
+    if: github.event_name != 'workflow_run' || needs.metadata.outputs.pull_request_number != ''
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
@@ -247,7 +286,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'deployments.yml',
-              ref: '${{ needs.metadata.outputs.pull_request_base }}',
+              ref: '${{ needs.metadata.outputs.pull_request_base || github.ref_name }}',
               inputs: {
                 platforms: 'linux/arm64,linux/amd64',
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',
@@ -260,7 +299,7 @@ jobs:
   # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
-    needs: [devdeps, wheeldeps, openmpi]
+    needs: [devdeps, wheeldeps, source_build, openmpi]
     if: github.event_name == 'workflow_dispatch' && ! inputs.update_registry_cache
     runs-on: ubuntu-latest
 
@@ -282,6 +321,9 @@ jobs:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ext.Dockerfile
@@ -323,6 +365,8 @@ jobs:
     uses: ./.github/workflows/docker_images.yml
     secrets:
       NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-ompi', matrix.platform)] }}
@@ -339,8 +383,29 @@ jobs:
         python_version: ['3.8', '3.9', '3.10', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       python_version: ${{ matrix.python_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-python', matrix.platform)] }}
+      create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
+
+  binaries:
+    name: Create CUDA Quantum installer
+    needs: [metadata, config]
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
+      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
+      toolchain: gcc11
       environment: ghcr-deployment

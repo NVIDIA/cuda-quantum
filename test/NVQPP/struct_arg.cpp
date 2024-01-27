@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir --emit-qir %s && cat struct_arg.qir.ll | \
+// RUN: nvq++ %cpp_std --emit-qir %s && cat struct_arg.qir.ll | \
 // RUN: FileCheck %s ; rm struct_arg.qir.ll
 
 #include <cudaq.h>
@@ -19,7 +19,7 @@ struct baz {
 struct foo {
   template <typename CallableKernel>
   void operator()(CallableKernel &&func, int n) __qpu__ {
-    cudaq::qreg q(n);
+    cudaq::qvector q(n);
     func(q[0]);
     mz(q[0]);
   }

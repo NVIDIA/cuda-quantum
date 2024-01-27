@@ -22,7 +22,8 @@
 # toolchain, add support for it to the install_toolchain.sh script. If the toolchain is set to llvm, 
 # then the toolchain will be built from source.
 
-FROM ubuntu:22.04 as llvmbuild
+ARG base_image=ubuntu:22.04
+FROM ${base_image} as llvmbuild
 SHELL ["/bin/bash", "-c"]
 
 ARG llvm_commit
@@ -33,9 +34,6 @@ ARG toolchain=llvm
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates openssl apt-utils \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install prerequisites for building LLVM.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -65,44 +63,40 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 # - https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html#C_002b_002b-Dialect-Options
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
-RUN LLVM_INSTALL_PREFIX=/opt/llvm LLVM_SOURCE=/llvm-project \
-        source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
+ENV LLVM_INSTALL_PREFIX=/opt/llvm
+ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
+RUN LLVM_SOURCE=/llvm-project \
+    source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
     && rm -rf /llvm-project/build
 RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
     && source /opt/llvm/bootstrap/init_command.sh \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX=/usr/local/pybind11 \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project
 RUN source /opt/llvm/bootstrap/init_command.sh && \
-    LLVM_INSTALL_PREFIX=/opt/llvm \
-        bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
+    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
-# Todo: 
-# - remove http://apt.llvm.org/jammy/ in the install_toolchain.sh and use
-#   FROM llvmbuild as prereqs
-# - uncomment the source /opt/llvm/bootstrap/init_command.sh below
-FROM ubuntu:22.04 as prereqs
-SHELL ["/bin/bash", "-c"]
-COPY --from=llvmbuild /opt/llvm /opt/llvm
+FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
-ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && export LLVM_INSTALL_PREFIX=/opt/llvm \
     && export BLAS_INSTALL_PREFIX=/usr/local/blas \
+    && export ZLIB_INSTALL_PREFIX=/usr/local/zlib \
     && export OPENSSL_INSTALL_PREFIX=/usr/local/openssl \
-    # Making sure that anything that is build from source when installing additional
-    # prerequisites is built using the same toolchain as CUDA Quantum by default.
-    # && source /opt/llvm/bootstrap/init_command.sh \
+    && export CURL_INSTALL_PREFIX=/usr/local/curl \
+    # It would be nice to also build the prerequisites
+    # using the same toolchain as CUDA Quantum by default.
+    && source /opt/llvm/bootstrap/init_command.sh \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Pre-built binaries for doxygen are only available for x86_64.
-FROM ubuntu:22.04 as doxygenbuild
+FROM ${base_image} as doxygenbuild
 RUN if [ "$(uname -m)" != "x86_64" ]; then \
         apt-get update && apt-get install -y wget unzip make cmake flex bison gcc g++ python3 \
         # Fixed commit corresponding to release 1.9.7
@@ -119,7 +113,7 @@ RUN if [ "$(uname -m)" != "x86_64" ]; then \
         && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
 
-FROM ubuntu:22.04
+FROM ${base_image}
 SHELL ["/bin/bash", "-c"]
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -154,10 +148,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends libstdc++-12-de
 
 # Copy over additional prerequisites.
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
+ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
-ENV OPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX"
+ENV CURL_INSTALL_PREFIX=/usr/local/curl
 COPY --from=prereqs /usr/local/blas "$BLAS_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/zlib "$ZLIB_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
+COPY --from=prereqs /usr/local/curl "$CURL_INSTALL_PREFIX"
 
 # Install additional tools for CUDA Quantum documentation generation.
 COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
@@ -167,7 +164,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
         ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
         sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 nbsphinx==0.9.2 sphinx_gallery==0.13.0 \
      myst-parser==1.0.0
-        
 
 # Install additional dependencies required to build and test CUDA Quantum.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
@@ -178,7 +174,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certifi
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ninja-build file libcurl4-openssl-dev \
+        git ninja-build file \
         python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir \
         lit pytest numpy \

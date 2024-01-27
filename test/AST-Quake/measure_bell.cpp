@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt --cse | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt --cse | FileCheck %s
 
 #include <cudaq.h>
 
@@ -15,7 +15,7 @@
 
 struct bell {
   void operator()(int num_iters) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     int n = 0;
     for (int i = 0; i < num_iters; i++) {
       h(q[0]);
@@ -81,7 +81,7 @@ struct bell {
 
 struct libertybell {
   void operator()(int num_iters) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     int n = 0;
     for (int i = 0; i < num_iters; i++) {
       h(q[0]);
@@ -143,7 +143,7 @@ struct libertybell {
 
 struct tinkerbell {
   void operator()(int num_iters) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     int n = 0;
     for (int i = 0; i < num_iters; i++) {
       h(q[0]);

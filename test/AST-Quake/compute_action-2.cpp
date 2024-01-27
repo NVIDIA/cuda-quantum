@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt --apply-op-specialization | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize --apply-op-specialization -o %t && FileCheck --check-prefix=LAMBDA %s < %t && FileCheck --check-prefix=LAMBDA2 %s < %t
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt --apply-op-specialization | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt --lambda-lifting --canonicalize --apply-op-specialization -o %t && FileCheck --check-prefix=LAMBDA %s < %t && FileCheck --check-prefix=LAMBDA2 %s < %t
 
 #include <cudaq.h>
 
-__qpu__ void magic_func(cudaq::qreg<> &q) {
+__qpu__ void magic_func(cudaq::qvector<> &q) {
   auto nQubits = q.size();
   for (int step = 0; step < 100; ++step) {
     for (int j = 0; j < nQubits; j++)
@@ -26,7 +26,7 @@ __qpu__ void magic_func(cudaq::qreg<> &q) {
 struct ctrlHeisenberg {
   void operator()(int nQubits) __qpu__ {
     cudaq::qubit ctrl1;
-    cudaq::qreg q(nQubits);
+    cudaq::qvector q(nQubits);
     cudaq::control(magic_func, ctrl1, q);
   }
 };

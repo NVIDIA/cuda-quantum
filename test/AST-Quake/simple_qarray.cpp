@@ -8,7 +8,7 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std --emit-llvm-file %s | FileCheck %s
 // RUN: FileCheck --check-prefixes=CHECK-LLVM %s < simple_qarray.ll
 
 #include <cudaq.h>
@@ -17,7 +17,7 @@
 // Define a quantum kernel
 struct ghz {
   auto operator()() __qpu__ {
-    cudaq::qreg<5> q;
+    cudaq::qarray<5> q;
     h(q[0]);
     for (int i = 0; i < 4; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);

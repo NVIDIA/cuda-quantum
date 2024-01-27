@@ -6,13 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt --lower-to-cfg | cudaq-translate --convert-to=qir-base -o - | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt --lower-to-cfg | cudaq-translate --convert-to=qir-base -o - | FileCheck %s
 
 #include <cudaq.h>
 
 struct kernel {
     void operator()() __qpu__ {
-        cudaq::qreg<3> q;
+        cudaq::qarray<3> q;
         h(q[1]);
         x<cudaq::ctrl>(q[1],q[2]);
 

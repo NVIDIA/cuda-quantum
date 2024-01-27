@@ -6,13 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 
 int main() {
   auto kernel = [](double theta) __qpu__ {
-    cudaq::qreg q(4);
+    cudaq::qvector q(4);
     x(q[0]);
     x(q[1]);
     exp_pauli(theta, "XXXY", q[0], q[1], q[2], q[3]);

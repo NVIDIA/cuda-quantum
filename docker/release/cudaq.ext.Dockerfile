@@ -21,16 +21,17 @@ RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
         rmdir "$CUDA_QUANTUM_PATH/assets/documentation"; \
     fi && \
     for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -type d`; \
-    do bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$folder" && rm -rf "$folder"; done \
-    && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
+    do bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$folder" && rm -rf "$folder"; done \
+    && rm -rf "$CUDA_QUANTUM_PATH/assets" "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 # Install additional runtime dependencies.
 RUN apt-get install -y --no-install-recommends \
-        cuda-nvtx-11-8 libopenblas-openmp-dev \
+        cuda-nvtx-11-8 cuda-cudart-11-8 \
+        libcusolver-11-8 libcublas-11-8 \
         # just here for convenience:
         curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \
-        apt-get install -y --no-install-recommends gcc \
+        apt-get install -y --no-install-recommends gcc libpython3-dev \
         && pip install --no-cache-dir jupyterlab matplotlib; \
         if [ -n "$MPI_ROOT" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \

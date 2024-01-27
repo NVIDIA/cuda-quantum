@@ -7,17 +7,19 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target ionq                     --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Apollo --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ --target oqc                      --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ --target quantinuum               --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// clang-format on
 
 #include <cudaq.h>
 #include <algorithm>
 #include <iostream>
 #include <unordered_set>
 
-__qpu__ void reflect_uniform(cudaq::qreg<> &qubits) {
+__qpu__ void reflect_uniform(cudaq::qvector<> &qubits) {
   h(qubits);
   x(qubits);
   z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3]);
@@ -25,13 +27,13 @@ __qpu__ void reflect_uniform(cudaq::qreg<> &qubits) {
   h(qubits);
 }
 
-__qpu__ void oracle(cudaq::qreg<> &cs, cudaq::qubit &target) {
+__qpu__ void oracle(cudaq::qvector<> &cs, cudaq::qubit &target) {
   x<cudaq::ctrl>(cs[0], !cs[1], !cs[2], cs[3], target);
   x<cudaq::ctrl>(!cs[0], cs[1], cs[2], !cs[3], target);
 }
 
 __qpu__ void grover() {
-  cudaq::qreg qubits(4);
+  cudaq::qvector qubits(4);
   cudaq::qubit ancilla;
 
   // Initialization

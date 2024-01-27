@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: ( cudaq-quake %s || true ) 2>&1 | FileCheck %s
+// RUN: ( cudaq-quake %cpp_std %s || true ) 2>&1 | FileCheck %s
 
 // CHECK: C++ source has errors. nvq++ cannot proceed.
 
@@ -18,3 +18,8 @@ __qpu__ void invalid_code() {
     x(reg[i]);
   }
 }
+
+// expected-warning@* {{}}
+// expected-warning@* {{}}
+// expected-note@* {{}}
+// expected-note@* {{}}

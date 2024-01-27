@@ -16,6 +16,7 @@ set(CUDAQ_DEFAULTPLATFORM_SRC
 )
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_DEFAULTPLATFORM_SRC})
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
@@ -35,6 +36,7 @@ install(EXPORT cudaq-platform-default-targets
 
 if (OPENSSL_FOUND)
   add_subdirectory(rest)
+  add_subdirectory(rest_server)
 endif()
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)

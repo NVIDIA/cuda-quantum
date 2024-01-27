@@ -12,11 +12,14 @@ Local Installation
 
 The following sections contain instructions for how to install CUDA Quantum on your machine using
 
-- :ref:`**Docker** <install-docker-image>`: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
-- :ref:`**Singularity** <install-singularity-image>`: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
-- :ref:`**PyPI** <install-python-wheels>`: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
+- :ref:`Docker <install-docker-image>`: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
+- :ref:`Singularity <install-singularity-image>`: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
+- :ref:`PyPI <install-python-wheels>`: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
+- :ref:`Pre-built binaries <install-prebuilt-binaries>`: We also provide pre-built C++ binaries, bundled as `self-extracting archive <https://makeself.io/>`__, that work across a range of Linux operating systems.
 
-If you would like to build CUDA Quantum from source instead, please follow the instructions on the `CUDA Quantum GitHub repository`_.
+If you would like to build CUDA Quantum from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for :doc:`data_center_install`. 
+If, on the other hand, you want to contribute to the development of CUDA Quantum itself and hence want to 
+build a custom version of CUDA Quantum from source, follow the instructions on the `CUDA Quantum GitHub repository`_ instead.
 
 .. _CUDA Quantum GitHub repository: https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md
 
@@ -183,7 +186,8 @@ please take a look at the section on :ref:`Development with VS Code <singularity
 Python wheels
 ++++++++++++++++++++++++++++++++++++
 
-CUDA Quantum Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
+CUDA Quantum Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. 
+Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
 For more information about available versions and documentation,
 see :doc:`versions`.
 
@@ -196,12 +200,85 @@ To build the CUDA Quantum Python API from source using pip, run the following co
 .. code-block:: console
 
     git clone https://github.com/NVIDIA/cuda-quantum.git
-    cd cuda-quantum && ./scripts/install_prerequisites.sh
+    cd cuda-quantum && bash scripts/install_prerequisites.sh
     pip install .
 
 For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
 
+.. _install-prebuilt-binaries:
+
+Pre-built binaries
+++++++++++++++++++++++++++++++++++++
+
+Starting with the 0.6.0 release, we provide pre-built binaries for using 
+CUDA Quantum with C++. Support for using CUDA Quantum with Python can be installed 
+side-by-side with the pre-built binaries for C++ by following the instructions on 
+`PyPI.org <https://pypi.org/project/cuda-quantum>`__.
+The pre-built binaries work across a range of Linux operating systems listed 
+under :ref:`dependencies-and-compatibility`. 
+
+Before installing our pre-built binaries, please make sure that your 
+operating system is using the `GNU C library <https://www.gnu.org/software/libc/>`__ 
+version 2.28 or newer. You can confirm this by checking the output of the command 
+`ldd --version`. If this command does not exist, or shows an older version than 2.28, 
+please double check that your operating system is listed as 
+:ref:`supported <dependencies-and-compatibility>`. If you use an operating system
+with an older GNU C library version, you will need to build the installer from 
+source following the instructions in :doc:`data_center_install`.
+
+You can download the `install_cuda_quantum` file for your processor architecture from
+the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. 
+The installer is a `self-extracting archive <https://makeself.io/>`__ that contains the 
+pre-built binaries as well as a script to move them to the correct locations. You will need
+`bash`, `tar`, and `gzip` (usually already installed on most Linux distributions) to run 
+the installer.
+The installation location of CUDA Quantum is not currently configurable and using the installer
+hence requires admin privileges on the system. We may revise that in the future; please see and
+upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/1075>`__.
+
+To install CUDA Quantum, execute the command
+
+.. literalinclude:: ../../docker/test/installer/linux.Dockerfile
+    :language: bash
+    :dedent:
+    :start-after: [>CUDAQuantumInstall]
+    :end-before: [<CUDAQuantumInstall]
+
+.. note:: 
+
+  To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. For more information see the corresponding section on :ref:`Additional CUDA Tools <cuda-dependencies-prebuilt-binaries>`.
+
+The installation ensures that the necessary environment variables for
+using the CUDA Quantum toolchain are set upon login for all POSIX shells.
+Confirm that the `nvq++` command is found. If it is not, please make sure 
+to set the environment variables defined by the `set_env.sh` script in the 
+CUDA Quantum installation folder (usually `/opt/nvidia/cudaq`).
+
+If an MPI installation is available in the directory defined by `MPI_PATH`, 
+the installer automatically enables MPI support in CUDA Quantum.
+If you do not have MPI installed on your system, you can simply
+leave that path empty, and CUDA Quantum will be installed without MPI support.
+If you install MPI at a later point in time, you can activate the MPI support in CUDA 
+Quantum by setting the `MPI_PATH` variable to its installation location and 
+executing the commands
+
+.. code-block:: console
+
+    MPI_PATH=/usr/local/openmpi # update this path as needed
+    bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
+
 .. _local-development-with-vscode:
+
+To develop C++ code, you most likely also want to install the
+`C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__.
+CUDA Quantum supports the GNU C++ standard library (`libstdc++`), 
+version 11 or newer. Other libraries may work but can cause issues in certain cases.
+The C++ standard library, including development headers, is almost certainly 
+available via the package manager for your system. To ensure the libraries and headers
+are discoverable, the easiest option is usually to install the complete GCC toolchain.
+Note that for certain distributions, you may need to manually enable that version 
+after installation by running a script called `enable`. You can search for such a 
+script with the command `find / -path '*gcc*' -name enable`.
 
 Development with VS Code
 ------------------------------------
@@ -572,7 +649,17 @@ Additional CUDA Tools
 ------------------------------------
 
 CUDA Quantum makes use of CUDA tools in certain backends and components. 
-If you install CUDA Quantum via `PyPI <https://pypi.org/project/cuda-quantum>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
+Depending on how you installed CUDA Quantum, you may need to install 
+certain CUDA libraries separately to take advantage of these.
+
+Installation via PyPI
+++++++++++++++++++++++++++++++++++++
+
+If you installed CUDA Quantum via `PyPI <https://pypi.org/project/cuda-quantum>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
+
+Installation In Container Images
+++++++++++++++++++++++++++++++++++++
+
 If you are using the CUDA Quantum container image, the image already contains all necessary runtime libraries to use all CUDA Quantum components. It does not, 
 however, contain all development dependencies for CUDA, such as, for example the `nvcc` compiler. You can install all CUDA development dependencies by running the command 
 
@@ -586,6 +673,151 @@ inside the container. Note that most Python packages that use GPU-acceleration, 
 
     python3 -m pip install cupy-cuda11x
 
+.. _cuda-dependencies-prebuilt-binaries:
+
+Installing Pre-built Binaries
+++++++++++++++++++++++++++++++++++++
+
+If you installed pre-built binaries for CUDA Quantum, you will need to install 
+the necessary CUDA runtime libraries to use GPU-acceleration in CUDA Quantum. 
+If you prefer to only install the minimal set of runtime libraries, the following 
+commands, for example, install the necessary packages for RHEL 8:
+
+.. literalinclude:: ../../scripts/configure_build.sh
+    :language: bash
+    :dedent:
+    :start-after: [>CUDARTInstall]
+    :end-before: [<CUDARTInstall]
+
+More detailed instructions for your platform can be found in the online documentation
+of your selected `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
+Please make sure to install CUDA version 11.8 or newer, and confirm that your 
+`GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
+While the above packages are sufficient to use GPU-acceleration within CUDA Quantum, 
+we recommend installing the complete CUDA toolkit (`cuda-toolkit-11-8`) that also 
+includes the `nvcc` compiler.
+
+.. _distributed-computing-with-mpi:
+
+Distributed Computing with MPI
+------------------------------------
+
+CUDA Quantum supports the Message Passing Interface (MPI) parallelism via a runtime configurable plugin interface.
+Specifically, while a builtin plugin is shipped with the CUDA Quantum Docker image, users can also activate 
+a custom CUDA Quantum MPI plugin targeting their local MPI installation without recompiling or reinstalling the stack.
+
+CUDA Quantum MPI API for C++ and Python will then be delegated 
+to the plugin implementation selected at runtime.  
+
+The following table summarizes mechanisms whereby a CUDA Quantum MPI plugin can be picked up.
+
+.. tab:: Built-in
+
+  **Use case**: build from source, Docker containers
+
+  When a local MPI installation is detected at build time, CUDA Quantum will build an MPI plugin targeting this implementation.
+  Similarly, the :ref:`CUDA Quantum Docker image <install-docker-image>` is shipped with a built-in MPI plugin based on an optimized OpenMPI installation included in the image. 
+  No action is required to use this built-in plugin. 
+
+  .. note::
+
+    A manually activated MPI plugin takes precedence over a built-in plugin. 
+    For instance, the user may choose to reinstall a different MPI library inside the Docker container and 
+    activate a new CUDA Quantum MPI plugin. The newly-activated plugin will always be used even though a built-in one 
+    was shipped with the Docker image. 
+
+.. tab:: Manual Activation
+
+  **Use case**: 
+  
+  (1) Using the CUDA Quantum Docker image on systems that have a different MPI implementation.
+  For instance, HPC data centers often have a vendor-optimized MPI library pre-installed on
+  their system, which need to be swapped with the MPI library in the Docker image at runtime.
+  With manual activation, a custom CUDA Quantum MPI plugin can be built against the system MPI library, 
+  guaranteeing runtime compatibility when MPI injection into the container occurs. 
+
+  (2) Post-deployment MPI activation for CUDA Quantum binaries that do not have MPI support.
+  Depending on the distribution channel, CUDA Quantum binaries may not come with any pre-built
+  MPI plugin. For example, CUDA Quantum Python wheels from PyPI and :ref:`pre-built binaries <install-prebuilt-binaries>` 
+  do not include a built-in MPI plugin. CUDA Quantum MPI capabilities can be activated post-installation
+  against the MPI library available on the local system.
+
+  **Instructions:**
+
+  (1) Locate the CUDA Quantum `distributed_interfaces` sub-directory at the top-level of the CUDA Quantum installation directory.
+
+  (2) Execute the `activate_custom_mpi.sh` bash script.
+
+  .. code-block:: console
+
+    source $CUDAQ_INSTALL_DIR/distributed_interfaces/activate_custom_mpi.sh
+
+  This will build and install a custom MPI plugin targeting the currently-available MPI implementation.
+  
+  .. note::
+
+    This activation script requires the `MPI_PATH` environment variable being set to locate the MPI installation.
+    In particular, `${MPI_PATH}/include` is expected to contain the `mpi.h` header and 
+    `${MPI_PATH}/lib64` or `${MPI_PATH}/lib` is expected to contain `libmpi.so`.
+
+  After the initial activation, the newly built `libcudaq_distributed_interface_mpi.so` in the installation directory will always be used to handle CUDA Quantum MPI API.
+
+  .. note::
+
+    Executing the activation script from the CUDA Quantum installation directory requires *write* permissions to that directory.
+    If you do not have the necessary permissions, copy the `distributed_interfaces` sub-directory to a local location and execute the 
+    activation script from there.
+
+    In this scenario, since the activated plugin (`libcudaq_distributed_interface_mpi.so`) is outside the CUDA Quantum installation,
+    you must set the environment variable `$CUDAQ_MPI_COMM_LIB` to the path of that shared library.
+    This is done automatically when executing that activation script, but you may wish to persist that environment variable 
+    between bash sessions, e.g., by adding it to the `.bashrc` file.
+
+
+.. tab:: mpi4py Wrapper
+
+  **Use case**: Python users 
+
+  If you have not manually activated a CUDA Quantum MPI plugin can attain MPI support via the 
+  the `mpi4py <https://mpi4py.readthedocs.io/>` Python package. Please follow the 
+  `instructions on PyPI <https://pypi.org/project/cuda-quantum/#description>`__ for installing 
+  that package. On a system with no built-in nor manually activated plugin, 
+  CUDA Quantum will automatically try to locate the `mpi4py` package.
+  If found, CUDA Quantum MPI API calls will be redirected to the corresponding `mpi4py` API.
+   
+  .. note::
+    
+    Using `mpi4py`-based plugin does incur runtime overhead due to function call indirection.
+    For example, CUDA Quantum MPI API would need to invoke a `mpi4py` Python wrapper of the underlying
+    MPI API rather than invoking it directly.
+    
+    Hence, we recommend manual MPI activation if possible. Manually-activated or builtin MPI plugins, if present in the CUDA Quantum install directory, 
+    will take precedence over the one based on `mpi4py`. 
+
+Updating CUDA Quantum
+--------------------------------
+
+If you installed the CUDA Quantum Python wheels, you can update to the latest release
+by running the command 
+
+.. code-block:: console
+
+    python3 -m pip install --upgrade cuda-quantum
+
+If you previously installed the CUDA Quantum pre-built binaries, you should first uninstall your 
+current CUDA Quantum installation before installing the new version using the installer. 
+To uninstall your current CUDA Quantum version, run the command
+
+.. code-block:: console
+
+    sudo bash "${CUDA_QUANTUM_PATH}/uninstall.sh" -y
+
+The `uninstall.sh` script is generated during installation, and will remove all files 
+and folders that were created as part of the installation, whether they were modified 
+in the meantime or not. It does not remove any additional files that existed prior 
+to the installation or that you have added to the installation location since then. 
+You can then download and install the new version of CUDA Quantum following the
+instructions :ref:`above <install-prebuilt-binaries>`.
 
 .. _dependencies-and-compatibility:
 
@@ -611,7 +843,7 @@ The following table summarizes the required components.
     * - Operating System
       - Linux
     * - Tested Distributions
-      - CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SELD/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04
+      - CentOS 8; Debian 11, 12; Fedora 38; OpenSUSE/SLED/SLES 15.5; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04
     * - Python versions
       - 3.8+
 

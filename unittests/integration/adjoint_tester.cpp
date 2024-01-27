@@ -73,7 +73,7 @@ struct twoqbit_adjoint_test {
 };
 
 struct test_adjoint {
-  void operator()(cudaq::qspan<> q) __qpu__ {
+  void operator()(cudaq::qview<> q) __qpu__ {
     h(q[0]);
     t(q[1]);
     s(q[2]);
@@ -120,7 +120,7 @@ CUDAQ_TEST(AdjointTester, checkSimple) {
 CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
 
   struct xxxh_gates {
-    void operator()(cudaq::qspan<> &q) __qpu__ {
+    void operator()(cudaq::qview<> &q) __qpu__ {
       x(q[2]);
       x(q[0], q[1]);
       h(q[2]);
@@ -128,19 +128,19 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   };
 
   struct S_0 {
-    void operator()(cudaq::qspan<> q) __qpu__ {
+    void operator()(cudaq::qview<> q) __qpu__ {
 
       cudaq::compute_action([&]() { xxxh_gates{}(q); },
-                            [&] { x(q[0], q[1], q[2]); });
+                            [&]() { x(q[0], q[1], q[2]); });
     }
   };
 
   struct P {
-    void operator()(cudaq::qspan<> q) __qpu__ { h(q[0], q[1]); }
+    void operator()(cudaq::qview<> q) __qpu__ { h(q[0], q[1]); }
   };
 
   struct R {
-    void operator()(cudaq::qspan<> q) __qpu__ {
+    void operator()(cudaq::qview<> q) __qpu__ {
       ry(M_PI / 16.0, q[2]);
       ry<cudaq::ctrl>(M_PI / 8.0, q[0], q[2]);
       ry<cudaq::ctrl>(M_PI / 4.0, q[1], q[2]);
@@ -148,7 +148,7 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   };
 
   struct A {
-    void operator()(cudaq::qspan<> q) __qpu__ {
+    void operator()(cudaq::qview<> q) __qpu__ {
 
       P{}(q);
       R{}(q);
@@ -156,7 +156,7 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   };
 
   struct S_chi {
-    void operator()(cudaq::qspan<> q) __qpu__ { z(q[2]); }
+    void operator()(cudaq::qview<> q) __qpu__ { z(q[2]); }
   };
 
   struct run_circuit {

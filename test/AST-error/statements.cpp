@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake -verify %s
+// RUN: cudaq-quake %cpp_std -verify %s
 
 #include <cudaq.h>
 #include <iostream>
@@ -16,8 +16,9 @@ void bar();
 
 struct S2 {
   auto operator()() __qpu__ {
-    try { // expected-error   {{try statement is not yet supported}}
-          // expected-error@-1{{statement not supported in qpu kernel}}
+    // expected-error@+2{{statement not supported in qpu kernel}}
+    // expected-error@+1{{try statement is not yet supported}}
+    try {
       foo();
     } catch (int) {
       bar();
@@ -27,8 +28,9 @@ struct S2 {
 
 struct S4 {
   auto operator()() __qpu__ {
-    goto label; // expected-error   {{goto statement}}
-                // expected-error@-1{{statement not supported in qpu kernel}}
+    // expected-error@+2{{statement not supported in qpu kernel}}
+    // expected-error@+1{{goto statement}}
+    goto label;
   label:
     foo();
   }
@@ -36,8 +38,9 @@ struct S4 {
 
 struct S5 {
   auto operator()(int sp) __qpu__ {
-    switch (sp) { // expected-error   {{switch statement}}
-                  // expected-error@-1{{statement not supported in qpu kernel}}
+    // expected-error@+2{{statement not supported in qpu kernel}}
+    // expected-error@+1{{switch statement}}
+    switch (sp) {
     case 1:
       foo();
     default:

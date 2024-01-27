@@ -8,7 +8,7 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std --emit-llvm-file %s | FileCheck %s
 
 // We should only have 2 kernels created even though we instantiate ghz<5> twice. 
 // CHECK-LABEL: module attributes {quake.mangled_name_map = {
@@ -33,7 +33,7 @@
 // Define a quantum kernel
 template <std::size_t N> struct ghz {
   auto operator()() __qpu__ {
-    cudaq::qreg<N> q;
+    cudaq::qarray<N> q;
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);

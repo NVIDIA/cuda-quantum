@@ -6,13 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt --canonicalize --cse | cudaq-translate --convert-to=qir | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt --canonicalize --cse | cudaq-translate --convert-to=qir | FileCheck %s
 
 #include <cudaq.h>
 
 struct Stuart {
    void operator() () __qpu__ {
-      cudaq::qreg<5> qreg;
+      cudaq::qarray<5> qreg;
       y<cudaq::ctrl>(!qreg[0], qreg[1], qreg[4]);
       z<cudaq::ctrl>(qreg[2], !qreg[3], qreg[4]);
    }

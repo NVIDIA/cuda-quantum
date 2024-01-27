@@ -6,6 +6,7 @@ on:
       - 'main'
       - 'releases/*'
       - 'experimental/*'
+      - 'features/*'
 
 name: PR merged
 
@@ -23,7 +24,7 @@ jobs:
           echo "source-sha: ${{ github.sha }}" >> metadata.txt
 
       - name: Upload metadata
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: metadata_pr
           path: metadata.txt

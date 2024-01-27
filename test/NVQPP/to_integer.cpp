@@ -6,13 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o out_testToInt.x && ./out_testToInt.x && rm out_testToInt.x
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
+// RUN:   nvq++ --enable-mlir %s -o %t && %t; \
+// RUN: fi
 
 #include <cudaq.h>
 
 struct test {
   int operator()(std::vector<int> applyX) __qpu__ {
-    cudaq::qreg q(applyX.size());
+    cudaq::qvector q(applyX.size());
 
     for (std::size_t i = 0; i < applyX.size(); i++) {
       if (applyX[i]) {

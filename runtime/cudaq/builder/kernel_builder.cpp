@@ -95,11 +95,6 @@ KernelBuilderType mapArgToType(cudaq::qubit &e) {
       [](MLIRContext *ctx) { return quake::RefType::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(cudaq::qreg<> &e) {
-  return KernelBuilderType(
-      [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
-}
-
 KernelBuilderType mapArgToType(cudaq::qvector<> &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
@@ -297,7 +292,7 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
   // Map the QuakeValues to MLIR Values
   SmallVector<Value> mlirValues;
   for (std::size_t i = 0; auto &v : values) {
-    Type argType = otherFuncCloned.getArgumentTypes()[i];
+    Type argType = otherFuncCloned.getArgumentTypes()[i++];
     Value value = v.getValue();
     Type inType = value.getType();
     auto inAsVeqTy = inType.dyn_cast_or_null<quake::VeqType>();
@@ -933,6 +928,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   altLaunchKernel(properName.data(), thunk, rawArgs, size);
   std::free(rawArgs);
+  // TODO: any return values are dropped on the floor here.
 }
 
 std::string to_quake(ImplicitLocOpBuilder &builder) {

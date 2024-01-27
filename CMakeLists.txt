@@ -31,17 +31,16 @@ if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
 endif()
 
+# CMP0135: Timestamp for content downloaded with ExternalProject_Add()
+# New in CMake 3.24 https://cmake.org/cmake/help/latest/policy/CMP0135.html
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 # CMP0116: Ninja generators transform `DEPFILE`s from `add_custom_command()`
 # New in CMake 3.20. https://cmake.org/cmake/help/latest/policy/CMP0116.html
 if(POLICY CMP0116)
   cmake_policy(SET CMP0116 OLD)
-endif()
-
-# CMP0148: The ``FindPythonInterp`` and ``FindPythonLibs`` modules are removed.
-# CMake 3.27 and above no longer provide the modules.
-# https://cmake.org/cmake/help/latest/policy/CMP0148.html
-if(POLICY CMP0148)
-  cmake_policy(SET CMP0148 OLD)
 endif()
 
 # Project setup
@@ -101,11 +100,12 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
         message(FATAL_ERROR "Cloning git submodules failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually")
     endif()
     # Apply patches; check if patch is already applied first, and apply it if not
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --reverse --check
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT)
+                    RESULT_VARIABLE GIT_PATCH_RESULT
+                    ERROR_QUIET)
     if(NOT GIT_PATCH_RESULT EQUAL "0")
-      execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff
+      execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                       RESULT_VARIABLE GIT_PATCH_RESULT)
     endif()
@@ -124,17 +124,13 @@ endif()
 option(CUDAQ_BUILD_TESTS "Build cudaq tests" ON)
 option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud connection." OFF)
 option(CUDAQ_BUILD_RELOCATABLE_PACKAGE "Make CUDA Quantum install tree relocatable, system headers included." OFF)
-option(CUDAQ_BUILD_SELFCONTAINED "Statically link all dependencies and create a relocatable installation folder." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA Quantum C++ Clang-based Frontend." OFF)
 
-# We allow to pick up certain build configurations directly from the environment,
-# since this facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
-if(NOT CUDAQ_BUILD_SELFCONTAINED)
-  SET(CUDAQ_BUILD_SELFCONTAINED $ENV{CUDAQ_BUILD_SELFCONTAINED})
-endif()
+# Certain build configurations may be set directly in the environment.
+# This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
 if(NOT LLVM_DIR AND EXISTS "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
   SET(LLVM_DIR "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
 endif()
@@ -144,12 +140,27 @@ endif()
 if(NOT CUTENSORNET_ROOT)
   SET(CUTENSORNET_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}")
 endif()
+if(NOT CUTENSOR_ROOT)
+  SET(CUTENSOR_ROOT "$ENV{CUTENSOR_INSTALL_PREFIX}")
+endif()
+if(NOT ZLIB_ROOT)
+  SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}")	
+endif()
 if(NOT OPENSSL_ROOT_DIR)	
   SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}")	
 endif()
 if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
   # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
   SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")	
+endif()
+if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
+  SET(CURL_LIBRARY "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")	
+  SET(CURL_INCLUDE_DIR "$ENV{CURL_INSTALL_PREFIX}/include")
+  SET(CURL_CONFIG_EXECUTABLE "$ENV{CURL_INSTALL_PREFIX}/bin/curl-config")
+  SET(CMAKE_USE_SYSTEM_CURL TRUE)
+endif()
+if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
+  SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
 endif()
 
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
@@ -159,18 +170,46 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
 
 SET(BLA_STATIC ON)
+if(NOT DEFINED ZLIB_USE_STATIC_LIBS)
+  SET(ZLIB_USE_STATIC_LIBS TRUE)
+endif()
 if(NOT DEFINED OPENSSL_USE_STATIC_LIBS)
   SET(OPENSSL_USE_STATIC_LIBS TRUE)
 endif()
 
-if (CUDAQ_BUILD_SELFCONTAINED)
-  # Using -static-libgcc -static-libstdc++ offers finer control here if needed.
+if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
+  SET(CUDAQ_ENABLE_STATIC_LINKING $ENV{CUDAQ_ENABLE_STATIC_LINKING})
+endif()
+if (CUDAQ_ENABLE_STATIC_LINKING)
+  # Using -static-libgcc -static-libstdc++ offers more fine grained control here if needed.
   # At the time of writing, there wasn't any benefit to using those over -static.
+  # However, while this so far seems to be working reasonably well, this will
+  # unfortunately also link glibc statically, which in general is likely to cause
+  # issues sooner or later. A better option might be to include the required GNU C Library
+  # and have the nvq++ compiler dynamically pick the newer one of the included or system one.
+  # See also these posts:
+  # - https://blog.gibson.sh/2017/11/26/creating-portable-linux-binaries/
+  # - https://www.jertype.com/upgrading-glibc/
+  # If the final application loads multiple dynamic libraries, and two or more
+  # of those dynamic libraries are linked to different versions of the same static
+  # libraries, then the different copies of those static libraries will conflict
+  # with each other. If we keep linking everything statically, we should at least set 
+  # CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN to 1, 
+  # to avoid some of these issues.
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-pie")
-  SET(CUDAQ_BUILD_RELOCATABLE_PACKAGE TRUE)
+  SET(OPENSSL_USE_STATIC_LIBS TRUE)
+  SET(ZLIB_USE_STATIC_LIBS TRUE)
+  set(CURL_STATICLIB ON)
+  message(STATUS "CUDA Quantum static linking enabled.")
+else()
+  message(STATUS "CUDA Quantum static linking disabled.")
 endif()
 
+# ZLIB is required when we build LLVM with zlib support. 
+# ZLIB support in LLVM is good to have e.g. for the linker,
+# since some binaries will use zlib compression to store symbols.
+find_package(ZLIB REQUIRED)
 include(ExternalProject)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -365,6 +404,20 @@ configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
 install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
   DESTINATION include/nvqpp)
 
+# Check optional dependencies
+# ==============================================================================
+find_package(OpenMP)
+find_package(OpenSSL)
+
+if (NOT CUDAQ_SKIP_MPI)
+  find_package(MPI COMPONENTS CXX)
+  if (MPI_FOUND)
+    message(STATUS "MPI CXX Found: ${MPIEXEC}")
+    # Build the built-in MPI Comm plugin
+    add_subdirectory(runtime/cudaq/distributed/builtin)
+  endif()
+endif()
+
 # Third-party libraries (tpls)
 # ==============================================================================
 set(FMT_INSTALL ON)
@@ -382,9 +435,25 @@ include_directories(SYSTEM tpls/json/include)
 # Add spdlog 
 set(SPDLOG_BUILD_SHARED OFF)
 set(SPDLOG_FMT_EXTERNAL ON)
+set(SPDLOG_BUILD_PIC ON)
+set(SPDLOG_SYSTEM_INCLUDES ON)
 add_subdirectory(tpls/spdlog)
-set_property(TARGET spdlog APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
+
+# QPP simulator
+if (NOT CUDAQ_DISABLE_RUNTIME)
+  add_subdirectory(tpls/qpp EXCLUDE_FROM_ALL)
+  # Required workaround to add libqpp as SYSTEM. This will prevent it from
+  # generating warnings, which we treat as errors.
+  get_target_property(LIBQPP_INCLUDE libqpp INTERFACE_INCLUDE_DIRECTORIES)
+  set_target_properties(libqpp
+    PROPERTIES
+      INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
+  if (OpenMP_CXX_FOUND)
+    target_compile_definitions(libqpp INTERFACE HAS_OPENMP)
+  endif()
+endif()
+
 
 # Check for CUDA Support
 # ==============================================================================
@@ -424,22 +493,9 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found.")
 endif()
 
-# Check for OpenSSL
-find_package(OpenSSL)
-
-# Optionally build with MPI
-if (NOT CUDAQ_SKIP_MPI)
-  find_package(MPI COMPONENTS CXX)
-  if (MPI_FOUND) 
-    message(STATUS "MPI CXX Found: ${MPIEXEC}")
-  endif()
-endif()
 
 # Directory setup
 # ==============================================================================
-if (CUDAQ_ENABLE_PYTHON)
-  add_subdirectory(tpls/pybind11)
-endif()
 
 add_subdirectory(cmake)
 add_subdirectory(include)
@@ -450,10 +506,19 @@ endif()
 if (NOT CUDAQ_DISABLE_TOOLS)
   add_subdirectory(tools)
 endif()
+# Always add cudaq-qpud executable/tool (including Python wheels)
+add_subdirectory(tools/cudaq-qpud)
+
 add_subdirectory(utils)
 
-# Python setup
-# ==============================================================================
+if (CUDAQ_ENABLE_PYTHON)
+  set(PYBIND11_FINDPYTHON ON)
+  # Manually call find_package due to https://github.com/pybind/pybind11/pull/4805.
+  find_package(Python 3 COMPONENTS Interpreter Development.Module REQUIRED)
+  add_subdirectory(tpls/pybind11)
+  add_subdirectory(python)
+endif()
+
 if(CUDAQ_BUILD_TESTS)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
@@ -476,34 +541,23 @@ if(CUDAQ_BUILD_TESTS)
   add_subdirectory(test)
 endif()
 
-# Users may specify  `-DCUDAQ_ENABLE_PYTHON=TRUE`, otherwise the python bindings
-# will not be built.
-if (CUDAQ_ENABLE_PYTHON)
-  add_subdirectory(python)
-endif()
-
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND) 
   # Grab the Clang system headers / resource-dir
   install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION lib/clang)
 
   # Install the executables we need
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
+  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/lld DESTINATION bin)
+  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/ld.lld DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
 endif()
 
-if (CUDAQ_BUILD_SELFCONTAINED)
-  # We allow to pick up certain build configurations directly from the environment,
-  # since this facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
-  if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
-    SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
-  endif()
-  if (CUDAQ_EXTERNAL_NVQIR_SIMS) 
-    include(WheelBuildHelpers)
-    while(CUDAQ_EXTERNAL_NVQIR_SIMS)
-      list(POP_FRONT CUDAQ_EXTERNAL_NVQIR_SIMS LIB_SO_FILE LIB_CONFIG_FILE)
-      add_target_libs_to_wheel(${LIB_SO_FILE} ${LIB_CONFIG_FILE})
-    endwhile()
-  endif()
+if (CUDAQ_EXTERNAL_NVQIR_SIMS) 
+  include(WheelBuildHelpers)
+  while(CUDAQ_EXTERNAL_NVQIR_SIMS)
+    list(POP_FRONT CUDAQ_EXTERNAL_NVQIR_SIMS LIB_SO_FILE LIB_CONFIG_FILE)
+    add_target_libs_to_wheel(${LIB_SO_FILE} ${LIB_CONFIG_FILE})
+  endwhile()
 endif()

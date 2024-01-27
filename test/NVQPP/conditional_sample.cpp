@@ -7,8 +7,12 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --enable-mlir %s -o %basename_t.x && ./%basename_t.x
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
+// RUN:   nvq++ --enable-mlir %s -o %t && %t; \
+// RUN: fi
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t
+// clang-format on
 
 // The test here is the assert statement.
 
@@ -16,7 +20,7 @@
 
 struct kernel {
   void operator()() __qpu__ {
-    cudaq::qreg<3> q;
+    cudaq::qarray<3> q;
     // Initial state prep
     x(q[0]);
 

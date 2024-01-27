@@ -1,12 +1,14 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 ./%basename_t.x |& FileCheck %s
+// RUN: nvq++ %cpp_std -v %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Adonis --mapping-file "%p/../Supplemental/Adonis Variant.txt" --emulate && %t
 
 #include <cudaq.h>
 #include <iostream>

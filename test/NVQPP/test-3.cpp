@@ -6,7 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ -v %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ %cpp_std -v %s -o %t --target quantinuum --emulate && %t | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 // XFAIL: *
 
 #include <cudaq.h>
@@ -14,7 +15,7 @@
 
 __qpu__ void init_state() {
   double theta = 2. * std::acos(1. / std::sqrt(3));
-  cudaq::qreg qubits(2);
+  cudaq::qvector qubits(2);
   ry(theta, qubits[0]);
   h<cudaq::ctrl>(qubits[0], qubits[1]);
   x(qubits[1]);

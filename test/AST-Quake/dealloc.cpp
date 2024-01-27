@@ -6,16 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake --no-simplify %s | cudaq-opt --add-dealloc | FileCheck %s
+// RUN: cudaq-quake %cpp_std --no-simplify %s | cudaq-opt --add-dealloc | FileCheck %s
 
 #include <cudaq.h>
 
 __qpu__ void magic_func(int N) {
   {
-    cudaq::qreg q(N);
+    cudaq::qvector q(N);
     h(q[0]);
   }
-  cudaq::qreg w(N);
+  cudaq::qvector w(N);
   x(w[0]);
 }
 

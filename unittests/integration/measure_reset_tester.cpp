@@ -43,3 +43,42 @@ TEST(MeasureResetTester, checkBug980) {
   EXPECT_TRUE(result.count("0") > 0);
   EXPECT_TRUE(result.count("1") > 0);
 }
+
+TEST(MeasureResetTester, checkBug981) {
+
+  auto bar = []() __qpu__ {
+    cudaq::qubit a;
+    cudaq::x(a);
+    [[maybe_unused]] auto a0 = cudaq::mz(a);
+    cudaq::reset(a);
+    [[maybe_unused]] auto a1 = cudaq::mz(a);
+  };
+
+  std::cout << "Bar:\n";
+  auto result = cudaq::sample(/*shots=*/10, bar);
+  result.dump();
+  EXPECT_EQ(1, result.size());
+  EXPECT_TRUE(result.count("0") > 0);
+}
+
+TEST(MeasureResetTester, checkLibModeOrdering) {
+  auto kernel = [](bool switchFlag) __qpu__ {
+    cudaq::qubit a, b;
+    x(a);
+    if (switchFlag) {
+      mz(b);
+      mz(a);
+    } else {
+      mz(a);
+      mz(b);
+    }
+  };
+
+  // Bit string ordered according to qubit allocation order.
+  auto counts = cudaq::sample(kernel, true);
+  counts.dump();
+  EXPECT_EQ("10", counts.begin()->first);
+  counts = cudaq::sample(kernel, false);
+  counts.dump();
+  EXPECT_EQ("10", counts.begin()->first);
+}

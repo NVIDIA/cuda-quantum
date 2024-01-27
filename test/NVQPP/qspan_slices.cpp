@@ -7,25 +7,26 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target ionq                     --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ --target oqc                      --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
-// RUN: nvq++ --target quantinuum               --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // Tests for --disable-qubit-mapping:
-// RUN: nvq++ -v %s -o %basename_t.x --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 ./%basename_t.x |& FileCheck --check-prefix=DISABLE %s
-// RUN: nvq++ -v %s -o %basename_t.x --target iqm --iqm-machine Adonis --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 ./%basename_t.x |& FileCheck --check-prefix=DISABLE %s
+// RUN: nvq++ %cpp_std -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
+// RUN: nvq++ %cpp_std -v %s -o %t --target iqm --iqm-machine Adonis --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void bar(cudaq::qspan<> qubits) {
+__qpu__ void bar(cudaq::qview<> qubits) {
   auto controls = qubits.front(qubits.size() - 1);
   auto &target = qubits.back();
   x<cudaq::ctrl>(controls, target);
 }
 
 __qpu__ void foo() {
-  cudaq::qreg qubits(4);
+  cudaq::qvector qubits(4);
   x(qubits);
   bar(qubits);
 

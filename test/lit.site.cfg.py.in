@@ -29,6 +29,11 @@ config.targets_to_build = "@TARGETS_TO_BUILD@"
 config.excludes = ["@CUDAQ_EXTRA_CONFIG_EXCLUDES@"]
 config.pipefail = False
 
+# Is the nvcc compiler available?
+config.cuda_found = "@CUDA_FOUND@"
+if config.cuda_found == "TRUE":
+  config.available_features.add('nvcc')
+
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
 

@@ -244,7 +244,7 @@ private:
   /// Device nodes (qubits) and edges (connections)
   GraphCSR topology;
 
-  /// List of shortest path from/to every src/destination
+  /// List of shortest path from/to every source/destination
   mlir::SmallVector<PathRef> shortestPaths;
 
   /// Storage for `PathRef`'s in `shortestPaths`

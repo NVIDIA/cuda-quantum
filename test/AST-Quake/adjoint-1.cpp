@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 #include <cudaq.h>
 
 struct k {
-  void operator()(cudaq::qspan<> q) __qpu__ {
+  void operator()(cudaq::qview<> q) __qpu__ {
     h(q[0]);
     ry(3.14, q[1]);
     t(q[2]);
@@ -27,7 +27,7 @@ struct k {
 
 struct ep {
   void operator()() __qpu__ {
-    cudaq::qreg<3> q;
+    cudaq::qarray<3> q;
     cudaq::adjoint(k{}, q);
   }
 };

@@ -6,14 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
 
 #include <cudaq.h>
 
 struct test5_callee {
   void operator()(std::function<void(cudaq::qubit &)> &&callback,
-                  cudaq::qreg<> &s) __qpu__ {
+                  cudaq::qvector<> &s) __qpu__ {
      callback(s[0]);
      callback(s[1]);
      callback(s[2]);
@@ -31,7 +31,7 @@ struct test5_callable {
 
 struct test5_caller {
   void operator()() __qpu__ {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
     test5_callee{}(test5_callable{}, q);
   }
 };

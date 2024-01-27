@@ -6,13 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt --expand-measurements --unrolling-pipeline | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt --expand-measurements --unrolling-pipeline | FileCheck %s
 
 #include <cudaq.h>
 
 struct C {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       cudaq::qubit w;
       auto singleQubit = mz(w);
       auto myRegister = mz(r);

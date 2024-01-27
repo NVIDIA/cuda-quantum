@@ -6,14 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %basename_t.x && ./%basename_t.x | FileCheck %s && rm %basename_t.x
-// RUN: nvq++ --target quantinuum --emulate %s -o %basename_t.x && ./%basename_t.x | FileCheck %s && rm %basename_t.x
+// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 
 #include <cudaq.h>
 
 struct iqpe {
   void operator()() __qpu__ {
-    cudaq::qreg<2> q;
+    cudaq::qarray<2> q;
     h(q[0]);
     x(q[1]);
     for (int i = 0; i < 8; i++)

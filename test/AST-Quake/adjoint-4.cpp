@@ -6,13 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 
-__qpu__ void init_state(cudaq::qreg<> &qubits, double theta) {}
+__qpu__ void init_state(cudaq::qvector<> &qubits, double theta) {}
 
-__qpu__ void reflect_uni(cudaq::qreg<> &ctrls, cudaq::qreg<> &qubits,
+__qpu__ void reflect_uni(cudaq::qvector<> &ctrls, cudaq::qvector<> &qubits,
                          double theta) {
   cudaq::adjoint(init_state, qubits, theta);
 }

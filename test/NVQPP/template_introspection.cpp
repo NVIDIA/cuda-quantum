@@ -6,14 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o out_testTemplateI.x && ./out_testTemplateI.x | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 
 template <std::size_t N>
 struct ghz {
   void operator()() __qpu__ {
-    cudaq::qreg<N> q;
+    cudaq::qarray<N> q;
     h(q[0]);
     // .. etc
   }

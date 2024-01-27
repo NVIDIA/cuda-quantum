@@ -17,11 +17,6 @@
 # 3) set the CC and CXX environment variable to use the same compiler toolchain
 #    as the LLVM dependencies have been built with.
 
-# To keep the default build environment image to a reasonable size, it does not 
-# contain the necessary dependencies to develop GPU-based components. You may hence
-# see a message along the lines of "no GPU detected" during the CUDA Quantum build.
-# Please install the necessary prerequisites listed in the CUDA Quantum build script,
-# or use a suitable base image, to enable developing these components.
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:ext-gcc12-main
 FROM $base_image
 
@@ -35,9 +30,20 @@ ARG destination="$CUDAQ_REPO_ROOT"
 ADD "$workspace" "$destination"
 WORKDIR "$destination"
 
+# mpich or openmpi
+ARG mpi=
+RUN if [ -n "$mpi" ]; \
+    then \
+        if [ ! -z "$MPI_PATH" ]; then \
+            echo "Using a base image with MPI is not supported when passing a 'mpi' build argument." && exit 1; \
+        else \
+			apt update && apt install -y lib$mpi-dev ; \
+		fi \
+    fi
+
 # Configuring a base image that contains the necessary dependencies for GPU
 # accelerated components and passing a build argument 
-#   install="CMAKE_BUILD_TYPE=Release FORCE_COMPILE_GPU_COMPONENTS=true"
+#   install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=latest"
 # creates a dev image that can be used as argument to docker/release/cudaq.Dockerfile
 # to create the released cuda-quantum image.
 ARG install=

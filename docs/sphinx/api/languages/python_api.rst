@@ -37,6 +37,7 @@ Program Construction
     .. automethod:: r1
     .. automethod:: cr1
     .. automethod:: swap
+    .. automethod:: cswap
     .. automethod:: exp_pauli
     .. automethod:: mx
     .. automethod:: my
@@ -207,5 +208,6 @@ MPI Submodule
 .. automethod:: cudaq.mpi::rank
 .. automethod:: cudaq.mpi::num_ranks
 .. automethod:: cudaq.mpi::all_gather
+.. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
 .. automethod:: cudaq.mpi::finalize

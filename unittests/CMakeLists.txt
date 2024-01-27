@@ -9,7 +9,9 @@
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
      "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
-
+# clear any flags for static linking
+SET(CMAKE_EXE_LINKER_FLAGS "")
+SET(CMAKE_SHARED_LINKER_FLAGS "")
 
 set(CUDAQ_RUNTIME_TEST_SOURCES 
   # Integration tests
@@ -68,21 +70,31 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     cudaq-platform-default
     cudaq-builder
     gtest_main)
+  set(TEST_LABELS "")
   if (${NVQIR_BACKEND} STREQUAL "dm")
-     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM)
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet")
-     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+    set(TEST_LABELS "gpu_required")
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet-mps")
-     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_BACKEND_TENSORNET_MPS)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_BACKEND_TENSORNET_MPS)
+    set(TEST_LABELS "gpu_required")
   endif()
-  gtest_discover_tests(${TEST_EXE_NAME})
+  if (${NVQIR_BACKEND} STREQUAL "custatevec-fp32" OR ${NVQIR_BACKEND} STREQUAL "custatevec-fp64")
+    set(TEST_LABELS "gpu_required")
+  endif()
+  if ("${TEST_LABELS}" STREQUAL "")
+    gtest_discover_tests(${TEST_EXE_NAME})
+  else()
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}")
+  endif()
 endmacro()
 
 # We will always have the QPP backend, create a tester for it
 create_tests_with_backend(qpp backends/QPPTester.cpp)
-create_tests_with_backend(dm "")
+create_tests_with_backend(dm backends/QPPDMTester.cpp)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
@@ -103,7 +115,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
     gtest_main)
-  gtest_discover_tests(test_mqpu)
+  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required")
 
   # Test CUDAQ_OBSERVE_FROM_SAMPLING=OFF mode.
   # These tests use cudaq::observe.
@@ -126,7 +138,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     nvqir-custatevec-fp32
     gtest_main)
   # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=0"
-  gtest_discover_tests(test_custatevec_direct_observe TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=0")
+  gtest_discover_tests(test_custatevec_direct_observe TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=0" PROPERTIES LABELS "gpu_required")
 
     if (MPI_CXX_FOUND)
       # Count the number of GPUs
@@ -148,6 +160,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
             configure_file("mqpu/run_mpi.sh.in"
                       "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
           add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 bash ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
+          set_tests_properties(MPITest PROPERTIES LABELS "gpu_required;mgpus_required")
         endif()
       endif()
     endif() 
@@ -201,6 +214,45 @@ target_link_libraries(test_photonics
   gtest_main)
 gtest_discover_tests(test_photonics)
 
+add_executable(test_utils main.cpp utils/UtilsTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_utils PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(test_utils
+  PRIVATE 
+  cudaq
+  cudaq-platform-default
+  cudaq-em-photonics
+  nvqir-qpp fmt::fmt-header-only
+  gtest_main)
+gtest_discover_tests(test_utils)
+
+# Create an executable for MPI UnitTests
+# (only if MPI was found, i.e., the builtin plugin is available)
+if (MPI_CXX_FOUND)
+  set(CUDAQ_MPI_TEST_SOURCES 
+    mpi/mpi_tester.cpp
+  )
+  add_executable(test_mpi_plugin ${CUDAQ_MPI_TEST_SOURCES})
+  set(NUM_PROCS 4)
+  target_compile_definitions(test_mpi_plugin PRIVATE -DNUM_PROCS=${NUM_PROCS})
+  target_link_libraries(test_mpi_plugin
+    PRIVATE 
+    cudaq
+    cudaq-platform-default
+    nvqir-qpp
+    gtest
+  )
+  target_link_options(test_mpi_plugin PRIVATE -Wl,--no-as-needed)
+  # Check if `--allow-run-as-root` is supported (OpenMPI)
+  # Note: MPICH doesn't need `--allow-run-as-root`.
+  execute_process(COMMAND ${MPIEXEC} --allow-run-as-root -np ${NUM_PROCS} hostname ERROR_VARIABLE CHECK_ALLOW_RUN_AS_ROOT_RESULTS ERROR_STRIP_TRAILING_WHITESPACE OUTPUT_QUIET)
+  if ("${CHECK_ALLOW_RUN_AS_ROOT_RESULTS}" STREQUAL "")
+    set(MPI_EXEC_CMD_ARGS "--allow-run-as-root")
+  endif()
+  
+  add_test(NAME MPIApiTest COMMAND ${MPIEXEC} ${MPI_EXEC_CMD_ARGS} -np ${NUM_PROCS} ${CMAKE_BINARY_DIR}/unittests/test_mpi_plugin)
+endif()
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)

@@ -5,6 +5,10 @@ on:
         type: string
         required: false
         default: linux/amd64
+      mpi:
+        type: string
+        required: false
+        default: openmpi
       devdeps_image:
         required: false
         type: string
@@ -65,7 +69,8 @@ jobs:
           DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
             -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-arg base_image=$base_image \
-            --build-arg install="CMAKE_BUILD_TYPE=Debug"
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}"
 
       - name: Test CUDA Quantum
         uses: ./.github/actions/run-in-docker
@@ -81,6 +86,52 @@ jobs:
             lit_status=$?
             if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status)."
+              exit 1
+            fi
+
+      - name: Test CUDA Quantum MPI4Py Plugin
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: cuda-quantum-dev:local
+          shell: bash
+          run: |
+            cd $CUDAQ_REPO_ROOT
+            python3 -m pip install mpi4py~=3.1
+            rm -f build/lib/plugins/libcudaq-comm-plugin.so
+            ctest --test-dir build -R MPIApiTest -V
+            mpi4py_status=$?   
+            if [ ! $mpi4py_status -eq 0 ] ; then
+              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI4Py Plugin failed with status $mpi4py_status."
+              exit 1
+            fi
+      
+      - name: Test CUDA Quantum MPI Plugin Activation
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: cuda-quantum-dev:local
+          shell: bash
+          run: |
+            # Set MPI_PATH depending on OMPI/MPICH
+            has_ompiinfo=$(which ompi_info || true)
+            if [[ ! -z $has_ompiinfo ]]; then
+              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/openmpi/"
+            else
+              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
+            fi
+            # Run the activation script
+            source $CUDAQ_INSTALL_PREFIX/distributed_interfaces/activate_custom_mpi.sh
+            external_plugin_build_status=$?
+            if [ ! $external_plugin_build_status -eq 0 ] ; then
+              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed to activate the plugin with status $external_plugin_build_status."
+              exit 1
+            fi
+            echo $CUDAQ_MPI_COMM_LIB
+            # Rerun the MPI plugin test
+            cd $CUDAQ_REPO_ROOT
+            ctest --test-dir build -R MPIApiTest -V
+            external_plugin_status=$?   
+            if [ ! $external_plugin_status -eq 0 ] ; then
+              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed with status $external_plugin_status."
               exit 1
             fi
 
@@ -100,7 +151,7 @@ jobs:
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
 
       - name: Upload environment
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: inputs.export_environment
         with:
           name: ${{ steps.env_save.outputs.filename }}
@@ -197,7 +248,7 @@ jobs:
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
 
       - name: Upload environment
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: inputs.export_environment
         with:
           name: ${{ steps.env_save.outputs.filename }}

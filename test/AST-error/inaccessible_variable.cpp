@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake -verify %s -o /dev/null
+// RUN: cudaq-quake %cpp_std -verify %s -o /dev/null
 
 #include <cudaq.h>
 
@@ -20,12 +20,14 @@ struct Kernel {
 int main() {
   int i;
   auto f = [&]() __qpu__ { // expected-remark{{An inaccessible symbol}}
-    cudaq::qreg q(i);
-    // expected-error@-1 {{symbol is not accessible in this kernel}}
-    // expected-error@-2 {{statement not supported in qpu kernel}}
+    // `i` is a host variable, cannot be used in this kernel.
+    // expected-error@+2 {{statement not supported in qpu kernel}}
+    // expected-error@+1 {{symbol is not accessible in this kernel}}
+    cudaq::qvector q(i);
+    // declaration of `q` failed, so it's not available either.
+    // expected-error@+2 {{symbol is not accessible in this kernel}}
+    // expected-error@+1 {{statement not supported in qpu kernel}}
     mz(q);
-    // expected-error@-1 {{symbol is not accessible in this kernel}}
-    // expected-error@-2 {{statement not supported in qpu kernel}}
   };
   Kernel{}(f);
   return 0;

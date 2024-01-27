@@ -14,20 +14,6 @@ else()
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
 endif()
 
-find_package(Python COMPONENTS Interpreter)
-
-if (NOT Python_FOUND)
-  message(STATUS "Python interpreter not found. Skipping Python API build.")
-  return()
-endif()
-
-if (${Python_VERSION} VERSION_LESS 3.0.0)
-  message(STATUS "Found Python version ${Python_VERSION}. Version must be greater than 3.0.0, skipping Python API build.")
-  return()
-endif()
-
-message(STATUS "Found Python version ${Python_VERSION}. Building CUDA Quantum Python API with ${Python_INCLUDE_DIRS}")
-
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
@@ -72,9 +58,8 @@ else()
   install(TARGETS _pycudaq LIBRARY DESTINATION cudaq)
 endif()
 
-if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
-  add_subdirectory(runtime/cudaq/domains/plugins)
-endif()
+add_subdirectory(runtime/cudaq/distributed)
+add_subdirectory(runtime/cudaq/domains/plugins)
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version

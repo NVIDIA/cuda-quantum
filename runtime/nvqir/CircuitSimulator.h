@@ -413,8 +413,11 @@ protected:
       if (iter == registerNameToMeasuredQubit.end())
         registerNameToMeasuredQubit.emplace(mutableName,
                                             std::vector<std::size_t>{qubitIdx});
-      else
-        iter->second.push_back(qubitIdx);
+      else {
+        if (std::find(iter->second.begin(), iter->second.end(), qubitIdx) ==
+            iter->second.end())
+          iter->second.push_back(qubitIdx);
+      }
 
       return true;
     }
@@ -565,6 +568,11 @@ protected:
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
         if (regName == cudaq::GlobalRegisterName)
           hasGlobal = true;
+
+        // Measurements are sorted according to qubit allocation order
+        std::sort(qubits.begin(), qubits.end());
+        auto last = std::unique(qubits.begin(), qubits.end());
+        qubits.erase(last, qubits.end());
 
         // Find the position of the qubits we have in the result bit string
         // Create a map of qubit to bit string location

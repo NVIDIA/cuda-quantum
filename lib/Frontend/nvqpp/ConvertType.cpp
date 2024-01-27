@@ -22,11 +22,37 @@ static bool isQuantumType(Type t) {
   return isa<quake::VeqType, quake::RefType>(t);
 }
 
+// Allow array of [array of]* T, where T is arithmetic.
+static bool isStaticArithmeticSequenceType(Type t) {
+  if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t)) {
+    auto eleTy = vec.getElementType();
+    return isArithmeticType(eleTy) || isStaticArithmeticSequenceType(eleTy);
+  }
+  return false;
+}
+
+// Allow vector of [vector of]* [array of]* T or
+//       array of [array of]* T, where T is arithmetic.
 static bool isArithmeticSequenceType(Type t) {
-  if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t))
-    return isArithmeticType(vec.getElementType());
-  if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t))
-    return isArithmeticType(vec.getElementType());
+  if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t)) {
+    auto eleTy = vec.getElementType();
+    return isArithmeticType(eleTy) || isArithmeticSequenceType(eleTy);
+  }
+  return isStaticArithmeticSequenceType(t);
+}
+
+// Returns true if and only if \p t is a struct of arithmetic, static sequence
+// of arithmetic, or (recursive) struct of arithmetic on all members.
+static bool isArithmeticProductType(Type t) {
+  if (auto structTy = dyn_cast<cudaq::cc::StructType>(t)) {
+    for (auto memTy : structTy.getMembers()) {
+      if (isArithmeticType(memTy) || isStaticArithmeticSequenceType(memTy) ||
+          isArithmeticProductType(memTy))
+        continue;
+      return false;
+    }
+    return true;
+  }
   return false;
 }
 
@@ -324,7 +350,8 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
     return false;
   }
   for (auto t : funcTy.getResults()) {
-    if (isArithmeticType(t) || isArithmeticSequenceType(t))
+    if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
+        isArithmeticProductType(t))
       continue;
     reportClangError(x, mangler, "kernel result type not supported");
     return false;

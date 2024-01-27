@@ -6,8 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o out_defines.x && ./out_defines.x | FileCheck %s && rm out_defines.x
-// RUN: nvq++ --enable-mlir -DCUDAQ_HELLO_WORLD %s -o out_defines2.x && ./out_defines2.x | FileCheck --check-prefixes=DEFINE_ON %s && rm out_defines2.x
+// RUN: nvq++ %cpp_std --enable-mlir -DCUDAQ_HELLO_WORLD %s -o %t && %t | FileCheck --check-prefixes=DEFINE_ON %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
+// RUN:   nvq++ --enable-mlir %s -o %t && %t | FileCheck %s; \
+// RUN: fi
 
 #include "cudaq.h"
 

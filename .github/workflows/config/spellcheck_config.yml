@@ -29,7 +29,7 @@ matrix:
       context_visible_first: true
       delimiters:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
       # Ignore apostrophy-s endings of words (e.g. NVIDIA's)
       - open: '(?=\S)'
@@ -84,7 +84,7 @@ matrix:
         close: '($|(?=[^a-z]))'
         content: '\u0027s'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
 
 - name: html
@@ -109,7 +109,7 @@ matrix:
       context_visible_first: true
       delimiters:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
 
 - name: cxx_headers
@@ -152,18 +152,25 @@ matrix:
       - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
         close: '(?P=open)$'
       # Ignore multiline content fenced by \code ... \endcode
-      - open: '(?s)^\s*(\\code)'
+      - open: '(?s)\\code'
         close: '\\endcode$'
       # Ignore content between inline backticks
       - open: '(?P<open>`+)'
         close: '(?P=open)'
-      # Ignore the first lowercase word after @param, which is usually the parameter name
-      - open: '@param(?:\s[a-z]+)?'
+      # Ignore paths of files (recognized by them having a file extension)
+      - open: '([A-Za-z_\\\/]+\.)+'
+        close: '($|(?=[^a-z]))'
+        content: '\S+?'
+      # Ignore the doxygen \param command and the code artifact after it.
+      - open: '[\\@]param(\s+\[\w+\])?(?:\s+\S)?'
         close: '(\s|$)'
-      # Ignore words that start with an @, e.g. @param used in doc comments
-      - open: '@\S'
+      # Ignore the first word after \command or @command, which is a code artifact
+      - open: '[\\@]([acep])(?:\s+\S)?'
         close: '(\s|$)'
-      # Ignore words before and after double columns
+      # Ignore words that start with a \ or @, e.g. @param used in doc comments
+      - open: '[\\@](\w|[\\@&\$#<>%"\.=|]|::|--|---)'
+        close: '(\s|$)'
+      # Ignore words before and after double colons
       - open: '([a-zA-Z0-9_])*::'
         close: '([^a-zA-Z0-9_:]|$)'
       # Ignore words that contain any underscores, numbers, or uppercase letters
@@ -173,7 +180,7 @@ matrix:
       - open: '(^|\s)([A-Z]|_)'
         close: '($|\s|-)'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
 
 - name: cxx_examples
@@ -218,7 +225,7 @@ matrix:
       - open: '@\S'
         close: '(\s|$)'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
 
 - name: python
@@ -240,8 +247,11 @@ matrix:
       group_comments: true
   - pyspelling.filters.context:
       context_visible_first: true
-      escapes: '\\[\\`~]'
       delimiters:
+      # Ignore lowercase words between two colons, e.g. :func:
+      - open: ':'
+        close: ':'
+        content: '[a-z]+?'
       # Ignore multiline content between three or more backticks
       - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
         close: '(?P=open)$'
@@ -252,5 +262,5 @@ matrix:
       - open: '(^|\s)([A-Z]|_)'
         close: '($|\s|-)'
       # Ignore word prefixes, e.g. "pre-" in pre-computed
-      - open: '(^|\s)[a-z]+-'
+      - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'

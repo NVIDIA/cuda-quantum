@@ -14,21 +14,53 @@
 #include "cudaq/optimizers.h"
 
 CUDAQ_TEST(GenerateExcitationsTester, checkSimple) {
+  {
+    std::size_t numElectrons = 2;
+    std::size_t numQubits = 4;
 
-  auto [singles, doubles] = cudaq::generateExcitations(2, 4);
+    auto [singlesAlpha, singlesBeta, doublesMixed, doublesAlpha, doublesBeta] =
+        cudaq::get_uccsd_excitations(numElectrons, numQubits);
+    EXPECT_TRUE(doublesAlpha.empty());
+    EXPECT_TRUE(doublesBeta.empty());
+    EXPECT_TRUE(singlesAlpha.size() == 1);
+    EXPECT_EQ(singlesAlpha[0][0], 0);
+    EXPECT_EQ(singlesAlpha[0][1], 2);
+    EXPECT_EQ(singlesBeta[0][0], 1);
+    EXPECT_EQ(singlesBeta[0][1], 3);
+    EXPECT_EQ(doublesMixed[0][0], 0);
+    EXPECT_EQ(doublesMixed[0][1], 1);
+    EXPECT_EQ(doublesMixed[0][2], 3);
+    EXPECT_EQ(doublesMixed[0][3], 2);
+    EXPECT_TRUE(singlesBeta.size() == 1);
+    EXPECT_TRUE(doublesMixed.size() == 1);
+  }
+  {
+    std::size_t numElectrons = 4;
+    std::size_t numQubits = 8;
 
-  EXPECT_EQ(2, singles.size());
-  EXPECT_EQ(1, doubles.size());
+    auto [singlesAlpha, singlesBeta, doublesMixed, doublesAlpha, doublesBeta] =
+        cudaq::get_uccsd_excitations(numElectrons, numQubits);
 
-  EXPECT_EQ(0, singles[0][0]);
-  EXPECT_EQ(2, singles[0][1]);
-  EXPECT_EQ(1, singles[1][0]);
-  EXPECT_EQ(3, singles[1][1]);
-
-  EXPECT_EQ(0, doubles[0][0]);
-  EXPECT_EQ(1, doubles[0][1]);
-  EXPECT_EQ(2, doubles[0][2]);
-  EXPECT_EQ(3, doubles[0][3]);
+    cudaq::excitation_list expectedSinglesAlpha{{0, 4}, {0, 6}, {2, 4}, {2, 6}};
+    cudaq::excitation_list expectedSinglesBeta{{1, 5}, {1, 7}, {3, 5}, {3, 7}};
+    cudaq::excitation_list expectedDoublesMixed{
+        {0, 1, 5, 4}, {0, 1, 5, 6}, {0, 1, 7, 4}, {0, 1, 7, 6},
+        {0, 3, 5, 4}, {0, 3, 5, 6}, {0, 3, 7, 4}, {0, 3, 7, 6},
+        {2, 1, 5, 4}, {2, 1, 5, 6}, {2, 1, 7, 4}, {2, 1, 7, 6},
+        {2, 3, 5, 4}, {2, 3, 5, 6}, {2, 3, 7, 4}, {2, 3, 7, 6}};
+    cudaq::excitation_list expectedDoublesAlpha{{0, 2, 4, 6}},
+        expectedDoublesBeta{{1, 3, 5, 7}};
+    EXPECT_TRUE(singlesAlpha.size() == 4);
+    EXPECT_EQ(singlesAlpha, expectedSinglesAlpha);
+    EXPECT_TRUE(singlesBeta.size() == 4);
+    EXPECT_EQ(singlesBeta, expectedSinglesBeta);
+    EXPECT_TRUE(doublesMixed.size() == 16);
+    EXPECT_EQ(doublesMixed, expectedDoublesMixed);
+    EXPECT_TRUE(doublesAlpha.size() == 1);
+    EXPECT_EQ(doublesAlpha, expectedDoublesAlpha);
+    EXPECT_TRUE(doublesBeta.size() == 1);
+    EXPECT_EQ(doublesBeta, expectedDoublesBeta);
+  }
 }
 
 CUDAQ_TEST(H2MoleculeTester, checkHamiltonian) {
@@ -55,7 +87,7 @@ CUDAQ_TEST(H2MoleculeTester, checkHamiltonian) {
 
 CUDAQ_TEST(H2MoleculeTester, checkExpPauli) {
   auto kernel = [](double theta) __qpu__ {
-    cudaq::qreg q(4);
+    cudaq::qvector q(4);
     x(q[0]);
     x(q[1]);
     exp_pauli(theta, q, "XXXY");
@@ -82,7 +114,7 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
                                        {"H", {0., 0., .7474}}};
     auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
     auto ansatz = [&](std::vector<double> thetas) __qpu__ {
-      cudaq::qreg q(2 * molecule.n_orbitals);
+      cudaq::qvector q(2 * molecule.n_orbitals);
       x(q[0]);
       x(q[1]);
       cudaq::uccsd(q, thetas, molecule.n_electrons);
@@ -124,7 +156,7 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
     cudaq::molecular_geometry geometry(gen_random_h2_geometry());
     auto molecule = cudaq::create_molecule(geometry, "sto-3g", 1, 0);
     auto ansatz = [&](const std::vector<double> &thetas) __qpu__ {
-      cudaq::qreg q(2 * molecule.n_orbitals);
+      cudaq::qvector q(2 * molecule.n_orbitals);
       for (std::size_t qId = 0; qId < molecule.n_orbitals; ++qId) {
         x(q[qId]);
       }

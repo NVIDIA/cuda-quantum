@@ -21,6 +21,9 @@ set(COMMON_RUNTIME_SRC
 # Create the cudaq-common library
 add_library(${LIBRARY_NAME} SHARED ${COMMON_RUNTIME_SRC})
 
+# Add into runtime_libs property
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
+
 # Setup the includes
 target_include_directories(${LIBRARY_NAME} 
     PRIVATE . 
@@ -44,18 +47,22 @@ if(OPENSSL_FOUND)
   message(STATUS "OpenSSL Found, building REST Client.")
 
   include(FetchContent)
-  FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
-                         GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) 
-
-  find_package(CURL COMPONENTS HTTP HTTPS QUIET)
-
+  FetchContent_Declare(cpr 
+                       GIT_REPOSITORY https://github.com/libcpr/cpr.git
+                       GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) 
+  set(CURL_STATICLIB ON)
+  find_package(CURL COMPONENTS HTTP HTTPS)
   if (CURL_FOUND)
-    message(STATUS "Curl found. Using system curl for CPR.")
+    message(STATUS "Using system curl for CPR.")
     set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+  elseif (CMAKE_USE_SYSTEM_CURL)
+    message(FATAL_ERROR "CMAKE_USE_SYSTEM_CURL defined but a suitable package was not found. Make sure that `curl-config --protocols` lists HTTP and HTTPS.")
   else()
     message(STATUS "Curl not found. Building curl for CPR.")
     set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
   endif()
+  set(CPR_ENABLE_SSL ON) # needed for https requests
+  set(CPR_FORCE_OPENSSL_BACKEND ON)
   set(BUILD_SHARED_LIBS OFF)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-covered-switch-default")
   if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
@@ -70,7 +77,7 @@ if(OPENSSL_FOUND)
   endif()
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
 endif()
 
@@ -99,6 +106,7 @@ get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 
 add_library(cudaq-mlir-runtime SHARED RuntimeMLIR.cpp)
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
 target_include_directories(cudaq-mlir-runtime
   PRIVATE . ${CMAKE_SOURCE_DIR}/runtime)

@@ -6,7 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir -v %s -o out_auto_kernel.x && ./out_auto_kernel.x | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
+// RUN:   nvq++ --enable-mlir -v %s -o %t && %t | FileCheck %s; \
+// RUN: fi
 
 #include <cudaq.h>
 
@@ -17,7 +20,7 @@
 
 struct ak2 {
   auto operator()() __qpu__ {
-    cudaq::qreg<3> q;
+    cudaq::qarray<3> q;
     x(q[0]);
     h(q[1]);
     x<cudaq::ctrl>(q[1], q[2]);

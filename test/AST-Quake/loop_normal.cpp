@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --canonicalize | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --canonicalize | FileCheck %s
 
 #include <cudaq.h>
 
@@ -63,7 +63,7 @@ __qpu__ void foo2() {
 // CHECK:         }
 
 __qpu__ void foo3() {
-  cudaq::qreg q(10);
+  cudaq::qvector q(10);
   for (int i = 0; i < 10; i += 2)
     x(q[i]);
 }
@@ -88,7 +88,7 @@ __qpu__ void foo3() {
 // CHECK:             cc.continue %[[VAL_13]] : i32
 
 __qpu__ void foo4() {
-  cudaq::qreg q(10);
+  cudaq::qvector q(10);
   for (int i = 10; i > 0; i -= 2)
     x(q[i-1]);
 }
@@ -375,7 +375,7 @@ __qpu__ void linear_expr5b() {
 // CHECK:           } {normalized}
 
 __qpu__ void linear_expr6() {
-  cudaq::qreg q(100);
+  cudaq::qvector q(100);
   // 2 iterations: [(10-1)-(1+1)+(2*2)]/(2*2)
   for (int i = 1; 2 * i + 1 < 10; i += 2)
     x(q[i]);

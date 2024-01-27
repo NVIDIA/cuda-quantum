@@ -8,12 +8,12 @@
 
 // Test for std::vector<int> initializer_list constructor support
 
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
 
 #include "cudaq.h"
 
 __qpu__ void testInt() {
-  cudaq::qreg<3> q;
+  cudaq::qarray<3> q;
   std::vector<int> index{0, 1, 2};
   ry(M_PI_2, q[index[0]]);
   ry(M_PI_2, q[index[1]]);

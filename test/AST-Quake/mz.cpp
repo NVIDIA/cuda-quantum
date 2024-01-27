@@ -6,13 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 #include <cudaq.h>
 
 struct S {
   void operator()() __qpu__ {
-    cudaq::qreg reg(20);
+    cudaq::qvector reg(20);
     mz(reg);
   }
 };
@@ -28,8 +28,8 @@ struct S {
 struct VectorOfStaticVeq {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qubit q1;
-    cudaq::qreg reg1(4);
-    cudaq::qreg reg2(2);
+    cudaq::qvector reg1(4);
+    cudaq::qvector reg2(2);
     cudaq::qubit q2;
     return mz(q1, reg1, reg2, q2);
   }
@@ -53,8 +53,8 @@ struct VectorOfStaticVeq {
 struct VectorOfDynamicVeq {
   std::vector<bool> operator()(unsigned i, unsigned j) __qpu__ {
     cudaq::qubit q1;
-    cudaq::qreg reg1(i);
-    cudaq::qreg reg2(j);
+    cudaq::qvector reg1(i);
+    cudaq::qvector reg2(j);
     cudaq::qubit q2;
     return mz(q1, reg1, reg2, q2);
   }

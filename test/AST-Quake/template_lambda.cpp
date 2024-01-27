@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 #include <cudaq.h>
 
@@ -17,7 +17,7 @@ struct thisWorks {
 struct test {
   template <typename Callable>
   void operator()(Callable &&callable) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     cudaq::control(callable, q[0], q[1]);
   }
 };

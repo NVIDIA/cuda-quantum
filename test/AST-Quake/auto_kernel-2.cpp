@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 // Simple test using a type inferenced return value type.
 
@@ -14,7 +14,7 @@
 
 struct ak2 {
   auto operator()() __qpu__ {
-    cudaq::qreg<5> q;
+    cudaq::qarray<5> q;
     h(q);
     return mz(q);
   }

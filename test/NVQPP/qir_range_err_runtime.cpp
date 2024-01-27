@@ -7,14 +7,15 @@
  ******************************************************************************/
 
 // Note: change |& to 2>&1| if running in bash
-// RUN: nvq++ %s -o %basename_t.x --target quantinuum --emulate && ./%basename_t.x |& FileCheck %s
-// RUN: nvq++ %s -o %basename_t.x --target oqc --emulate && ./%basename_t.x |& FileCheck %s
+// RUN: nvq++ %cpp_std %s -o %t --target quantinuum --emulate && %t |& FileCheck %s
+// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && %t |& FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
 
 #include <cudaq.h>
 #include <iostream>
 
 __qpu__ void init_state(int N) {
-  cudaq::qreg q(N);
+  cudaq::qvector q(N);
   x(q[0]);
   mz(q[99]); // compiler can't catch this error, but runtime can
 };

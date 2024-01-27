@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 // Simple test using a std::vector<bool> operator.
 
@@ -14,7 +14,7 @@
 
 struct t1 {
   bool operator()(std::vector<double> d) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     auto vec = mz(q);
     return vec[0];
   }

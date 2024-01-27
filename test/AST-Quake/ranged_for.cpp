@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 
@@ -289,7 +289,7 @@ struct Nesting {
 // clang-format on
 
 struct FreeRange {
-  void operator()(cudaq::qreg<> r, unsigned N) __qpu__ {
+  void operator()(cudaq::qvector<> r, unsigned N) __qpu__ {
     for (auto i : cudaq::range(N)) {
       h(r[i]);
     }

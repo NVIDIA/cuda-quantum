@@ -7,13 +7,14 @@
  ******************************************************************************/
 
 // Note: change |& to 2>&1| if running in bash
-// RUN: cudaq-quake %s |& FileCheck %s
+// RUN: cudaq-quake %cpp_std %s |& FileCheck %s
+// RUN: cudaq-quake -std=c++17 %s |& FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
 
 __qpu__ void init_state() {
-  cudaq::qreg<5> q;
+  cudaq::qarray<5> q;
   x(q[0]);
   mz(q[99]); // compiler can flag this as an error
 };

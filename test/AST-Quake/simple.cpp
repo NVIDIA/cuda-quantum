@@ -8,7 +8,7 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// RUN: cudaq-quake --emit-llvm-file %s | FileCheck --check-prefixes=CHECK %s
+// RUN: cudaq-quake %cpp_std --emit-llvm-file %s | FileCheck --check-prefixes=CHECK %s
 // RUN: FileCheck --check-prefixes=CHECK-LLVM %s < simple.ll
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz
@@ -71,7 +71,7 @@
 // Define a quantum kernel
 struct ghz {
   auto operator()(const int N) __qpu__ {
-    cudaq::qreg q(N);
+    cudaq::qvector q(N);
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
