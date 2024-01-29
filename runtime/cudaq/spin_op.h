@@ -91,6 +91,7 @@ public:
   const char *term = nullptr;
   pauli_word() = default;
   pauli_word(const char *c) : term(c) {}
+  std::string str() { return std::string(term); }
 };
 
 /// @brief Utility enum representing Paulis.

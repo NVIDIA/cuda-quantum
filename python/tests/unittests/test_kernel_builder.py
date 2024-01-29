@@ -960,6 +960,15 @@ def test_exp_pauli():
     print(want_exp)
     assert np.isclose(want_exp, -1.74, atol=1e-2)
 
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+    kernel.x(qubits[0])
+    kernel.exp_pauli(angles[0], qubits, pauliWords[0])
+    kernel.exp_pauli(angles[1], qubits, pauliWords[1])
+    want_exp = cudaq.observe(kernel, hamiltonian).expectation()
+    print(want_exp)
+    assert np.isclose(want_exp, -1.74, atol=1e-2)
+
 
 def test_givens_rotation_op():
     cudaq.reset_target()
