@@ -103,7 +103,8 @@ public:
     std::scoped_lock<std::mutex> lock(m_contextMutex);
     m_contexts.erase(std::this_thread::get_id());
   }
-  private:
+
+private:
   std::string searchAPIKey(const std::string &userSpecifiedConfigFile = "") {
     std::string hwConfig;
     // Allow someone to tweak this with an environment variable

@@ -39,8 +39,6 @@
 #include "cudaq.h"
 #include <dlfcn.h>
 
-#include <iostream>
-
 namespace {
 using namespace mlir;
 class RemoteRestRuntimeClient : public cudaq::RemoteRuntimeClient {
@@ -290,7 +288,6 @@ public:
         return false;
       }
       jobHeader["NVCF-INPUT-ASSET-REFERENCES"] = assetId.value();
-      std::cout << "Upload request as asset: " << assetId.value() << "\n";
       json requestBody;
       requestBody["inputAssetReferences"] = assetId.value();
       requestJson["requestBody"] = requestBody;
@@ -347,7 +344,6 @@ public:
       cudaq::RestClient restClient;
       auto resultJs =
           restClient.post(nvcfAssetUrl(), "", requestJson, getHeaders(), true);
-      std::cout << "Response:\n" << resultJs.dump() << "\n";
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
       std::map<std::string, std::string> uploadHeader;

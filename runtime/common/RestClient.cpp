@@ -78,10 +78,9 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
 }
 
 void RestClient::put(const std::string_view remoteUrl,
-                               const std::string_view path,
-                               nlohmann::json &post,
-                               std::map<std::string, std::string> &headers,
-                               bool enableLogging) {
+                     const std::string_view path, nlohmann::json &post,
+                     std::map<std::string, std::string> &headers,
+                     bool enableLogging) {
   if (headers.empty())
     headers.insert(std::make_pair("Content-type", "application/json"));
 

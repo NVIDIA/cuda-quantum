@@ -80,12 +80,14 @@ public:
       throw std::runtime_error(
           "Invalid TCP/IP port requested. Valid range: [1024, 65535].");
     m_server = std::make_unique<cudaq::RestServer>(m_port);
-    m_server->addRoute(cudaq::RestServer::Method::GET, "/",
-                       [](const std::string &reqBody, const std::unordered_multimap<std::string, std::string> & headers) {
-                         // Return an empty JSON string,
-                         // e.g., for client to ping the server.
-                         return json();
-                       });
+    m_server->addRoute(
+        cudaq::RestServer::Method::GET, "/",
+        [](const std::string &reqBody,
+           const std::unordered_multimap<std::string, std::string> &headers) {
+          // Return an empty JSON string,
+          // e.g., for client to ping the server.
+          return json();
+        });
 
     // New simulation request.
     m_server->addRoute(
