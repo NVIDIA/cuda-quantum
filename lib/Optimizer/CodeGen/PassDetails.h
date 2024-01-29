@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "CodeGenDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"

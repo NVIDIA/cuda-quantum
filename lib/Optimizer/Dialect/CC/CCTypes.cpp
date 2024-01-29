@@ -150,35 +150,35 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 
 //===----------------------------------------------------------------------===//
 
-namespace cudaq {
+namespace cudaq::cc {
 
 Type cc::SpanLikeType::getElementType() const {
   return llvm::TypeSwitch<Type, Type>(*this).Case<StdvecType, CharspanType>(
       [](auto type) { return type.getElementType(); });
 }
 
-bool cc::isDynamicType(Type ty) {
-  if (isa<cc::StdvecType>(ty))
+bool isDynamicType(Type ty) {
+  if (isa<StdvecType>(ty))
     return true;
-  if (auto strTy = dyn_cast<cc::StructType>(ty)) {
+  if (auto strTy = dyn_cast<StructType>(ty)) {
     for (auto memTy : strTy.getMembers())
       if (isDynamicType(memTy))
         return true;
     return false;
   }
-  if (auto arrTy = dyn_cast<cc::ArrayType>(ty))
+  if (auto arrTy = dyn_cast<ArrayType>(ty))
     return arrTy.isUnknownSize() || isDynamicType(arrTy.getElementType());
   // Note: this isn't considering quake, builtin, etc. types.
   return false;
 }
 
-cc::CallableType cc::CallableType::getNoSignature(MLIRContext *ctx) {
+CallableType CallableType::getNoSignature(MLIRContext *ctx) {
   return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
 }
 
-void cc::CCDialect::registerTypes() {
+void CCDialect::registerTypes() {
   addTypes<ArrayType, CallableType, CharspanType, PointerType, StdvecType,
            StructType>();
 }
 
-} // namespace cudaq
+} // namespace cudaq::cc
