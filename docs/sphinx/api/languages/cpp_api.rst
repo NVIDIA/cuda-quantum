@@ -7,6 +7,9 @@ Operators
 .. doxygenclass:: cudaq::spin_op
     :members:
 
+.. doxygenclass:: cudaq::pauli_word 
+    :members:
+
 Quantum
 =========
 
