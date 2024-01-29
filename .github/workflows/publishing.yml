@@ -850,6 +850,12 @@ jobs:
           pattern: '*-wheels'
           path: wheelhouse
 
+      - name: Download CUDA Quantum installer
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-installer'
+          path: installers
+
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
       #  - We could upload wheels to test-pypi when creating a release.
@@ -859,6 +865,9 @@ jobs:
       # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
       - name: Create release
         run: |
+          for installer in `ls installers/`; do 
+            mv "installers/$installer" "$installer"
+          done
           for dir in `ls wheelhouse/`; do 
             mv "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
           done
@@ -878,6 +887,7 @@ jobs:
             --target $github_commit --draft $prerelease \
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
+          gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum.* --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
         env:
