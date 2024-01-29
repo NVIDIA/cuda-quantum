@@ -16,6 +16,7 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
@@ -34,6 +35,9 @@
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+
+#define DEBUG_TYPE "lower-to-qir"
 
 using namespace mlir;
 
@@ -76,32 +80,10 @@ public:
       return success();
     }
 
-    // Let's count the number of users. If we have 1 user (= count -
-    // numDealloc(can be 0 or 1)), and it is the InitializeStateOp, then we want
-    // to replace this op with the result of the InitStateOp
-    // and then let the InitStateOp pattern create the proper
-    // QIR function call to allocate with state
-    {
-      std::size_t count = 0, numDeallocs = 0;
-      quake::InitializeStateOp maybeInit;
-      for (auto user : alloca->getUsers()) {
-        count++;
-        if (auto init = dyn_cast<quake::InitializeStateOp>(user))
-          maybeInit = init;
-
-        if (dyn_cast<quake::DeallocOp>(user))
-          numDeallocs++;
-      }
-      if (maybeInit) {
-        if (count - numDeallocs != 1)
-          return alloca->emitOpError(
-              "Invalid IR detected in LLVM lowering. "
-              "quake.qinit op must be the only "
-              "user of quake.alloca apart from deallocations.");
-
-        rewriter.replaceOp(alloca, maybeInit.getResult());
-        return success();
-      }
+    if (alloca.hasInitializedState()) {
+      // If allocation has initialized state, the sub-graph should already be
+      // folded. Seeing it here is an error.
+      return alloca.emitOpError("initialize state must be folded");
     }
 
     // Create a QIR call to allocate the qubits.
@@ -134,58 +116,56 @@ public:
   }
 };
 
-// Lower quake.qinit to a QIR function to allocate the
+// Lower quake.init_state to a QIR function to allocate the
 // qubits with the provided state vector.
-class InitializeStateOpRewrite
-    : public ConvertOpToLLVMPattern<quake::InitializeStateOp> {
+class QmemRAIIOpRewrite
+    : public ConvertOpToLLVMPattern<cudaq::codegen::RAIIOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::InitializeStateOp init, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::codegen::RAIIOp raii, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-
-    auto loc = init->getLoc();
-    auto parentModule = init->getParentOfType<ModuleOp>();
+    auto loc = raii->getLoc();
+    auto parentModule = raii->getParentOfType<ModuleOp>();
     auto array_qbit_type = cudaq::opt::getArrayType(rewriter.getContext());
 
-    // Get the qubits value and its AllocaOp defining operation
-    auto qubits = init.getTargets();
-    auto allocaOp = qubits.getDefiningOp<quake::AllocaOp>();
     // Get the CC Pointer for the state
-    auto ccState = init.getState();
+    auto ccState = adaptor.getInitState();
 
     // Get the size of the qubit register
+    Type allocTy = adaptor.getAllocType();
+    auto allocSize = adaptor.getAllocSize();
     Value sizeOperand;
-    if (allocaOp->getOperands().empty()) {
-      auto type = qubits.getType().cast<quake::VeqType>();
+    auto i64Ty = rewriter.getI64Type();
+    if (allocSize) {
+      sizeOperand = allocSize;
+      auto sizeTy = cast<IntegerType>(sizeOperand.getType());
+      if (sizeTy.getWidth() < 64)
+        sizeOperand = rewriter.create<LLVM::ZExtOp>(loc, i64Ty, sizeOperand);
+      else if (sizeTy.getWidth() > 64)
+        sizeOperand = rewriter.create<LLVM::TruncOp>(loc, i64Ty, sizeOperand);
+    } else {
+      auto type = cast<quake::VeqType>(allocTy);
       auto constantSize = type.getSize();
       sizeOperand =
           rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
-    } else {
-      sizeOperand = allocaOp->getOperands().front();
-      if (sizeOperand.getType().cast<IntegerType>().getWidth() < 64) {
-        sizeOperand = rewriter.create<LLVM::ZExtOp>(loc, rewriter.getI64Type(),
-                                                    sizeOperand);
-      }
     }
 
-    // Add the new QIR allocation function to the ModuleOp
-    {
-      OpBuilder::InsertionGuard guard(rewriter);
-      rewriter.setInsertionPointToStart(parentModule.getBody());
-      FunctionType funcTy = rewriter.getFunctionType(
-          SmallVector<Type>{sizeOperand.getType(), ccState.getType()},
-          array_qbit_type);
-      rewriter.create<func::FuncOp>(
-          loc, cudaq::opt::QIRArrayQubitAllocateArrayWithState, funcTy);
-    }
+    // Create QIR allocation with initializer function.
+    auto *ctx = rewriter.getContext();
+    auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
+    FlatSymbolRefAttr raiiSymbolRef =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            cudaq::opt::QIRArrayQubitAllocateArrayWithState, array_qbit_type,
+            {i64Ty, ptrTy}, parentModule);
 
     // Call the allocation function
-    rewriter.replaceOpWithNewOp<func::CallOp>(
-        init, cudaq::opt::QIRArrayQubitAllocateArrayWithState,
-        SmallVector<Type>{array_qbit_type},
-        SmallVector<Value>{sizeOperand, ccState});
+    Value castedInitState =
+        rewriter.create<LLVM::BitcastOp>(loc, ptrTy, ccState);
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        raii, array_qbit_type, raiiSymbolRef,
+        ArrayRef<Value>{sizeOperand, castedInitState});
     return success();
   }
 };
@@ -218,9 +198,9 @@ public:
         cudaq::opt::factory::createLLVMFunctionSymbol(
             qirQuantumDeallocateFunc, retType, {operandType}, parentModule);
 
-    rewriter.replaceOpWithNewOp<mlir::LLVM::CallOp>(
-        dealloc, ArrayRef<Type>({}), deallocSymbolRef,
-        adaptor.getOperands().front());
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(dealloc, ArrayRef<Type>({}),
+                                              deallocSymbolRef,
+                                              adaptor.getOperands().front());
     return success();
   }
 };
@@ -1308,9 +1288,9 @@ public:
     auto name = global.getSymName();
     bool isReadOnly = global.getConstant();
     Attribute initializer = global.getValue().value_or(Attribute{});
-    rewriter.create<mlir::LLVM::GlobalOp>(loc, type, isReadOnly,
-                                          LLVM::Linkage::Private, name,
-                                          initializer, /*alignment=*/0);
+    rewriter.create<LLVM::GlobalOp>(loc, type, isReadOnly,
+                                    LLVM::Linkage::Private, name, initializer,
+                                    /*alignment=*/0);
     rewriter.eraseOp(global);
     return success();
   }
@@ -1601,6 +1581,24 @@ public:
   }
 };
 
+class CodeGenRAIIPattern : public OpRewritePattern<quake::InitializeStateOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::InitializeStateOp init,
+                                PatternRewriter &rewriter) const override {
+    Value mem = init.getTargets();
+    auto alloc = mem.getDefiningOp<quake::AllocaOp>();
+    if (!alloc)
+      return init.emitOpError("init_state must have alloca as input");
+    rewriter.replaceOpWithNewOp<cudaq::codegen::RAIIOp>(
+        init, init.getType(), init.getState(), alloc.getType(),
+        alloc.getSize());
+    rewriter.eraseOp(alloc);
+    return success();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Code generation: converts the Quake IR to QIR.
 //===----------------------------------------------------------------------===//
@@ -1615,7 +1613,20 @@ public:
 
   ModuleOp getModule() { return getOperation(); }
 
+  /// Greedy pass to match subgraphs in the IR and replace them with codegen
+  /// ops. This step makes converting a DAG of nodes in the conversion step
+  /// simpler.
+  void fuseSubgraphPatterns() {
+    auto *ctx = &getContext();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<CodeGenRAIIPattern>(ctx);
+    if (failed(applyPatternsAndFoldGreedily(getModule(), std::move(patterns))))
+      signalPassFailure();
+  }
+
   void runOnOperation() override final {
+    fuseSubgraphPatterns();
+
     auto *context = &getContext();
     LLVMConversionTarget target{*context};
     LLVMTypeConverter typeConverter(&getContext());
@@ -1638,18 +1649,17 @@ public:
         CastOpPattern, ComputePtrOpPattern, ConcatOpRewrite, DeallocOpRewrite,
         CreateStringLiteralOpPattern, DiscriminateOpPattern,
         ExtractQubitOpRewrite, ExtractValueOpPattern, FuncToPtrOpPattern,
-        GlobalOpPattern, InitializeStateOpRewrite, InsertValueOpPattern,
-        InstantiateCallableOpPattern, LoadOpPattern, ExpPauliRewrite,
-        OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
-        OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
-        OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
-        OneTargetOneParamRewrite<quake::R1Op>,
+        GlobalOpPattern, InsertValueOpPattern, InstantiateCallableOpPattern,
+        LoadOpPattern, ExpPauliRewrite, OneTargetRewrite<quake::HOp>,
+        OneTargetRewrite<quake::XOp>, OneTargetRewrite<quake::YOp>,
+        OneTargetRewrite<quake::ZOp>, OneTargetRewrite<quake::SOp>,
+        OneTargetRewrite<quake::TOp>, OneTargetOneParamRewrite<quake::R1Op>,
         OneTargetTwoParamRewrite<quake::PhasedRxOp>,
         OneTargetOneParamRewrite<quake::RxOp>,
         OneTargetOneParamRewrite<quake::RyOp>,
         OneTargetOneParamRewrite<quake::RzOp>,
         OneTargetTwoParamRewrite<quake::U2Op>,
-        OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite,
+        OneTargetTwoParamRewrite<quake::U3Op>, QmemRAIIOpRewrite, ResetRewrite,
         StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
         StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
         UndefOpPattern>(typeConverter);
@@ -1658,8 +1668,10 @@ public:
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalOp<ModuleOp>();
 
-    if (failed(applyFullConversion(getModule(), target, std::move(patterns))))
+    if (failed(applyFullConversion(getModule(), target, std::move(patterns)))) {
+      LLVM_DEBUG(getModule().dump());
       signalPassFailure();
+    }
   }
 
   void initializeTypeConversions(LLVMTypeConverter &typeConverter) {

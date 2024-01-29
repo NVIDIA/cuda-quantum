@@ -123,6 +123,8 @@ public:
     ConversionTarget target(*ctx);
     target.addLegalDialect<quake::QuakeDialect>();
     target.addDynamicallyLegalOp<quake::DeallocOp>([](quake::DeallocOp d) {
+      if (d.getReference().getDefiningOp<quake::InitializeStateOp>())
+        return true;
       if (auto ty = dyn_cast<quake::VeqType>(d.getReference().getType()))
         return !ty.hasSpecifiedSize();
       return true;
@@ -147,6 +149,8 @@ public:
              allocations.end();
     });
     target.addDynamicallyLegalOp<quake::DeallocOp>([](quake::DeallocOp d) {
+      if (d.getReference().getDefiningOp<quake::InitializeStateOp>())
+        return true;
       if (auto ty = dyn_cast<quake::VeqType>(d.getReference().getType()))
         return !ty.hasSpecifiedSize();
       return true;
@@ -164,7 +168,8 @@ public:
   LogicalResult runAnalysis(SmallVector<quake::AllocaOp> &allocations) {
     auto func = getOperation();
     func.walk([&](quake::AllocaOp alloc) {
-      if (!allocaOfVeq(alloc) || allocaOfUnspecifiedSize(alloc))
+      if (!allocaOfVeq(alloc) || allocaOfUnspecifiedSize(alloc) ||
+          alloc.hasInitializedState())
         return;
       bool usesAreConvertible = [&]() {
         for (auto *users : alloc->getUsers()) {
