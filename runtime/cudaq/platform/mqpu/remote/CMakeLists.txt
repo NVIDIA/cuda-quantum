@@ -6,10 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_library(remote-simulator-qpu OBJECT RemoteSimulatorQPU.cpp)
-target_link_libraries(remote-simulator-qpu PUBLIC 
+add_library(cudaq-remote-simulator-qpu SHARED RemoteSimulatorQPU.cpp)
+target_link_libraries(cudaq-remote-simulator-qpu PUBLIC 
                         cudaq-common 
                         cudaq-mlir-runtime
                         rest-remote-platform-client
                         fmt::fmt-header-only
+                        cudaq-platform-mqpu
                     )
