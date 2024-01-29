@@ -184,11 +184,10 @@ Push to GitHub:
     - versions=`gh release list -R $upstream_url --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
     - latest_tag=`echo $versions | cut -d ' ' -f 1`
     - |
-      if [ -z "$(gh release list | grep -s $release_id)" ];
+      if [ -z "$(gh release list -R $upstream_url | grep -s $release_id)" ];
       then
         rel_notes="This release draft is managed by cd processes."
         rel_notes+=$(echo "<br/>GitHub commit [$source_commit]($upstream_url/tree/$source_commit)")
-        echo "release_id $release_id, latest_tag $latest_tag, source_commit $source_commit, upstream_url $upstream_url"
         gh release create $release_id --title $release_id -R $upstream_url \
           --target $source_commit --draft --prerelease \
           --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
