@@ -33,8 +33,7 @@ name: Python wheels
 jobs:
   build_wheel:
     name: Build Python ${{ inputs.python_version }} wheel
-    ## [SKIP_TEST]: Temporarily skipping stage to build Python wheel on arm64/aarch64
-    runs-on: ${{ 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
 
@@ -157,8 +156,7 @@ jobs:
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
-    ## [SKIP_TEST]: Temporarily skipping stage to validate Python wheel on arm64/aarch64
-    runs-on: ${{ 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
       packages: read

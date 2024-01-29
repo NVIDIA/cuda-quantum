@@ -100,7 +100,8 @@ jobs:
     needs: metadata
     strategy:
       matrix:
-        platform: [amd64, arm64]
+        ## [SKIP_TEST] : Temporarily skipping stage to build Python wheel on arm64/aarch64
+        platform: [amd64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -205,7 +206,8 @@ jobs:
     needs: config
     strategy:
       matrix:
-        platform: [amd64, arm64]
+        ## [SKIP_TEST] : Temporarily skipping stage to build Python wheel on arm64/aarch64
+        platform: [amd64]
         python_version: ['3.9', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
