@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -14,3 +14,7 @@ target_link_libraries(cudaq-remote-simulator-qpu PUBLIC
                         fmt::fmt-header-only
                         cudaq-platform-mqpu
                     )
+                    
+install(TARGETS cudaq-remote-simulator-qpu DESTINATION lib)
+
+install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-remote-simulator-qpu-targets DESTINATION lib)
