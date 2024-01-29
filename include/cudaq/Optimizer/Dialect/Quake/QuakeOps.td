@@ -72,7 +72,9 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
   }];
 
   let arguments = (ins Optional<AnySignlessInteger>:$size);
-  let results = (outs AnyRefType:$ref_or_vec);
+  let results = (outs
+    AnyRefType:$ref_or_vec
+  );
 
   let builders = [
     OpBuilder<(ins ), [{
@@ -92,6 +94,14 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
 
   let hasCanonicalizer = 1;
   let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    bool hasInitializedState() {
+      auto *self = getOperation();
+      return self->hasOneUse() &&
+        mlir::isa<quake::InitializeStateOp>(*self->getUsers().begin());
+    }
+  }];
 }
 
 def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
@@ -281,7 +291,8 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
   }];
 }
 
-def InitializeStateOp : QuakeOp<"qinit"> {
+def quake_InitializeStateOp : QuakeOp<"init_state", [MemoryEffects<[MemAlloc,
+    MemWrite]>]> {
   let summary = "Initialize the quantum state to a specific complex vector.";
   let description = [{
     Given a !cc.ptr pointing to a complex data array of size 2**N, where N is
@@ -293,13 +304,13 @@ def InitializeStateOp : QuakeOp<"qinit"> {
   }];
 
   let arguments = (ins
-    VeqType:$targets, 
+    VeqType:$targets,
     cc_PointerType:$state
   );
-  let results = (outs VeqType:$initializedState);
+  let results = (outs VeqType);
 
   let assemblyFormat = [{
-    `(` $targets `,` $state `)` `:` functional-type(operands, results) attr-dict
+    $targets `,` $state `:` functional-type(operands, results) attr-dict
   }];
 }
 
