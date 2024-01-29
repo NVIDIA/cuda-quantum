@@ -719,7 +719,7 @@ jobs:
             'dnf-command(config-manager)' gcc-toolset-12
           enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
           . "$enable_script"
-          . scripts/configure_build.sh install-cudart
+          . scripts/configure_build.sh install-cuda
 
       - name: Install and run sanity checks
         shell: bash
