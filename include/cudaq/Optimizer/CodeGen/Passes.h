@@ -52,4 +52,4 @@ void registerTargetPipelines();
 #define GEN_PASS_REGISTRATION
 #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
 
-} // namespace cudaq
+} // namespace cudaq::opt

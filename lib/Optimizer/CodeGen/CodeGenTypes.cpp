@@ -20,5 +20,5 @@
 #include "cudaq/Optimizer/CodeGen/CodeGenTypes.cpp.inc"
 
 void cudaq::codegen::CodeGenDialect::registerTypes() {
-   addTypes<DoNotUseType>();
+  addTypes<DoNotUseType>();
 }
