@@ -188,6 +188,7 @@ Push to GitHub:
       then
         rel_notes="This release draft is managed by cd processes."
         rel_notes+=$(echo "<br/>GitHub commit [$source_commit]($upstream_url/tree/$source_commit)")
+        echo "release_id $release_id, latest_tag $latest_tag, source_commit $source_commit, upstream_url $upstream_url"
         gh release create $release_id --title $release_id -R $upstream_url \
           --target $source_commit --draft --prerelease \
           --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
