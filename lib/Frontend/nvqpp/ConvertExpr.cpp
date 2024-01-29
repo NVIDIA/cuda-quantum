@@ -1421,6 +1421,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto ptrEleTy = computePtr.getType().getElementType();
           Value loaded = builder.create<cudaq::cc::LoadOp>(loc, ptrEleTy, v);
           processedArgs.push_back(loaded);
+        } else if (isa<quake::PauliWordType>(v.getType())) {
+          processedArgs.push_back(v);
         } else {
           reportClangError(x, mangler, "could not determine string argument");
         }

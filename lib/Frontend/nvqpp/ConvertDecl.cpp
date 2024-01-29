@@ -91,8 +91,8 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
       if (isa<FunctionType, cc::CallableType, cc::PointerType, cc::StdvecType,
-              LLVM::LLVMStructType, quake::ControlType, quake::RefType,
-              quake::VeqType, quake::WireType>(parmTy)) {
+              LLVM::LLVMStructType, quake::ControlType, quake::PauliWordType,
+              quake::RefType, quake::VeqType, quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
