@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -33,10 +33,10 @@ def test_fswap_lib_kernel():
         fermionic_swap(angle, q[0], q[1])
 
     ss_01 = cudaq.get_state(bar, angle)
-    assert np.isclose(np.abs(ss_01[1] - (-1j * np.exp(1j * angle / 2.0) * si)),
+    assert np.isclose(np.abs(ss_01[2] - (-1j * np.exp(1j * angle / 2.0) * si)),
                       0.0,
                       atol=1e-3)
-    assert np.isclose(np.abs(ss_01[2] - (np.exp(1j * angle / 2.0) * c)),
+    assert np.isclose(np.abs(ss_01[1] - (np.exp(1j * angle / 2.0) * c)),
                       0.0,
                       atol=1e-3)
 
@@ -58,5 +58,5 @@ def test_givens_lib_kernel():
     print(baz)
     ss_01 = cudaq.get_state(baz, angle)
     print(ss_01)
-    assert np.isclose(ss_01[1], -si, 1e-3)
-    assert np.isclose(ss_01[2], c, 1e-3)
+    assert np.isclose(ss_01[1], c, 1e-3)
+    assert np.isclose(ss_01[2], -si, 1e-3)
