@@ -103,6 +103,8 @@ private:
         }
       } else if (auto dealloc = dyn_cast<quake::DeallocOp>(o)) {
         auto val = dealloc.getReference();
+        if (auto init = val.getDefiningOp<quake::InitializeStateOp>())
+          val = init.getTargets();
         if (auto alloc = val.getDefiningOp<quake::AllocaOp>()) {
           auto *op = alloc.getOperation();
           if (allocMap.count(op))
@@ -129,8 +131,8 @@ inline void generateDeallocsForSet(PatternRewriter &rewriter,
     auto alloc = cast<quake::AllocaOp>(a);
     Value v = alloc;
     if (a->hasOneUse()) {
-      auto *use = a->getUses().begin()->getOwner();
-      if (auto initState = dyn_cast<quake::InitializeStateOp>(use))
+      if (auto initState =
+              dyn_cast<quake::InitializeStateOp>(*a->getUsers().begin()))
         v = initState;
     }
     rewriter.create<quake::DeallocOp>(a->getLoc(), v);

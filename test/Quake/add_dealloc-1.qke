@@ -15,7 +15,7 @@ module {
     %c0 = arith.constant 0 : index
     %0 = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
     %1 = quake.alloca !quake.veq<4>
-    %2 = quake.qinit(%1, %0) : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
+    %2 = quake.init_state %1, %0 : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
     %3 = cc.loop while ((%arg0 = %c0) -> (index)) {
       %4 = arith.cmpi slt, %arg0, %c4 : index
       cc.condition %4(%arg0 : index)
@@ -37,7 +37,7 @@ module {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__FromState() {
 // CHECK:           %[[VAL_3:.*]] = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_5:.*]] = quake.qinit(%[[VAL_4]], %[[VAL_3]]) : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
+// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_3]] : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
 // CHECK:           quake.dealloc %[[VAL_5]] : !quake.veq<4>
 // CHECK:           return
 // CHECK:         }
