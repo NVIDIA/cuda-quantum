@@ -719,7 +719,8 @@ jobs:
             'dnf-command(config-manager)' gcc-toolset-12
           enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
           . "$enable_script"
-          . scripts/configure_build.sh install-cuda
+          . scripts/configure_build.sh install-cudart
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/lib64/"
 
       - name: Install and run sanity checks
         shell: bash
