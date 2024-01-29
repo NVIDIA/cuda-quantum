@@ -67,7 +67,8 @@ concept KernelBuilderArgTypeIsValid =
   requires(KernelBuilderArgTypeIsValid<                                        \
                Args, float, double, std::size_t, int, std::vector<int>,        \
                std::vector<float>, std::vector<std::size_t>,                   \
-               std::vector<double>, cudaq::qubit, cudaq::qvector<>> &&         \
+               std::vector<double>, std::vector<cudaq::pauli_word>,            \
+               cudaq::qubit, cudaq::qvector<>, cudaq::pauli_word> &&           \
            ...)
 #else
 // Not C++ 2020: stub these out.
@@ -121,11 +122,17 @@ KernelBuilderType mapArgToType(std::vector<float> &e);
 /// Map a `vector<double>` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(std::vector<double> &e);
 
+/// Map a `vector<pauli_word>` to a `KernelBuilderType`
+KernelBuilderType mapArgToType(std::vector<cudaq::pauli_word> &e);
+
 /// Map a `qubit` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qubit &e);
 
 /// @brief  Map a `qvector` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qvector<> &e);
+
+/// @brief  Map a `pauli_word` to a `KernelBuilderType`
+KernelBuilderType mapArgToType(cudaq::pauli_word &e);
 
 /// @brief Initialize the `MLIRContext`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
@@ -196,9 +203,16 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
+/// @brief Apply and `ExpPauliOp` to the MLIR with a runtime-known string.
 void exp_pauli(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                const std::vector<QuakeValue> &qubits,
                const std::string &pauliWord);
+
+/// @brief Apply and `ExpPauliOp` to the MLIR with a runtime-known string-like
+/// `QuakeValue`.
+void exp_pauli(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &theta,
+               const std::vector<QuakeValue> &qubits,
+               const QuakeValue &pauliWord);
 
 void swap(mlir::ImplicitLocOpBuilder &builder,
           const std::vector<QuakeValue> &ctrls,
@@ -305,7 +319,7 @@ struct ArgumentValidator<std::vector<T>> {
     // Validate the input vector<T> if possible
     if (auto nRequiredElements = arg.getRequiredElements();
         arg.canValidateNumElements())
-      if (input.size() != nRequiredElements)
+      if (input.size() < nRequiredElements)
         throw std::runtime_error(
             "Invalid vector<T> input. Number of elements provided != "
             "number of elements required (" +
@@ -652,6 +666,35 @@ public:
   void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
                  const std::variant<std::string, spin_op> &op) {
     auto pauliWord = toPauliWord(op);
+    std::vector<QuakeValue> qubitValues{qubits};
+    if constexpr (std::is_floating_point_v<ParamT>)
+      details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
+                         pauliWord);
+    else
+      details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
+  }
+
+  /// @brief Apply a general Pauli rotation, `exp(i theta P)`, takes a
+  /// `QuakeValue` representing a register of qubits. This overload takes the
+  /// spin operator string as a `cudaq::pauli_word`.
+  template <QuakeValueOrNumericType ParamT>
+  void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
+                 cudaq::pauli_word &op) {
+    std::string pauliWord(op.term);
+    std::vector<QuakeValue> qubitValues{qubits};
+    if constexpr (std::is_floating_point_v<ParamT>)
+      details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,
+                         pauliWord);
+    else
+      details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
+  }
+
+  /// @brief Apply a general Pauli rotation, exp(i theta P), takes a QuakeValue
+  /// representing a register of qubits. This overload takes the
+  /// spin operator string as a `QuakeValue`.
+  template <QuakeValueOrNumericType ParamT>
+  void exp_pauli(const ParamT &theta, const QuakeValue &qubits,
+                 const QuakeValue &pauliWord) {
     std::vector<QuakeValue> qubitValues{qubits};
     if constexpr (std::is_floating_point_v<ParamT>)
       details::exp_pauli(*opBuilder, QuakeValue(*opBuilder, theta), qubitValues,

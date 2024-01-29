@@ -331,6 +331,29 @@ spin_op spin_op::from_word(const std::string &word) {
   return spin_op(term, 1.0);
 }
 
+std::vector<pauli_word> spin_op::to_words() {
+  if (num_terms() == internalPauliWordStorage.size())
+    return internalPauliWordStorage;
+
+  // FIXME maybe also check some unique hash code
+  for (auto &word : internalPauliWordStorage) {
+    delete[] word.term;
+  }
+
+  internalPauliWordStorage.clear();
+
+  internalPauliWordStorage.resize(num_terms());
+  std::size_t counter = 0;
+  for_each_term([&](spin_op &term) {
+    auto termStr = term.to_string(false);
+    internalPauliWordStorage[counter].term = new char[termStr.length() + 1];
+    std::strncpy(const_cast<char *>(internalPauliWordStorage[counter].term),
+                 termStr.c_str(), termStr.size() + 1);
+    counter++;
+  });
+  return internalPauliWordStorage;
+}
+
 void spin_op::expandToNQubits(const std::size_t numQubits) {
   auto iter = terms.begin();
   while (iter != terms.end()) {

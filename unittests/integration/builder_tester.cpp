@@ -941,6 +941,51 @@ CUDAQ_TEST(BuilderTester, checkForLoop) {
   }
 }
 
+CUDAQ_TEST(BuilderTester, checkVecCharPtr) {
+  {
+    // Check it compiles and executes
+    auto [kernel, paulis] =
+        cudaq::make_kernel<std::vector<cudaq::pauli_word>>();
+    auto qubits = kernel.qalloc(2);
+    kernel.exp_pauli(M_PI_2, qubits, paulis[0]);
+    std::cout << kernel << "\n";
+    std::vector<cudaq::pauli_word> pauliVec{"XX", "YY"};
+    kernel(pauliVec);
+  }
+  {
+    // Check it compiles and executes
+    auto [kernel, paulis] =
+        cudaq::make_kernel<std::vector<cudaq::pauli_word>>();
+    auto qubits = kernel.qalloc(2);
+    kernel.for_loop(0, paulis.size(), [&](auto idx) {
+      kernel.exp_pauli(M_PI_2, qubits, paulis[idx]);
+    });
+    std::cout << kernel << "\n";
+    std::vector<cudaq::pauli_word> pauliVec{"XX", "YY"};
+    kernel(pauliVec);
+  }
+  {
+    // Check correctness
+    auto [kernel, thetas, paulis] =
+        cudaq::make_kernel<std::vector<double>,
+                           std::vector<cudaq::pauli_word>>();
+    auto qubits = kernel.qalloc(2);
+    kernel.x(qubits[0]);
+    kernel.for_loop(0, paulis.size(), [&](auto idx) {
+      kernel.exp_pauli(thetas[idx], qubits, paulis[idx]);
+    });
+    std::cout << kernel << "\n";
+    using namespace cudaq::spin;
+    std::vector<cudaq::pauli_word> pauliVec{"XY", "YX"};
+
+    cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                       .21829 * z(0) - 6.125 * z(1);
+    double energy =
+        cudaq::observe(kernel, h, std::vector<double>{-.1744, .1223}, pauliVec);
+    EXPECT_NEAR(energy, -1.74, 1e-2);
+  }
+}
+
 // Conditional execution (including reset) on the tensornet backend is slow for
 // a large number of shots.
 #ifndef CUDAQ_BACKEND_TENSORNET

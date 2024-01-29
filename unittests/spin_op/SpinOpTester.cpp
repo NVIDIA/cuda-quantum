@@ -243,3 +243,22 @@ TEST(SpinOpTester, checkDistributeTerms) {
   EXPECT_EQ(distributed[0].num_terms(), 2);
   EXPECT_EQ(distributed[1].num_terms(), 3);
 }
+
+TEST(SpinOpTester, checkToWords) {
+  auto H = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) + .21829 * z(0) -
+           6.125 * z(1);
+
+  auto fakeKernel = [](std::vector<cudaq::pauli_word> paulis) {
+    for (auto &p : paulis)
+      printf("%s\n", p.term);
+  };
+
+  auto words = H.to_words();
+  EXPECT_EQ(5, words.size());
+  for (auto &w : words)
+    EXPECT_TRUE(std::string(w.term) == "II" || std::string(w.term) == "YY" ||
+                std::string(w.term) == "XX" || std::string(w.term) == "ZI" ||
+                std::string(w.term) == "IZ");
+
+  fakeKernel(words);
+}

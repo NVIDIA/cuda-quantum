@@ -27,6 +27,13 @@ struct PyQreg {};
 
 void bindMakeKernel(py::module &mod) {
 
+  py::class_<pauli_word>(mod, "pauli_word",
+                         "The `pauli_word` is a thin wrapper on a Pauli tensor "
+                         "product string, e.g. `XXYZ` on 4 qubits.")
+      .def(
+          "__str__", [](pauli_word &self) { return std::string(self.term); },
+          "Return the string representation of this Pauli word.");
+
   py::class_<PyQubit>(
       mod, "qubit",
       R"#(The data-type representing a qubit argument to a :class:`Kernel`
@@ -75,9 +82,9 @@ Returns:
         std::vector<details::KernelBuilderType> types;
         std::transform(
             arguments.begin(), arguments.end(), std::back_inserter(types),
-            [&](auto &&arguments) {
+            [&](auto &&argument) {
               auto name =
-                  arguments.attr("__name__").template cast<std::string>();
+                  argument.attr("__name__").template cast<std::string>();
               if (name == "float") {
                 double tmp = 0.0;
                 return details::mapArgToType(tmp);
@@ -85,6 +92,12 @@ Returns:
                 int tmp = 0;
                 return details::mapArgToType(tmp);
               } else if (name == "list" || name == "List") {
+                if (py::str(argument).cast<std::string>().find("pauli_word") !=
+                    std::string::npos) {
+                  std::vector<cudaq::pauli_word> tmp;
+                  return details::mapArgToType(tmp);
+                }
+                // TODO hook up more list[T] types
                 std::vector<double> tmp;
                 return details::mapArgToType(tmp);
               } else if (name == "qubit") {
@@ -93,10 +106,14 @@ Returns:
               } else if (name == "qreg") {
                 cudaq::qvector<> q;
                 return details::mapArgToType(q);
+              } else if (name == "pauli_word") {
+                cudaq::pauli_word p;
+                return details::mapArgToType(p);
               } else
-                throw std::runtime_error("Invalid builder parameter type (must "
-                                         "be a int, float, list/List,"
-                                         "`cudaq.qubit`, or `cudaq.qreg`).");
+                throw std::runtime_error(
+                    "Invalid builder parameter type (must "
+                    "be a int, float, list/List, `list[cudaq.pauli_word]`, "
+                    "`cudaq.qubit`, `cudaq.pauli_word`, or `cudaq.qreg`).");
             });
 
         auto kernelBuilder = std::make_unique<kernel_builder<>>(types);
@@ -104,7 +121,7 @@ Returns:
         auto ret = py::tuple(quakeValues.size() + 1);
         ret[0] = std::move(kernelBuilder);
         for (std::size_t i = 0; i < quakeValues.size(); i++) {
-          ret[i + 1] = quakeValues[i];
+          ret[i + 1] = &quakeValues[i];
         }
         return ret;
       },
@@ -1152,7 +1169,24 @@ Args:
           "Apply a general Pauli tensor product rotation, `exp(i theta P)`, on "
           "the specified qubit register. The Pauli tensor product is provided "
           "as a string, e.g. `XXYX` for a 4-qubit term. The angle parameter "
-          "can be provided as a concrete float or a `QuakeValue`.");
+          "can be provided as a concrete float or a `QuakeValue`.")
+      .def(
+          "exp_pauli",
+          [](kernel_builder<> &self, py::object theta, const QuakeValue &qubits,
+             const QuakeValue &pauliWord) {
+            if (py::isinstance<py::float_>(theta))
+              self.exp_pauli(theta.cast<double>(), qubits, pauliWord);
+            else if (py::isinstance<QuakeValue>(theta))
+              self.exp_pauli(theta.cast<QuakeValue &>(), qubits, pauliWord);
+            else
+              throw std::runtime_error(
+                  "Invalid `theta` argument type. Must be a "
+                  "`float` or a `QuakeValue`.");
+          },
+          "Apply a general Pauli tensor product rotation, `exp(i theta P)`, on "
+          "the specified qubit register. The Pauli tensor product is provided "
+          "as a `QuakeValue`. The angle parameter can be provided as a "
+          "concrete float or a `QuakeValue`.");
 }
 
 void bindBuilder(py::module &mod) {

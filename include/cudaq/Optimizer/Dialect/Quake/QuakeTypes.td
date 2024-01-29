@@ -160,6 +160,17 @@ def VeqType : QuakeType<"Veq", "veq"> {
 }
 
 //===----------------------------------------------------------------------===//
+// PauliWordType: Pauli tensor product representation
+//===----------------------------------------------------------------------===//
+
+def PauliWordType : QuakeType<"PauliWord", "pauli_word"> {
+  let summary = "a representation of a single Pauli tensor product term";
+  let description = [{
+    A Pauli word represents a single term in a CUDA Quantum spin operator. 
+  }];
+}
+
+//===----------------------------------------------------------------------===//
 // MeasureType: classical data type
 //===----------------------------------------------------------------------===//
 

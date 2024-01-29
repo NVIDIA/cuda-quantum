@@ -930,6 +930,39 @@ def test_exp_pauli():
     with pytest.raises(RuntimeError) as error:
         kernel.exp_pauli(theta, qubits, invalidOp)
 
+    # Test we can construct a list[str] arg and pass to exp_pauli
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    kernel, thetas, paulisArg = cudaq.make_kernel(list[float], list[cudaq.pauli_word])
+    qubits = kernel.qalloc(2)
+    kernel.x(qubits[0])
+    kernel.for_loop(
+        0, paulisArg.size(),
+        lambda idx: kernel.exp_pauli(thetas[idx], qubits, paulisArg[idx]))
+
+    print(kernel)
+    want_exp = cudaq.observe(kernel, hamiltonian, [-.1744, .1223],
+                             ['XY', 'YX']).expectation()
+    print(want_exp)
+    assert np.isclose(want_exp, -1.74, atol=1e-2)
+
+    tmp = spin.x(0)*spin.y(1) + spin.y(0)*spin.x(1)
+    pauliWords = tmp.to_words()
+    angles = []
+    for p in pauliWords:
+        print(p)
+        if str(p) == 'XY': angles.append(-.1744)
+        else: angles.append(.1223)
+    
+    want_exp = cudaq.observe(kernel, hamiltonian, angles,
+                             pauliWords).expectation()
+    print(want_exp)
+    assert np.isclose(want_exp, -1.74, atol=1e-2)
+
+
+
+
 
 def test_givens_rotation_op():
     cudaq.reset_target()

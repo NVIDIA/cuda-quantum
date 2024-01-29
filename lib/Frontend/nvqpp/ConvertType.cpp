@@ -21,7 +21,7 @@ static bool isArithmeticType(Type t) { return isa<IntegerType, FloatType>(t); }
 /// Is \p t a quantum reference type. In the bridge, quantum types are always
 /// reference types.
 static bool isQuantumType(Type t) {
-  return isa<quake::VeqType, quake::RefType>(t);
+  return isa<quake::VeqType, quake::RefType, quake::PauliWordType>(t);
 }
 
 /// Allow `array of [array of]* T`, where `T` is arithmetic.
@@ -60,7 +60,8 @@ static bool isStaticArithmeticProductType(Type t) {
 static bool isArithmeticSequenceType(Type t) {
   if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t)) {
     auto eleTy = vec.getElementType();
-    return isArithmeticType(eleTy) || isStaticArithmeticProductType(eleTy) ||
+    return isa<quake::PauliWordType>(eleTy) || isArithmeticType(eleTy) ||
+           isStaticArithmeticProductType(eleTy) ||
            isArithmeticSequenceType(eleTy);
   }
   return isStaticArithmeticSequenceType(t);

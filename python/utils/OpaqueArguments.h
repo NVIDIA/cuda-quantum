@@ -39,7 +39,8 @@ private:
   std::vector<OpaqueArgDeleter> deleters;
 
 public:
-  /// @brief Add an opaque argument and its `deleter` to this OpaqueArguments
+  /// @brief Add an opaque argument and its deletion function to this
+  /// `OpaqueArguments`
   template <typename ArgPointer, typename Deleter>
   void emplace_back(ArgPointer &&pointer, Deleter &&deleter) {
     args.emplace_back(pointer);
@@ -63,7 +64,7 @@ public:
 };
 
 /// @brief Validate that the number of arguments provided is
-/// correct for the given kernel_builder. Throw an exception if not.
+/// correct for the given `kernel_builder`. Throw an exception if not.
 inline py::args validateInputArguments(kernel_builder<> &kernel,
                                        py::args &args) {
   // Ensure the user input is correct.
@@ -82,9 +83,6 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
   for (std::size_t i = 0; i < args.size(); ++i) {
     auto arg = args[i];
     if (kernel.isArgStdVec(i)) {
-
-      auto nRequiredElements = kernel.getArguments()[i].getRequiredElements();
-
       // Check if it has tolist, so it might be a 1d buffer (array / numpy
       // ndarray)
       if (py::hasattr(args[i], "tolist")) {
@@ -107,11 +105,16 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
         throw std::runtime_error(
             "Invalid list-like argument to Kernel.__call__()");
 
-      auto nElements = arg.cast<py::list>().size();
-      if (nRequiredElements != nElements)
-        throw std::runtime_error("Kernel list argument requires " +
-                                 std::to_string(nRequiredElements) + " but " +
-                                 std::to_string(nElements) + " were provided.");
+      auto &argType = kernel.getArguments()[i];
+      if (argType.canValidateNumElements()) {
+        auto nRequiredElements = argType.getRequiredElements();
+        auto nElements = arg.cast<py::list>().size();
+        if (nRequiredElements != nElements)
+          throw std::runtime_error("Kernel list argument requires " +
+                                   std::to_string(nRequiredElements) + " but " +
+                                   std::to_string(nElements) +
+                                   " were provided.");
+      }
     }
 
     processed[i] = arg;
@@ -200,6 +203,35 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
     }
     if (py::isinstance<py::list>(arg)) {
       auto casted = py::cast<py::list>(arg);
+      // Handle list[str/pauli_word] input
+      if (py::isinstance<py::str>(casted[0])) {
+        std::vector<const char *> *ourAllocatedArg =
+            new std::vector<const char *>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          Py_ssize_t size = py::len(el.cast<py::str>());
+          (*ourAllocatedArg)[counter++] =
+              PyUnicode_AsUTF8AndSize(el.ptr(), &size);
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<const char *> *>(ptr);
+        });
+        continue;
+      }
+      if (py::isinstance<cudaq::pauli_word>(casted[0])) {
+        std::vector<const char *> *ourAllocatedArg =
+            new std::vector<const char *>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          auto word = el.cast<pauli_word>();
+          (*ourAllocatedArg)[counter++] = word.term;
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          // do nothing, the only thing that can create pauli_words
+          // is the spin_op, and it manages this pointer.
+        });
+        continue;
+      }
+      // FUTURE support more list[T] types
+      // for now default to list[float]
       std::vector<double> *ourAllocatedArg =
           new std::vector<double>(casted.size());
       for (std::size_t counter = 0; auto el : casted) {

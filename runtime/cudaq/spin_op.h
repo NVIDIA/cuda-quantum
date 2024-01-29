@@ -11,6 +11,7 @@
 #include "matrix.h"
 #include "utils/cudaq_utils.h"
 #include <complex>
+#include <cstring>
 #include <functional>
 #include <map>
 #include <random>
@@ -81,6 +82,16 @@
 
 namespace cudaq {
 class spin_op;
+
+/// @brief The `pauli_word` is a thin wrapper on a
+/// Pauli tensor product string, e.g. `XXYZ` on 4
+// qubits.
+class pauli_word {
+public:
+  const char *term = nullptr;
+  pauli_word() = default;
+  pauli_word(const char *c) : term(c) {}
+};
 
 /// @brief Utility enum representing Paulis.
 enum class pauli { I, X, Y, Z };
@@ -186,6 +197,8 @@ private:
   /// to a mapping of unique terms to their term coefficient.
   std::unordered_map<spin_op_term, std::complex<double>> terms;
 
+  std::vector<cudaq::pauli_word> internalPauliWordStorage;
+
   /// @brief Utility map that takes the Pauli enum to a string representation
   std::map<pauli, std::string> pauli_to_str{
       {pauli::I, "I"}, {pauli::X, "X"}, {pauli::Y, "Y"}, {pauli::Z, "Z"}};
@@ -228,6 +241,11 @@ public:
   /// a X support on the first and 3rd and Y support on the second.
   static spin_op from_word(const std::string &pauliWord);
 
+  /// @brief Return a vector of Pauli words that make up this
+  /// `spin_op`, e.g. [ZZ, XX, YY] for `spin_op = z(0)*z(1) + 2. * x(0)*x(1) +
+  /// y(0)*y(1)`. Note coefficients are ignored.
+  std::vector<pauli_word> to_words();
+
   /// @brief Constructor, creates the identity term
   spin_op();
 
@@ -247,7 +265,12 @@ public:
   spin_op(std::vector<double> &data_rep, std::size_t nQubits);
 
   /// The destructor
-  ~spin_op() = default;
+  ~spin_op() {
+    // We own any pauli word data, and must delete it
+    for (auto &word : internalPauliWordStorage)
+      delete[] word.term;
+    internalPauliWordStorage.clear();
+  }
 
   /// @brief Return iterator to start of spin_op terms.
   iterator<spin_op> begin();

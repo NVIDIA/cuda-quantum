@@ -1037,7 +1037,8 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // The following cases are λ expressions, quantum data, or a std::vector view.
   // In those cases, there is nothing to materialize, so we can just pass the
   // Value on the top of the stack.
-  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::StdvecType>(ty))
+  if (isa<cc::CallableType, quake::VeqType, quake::RefType,
+          quake::PauliWordType, cc::StdvecType>(ty))
     return true;
 
   // If not one of the above special cases, then materialize the value to a
@@ -1411,10 +1412,16 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         // The C-string argument (char*) may be loaded by an lvalue to rvalue
         // cast. Here, we must pass the pointer and not the first character's
         // value.
+        v.dump();
         if (isCharPointerType(v.getType())) {
           processedArgs.push_back(v);
         } else if (auto load = v.getDefiningOp<cudaq::cc::LoadOp>()) {
           processedArgs.push_back(load.getPtrvalue());
+        } else if (auto computePtr =
+                       v.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
+          auto ptrEleTy = computePtr.getType().getElementType();
+          Value loaded = builder.create<cudaq::cc::LoadOp>(loc, ptrEleTy, v);
+          processedArgs.push_back(loaded);
         } else {
           reportClangError(x, mangler, "could not determine string argument");
         }

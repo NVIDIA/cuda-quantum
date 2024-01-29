@@ -172,6 +172,7 @@ void bindSpinOperator(py::module &mod) {
            "`Tuple[list[complex], list[int], list[int]]`, encoding the "
            "non-zero values, rows, and columns of the matrix. "
            "This format is supported by `scipy.sparse.csr_array`.")
+      .def("to_words", &spin_op::to_words, "")
       .def(
           "__iter__",
           [](spin_op &self) {

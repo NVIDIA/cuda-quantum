@@ -1545,6 +1545,10 @@ public:
     typeConverter.addConversion([](quake::RefType type) {
       return cudaq::opt::getQubitType(type.getContext());
     });
+    typeConverter.addConversion([](quake::PauliWordType type) {
+      return cudaq::opt::factory::getPointerType(
+          IntegerType::get(type.getContext(), 8));
+    });
     typeConverter.addConversion([](cudaq::cc::CallableType type) {
       return lambdaAsPairOfPointers(type.getContext());
     });

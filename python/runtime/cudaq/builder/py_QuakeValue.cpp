@@ -20,6 +20,9 @@ void bindQuakeValue(py::module &mod) {
       "can hold values of the following types: int, float, list/List, "
       ":class:`qubit`, or :class:`qreg`. The :class:`QuakeValue` can also hold "
       "kernel operations such as qubit allocations and measurements.\n")
+      .def("size", &QuakeValue::size,
+           "For a `QuakeValue` of type `Stdvec` or `Veq`, add code to the MLIR "
+           "representation that computes the size of the sequence.")
       /// @brief Bind the indexing operator for cudaq::QuakeValue
       .def(
           "__getitem__",
