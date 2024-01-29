@@ -1186,6 +1186,23 @@ Args:
           "Apply a general Pauli tensor product rotation, `exp(i theta P)`, on "
           "the specified qubit register. The Pauli tensor product is provided "
           "as a `QuakeValue`. The angle parameter can be provided as a "
+          "concrete float or a `QuakeValue`.")
+      .def(
+          "exp_pauli",
+          [](kernel_builder<> &self, py::object theta, const QuakeValue &qubits,
+             pauli_word &pauliWord) {
+            if (py::isinstance<py::float_>(theta))
+              self.exp_pauli(theta.cast<double>(), qubits, pauliWord);
+            else if (py::isinstance<QuakeValue>(theta))
+              self.exp_pauli(theta.cast<QuakeValue &>(), qubits, pauliWord);
+            else
+              throw std::runtime_error(
+                  "Invalid `theta` argument type. Must be a "
+                  "`float` or a `QuakeValue`.");
+          },
+          "Apply a general Pauli tensor product rotation, `exp(i theta P)`, on "
+          "the specified qubit register. The Pauli tensor product is provided "
+          "as a `pauli_word`. The angle parameter can be provided as a "
           "concrete float or a `QuakeValue`.");
 }
 

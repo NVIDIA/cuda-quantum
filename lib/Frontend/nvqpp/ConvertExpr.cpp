@@ -1412,7 +1412,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         // The C-string argument (char*) may be loaded by an lvalue to rvalue
         // cast. Here, we must pass the pointer and not the first character's
         // value.
-        v.dump();
         if (isCharPointerType(v.getType())) {
           processedArgs.push_back(v);
         } else if (auto load = v.getDefiningOp<cudaq::cc::LoadOp>()) {

@@ -961,9 +961,6 @@ def test_exp_pauli():
     assert np.isclose(want_exp, -1.74, atol=1e-2)
 
 
-
-
-
 def test_givens_rotation_op():
     cudaq.reset_target()
     angle = 0.2
