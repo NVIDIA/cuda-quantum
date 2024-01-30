@@ -234,7 +234,7 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
   std::string m_apiKey;
   // FIXME: test functionId
   static inline const std::string m_functionId =
-      "6de39d57-cb4b-47f1-94b0-964b7ff9338e";
+      "caed93da-ebf1-4945-ab95-fff120594522";
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
   std::string nvcfUrl() const {
     return fmt::format("https://{}/nvcf/exec/functions/{}", m_baseUrl,
@@ -348,12 +348,13 @@ public:
           restClient.post(nvcfAssetUrl(), "", requestJson, getHeaders(), true);
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
+      cudaq::info("Upload NVCF Asset Id {}", assetId);
       std::map<std::string, std::string> uploadHeader;
       // This must match the request to create the upload link
       uploadHeader["Content-Type"] = "application/json";
       uploadHeader["x-amz-meta-nvcf-asset-description"] = "cudaq-nvcf-job";
       json jobRequestJs = jobRequest;
-      restClient.put(uploadUrl, "", jobRequestJs, uploadHeader, true);
+      restClient.put(uploadUrl, "", jobRequestJs, uploadHeader, false);
       return assetId;
     } catch (...) {
       return {};

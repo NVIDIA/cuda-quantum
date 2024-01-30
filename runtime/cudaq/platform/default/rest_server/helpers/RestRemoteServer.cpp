@@ -106,11 +106,25 @@ public:
             assert(ids.size() == 1);
             std::filesystem::path assetFile =
                 std::filesystem::path(dir) / ids[0];
-            assert(std::filesystem::exists(assetFile));
+            if (!std::filesystem::exists(assetFile)) {
+              json js;
+              js["error"] = fmt::format("Unable to find the asset file {}",
+                                        assetFile.string());
+              return js;
+            }
             std::ifstream t(assetFile);
             std::string requestFromFile((std::istreambuf_iterator<char>(t)),
                                         std::istreambuf_iterator<char>());
             mutableReq = requestFromFile;
+            try {
+              auto parsed = json::parse(requestFromFile);
+            } catch (...) {
+              json js;
+              js["error"] = fmt::format("Unable to parse the asset file {}",
+                                        assetFile.string());
+              js["data"] = requestFromFile;
+              return js;
+            }
           } else {
             mutableReq = reqBody;
           }
