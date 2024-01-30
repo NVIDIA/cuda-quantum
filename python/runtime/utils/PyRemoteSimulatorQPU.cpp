@@ -14,14 +14,13 @@ namespace {
 
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
-class RemoteSimulatorQPU : public cudaq::BaseRemoteSimulatorQPU {
-
+class PyRemoteSimulatorQPU : public cudaq::BaseRemoteSimulatorQPU {
 public:
-  RemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {}
+  PyRemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {}
 
-  RemoteSimulatorQPU(RemoteSimulatorQPU &&) = delete;
-  virtual ~RemoteSimulatorQPU() = default;
+  PyRemoteSimulatorQPU(PyRemoteSimulatorQPU &&) = delete;
+  virtual ~PyRemoteSimulatorQPU() = default;
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, RemoteSimulatorQPU, RemoteSimulatorQPU)
+CUDAQ_REGISTER_TYPE(cudaq::QPU, PyRemoteSimulatorQPU, PyRemoteSimulatorQPU)
