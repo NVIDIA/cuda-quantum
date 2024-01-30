@@ -14,8 +14,9 @@ Operations that implement unitary transformations of the quantum state are templ
 The template argument allows to invoke the adjoint and controlled version of the quantum transformation, see the section on `Adjoint and Controlled Operations`_.
 
 CUDA Quantum additionally provides overloads to support broadcasting of
-single-qubit operations across a register of qubits. 
-For example, :code:`x(cudaq::qreg<>&)` flips the state of each qubit in the provided :code:`cudaq::qreg`. 
+single-qubit operations across a vector of qubits.  For example,
+:code:`x(cudaq::qvector<>&)` flips the state of each qubit in the provided
+:code:`cudaq::qvector`. 
 
 
 Unitary Operations on Qubits
@@ -382,7 +383,7 @@ The template argument :code:`cudaq::adj` can be used to invoke the
 
 The template argument :code:`cudaq::ctrl` can be used to apply the transformation
 conditional on the state of one or more control qubits, see also this 
-`Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gatese>`__.
+`Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
 
 .. tab:: C++
 

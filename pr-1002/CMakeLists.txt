@@ -15,7 +15,7 @@
 #   SOURCE_DIR <DIR>: the directory that SOURCE_LOCATION is relative to (if not the default)
 #   LAUNCH_COMMAND <COMMAND>: the command to launch the test (e.g., mpirun)
 function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
-  cmake_parse_arguments(PARSED_ARGS "" "TARGET;SOURCE_DIR;LAUNCH_COMMAND" "" ${ARGN}) 
+  cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND" "" ${ARGN}) 
   set(NVQPP_COMPILE_ARGS "")
   if(PARSED_ARGS_TARGET)
     set(NVQPP_COMPILE_ARGS "${NVQPP_COMPILE_ARGS} --target ${PARSED_ARGS_TARGET}")
@@ -27,9 +27,12 @@ function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
   NAME
     nvqpp_${TEST_NAME}
   COMMAND
-    bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ ${NVQPP_COMPILE_ARGS} ${PARSED_ARGS_SOURCE_DIR}/${SOURCE_LOCATION} -o ${TEST_NAME} ;\
+    bash -c "rm -f ${TEST_NAME}; ${CMAKE_BINARY_DIR}/bin/nvq++ ${NVQPP_COMPILE_ARGS} ${PARSED_ARGS_SOURCE_DIR}/${SOURCE_LOCATION} -o ${TEST_NAME} && \
               ${PARSED_ARGS_LAUNCH_COMMAND} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME}"
   )
+  if(PARSED_ARGS_LABELS)
+    set_tests_properties(nvqpp_${TEST_NAME} PROPERTIES LABELS "${PARSED_ARGS_LABELS}")
+  endif()
 endfunction()
 
 add_nvqpp_test(GHZ basics/static_kernel.cpp)
@@ -50,15 +53,15 @@ add_nvqpp_test(IterativePhaseEstimation other/iterative_qpe.cpp)
 add_nvqpp_test(RandomWalkPhaseEstimation other/random_walk_qpe.cpp)
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
-  add_nvqpp_test(CuQuantumGHZ basics/cuquantum_backends.cpp TARGET nvidia)  
-  add_nvqpp_test(CuQuantumBernsteinVazirani algorithms/bernstein_vazirani.cpp TARGET nvidia)  
+  add_nvqpp_test(CuQuantumGHZ basics/cuquantum_backends.cpp TARGET nvidia LABELS gpu_required)  
+  add_nvqpp_test(CuQuantumBernsteinVazirani algorithms/bernstein_vazirani.cpp TARGET nvidia LABELS gpu_required)  
 endif()
 
 # mqpu code snippets, needs custatevec backend and (optionally MPI)
 set(NGPUS 0)
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
-  add_nvqpp_test(SampleAsync using/cudaq/platform/sample_async.cpp TARGET nvidia-mqpu SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
-  add_nvqpp_test(ObserveMQPU using/cudaq/platform/observe_mqpu.cpp TARGET nvidia-mqpu SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+  add_nvqpp_test(SampleAsync using/cudaq/platform/sample_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+  add_nvqpp_test(ObserveMQPU using/cudaq/platform/observe_mqpu.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
   # Add the MPI test if MPI was found and there are more than 2 GPUs
   if (MPI_CXX_FOUND)
     # Count the number of GPUs
@@ -76,50 +79,57 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   endif()   
 endif()
 
-add_test(
-  NAME
-    nvqpp_photonics_sim
-  COMMAND
-    bash -c "${CMAKE_BINARY_DIR}/bin/nvq++ --target photonics ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/cpp/providers/photonics.cpp -o photonics.x ;\
-              ${CMAKE_CURRENT_BINARY_DIR}/photonics.x"
+add_nvqpp_test(photonics_sim providers/photonics.cpp TARGET photonics)
+add_nvqpp_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.cpp TARGET remote-mqpu SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+set_tests_properties(
+  nvqpp_SampleAsyncRemote
+    PROPERTIES
+      ENVIRONMENT_MODIFICATION PATH=path_list_append:${CMAKE_BINARY_DIR}/bin
 )
 
 # Only add the python tests if we built the python API
-if (NOT CUDAQ_ENABLE_PYTHON)
-  return()
-endif()
+if (CUDAQ_ENABLE_PYTHON)
+  function(add_pycudaq_test TEST_NAME SOURCE_LOCATION)
+    cmake_parse_arguments(PARSED_ARGS "" "LABELS;SOURCE_DIR;LAUNCH_COMMAND" "" ${ARGN}) 
+    if (NOT PARSED_ARGS_SOURCE_DIR)
+      set(PARSED_ARGS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/python")
+    endif()
+    add_test(
+    NAME
+      pycudaq_${TEST_NAME}
+    COMMAND
+      bash -c "${PARSED_ARGS_LAUNCH_COMMAND} ${Python_EXECUTABLE} ${PARSED_ARGS_SOURCE_DIR}/${SOURCE_LOCATION}"
+    )
+    if(PARSED_ARGS_LABELS)
+      set_tests_properties(pycudaq_${TEST_NAME} PROPERTIES LABELS "${PARSED_ARGS_LABELS}")
+    endif()
+  endfunction()
 
-# And we have the python interpreter
-find_package(Python COMPONENTS Interpreter QUIET)
-if (NOT Python_FOUND)
-  return()
-endif()
+  add_pycudaq_test(Intro intro.py)
+  add_pycudaq_test(BernsteinVazirani bernstein_vazirani.py)
+  add_pycudaq_test(QAOA qaoa_maxcut.py)
+  add_pycudaq_test(VQE simple_vqe.py)
+  add_pycudaq_test(VQEAdvanced advanced_vqe.py)
 
-function(add_pycudaq_test TEST_NAME SOURCE_LOCATION)
-  cmake_parse_arguments(PARSED_ARGS "" "SOURCE_DIR;LAUNCH_COMMAND" "" ${ARGN}) 
-  if (NOT PARSED_ARGS_SOURCE_DIR)
-    set(PARSED_ARGS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/sphinx/examples/python")
+  add_pycudaq_test(AmplitudeDampingNoise noise_amplitude_damping.py)
+  add_pycudaq_test(BitFlipNoise noise_bit_flip.py)
+  add_pycudaq_test(DepolarizingNoise noise_depolarization.py)
+  add_pycudaq_test(PhaseFlipNoise noise_phase_flip.py)
+  add_pycudaq_test(KrausNoise noise_kraus_operator.py)
+  
+  if (CUTENSORNET_ROOT AND CUDA_FOUND) 
+    # This example uses tensornet backend.
+    add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   endif()
-  add_test(
-  NAME
-    pycudaq_${TEST_NAME}
-  COMMAND
-    bash -c "${PARSED_ARGS_LAUNCH_COMMAND} ${Python_EXECUTABLE} ${PARSED_ARGS_SOURCE_DIR}/${SOURCE_LOCATION}"
-  )
-endfunction()
-
-add_pycudaq_test(Intro intro.py)
-add_pycudaq_test(BernsteinVazirani bernstein_vazirani.py)
-add_pycudaq_test(QAOA qaoa_maxcut.py)
-add_pycudaq_test(VQE simple_vqe.py)
-add_pycudaq_test(VQEAdvanced advanced_vqe.py)
-
-if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
-  add_pycudaq_test(SampleAsync using/cudaq/platform/sample_async.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
-  add_pycudaq_test(ObserveMQPU using/cudaq/platform/observe_mqpu.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
-  if (MPI_CXX_FOUND AND ${NGPUS} GREATER_EQUAL 2)
-    add_pycudaq_test(ObserveMQPU_MPI using/cudaq/platform/observe_mqpu_mpi.py 
-                      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python
-                      LAUNCH_COMMAND "${MPIEXEC} --allow-run-as-root -np 2")
+  
+  if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+    add_pycudaq_test(SampleAsync using/cudaq/platform/sample_async.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+    add_pycudaq_test(ObserveMQPU using/cudaq/platform/observe_mqpu.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+    if (MPI_CXX_FOUND AND ${NGPUS} GREATER_EQUAL 2)
+      add_pycudaq_test(ObserveMQPU_MPI using/cudaq/platform/observe_mqpu_mpi.py 
+                        LABELS "gpu_required;mgpus_required"
+                        SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python
+                        LAUNCH_COMMAND "${MPIEXEC} --allow-run-as-root -np 2")
+    endif()
   endif()
 endif()

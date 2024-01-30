@@ -103,6 +103,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#docker">Docker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#singularity">Singularity</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#python-wheels">Python wheels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#pre-built-binaries">Pre-built binaries</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#development-with-vs-code">Development with VS Code</a><ul>
@@ -121,7 +122,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#use-vs-code">Use VS Code</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#additional-cuda-tools">Additional CUDA Tools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#installation-via-pypi">Installation via PyPI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#installation-in-container-images">Installation In Container Images</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#installing-pre-built-binaries">Installing Pre-built Binaries</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#updating-cuda-quantum">Updating CUDA Quantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -136,10 +144,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
 </ul>
@@ -156,6 +167,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/advanced/cmake_app.html">Downstream CMake Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/advanced/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/advanced/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/advanced/cuda_gpu.html">Combining CUDA (GPU) with CUDA Quantum</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/examples.html">   Examples</a><ul>
@@ -364,6 +376,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
@@ -392,6 +405,24 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_center_install.html">   Data Center Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuquantum">cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cutensor">cuTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#preparing-the-installation">Preparing the Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#mpi">MPI</a></li>
 </ul>
 </li>
 </ul>
@@ -454,7 +485,7 @@ device kernel</p>
 <span class="p">};</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">kernel</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qarray</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="w">    </span><span class="p">...</span>
 <span class="w">    </span><span class="c1">// Create Toffoli gate</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">ctrl_bits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">front</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
@@ -467,7 +498,7 @@ device kernel</p>
 <span class="p">};</span>
 <span class="k">struct</span><span class="w"> </span><span class="nc">kernel</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qreg</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
 <span class="w">    </span><span class="p">...</span>
 <span class="w">    </span><span class="c1">// apply h(q[2]); rx(-pi, q[2]);</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">adjoint</span><span class="p">(</span><span class="n">rx_and_h_gate</span><span class="p">{},</span><span class="w"> </span><span class="n">M_PI</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span>
@@ -477,8 +508,8 @@ device kernel</p>
 </pre></div>
 </div>
 <p>The <code class="code docutils literal notranslate"><span class="pre">cudaq::control(...)</span></code> function takes as input an instantiated pure
-device quantum kernel, an std::range of control qubits (<code class="code docutils literal notranslate"><span class="pre">cudaq::qreg</span></code>
-or <code class="code docutils literal notranslate"><span class="pre">cudaq::qspan</span></code>), and the remaining arguments for the kernel itself.
+device quantum kernel, a std::range of control qubits (<code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>
+or <code class="code docutils literal notranslate"><span class="pre">cudaq::qview</span></code>), and the remaining arguments for the kernel itself.
 Compiler implementations are free to synthesize multi-controlled operations
 using any pertinent synthesis strategy available. Qubits may be aggregated into
 a range of control qubits with or without the use of the <code class="code docutils literal notranslate"><span class="pre">operator!</span></code>

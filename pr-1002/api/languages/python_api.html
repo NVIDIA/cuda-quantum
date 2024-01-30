@@ -103,6 +103,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#docker">Docker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#singularity">Singularity</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#python-wheels">Python wheels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#pre-built-binaries">Pre-built binaries</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#development-with-vs-code">Development with VS Code</a><ul>
@@ -121,7 +122,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../../install.html#use-vs-code">Use VS Code</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#additional-cuda-tools">Additional CUDA Tools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#installation-via-pypi">Installation via PyPI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#installation-in-container-images">Installation In Container Images</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install.html#installing-pre-built-binaries">Installing Pre-built Binaries</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../install.html#updating-cuda-quantum">Updating CUDA Quantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../install.html#next-steps">Next Steps</a></li>
 </ul>
@@ -136,10 +144,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/builder.html">Creating Kernels at Runtime</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/variational.html">Variational Algorithms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/cudaq/platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#python">Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/cudaq/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/cudaq/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
 </ul>
@@ -156,6 +167,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/advanced/cmake_app.html">Downstream CMake Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/advanced/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/advanced/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/advanced/cuda_gpu.html">Combining CUDA (GPU) with CUDA Quantum</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/examples.html">   Examples</a><ul>
@@ -364,6 +376,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
@@ -392,6 +405,24 @@
 <li class="toctree-l4"><a class="reference internal" href="../default_ops.html#my"><code class="code docutils literal notranslate"><span class="pre">my</span></code></a></li>
 </ul>
 </li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_center_install.html">   Data Center Installation Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuquantum">cuQuantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cutensor">cuTensor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#preparing-the-installation">Preparing the Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#mpi">MPI</a></li>
 </ul>
 </li>
 </ul>
@@ -1958,11 +1989,94 @@ Its state will be swapped with the <code class="code docutils literal notranslat
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Kernel.cswap">
+<span class="sig-name descname"><span class="pre">cswap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.cswap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">cswap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">control</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">second</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Perform a controlled-SWAP operation between two qubits,
+if and only if the state of the provided <code class="code docutils literal notranslate"><span class="pre">control</span></code> qubit/s is 1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>control</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The control qubit/s for the operation.</p></li>
+<li><p><strong>first</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.
+Its state will swap with the <code class="code docutils literal notranslate"><span class="pre">second</span></code> qubit, based on the state of the
+input <code class="code docutils literal notranslate"><span class="pre">control</span></code>.</p></li>
+<li><p><strong>second</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.
+Its state will swap with the <code class="code docutils literal notranslate"><span class="pre">first</span></code> qubit, based on the state of the
+input <code class="code docutils literal notranslate"><span class="pre">control</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Allocate control qubit/s to the `kernel`.</span>
+<span class="n">control</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="c1"># Allocate target qubits to the `kernel`.</span>
+<span class="n">targets</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="c1"># Place the 0th target qubit in the 1-state.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="c1"># Place our control/s in the 1-state.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">control</span><span class="p">)</span>
+<span class="c1"># Since the `control` is all in the 1-state, our target</span>
+<span class="c1"># states should undergo a SWAP.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cswap</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">cswap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">controls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">second</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Perform a controlled-SWAP operation between two qubits,
+if and only if the states of all provided <code class="code docutils literal notranslate"><span class="pre">control</span></code> qubits are 1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>controls</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><em>list</em></a><em>[</em><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><em>QuakeValue</em></a><em>]</em>) – The list of control qubits for the operation.</p></li>
+<li><p><strong>first</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.
+Its state will swap with the <code class="code docutils literal notranslate"><span class="pre">second</span></code> qubit, based on the state of the
+input <code class="code docutils literal notranslate"><span class="pre">controls</span></code>.</p></li>
+<li><p><strong>second</strong> (<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>) – The target qubit of the operation.
+Its state will swap with the <code class="code docutils literal notranslate"><span class="pre">first</span></code> qubit, based on the state of the
+input <code class="code docutils literal notranslate"><span class="pre">controls</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example:</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="c1"># Allocate control qubits to the `kernel`.</span>
+<span class="n">controls</span> <span class="o">=</span> <span class="p">[</span><span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(),</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()]</span>
+<span class="c1"># Allocate target qubits to the `kernel`.</span>
+<span class="n">targets</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="c1"># Place the 0th target qubit in the 1-state.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="c1"># Place our controls in the 1-state.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">controls</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">controls</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="c1"># Since the `controls` are all in the 1-state, our target</span>
+<span class="c1"># states should undergo a SWAP.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cswap</span><span class="p">(</span><span class="n">controls</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.Kernel.exp_pauli">
 <span class="sig-name descname"><span class="pre">exp_pauli</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Kernel.exp_pauli" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">exp_pauli</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">exp_pauli</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><span class="pre">cudaq.Kernel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.12)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><span class="pre">cudaq.QuakeValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Apply a general Pauli tensor product rotation, <code class="code docutils literal notranslate"><span class="pre">exp(i</span> <span class="pre">theta</span> <span class="pre">P)</span></code>, on the specified qubit register. The Pauli tensor product is provided as a string, e.g. <code class="code docutils literal notranslate"><span class="pre">XXYX</span></code> for a 4-qubit term. The angle parameter can be provided as a concrete float or a <code class="code docutils literal notranslate"><span class="pre">QuakeValue</span></code>.</p>
@@ -3625,7 +3739,7 @@ argument to a <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Ke
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3051566745</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">186328577</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
@@ -4639,13 +4753,37 @@ to the specified <code class="code docutils literal notranslate"><span class="pr
 
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.mpi.all_gather">
-<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">all_gather</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.all_gather" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py function">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">all_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.all_gather" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
 <dt class="sig sig-object py">
 <span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">all_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd></dd></dl>
 
-<p>Gather and scatter the <code class="code docutils literal notranslate"><span class="pre">local</span></code> list, returning a concatenation of all lists across all ranks. The total global list size must be provided.</p>
+</li>
+</ol>
+<p>Gather and scatter the <code class="code docutils literal notranslate"><span class="pre">local</span></code> list of floating-point numbers, returning a concatenation of all lists across all ranks. The total global list size must be provided.</p>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">all_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Gather and scatter the <code class="code docutils literal notranslate"><span class="pre">local</span></code> list of integers, returning a concatenation of all lists across all ranks. The total global list size must be provided.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.broadcast">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">broadcast</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.broadcast" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">broadcast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd></dd></dl>
+
+<p>Broadcast an array from a process (rootRank) to all other processes. The size of broadcast array must be provided.</p>
 </dd></dl>
 
 <dl class="py method">
