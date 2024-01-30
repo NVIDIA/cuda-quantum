@@ -64,15 +64,15 @@ struct S {
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_3]][2] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_6]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.struct<"T" {}>
+// CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>
 // CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_3]][0] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_9:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_9]]) : (i32) -> ()
-// CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.struct<"T" {}>
+// CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>
 // CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_11]] : !cc.ptr<i32>
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_12]]) : (i32) -> ()
-// CHECK:           %[[VAL_13:.*]] = cc.alloca !cc.struct<"T" {}>
+// CHECK:           %[[VAL_13:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>
 // CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_3]][2] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i32>
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_15]]) : (i32) -> ()
@@ -99,15 +99,15 @@ struct S1 {
 // CHECK:           cc.store %[[VAL_1]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_3]][2] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_6]] : !cc.ptr<i32>
-// CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.struct<"T" {}>
+// CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>
 // CHECK:           %[[VAL_8:.*]] = cc.compute_ptr %[[VAL_3]][0] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_9:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_9]]) : (i32) -> ()
-// CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.struct<"T" {}>
+// CHECK:           %[[VAL_10:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>
 // CHECK:           %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_3]][1] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_11]] : !cc.ptr<i32>
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_12]]) : (i32) -> ()
-// CHECK:           %[[VAL_13:.*]] = cc.alloca !cc.struct<"T" {}>
+// CHECK:           %[[VAL_13:.*]] = cc.alloca !cc.struct<"T" {} [8,1]>
 // CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_3]][2] : (!cc.ptr<!cc.array<i32 x 3>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i32>
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_15]]) : (i32) -> ()
