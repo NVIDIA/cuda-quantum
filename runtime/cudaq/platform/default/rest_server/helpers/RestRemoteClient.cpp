@@ -232,6 +232,7 @@ public:
 
 class NvcfRuntimeClient : public RemoteRestRuntimeClient {
   std::string m_apiKey;
+  cudaq::RestClient m_restClient;
   // FIXME: test functionId
   static inline const std::string m_functionId =
       "caed93da-ebf1-4945-ab95-fff120594522";
@@ -243,6 +244,13 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
   std::string nvcfAssetUrl() const {
     return fmt::format("https://{}/nvcf/assets", m_baseUrl);
   }
+
+  std::string
+  nvcfInvocationStatus(const std::string &invocationRequestId) const {
+    return fmt::format("https://{}/v2/nvcf/exec/status/{}", m_baseUrl,
+                       invocationRequestId);
+  }
+
   std::map<std::string, std::string> &getHeaders() const {
     static std::map<std::string, std::string> header{
         {"Authorization", fmt::format("Bearer {}", m_apiKey)},
@@ -298,13 +306,21 @@ public:
     }
 
     try {
-      cudaq::RestClient restClient;
       cudaq::debug("Sending NVCF request to {}", nvcfUrl());
       // cudaq::debug("Request: \n", requestJson.dump());
       auto resultJs =
-          restClient.post(nvcfUrl(), "", requestJson, jobHeader, false);
-
+          m_restClient.post(nvcfUrl(), "", requestJson, jobHeader, false);
       cudaq::debug("Response: {}", resultJs.dump());
+      while (resultJs.contains("status") &&
+             resultJs["status"] == "pending-evaluation") {
+        const std::string reqId = resultJs["reqId"];
+        cudaq::info("Polling result data for Request Id {}", reqId);
+        // Wait 1 sec then poll the result
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        resultJs =
+            m_restClient.get(nvcfInvocationStatus(reqId), "", getHeaders());
+      }
+
       if (!resultJs.contains("status") || resultJs["status"] != "fulfilled") {
         if (optionalErrorMsg)
           *optionalErrorMsg =
@@ -343,9 +359,8 @@ public:
     requestJson["contentType"] = "application/json";
     requestJson["description"] = "cudaq-nvcf-job";
     try {
-      cudaq::RestClient restClient;
-      auto resultJs =
-          restClient.post(nvcfAssetUrl(), "", requestJson, getHeaders(), true);
+      auto resultJs = m_restClient.post(nvcfAssetUrl(), "", requestJson,
+                                        getHeaders(), true);
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
       cudaq::info("Upload NVCF Asset Id {} to {}", assetId, uploadUrl);
@@ -354,7 +369,7 @@ public:
       uploadHeader["Content-Type"] = "application/json";
       uploadHeader["x-amz-meta-nvcf-asset-description"] = "cudaq-nvcf-job";
       json jobRequestJs = jobRequest;
-      restClient.put(uploadUrl, "", jobRequestJs, uploadHeader, false);
+      m_restClient.put(uploadUrl, "", jobRequestJs, uploadHeader, false);
       return assetId;
     } catch (...) {
       return {};
