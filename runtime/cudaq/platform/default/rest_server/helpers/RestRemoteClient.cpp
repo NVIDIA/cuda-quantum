@@ -234,7 +234,7 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
   std::string m_apiKey;
   // FIXME: test functionId
   static inline const std::string m_functionId =
-      "caed93da-ebf1-4945-ab95-fff120594522";
+      "6de39d57-cb4b-47f1-94b0-964b7ff9338e";
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
   std::string nvcfUrl() const {
     return fmt::format("https://{}/nvcf/exec/functions/{}", m_baseUrl,
@@ -289,20 +289,22 @@ public:
       }
       jobHeader["NVCF-INPUT-ASSET-REFERENCES"] = assetId.value();
       json requestBody;
-      requestBody["inputAssetReferences"] = assetId.value();
+      requestBody["inputAssetReferences"] =
+          std::vector<std::string>{assetId.value()};
       requestJson["requestBody"] = requestBody;
+      requestJson["requestHeader"] = requestBody;
     } else {
       requestJson["requestBody"] = request;
     }
 
     try {
       cudaq::RestClient restClient;
-      cudaq::debug("Sending NVCF request to ", nvcfUrl());
-      cudaq::debug("Request: \n", requestJson.dump());
+      cudaq::debug("Sending NVCF request to {}", nvcfUrl());
+      // cudaq::debug("Request: \n", requestJson.dump());
       auto resultJs =
-          restClient.post(nvcfUrl(), "", requestJson, jobHeader, true);
+          restClient.post(nvcfUrl(), "", requestJson, jobHeader, false);
 
-      cudaq::debug("Response: \n", resultJs.dump());
+      cudaq::debug("Response: {}", resultJs.dump());
       if (!resultJs.contains("status") || resultJs["status"] != "fulfilled") {
         if (optionalErrorMsg)
           *optionalErrorMsg =

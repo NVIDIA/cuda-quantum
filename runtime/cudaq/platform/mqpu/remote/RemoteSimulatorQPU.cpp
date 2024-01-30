@@ -106,6 +106,15 @@ public:
 
 private:
   std::string searchAPIKey(const std::string &userSpecifiedConfigFile = "") {
+    if (auto apiKey = std::getenv("NVCF_API_KEY")) {
+      const auto key = std::string(apiKey);
+      if (key.starts_with("nvapi-"))
+        return key;
+      throw std::runtime_error(
+          "An invalid NVCF API key is set in the NVCF_API_KEY environment "
+          "variable. Please check your settings.");
+    }
+
     std::string hwConfig;
     // Allow someone to tweak this with an environment variable
     if (auto creds = std::getenv("CUDAQ_NVCF_CREDENTIALS"))
