@@ -40,8 +40,7 @@ namespace py = pybind11;
 static std::unique_ptr<cudaq::LinkedLibraryHolder> holder;
 
 PYBIND11_MODULE(_quakeDialects, m) {
-  holder =
-      std::make_unique<cudaq::LinkedLibraryHolder>(/*override_rest_qpu*/ true);
+  holder = std::make_unique<cudaq::LinkedLibraryHolder>();
 
   cudaq::bindRegisterDialects(m);
 

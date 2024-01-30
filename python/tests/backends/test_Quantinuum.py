@@ -54,12 +54,7 @@ def configureTarget(startUpMockServer):
     # Set the targeted QPU with credentials
     cudaq.set_target('quantinuum',
                      url='http://localhost:{}'.format(port),
-                     credentials=startUpMockServer,
-                     ## [SKIP_TEST]: The following setting should happen 
-                     ## automatically by setting the 'override_rest_qpu' flag 
-                     ## to 'true' in LinkedLibraryHolder constructor. But, it 
-                     ## isn't, hence, explicitly setting it for sake of testing.
-                     override_qpu='py_remote_rest')
+                     credentials=startUpMockServer)
 
     yield "Running the test."
     cudaq.reset_target()

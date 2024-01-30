@@ -27,6 +27,7 @@ qlist = qvector
 SpinOperator = cudaq_runtime.SpinOperator
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
+Target = cudaq_runtime.Target
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
@@ -60,7 +61,8 @@ BitFlipChannel = cudaq_runtime.BitFlipChannel
 # Functions
 sample_async = cudaq_runtime.sample_async
 observe_async = cudaq_runtime.observe_async
-
+SampleResult = cudaq_runtime.SampleResult
+ObserveResult = cudaq_runtime.ObserveResult
 AsyncSampleResult = cudaq_runtime.AsyncSampleResult
 AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 

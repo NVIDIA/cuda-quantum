@@ -24,12 +24,7 @@ def configureTarget():
     f.close()
 
     # Set the targeted QPU
-    cudaq.set_target('quantinuum', emulate='true',
-                     ## [SKIP_TEST]: The following setting should happen 
-                     ## automatically by setting the 'override_rest_qpu' flag 
-                     ## to 'true' in LinkedLibraryHolder constructor. But, it 
-                     ## isn't, hence, explicitly setting it for sake of testing.
-                     override_qpu='py_remote_rest')
+    cudaq.set_target('quantinuum', emulate='true')
 
     yield "Running the tests."
 

@@ -75,11 +75,8 @@ protected:
   /// @brief Store the name of the current target
   std::string currentTarget;
 
-  bool overrideRestQPU = false;
-
 public:
   LinkedLibraryHolder();
-  LinkedLibraryHolder(bool overrideRestQPU);
   ~LinkedLibraryHolder();
 
   /// @brief Return the registered simulator with the given name.

@@ -145,8 +145,7 @@ void findAvailableTargets(
   }
 }
 
-LinkedLibraryHolder::LinkedLibraryHolder(bool override)
-    : overrideRestQPU(override) {
+LinkedLibraryHolder::LinkedLibraryHolder() {
   cudaq::info("Init infrastructure for pythonic builder.");
 
   cudaq::__internal__::CUDAQLibraryData data;
@@ -190,16 +189,6 @@ LinkedLibraryHolder::LinkedLibraryHolder(bool override)
   for (auto &p : libPaths)
     libHandles.emplace(p.string(),
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
-
-  if (!overrideRestQPU) {
-    // We will always load the RemoteRestQPU plugin in Python.
-    auto potentialPath =
-        cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
-    void *restQpuLibHandle =
-        dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-    if (restQpuLibHandle)
-      libHandles.emplace(potentialPath.string(), restQpuLibHandle);
-  }
 
   // Search for all simulators and create / store them
   for (const auto &library :
@@ -293,8 +282,6 @@ LinkedLibraryHolder::LinkedLibraryHolder(bool override)
   resetTarget();
 }
 
-LinkedLibraryHolder::LinkedLibraryHolder() : LinkedLibraryHolder(false) {}
-
 LinkedLibraryHolder::~LinkedLibraryHolder() {
   for (auto &[name, handle] : libHandles) {
     if (handle)
@@ -372,21 +359,16 @@ void LinkedLibraryHolder::setTarget(
 
   // Pack the config into the backend string name
   std::string backendConfigStr = targetName;
-  if (overrideRestQPU) {
-    // Need to load the server helper here
-    auto potentialPath =
-        cudaqLibPath /
-        fmt::format("libcudaq-serverhelper-{}.{}", targetName, libSuffix);
-    if (std::filesystem::exists(potentialPath) &&
-        !libHandles.count(potentialPath.string())) {
-      void *serverHelperHandle =
-          dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-      if (serverHelperHandle)
-        libHandles.emplace(potentialPath.string(), serverHelperHandle);
-
-      // This can only be set if there was a valid server helper
-      backendConfigStr += ";override_qpu;py_remote_rest";
-    }
+  auto potentialServerHelperPath =
+      cudaqLibPath /
+      fmt::format("libcudaq-serverhelper-{}.{}", targetName, libSuffix);
+  if (std::filesystem::exists(potentialServerHelperPath) &&
+      !libHandles.count(potentialServerHelperPath.string())) {
+    void *serverHelperHandle = dlopen(
+        potentialServerHelperPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+    if (serverHelperHandle)
+      libHandles.emplace(potentialServerHelperPath.string(),
+                         serverHelperHandle);
   }
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
