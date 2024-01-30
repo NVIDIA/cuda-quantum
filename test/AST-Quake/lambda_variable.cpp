@@ -49,7 +49,7 @@ struct test3_caller {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test3_callee" {}>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test3_callee" {} [8,1]>
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
 // CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref{{.*}}):
 // CHECK:             quake.h %[[VAL_4]] : (!quake.ref) -> ()
@@ -91,7 +91,7 @@ struct test4_caller {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test4_callee" {}>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test4_callee" {} [8,1]>
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
 // CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref{{.*}}):
 // CHECK:             quake.h %[[VAL_4]] : (!quake.ref) -> ()

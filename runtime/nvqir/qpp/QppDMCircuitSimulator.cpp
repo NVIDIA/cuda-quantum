@@ -35,6 +35,11 @@ protected:
     // Get the name as a string
     std::string gName(gateName);
 
+    std::vector<std::size_t> casted_qubits;
+    for (auto index : qubits) {
+      casted_qubits.push_back(convertQubitIndex(index));
+    }
+
     // Get the Kraus channels specified for this gate and qubits
     auto krausChannels =
         executionContext->noiseModel->get_channels(gName, qubits);
@@ -56,24 +61,12 @@ protected:
           });
 
       // Apply K rho Kdag
-      state = qpp::apply(state, K, qubits);
+      state = qpp::apply(state, K, casted_qubits);
     }
   }
 
   /// @brief Grow the density matrix by one qubit.
-  void addQubitToState() override {
-    // Update the state vector
-    if (state.size() == 0) {
-      state = qpp::cmat::Zero(stateDimension, stateDimension);
-      state(0, 0) = 1.0;
-      return;
-    }
-
-    // Additional qubit is added in the |0><0| state.
-    qpp::cmat zero_state = qpp::cmat::Zero(2, 2);
-    zero_state(0, 0) = 1.0;
-    state = qpp::kron(state, zero_state);
-  }
+  void addQubitToState() override { addQubitsToState(1); }
 
   void addQubitsToState(std::size_t count) override {
     if (count == 0)
@@ -88,7 +81,7 @@ protected:
 
     qpp::cmat zero_state = qpp::cmat::Zero(1 << count, 1 << count);
     zero_state(0, 0) = 1.0;
-    state = qpp::kron(state, zero_state);
+    state = qpp::kron(zero_state, state);
   }
 
   void setToZeroState() override {
