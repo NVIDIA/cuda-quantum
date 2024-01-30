@@ -348,7 +348,7 @@ public:
           restClient.post(nvcfAssetUrl(), "", requestJson, getHeaders(), true);
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
-      cudaq::info("Upload NVCF Asset Id {}", assetId);
+      cudaq::info("Upload NVCF Asset Id {} to {}", assetId, uploadUrl);
       std::map<std::string, std::string> uploadHeader;
       // This must match the request to create the upload link
       uploadHeader["Content-Type"] = "application/json";

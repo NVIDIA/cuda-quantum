@@ -103,7 +103,12 @@ public:
           if (dirIter != headers.end() && assetIdIter != headers.end()) {
             const std::string dir = dirIter->second;
             const auto ids = cudaq::split(assetIdIter->second, ',');
-            assert(ids.size() == 1);
+            if (ids.size() != 1) {
+              json js;
+              js["error"] =
+                  fmt::format("Invalid asset Id data: {}", assetIdIter->second);
+              return js;
+            }
             std::filesystem::path assetFile =
                 std::filesystem::path(dir) / ids[0];
             if (!std::filesystem::exists(assetFile)) {
