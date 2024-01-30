@@ -95,6 +95,18 @@ public:
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
           std::string mutableReq;
+          // ===== DEBUG ======
+          json js;
+          for (const auto &[k, v] : headers)
+            js[k] = v;
+          js["body"] = reqBody;
+
+          return js;
+          // ===== DEBUG ======
+
+          
+          
+          
           for (const auto &[k, v] : headers)
             cudaq::info("Request Header: {} : {}", k, v);
 
