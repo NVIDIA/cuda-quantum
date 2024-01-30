@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -88,15 +88,17 @@ RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep 
 
 # Some tools related to shell handling.
 
+ARG git_source_sha=xxxxxxxx
 ARG COPYRIGHT_NOTICE="=========================\n\
    NVIDIA CUDA Quantum   \n\
 =========================\n\n\
 Version: ${CUDA_QUANTUM_VERSION}\n\n\
-Copyright (c) 2023 NVIDIA Corporation & Affiliates \n\
+Copyright (c) 2024 NVIDIA Corporation & Affiliates \n\
 All rights reserved.\n\n\
 To run a command as administrator (user `root`), use `sudo <command>`.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"
 RUN echo 'cat "$CUDA_QUANTUM_PATH/Copyright.txt"' > /etc/profile.d/welcome.sh
+RUN echo "source-sha: $git_source_sha" > "$CUDA_QUANTUM_PATH/build_info.txt"
 
 # See also https://github.com/microsoft/vscode-remote-release/issues/4781
 RUN env | egrep -v "^(HOME=|USER=|MAIL=|LC_ALL=|LS_COLORS=|LANG=|HOSTNAME=|PWD=|TERM=|SHLVL=|LANGUAGE=|_=)" \
