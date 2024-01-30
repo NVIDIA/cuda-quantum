@@ -290,25 +290,33 @@ private:
   }
 
   json processRequest(const std::string &reqBody) {
-    // IMPORTANT: This assumes the REST server handles incoming requests
-    // sequentially.
-    static std::size_t g_requestCounter = 0;
-    auto requestJson = json::parse(reqBody);
-    cudaq::RestRequest request(requestJson);
-    const auto reqId = g_requestCounter++;
-    m_codeTransform[reqId] = CodeTransformInfo(request.format, request.passes);
-    std::vector<char> decodedCodeIr;
-    if (llvm::decodeBase64(request.code, decodedCodeIr)) {
-      throw std::runtime_error("Failed to decode input IR");
+    try {
+      // IMPORTANT: This assumes the REST server handles incoming requests
+      // sequentially.
+      static std::size_t g_requestCounter = 0;
+      auto requestJson = json::parse(reqBody);
+      cudaq::RestRequest request(requestJson);
+      const auto reqId = g_requestCounter++;
+      m_codeTransform[reqId] =
+          CodeTransformInfo(request.format, request.passes);
+      std::vector<char> decodedCodeIr;
+      if (llvm::decodeBase64(request.code, decodedCodeIr)) {
+        throw std::runtime_error("Failed to decode input IR");
+      }
+      std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
+      handleRequest(reqId, request.executionContext, request.simulator, codeStr,
+                    request.entryPoint, request.args.data(),
+                    request.args.size(), request.seed);
+      json resultJson;
+      resultJson["executionContext"] = request.executionContext;
+      m_codeTransform.erase(reqId);
+      return resultJson;
+    } catch (...) {
+      json resultJson;
+      resultJson["error"] = "Failed to process incoming request";
+      resultJson["requestBody"] = reqBody;
+      return reqBody;
     }
-    std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
-    handleRequest(reqId, request.executionContext, request.simulator, codeStr,
-                  request.entryPoint, request.args.data(), request.args.size(),
-                  request.seed);
-    json resultJson;
-    resultJson["executionContext"] = request.executionContext;
-    m_codeTransform.erase(reqId);
-    return resultJson;
   }
 };
 } // namespace
