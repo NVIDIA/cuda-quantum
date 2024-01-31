@@ -25,8 +25,7 @@ following top-level :code:`CMakeLists.txt` file to build this file with
     find_package(CUDAQ REQUIRED)
     add_executable(ghz_exe ghz.cpp)
 
-To configure and build this file, all one needs to do is (from the top level of 
-the :code:`myCudaQApp` folder)
+To configure and build this file, all we need to do is execute the following from the top level of the :code:`myCudaQApp` folder:
 
 .. code:: bash 
 
@@ -35,6 +34,6 @@ the :code:`myCudaQApp` folder)
     ninja
     ./ghz_exe 
 
-If you run the :code:`ninja` command with :code:`--verbose` you'll see that 
+Notice that by running the :code:`ninja` command with :code:`--verbose`, you'll see that 
 :code:`nvq++` was used to compile and link the executable. 
 
