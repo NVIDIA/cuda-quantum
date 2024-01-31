@@ -54,8 +54,6 @@ def test_simpleObserveN_QNN():
     assert np.isclose(data[-1], 0.33752631)
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="RuntimeError: Could not pack argument...")
 @skipIfNoMQPU
 def test_observeAsync_QNN():
     target = cudaq.get_target('nvidia-mqpu')

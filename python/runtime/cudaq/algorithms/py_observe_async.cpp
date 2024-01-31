@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -34,7 +34,9 @@ void bindObserveAsync(py::module &mod) {
 
         auto &platform = cudaq::get_platform();
         auto *argData = new cudaq::OpaqueArguments();
-        cudaq::packArgs(*argData, args);
+        args = simplifiedValidateInputArguments(args);
+        cudaq::packArgs(*argData, args,
+                        [](OpaqueArguments &, py::object &) { return false; });
         auto kernelName = kernel.attr("name").cast<std::string>();
         auto kernelMod = kernel.attr("module").cast<MlirModule>();
 
