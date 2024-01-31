@@ -439,6 +439,13 @@ class PyKernel(object):
             qubitsList = []
             pauliWordVal = None
             for arg in args:
+                if isinstance(arg, cudaq_runtime.SpinOperator):
+                    if arg.get_term_count() > 1:
+                        raise RuntimeError(
+                            'exp_pauli requires a SpinOperator composed of a single term.'
+                        )
+                    arg = arg.to_string(False)
+
                 if isinstance(arg, str):
                     retTy = cc.PointerType.get(
                         self.ctx,

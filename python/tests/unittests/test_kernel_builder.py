@@ -934,19 +934,17 @@ def test_exp_pauli():
     want_exp = cudaq.observe(kernel, h, .11).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
-    ## [SKIP_TEST]: Reason - AssertionError on 'exp_pauli'
-    ## May need to port work in https://github.com/NVIDIA/cuda-quantum/commit/93e06d78b2894d5b49d1c232b8147aabdf9f1bf0
-    # kernel, theta = cudaq.make_kernel(float)
-    # qubits = kernel.qalloc(4)
-    # kernel.x(qubits[0])
-    # kernel.x(qubits[1])
-    # kernel.exp_pauli(theta, qubits, cudaq.SpinOperator.from_word('XXXY'))
-    # want_exp = cudaq.observe(kernel, h, .11).expectation()
-    # assert np.isclose(want_exp, -1.13, atol=1e-2)
+    kernel, theta = cudaq.make_kernel(float)
+    qubits = kernel.qalloc(4)
+    kernel.x(qubits[0])
+    kernel.x(qubits[1])
+    kernel.exp_pauli(theta, qubits, cudaq.SpinOperator.from_word('XXXY'))
+    want_exp = cudaq.observe(kernel, h, .11).expectation()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)
 
-    # invalidOp = cudaq.SpinOperator.from_word('XXXY') + cudaq.SpinOperator.from_word("YYYX")
-    # with pytest.raises(RuntimeError) as error:
-    #     kernel.exp_pauli(theta, qubits, invalidOp)
+    invalidOp = cudaq.SpinOperator.from_word('XXXY') + cudaq.SpinOperator.from_word("YYYX")
+    with pytest.raises(RuntimeError) as error:
+        kernel.exp_pauli(theta, qubits, invalidOp)
 
 
 def test_givens_rotation_op():
