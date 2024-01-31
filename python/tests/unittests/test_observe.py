@@ -282,10 +282,6 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
     with pytest.raises(RuntimeError) as error:
         # Too few.
         cudaq.observe(kernel, hamiltonian, np.pi, np.pi)
-    ## [SKIP_TEST]: Following check fails with "Failed: DID NOT RAISE <class 'RuntimeError'>"
-    # with pytest.raises(RuntimeError) as error:
-    #     # Too many list elements.
-    #     cudaq.observe(kernel, hamiltonian, np.pi, np.pi, [np.pi, np.pi, np.pi])
 
 
 @pytest.mark.parametrize("want_state, want_expectation",
