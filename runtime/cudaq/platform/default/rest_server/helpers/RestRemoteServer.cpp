@@ -105,7 +105,7 @@ public:
             const auto ids = cudaq::split(assetIdIter->second, ',');
             if (ids.size() != 1) {
               json js;
-              js["error"] =
+              js["status"] =
                   fmt::format("Invalid asset Id data: {}", assetIdIter->second);
               return js;
             }
@@ -113,8 +113,8 @@ public:
                 std::filesystem::path(dir) / ids[0];
             if (!std::filesystem::exists(assetFile)) {
               json js;
-              js["error"] = fmt::format("Unable to find the asset file {}",
-                                        assetFile.string());
+              js["status"] = fmt::format("Unable to find the asset file {}",
+                                         assetFile.string());
               return js;
             }
             std::ifstream t(assetFile);
@@ -127,7 +127,35 @@ public:
 
           if (m_hasMpi)
             cudaq::mpi::broadcast(mutableReq, 0);
-          return processRequest(mutableReq);
+          auto resultJs = processRequest(mutableReq);
+          if (headers.contains("NVCF-MAX-RESPONSE-SIZE-BYTES")) {
+            const std::size_t maxResponseSizeBytes = std::stoll(
+                headers.find("NVCF-MAX-RESPONSE-SIZE-BYTES")->second);
+            if (resultJs.dump().size() > maxResponseSizeBytes) {
+              const auto outputDirIter = headers.find("NVCF-LARGE-OUTPUT-DIR");
+              const auto reqIdIter = headers.find("NVCF-REQID");
+              if (outputDirIter == headers.end() ||
+                  reqIdIter == headers.end()) {
+                json js;
+                js["status"] =
+                    "Failed to locate output file location for large response.";
+                return js;
+              }
+
+              const std::string outputDir = outputDirIter->second;
+              const std::string fileName = reqIdIter->second + "_result.json";
+              const std::filesystem::path outputFile =
+                  std::filesystem::path(outputDir) / fileName;
+              std::ofstream file(outputFile.string());
+              file << resultJs.dump();
+              file.flush();
+              json js;
+              js["resultFile"] = fileName;
+              return js;
+            }
+          }
+
+          return resultJs;
         });
     m_mlirContext = cudaq::initializeMLIR();
     m_hasMpi = cudaq::mpi::is_initialized();

@@ -38,7 +38,8 @@
 #include "common/RestClient.h"
 #include "cudaq.h"
 #include <dlfcn.h>
-
+#include <fstream>
+#include <streambuf>
 namespace {
 using namespace mlir;
 class RemoteRestRuntimeClient : public cudaq::RemoteRuntimeClient {
@@ -235,11 +236,15 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
   cudaq::RestClient m_restClient;
   // FIXME: test functionId
   static inline const std::string m_functionId =
-      "caed93da-ebf1-4945-ab95-fff120594522";
+      "5940cb4c-ae57-43ff-8a0d-d23b08b90637";
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
-  std::string nvcfUrl() const {
-    return fmt::format("https://{}/nvcf/exec/functions/{}", m_baseUrl,
-                       m_functionId);
+  std::string
+  nvcfInvocationUrl(const std::string &functionVersionId = "") const {
+    return functionVersionId.empty()
+               ? fmt::format("https://{}/nvcf/exec/functions/{}", m_baseUrl,
+                             m_functionId)
+               : fmt::format("https://{}/nvcf/exec/functions/versions/{}",
+                             m_baseUrl, m_functionId, functionVersionId);
   }
   std::string nvcfAssetUrl() const {
     return fmt::format("https://{}/nvcf/assets", m_baseUrl);
@@ -295,7 +300,6 @@ public:
           *optionalErrorMsg = "Failed to upload request as NVCF assets";
         return false;
       }
-      jobHeader["NVCF-INPUT-ASSET-REFERENCES"] = assetId.value();
       json requestBody;
       requestBody["inputAssetReferences"] =
           std::vector<std::string>{assetId.value()};
@@ -306,10 +310,10 @@ public:
     }
 
     try {
-      cudaq::debug("Sending NVCF request to {}", nvcfUrl());
+      cudaq::debug("Sending NVCF request to {}", nvcfInvocationUrl());
       // cudaq::debug("Request: \n", requestJson.dump());
       auto resultJs =
-          m_restClient.post(nvcfUrl(), "", requestJson, jobHeader, false);
+          m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader, false);
       cudaq::debug("Response: {}", resultJs.dump());
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
