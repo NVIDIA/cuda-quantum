@@ -131,4 +131,39 @@ nlohmann::json RestClient::get(const std::string_view remoteUrl,
   return nlohmann::json::parse(r.text);
 }
 
+void RestClient::del(const std::string_view remoteUrl,
+                     const std::string_view path,
+                     std::map<std::string, std::string> &headers,
+                     bool enableLogging) {
+  cpr::Header cprHeaders;
+  for (auto &kv : headers)
+    cprHeaders.insert({kv.first, kv.second});
+
+  cpr::Parameters cprParams;
+  auto actualPath = std::string(remoteUrl) + std::string(path);
+  auto r = cpr::Delete(cpr::Url{actualPath}, cprHeaders, cprParams,
+                       cpr::VerifySsl(false));
+
+  if (r.status_code > validHttpCode || r.status_code == 0)
+    throw std::runtime_error("HTTP DELETE Error - status code " +
+                             std::to_string(r.status_code) + ": " +
+                             r.error.message + ": " + r.text);
+}
+
+std::string RestClient::download(const std::string_view remoteUrl,
+                                 bool enableLogging) {
+  auto r = cpr::Get(cpr::Url{std::string(remoteUrl)}, cpr::Header{},
+                    cpr::Parameters{}, cpr::VerifySsl(false));
+
+  if (r.status_code > validHttpCode || r.status_code == 0)
+    throw std::runtime_error("HTTP Download Error - status code " +
+                             std::to_string(r.status_code) + ": " +
+                             r.error.message + ": " + r.text);
+  for (const auto &[k, v] : r.header) {
+    cudaq::info("{} => {}", k, v);
+  }
+  cudaq::info("Download size: {} bytes", r.text.size());
+  return r.text;
+}
+
 } // namespace cudaq

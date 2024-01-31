@@ -236,7 +236,7 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
   cudaq::RestClient m_restClient;
   // FIXME: test functionId
   static inline const std::string m_functionId =
-      "5940cb4c-ae57-43ff-8a0d-d23b08b90637";
+      "c9d939b3-04f5-40c1-8d02-91c96f1a5770";
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
   std::string
   nvcfInvocationUrl(const std::string &functionVersionId = "") const {
@@ -334,6 +334,22 @@ public:
                                            : std::string("unknown"));
         return false;
       }
+
+      if (resultJs.contains("responseReference")) {
+        // This is a large response that needs to be downloaded
+        const std::string downloadUrl = resultJs["responseReference"];
+        const std::string reqId = resultJs["reqId"];
+        //     const std::string fileName = m_restClient.download(downloadUrl);
+        // cpr::Response r = cpr::Download(of,
+        // cpr::Url{"http://www.httpbin.org/1.jpg"}); std::cout << "http status
+        // code = " << r.status_code << std::endl << std::endl;
+        cudaq::info("Download result for Request Id {} at {}", reqId,
+                    downloadUrl);
+        const auto buf = m_restClient.download(downloadUrl);
+        cudaq::info("Zip file size {}", buf.size());
+        return false;
+      }
+
       if (!resultJs.contains("response")) {
         if (optionalErrorMsg)
           *optionalErrorMsg = "Unexpected response from the NVCF invocation. "
@@ -364,7 +380,7 @@ public:
     requestJson["description"] = "cudaq-nvcf-job";
     try {
       auto resultJs = m_restClient.post(nvcfAssetUrl(), "", requestJson,
-                                        getHeaders(), true);
+                                        getHeaders(), false);
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
       cudaq::info("Upload NVCF Asset Id {} to {}", assetId, uploadUrl);
