@@ -252,7 +252,7 @@ int main() {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_qpeZ4mainE3$_0tgate.
-// CHECK-SAME:      (%[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32, %[[VAL_2:.*]]: !cc.callable<(!quake.veq<?>) -> ()>, %[[VAL_3:.*]]: !cc.struct<"tgate" {}>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-SAME:      (%[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32, %[[VAL_2:.*]]: !cc.callable<(!quake.veq<?>) -> ()>, %[[VAL_3:.*]]: !cc.struct<"tgate" {} [8,1]>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
 // CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1 : index
