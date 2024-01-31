@@ -49,7 +49,6 @@ fi
 
 export UCX_LOG_LEVEL=warning
 requested_backends=`\
-    echo "default"
     for target in $@; \
     do echo "$target"; \
     done`
