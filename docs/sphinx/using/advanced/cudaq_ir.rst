@@ -1,7 +1,8 @@
 Working with the CUDA Quantum IR
 ********************************
-Let's see the output of :code:`nvq++` in verbose mode. GConsider a simple code like the one below, saved to file :code:`simple.cpp`.
-.. code-block:: cpp 
+Let's see the output of :code:`nvq++` in verbose mode. Consider a simple code like the one below, saved to file :code:`simple.cpp`.
+
+.. code-block:: console 
 
     #include <cudaq.h>
 
