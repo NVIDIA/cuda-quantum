@@ -463,10 +463,10 @@
              
   <section id="Executing-Quantum-Circuits">
 <h1>Executing Quantum Circuits<a class="headerlink" href="#Executing-Quantum-Circuits" title="Permalink to this heading">¶</a></h1>
-<p>One can excute CUDA Quantum kernels via the <code class="docutils literal notranslate"><span class="pre">sample</span></code> and <code class="docutils literal notranslate"><span class="pre">observe</span></code> function calls.</p>
-<p>Quantum states collapse upon measurement and hence need to be sampled from many times to gather statistics. The CUDA Quantum <code class="docutils literal notranslate"><span class="pre">sample</span></code> call enables this:</p>
+<p>In CUDA Quantum, quantum circuits are stored as quantum kernels. For estimating the probability distribution of a measured quantum state in a circuit, we use the <code class="docutils literal notranslate"><span class="pre">sample</span></code> function call, and for computing the expectation value of a quantum state with a given observable, we use the <code class="docutils literal notranslate"><span class="pre">observe</span></code> function call.</p>
 <section id="Sample">
 <h2>Sample<a class="headerlink" href="#Sample" title="Permalink to this heading">¶</a></h2>
+<p>Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA Quantum <code class="docutils literal notranslate"><span class="pre">sample</span></code> call enables this:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
@@ -507,11 +507,11 @@
 { 00:490 11:510 }
 </pre></div></div>
 </div>
-<p>In simulation mode, the quantum state is built once and then sampled from <span class="math notranslate nohighlight">\(s\)</span> times where <span class="math notranslate nohighlight">\(s\)</span> equals the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> . In hardware execution mode, the quantum state collapses upon measurement and hence needs to be rebuilt over and over again.</p>
+<p>Note that there is a subtle difference between how <code class="docutils literal notranslate"><span class="pre">sample</span></code> is executed with the target device set to a simulator or with the target device set to a QPU. In simulation mode, the quantum state is built once and then sampled <span class="math notranslate nohighlight">\(s\)</span> times where <span class="math notranslate nohighlight">\(s\)</span> equals the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>. In hardware execution mode, the quantum state collapses upon measurement and hence needs to be rebuilt over and over again.</p>
 </section>
 <section id="Observe">
 <h2>Observe<a class="headerlink" href="#Observe" title="Permalink to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">observe</span></code> allows us to gather qubit statistics and calculate expectation values. We must supply a spin operator in the form of a hamiltonian from which we would like to calculate <span class="math notranslate nohighlight">\(\bra{\psi}H\ket{\psi}\)</span>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">observe</span></code> function allows us to gather qubit statistics and calculate expectation values. We must supply a spin operator in the form of a Hamiltonian from which we would like to calculate <span class="math notranslate nohighlight">\(\bra{\psi}H\ket{\psi}\)</span>.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
 </pre></div>
