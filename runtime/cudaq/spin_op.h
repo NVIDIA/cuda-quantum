@@ -14,6 +14,7 @@
 #include <functional>
 #include <map>
 #include <random>
+#include <unordered_map>
 
 // Define friend functions for operations between spin_op and scalars.
 #define CUDAQ_SPIN_SCALAR_OPERATIONS(op, U)                                    \
