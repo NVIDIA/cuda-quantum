@@ -12,7 +12,7 @@ cudaq.set_target('density-matrix-cpu')
 # our depolarization channel to.
 noise = cudaq.NoiseModel()
 
-# We define a depolarization channel setting the probability 
+# We define a depolarization channel setting the probability
 # of the qubit state being scrambled to `1.0`.
 depolarization = cudaq.DepolarizationChannel(1.0)
 

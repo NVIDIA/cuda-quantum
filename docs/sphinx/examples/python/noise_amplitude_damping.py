@@ -12,8 +12,8 @@ cudaq.set_target('density-matrix-cpu')
 # our damping channel to.
 noise = cudaq.NoiseModel()
 
-# We define an amplitude damping channel setting to `1.0` the 
-# probability of the qubit 
+# We define an amplitude damping channel setting to `1.0` the
+# probability of the qubit
 # decaying to the ground state.
 amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
 
