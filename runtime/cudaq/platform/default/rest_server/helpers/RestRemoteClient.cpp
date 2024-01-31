@@ -252,7 +252,7 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
 
   std::string
   nvcfInvocationStatus(const std::string &invocationRequestId) const {
-    return fmt::format("https://{}/v2/nvcf/exec/status/{}", m_baseUrl,
+    return fmt::format("https://{}/nvcf/exec/status/{}", m_baseUrl,
                        invocationRequestId);
   }
 

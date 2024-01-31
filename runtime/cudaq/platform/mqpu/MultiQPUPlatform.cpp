@@ -99,82 +99,79 @@ public:
       if (!cudaq::registry::isRegistered<cudaq::QPU>("RemoteSimulatorQPU"))
         throw std::runtime_error(
             "Unable to retrieve RemoteSimulatorQPU implementation.");
-      auto urls = cudaq::split(getOpt(description, "url"), ',');
-      auto sims = cudaq::split(getOpt(description, "backend"), ',');
-      // Default to qpp simulator if none provided.
-      if (sims.empty())
-        sims.emplace_back("qpp");
-      // If no URL is provided, default to auto launching one server instance.
-      const bool autoLaunch =
-          description.find("auto_launch") != std::string::npos || urls.empty();
-
-      const auto formatUrl = [](const std::string &url) -> std::string {
-        auto formatted = url;
-        // Default to http:// if none provided.
-        if (!formatted.starts_with("http"))
-          formatted = std::string("http://") + formatted;
-        if (!formatted.empty() && formatted.back() != '/')
-          formatted += '/';
-        return formatted;
-      };
-      if (autoLaunch) {
-        urls.clear();
-        const auto numInstanceStr = getOpt(description, "auto_launch");
-        // Default to launching one instance if no other setting is available.
-        const int numInstances =
-            numInstanceStr.empty() ? 1 : std::stoi(numInstanceStr);
-        cudaq::info("Auto launch {} REST servers", numInstances);
-        for (int i = 0; i < numInstances; ++i) {
-          m_remoteServers.emplace_back(
-              std::make_unique<cudaq::AutoLaunchRestServerProcess>(i));
-          urls.emplace_back(m_remoteServers.back()->getUrl());
-        }
-      }
-
-      // List of simulator names must either be one or the same length as the
-      // URL list. If one simulator name is provided, assuming that all the URL
-      // should be using the same simulator.
-      if (sims.size() > 1 && sims.size() != urls.size())
-        throw std::runtime_error(
-            fmt::format("Invalid number of remote backend simulators provided: "
-                        "receiving {}, expecting {}.",
-                        sims.size(), urls.size()));
-      platformQPUs.clear();
-      for (std::size_t qId = 0; qId < urls.size(); ++qId) {
-        const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
+      if (description.find("nvcf") != std::string::npos) {
+        platformQPUs.clear();
         // Populate the information and add the QPUs
         auto qpu = cudaq::registry::get<cudaq::QPU>("RemoteSimulatorQPU");
-        qpu->setId(qId);
+        qpu->setId(0);
+        auto simName = getOpt(description, "backend");
+        if (simName.empty())
+          simName = "custatevec-fp32";
         const std::string configStr =
-            fmt::format("url;{};simulator;{}", formatUrl(urls[qId]), simName);
+            fmt::format("target;nvcf;simulator;{}", simName);
         qpu->setTargetBackend(configStr);
         threadToQpuId[std::hash<std::thread::id>{}(
-            qpu->getExecutionThreadId())] = qId;
+            qpu->getExecutionThreadId())] = 0;
         platformQPUs.emplace_back(std::move(qpu));
+
+        platformNumQPUs = platformQPUs.size();
+      } else {
+        auto urls = cudaq::split(getOpt(description, "url"), ',');
+        auto sims = cudaq::split(getOpt(description, "backend"), ',');
+        // Default to qpp simulator if none provided.
+        if (sims.empty())
+          sims.emplace_back("qpp");
+        // If no URL is provided, default to auto launching one server instance.
+        const bool autoLaunch =
+            description.find("auto_launch") != std::string::npos ||
+            urls.empty();
+
+        const auto formatUrl = [](const std::string &url) -> std::string {
+          auto formatted = url;
+          // Default to http:// if none provided.
+          if (!formatted.starts_with("http"))
+            formatted = std::string("http://") + formatted;
+          if (!formatted.empty() && formatted.back() != '/')
+            formatted += '/';
+          return formatted;
+        };
+        if (autoLaunch) {
+          urls.clear();
+          const auto numInstanceStr = getOpt(description, "auto_launch");
+          // Default to launching one instance if no other setting is available.
+          const int numInstances =
+              numInstanceStr.empty() ? 1 : std::stoi(numInstanceStr);
+          cudaq::info("Auto launch {} REST servers", numInstances);
+          for (int i = 0; i < numInstances; ++i) {
+            m_remoteServers.emplace_back(
+                std::make_unique<cudaq::AutoLaunchRestServerProcess>(i));
+            urls.emplace_back(m_remoteServers.back()->getUrl());
+          }
+        }
+
+        // List of simulator names must either be one or the same length as the
+        // URL list. If one simulator name is provided, assuming that all the
+        // URL should be using the same simulator.
+        if (sims.size() > 1 && sims.size() != urls.size())
+          throw std::runtime_error(fmt::format(
+              "Invalid number of remote backend simulators provided: "
+              "receiving {}, expecting {}.",
+              sims.size(), urls.size()));
+        platformQPUs.clear();
+        for (std::size_t qId = 0; qId < urls.size(); ++qId) {
+          const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
+          // Populate the information and add the QPUs
+          auto qpu = cudaq::registry::get<cudaq::QPU>("RemoteSimulatorQPU");
+          qpu->setId(qId);
+          const std::string configStr =
+              fmt::format("url;{};simulator;{}", formatUrl(urls[qId]), simName);
+          qpu->setTargetBackend(configStr);
+          threadToQpuId[std::hash<std::thread::id>{}(
+              qpu->getExecutionThreadId())] = qId;
+          platformQPUs.emplace_back(std::move(qpu));
+        }
+        platformNumQPUs = platformQPUs.size();
       }
-
-      platformNumQPUs = platformQPUs.size();
-    }
-    if (description.find("nvcf") != std::string::npos) {
-      platformQPUs.clear();
-      if (!cudaq::registry::isRegistered<cudaq::QPU>("RemoteSimulatorQPU"))
-        throw std::runtime_error(
-            "Unable to retrieve RemoteSimulatorQPU implementation.");
-
-      // Populate the information and add the QPUs
-      auto qpu = cudaq::registry::get<cudaq::QPU>("RemoteSimulatorQPU");
-      qpu->setId(0);
-      auto simName = getOpt(description, "backend");
-      if (simName.empty())
-        simName = "custatevec-fp32";
-      const std::string configStr =
-          fmt::format("target;nvcf;simulator;{}", simName);
-      qpu->setTargetBackend(configStr);
-      threadToQpuId[std::hash<std::thread::id>{}(qpu->getExecutionThreadId())] =
-          0;
-      platformQPUs.emplace_back(std::move(qpu));
-
-      platformNumQPUs = platformQPUs.size();
     }
   }
 };
