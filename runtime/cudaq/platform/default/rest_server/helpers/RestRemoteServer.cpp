@@ -96,12 +96,12 @@ public:
             const std::unordered_multimap<std::string, std::string> &headers) {
           std::string mutableReq;
           // ===== DEBUG ======
-          json js;
-          for (const auto &[k, v] : headers)
-            js[k] = v;
-          js["body"] = reqBody;
+          // json js;
+          // for (const auto &[k, v] : headers)
+          //   js[k] = v;
+          // js["body"] = reqBody;
 
-          return js;
+          // return js;
           // ===== DEBUG ======
 
           
@@ -129,6 +129,20 @@ public:
                                         assetFile.string());
               return js;
             }
+
+            json js;
+            js["log"] =
+                fmt::format("Load the asset file {}", assetFile.string());
+            // Copy file for debug
+            const auto outputDir = headers.find("NVCF-LARGE-OUTPUT-DIR");
+
+            if (outputDir != headers.end()) {
+              std::filesystem::path outputFile =
+                  std::filesystem::path(outputDir->second) / ids[0];
+              std::filesystem::copy(assetFile, outputFile);
+            }
+            return js;
+
             std::ifstream t(assetFile);
             std::string requestFromFile((std::istreambuf_iterator<char>(t)),
                                         std::istreambuf_iterator<char>());
