@@ -7,7 +7,7 @@
 // GPU-accelerated backends and their ability to easily handle
 // a larger number of qubits compared the CPU-only backend.
 
-// On CPU-only backends, this seems to hang, i.e. it takes a long
+// On CPU-only backends, this seems to hang, i.e., it takes a long
 // time to handle this number of qubits.
 
 #include <cudaq.h>
