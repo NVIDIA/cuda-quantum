@@ -31,7 +31,7 @@ protected:
 
 public:
   BaseRemoteSimulatorQPU()
-      : QPU(), m_mlirContext(cudaq::initializeMLIR()),
+      : QPU(),
         m_client(cudaq::registry::get<cudaq::RemoteRuntimeClient>("rest")) {}
 
   BaseRemoteSimulatorQPU(BaseRemoteSimulatorQPU &&) = delete;

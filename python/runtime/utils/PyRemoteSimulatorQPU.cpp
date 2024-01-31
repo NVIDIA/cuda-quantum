@@ -16,7 +16,9 @@ namespace {
 // reinstate the execution context and JIT-invoke the kernel.
 class PyRemoteSimulatorQPU : public cudaq::BaseRemoteSimulatorQPU {
 public:
-  PyRemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {}
+  PyRemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {
+    // m_mlirContext = cudaq::initializeMLIR();
+  }
 
   PyRemoteSimulatorQPU(PyRemoteSimulatorQPU &&) = delete;
   virtual ~PyRemoteSimulatorQPU() = default;

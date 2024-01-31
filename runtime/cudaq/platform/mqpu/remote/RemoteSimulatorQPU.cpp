@@ -17,7 +17,9 @@ namespace {
 class RemoteSimulatorQPU : public cudaq::BaseRemoteSimulatorQPU {
 
 public:
-  RemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {}
+  RemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {
+    m_mlirContext = cudaq::initializeMLIR();
+  }
 
   RemoteSimulatorQPU(RemoteSimulatorQPU &&) = delete;
   virtual ~RemoteSimulatorQPU() = default;

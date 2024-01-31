@@ -64,7 +64,6 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    runtime/utils/PyRemoteRESTQPU.cpp
    runtime/utils/PyRemoteSimulatorQPU.cpp
    runtime/utils/PyRestRemoteClient.cpp
-   runtime/utils/PyRestRemoteServer.cpp
    runtime/cudaq/qis/py_qubit_qis.cpp
    runtime/cudaq/kernels/py_common_kernels.cpp
    runtime/cudaq/platform/py_alt_launch_kernel.cpp
@@ -83,6 +82,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    runtime/cudaq/spin/py_spin_op.cpp 
    runtime/cudaq/algorithms/py_optimizer.cpp 
    ../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
+   ../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -95,15 +95,15 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
     ${CMAKE_CURRENT_SOURCE_DIR} 
     ${CMAKE_SOURCE_DIR}/python 
-    ${CMAKE_SOURCE_DIR}/python/utils)
+    ${CMAKE_SOURCE_DIR}/python/utils
+    ${CMAKE_SOURCE_DIR}/runtime
+)
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 
     cudaq-common 
     cudaq-em-default
     fmt::fmt-header-only
-    rest_server_impl
 )
-target_link_options(CUDAQuantumPythonSources.Extension INTERFACE -Wl,--no-as-needed)
 
 ################################################################################
 # Common CAPI
