@@ -346,6 +346,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#data-types">Data Types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -355,11 +356,23 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#noisy-simulation">Noisy Simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-submodule">MPI Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.initialize"><code class="docutils literal notranslate"><span class="pre">initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.rank"><code class="docutils literal notranslate"><span class="pre">rank()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.num_ranks"><code class="docutils literal notranslate"><span class="pre">num_ranks()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -489,7 +502,7 @@ an empty noise model.</p></li>
 or a list of such results in the case of <code class="code docutils literal notranslate"><span class="pre">sample</span></code> function broadcasting.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code> or <code class="code docutils literal notranslate"><span class="pre">list[SampleResult]</span></code></p>
+<dd class="field-odd"><p><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a> or <code class="code docutils literal notranslate"><span class="pre">list[SampleResult]</span></code></p>
 </dd>
 </dl>
 </dd></dl>
@@ -564,10 +577,10 @@ noise model.</p></li>
 <dd class="field-even"><p>A data-type containing the expectation value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with
 respect to the <code class="code docutils literal notranslate"><span class="pre">kernel(*arguments)</span></code>, or a list of such results in the case
 of <code class="code docutils literal notranslate"><span class="pre">observe</span></code> function broadcasting. If <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> was provided, the
-<code class="xref py py-class docutils literal notranslate"><span class="pre">ObserveResult</span></code> will also contain a <code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code> dictionary.</p>
+<a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.ObserveResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ObserveResult</span></code></a> will also contain a <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a> dictionary.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">ObserveResult</span></code></p>
+<dd class="field-odd"><p><a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.ObserveResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -636,7 +649,7 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <ol class="arabic">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span></span></span></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.Target" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
@@ -645,7 +658,7 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <ol class="arabic" start="2">
 <li><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_target</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span></span></span></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_target</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.Target" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a></span></span></dt>
 <dd></dd></dl>
 
 </li>
@@ -658,7 +671,7 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_targets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.get_targets" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_targets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span><span class="p"><span class="pre">]</span></span></span></span></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_targets</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cudaq.Target" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd></dd></dl>
 
 <p>Return all available <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> instances on the current system.</p>
@@ -757,6 +770,69 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 </section>
 <section id="data-types">
 <h2>Data Types<a class="headerlink" href="#data-types" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.Target">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">Target</span></span><a class="headerlink" href="#cudaq.Target" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> represents the underlying infrastructure that CUDA Quantum kernels will execute on. Instances of <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> describe what simulator they may leverage, the quantum_platform required for execution, and a description for the target.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Target.description">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#cudaq.Target.description" title="Permalink to this definition">¶</a></dt>
+<dd><p>A string describing the features for this <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Target.is_emulated">
+<span class="sig-name descname"><span class="pre">is_emulated</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Target.is_emulated" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">is_emulated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Target" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Returns true if the emulation mode for the target has been activated.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Target.is_remote">
+<span class="sig-name descname"><span class="pre">is_remote</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Target.is_remote" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">is_remote</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Target" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Returns true if the target consists of a remote REST QPU.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Target.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#cudaq.Target.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Target.num_qpus">
+<span class="sig-name descname"><span class="pre">num_qpus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Target.num_qpus" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">num_qpus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Target" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.Target</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the number of QPUs available in this <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code>.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Target.platform">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">platform</span></span><a class="headerlink" href="#cudaq.Target.platform" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the quantum_platform implementation this <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> leverages.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.Target.simulator">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">simulator</span></span><a class="headerlink" href="#cudaq.Target.simulator" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the simulator this <code class="code docutils literal notranslate"><span class="pre">cudaq.Target</span></code> leverages. This will be empty for physical QPUs.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.QuakeValue">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">QuakeValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mlirValue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pyKernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.QuakeValue" title="Permalink to this definition">¶</a></dt>
@@ -1147,7 +1223,7 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">262978667</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3458857443</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
@@ -1244,11 +1320,279 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="cudaq.SampleResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">SampleResult</span></span><a class="headerlink" href="#cudaq.SampleResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>A data-type containing the results of a call to <a class="reference internal" href="#cudaq.sample" title="cudaq.sample"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample()</span></code></a>.
+This includes all measurement counts data from both mid-circuit and
+terminal measurements.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>At this time, mid-circuit measurements are not directly supported.
+Mid-circuit measurements may only be used if they are passed through
+to <code class="code docutils literal notranslate"><span class="pre">c_if</span></code>.</p>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cudaq.SampleResult.register_names">
+<span class="sig-name descname"><span class="pre">register_names</span></span><a class="headerlink" href="#cudaq.SampleResult.register_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of the names of each measurement
+register that are stored in <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitstring</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the measurement counts for the given <code class="code docutils literal notranslate"><span class="pre">bitstring</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>bitstring</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – The binary string to return the measurement data of.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The number of times the given <code class="code docutils literal notranslate"><span class="pre">bitstring</span></code> was measured
+during the <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> number of executions on the QPU.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.__iter__">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.__iter__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span></span></span></dt>
+<dd></dd></dl>
+
+<p>Iterate through the <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a> dictionary.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.__len__">
+<span class="sig-name descname"><span class="pre">__len__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.__len__" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">__len__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the number of elements in <code class="code docutils literal notranslate"><span class="pre">self</span></code>. Equivalent to the number of uniquely measured bitstrings.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.clear" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Clear out all metadata from <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.count">
+<span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.count" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitstring</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">register_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'__global__'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the number of times the given bitstring was observed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bitstring</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – The binary string to return the measurement counts for.</p></li>
+<li><p><strong>register_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – The optional measurement register name to
+extract the probability from. Defaults to the ‘__global__’ register.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The number of times the given bitstring was measured during the experiment.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.dump">
+<span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.dump" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Print a string of the raw measurement counts data to the terminal.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.expectation">
+<span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.expectation" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">register_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'__global__'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the expectation value in the Z-basis of the <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> that was sampled.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.expectation_z">
+<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.expectation_z" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">register_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'__global__'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the expectation value in the Z-basis of the <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> that was sampled.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.get_marginal_counts">
+<span class="sig-name descname"><span class="pre">get_marginal_counts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.get_marginal_counts" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_marginal_counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">self:</span> <span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult,</span> <span class="pre">marginal_indices:</span> <span class="pre">List[int],</span> <span class="pre">\*,</span> <span class="pre">register_name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'__global__'</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Extract the measurement counts data for the provided subset of
+qubits (<code class="code docutils literal notranslate"><span class="pre">marginal_indices</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>marginal_indices</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – A list of the qubit indices to extract the
+measurement data from.</p></li>
+<li><p><strong>register_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – The optional measurement register name to extract
+the counts data from. Defaults to the ‘__global__’ register.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new <code class="code docutils literal notranslate"><span class="pre">SampleResult</span></code> dictionary containing the extracted measurement data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.get_register_counts">
+<span class="sig-name descname"><span class="pre">get_register_counts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.get_register_counts" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_register_counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">register_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Extract the provided sub-register (<code class="code docutils literal notranslate"><span class="pre">register_name</span></code>) as a new <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.get_sequential_data">
+<span class="sig-name descname"><span class="pre">get_sequential_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.get_sequential_data" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_sequential_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">register_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'__global__'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the data from the given register (<code class="code docutils literal notranslate"><span class="pre">register_name</span></code>) as it was collected sequentially. A list of measurement results, not collated into a map.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.items">
+<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.items" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">items</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the key/value pairs in this <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a> dictionary.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.most_probable">
+<span class="sig-name descname"><span class="pre">most_probable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.most_probable" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">most_probable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">register_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'__global__'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the bitstring that was measured most frequently in the
+experiment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>register_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – The optional measurement register
+name to extract the most probable bitstring from. Defaults to the
+‘__global__’ register.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The most frequently measured binary string during the experiment.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.probability">
+<span class="sig-name descname"><span class="pre">probability</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.probability" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">probability</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bitstring</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">register_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'__global__'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the probability of measuring the given <code class="code docutils literal notranslate"><span class="pre">bitstring</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bitstring</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – The binary string to return the measurement
+probability of.</p></li>
+<li><p><strong>register_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – The optional measurement register
+name to extract the probability from. Defaults to the ‘__global__’
+register.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The probability of measuring the given <code class="code docutils literal notranslate"><span class="pre">bitstring</span></code>. Equivalent
+to the proportion of the total times the bitstring was measured
+vs. the number of experiments (<code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.SampleResult.values">
+<span class="sig-name descname"><span class="pre">values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SampleResult.values" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span></span></span></dt>
+<dd></dd></dl>
+
+<p>Return all values (the counts) in this <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a> dictionary.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="cudaq.AsyncSampleResult">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">AsyncSampleResult</span></span><a class="headerlink" href="#cudaq.AsyncSampleResult" title="Permalink to this definition">¶</a></dt>
 <dd><p>A data-type containing the results of a call to <a class="reference internal" href="#cudaq.sample_async" title="cudaq.sample_async"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_async()</span></code></a>.
 The <code class="code docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code> models a future-like type, whose
-<code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code> may be returned via an invocation of the <code class="code docutils literal notranslate"><span class="pre">get</span></code> method. This
+<a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a> may be returned via an invocation of the <code class="code docutils literal notranslate"><span class="pre">get</span></code> method. This
 kicks off a wait on the current thread until the results are available.
 See <a class="reference external" href="https://en.cppreference.com/w/cpp/thread/future">future</a>
 for more information on this programming pattern.</p>
@@ -1257,10 +1601,160 @@ for more information on this programming pattern.</p>
 <span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.AsyncSampleResult.get" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.AsyncSampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.AsyncSampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.AsyncSampleResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></span></span></dt>
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.AsyncSampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.AsyncSampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.AsyncSampleResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
 <dd></dd></dl>
 
-<p>Return the <code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code> from the asynchronous sample execution.</p>
+<p>Return the <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a> from the asynchronous sample execution.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.ObserveResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">ObserveResult</span></span><a class="headerlink" href="#cudaq.ObserveResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>A data-type containing the results of a call to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>. This includes any measurement counts data, as well as the global expectation value of the user-defined <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ObserveResult.counts">
+<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Returns a <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a> dictionary with the measurement results from the experiment. The result for each individual term of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> is stored in its own measurement register. Each register name corresponds to the string representation of the spin term (without any coefficients).</p>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">counts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SampleResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SampleResult</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Given a <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> of the global <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was passed
+to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>, return its measurement counts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sub_term</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – An individual sub-term of the
+<code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The measurement counts data for the individual <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ObserveResult.dump">
+<span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.dump" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Dump the raw data from the <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">SampleResult</span></code></a> that are stored in <a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.ObserveResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ObserveResult</span></code></a> to the terminal.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ObserveResult.expectation">
+<span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.expectation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return the expectation value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was provided in <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return the expectation value of an individual <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> of the
+global <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sub_term</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – An individual sub-term of the
+<code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The expectation value of the <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> with respect to the
+<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ObserveResult.expectation_z">
+<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.expectation_z" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return the expectation value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was
+provided in <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="code docutils literal notranslate"><span class="pre">expectation_z</span></code> has been deprecated in favor of <code class="code docutils literal notranslate"><span class="pre">expectation</span></code>.</p>
+</div>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">expectation_z</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sub_term</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Return the expectation value of an individual <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> of the
+global <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="code docutils literal notranslate"><span class="pre">expectation_z</span></code> has been deprecated in favor of <code class="code docutils literal notranslate"><span class="pre">expectation</span></code>.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sub_term</strong> (<a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a>) – An individual sub-term of the
+<code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The expectation value of the <code class="code docutils literal notranslate"><span class="pre">sub_term</span></code> with respect to the
+<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> that was passed to <a class="reference internal" href="#cudaq.observe" title="cudaq.observe"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.ObserveResult.get_spin">
+<span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.ObserveResult.get_spin" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.ObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><span class="pre">cudaq.SpinOperator</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> corresponding to this <code class="code docutils literal notranslate"><span class="pre">ObserveResult</span></code>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1269,7 +1763,7 @@ for more information on this programming pattern.</p>
 <dt class="sig sig-object py" id="cudaq.AsyncObserveResult">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">AsyncObserveResult</span></span><a class="headerlink" href="#cudaq.AsyncObserveResult" title="Permalink to this definition">¶</a></dt>
 <dd><p>A data-type containing the results of a call to <a class="reference internal" href="#cudaq.observe_async" title="cudaq.observe_async"><code class="xref py py-func docutils literal notranslate"><span class="pre">observe_async()</span></code></a>.</p>
-<p>The <code class="code docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code> contains a future, whose <code class="xref py py-class docutils literal notranslate"><span class="pre">ObserveResult</span></code>
+<p>The <code class="code docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code> contains a future, whose <a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.ObserveResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ObserveResult</span></code></a>
 may be returned via an invocation of the <code class="code docutils literal notranslate"><span class="pre">get</span></code> method.</p>
 <p>This kicks off a wait on the current thread until the results are available.</p>
 <p>See <a class="reference external" href="https://en.cppreference.com/w/cpp/thread/future">future</a>
@@ -1279,10 +1773,10 @@ for more information on this programming pattern.</p>
 <span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.AsyncObserveResult.get" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.AsyncObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.AsyncObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.AsyncObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></span></span></dt>
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.AsyncObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.AsyncObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.AsyncObserveResult</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.ObserveResult" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.ObserveResult</span></a></span></span></dt>
 <dd></dd></dl>
 
-<p>Returns the <code class="xref py py-class docutils literal notranslate"><span class="pre">ObserveResult</span></code> from the asynchronous observe execution.</p>
+<p>Returns the <a class="reference internal" href="#cudaq.ObserveResult" title="cudaq.ObserveResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">ObserveResult</span></code></a> from the asynchronous observe execution.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1678,6 +2172,99 @@ to the specified <code class="code docutils literal notranslate"><span class="pr
 </dd></dl>
 
 </section>
+</section>
+<section id="mpi-submodule">
+<h2>MPI Submodule<a class="headerlink" href="#mpi-submodule" title="Permalink to this heading">¶</a></h2>
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.initialize">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Initialize MPI if available.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.rank">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">rank</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.rank" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">rank</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the rank of this process.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.num_ranks">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">num_ranks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.num_ranks" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">num_ranks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Return the total number of ranks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.all_gather">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">all_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.all_gather" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">all_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Gather and scatter the <code class="code docutils literal notranslate"><span class="pre">local</span></code> list of floating-point numbers, returning a concatenation of all lists across all ranks. The total global list size must be provided.</p>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">all_gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Gather and scatter the <code class="code docutils literal notranslate"><span class="pre">local</span></code> list of integers, returning a concatenation of all lists across all ranks. The total global list size must be provided.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.broadcast">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">broadcast</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.broadcast" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">broadcast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd></dd></dl>
+
+<p>Broadcast an array from a process (rootRank) to all other processes. The size of broadcast array must be provided.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.is_initialized">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">is_initialized</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.is_initialized" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">is_initialized</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Returns true if MPI has already been initialized.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.finalize">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">finalize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.mpi.finalize" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">finalize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Finalize MPI.</p>
+</dd></dl>
+
 </section>
 </section>
 

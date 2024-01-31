@@ -79,9 +79,8 @@ Backend Configuration
 Data Types
 =============================
 
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'Target'
-.. .. autoclass:: cudaq::Target
-..     :members:
+.. autoclass:: cudaq::Target
+    :members:
 
 .. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'State'
 .. .. autoclass:: cudaq::State
@@ -123,17 +122,15 @@ Data Types
 .. autofunction:: cudaq::spin.y
 .. autofunction:: cudaq::spin.z
 
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'SampleResult'. Did you mean: 'AsyncSampleResult'?
-.. .. autoclass:: cudaq::SampleResult
-..     :members:
-..     :special-members: __getitem__, __len__, __iter__
+.. autoclass:: cudaq::SampleResult
+    :members:
+    :special-members: __getitem__, __len__, __iter__
 
 .. autoclass:: cudaq::AsyncSampleResult
     :members:
 
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'ObserveResult'. Did you mean: 'AsyncObserveResult'?
-.. .. autoclass:: cudaq::ObserveResult
-..     :members:
+.. autoclass:: cudaq::ObserveResult
+    :members:
 
 .. autoclass:: cudaq::AsyncObserveResult
     :members:
@@ -209,14 +206,13 @@ Noisy Simulation
 .. autoclass:: cudaq::KrausOperator
     :members:
 
-.. [SKIP_TEST]: Reason - No module named 'cudaq.mpi'
-.. MPI Submodule
-.. =============================
+MPI Submodule
+=============================
 
-.. .. automethod:: cudaq.mpi::initialize
-.. .. automethod:: cudaq.mpi::rank
-.. .. automethod:: cudaq.mpi::num_ranks
-.. .. automethod:: cudaq.mpi::all_gather
-.. .. automethod:: cudaq.mpi::broadcast
-.. .. automethod:: cudaq.mpi::is_initialized
-.. .. automethod:: cudaq.mpi::finalize
+.. automethod:: cudaq.mpi::initialize
+.. automethod:: cudaq.mpi::rank
+.. automethod:: cudaq.mpi::num_ranks
+.. automethod:: cudaq.mpi::all_gather
+.. automethod:: cudaq.mpi::broadcast
+.. automethod:: cudaq.mpi::is_initialized
+.. automethod:: cudaq.mpi::finalize
