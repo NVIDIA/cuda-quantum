@@ -94,19 +94,7 @@ public:
         cudaq::RestServer::Method::POST, "/job",
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
-          std::string mutableReq;
-          // ===== DEBUG ======
-          // json js;
-          // for (const auto &[k, v] : headers)
-          //   js[k] = v;
-          // js["body"] = reqBody;
-
-          // return js;
-          // ===== DEBUG ======
-
-          
-          
-          
+          std::string mutableReq; 
           for (const auto &[k, v] : headers)
             cudaq::info("Request Header: {} : {}", k, v);
 
@@ -129,40 +117,17 @@ public:
                                         assetFile.string());
               return js;
             }
-
-            json js;
-            js["log"] =
-                fmt::format("Load the asset file {}", assetFile.string());
-            // Copy file for debug
-            const auto outputDir = headers.find("NVCF-LARGE-OUTPUT-DIR");
-
-            if (outputDir != headers.end()) {
-              std::filesystem::path outputFile =
-                  std::filesystem::path(outputDir->second) / ids[0];
-              std::filesystem::copy(assetFile, outputFile);
-            }
-            return js;
-
             std::ifstream t(assetFile);
             std::string requestFromFile((std::istreambuf_iterator<char>(t)),
                                         std::istreambuf_iterator<char>());
             mutableReq = requestFromFile;
-            try {
-              auto parsed = json::parse(requestFromFile);
-            } catch (...) {
-              json js;
-              js["error"] = fmt::format("Unable to parse the asset file {}",
-                                        assetFile.string());
-              js["data"] = requestFromFile;
-              return js;
-            }
           } else {
             mutableReq = reqBody;
           }
 
           if (m_hasMpi)
             cudaq::mpi::broadcast(mutableReq, 0);
-          return processRequest(reqBody);
+          return processRequest(mutableReq);
         });
     m_mlirContext = cudaq::initializeMLIR();
     m_hasMpi = cudaq::mpi::is_initialized();
