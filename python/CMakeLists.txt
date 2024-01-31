@@ -63,6 +63,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    runtime/mlir/py_register_dialects.cpp
    runtime/utils/PyRemoteRESTQPU.cpp
    runtime/utils/PyRemoteSimulatorQPU.cpp
+   runtime/utils/PyRestRemoteClient.cpp
+   runtime/utils/PyRestRemoteServer.cpp
    runtime/cudaq/qis/py_qubit_qis.cpp
    runtime/cudaq/kernels/py_common_kernels.cpp
    runtime/cudaq/platform/py_alt_launch_kernel.cpp
@@ -99,7 +101,9 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq-common 
     cudaq-em-default
     fmt::fmt-header-only
-    )
+    jit_util
+    rest_server_impl
+)
 
 ################################################################################
 # Common CAPI

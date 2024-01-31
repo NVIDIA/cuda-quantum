@@ -11,11 +11,11 @@
 using namespace mlir;
 
 namespace {
-class RemoteRestRuntimeServer : public cudaq::BaseRemoteRestRuntimeServer {
+class PyBaseRestRemoteServer : public cudaq::BaseRemoteRestRuntimeServer {
 public:
   /// @brief The constructor
-  RemoteRestRuntimeServer() : BaseRemoteRestRuntimeServer() {}
+  PyBaseRestRemoteServer() : BaseRemoteRestRuntimeServer() {}
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, RemoteRestRuntimeServer, rest)
+CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, PyBaseRestRemoteServer, rest)

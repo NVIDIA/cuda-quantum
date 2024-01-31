@@ -6,16 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/BaseRestRemoteServer.h"
+#include "common/BaseRestRemoteClient.h"
 
 using namespace mlir;
 
 namespace {
-class RemoteRestRuntimeServer : public cudaq::BaseRemoteRestRuntimeServer {
+class PyRestRemoteClient : public cudaq::BaseRemoteRestRuntimeClient {
 public:
   /// @brief The constructor
-  RemoteRestRuntimeServer() : BaseRemoteRestRuntimeServer() {}
+  PyRestRemoteClient() : BaseRemoteRestRuntimeClient() {}
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, RemoteRestRuntimeServer, rest)
+CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeClient, PyRestRemoteClient, rest)
