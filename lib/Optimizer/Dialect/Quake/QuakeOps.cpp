@@ -201,6 +201,15 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   patterns.add<FuseConstantToAllocaPattern>(context);
 }
 
+quake::InitializeStateOp quake::AllocaOp::getInitializedState() {
+  auto *self = getOperation();
+  if (self->hasOneUse()) {
+    auto x = self->getUsers().begin();
+    return dyn_cast<quake::InitializeStateOp>(*x);
+  }
+  return {};
+}
+
 //===----------------------------------------------------------------------===//
 // Apply
 //===----------------------------------------------------------------------===//
