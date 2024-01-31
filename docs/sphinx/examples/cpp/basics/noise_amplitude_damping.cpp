@@ -20,7 +20,7 @@ int main() {
   // our damping channel to.
   cudaq::noise_model noise;
 
-  // We define an amplitude damping channel setting the probability of 
+  // We define an amplitude damping channel setting the probability of
   // the qubit decaying to the ground state to `1.0`.
   cudaq::amplitude_damping_channel ad(1.);
 
