@@ -101,9 +101,9 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq-common 
     cudaq-em-default
     fmt::fmt-header-only
-    jit_util
     rest_server_impl
 )
+target_link_options(CUDAQuantumPythonSources.Extension INTERFACE -Wl,--no-as-needed)
 
 ################################################################################
 # Common CAPI

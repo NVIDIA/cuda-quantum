@@ -21,8 +21,8 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "../cudaq/platform/default/rest_server/helpers/llvm_jit/JIT.h"
 #include "nvqir/CircuitSimulator.h"
+#include "../cudaq/platform/default/rest_server/helpers/llvm_jit/JIT.h"
 #include "../cudaq/platform/default/rest_server/helpers/server_impl/RestServer.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
@@ -59,7 +59,7 @@ using namespace mlir;
 namespace cudaq {
 
 class BaseRemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
-protected:  
+protected:
   int m_port = -1;
   std::unique_ptr<cudaq::RestServer> m_server;
   std::unique_ptr<MLIRContext> m_mlirContext;

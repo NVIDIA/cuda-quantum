@@ -12,7 +12,7 @@ using namespace mlir;
 
 namespace {
 class RemoteRestRuntimeClient : public cudaq::BaseRemoteRestRuntimeClient {
-  public:
+public:
   /// @brief The constructor
   RemoteRestRuntimeClient() : BaseRemoteRestRuntimeClient() {}
 };
