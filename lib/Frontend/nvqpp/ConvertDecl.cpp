@@ -483,7 +483,7 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
 bool QuakeBridgeVisitor::VisitNamedDecl(clang::NamedDecl *x) {
   if (!builder.getBlock() || inRecType) {
     // This decl was reached walking a record type. We don't need to look up
-    // the symbol, it's just a field name in the type.
+    // the symbol, it's just a member name in the type.
     return true;
   }
   if (x->getIdentifier()) {
