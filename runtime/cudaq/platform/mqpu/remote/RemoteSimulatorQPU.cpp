@@ -22,7 +22,7 @@ using namespace mlir;
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
 class RemoteSimulatorQPU : public cudaq::QPU {
-private:
+protected:
   std::string m_simName;
   std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
   std::mutex m_contextMutex;
@@ -44,12 +44,6 @@ public:
       throw std::invalid_argument("Unexpected backend configuration string. "
                                   "Expecting a ';'-separated key-value pairs.");
     for (std::size_t i = 0; i < parts.size(); i += 2) {
-      if (parts[i] == "target") {
-        if (parts[i + 1] == "nvcf" || parts[i + 1] == "NVCF")
-          m_client = cudaq::registry::get<cudaq::RemoteRuntimeClient>("NVCF");
-        const std::string nvcfApiKey = searchAPIKey();
-        m_client->setConfig({{"api-key", nvcfApiKey}});
-      }
       if (parts[i] == "url")
         m_client->setConfig({{"url", parts[i + 1]}});
       if (parts[i] == "simulator")
@@ -103,6 +97,25 @@ public:
     std::scoped_lock<std::mutex> lock(m_contextMutex);
     m_contexts.erase(std::this_thread::get_id());
   }
+};
+
+class NvcfSimulatorQPU : public RemoteSimulatorQPU {
+public:
+  NvcfSimulatorQPU() : RemoteSimulatorQPU() {
+    m_client = cudaq::registry::get<cudaq::RemoteRuntimeClient>("NVCF");
+  }
+
+  virtual void setTargetBackend(const std::string &backend) override {
+    auto parts = cudaq::split(backend, ';');
+    if (parts.size() % 2 != 0)
+      throw std::invalid_argument("Unexpected backend configuration string. "
+                                  "Expecting a ';'-separated key-value pairs.");
+    m_client->setConfig(
+        {{"api-key", searchAPIKey()}, {"function-id", searchFunctionId()}});
+    for (std::size_t i = 0; i < parts.size(); i += 2)
+      if (parts[i] == "simulator")
+        m_simName = parts[i + 1];
+  }
 
 private:
   std::string searchAPIKey(const std::string &userSpecifiedConfigFile = "") {
@@ -143,11 +156,46 @@ private:
       }
     }
 
-    throw std::runtime_error("Cannot find NVCF Config file with credentials "
-                             "(~/.nvcf_config).");
+    throw std::runtime_error("Cannot find NVCF API key. Please set the "
+                             "NVCF_API_KEY environment variable to a valid API "
+                             "key or provide a config file (~/.nvcf_config).");
+    return "";
+  }
+
+  std::string searchFunctionId() {
+    if (auto funcIdEnv = std::getenv("NVCF_FUNCTION_ID"))
+      return std::string(funcIdEnv);
+    const auto nvcfConfig =
+        std::string(getenv("HOME")) + std::string("/.nvcf_config");
+    if (cudaq::fileExists(nvcfConfig)) {
+      std::ifstream stream(nvcfConfig);
+      std::string contents((std::istreambuf_iterator<char>(stream)),
+                           std::istreambuf_iterator<char>());
+      std::vector<std::string> lines;
+      lines = cudaq::split(contents, '\n');
+      for (const std::string &l : lines) {
+        std::vector<std::string> keyAndValue = cudaq::split(l, ':');
+        if (keyAndValue.size() != 2)
+          throw std::runtime_error("Ill-formed configuration file (" +
+                                   nvcfConfig +
+                                   "). Key-value pairs must be in `<key> : "
+                                   "<value>` format. (One per line)");
+        cudaq::trim(keyAndValue[0]);
+        cudaq::trim(keyAndValue[1]);
+        if (keyAndValue[0] == "function-id" || keyAndValue[0] == "Function ID")
+          return keyAndValue[1];
+      }
+    }
+
+    throw std::runtime_error(
+        "Cannot find NVCF Function ID. Please set the "
+        "NVCF_FUNCTION_ID environment variable to a valid function Id "
+        "or provide a config file (~/.nvcf_config).");
     return "";
   }
 };
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::QPU, RemoteSimulatorQPU, RemoteSimulatorQPU)
+CUDAQ_REGISTER_TYPE(cudaq::QPU, NvcfSimulatorQPU, NvcfSimulatorQPU)
+

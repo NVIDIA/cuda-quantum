@@ -234,9 +234,7 @@ public:
 class NvcfRuntimeClient : public RemoteRestRuntimeClient {
   std::string m_apiKey;
   cudaq::RestClient m_restClient;
-  // FIXME: test functionId
-  static inline const std::string m_functionId =
-      "c9d939b3-04f5-40c1-8d02-91c96f1a5770";
+  std::string m_functionId;
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
   std::string
   nvcfInvocationUrl(const std::string &functionVersionId = "") const {
@@ -266,11 +264,20 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
-    const auto apiKeyIter = configs.find("api-key");
-    if (apiKeyIter != configs.end())
-      m_apiKey = apiKeyIter->second;
-    if (m_apiKey.empty())
-      throw std::runtime_error("No NVCF API key is provided.");
+    {
+      const auto apiKeyIter = configs.find("api-key");
+      if (apiKeyIter != configs.end())
+        m_apiKey = apiKeyIter->second;
+      if (m_apiKey.empty())
+        throw std::runtime_error("No NVCF API key is provided.");
+    }
+    {
+      const auto funcIdIter = configs.find("function-id");
+      if (funcIdIter != configs.end())
+        m_functionId = funcIdIter->second;
+      if (m_functionId.empty())
+        throw std::runtime_error("No NVCF function Id is provided.");
+    }
   }
   virtual bool
   sendRequest(MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,

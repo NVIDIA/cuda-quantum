@@ -96,13 +96,13 @@ public:
     };
 
     if (description.find("remote_execution") != std::string::npos) {
-      if (!cudaq::registry::isRegistered<cudaq::QPU>("RemoteSimulatorQPU"))
-        throw std::runtime_error(
-            "Unable to retrieve RemoteSimulatorQPU implementation.");
       if (description.find("nvcf") != std::string::npos) {
+        if (!cudaq::registry::isRegistered<cudaq::QPU>("NvcfSimulatorQPU"))
+          throw std::runtime_error(
+              "Unable to retrieve NvcfSimulatorQPU implementation.");
         platformQPUs.clear();
         // Populate the information and add the QPUs
-        auto qpu = cudaq::registry::get<cudaq::QPU>("RemoteSimulatorQPU");
+        auto qpu = cudaq::registry::get<cudaq::QPU>("NvcfSimulatorQPU");
         qpu->setId(0);
         auto simName = getOpt(description, "backend");
         if (simName.empty())
@@ -116,6 +116,9 @@ public:
 
         platformNumQPUs = platformQPUs.size();
       } else {
+        if (!cudaq::registry::isRegistered<cudaq::QPU>("RemoteSimulatorQPU"))
+          throw std::runtime_error(
+              "Unable to retrieve RemoteSimulatorQPU implementation.");
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         auto sims = cudaq::split(getOpt(description, "backend"), ',');
         // Default to qpp simulator if none provided.
