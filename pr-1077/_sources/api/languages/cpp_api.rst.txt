@@ -137,6 +137,8 @@ Platform
 
 .. doxygenclass:: cudaq::BaseRemoteRESTQPU
 
+.. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
+
 .. doxygenclass:: cudaq::quantum_platform
     :members:
 

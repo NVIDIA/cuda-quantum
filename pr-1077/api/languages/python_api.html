@@ -321,6 +321,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Python API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#program-construction">Program Construction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 </ul>
 </li>
@@ -350,6 +351,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
@@ -461,10 +463,54 @@
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">make_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.make_kernel" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.PyKernel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">PyKernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argTypeList</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> provides an API for dynamically constructing quantum
+circuits. The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> programmatically represents the circuit as an MLIR
+function using the Quake dialect.</p>
+<p>See <a class="reference internal" href="#cudaq.make_kernel" title="cudaq.make_kernel"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_kernel()</span></code></a> for the <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> constructor.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cudaq.PyKernel.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#cudaq.PyKernel.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The name of the <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> function. Read-only.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cudaq.PyKernel.arguments">
+<span class="sig-name descname"><span class="pre">arguments</span></span><a class="headerlink" href="#cudaq.PyKernel.arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>The arguments accepted by the
+<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> function. Read-only.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="#cudaq.QuakeValue" title="cudaq.QuakeValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cudaq.PyKernel.argument_count">
+<span class="sig-name descname"><span class="pre">argument_count</span></span><a class="headerlink" href="#cudaq.PyKernel.argument_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of arguments accepted by the
+<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> function. Read-only.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.Kernel">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">Kernel</span></span><a class="headerlink" href="#cudaq.Kernel" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">PyKernel</span></code></p>
+<dd><p>alias of <a class="reference internal" href="#cudaq.PyKernel" title="cudaq.kernel.kernel_builder.PyKernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">PyKernel</span></code></a></p>
 </dd></dl>
 
 </section>
@@ -545,10 +591,8 @@ on the platform to target. Defaults to zero. Key-word only.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.observe">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_operator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe" title="Permalink to this definition">¶</a></dt>
-<dd><blockquote>
-<div><p>Compute the expected value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with respect to</p>
-</div></blockquote>
-<p>the <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>. If the input <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> is a list of <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> then compute
+<dd><p>Compute the expected value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with respect to
+the <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>. If the input <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> is a list of <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> then compute
 the expected value of every operator in the list and return a list of results.
 If the kernel accepts arguments, it will be evaluated
 with respect to <code class="code docutils literal notranslate"><span class="pre">kernel(*arguments)</span></code>. Each argument in <code class="code docutils literal notranslate"><span class="pre">arguments</span></code> provided
@@ -892,7 +936,13 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.qreg">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">qreg</span></span><a class="headerlink" href="#cudaq.qreg" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">qvector</span></code></p>
+<dd><p>alias of <a class="reference internal" href="#cudaq.qvector" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.qvector"><code class="xref py py-class docutils literal notranslate"><span class="pre">qvector</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.qvector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">qvector</span></span><a class="headerlink" href="#cudaq.qvector" title="Permalink to this definition">¶</a></dt>
+<dd><p>An owning, dynamically sized container for qubits. The semantics of the <code class="code docutils literal notranslate"><span class="pre">qvector</span></code> follows that of a <code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> or <code class="code docutils literal notranslate"><span class="pre">list</span></code> for qubits.</p>
 </dd></dl>
 
 <dl class="py class">
@@ -1223,7 +1273,7 @@ execution. Defaults to -1 implying no shots-based sampling. Key-word only.</p></
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3458857443</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">298568592</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.SpinOperator" title="mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"><span class="pre">mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random <a class="reference internal" href="#cudaq.SpinOperator" title="cudaq.SpinOperator"><code class="xref py py-class docutils literal notranslate"><span class="pre">SpinOperator</span></code></a> on the given number of qubits (<code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code>) and composed of the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>). An optional seed value may also be provided.</p>
