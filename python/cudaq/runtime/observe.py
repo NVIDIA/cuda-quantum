@@ -67,22 +67,30 @@ Returns:
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)
 
+    # Process spin_operator if its a list
+    localOp = spin_operator
+    localOp = cudaq_runtime.SpinOperator()
+    if isinstance(spin_operator, list):
+        for o in spin_operator:
+            localOp += o
+        localOp -= cudaq_runtime.SpinOperator()
+    else:
+        localOp = spin_operator
+
     results = None
     if __isBroadcast(kernel, *args):
         results = __broadcastObserve(kernel,
-                                     spin_operator,
+                                     localOp,
                                      *args,
                                      shots_count=shots_count)
-    else:
-        localOp = spin_operator
-        localOp = cudaq_runtime.SpinOperator()
-        if isinstance(spin_operator, list):
-            for o in spin_operator:
-                localOp += o
-            localOp -= cudaq_runtime.SpinOperator()
-        else:
-            localOp = spin_operator
 
+        if isinstance(spin_operator, list):
+            results = [[
+                cudaq_runtime.ObserveResult(p.expectation(o), o, p.counts(o))
+                for o in spin_operator
+            ]
+                       for p in results]
+    else:
         ctx = cudaq_runtime.ExecutionContext('observe', shots_count)
         ctx.setSpinOperator(localOp)
         cudaq_runtime.setExecutionContext(ctx)

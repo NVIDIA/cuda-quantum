@@ -682,8 +682,7 @@ def test_observe_list():
     want_expectation_value = -1.7487948611472093
     assert assert_close(want_expectation_value, sum, tolerance=1e-2)
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="TypeError: setSpinOperator(): incompatible function arguments on 'results = cudaq.observe(circuit, hamiltonianList, angles)'")
+
 def test_combine_sweep():
     """
     Test that we can sweep/broadcast both the spin_op and param lists 
