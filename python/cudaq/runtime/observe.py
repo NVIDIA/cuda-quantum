@@ -31,7 +31,12 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):
     return results
 
 
-def observe(kernel, spin_operator, *args, shots_count=0, noise_model=None):
+def observe(kernel,
+            spin_operator,
+            *args,
+            shots_count=0,
+            noise_model=None,
+            execution=None):
     """Compute the expected value of the `spin_operator` with respect to 
 the `kernel`. If the input `spin_operator` is a list of `SpinOperator` then compute 
 the expected value of every operator in the list and return a list of results.
@@ -63,6 +68,14 @@ Returns:
     of `observe` function broadcasting. If `shots_count` was provided, the 
     :class:`ObserveResult` will also contain a :class:`SampleResult` dictionary.
     """
+    # Handle parallel execution use cases
+    if execution != None:
+        return cudaq_runtime.observe_parallel(kernel,
+                                              spin_operator,
+                                              *args,
+                                              execution=execution,
+                                              shots_count=shots_count,
+                                              noise_model=noise_model)
 
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)

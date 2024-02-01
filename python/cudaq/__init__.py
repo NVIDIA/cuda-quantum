@@ -19,6 +19,9 @@ from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
 
 global globalJIT
 
+# Add the parallel runtime types
+parallel = cudaq_runtime.parallel
+
 # Primitive Types
 spin = cudaq_runtime.spin
 qubit = cudaq_runtime.qubit
