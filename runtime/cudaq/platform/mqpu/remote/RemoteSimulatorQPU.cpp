@@ -71,6 +71,10 @@ public:
         return nullptr;
       return iter->second;
     }();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer") {
+      return;
+    }
     // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
     // was set before launching the kernel. Use a static variable per thread to
     // set up a single-shot execution context for this case.

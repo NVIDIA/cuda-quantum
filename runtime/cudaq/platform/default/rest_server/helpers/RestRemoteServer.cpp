@@ -192,16 +192,61 @@ public:
     if (seed != 0)
       cudaq::set_random_seed(seed);
     auto &platform = cudaq::get_platform();
-    platform.set_exec_ctx(&io_context);
-
     auto &requestInfo = m_codeTransform[reqId];
-
-    if (requestInfo.format == cudaq::CodeFormat::LLVM)
-      cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
-                                 argsSize);
-    else
+    if (requestInfo.format == cudaq::CodeFormat::LLVM) {
+      if (io_context.name == "sample") {
+        // One extra check to see if we have mid-circuit
+        // measures in library mode
+        // Trace the kernel function
+        cudaq::ExecutionContext context("tracer");
+        platform.set_exec_ctx(&context);
+        cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
+                                   argsSize);
+        platform.reset_exec_ctx();
+        // In trace mode, if we have a measure result
+        // that is passed to an if statement, then
+        // we'll have collected registernames
+        if (!context.registerNames.empty()) {
+          // append new register names to the main sample context
+          for (std::size_t i = 0; i < context.registerNames.size(); ++i)
+            io_context.registerNames.emplace_back("auto_register_" +
+                                                  std::to_string(i));
+          io_context.hasConditionalsOnMeasureResults = true;
+          // Need to run simulation shot-by-shot
+          cudaq::sample_result counts;
+          platform.set_exec_ctx(&io_context);
+          // If it has conditionals, loop over individual circuit executions
+          cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
+                                     argsSize, io_context.shots,
+                                     [&](std::size_t i) {
+                                       // Reset the context and get the single
+                                       // measure result, add it to the
+                                       // sample_result and clear the context
+                                       // result
+                                       platform.reset_exec_ctx();
+                                       counts += io_context.result;
+                                       io_context.result.clear();
+                                       if (i != (io_context.shots - 1))
+                                         platform.set_exec_ctx(&io_context);
+                                     });
+          io_context.result = counts;
+          platform.set_exec_ctx(&io_context);
+        } else {
+          // If no conditionals, nothing special to do for library mode
+          platform.set_exec_ctx(&io_context);
+          cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
+                                     argsSize);
+        }
+      } else {
+        platform.set_exec_ctx(&io_context);
+        cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
+                                   argsSize);
+      }
+    } else {
+      platform.set_exec_ctx(&io_context);
       invokeMlirKernel(m_mlirContext, ir, requestInfo.passes,
                        std::string(kernelName));
+    }
     platform.reset_exec_ctx();
     dlclose(handle);
   }

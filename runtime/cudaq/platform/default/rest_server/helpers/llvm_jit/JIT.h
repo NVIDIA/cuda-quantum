@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,10 @@ namespace cudaq {
 //  (1) we need to `setAutoClaimResponsibilityForObjectSymbols(true)` to work
 //  around an assert bug ("Resolving symbol outside this responsibility set").
 //  (2) skipping unnecessary `packFunctionArguments`.
-void invokeWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
-                         void *args, std::uint64_t argsSize);
+// Optionally, the JIT'ed kernel can be executed a number of times along with a
+// post-execution callback. For example, sample a dynamic kernel.
+void invokeWrappedKernel(
+    std::string_view llvmIr, const std::string &kernelName, void *args,
+    std::uint64_t argsSize, std::size_t numTimes = 1,
+    std::function<void(std::size_t)> postExecCallback = {});
 } // namespace cudaq
