@@ -28,7 +28,8 @@ int main() {
   kernel.mz(targets);
 
   // Query the number of QPUs in the system;
-  // The number of QPUs is equal to the number of (auto-)launched server instances.
+  // The number of QPUs is equal to the number of (auto-)launched server
+  // instances.
   auto &platform = cudaq::get_platform();
   auto num_qpus = platform.num_qpus();
   printf("Number of QPUs: %zu\n", num_qpus);

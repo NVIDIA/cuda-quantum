@@ -22,7 +22,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # [Begin Documentation]
-    # Specified as program input (e.g. set backend = "tensornet", servers = "2").
+    # Specified as program input, e.g. 
+    # ```
+    # backend = "tensornet"; servers = "2"
+    # ```
     backend = args.backend
     servers = args.servers
 
