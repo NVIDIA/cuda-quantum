@@ -17,15 +17,15 @@
 int main() {
   // [Begin Documentation]
   // Define a kernel to be sampled.
-  auto [kernel, nrControls] = cudaq::make_kernel<int>();
-  auto controls = kernel.qalloc(nrControls);
-  auto targets = kernel.qalloc(2);
-  kernel.h(controls);
+  auto [kernel_builder, nrControls] = cudaq::make_kernel<int>();
+  auto controls = kernel_builder.qalloc(nrControls);
+  auto targets = kernel_builder.qalloc(2);
+  kernel_builder.h(controls);
   for (std::size_t tidx = 0; tidx < 2; ++tidx)
-    kernel.x<cudaq::ctrl>(controls, targets[tidx]);
+    kernel_builder.x<cudaq::ctrl>(controls, targets[tidx]);
   }
-  kernel.mz(controls);
-  kernel.mz(targets);
+  kernel_builder.mz(controls);
+  kernel_builder.mz(targets);
 
   // Query the number of QPUs in the system;
   // The number of QPUs is equal to the number of (auto-)launched server
@@ -40,7 +40,7 @@ int main() {
   std::vector<cudaq::async_sample_result> countFutures;
   for (std::size_t i = 0; i < num_qpus; i++) {
     countFutures.emplace_back(cudaq::sample_async(
-        /*qpuId=*/i, kernel, /*nrControls=*/i + 1));
+        /*qpuId=*/i, kernel_builder, /*nrControls=*/i + 1));
   }
 
   // Go do other work, asynchronous execution of sample tasks on-going
