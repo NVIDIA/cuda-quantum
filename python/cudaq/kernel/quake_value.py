@@ -138,6 +138,16 @@ class QuakeValue(object):
             return QuakeValue(
                 getattr(arith, opStr)(thisVal, otherVal).result, self.pyKernel)
 
+    def __rtruediv__(self, other):
+        with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
+            thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
+                other, 'Div')
+            if opStr == 'DivIOp':
+                opStr = 'DivSIOp'
+
+            return QuakeValue(
+                getattr(arith, opStr)(otherVal, thisVal).result, self.pyKernel)
+
     def __add__(self, other):
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
