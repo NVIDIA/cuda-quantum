@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -181,4 +181,30 @@ if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
 else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
   cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
+fi
+
+# Build and install compiler-rt
+cd "$llvm_source"
+mkdir build-compiler-rt
+cd build-compiler-rt
+cmake -G Ninja ../compiler-rt \
+  -DLLVM_CMAKE_DIR=$llvm_source/build/cmake/modules \
+  -DCMAKE_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX/lib/clang/16
+
+# Note that install-distribution-stripped is not a valid target for compiler-rt
+echo "Building LLVM compiler-rt ..."
+if $verbose; then
+  ninja install
+  status=$?
+else
+  echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
+  ninja install 2> logs/ninja_error.txt 1> logs/ninja_output.txt
+  status=$?
+fi
+
+if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+  echo "Build failed. Please check the files in the `pwd`/logs directory."
+  cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+else
+  echo "Installed compiler-rt"
 fi
