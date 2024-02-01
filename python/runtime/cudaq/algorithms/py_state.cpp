@@ -56,6 +56,18 @@ void bindPyState(py::module &mod) {
       "`density-matrix-cpu`, a density matrix will be returned. This type is "
       "not user-constructible and instances can only be retrieved via the "
       "`cudaq.get_state(...)` function. \n")
+      .def(
+          py::init([](const py::buffer &b) -> cudaq::state {
+            throw std::runtime_error(
+                "cudaq.State can only be constructed from an internal "
+                "simulator. "
+                "State comparison operations (e.g. overlap) take Python buffer "
+                "data (e.g. NumPy array) as input by default, therefore there "
+                "is "
+                "no need to construct a cudaq.State from data buffers "
+                "directly.");
+          }),
+          R"#(`State` is not constructible from user code. Throw an error.)#")
       .def_buffer([](const state &self) -> py::buffer_info {
         // This method is used by Pybind to enable interoperability
         // with NumPy array data. We therefore must be careful since the

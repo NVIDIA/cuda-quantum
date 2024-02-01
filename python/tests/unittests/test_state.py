@@ -16,6 +16,11 @@ import cudaq
 def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
 
+def test_expected_state_ctor_error():
+    array = np.array([0.0, 1.0], dtype=np.complex128)
+    with pytest.raises(RuntimeError) as error:
+        state = cudaq.State(array)
+
 def test_state_vector_simple():
     """
     A simple end-to-end test of the state class on a state vector
