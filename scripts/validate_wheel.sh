@@ -9,8 +9,8 @@
 # ============================================================================ #
 
 # Usage:
-# Create a folder with the Python README, the tests and the python examples, 
-# and runt this script passing the path to that folder as well as the path to 
+# Create a folder with the Python README, the tests, the python examples and snippets, 
+# and run this script passing the path to that folder as well as the path to 
 # the CUDA Quantum wheel to test with -f and -w respectively.
 # Check the output for any tests that were skipped.
 
@@ -24,6 +24,7 @@
 # COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
 # COPY scripts/validate_wheel.sh validate.sh
 # COPY docs/sphinx/examples/python /tmp/examples/
+# COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
 # COPY python/README.md /tmp/README.md
 # RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
@@ -129,6 +130,35 @@ for ex in `find "$root_folder/examples" -name '*.py' -not -path '*/providers/*'`
         status_sum=$((status_sum+1))
     fi
 done
+
+# Run remote-mqpu platform test
+cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
+qpud_exe="${cudaq_location#Location: }/bin/cudaq-qpud"
+if [ -x "$(command -v nvidia-smi)" ]; 
+then nr_gpus=`nvidia-smi --list-gpus | wc -l`
+else nr_gpus=0
+fi
+server1_devices=`echo $(seq $((nr_gpus >> 1)) $((nr_gpus - 1))) | tr ' ' ,`
+server2_devices=`echo $(seq 0 $((($nr_gpus >> 1) - 1))) | tr ' ' ,`
+echo "Launching server 1..."
+servers="localhost:12001"
+CUDA_VISIBLE_DEVICES=$server1_devices mpiexec --allow-run-as-root -np 2 "$qpud_exe" --port 12001 &
+if [ -n "$server2_devices" ]; then
+    echo "Launching server 2..."
+    servers+=",localhost:12002"
+    CUDA_VISIBLE_DEVICES=$server2_devices mpiexec --allow-run-as-root -np 2 "$qpud_exe" --port 12002 &
+fi
+
+python3 "$root_folder/snippets/using/cudaq/platform/sample_async_remote.py" \
+    --backend nvidia-mgpu --servers "$servers"
+if [ ! $? -eq 0 ]; then
+    echo -e "\e[01;31mRemote platform test failed.\e[0m" >&2
+    status_sum=$((status_sum+1))
+fi
+kill %1 && wait %1 2> /dev/null
+if [ -n "$server2_devices" ]; then
+    kill %2 && wait %2 2> /dev/null
+fi
 
 if [ ! $status_sum -eq 0 ]; then
     echo -e "\e[01;31mValidation produced errors.\e[0m" >&2
