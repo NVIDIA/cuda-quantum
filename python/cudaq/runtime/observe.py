@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -32,8 +32,7 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):
 
 
 def observe(kernel, spin_operator, *args, shots_count=0, noise_model=None):
-    """
-    Compute the expected value of the `spin_operator` with respect to 
+    """Compute the expected value of the `spin_operator` with respect to 
 the `kernel`. If the input `spin_operator` is a list of `SpinOperator` then compute 
 the expected value of every operator in the list and return a list of results.
 If the kernel accepts arguments, it will be evaluated 
@@ -64,6 +63,7 @@ Returns:
     of `observe` function broadcasting. If `shots_count` was provided, the 
     :class:`ObserveResult` will also contain a :class:`SampleResult` dictionary.
     """
+
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)
 

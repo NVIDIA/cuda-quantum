@@ -5,6 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+
 from functools import partialmethod
 import random
 import string
@@ -161,7 +162,8 @@ def __singleTargetSingleParameterControlOperation(self,
 
 
 class PyKernel(object):
-    """The :class:`Kernel` provides an API for dynamically constructing quantum 
+    """
+    The :class:`Kernel` provides an API for dynamically constructing quantum 
     circuits. The :class:`Kernel` programmatically represents the circuit as an MLIR 
     function using the Quake dialect.
 
