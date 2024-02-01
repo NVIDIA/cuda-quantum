@@ -20,6 +20,7 @@
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -367,15 +368,69 @@ public:
         // This is a large response that needs to be downloaded
         const std::string downloadUrl = resultJs["responseReference"];
         const std::string reqId = resultJs["reqId"];
-        //     const std::string fileName = m_restClient.download(downloadUrl);
-        // cpr::Response r = cpr::Download(of,
-        // cpr::Url{"http://www.httpbin.org/1.jpg"}); std::cout << "http status
-        // code = " << r.status_code << std::endl << std::endl;
         cudaq::info("Download result for Request Id {} at {}", reqId,
                     downloadUrl);
-        const auto buf = m_restClient.download(downloadUrl);
-        cudaq::info("Zip file size {}", buf.size());
-        return false;
+        llvm::SmallString<32> tempDir;
+        llvm::sys::path::system_temp_directory(/*ErasedOnReboot*/ true,
+                                               tempDir);
+        std::filesystem::path resultFilePath =
+            std::filesystem::path(tempDir.c_str()) / (reqId + ".zip");
+        const bool downloadOk =
+            m_restClient.download(downloadUrl, resultFilePath.string());
+        cudaq::info("Download zip file {}", resultFilePath.string());
+        if (!downloadOk) {
+          if (optionalErrorMsg)
+            *optionalErrorMsg = "Failed to download large-response result.";
+          return false;
+        }
+        // FIXME: use system "unzip" command.
+        // libz has a `minizip` addon
+        // (https://github.com/madler/zlib/tree/develop/contrib/minizip) which
+        // could do unzipping.
+        auto unzipExe = llvm::sys::findProgramByName("unzip");
+        if (!unzipExe) {
+          if (optionalErrorMsg)
+            *optionalErrorMsg = "Unable to find 'unzip' command to unzip the "
+                                "large response file. Please install 'unzip'.";
+          return false;
+        }
+        std::filesystem::path unzipDir =
+            std::filesystem::path(tempDir.c_str()) / reqId;
+        std::vector<llvm::StringRef> unzipArgs = {
+            unzipExe.get(), resultFilePath.c_str(), "-d", unzipDir.c_str()};
+        std::string errorMsg;
+        bool unzipFailed = false;
+        std::optional<llvm::StringRef> redirects[] = {{""}, {""}, {""}};
+        llvm::sys::ExecuteAndWait(unzipExe.get(), unzipArgs, std::nullopt,
+                                  redirects, 0, 0, &errorMsg, &unzipFailed);
+        if (unzipFailed) {
+          if (optionalErrorMsg)
+            *optionalErrorMsg = "Failed to unzip the large response zip file.";
+          return false;
+        }
+        std::filesystem::path resultJsonFile =
+            unzipDir / (reqId + "_result.json");
+        if (!std::filesystem::exists(resultJsonFile)) {
+          if (optionalErrorMsg)
+            *optionalErrorMsg =
+                "Unexpected response file: missing the result JSON file.";
+          return false;
+        }
+        std::ifstream t(resultJsonFile.string());
+        std::string resultJsonFromFile((std::istreambuf_iterator<char>(t)),
+                                       std::istreambuf_iterator<char>());
+        try {
+          resultJs["response"] = json::parse(resultJsonFromFile);
+        } catch (...) {
+          if (optionalErrorMsg)
+            *optionalErrorMsg = "Failed to parse the response JSON from file.";
+          return false;
+        }
+        cudaq::info(
+            "Delete response zip file {} and its inflated contents in {}",
+            resultFilePath.c_str(), unzipDir.c_str());
+        std::filesystem::remove(resultFilePath);
+        std::filesystem::remove_all(unzipDir);
       }
 
       if (!resultJs.contains("response")) {

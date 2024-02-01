@@ -150,20 +150,22 @@ void RestClient::del(const std::string_view remoteUrl,
                              r.error.message + ": " + r.text);
 }
 
-std::string RestClient::download(const std::string_view remoteUrl,
-                                 bool enableLogging) {
+bool RestClient::download(const std::string_view remoteUrl, const std::string &filePath,
+              bool enableLogging) {
   auto r = cpr::Get(cpr::Url{std::string(remoteUrl)}, cpr::Header{},
                     cpr::Parameters{}, cpr::VerifySsl(false));
 
   if (r.status_code > validHttpCode || r.status_code == 0)
-    throw std::runtime_error("HTTP Download Error - status code " +
-                             std::to_string(r.status_code) + ": " +
-                             r.error.message + ": " + r.text);
-  for (const auto &[k, v] : r.header) {
-    cudaq::info("{} => {}", k, v);
+    return false;
+    
+  cudaq::info("Download size: {} bytes to file {}", r.text.size(), filePath);
+  try {
+    std::ofstream outfile(filePath, std::ofstream::binary | std::ios::out);
+    outfile.write(r.text.c_str(), r.text.size());
+    outfile.close();
+    return true;
+  } catch (...) {
+    return false;
   }
-  cudaq::info("Download size: {} bytes", r.text.size());
-  return r.text;
 }
-
 } // namespace cudaq
