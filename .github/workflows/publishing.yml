@@ -731,8 +731,6 @@ jobs:
           rm -rf ~/.miniconda3/miniconda.sh
           eval "$(~/.miniconda3/bin/conda shell.bash hook)"
           conda install -y -c conda-forge openmpi
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"
-          export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
 
       - name: Install and run sanity checks
         shell: bash
@@ -740,6 +738,10 @@ jobs:
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
+
+          eval "$(~/.miniconda3/bin/conda shell.bash hook)"
+          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"
+          export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
           bash -l scripts/validate_container.sh default nvidia nvidia-mgpu tensornet tensornet-mps | tee /tmp/validation.out
 
       - name: Create summary
