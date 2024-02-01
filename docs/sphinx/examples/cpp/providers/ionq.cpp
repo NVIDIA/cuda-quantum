@@ -33,8 +33,8 @@ struct ghz {
 };
 
 int main() {
-  // Submit to IonQ asynchronously. E.g, continue executing
-  // code in the file until the job has been returned.
+  // Submit to IonQ asynchronously (e.g., continue executing
+  // code in the file until the job has been returned).
   auto future = cudaq::sample_async(ghz{});
   // ... classical code to execute in the meantime ...
 
@@ -53,8 +53,8 @@ int main() {
   auto async_counts = readIn.get();
   async_counts.dump();
 
-  // OR: Submit to IonQ synchronously. E.g, wait for the job
-  // result to be returned before proceeding.
+  // OR: Submit to IonQ synchronously (e.g., wait for the job
+  // result to be returned before proceeding).
   auto counts = cudaq::sample(ghz{});
   counts.dump();
 }
