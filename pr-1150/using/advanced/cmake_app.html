@@ -480,15 +480,14 @@ find_package<span class="o">(</span>CUDAQ<span class="w"> </span>REQUIRED<span c
 add_executable<span class="o">(</span>ghz_exe<span class="w"> </span>ghz.cpp<span class="o">)</span>
 </pre></div>
 </div>
-<p>To configure and build this file, all one needs to do is (from the top level of
-the <code class="code docutils literal notranslate"><span class="pre">myCudaQApp</span></code> folder)</p>
+<p>To configure and build this file, all we need to do is execute the following from the top level of the <code class="code docutils literal notranslate"><span class="pre">myCudaQApp</span></code> folder:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>build
 cmake<span class="w"> </span>..<span class="w"> </span>-G<span class="w"> </span>Ninja<span class="w"> </span>-DCUDAQ_DIR<span class="o">=</span><span class="s2">&quot;</span><span class="nv">$CUDA_QUANTUM_PATH</span><span class="s2">/lib/cmake/cudaq&quot;</span>
 ninja
 ./ghz_exe
 </pre></div>
 </div>
-<p>If you run the <code class="code docutils literal notranslate"><span class="pre">ninja</span></code> command with <code class="code docutils literal notranslate"><span class="pre">--verbose</span></code> you’ll see that
+<p>Notice that by running the <code class="code docutils literal notranslate"><span class="pre">ninja</span></code> command with <code class="code docutils literal notranslate"><span class="pre">--verbose</span></code>, you’ll see that
 <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> was used to compile and link the executable.</p>
 </section>
 
