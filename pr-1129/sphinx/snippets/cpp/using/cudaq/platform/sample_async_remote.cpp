@@ -19,10 +19,10 @@ int main() {
   // Define a kernel to be sampled.
   auto [kernel, nrControls] = cudaq::make_kernel<int>();
   auto controls = kernel.qalloc(nrControls);
-  auto targets = kernel.qalloc(4);
+  auto targets = kernel.qalloc(2);
   kernel.h(controls);
-  for (auto &q : targets) {
-    kernel.x<cudaq::ctrl>(controls, q);
+  for (std::size_t tidx = 0; tidx < 2; ++tidx)
+    kernel.x<cudaq::ctrl>(controls, targets[tidx]);
   }
   kernel.mz(controls);
   kernel.mz(targets);
