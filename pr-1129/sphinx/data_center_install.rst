@@ -27,8 +27,8 @@ walks through the installation steps.
 
 .. note::
   
-  The build described in this guide does not include the support
-  for building the Python support for CUDA Quantum. For more information about 
+  The build described in this guide does not include building the Python 
+  support for CUDA Quantum. For more information about 
   using CUDA Quantum from Python, please take a look at 
   :ref:`this page <install-python-wheels>`.
 
@@ -140,7 +140,7 @@ CUDA
 
 Building CUDA Quantum requires a full installation of the CUDA toolkit.
 The instructions are tested using version 11.8, but any CUDA 11 or 12 version
-should work, as long as the installed driver on both the build and the host 
+should work, as long as the installed driver on the host 
 system supports that CUDA version. We recommend using the latest CUDA version
 that is supported by your driver.
 
