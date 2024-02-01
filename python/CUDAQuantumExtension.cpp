@@ -20,6 +20,7 @@
 #include "runtime/cudaq/algorithms/py_observe_async.h"
 #include "runtime/cudaq/algorithms/py_optimizer.h"
 #include "runtime/cudaq/algorithms/py_sample_async.h"
+#include "runtime/cudaq/algorithms/py_vqe.h"
 #include "runtime/cudaq/kernels/py_common_kernels.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
@@ -84,6 +85,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindExecutionManager(cudaqRuntime);
   cudaq::bindSampleAsync(cudaqRuntime);
   cudaq::bindObserveAsync(cudaqRuntime);
+  cudaq::bindVQE(cudaqRuntime);
   cudaq::bindAltLaunchKernel(cudaqRuntime);
   cudaq::bindTestUtils(cudaqRuntime, *holder.get());
 

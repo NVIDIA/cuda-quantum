@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,24 +9,94 @@
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 
-#include "py_observe.h"
 #include "py_vqe.h"
 
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
+#include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/CAPI/IR.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
 namespace cudaq {
 
+void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
+                       const std::vector<std::string> &);
+
+/// @brief Return the quantum kernel `FuncOp` from the given `ModuleOp`.
+mlir::func::FuncOp getKernelFuncOp(mlir::ModuleOp &mod,
+                                   const std::string &kernelName) {
+  mlir::func::FuncOp kernel;
+  mod.walk([&](mlir::func::FuncOp func) {
+    if (func.getName().equals("__nvqpp__mlirgen__" + kernelName))
+      kernel = func;
+    return mlir::WalkResult::advance();
+  });
+
+  if (!kernel)
+    throw std::runtime_error(
+        "Could not find kernel to get number of function arguments.");
+  return kernel;
+}
+
+/// @brief Return the number of function arguments for the kernel.
+std::size_t getNumArguments(MlirModule &module, const std::string &kernelName) {
+  auto mod = unwrap(module);
+  auto kernel = getKernelFuncOp(mod, kernelName);
+  return kernel.getNumArguments();
+}
+
+/// @brief Return true if the `argIdx` argument is of `StdvecType`.
+bool isArgumentStdVec(MlirModule &module, const std::string &kernelName,
+                      std::size_t argIdx) {
+  auto mod = unwrap(module);
+  auto kernel = getKernelFuncOp(mod, kernelName);
+  return isa<cudaq::cc::StdvecType>(kernel.getArgument(argIdx).getType());
+}
+
+/// @brief Create a new OpaqueArguments pointer and pack the
+/// python arguments in it. Clients must delete the memory.
+OpaqueArguments *toOpaqueArgs(py::args &args) {
+  auto *argData = new cudaq::OpaqueArguments();
+  args = simplifiedValidateInputArguments(args);
+  cudaq::packArgs(*argData, args,
+                  [](OpaqueArguments &, py::object &) { return false; });
+  return argData;
+}
+
+/// @brief Run `cudaq::observe` on the provided kernel and spin operator.
+observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
+                         py::args args, const int shots) {
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto &platform = cudaq::get_platform();
+
+  auto *argData = toOpaqueArgs(args);
+
+  // Launch the observation task
+  auto result = details::runObservation(
+                    [&]() mutable {
+                      pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
+                      delete argData;
+                    },
+                    spin_operator, platform, shots, kernelName)
+                    .value();
+  return result;
+}
+
 /// @brief Run `cudaq.vqe()` without a gradient strategy.
-optimization_result pyVQE(kernel_builder<> &kernel, spin_op &hamiltonian,
+optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           const int shots = -1) {
-  if (kernel.getNumParams() != 1)
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  if (getNumArguments(kernelMod, kernelName) != 1)
     throw std::runtime_error(
         "Kernels with signature other than "
         "`void(List[float])` must provide an `argument_mapper`.");
 
-  if (!kernel.isArgStdVec(0))
+  if (!isArgumentStdVec(kernelMod, kernelName, 0))
     throw std::runtime_error(
         "Kernels with signature other than "
         "`void(List[float])` must provide an `argument_mapper`.");
@@ -42,7 +112,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, spin_op &hamiltonian,
 
 /// @brief Run `cudaq.vqe()` without a gradient strategy, using the
 /// user provided `argument_mapper`.
-optimization_result pyVQE(kernel_builder<> &kernel, spin_op &hamiltonian,
+optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           py::function &argumentMapper, const int shots = -1) {
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
@@ -60,15 +130,17 @@ optimization_result pyVQE(kernel_builder<> &kernel, spin_op &hamiltonian,
 }
 
 /// @brief Run `cudaq.vqe()` with the provided gradient strategy.
-optimization_result pyVQE(kernel_builder<> &kernel, cudaq::gradient &gradient,
+optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
                           spin_op &hamiltonian, cudaq::optimizer &optimizer,
                           const int n_params, const int shots = -1) {
-  if (kernel.getNumParams() != 1)
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  if (getNumArguments(kernelMod, kernelName) != 1)
     throw std::runtime_error(
         "Kernels with signature other than "
         "`void(List[float])` must provide an `argument_mapper`.");
 
-  if (!kernel.isArgStdVec(0))
+  if (!isArgumentStdVec(kernelMod, kernelName, 0))
     throw std::runtime_error(
         "Kernels with signature other than "
         "`void(List[float])` must provide an `argument_mapper`.");
@@ -97,7 +169,7 @@ optimization_result pyVQE(kernel_builder<> &kernel, cudaq::gradient &gradient,
 
 /// @brief Run `cudaq.vqe()` with the provided gradient strategy,
 /// using the provided `argument_mapper`.
-optimization_result pyVQE(kernel_builder<> &kernel, cudaq::gradient &gradient,
+optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
                           spin_op &hamiltonian, cudaq::optimizer &optimizer,
                           const int n_params, py::function &argumentMapper,
                           const int shots = -1) {
@@ -133,7 +205,7 @@ void bindVQE(py::module &mod) {
   /// @brief Gradient-Free `cudaq.optimizer` overloads:
   mod.def(
       "vqe",
-      [](kernel_builder<> &kernel, cudaq::spin_op &spin_operator,
+      [](py::object &kernel, cudaq::spin_op &spin_operator,
          cudaq::optimizer &optimizer, const int parameter_count,
          const int shots) {
         auto requires_grad = optimizer.requiresGradients();
@@ -149,7 +221,7 @@ void bindVQE(py::module &mod) {
   // With a provided `argument_mapper`.
   mod.def(
       "vqe",
-      [](kernel_builder<> &kernel, cudaq::spin_op &spin_operator,
+      [](py::object &kernel, cudaq::spin_op &spin_operator,
          cudaq::optimizer &optimizer, const int parameter_count,
          py::function &argumentMapper, const int shots) {
         auto requires_grad = optimizer.requiresGradients();
@@ -167,7 +239,7 @@ void bindVQE(py::module &mod) {
   /// @brief Gradient based `cudaq.optimizers` overloads:
   mod.def(
       "vqe",
-      [](kernel_builder<> &kernel, cudaq::gradient &gradient,
+      [](py::object &kernel, cudaq::gradient &gradient,
          cudaq::spin_op &spin_operator, cudaq::optimizer &optimizer,
          const int parameter_count, const int shots) {
         return pyVQE(kernel, gradient, spin_operator, optimizer,
@@ -180,7 +252,7 @@ void bindVQE(py::module &mod) {
   // With a provided `argument_mapper`.
   mod.def(
       "vqe",
-      [](kernel_builder<> &kernel, cudaq::gradient &gradient,
+      [](py::object &kernel, cudaq::gradient &gradient,
          cudaq::spin_op &spin_operator, cudaq::optimizer &optimizer,
          const int parameter_count, py::function &argumentMapper,
          const int shots) {

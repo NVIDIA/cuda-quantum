@@ -14,11 +14,6 @@ import cudaq
 from cudaq import spin
 
 
-@pytest.fixture(autouse=True)
-def vqe_not_yet_implemented():
-    pytest.skip("AttributeError: module 'cudaq' has no attribute 'vqe'")
-
-
 # Helper function for asserting two values are within a
 # certain tolerance. If we make numpy a dependency,
 # this may be replaced in the future with `np.allclose`.

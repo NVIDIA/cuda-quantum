@@ -69,6 +69,7 @@ SampleResult = cudaq_runtime.SampleResult
 ObserveResult = cudaq_runtime.ObserveResult
 AsyncSampleResult = cudaq_runtime.AsyncSampleResult
 AsyncObserveResult = cudaq_runtime.AsyncObserveResult
+vqe = cudaq_runtime.vqe
 
 ComplexMatrix = cudaq_runtime.ComplexMatrix
 to_qir = cudaq_runtime.get_qir
