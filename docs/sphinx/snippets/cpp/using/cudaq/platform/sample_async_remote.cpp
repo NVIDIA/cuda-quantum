@@ -22,7 +22,7 @@ int main() {
   auto targets = kernel.qalloc(4);
   kernel.h(controls);
   for (auto &q : targets) {
-    kernel.cx(controls, q);
+    kernel.x<cudaq::ctrl>(controls, q);
   }
   kernel.mz(controls);
   kernel.mz(targets);
