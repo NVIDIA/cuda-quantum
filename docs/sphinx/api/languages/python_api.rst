@@ -9,6 +9,8 @@ Program Construction
 .. autofunction:: cudaq::make_kernel
 .. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'from_state'
 .. .. autofunction:: cudaq::from_state
+
+.. autoclass:: cudaq::PyKernel
 .. autoclass:: cudaq::Kernel
 
     .. automethod:: qalloc
@@ -100,6 +102,7 @@ Data Types
 
 .. autoclass:: cudaq::qubit
 .. autoclass:: cudaq::qreg
+.. autoclass:: cudaq::qvector
 
 .. autoclass:: cudaq::ComplexMatrix
     :members:
