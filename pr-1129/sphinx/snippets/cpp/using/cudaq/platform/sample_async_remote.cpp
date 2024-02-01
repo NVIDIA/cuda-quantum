@@ -16,32 +16,34 @@
 
 int main() {
   // [Begin Documentation]
-  auto [kernelToBeSampled, runtimeParam] = cudaq::make_kernel<int>();
-  auto q = kernelToBeSampled.qalloc(runtimeParam);
-  kernelToBeSampled.h(q);
-  kernelToBeSampled.mz(q);
+  // Define a kernel to be sampled.
+  auto [kernel, nrControls] = cudaq::make_kernel<int>();
+  auto controls = kernel.qalloc(nrControls);
+  auto targets = kernel.qalloc(4);
+  kernel.h(controls);
+  for (auto &q : targets) {
+    kernel.x<cudaq::ctrl>(controls, q);
+  }
+  kernel.mz(controls);
+  kernel.mz(targets);
 
-  // Get the quantum_platform singleton
+  // Query the number of QPUs in the system;
+  // The number of QPUs is equal to the number of (auto-)launched server
+  // instances.
   auto &platform = cudaq::get_platform();
-
-  // Query the number of QPUs in the system
-  // The number of QPUs is equal to the number of auto-launch server instances.
   auto num_qpus = platform.num_qpus();
   printf("Number of QPUs: %zu\n", num_qpus);
-  // We will launch asynchronous sampling tasks
-  // and will store the results immediately as a future
-  // we can query at some later point.
+
+  // We will launch asynchronous sampling tasks,
+  // and will store the results as a future we can query at some later point.
   // Each QPU (indexed by an unique Id) is associated with a remote REST server.
   std::vector<cudaq::async_sample_result> countFutures;
   for (std::size_t i = 0; i < num_qpus; i++) {
     countFutures.emplace_back(cudaq::sample_async(
-        /*qpuId=*/i, kernelToBeSampled, /*runtimeParam=*/5));
+        /*qpuId=*/i, kernel, /*nrControls=*/i + 1));
   }
 
-  //
   // Go do other work, asynchronous execution of sample tasks on-going
-  //
-
   // Get the results, note future::get() will kick off a wait
   // if the results are not yet available.
   for (auto &counts : countFutures) {
