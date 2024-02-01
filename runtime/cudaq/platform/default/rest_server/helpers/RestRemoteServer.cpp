@@ -94,7 +94,7 @@ public:
         cudaq::RestServer::Method::POST, "/job",
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
-          std::string mutableReq; 
+          std::string mutableReq;
           for (const auto &[k, v] : headers)
             cudaq::info("Request Header: {} : {}", k, v);
 

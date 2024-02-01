@@ -40,8 +40,8 @@ public:
            bool enableLogging = true);
   /// Delete a resource at the provided URL.
   void del(const std::string_view remoteUrl, const std::string_view path,
-              std::map<std::string, std::string> &headers,
-              bool enableLogging = true);
+           std::map<std::string, std::string> &headers,
+           bool enableLogging = true);
   bool download(const std::string_view remoteUrl, const std::string &filePath,
                 bool enableLogging = true);
 

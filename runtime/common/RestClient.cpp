@@ -150,14 +150,14 @@ void RestClient::del(const std::string_view remoteUrl,
                              r.error.message + ": " + r.text);
 }
 
-bool RestClient::download(const std::string_view remoteUrl, const std::string &filePath,
-              bool enableLogging) {
+bool RestClient::download(const std::string_view remoteUrl,
+                          const std::string &filePath, bool enableLogging) {
   auto r = cpr::Get(cpr::Url{std::string(remoteUrl)}, cpr::Header{},
                     cpr::Parameters{}, cpr::VerifySsl(false));
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     return false;
-    
+
   cudaq::info("Download size: {} bytes to file {}", r.text.size(), filePath);
   try {
     std::ofstream outfile(filePath, std::ofstream::binary | std::ios::out);

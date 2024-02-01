@@ -318,7 +318,8 @@ public:
       if (assetId.has_value()) {
         cudaq::info("Deleting NVCF Asset Id {}", assetId.value());
         auto headers = getHeaders();
-        m_restClient.del(nvcfAssetUrl(), std::string("/") + assetId.value(), headers, false);
+        m_restClient.del(nvcfAssetUrl(), std::string("/") + assetId.value(),
+                         headers, false);
       }
     });
 
@@ -341,8 +342,8 @@ public:
     try {
       cudaq::debug("Sending NVCF request to {}", nvcfInvocationUrl());
       // cudaq::debug("Request: \n", requestJson.dump());
-      auto resultJs =
-          m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader, false);
+      auto resultJs = m_restClient.post(nvcfInvocationUrl(), "", requestJson,
+                                        jobHeader, false);
       cudaq::debug("Response: {}", resultJs.dump());
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
