@@ -15,14 +15,11 @@ if __name__ == '__main__':
                         type=str,
                         required=False,
                         default="tensornet")
-    parser.add_argument('--servers',
-                        type=str,
-                        required=False,
-                        default='2')
+    parser.add_argument('--servers', type=str, required=False, default='2')
     args = parser.parse_args()
 
     # [Begin Documentation]
-    # Specified as program input, e.g. 
+    # Specified as program input, e.g.
     # ```
     # backend = "tensornet"; servers = "2"
     # ```
@@ -42,10 +39,10 @@ if __name__ == '__main__':
     # Set the target to execute on and query the number of QPUs in the system;
     # The number of QPUs is equal to the number of (auto-)launched server instances.
     cudaq.set_target("remote-mqpu",
-                    remote_execution=True,
-                    backend=backend,
-                    auto_launch=str(servers) if servers.isdigit() else "",
-                    url="" if servers.isdigit() else servers)
+                     remote_execution=True,
+                     backend=backend,
+                     auto_launch=str(servers) if servers.isdigit() else "",
+                     url="" if servers.isdigit() else servers)
     num_qpus = cudaq.get_target().num_qpus()
     print("Number of virtual QPUs:", num_qpus)
 
@@ -63,8 +60,8 @@ if __name__ == '__main__':
     for idx in range(len(count_futures)):
         counts = count_futures[idx].get()
         print(counts)
-    # [End Documentation]
+        # [End Documentation]
 
-        assert len(counts) == 1 << (idx + 1) 
+        assert len(counts) == 1 << (idx + 1)
         for key in counts:
             assert len(key) == 3 + idx
