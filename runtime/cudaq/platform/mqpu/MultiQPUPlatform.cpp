@@ -101,19 +101,24 @@ public:
           throw std::runtime_error(
               "Unable to retrieve NvcfSimulatorQPU implementation.");
         platformQPUs.clear();
-        // Populate the information and add the QPUs
-        auto qpu = cudaq::registry::get<cudaq::QPU>("NvcfSimulatorQPU");
-        qpu->setId(0);
         auto simName = getOpt(description, "backend");
         if (simName.empty())
           simName = "custatevec-fp32";
         const std::string configStr =
             fmt::format("target;nvcf;simulator;{}", simName);
-        qpu->setTargetBackend(configStr);
-        threadToQpuId[std::hash<std::thread::id>{}(
-            qpu->getExecutionThreadId())] = 0;
-        platformQPUs.emplace_back(std::move(qpu));
-
+        auto numQpusStr = getOpt(description, "nqpus");
+        const int numQpus = numQpusStr.empty() ? 1 : std::stoi(numQpusStr);
+        if (numQpus < 1)
+          throw std::invalid_argument("Number of QPUs must be greater than 0.");
+        for (int qpuId = 0; qpuId < numQpus; ++qpuId) {
+          // Populate the information and add the QPUs
+          auto qpu = cudaq::registry::get<cudaq::QPU>("NvcfSimulatorQPU");
+          qpu->setId(qpuId);
+          qpu->setTargetBackend(configStr);
+          threadToQpuId[std::hash<std::thread::id>{}(
+              qpu->getExecutionThreadId())] = qpuId;
+          platformQPUs.emplace_back(std::move(qpu));
+        }
         platformNumQPUs = platformQPUs.size();
       } else {
         if (!cudaq::registry::isRegistered<cudaq::QPU>("RemoteSimulatorQPU"))

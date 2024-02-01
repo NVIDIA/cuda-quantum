@@ -41,6 +41,18 @@
 #include <fstream>
 #include <streambuf>
 namespace {
+struct ScopeExit {
+  ScopeExit(std::function<void()> &&func) : m_atExitFunc(std::move(func)) {}
+  ~ScopeExit() noexcept { m_atExitFunc(); }
+  ScopeExit(const ScopeExit &) = delete;
+  ScopeExit &operator=(const ScopeExit &) = delete;
+  ScopeExit(ScopeExit &&other) = delete;
+  ScopeExit &operator=(ScopeExit &&other) = delete;
+
+private:
+  std::function<void()> m_atExitFunc;
+};
+
 using namespace mlir;
 class RemoteRestRuntimeClient : public cudaq::RemoteRuntimeClient {
   std::string m_url;
@@ -300,8 +312,17 @@ public:
     constexpr std::size_t MAX_SIZE_BYTES = 250 * 1ULL << 10; // 250KB
     json requestJson;
     auto jobHeader = getHeaders();
+    std::optional<std::string> assetId;
+    ScopeExit deleteAssetOnExit([&]() {
+      if (assetId.has_value()) {
+        cudaq::info("Deleting NVCF Asset Id {}", assetId.value());
+        auto headers = getHeaders();
+        m_restClient.del(nvcfAssetUrl(), std::string("/") + assetId.value(), headers, false);
+      }
+    });
+
     if (request.code.size() > MAX_SIZE_BYTES) {
-      const auto assetId = uploadRequest(request);
+      assetId = uploadRequest(request);
       if (!assetId.has_value()) {
         if (optionalErrorMsg)
           *optionalErrorMsg = "Failed to upload request as NVCF assets";
