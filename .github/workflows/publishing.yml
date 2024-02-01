@@ -695,8 +695,13 @@ jobs:
     needs: [assets, cudaq_installer]
     runs-on: linux-amd64-gpu-v100-latest-1
 
+    strategy:
+      matrix:
+        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04']
+      fail-fast: false
+
     container:
-      image: redhat/ubi8:8.0
+      image: ${{ matrix.os_image }}
       options: --user root
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
@@ -714,7 +719,21 @@ jobs:
           name: x86_64-installer
           path: /tmp/install
 
-      - name: Install runtime dependencies
+      - name: Runtime dependencies (apt)
+        if: startsWith(matrix.os_image, 'ubuntu')
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends \
+            wget ca-certificates libstdc++-11-dev libopenmpi-dev
+          distro=echo ${{ matrix.os_image }} | tr -d . | tr -d : 
+          CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
+          wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
+          dpkg -i cuda-keyring_1.1-1_all.deb && version_suffix=11-8
+          apt-get update && apt-get install -y --no-install-recommends \
+              cuda-nvtx-${version_suffix} cuda-cudart-${version_suffix} \
+              libcusolver-${version_suffix} libcublas-${version_suffix}
+
+      - name: Runtime dependencies (dnf)
+        if: startsWith(matrix.os_image, 'redhat')
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
             'dnf-command(config-manager)' gcc-toolset-12
@@ -733,16 +752,16 @@ jobs:
           eval "$(~/.miniconda3/bin/conda shell.bash hook)"
           conda install -y -c conda-forge openmpi
 
+          echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
+          echo 'export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"' >> ~/.bashrc
+          echo "export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'" >> ~/.bashrc
+
       - name: Install and run sanity checks
         shell: bash
         run: |
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
-
-          eval "$(~/.miniconda3/bin/conda shell.bash hook)"
-          export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"
-          export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
           bash -l scripts/validate_container.sh default nvidia nvidia-mgpu tensornet tensornet-mps | tee /tmp/validation.out
 
       - name: Create summary
