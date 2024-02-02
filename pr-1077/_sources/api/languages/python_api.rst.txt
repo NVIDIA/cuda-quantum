@@ -61,8 +61,7 @@ Kernel Execution
 .. autofunction:: cudaq::get_state
 .. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'get_state_async'
 .. .. autofunction:: cudaq::get_state_async
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'vqe'
-.. .. autofunction:: cudaq::vqe
+.. autofunction:: cudaq::vqe
 
 Backend Configuration
 =============================
