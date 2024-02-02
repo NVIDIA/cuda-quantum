@@ -38,6 +38,7 @@ struct test3_caller {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_callee(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes {"cudaq-kernel"} {
 // CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<?>) -> !quake.ref
@@ -66,6 +67,7 @@ struct test3_caller {
 // CHECK:           quake.y %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // This is a template case (`auto`), so use the specialization that `callback`
 // is resolved to in the AST.
@@ -89,6 +91,7 @@ struct test4_caller {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
@@ -117,3 +120,4 @@ struct test4_caller {
 // CHECK:           call @__nvqpp__mlirgen__ZN12test4_caller[[LAM]]_(%[[VAL_3]]) : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
