@@ -49,24 +49,23 @@ public:
 
   /// @brief Compute the overlap of this state with user-provided host vector
   /// data.
-  double overlap(const std::vector<complex> &hostData);
+  double overlap(const std::vector<complex128> &hostData);
 
   /// @brief Compute the overlap of this state with user-provided host vector
   /// data.
-  double overlap(const std::vector<std::complex<float>> &hostData);
+  double overlap(const std::vector<complex64> &hostData);
 
-  /// @brief Compute the overlap of this state with a user-provided host data
-  /// pointer. The size of this data array is assumed to be the same size as
-  /// this state's data.
-  double overlap(void *deviceOrHostPointer);
+  /// @brief Compute the overlap of this state with a user-provided host or
+  /// device data pointer. The size of this data array is assumed to be the same
+  /// size as this state's data.
+  double overlap(complex128 *deviceOrHostPointer, std::size_t numElements);
 
-  ~state() {
-    // Current use count is 1, so the
-    // shared_ptr is about to go out of scope,
-    // there are no users. Delete the state data.
-    if (internal.use_count() == 1)
-      internal->destroyState();
-  }
+  /// @brief Compute the overlap of this state with a user-provided host or
+  /// device data pointer. The size of this data array is assumed to be the same
+  /// size as this state's data.
+  double overlap(complex64 *deviceOrHostPointer, std::size_t numElements);
+
+  ~state();
 };
 
 } // namespace cudaq

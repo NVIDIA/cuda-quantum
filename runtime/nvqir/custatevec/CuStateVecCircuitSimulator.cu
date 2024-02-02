@@ -11,6 +11,8 @@
 
 #include "CircuitSimulator.h"
 #include "Gates.h"
+#include "CuStateVecState.h"
+
 #include "cuComplex.h"
 #include "custatevec.h"
 #include <bitset>
@@ -19,33 +21,7 @@
 #include <random>
 #include <set>
 
-#include <thrust/complex.h>
-#include <thrust/device_ptr.h>
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
-#include <thrust/inner_product.h>
-
 namespace {
-
-#define HANDLE_ERROR(x)                                                        \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != CUSTATEVEC_STATUS_SUCCESS) {                                    \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           custatevecGetErrorString(err),      \
-                                           __FUNCTION__, __LINE__));           \
-    }                                                                          \
-  };
-
-#define HANDLE_CUDA_ERROR(x)                                                   \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != cudaSuccess) {                                                  \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           cudaGetErrorString(err),            \
-                                           __FUNCTION__, __LINE__));           \
-    }                                                                          \
-  };
 
 /// @brief Initialize the device state vector to the |0...0> state
 /// @param sv
@@ -83,241 +59,338 @@ __global__ void setFirstNElements(T *sv, const T *__restrict__ sv2, int64_t N) {
   }
 }
 
-template <typename T>
-using ThrustComplex = thrust::complex<T>;
+// template <typename T>
+// using ThrustComplex = thrust::complex<T>;
 
-/// @brief Custom functor for the thrust inner product.
-template <typename T>
-struct AdotConjB
-    : public thrust::binary_function<ThrustComplex<T>, ThrustComplex<T>,
-                                     ThrustComplex<T>> {
-  __host__ __device__ ThrustComplex<T> operator()(ThrustComplex<T> a,
-                                                  ThrustComplex<T> b) {
-    return a * thrust::conj(b);
-  };
-};
+// /// @brief Custom functor for the thrust inner product.
+// template <typename T>
+// struct AdotConjB
+//     : public thrust::binary_function<ThrustComplex<T>, ThrustComplex<T>,
+//                                      ThrustComplex<T>> {
+//   __host__ __device__ ThrustComplex<T> operator()(ThrustComplex<T> a,
+//                                                   ThrustComplex<T> b) {
+//     return a * thrust::conj(b);
+//   };
+// };
 
-/// @brief CusvState provides an implementation of `SimulationState` that
-/// encapsulates the state data for the Custatevec Circuit Simulator. It
-/// attempts to keep the simulation data on GPU device.
-template <typename ScalarType>
-struct CusvState : public cudaq::SimulationState {
-private:
-  std::size_t size = 0;
-  void *devicePtr = nullptr;
+// // /// @brief CusvState provides an implementation of `SimulationState` that
+// /// encapsulates the state data for the Custatevec Circuit Simulator. It
+// /// attempts to keep the simulation data on GPU device and care is taken 
+// /// to ensure operations and comparisons with other states operate 
+// /// on compatible floating point element types.
+// template <typename ScalarType>
+// struct CusvState : public cudaq::SimulationState {
+// private:
+//   /// @brief Size of the state data array on GPU.
+//   std::size_t size = 0;
 
-  void checkAndSetDevice() const {
-    int dev = 0;
-    HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
-    auto currentDevice = deviceFromPointer(devicePtr);
-    if (dev != currentDevice)
-      HANDLE_CUDA_ERROR(cudaSetDevice(currentDevice));
-  }
+//   /// @brief State device data pointer.
+//   void *devicePtr = nullptr;
 
-  void extractValues(std::complex<ScalarType> *value, std::size_t start,
-                     std::size_t end) const {
-    checkAndSetDevice();
-    HANDLE_CUDA_ERROR(cudaMemcpy(
-        value, reinterpret_cast<std::complex<ScalarType> *>(devicePtr) + start,
-        (end - start) * sizeof(std::complex<ScalarType>),
-        cudaMemcpyDeviceToHost));
-  }
+//   /// @brief Check that we are currently
+//   /// using the correct CUDA device, set it
+//   /// to the correct one if not
+//   void checkAndSetDevice() const {
+//     int dev = 0;
+//     HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
+//     auto currentDevice = deviceFromPointer(devicePtr);
+//     if (dev != currentDevice)
+//       HANDLE_CUDA_ERROR(cudaSetDevice(currentDevice));
+//   }
 
-  bool isDevicePointer(void *ptr) const {
-    cudaPointerAttributes attributes;
-    HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
-    return attributes.type > 1;
-  }
+//   /// @brief Extract state vector amplitudes from the
+//   /// given range.
+//   void extractValues(std::complex<ScalarType> *value, std::size_t start,
+//                      std::size_t end) const {
+//     checkAndSetDevice();
+//     HANDLE_CUDA_ERROR(cudaMemcpy(
+//         value, reinterpret_cast<std::complex<ScalarType> *>(devicePtr) + start,
+//         (end - start) * sizeof(std::complex<ScalarType>),
+//         cudaMemcpyDeviceToHost));
+//   }
 
-  std::size_t deviceFromPointer(void *ptr) const {
-    cudaPointerAttributes attributes;
-    HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
-    return attributes.device;
-  }
+//   /// @brief Return true if the given pointer is a GPU device pointer
+//   bool isDevicePointer(void *ptr) const {
+//     cudaPointerAttributes attributes;
+//     HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
+//     return attributes.type > 1;
+//   }
 
-public:
-  CusvState(std::size_t s, void *ptr) : size(s), devicePtr(ptr) {}
-  CusvState(const std::vector<std::size_t> &shape,
-            const std::vector<std::complex<double>> &data) {
-    if (shape.size() != 1)
-      throw std::runtime_error(
-          "CusvState must be created from data with 1D shape.");
+//   /// @brief Given a GPU device pointer, get the CUDA device it is on.
+//   std::size_t deviceFromPointer(void *ptr) const {
+//     cudaPointerAttributes attributes;
+//     HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
+//     return attributes.device;
+//   }
 
-    size = shape[0];
-    HANDLE_CUDA_ERROR(cudaMalloc((void **)&devicePtr,
-                                 size * sizeof(std::complex<ScalarType>)));
-    HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, &data[0],
-                                 data.size() * sizeof(std::complex<ScalarType>),
-                                 cudaMemcpyHostToDevice));
-  }
+//   /// @brief Internal utility method for computing overlap from
+//   /// validated pointer. This method combines common code from
+//   /// the `overlap(T*,size_t)` overloads.
+//   template <typename T>
+//   double internalOverlapVectorImpl(const std::vector<std::complex<T>> &other) {
+//     // Cast our data pointer to be compatible with Thrust.
+//     auto *castedDevicePtr = reinterpret_cast<ThrustComplex<T> *>(devicePtr);
+//     thrust::device_ptr<ThrustComplex<T>> thrustDevPtrABegin(castedDevicePtr);
+//     thrust::device_ptr<ThrustComplex<T>> thrustDevPtrAEnd(castedDevicePtr +
+//                                                           size);
 
-  std::size_t getNumQubits() const override { return std::log2(size); }
-  std::vector<std::size_t> getDataShape() const override { return {size}; }
+//     // Here we explicitly copy the data to the GPU
+//     thrust::device_vector<ThrustComplex<T>> otherDevPtr(other);
+//     return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
+//                                  otherDevPtr.begin(), ThrustComplex<T>(0.0),
+//                                  thrust::plus<ThrustComplex<T>>(),
+//                                  AdotConjB<T>())
+//         .real();
+//   }
 
-  double overlap(const cudaq::SimulationState &other) override {
-    if (getDataShape() != other.getDataShape())
-      throw std::runtime_error("[custatevec-state] overlap error - other state "
-                               "dimension not equal to this state dimension.");
+//   /// @brief Internal utility method for computing overlap from
+//   /// validated pointer. This method combines common code from
+//   /// the `overlap(T*,size_t)` overloads.
+//   template <typename T>
+//   double internalOverlapPointerImpl(std::complex<T> *other) {
+//     // Cast the data to a Thrust compatible type
+//     auto *castedOther = reinterpret_cast<ThrustComplex<T> *>(other);
+//     auto *castedDevicePtr = reinterpret_cast<ThrustComplex<T> *>(devicePtr);
+//     thrust::device_ptr<ThrustComplex<T>> thrustDevPtrABegin(castedDevicePtr);
+//     thrust::device_ptr<ThrustComplex<T>> thrustDevPtrAEnd(castedDevicePtr +
+//                                                           size);
 
-    if (other.getPrecision() != getPrecision()) {
-      throw std::runtime_error(
-          "[custatevec-state] overlap error - precision mismatch.");
-    }
+//     // Check that the other pointer is on GPU device
+//     if (!isDevicePointer(other)) {
+//       // here we have to copy the data
+//       thrust::device_vector<ThrustComplex<T>> otherDevPtr(castedOther,
+//                                                           castedOther + size);
+//       return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
+//                                    otherDevPtr.begin(), ThrustComplex<T>(0.0),
+//                                    thrust::plus<ThrustComplex<T>>(),
+//                                    AdotConjB<T>())
+//           .real();
+//     }
 
-    // Check if input vector is on the right GPU device,
-    // if so, compute on device
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrABegin(
-        reinterpret_cast<ThrustComplex<ScalarType> *>(devicePtr));
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrAEnd(
-        reinterpret_cast<ThrustComplex<ScalarType> *>(devicePtr) + size);
+//     // We have two device pointers, make sure they are on the same CUDA device
+//     if (deviceFromPointer(devicePtr) != deviceFromPointer(other))
+//       throw std::runtime_error("[custatevec-state] overlap requested for "
+//                                "device pointers on separate GPU devices.");
 
-    // Make sure other is on GPU device already
-    if (isDevicePointer(other.ptr())) {
-      if (deviceFromPointer(devicePtr) != deviceFromPointer(other.ptr()))
-        throw std::runtime_error(
-            "overlap requested for device pointers on separate GPU devices.");
-      // other is a device pointer
-      thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrBBegin(
-          reinterpret_cast<ThrustComplex<ScalarType> *>(other.ptr()));
-      return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
-                                   thrustDevPtrBBegin,
-                                   ThrustComplex<ScalarType>(0.0),
-                                   thrust::plus<ThrustComplex<ScalarType>>(),
-                                   AdotConjB<ScalarType>())
-          .real();
-    }
+//     // Compute the overlap
+//     thrust::device_ptr<ThrustComplex<T>> thrustDevPtrBBegin(castedOther);
+//     return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
+//                                  &thrustDevPtrBBegin[0], ThrustComplex<T>(0.0),
+//                                  thrust::plus<ThrustComplex<T>>(),
+//                                  AdotConjB<T>())
+//         .real();
+//   }
 
-    // otherwise we have to copy the data
-    std::vector<std::complex<ScalarType>> dataAsVec(
-        reinterpret_cast<std::complex<ScalarType> *>(other.ptr()),
-        reinterpret_cast<std::complex<ScalarType> *>(other.ptr()) + size);
-    thrust::device_vector<ThrustComplex<ScalarType>> otherDevPtr(dataAsVec);
-    return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
-                                 otherDevPtr.begin(),
-                                 ThrustComplex<ScalarType>(0.0),
-                                 thrust::plus<ThrustComplex<ScalarType>>(),
-                                 AdotConjB<ScalarType>())
-        .real();
-  }
+// public:
+//   CusvState(std::size_t s, void *ptr) : size(s), devicePtr(ptr) {}
 
-  double overlap(const std::vector<std::complex<double>> &other) override {
-    if constexpr (std::is_same_v<ScalarType, float>) {
-      throw std::runtime_error("simulation precision is FP32 but overlap "
-                               "requested with FP64 state data.");
-    }
+//   /// @brief Return the number of qubits this state models
+//   std::size_t getNumQubits() const override { return std::log2(size); }
 
-    if (getDataShape()[0] != other.size())
-      throw std::runtime_error("[custatevec-state] overlap error - other state "
-                               "dimension not equal to this state dimension.");
+//   /// @brief Return the shape of the data.
+//   std::vector<std::size_t> getDataShape() const override { return {size}; }
 
-    thrust::device_ptr<ThrustComplex<double>> thrustDevPtrABegin(
-        reinterpret_cast<ThrustComplex<double> *>(devicePtr));
-    thrust::device_ptr<ThrustComplex<double>> thrustDevPtrAEnd(
-        reinterpret_cast<ThrustComplex<double> *>(devicePtr) + size);
+//   /// @brief Compute the overlap of this state with the provided one.
+//   /// If the other state is not on GPU device, this function will
+//   /// copy the data from host.
+//   double overlap(const cudaq::SimulationState &other) override {
+//     if (getDataShape() != other.getDataShape())
+//       throw std::runtime_error("[custatevec-state] overlap error - other state "
+//                                "dimension not equal to this state dimension.");
 
-    // we have to copy the data to the GPU
-    thrust::device_vector<ThrustComplex<double>> otherDevPtr(other);
-    return thrust::inner_product(
-               thrustDevPtrABegin, thrustDevPtrAEnd, otherDevPtr.begin(),
-               ThrustComplex<double>(0.0),
-               thrust::plus<ThrustComplex<double>>(), AdotConjB<double>())
-        .real();
-  }
+//     if (other.getPrecision() != getPrecision()) {
+//       throw std::runtime_error(
+//           "[custatevec-state] overlap error - precision mismatch.");
+//     }
 
-  double overlap(const std::vector<std::complex<float>> &other) override {
-    if constexpr (std::is_same_v<ScalarType, double>) {
-      throw std::runtime_error("simulation precision is FP64 but overlap "
-                               "requested with FP32 state data.");
-    }
+//     // Cast our data pointer to be compatible with Thrust.
+//     auto *castedDevicePtr =
+//         reinterpret_cast<ThrustComplex<ScalarType> *>(devicePtr);
+//     thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrABegin(
+//         castedDevicePtr);
+//     thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrAEnd(
+//         castedDevicePtr + size);
 
-    if (getDataShape()[0] != other.size())
-      throw std::runtime_error("[custatevec-state] overlap error - other state "
-                               "dimension not equal to this state dimension.");
+//     // Make sure other is on GPU device already
+//     if (isDevicePointer(other.ptr())) {
+//       if (deviceFromPointer(devicePtr) != deviceFromPointer(other.ptr()))
+//         throw std::runtime_error(
+//             "overlap requested for device pointers on separate GPU devices.");
+//       // other is a device pointer
+//       thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrBBegin(
+//           reinterpret_cast<ThrustComplex<ScalarType> *>(other.ptr()));
+//       return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
+//                                    thrustDevPtrBBegin,
+//                                    ThrustComplex<ScalarType>(0.0),
+//                                    thrust::plus<ThrustComplex<ScalarType>>(),
+//                                    AdotConjB<ScalarType>())
+//           .real();
+//     }
 
-    thrust::device_ptr<ThrustComplex<float>> thrustDevPtrABegin(
-        reinterpret_cast<ThrustComplex<float> *>(devicePtr));
-    thrust::device_ptr<ThrustComplex<float>> thrustDevPtrAEnd(
-        reinterpret_cast<ThrustComplex<float> *>(devicePtr) + size);
+//     // If we reach here, then we have to copy the data from host.
+//     cudaq::info(
+//         "[custatevec-state] overlap computation requested with a state that is "
+//         "in host memory. Host data will be copied to GPU.");
 
-    // we have to copy the data to the GPU
-    thrust::device_vector<ThrustComplex<float>> otherDevPtr(other);
-    return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
-                                 otherDevPtr.begin(), ThrustComplex<float>(0.0),
-                                 thrust::plus<ThrustComplex<float>>(),
-                                 AdotConjB<float>())
-        .real();
-  }
+//     // Cast the other pointer to be compatible with Thrust.
+//     auto *castedOtherPtr =
+//         reinterpret_cast<std::complex<ScalarType> *>(other.ptr());
+//     std::vector<std::complex<ScalarType>> dataAsVec(castedOtherPtr,
+//                                                     castedOtherPtr + size);
+//     thrust::device_vector<ThrustComplex<ScalarType>> otherDevPtr(dataAsVec);
+//     return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
+//                                  otherDevPtr.begin(),
+//                                  ThrustComplex<ScalarType>(0.0),
+//                                  thrust::plus<ThrustComplex<ScalarType>>(),
+//                                  AdotConjB<ScalarType>())
+//         .real();
+//   }
 
-  double overlap(void *other) override {
-    auto *casted = reinterpret_cast<ThrustComplex<ScalarType> *>(other);
+//   /// @brief Compute the overlap of this state with the data provided as a
+//   /// `std::vector<double>`. If this device state is not FP64, throw an
+//   /// exception. This overload requires an explicit copy from host memory.
+//   double overlap(const std::vector<cudaq::complex128> &other) override {
+//     // We must use compatible element types
+//     if constexpr (std::is_same_v<ScalarType, float>) {
+//       throw std::runtime_error("simulation precision is FP32 but overlap "
+//                                "requested with FP64 state data.");
+//     }
 
-    // Check if input vector is on the right GPU device,
-    // if so, compute on device
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrABegin(
-        reinterpret_cast<ThrustComplex<ScalarType> *>(devicePtr));
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrAEnd(
-        reinterpret_cast<ThrustComplex<ScalarType> *>(devicePtr) + size);
+//     // Beyond here, ScalarType can only be == double
 
-    if (!isDevicePointer(other)) {
-      // otherwise we have to copy the data
-      thrust::device_vector<ThrustComplex<ScalarType>> otherDevPtr(
-          casted, casted + size);
-      return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
-                                   otherDevPtr.begin(),
-                                   ThrustComplex<ScalarType>(0.0),
-                                   thrust::plus<ThrustComplex<ScalarType>>(),
-                                   AdotConjB<ScalarType>())
-          .real();
-    }
+//     // Check that our shapes are correct
+//     if (getDataShape()[0] != other.size())
+//       throw std::runtime_error("[custatevec-state] overlap error - other state "
+//                                "dimension not equal to this state dimension.");
 
-    if (deviceFromPointer(devicePtr) != deviceFromPointer(other))
-      throw std::runtime_error(
-          "overlap requested for device pointers on separate GPU devices.");
+//     return internalOverlapVectorImpl<double>(other);
+//   }
 
-    thrust::device_ptr<ThrustComplex<ScalarType>> thrustDevPtrBBegin(casted);
-    return thrust::inner_product(thrustDevPtrABegin, thrustDevPtrAEnd,
-                                 &thrustDevPtrBBegin[0],
-                                 ThrustComplex<ScalarType>(0.0),
-                                 thrust::plus<ThrustComplex<ScalarType>>(),
-                                 AdotConjB<ScalarType>())
-        .real();
-  }
+//   /// @brief Compute the overlap of this state with the data provided as a
+//   /// `std::vector<float>`. If this device state is not FP32, throw an
+//   /// exception. This overload requires an explicit copy from host memory.
+//   double overlap(const std::vector<cudaq::complex64> &other) override {
+//     if constexpr (std::is_same_v<ScalarType, double>) {
+//       throw std::runtime_error("simulation precision is FP64 but overlap "
+//                                "requested with FP32 state data.");
+//     }
 
-  cudaq::complex vectorElement(std::size_t idx) override {
-    std::complex<ScalarType> value;
-    extractValues(&value, idx, idx + 1);
-    return value;
-  }
+//     // Beyond here, ScalarType can only be == float
 
-  void dump(std::ostream &os) const override {
-    // get state data from device to print
-    std::vector<std::complex<ScalarType>> tmp(size);
-    HANDLE_CUDA_ERROR(cudaMemcpy(tmp.data(), devicePtr,
-                                 size * sizeof(std::complex<ScalarType>),
-                                 cudaMemcpyDeviceToHost));
-    for (auto &t : tmp)
-      os << t << "\n";
-  }
+//     // Check that are shapes are correct
+//     if (getDataShape()[0] != other.size())
+//       throw std::runtime_error("[custatevec-state] overlap error - other state "
+//                                "dimension not equal to this state dimension.");
 
-  bool isDeviceData() const override { return true; }
-  void toHost(void *userData) const override {
-    extractValues(reinterpret_cast<std::complex<ScalarType> *>(userData), 0,
-                  size);
-    return;
-  }
+//     return internalOverlapVectorImpl<float>(other);
+//   }
 
-  void *ptr() const override { return devicePtr; }
-  precision getPrecision() const override {
-    if constexpr (std::is_same_v<ScalarType, float>)
-      return cudaq::SimulationState::precision::fp32;
-    return cudaq::SimulationState::precision::fp64;
-  }
+//   /// @brief Compute the overlap of this state with the data provided as a raw
+//   /// pointer. This overload will check if this pointer corresponds to a device
+//   /// pointer. It will copy the data from host to device if necessary.
+//   double overlap(cudaq::complex128 *other, std::size_t numElements) override {
+//     // Must have the correct precision
+//     if constexpr (std::is_same_v<ScalarType, float>) {
+//       throw std::runtime_error("simulation precision is FP32 but overlap "
+//                                "requested with FP64 state data.");
+//     }
 
-  void destroyState() override {
-    cudaq::info("custatevec-state destroying state vector handle.");
-    HANDLE_CUDA_ERROR(cudaFree(devicePtr));
-  }
-};
+//     // Must have the correct number of elements.
+//     if (numElements != size)
+//       throw std::runtime_error("[custatevec-state] overlap with pointer, "
+//                                "invalid number of elements specified.");
+
+//     return internalOverlapPointerImpl<double>(other);
+//   }
+
+//   double overlap(cudaq::complex64 *other, std::size_t numElements) override {
+//     // Must have the correct precision
+//     if constexpr (std::is_same_v<ScalarType, double>) {
+//       throw std::runtime_error("simulation precision is FP64 but overlap "
+//                                "requested with FP32 state data.");
+//     }
+
+//     // Must have the correct number of elements.
+//     if (numElements != size)
+//       throw std::runtime_error("[custatevec-state] overlap with pointer, "
+//                                "invalid number of elements specified.");
+
+//     return internalOverlapPointerImpl<float>(other);
+//   }
+
+//   /// @brief Return the vector element at the given index.
+//   cudaq::complex128 vectorElement(std::size_t idx) override {
+//     std::complex<ScalarType> value;
+//     extractValues(&value, idx, idx + 1);
+//     return {value.real(), value.imag()};
+//   }
+
+//   /// @brief Dump the state to the given output stream
+//   void dump(std::ostream &os) const override {
+//     // get state data from device to print
+//     std::vector<std::complex<ScalarType>> tmp(size);
+//     HANDLE_CUDA_ERROR(cudaMemcpy(tmp.data(), devicePtr,
+//                                  size * sizeof(std::complex<ScalarType>),
+//                                  cudaMemcpyDeviceToHost));
+//     for (auto &t : tmp)
+//       os << t << "\n";
+//   }
+
+//   /// @brief This state is GPU device data, always return true.
+//   bool isDeviceData() const override { return true; }
+
+//   /// @brief Copy the state device data to the user-provided host data pointer.
+//   void toHost(cudaq::complex128 *userData,
+//               std::size_t numElements) const override {
+//     // Must have the correct precision
+//     if constexpr (std::is_same_v<ScalarType, float>) {
+//       throw std::runtime_error("simulation precision is FP32 but overlap "
+//                                "requested with FP64 state data.");
+//     }
+//     // Must have the correct number of elements.
+//     if (numElements != size)
+//       throw std::runtime_error("[custatevec-state] provided toHost pointer has "
+//                                "invalid number of elements specified.");
+
+//     extractValues(reinterpret_cast<std::complex<ScalarType> *>(userData), 0,
+//                   size);
+//     return;
+//   }
+
+//   /// @brief Copy the state device data to the user-provided host data pointer.
+//   void toHost(cudaq::complex64 *userData,
+//               std::size_t numElements) const override {
+//     // Must have the correct precision
+//     if constexpr (std::is_same_v<ScalarType, float>) {
+//       throw std::runtime_error("simulation precision is FP32 but overlap "
+//                                "requested with FP64 state data.");
+//     }
+//     // Must have the correct number of elements.
+//     if (numElements != size)
+//       throw std::runtime_error("[custatevec-state] provided toHost pointer has "
+//                                "invalid number of elements specified.");
+
+//     extractValues(reinterpret_cast<std::complex<ScalarType> *>(userData), 0,
+//                   size);
+//     return;
+//   }
+
+//   /// @brief Return the raw pointer to the device data.
+//   void *ptr() const override { return devicePtr; }
+
+//   /// @brief Return the precision of the state data elements.
+//   precision getPrecision() const override {
+//     if constexpr (std::is_same_v<ScalarType, float>)
+//       return cudaq::SimulationState::precision::fp32;
+//     return cudaq::SimulationState::precision::fp64;
+//   }
+
+//   /// @brief Free the device data.
+//   void destroyState() override {
+//     cudaq::info("custatevec-state destroying state vector handle.");
+//     HANDLE_CUDA_ERROR(cudaFree(devicePtr));
+//   }
+// };
 
 /// @brief The CuStateVecCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator that delegates to the NVIDIA CuStateVec
@@ -791,7 +864,7 @@ public:
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     flushGateQueue();
     ownsDeviceVector = false;
-    return std::make_unique<CusvState<ScalarType>>(stateDimension,
+    return std::make_unique<cudaq::CusvState<ScalarType>>(stateDimension,
                                                    deviceStateVector);
   }
 

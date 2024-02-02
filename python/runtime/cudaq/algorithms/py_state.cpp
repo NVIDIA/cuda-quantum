@@ -75,29 +75,29 @@ void bindPyState(py::module &mod) {
 
         // Get the data pointer.
         // Data may be on GPU device, if so we must make a copy to host.
-        // If users do not want this copy, the will have to operate apart from
+        // If users do not want this copy, they will have to operate apart from
         // Numpy
         void *dataPtr = nullptr;
         if (self.data_holder()->isDeviceData()) {
           // This is device data, transfer to host, which gives us
           // ownership of a new data pointer on host. Store it globally
           // here so we ensure that it gets cleaned up.
-          void *hostData = nullptr;
+          auto numElements = self.data_holder()->getNumElements();
           if (self.data_holder()->getPrecision() ==
               SimulationState::precision::fp32) {
-            hostData =
-                new std::complex<float>[self.data_holder()->getNumElements()];
+            auto *hostData = new std::complex<float>[numElements];
+            self.data_holder()->toHost(hostData, numElements);
+            dataPtr = reinterpret_cast<void *>(hostData);
           } else {
-            hostData =
-                new std::complex<double>[self.data_holder()->getNumElements()];
+            auto *hostData = new std::complex<double>[numElements];
+            self.data_holder()->toHost(hostData, numElements);
+            dataPtr = reinterpret_cast<void *>(hostData);
           }
-          self.data_holder()->toHost(hostData);
-          hostDataFromDevice.emplace_back(hostData, [](void *data) {
+          hostDataFromDevice.emplace_back(dataPtr, [](void *data) {
             cudaq::info("freeing data that was copied from GPU device for "
                         "compatibility with NumPy");
             free(data);
           });
-          dataPtr = hostDataFromDevice.back().get();
         } else
           dataPtr = self.data_holder()->ptr();
 
@@ -196,72 +196,109 @@ index pair.
           "overlap",
           [](state &self, py::buffer &other) {
             py::buffer_info info = other.request();
-            for (std::size_t i = 0; std::size_t shapeElement : info.shape)
+
+            // Check that the shapes are compatible
+            std::size_t otherNumElements = 1;
+            for (std::size_t i = 0; std::size_t shapeElement : info.shape) {
+              otherNumElements *= shapeElement;
               if (shapeElement != self.get_shape()[i++])
                 throw std::runtime_error(
                     "overlap error - invalid shape of input buffer.");
+            }
 
+            // Compute the overlap in the case that the
+            // input buffer is FP64
             if (info.itemsize == 16) {
+              // if this state is FP32, then we have to throw an error
               if (self.data_holder()->getPrecision() ==
                   SimulationState::precision::fp32)
                 throw std::runtime_error(
                     "simulation state is FP32 but provided state buffer for "
                     "overlap is FP64.");
 
-              return self.overlap(reinterpret_cast<complex *>(info.ptr));
+              return self.overlap(reinterpret_cast<complex *>(info.ptr),
+                                  otherNumElements);
             }
 
+            // Compute the overlap in the case that the
+            // input buffer is FP32
             if (info.itemsize == 8) {
+              // if this state is FP64, then we have to throw an error
               if (self.data_holder()->getPrecision() ==
                   SimulationState::precision::fp64)
                 throw std::runtime_error(
                     "simulation state is FP64 but provided state buffer for "
                     "overlap is FP32.");
               return self.overlap(
-                  reinterpret_cast<std::complex<float> *>(info.ptr));
+                  reinterpret_cast<std::complex<float> *>(info.ptr),
+                  otherNumElements);
             }
 
+            // We only support complex f32 and f64 types
             throw std::runtime_error(
                 "invalid buffer element type size for overlap computation.");
           },
           "Compute the overlap between the provided :class:`State`'s.")
-      .def("overlap", [](state &self, py::object other) {
-        // Make sure this is a CuPy array
-        if (!py::hasattr(other, "data"))
-          throw std::runtime_error("invalid overlap operation on py::object - "
-                                   "only cupy array supported.");
-        auto data = other.attr("data");
-        if (!py::hasattr(data, "ptr"))
-          throw std::runtime_error("invalid overlap operation on py::object - "
-                                   "only cupy array supported.");
+      .def(
+          "overlap",
+          [](state &self, py::object other) {
+            // Make sure this is a CuPy array
+            if (!py::hasattr(other, "data"))
+              throw std::runtime_error(
+                  "invalid overlap operation on py::object - "
+                  "only cupy array supported.");
+            auto data = other.attr("data");
+            if (!py::hasattr(data, "ptr"))
+              throw std::runtime_error(
+                  "invalid overlap operation on py::object - "
+                  "only cupy array supported.");
 
-        // This is a cupy device pointer.
+            // We know this is a cupy device pointer.
 
-        // Start by ensuring it is of complex type
-        auto typeStr = py::str(other.attr("dtype")).cast<std::string>();
-        if (typeStr == "float64")
-          throw std::runtime_error(
-              "float64 cupy array passed to state.overlap. input must be of "
-              "complex type, please add to your cupy array creation "
-              "`dtype=cupy.complex64` if simulation "
-              "is FP32 and `dtype=cupy.complex128` if simulation if FP64.");
-        auto precision = self.data_holder()->getPrecision();
-        if (typeStr == "complex64") {
-          if (precision == cudaq::SimulationState::precision::fp64)
-            throw std::runtime_error("underlying simulation state is FP64, but "
-                                     "input cupy array is FP32.");
-        } else if (typeStr == "complex128") {
-          if (precision == cudaq::SimulationState::precision::fp32)
-            throw std::runtime_error("underlying simulation state is FP32, but "
-                                     "input cupy array is FP64.");
-        } else
-          throw std::runtime_error("invalid cupy element type " + typeStr);
+            // Start by ensuring it is of complex type
+            auto typeStr = py::str(other.attr("dtype")).cast<std::string>();
+            if (typeStr.find("float") != std::string::npos)
+              throw std::runtime_error(
+                  "CuPy array with only floating point elements passed to "
+                  "state.overlap. input must be "
+                  "of "
+                  "complex float type, please add to your cupy array creation "
+                  "`dtype=cupy.complex64` if simulation "
+                  "is FP32 and `dtype=cupy.complex128` if simulation if FP64.");
+            auto precision = self.data_holder()->getPrecision();
+            if (typeStr == "complex64") {
+              if (precision == cudaq::SimulationState::precision::fp64)
+                throw std::runtime_error(
+                    "underlying simulation state is FP64, but "
+                    "input cupy array is FP32.");
+            } else if (typeStr == "complex128") {
+              if (precision == cudaq::SimulationState::precision::fp32)
+                throw std::runtime_error(
+                    "underlying simulation state is FP32, but "
+                    "input cupy array is FP64.");
+            } else
+              throw std::runtime_error("invalid cupy element type " + typeStr);
 
-        // Cast the device ptr and perform the overlap
-        long ptr = data.attr("ptr").cast<long>();
-        void *casted = reinterpret_cast<void *>(ptr);
-        return self.overlap(casted);
-      });
+            // Compute the number of elements in the other array
+            auto numOtherElements = [&]() {
+              auto shape = other.attr("shape").cast<py::tuple>();
+              std::size_t numElements = 1;
+              for (auto el : shape)
+                numElements *= el.cast<std::size_t>();
+              return numElements;
+            }();
+
+            // Cast the device ptr and perform the overlap
+            long ptr = data.attr("ptr").cast<long>();
+            if (self.data_holder()->getPrecision() ==
+                SimulationState::precision::fp32)
+              return self.overlap(reinterpret_cast<complex64 *>(ptr),
+                                  numOtherElements);
+
+            return self.overlap(reinterpret_cast<complex128 *>(ptr),
+                                numOtherElements);
+          },
+          "Compute overlap with general CuPy device array.");
 
   mod.def(
       "get_state",

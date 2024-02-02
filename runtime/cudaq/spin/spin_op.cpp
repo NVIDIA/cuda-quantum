@@ -30,6 +30,16 @@ namespace cudaq {
 
 namespace details {
 
+/// @brief Helper function to convert ordering of matrix elements
+/// to match internal simulator state ordering.
+std::size_t convertOrdering(std::size_t numQubits, std::size_t idx) {
+  std::size_t newIdx = 0;
+  for (std::size_t i = 0; i < numQubits; ++i)
+    if (idx & (1ULL << i))
+      newIdx |= (1ULL << ((numQubits - 1) - i));
+  return newIdx;
+}
+
 /// @brief Compute the action
 std::pair<std::string, std::complex<double>>
 actionOnBra(spin_op &term, const std::string &bitConfiguration) {
@@ -185,14 +195,6 @@ complex_matrix spin_op::to_matrix() const {
   // we then compute <rowState | Paulis | colState> and set it in the matrix
   // data.
 
-  auto convertOrdering = [numQubits = n](std::size_t idx) {
-    std::size_t newIdx = 0;
-    for (std::size_t i = 0; i < numQubits; ++i)
-      if (idx & (1ULL << i))
-        newIdx |= (1ULL << ((numQubits - 1) - i));
-    return newIdx;
-  };
-
   complex_matrix A(dim, dim);
   A.set_zero();
   auto rawData = A.data();
@@ -204,7 +206,8 @@ complex_matrix spin_op::to_matrix() const {
     for_each_term([&](spin_op &term) {
       auto [res, coeff] = details::actionOnBra(term, rowBitStr);
       auto colIdx = std::stol(res, nullptr, 2);
-      rawData[convertOrdering(rowIdx) * dim + convertOrdering(colIdx)] += coeff;
+      rawData[details::convertOrdering(n, rowIdx) * dim +
+              details::convertOrdering(n, colIdx)] += coeff;
     });
   }
   return A;
@@ -251,21 +254,13 @@ spin_op::csr_spmatrix spin_op::to_sparse_matrix() const {
     mat += term.get_coefficient() * kronProd(operations);
   });
 
-  auto convertOrdering = [numQubits = n](std::size_t idx) {
-    std::size_t newIdx = 0;
-    for (std::size_t i = 0; i < numQubits; ++i)
-      if (idx & (1ULL << i))
-        newIdx |= (1ULL << ((numQubits - 1) - i));
-    return newIdx;
-  };
-
   std::vector<std::complex<double>> values;
   std::vector<std::size_t> rows, cols;
   for (int k = 0; k < mat.outerSize(); ++k)
     for (SpMat::InnerIterator it(mat, k); it; ++it) {
       values.emplace_back(it.value());
-      rows.emplace_back(convertOrdering(it.row()));
-      cols.emplace_back(convertOrdering(it.col()));
+      rows.emplace_back(details::convertOrdering(n, it.row()));
+      cols.emplace_back(details::convertOrdering(n, it.col()));
     }
 
   return std::make_tuple(values, rows, cols);
