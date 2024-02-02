@@ -408,11 +408,11 @@ private:
       resultJson["executionContext"] = request.executionContext;
       m_codeTransform.erase(reqId);
       return resultJson;
-    } catch (...) {
+    } catch (std::exception &e) {
       json resultJson;
-      resultJson["error"] = "Failed to process incoming request";
-      resultJson["requestBody"] = reqBody;
-      return reqBody;
+      resultJson["status"] = "Failed to process incoming request";
+      resultJson["errorMessage"] = e.what();
+      return resultJson;
     }
   }
 };
