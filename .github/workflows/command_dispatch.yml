@@ -17,7 +17,7 @@ jobs:
       command_type: ${{ steps.parse.outputs.command_type }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: parse
         run: |
           if [ "${COMMENT_BODY:0:1}" == "/" ]; then
@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Update configuration
         id: config
