@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -329,7 +329,7 @@ def uccsd(kernel, qubits: cudaq.qlist, thetas: list[float], n_electrons: int,
           n_qubits: int):
 
     # This function generates a quantum circuit for the VQE-UCCSD ansatz
-    # To construct an efficient quantum circuit with minimum number of cnot,
+    # To construct an efficient quantum circuit with minimum number of `cnot`,
     # we use gate cancellation.
 
     # Generate the relevant UCCSD excitation list indices

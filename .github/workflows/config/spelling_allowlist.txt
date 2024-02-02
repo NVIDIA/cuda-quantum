@@ -84,6 +84,7 @@ SVD
 TCP
 TableGen
 Toffoli
+UCCSD
 VQE
 Vazirani
 WSL
