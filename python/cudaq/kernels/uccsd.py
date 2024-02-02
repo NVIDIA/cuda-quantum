@@ -203,15 +203,11 @@ def double_excitation_gate_opt(kernel, qubits: cudaq.qlist, p_occ: int,
     for i in range(j_occ, i_occ, -1):
         kernel.cx(qubits[i - 1], qubits[i])
 
-    #kernel.h(qubits[b_virt])
     kernel.rx(-np.pi / 2.0, qubits[a_virt])
     kernel.h(qubits[j_occ])
-    #kernel.h(qubits[i_occ])
 
-    #kernel.h(qubits[i_occ])
     kernel.rx(np.pi / 2.0, qubits[j_occ])
     kernel.h(qubits[a_virt])
-    #kernel.h(qubits[b_virt])
 
     for i in range(i_occ, j_occ):
         kernel.cx(qubits[i], qubits[i + 1])
@@ -280,13 +276,9 @@ def double_excitation_gate_opt(kernel, qubits: cudaq.qlist, p_occ: int,
         kernel.cx(qubits[i - 1], qubits[i])
 
     kernel.h(qubits[b_virt])
-    #kernel.h(qubits[a_virt])
     kernel.h(qubits[j_occ])
-    #kernel.rx(-np.pi/2.0,qubits[i_occ])
 
-    #kernel.rx(np.pi/2.0,qubits[i_occ])
     kernel.rx(np.pi / 2.0, qubits[j_occ])
-    #kernel.h(qubits[a_virt])
     kernel.rx(np.pi / 2.0, qubits[b_virt])
 
     for i in range(i_occ, j_occ):
