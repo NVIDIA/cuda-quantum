@@ -97,7 +97,7 @@ public:
           std::string mutableReq;
           for (const auto &[k, v] : headers)
             cudaq::info("Request Header: {} : {}", k, v);
-
+          // Checking if this request has its body sent on as NVCF assets.
           const auto dirIter = headers.find("NVCF-ASSET-DIR");
           const auto assetIdIter = headers.find("NVCF-FUNCTION-ASSET-IDS");
           if (dirIter != headers.end() && assetIdIter != headers.end()) {
@@ -109,6 +109,7 @@ public:
                   fmt::format("Invalid asset Id data: {}", assetIdIter->second);
               return js;
             }
+            // Load the asset file
             std::filesystem::path assetFile =
                 std::filesystem::path(dir) / ids[0];
             if (!std::filesystem::exists(assetFile)) {
@@ -128,10 +129,14 @@ public:
           if (m_hasMpi)
             cudaq::mpi::broadcast(mutableReq, 0);
           auto resultJs = processRequest(mutableReq);
+          // Check whether we have a limit in terms of response size.
           if (headers.contains("NVCF-MAX-RESPONSE-SIZE-BYTES")) {
             const std::size_t maxResponseSizeBytes = std::stoll(
                 headers.find("NVCF-MAX-RESPONSE-SIZE-BYTES")->second);
             if (resultJs.dump().size() > maxResponseSizeBytes) {
+              // If the response size is larger than the limit, write it to the
+              // large output directory rather than sending it back as an HTTP
+              // response.
               const auto outputDirIter = headers.find("NVCF-LARGE-OUTPUT-DIR");
               const auto reqIdIter = headers.find("NVCF-REQID");
               if (outputDirIter == headers.end() ||
@@ -244,8 +249,29 @@ public:
       }
     } else {
       platform.set_exec_ctx(&io_context);
-      invokeMlirKernel(m_mlirContext, ir, requestInfo.passes,
-                       std::string(kernelName));
+      if (io_context.name == "sample" &&
+          io_context.hasConditionalsOnMeasureResults) {
+        // Need to run simulation shot-by-shot
+        cudaq::sample_result counts;
+        invokeMlirKernel(m_mlirContext, ir, requestInfo.passes,
+                         std::string(kernelName), io_context.shots,
+                         [&](std::size_t i) {
+                           // Reset the context and get the single
+                           // measure result, add it to the
+                           // sample_result and clear the context
+                           // result
+                           platform.reset_exec_ctx();
+                           counts += io_context.result;
+                           io_context.result.clear();
+                           if (i != (io_context.shots - 1))
+                             platform.set_exec_ctx(&io_context);
+                         });
+        io_context.result = counts;
+        platform.set_exec_ctx(&io_context);
+      } else {
+        invokeMlirKernel(m_mlirContext, ir, requestInfo.passes,
+                         std::string(kernelName));
+      }
     }
     platform.reset_exec_ctx();
     dlclose(handle);
@@ -307,10 +333,12 @@ private:
     return uniqueJit;
   }
 
-  void invokeMlirKernel(std::unique_ptr<MLIRContext> &contextPtr,
-                        std::string_view irString,
-                        const std::vector<std::string> &passes,
-                        const std::string &entryPointFn) {
+  void
+  invokeMlirKernel(std::unique_ptr<MLIRContext> &contextPtr,
+                   std::string_view irString,
+                   const std::vector<std::string> &passes,
+                   const std::string &entryPointFn, std::size_t numTimes = 1,
+                   std::function<void(std::size_t)> postExecCallback = {}) {
     llvm::SourceMgr sourceMgr;
     sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(irString),
                                  llvm::SMLoc());
@@ -323,8 +351,13 @@ private:
       throw std::runtime_error("Failed to get entry function");
 
     auto fn = reinterpret_cast<void (*)()>(fnPtr);
-    // Invoke the kernel
-    fn();
+    for (std::size_t i = 0; i < numTimes; ++i) {
+      // Invoke the kernel
+      fn();
+      if (postExecCallback) {
+        postExecCallback(i);
+      }
+    }
   }
 
   void *loadNvqirSimLib(const std::string &simulatorName) {

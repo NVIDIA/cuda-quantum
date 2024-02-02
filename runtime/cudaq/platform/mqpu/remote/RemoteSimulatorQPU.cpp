@@ -38,6 +38,9 @@ public:
     return execution_queue->getExecutionThreadId();
   }
 
+  // Conditional feedback is handled by the server side.
+  virtual bool supportsConditionalFeedback() override { return true; }
+
   virtual void setTargetBackend(const std::string &backend) override {
     auto parts = cudaq::split(backend, ';');
     if (parts.size() % 2 != 0)
