@@ -759,7 +759,6 @@ jobs:
       - name: Install and run sanity checks
         shell: bash
         run: |
-          source ~/.bashrc
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
