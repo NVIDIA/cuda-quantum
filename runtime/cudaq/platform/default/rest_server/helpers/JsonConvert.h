@@ -37,9 +37,15 @@ namespace cudaq {
 
 /// @brief Implement `SimulationState` to handle state data
 /// coming from the remote server.
-struct RemoteJsonSimulationState : public SimulationState {
+class RemoteJsonSimulationState : public SimulationState {
+private:
+  /// @brief The shape of the underlying state data.
   std::vector<std::size_t> m_shape;
+
+  /// @brief The underlying state data.
   std::vector<std::complex<double>> m_data;
+
+public:
   RemoteJsonSimulationState(const std::vector<std::size_t> &shape,
                             const std::vector<std::complex<double>> &data)
       : m_shape(shape), m_data(data) {}
@@ -87,7 +93,7 @@ struct RemoteJsonSimulationState : public SimulationState {
     return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
   }
 
-  double overlap(const std::vector<cudaq::complex> &data) override {
+  double overlap(const std::vector<cudaq::complex128> &data) override {
     if (data.size() != getDataShape()[0])
       throw std::runtime_error(
           "[remote json state] overlap error - other state "
@@ -118,12 +124,17 @@ struct RemoteJsonSimulationState : public SimulationState {
     return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
   }
 
-  double overlap(const std::vector<std::complex<float>> &data) override {
+  double overlap(const std::vector<complex64> &data) override {
     throw std::runtime_error("remote rest json state vector requires FP64 data "
                              "for overlap computation.");
   }
 
-  double overlap(void *data) override {
+  double overlap(complex128 *data, std::size_t numElements) override {
+    throw std::runtime_error(
+        "[remote json state] overlap with pointer is not supported.");
+  }
+
+  double overlap(complex64 *data, std::size_t numElements) override {
     throw std::runtime_error(
         "[remote json state] overlap with pointer is not supported.");
   }
@@ -215,7 +226,7 @@ inline void to_json(json &j, const ExecutionContext &context) {
     std::vector<std::complex<double>> hostData(
         context.simulationState->getNumElements());
     if (context.simulationState->isDeviceData()) {
-      context.simulationState->toHost(hostData.data());
+      context.simulationState->toHost(hostData.data(), hostData.size());
       j["simulationData"]["data"] = hostData;
     } else {
       auto *ptr = reinterpret_cast<std::complex<double> *>(

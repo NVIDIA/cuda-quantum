@@ -14,6 +14,8 @@
 
 namespace cudaq {
 
+std::mutex deleteStateMutex;
+
 void state::dump() { dump(std::cout); }
 void state::dump(std::ostream &os) { internal->dump(os); }
 
@@ -52,8 +54,24 @@ double state::overlap(const std::vector<std::complex<float>> &hostData) {
   return internal->overlap(hostData);
 }
 
-double state::overlap(void *deviceOrHostPointer) {
-  return internal->overlap(deviceOrHostPointer);
+double state::overlap(complex128 *deviceOrHostPointer,
+                      std::size_t numElements) {
+  return internal->overlap(deviceOrHostPointer, numElements);
+}
+
+double state::overlap(complex64 *deviceOrHostPointer, std::size_t numElements) {
+  return internal->overlap(deviceOrHostPointer, numElements);
+}
+
+state::~state() {
+  // Make sure destroying the state is thread safe.
+  std::lock_guard<std::mutex> lock(deleteStateMutex);
+
+  // Current use count is 1, so the
+  // shared_ptr is about to go out of scope,
+  // there are no users. Delete the state data.
+  if (internal.use_count() == 1)
+    internal->destroyState();
 }
 
 } // namespace cudaq

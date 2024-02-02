@@ -46,14 +46,14 @@ CUDAQ_TEST(GetStateTester, checkGPUDeviceState) {
   auto *devPtr = thrust::raw_pointer_cast(&devState[0]);
   // check overlap with device vector
   EXPECT_NEAR(1.0,
-              state.overlap(reinterpret_cast<std::complex<double> *>(devPtr)),
+              state.overlap(reinterpret_cast<cudaq::complex128 *>(devPtr), 4),
               1e-3);
 
   // check can get device to host
   {
     std::vector<std::complex<double>> clientData(
         state.data_holder()->getNumElements());
-    state.data_holder()->toHost(clientData.data());
+    state.data_holder()->toHost(clientData.data(), clientData.size());
     EXPECT_NEAR(1. / std::sqrt(2.), clientData[0].real(), 1e-3);
     EXPECT_NEAR(0., clientData[1].real(), 1e-3);
     EXPECT_NEAR(0., clientData[2].real(), 1e-3);
@@ -66,8 +66,8 @@ CUDAQ_TEST(GetStateTester, checkGPUDeviceState) {
   cudaMalloc((void **)&devPtr2, 4 * sizeof(std::complex<double>));
   cudaMemcpy(devPtr2, hostState.data(), 4 * sizeof(std::complex<double>),
              cudaMemcpyHostToDevice);
-  EXPECT_NEAR(1.0,
-              state.overlap(reinterpret_cast<std::complex<double> *>(devPtr2)),
-              1e-3);
+  EXPECT_NEAR(
+      1.0, state.overlap(reinterpret_cast<std::complex<double> *>(devPtr2), 4),
+      1e-3);
   cudaFree(devPtr2);
 }
