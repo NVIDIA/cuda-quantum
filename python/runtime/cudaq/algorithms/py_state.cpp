@@ -260,11 +260,10 @@ index pair.
             if (typeStr.find("float") != std::string::npos)
               throw std::runtime_error(
                   "CuPy array with only floating point elements passed to "
-                  "state.overlap. input must be "
-                  "of "
-                  "complex float type, please add to your cupy array creation "
-                  "`dtype=cupy.complex64` if simulation "
-                  "is FP32 and `dtype=cupy.complex128` if simulation if FP64.");
+                  "state.overlap. input must be of complex float type, please "
+                  "add to your cupy array creation `dtype=cupy.complex64` if "
+                  "simulation is FP32 and `dtype=cupy.complex128` if "
+                  "simulation if FP64.");
             auto precision = self.data_holder()->getPrecision();
             if (typeStr == "complex64") {
               if (precision == cudaq::SimulationState::precision::fp64)

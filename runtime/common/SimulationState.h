@@ -9,10 +9,9 @@
 #pragma once
 
 #include <complex>
-#include <vector> 
+#include <vector>
 
 namespace cudaq {
-using complex = std::complex<double>;
 using complex64 = std::complex<float>;
 using complex128 = std::complex<double>;
 
@@ -49,7 +48,7 @@ public:
   /// elements and the size of each element.
   virtual double overlap(complex128 *deviceOrHostPointer,
                          std::size_t numElements) = 0;
-  
+
   /// @brief Compute the overlap of this state representation with
   /// the provided `complex64` data pointer. Clients must provide the number of
   /// elements and the size of each element.
