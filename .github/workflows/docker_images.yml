@@ -800,6 +800,9 @@ jobs:
     permissions: {}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Create build info
         id: staging
         run: |
@@ -816,6 +819,7 @@ jobs:
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
           echo "platforms: ${{ inputs.platforms }}" >> "$info_file"
+          cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
         uses: actions/upload-artifact@v4
