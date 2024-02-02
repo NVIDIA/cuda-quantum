@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -66,7 +66,7 @@ ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
 RUN LLVM_SOURCE=/llvm-project \
-    source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
+    source /scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
     && rm -rf /llvm-project/build
 RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
@@ -76,8 +76,10 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project
+
+# Enable compiler-rt in this build (-r)
 RUN source /opt/llvm/bootstrap/init_command.sh && \
-    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
+    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v -r \
     && rm -rf /llvm-project 
 
 FROM llvmbuild as prereqs

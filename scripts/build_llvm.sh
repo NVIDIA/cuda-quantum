@@ -30,12 +30,15 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
 verbose=false
+compiler_rt=false
 
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":c:s:p:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
+    ;;
+    r) compiler_rt=true
     ;;
     s) llvm_source="$OPTARG"
     ;;
@@ -183,28 +186,31 @@ else
   cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
 fi
 
-# Build and install compiler-rt
-cd "$llvm_source"
-mkdir build-compiler-rt
-cd build-compiler-rt
-cmake -G Ninja ../compiler-rt \
-  -DLLVM_CMAKE_DIR=$llvm_source/build/cmake/modules \
-  -DCMAKE_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX/lib/clang/16
 
-# Note that install-distribution-stripped is not a valid target for compiler-rt
-echo "Building LLVM compiler-rt ..."
-if $verbose; then
-  ninja install
-  status=$?
-else
-  echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
-  ninja install 2> logs/ninja_error.txt 1> logs/ninja_output.txt
-  status=$?
-fi
+if $compiler_rt; then
+  # Build and install compiler-rt
+  cd "$llvm_source"
+  mkdir build-compiler-rt
+  cd build-compiler-rt
+  cmake -G Ninja ../compiler-rt \
+    -DLLVM_CMAKE_DIR=$llvm_source/build/cmake/modules \
+    -DCMAKE_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX/lib/clang/16
 
-if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
-  echo "Build failed. Please check the files in the `pwd`/logs directory."
-  cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
-else
-  echo "Installed compiler-rt"
+  # Note that install-distribution-stripped is not a valid target for compiler-rt
+  echo "Building LLVM compiler-rt ..."
+  if $verbose; then
+    ninja install
+    status=$?
+  else
+    echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
+    ninja install 2> logs/ninja_error.txt 1> logs/ninja_output.txt
+    status=$?
+  fi
+
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo "Build failed. Please check the files in the `pwd`/logs directory."
+    cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+  else
+    echo "Installed compiler-rt"
+  fi
 fi
