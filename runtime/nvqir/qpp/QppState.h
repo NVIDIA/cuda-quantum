@@ -26,8 +26,8 @@ struct QppState : public cudaq::SimulationState {
       throw std::runtime_error(
           "QppState must be created from data with 1D shape.");
 
-    state = Eigen::Map<qpp::ket>(const_cast<cudaq::complex *>(data.data()),
-                                 shape[0]);
+    state =
+        Eigen::Map<qpp::ket>(const_cast<complex128 *>(data.data()), shape[0]);
   }
 
   std::size_t getNumQubits() const override { return std::log2(state.size()); }
@@ -42,7 +42,7 @@ struct QppState : public cudaq::SimulationState {
                                "dimension not equal to this state dimension.");
     return std::abs(state.transpose()
                         .dot(Eigen::Map<qpp::ket>(
-                            reinterpret_cast<cudaq::complex *>(other.ptr()),
+                            reinterpret_cast<complex128 *>(other.ptr()),
                             other.getDataShape()[0]))
                         .real());
   }
@@ -53,8 +53,8 @@ struct QppState : public cudaq::SimulationState {
                                "dimension not equal to this state dimension.");
     return std::abs(state.transpose()
                         .dot(Eigen::Map<qpp::ket>(
-                            reinterpret_cast<cudaq::complex *>(
-                                const_cast<cudaq::complex *>(data.data())),
+                            reinterpret_cast<complex128 *>(
+                                const_cast<complex128 *>(data.data())),
                             data.size()))
                         .real());
   }
@@ -71,7 +71,7 @@ struct QppState : public cudaq::SimulationState {
 
     return std::abs(
         state.transpose()
-            .dot(Eigen::Map<qpp::ket>(reinterpret_cast<cudaq::complex *>(data),
+            .dot(Eigen::Map<qpp::ket>(reinterpret_cast<complex128 *>(data),
                                       getDataShape()[0]))
             .real());
   }
@@ -81,11 +81,11 @@ struct QppState : public cudaq::SimulationState {
         "qpp state vector requires FP64 data for overlap computation.");
   }
 
-  cudaq::complex vectorElement(std::size_t idx) override { return state[idx]; }
+  complex128 vectorElement(std::size_t idx) override { return state[idx]; }
 
   void dump(std::ostream &os) const override { os << state << "\n"; }
   void *ptr() const override {
-    return reinterpret_cast<void *>(const_cast<cudaq::complex *>(state.data()));
+    return reinterpret_cast<void *>(const_cast<complex128 *>(state.data()));
   }
   precision getPrecision() const override {
     return cudaq::SimulationState::precision::fp64;

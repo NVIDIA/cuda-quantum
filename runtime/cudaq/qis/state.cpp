@@ -46,11 +46,11 @@ double state::overlap(state &other) {
   return internal->overlap(*other.internal.get());
 }
 
-double state::overlap(const std::vector<complex> &hostData) {
+double state::overlap(const std::vector<complex128> &hostData) {
   return internal->overlap(hostData);
 }
 
-double state::overlap(const std::vector<std::complex<float>> &hostData) {
+double state::overlap(const std::vector<complex64> &hostData) {
   return internal->overlap(hostData);
 }
 
