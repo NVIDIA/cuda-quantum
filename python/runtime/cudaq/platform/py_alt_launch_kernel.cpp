@@ -41,16 +41,16 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   auto mod = unwrap(module);
   auto cloned = mod.clone();
   auto context = cloned.getContext();
-  registerLLVMDialectTranslation(*context);
-  // {
-  //   static std::mutex g_mutex;
-  //   static std::unordered_set<mlir::MLIRContext *> g_knownContexts;
-  //   std::scoped_lock<std::mutex> lock(g_mutex);
-  //   if (!g_knownContexts.contains(context)) {
-  //     registerLLVMDialectTranslation(*context);
-  //     g_knownContexts.emplace(context);
-  //   }
-  // }
+  // registerLLVMDialectTranslation(*context);
+  {
+    static std::mutex g_mutex;
+    static std::unordered_set<mlir::MLIRContext *> g_knownContexts;
+    std::scoped_lock<std::mutex> lock(g_mutex);
+    if (!g_knownContexts.contains(context)) {
+      registerLLVMDialectTranslation(*context);
+      g_knownContexts.emplace(context);
+    }
+  }
 
   // Have we JIT compiled this before?
   std::string moduleString;
