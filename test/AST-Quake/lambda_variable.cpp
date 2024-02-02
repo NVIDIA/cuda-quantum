@@ -6,6 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// The source code in this test uses concepts, a C++20 language feature, and 
+// hence is not expected to compile as C++17. The REQUIRES line below reflects this.
+
 // REQUIRES: c++20
 // RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
