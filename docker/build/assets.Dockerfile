@@ -125,7 +125,4 @@ RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
     dnf install -y --nobest --setopt=install_weak_deps=False file which
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
-        --param nvqpp_site_config=build/test/lit.site.cfg.py \
-        # FIXME: Disabled since these need additional work
-        # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102
-        --filter-out='(custom_pass|negation_error.cpp|kernel_invalid_argument-2.cpp)'
+        --param nvqpp_site_config=build/test/lit.site.cfg.py
