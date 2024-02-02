@@ -12,11 +12,10 @@ The primary extension point for NVQIR is the :code:`CircuitSimulator` class. Thi
 exposes an API that enables qubit allocation and deallocation, quantum operation 
 invocation, and measurement and sampling. Subtypes of this class are free to 
 override these methods to affect simulation of the quantum code in any 
-simulation strategy specific manner (e.g. state vector, tensor network, etc.). Moreover, 
+simulation-strategy-specific manner (e.g., state vector, tensor network, etc.). Moreover, 
 subtypes are free to implement simulators that leverage classical accelerated computing. 
 
-In this document, we'll detail this simulator interface and walk through how one 
-might extend it for new types of simulation. 
+In this document, we'll detail this simulator interface and walk through how to extend it for new types of simulation. 
 
 :code:`CircuitSimulator`
 ------------------------
@@ -28,7 +27,7 @@ This templated type handles a lot of the base functionality required for allocat
 as well as measurement, sampling, and observation under a number of execution contexts. 
 This is the type that downstream simulation developers should extend. 
 
-Actual definition of the quantum state data structure, and its overall evolution are 
+The actual definition of the quantum state data structure, and its overall evolution are 
 left as tasks for :code:`CircuitSimulatorBase` subclasses. Examples of simulation subtypes can be found 
 in :code:`runtime/nvqir/qpp/QppCircuitSimulator.cpp` or :code:`runtime/nvqir/custatevec/CuStateVecCircuitSimulator.cpp`.
 The :code:`QppCircuitSimulator` models the state vector using the `Q++ <https://github.com/softwareqinc/qpp>`_ library, which 
@@ -62,17 +61,17 @@ The key methods that need to be overridden by subtypes of :code:`CircuitSimulato
       - :code:`qubitIdx : std::size_t -> bool` (returns bit result as bool)
       - Measure the qubit, produce a bit result, collapse the state.
     * - :code:`sample`
-      - qubitIdxs : std::vector<std::size_t>, shots : int 
+      - :code`qubitIdxs : std::vector<std::size_t>, shots : int`
       - Sample the current multi-qubit state on the provided qubit indices over a certain number of shots
     * - :code:`name`
       - :code:`void`
       - Return the name of this CircuitSimulator, must be the same as the name used in :code:`nvq++ -qpu NAME ...`
 
-The strategy for extending this class is to create a new :code:`cpp` implementation file with the same name as your 
+To extend a subtype class, you will need to create a new :code:`cpp` implementation file with the same name as your 
 subtype class name. In this file, you will subclass the :code:`CircuitSimulatorBase<FloatType>` and implement the methods in 
 the above table. Finally, the subclass must be registered with the NVQIR library so that it 
 can be picked up and used when a user specifies :code:`nvq++ --target mySimulator ...` from the command line (or :code:`cudaq.set_target('mySimulator')` in Python.)
-Type registration can be performed with a provided NVQIR macro 
+Type registration can be performed with a provided NVQIR macro, 
 
 .. code:: cpp 
 
@@ -99,12 +98,12 @@ Let's see this in action
 ------------------------
 
 CUDA Quantum provides some CMake utilities to make the creation of your new simulation library 
-easier. Specifically, but using :code:`find_package(NVQIR)`, you'll get access to a :code:`nvqir_add_backend` function
-that will automate a lot of the boilerplate for creating your library and configuration file.
+easier. Specifically, by using :code:`find_package(NVQIR)`, you'll get access to a :code:`nvqir_add_backend` function
+that will automate much of the boilerplate for creating your library and configuration file.
 
 Let's assume you want a simulation subtype named :code:`MySimulator`. You can create a folder or 
 repository for this code called :code:`my-simulator` and add :code:`MySimulator.cpp` and 
-:code:`CMakeLists.txt` files. Fill the CMake file with the following 
+:code:`CMakeLists.txt` files. Fill the CMake file with the following: 
 
 .. code:: cmake 
 
@@ -113,7 +112,7 @@ repository for this code called :code:`my-simulator` and add :code:`MySimulator.
     find_package(NVQIR REQUIRED)
     nvqir_add_backend(MySimulator MySimulator.cpp)
 
-and then fill out your :code:`MySimulator.cpp` file with your subtype implementation, something like 
+and then fill out your :code:`MySimulator.cpp` file with your subtype implementation. For example, 
 
 .. code:: cpp
 
@@ -156,7 +155,7 @@ and then fill out your :code:`MySimulator.cpp` file with your subtype implementa
     /// Register this Simulator with NVQIR.
     NVQIR_REGISTER_SIMULATOR(MySimulator)
 
-To build, install, and use this simulation backend, run the following from the top-level of :code:`my-simulator`
+To build, install, and use this simulation backend, run the following from the top-level of :code:`my-simulator`:
 
 .. code:: bash 
 
@@ -165,7 +164,7 @@ To build, install, and use this simulation backend, run the following from the t
     cmake .. -G Ninja -DNVQIR_DIR="$CUDA_QUANTUM_PATH/lib/cmake/nvqir"
     ninja install 
 
-Then given any CUDA Quantum source file, you can compile and target your backend simulator with 
+Then given any CUDA Quantum source file, you can compile and target your backend simulator with the following: 
 
 .. code:: bash 
 
