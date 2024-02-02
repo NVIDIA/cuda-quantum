@@ -128,4 +128,4 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/test/lit.site.cfg.py \
         # FIXME: Disabled since these need additional work
         # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102
-        --filter-out='(custom_pass|mapping_test-1.cpp|negation_error.cpp|kernel_invalid_argument-2.cpp)'
+        --filter-out='(custom_pass|negation_error.cpp|kernel_invalid_argument-2.cpp)'

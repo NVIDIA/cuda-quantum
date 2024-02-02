@@ -6,8 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// FIXME: should not require C++20,
-// tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102.
 // REQUIRES: c++20
 // RUN: cudaq-quake %cpp_std %s | FileCheck %s
 

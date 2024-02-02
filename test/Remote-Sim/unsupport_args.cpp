@@ -7,9 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// REQUIRES: c++20
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1111
-// RUN: nvq++ --target remote-mqpu %s 2>&1 | FileCheck %s
+// RUN: nvq++ %cpp_std --target remote-mqpu %s 2>&1 | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
