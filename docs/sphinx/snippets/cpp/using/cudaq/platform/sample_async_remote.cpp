@@ -40,7 +40,7 @@ int main() {
   std::vector<cudaq::async_sample_result> countFutures;
   for (std::size_t i = 0; i < num_qpus; i++) {
     countFutures.emplace_back(cudaq::sample_async(
-        /*qpuId=*/i, kernel_builder, /*nrControls=*/i + 1));
+        /*qpuId=*/i, kernel, /*nrControls=*/i + 1));
   }
 
   // Go do other work, asynchronous execution of sample tasks on-going
