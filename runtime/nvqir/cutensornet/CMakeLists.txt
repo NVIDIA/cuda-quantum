@@ -1,14 +1,15 @@
 # Find CUDA Toolkit for CUDA libs, e.g., cudart.
 find_package(CUDAToolkit REQUIRED)
-
-find_library(CUTENSOR_LIB
-    NAMES   cutensor
-    HINTS   
-        ${CUTENSOR_ROOT}/lib64
-        ${CUTENSOR_ROOT}/lib
-        ${CUTENSOR_ROOT}/lib64/${CUDA_VERSION_MAJOR}
-        ${CUTENSOR_ROOT}/lib/${CUDA_VERSION_MAJOR}
-)
+message(STATUS "HEY WORLD ${CUDA_VERSION_MAJOR}")
+set (CUTENSOR_LIB /workspaces/cuda-quantum/builds/libcutensor/lib/11.0/libcutensor.so)
+# find_library(CUTENSOR_LIB
+#     NAMES cutensor
+#     HINTS   
+#         ${CUTENSOR_ROOT}/lib64
+#         ${CUTENSOR_ROOT}/lib
+#         ${CUTENSOR_ROOT}/lib64/${CUDA_VERSION_MAJOR}
+#         ${CUTENSOR_ROOT}/lib/${CUDA_VERSION_MAJOR}
+# )
 
 find_library(CUTENSORNET_LIB
     NAMES   cutensornet
