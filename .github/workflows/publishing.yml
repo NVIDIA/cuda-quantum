@@ -724,7 +724,7 @@ jobs:
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
             wget ca-certificates libstdc++-11-dev libopenmpi-dev
-          distro=echo ${{ matrix.os_image }} | tr -d . | tr -d : 
+          distro=`echo ${{ matrix.os_image }} | tr -d . | tr -d :`
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
           dpkg -i cuda-keyring_1.1-1_all.deb && version_suffix=11-8
