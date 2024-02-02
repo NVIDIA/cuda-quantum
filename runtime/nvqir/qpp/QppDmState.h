@@ -26,7 +26,7 @@ struct QppDmState : public cudaq::SimulationState {
       throw std::runtime_error(
           "QppDmState must be created from data with 2D shape.");
 
-    state = Eigen::Map<qpp::ket>(const_cast<cudaq::complex *>(data.data()),
+    state = Eigen::Map<qpp::ket>(const_cast<complex128 *>(data.data()),
                                  shape[0], shape[1]);
   }
   std::size_t getNumQubits() const override { return std::log2(state.rows()); }
@@ -44,8 +44,8 @@ struct QppDmState : public cudaq::SimulationState {
     Eigen::MatrixXcd rho = Eigen::Map<Eigen::MatrixXcd>(
         state.data(), getDataShape()[0], getDataShape()[1]);
     Eigen::MatrixXcd sigma = Eigen::Map<Eigen::MatrixXcd>(
-        reinterpret_cast<cudaq::complex *>(other.ptr()),
-        other.getDataShape()[0], other.getDataShape()[1]);
+        reinterpret_cast<complex128 *>(other.ptr()), other.getDataShape()[0],
+        other.getDataShape()[1]);
 
     // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
     // sqrt(det(rho)*det(sigma))
@@ -61,7 +61,7 @@ struct QppDmState : public cudaq::SimulationState {
     Eigen::MatrixXcd rho = Eigen::Map<Eigen::MatrixXcd>(
         state.data(), getDataShape()[0], getDataShape()[1]);
     Eigen::MatrixXcd sigma =
-        Eigen::Map<Eigen::MatrixXcd>(const_cast<cudaq::complex *>(other.data()),
+        Eigen::Map<Eigen::MatrixXcd>(const_cast<complex128 *>(other.data()),
                                      getDataShape()[0], getDataShape()[1]);
 
     // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
@@ -85,7 +85,7 @@ struct QppDmState : public cudaq::SimulationState {
     Eigen::MatrixXcd rho = Eigen::Map<Eigen::MatrixXcd>(
         state.data(), getDataShape()[0], getDataShape()[1]);
     Eigen::MatrixXcd sigma =
-        Eigen::Map<Eigen::MatrixXcd>(reinterpret_cast<cudaq::complex *>(other),
+        Eigen::Map<Eigen::MatrixXcd>(reinterpret_cast<complex128 *>(other),
                                      getDataShape()[0], getDataShape()[1]);
 
     // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
@@ -99,7 +99,7 @@ struct QppDmState : public cudaq::SimulationState {
                              "data for overlap computation.");
   }
 
-  cudaq::complex matrixElement(std::size_t i, std::size_t j) override {
+  complex128 matrixElement(std::size_t i, std::size_t j) override {
     return state(i, j);
   }
 
@@ -109,7 +109,7 @@ struct QppDmState : public cudaq::SimulationState {
   }
 
   void *ptr() const override {
-    return reinterpret_cast<void *>(const_cast<cudaq::complex *>(state.data()));
+    return reinterpret_cast<void *>(const_cast<complex128 *>(state.data()));
   }
 
   void destroyState() override {
