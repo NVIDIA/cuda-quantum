@@ -104,6 +104,10 @@ def disable_jit():
     PyKernelDecorator.globalJIT = False
 
 
+# Expose chemistry domain functions
+from .domains import chemistry
+from .kernels import uccsd
+
 if not "CUDAQ_DYNLIBS" in os.environ:
     try:
         custatevec_libs = get_library_path("custatevec-cu11")

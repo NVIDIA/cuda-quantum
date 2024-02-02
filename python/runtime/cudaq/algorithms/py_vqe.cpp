@@ -71,7 +71,6 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto &platform = cudaq::get_platform();
-
   auto *argData = toOpaqueArgs(args);
 
   // Launch the observation task
@@ -90,6 +89,10 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           const int shots = -1) {
   auto kernelName = kernel.attr("name").cast<std::string>();
+  if (kernel.attr("module").is_none())
+    throw std::runtime_error(
+        "cudaq.vqe currently only supports the kernel builder pattern.");
+
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   if (getNumArguments(kernelMod, kernelName) != 1)
     throw std::runtime_error(
@@ -115,6 +118,11 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
 optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           py::function &argumentMapper, const int shots = -1) {
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  if (kernel.attr("module").is_none())
+    throw std::runtime_error(
+        "cudaq.vqe currently only supports the kernel builder pattern.");
+
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     py::args params;
@@ -133,6 +141,10 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
 optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
                           spin_op &hamiltonian, cudaq::optimizer &optimizer,
                           const int n_params, const int shots = -1) {
+  if (kernel.attr("module").is_none())
+    throw std::runtime_error(
+        "cudaq.vqe currently only supports the kernel builder pattern.");
+
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   if (getNumArguments(kernelMod, kernelName) != 1)
@@ -173,6 +185,9 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
                           spin_op &hamiltonian, cudaq::optimizer &optimizer,
                           const int n_params, py::function &argumentMapper,
                           const int shots = -1) {
+  if (kernel.attr("module").is_none())
+    throw std::runtime_error(
+        "cudaq.vqe currently only supports the kernel builder pattern.");
 
   // Get the expected value of the system, <H> at the provided
   // vector of parameters. This is passed to `cudaq::gradient::compute`
