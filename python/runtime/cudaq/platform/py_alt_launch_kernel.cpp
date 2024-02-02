@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "JITExecutionCache.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
@@ -16,7 +15,6 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
-#include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -25,8 +23,10 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include <fmt/core.h>
-#include <mutex>
 #include <pybind11/stl.h>
+
+#include "JITExecutionCache.h"
+#include "utils/OpaqueArguments.h"
 
 namespace py = pybind11;
 using namespace mlir;
@@ -41,15 +41,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   auto mod = unwrap(module);
   auto cloned = mod.clone();
   auto context = cloned.getContext();
-  {
-    static std::mutex g_mutex;
-    static std::unordered_set<mlir::MLIRContext *> g_knownContexts;
-    std::scoped_lock<std::mutex> lock(g_mutex);
-    if (!g_knownContexts.contains(context)) {
-      registerLLVMDialectTranslation(*context);
-      g_knownContexts.emplace(context);
-    }
-  }
+  registerLLVMDialectTranslation(*context);
 
   // Have we JIT compiled this before?
   std::string moduleString;
@@ -130,28 +122,6 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
 
   auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
 
-  std::string properName = name;
-
-  // Need to first invoke the init_func()
-  auto kernelInitFunc = properName + ".init_func";
-  auto initFuncPtr = jit->lookup(kernelInitFunc);
-  if (!initFuncPtr) {
-    throw std::runtime_error(
-        "cudaq::builder failed to get kernelReg function.");
-  }
-  auto kernelInit = reinterpret_cast<void (*)()>(*initFuncPtr);
-  kernelInit();
-
-  // Need to first invoke the kernelRegFunc()
-  auto kernelRegFunc = properName + ".kernelRegFunc";
-  auto regFuncPtr = jit->lookup(kernelRegFunc);
-  if (!regFuncPtr) {
-    throw std::runtime_error(
-        "cudaq::builder failed to get kernelReg function.");
-  }
-  auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
-  kernelReg();
-
   auto &platform = cudaq::get_platform();
   if (platform.is_remote() || platform.is_emulated()) {
     struct ArgWrapper {
@@ -174,15 +144,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   auto [jit, rawArgs, size] = jitAndCreateArgs(name, module, runtimeArgs, {});
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
-  {
-    static std::mutex g_mutex;
-    static std::unordered_set<mlir::MLIRContext *> g_knownContexts;
-    std::scoped_lock<std::mutex> lock(g_mutex);
-    if (!g_knownContexts.contains(context)) {
-      registerLLVMDialectTranslation(*context);
-      g_knownContexts.emplace(context);
-    }
-  }
+  registerLLVMDialectTranslation(*context);
 
   PassManager pm(context);
   pm.addPass(createCanonicalizerPass());
@@ -206,15 +168,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
   auto [jit, rawArgs, size] = jitAndCreateArgs(name, module, runtimeArgs, {});
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
-  {
-    static std::mutex g_mutex;
-    static std::unordered_set<mlir::MLIRContext *> g_knownContexts;
-    std::scoped_lock<std::mutex> lock(g_mutex);
-    if (!g_knownContexts.contains(context)) {
-      registerLLVMDialectTranslation(*context);
-      g_knownContexts.emplace(context);
-    }
-  }
+  registerLLVMDialectTranslation(*context);
 
   PassManager pm(context);
   if (profile.empty())
