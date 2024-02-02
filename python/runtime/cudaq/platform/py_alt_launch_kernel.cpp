@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -41,7 +41,16 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   auto mod = unwrap(module);
   auto cloned = mod.clone();
   auto context = cloned.getContext();
-  registerLLVMDialectTranslation(*context);
+  // registerLLVMDialectTranslation(*context);
+  {
+    static std::mutex g_mutex;
+    static std::unordered_set<mlir::MLIRContext *> g_knownContexts;
+    std::scoped_lock<std::mutex> lock(g_mutex);
+    if (!g_knownContexts.contains(context)) {
+      registerLLVMDialectTranslation(*context);
+      g_knownContexts.emplace(context);
+    }
+  }
 
   // Have we JIT compiled this before?
   std::string moduleString;
@@ -122,7 +131,7 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
 
   auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
 
-   std::string properName = name;
+  std::string properName = name;
 
   // Need to first invoke the init_func()
   auto kernelInitFunc = properName + ".init_func";
@@ -143,7 +152,6 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
   }
   auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
   kernelReg();
-
 
   auto &platform = cudaq::get_platform();
   if (platform.is_remote() || platform.is_emulated()) {

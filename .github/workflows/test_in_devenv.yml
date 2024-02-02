@@ -212,11 +212,9 @@ jobs:
             cd $CUDAQ_REPO_ROOT
             pip install iqm_client --user -vvv
             pip install . --user -vvv
-            ## [SKIP_TEST]: 'remote' Reason - "RuntimeError: Unable to retrieve RemoteSimulatorQPU implementation"
             python3 -m pytest -v python/tests/ \
               --ignore python/tests/backends \
-              --ignore python/tests/eager \
-              --ignore python/tests/remote
+              --ignore python/tests/eager
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
