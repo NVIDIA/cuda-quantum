@@ -273,6 +273,14 @@ void SimulatorTensorNetBase::setToZeroState() {
   m_state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
 }
 
+std::unique_ptr<cudaq::SimulationState>
+SimulatorTensorNetBase::getSimulationState() {
+  LOG_API_TIME();
+  if (m_state->getNumQubits() > 64)
+    throw std::runtime_error("State vector data is too large.");
+  return std::make_unique<TensorNetSimulationState>(m_state.release());
+}
+
 SimulatorTensorNetBase::~SimulatorTensorNetBase() {
   m_state.reset();
   for (const auto &[key, dMem] : m_gateDeviceMemCache)

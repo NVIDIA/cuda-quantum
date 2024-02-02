@@ -57,6 +57,8 @@ public:
   /// Clone API
   virtual nvqir::CircuitSimulator *clone() override;
 
+  virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() override;
+
 protected:
   // Sub-type need to implement
   virtual void prepareQubitTensorState() = 0;
