@@ -36,16 +36,28 @@ stages:
 Metadata:
   stage: metadata
   image: docker:latest
-  services:
-    - docker:dind
-  before_script:
-    - mkdir -p $HOME/.docker
-    - echo $DOCKER_AUTH_CONFIG > $HOME/.docker/config.json
+  artifacts:
+    reports:
+      dotenv: build.env
   script:
     - echo "Commit branch is $CI_COMMIT_BRANCH"
     - echo "Commit title is $CI_COMMIT_TITLE"
     - echo "Staged is set to $staged"
-    - docker login ghcr.io
+    # Install GitHub CLI
+    - dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+    - dnf install -y gh jq
+    - upstream_url=https://github.com/NVIDIA/cuda-quantum && export GH_TOKEN=$GITHUB_TOKEN
+    - if [ -z "$(git remote -v | grep upstream)" ]; 
+      then git remote add upstream ${upstream_url}.git;
+      fi
+    # Retrieve the build metadata
+    - digest=${CI_COMMIT_TITLE#ghcr.io/nvidia/$staged@}
+    - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
+    - CUDAQ_MGMN_SVSIM_REPO=`echo "$build_info" | grep -s -o 'nvidia-mgpu-repo:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
+    - CUDAQ_MGMN_SVSIM_COMMIT=`echo "$build_info" | grep -s -o 'nvidia-mgpu-commit:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
+    - touch build.env
+    - if [ -n "$CUDAQ_MGMN_SVSIM_REPO" ]; then echo "CUDAQ_MGMN_SVSIM_REPO=$CUDAQ_MGMN_SVSIM_REPO" >> build.env; fi
+    - if [ -n "$CUDAQ_MGMN_SVSIM_COMMIT" ]; then echo "CUDAQ_MGMN_SVSIM_COMMIT=$CUDAQ_MGMN_SVSIM_COMMIT" >> build.env; fi
 
 Python Wheels:
   rules:
