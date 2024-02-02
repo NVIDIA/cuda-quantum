@@ -34,7 +34,7 @@ compiler_rt=false
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:s:p:v" opt; do
+while getopts ":c:r:s:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
