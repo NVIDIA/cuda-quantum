@@ -77,6 +77,9 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project
 
+# toolchain=llvm needs nm command for compiler-rt
+RUN apt-get update && apt-get install -y --no-install-recommends binutils
+
 # Enable compiler-rt in this build (-r)
 RUN source /opt/llvm/bootstrap/init_command.sh && \
     bash /scripts/build_llvm.sh -s /llvm-project -c Release -v -r \
