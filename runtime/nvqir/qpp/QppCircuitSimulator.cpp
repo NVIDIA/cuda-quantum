@@ -128,7 +128,6 @@ protected:
       } else
         state = qpp::ket::Map(const_cast<std::complex<double> *>(stateData),
                               stateDimension);
-
       return;
     }
 
@@ -140,11 +139,10 @@ protected:
       zero_state(0) = 1.0;
       state = qpp::kron(state, zero_state);
     } else {
-      qpp::ket initState =
-          qpp::ket::Map(const_cast<std::complex<double> *>(stateData), count);
+      qpp::ket initState = qpp::ket::Map(
+          const_cast<std::complex<double> *>(stateData), (1UL << count));
       state = qpp::kron(state, initState);
     }
-
     return;
   }
 
