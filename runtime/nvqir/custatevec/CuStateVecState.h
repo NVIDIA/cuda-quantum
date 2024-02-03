@@ -56,7 +56,7 @@ struct AdotConjB
 /// to ensure operations and comparisons with other states operate
 /// on compatible floating point element types.
 template <typename ScalarType>
-struct CusvState : public cudaq::SimulationState {
+class CusvState : public cudaq::SimulationState {
 private:
   /// @brief Size of the state data array on GPU.
   std::size_t size = 0;
