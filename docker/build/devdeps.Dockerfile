@@ -63,8 +63,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 # - https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html#C_002b_002b-Dialect-Options
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
-ENV LLVM_INSTALL_PREFIX=/opt/llvm
+
+# Choose llvm_ directory so LLVM install doesn't overwrite itself. The final
+# location will be /opt/llvm (see below). The bootstrap files can stay in the
+# /opt/llvm directory.
+ENV LLVM_INSTALL_PREFIX=/opt/llvm_
 ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
+
 RUN LLVM_SOURCE=/llvm-project \
     source /scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
     && rm -rf /llvm-project/build
@@ -80,10 +85,17 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
 # toolchain=llvm needs nm command for compiler-rt
 RUN apt-get update && apt-get install -y --no-install-recommends binutils
 
+# Now we install LLVM to the final location
+ENV LLVM_INSTALL_PREFIX=/opt/llvm
+
 # Enable compiler-rt in this build (-r)
 RUN source /opt/llvm/bootstrap/init_command.sh && \
     bash /scripts/build_llvm.sh -s /llvm-project -c Release -v -r \
     && rm -rf /llvm-project 
+
+# Update bootstrap files to point to new installation
+RUN sed -i "s|/opt/llvm_|/opt/llvm|" /opt/llvm/bootstrap/init_command.sh
+RUN sed -i "s|/opt/llvm_|/opt/llvm|" /opt/llvm/bootstrap/install_toolchain.sh
 
 FROM llvmbuild as prereqs
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
