@@ -34,7 +34,7 @@ compiler_rt=false
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:r:s:v" opt; do
+while getopts ":c:rs:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -43,6 +43,9 @@ while getopts ":c:r:s:v" opt; do
     s) llvm_source="$OPTARG"
     ;;
     v) verbose=true
+    ;;
+    :) echo "Option -$OPTARG requires an argument."
+    if $is_sourced; then return 1; else exit 1; fi
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     if $is_sourced; then return 1; else exit 1; fi
