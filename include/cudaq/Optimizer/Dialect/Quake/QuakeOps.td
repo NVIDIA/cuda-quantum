@@ -71,7 +71,9 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     See DeallocOp.
   }];
 
-  let arguments = (ins Optional<AnySignlessInteger>:$size);
+  let arguments = (ins
+    Optional<AnySignlessInteger>:$size
+  );
   let results = (outs
     AnyRefType:$ref_or_vec
   );
@@ -101,6 +103,8 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
       return self->hasOneUse() &&
         mlir::isa<quake::InitializeStateOp>(*self->getUsers().begin());
     }
+
+    quake::InitializeStateOp getInitializedState();
   }];
 }
 
