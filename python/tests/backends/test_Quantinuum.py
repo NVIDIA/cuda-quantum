@@ -32,7 +32,7 @@ def startUpMockServer():
     f.close()
 
     cudaq.set_random_seed(13)
-    
+
     # Set the targeted QPU
     cudaq.set_target('quantinuum', url='http://localhost:{}'.format(port))
 
