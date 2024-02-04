@@ -17,6 +17,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"
+#include "mlir/Analysis/DataLayoutAnalysis.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Transforms/Passes.h"
@@ -474,8 +475,23 @@ public:
     Type eleTy = stdvecTy.getElementType();
     auto innerStdvecTy = dyn_cast<cudaq::cc::StdvecType>(eleTy);
     std::size_t eleSize =
-        innerStdvecTy ? /*(i64Type/8)*/ 8 : eleTy.getIntOrFloatBitWidth() / 8;
-    auto eleSizeVal = builder.create<arith::ConstantIntOp>(loc, eleSize, 64);
+        innerStdvecTy ? /*(i64Type/8)*/ 8 : dataLayout->getTypeSize(eleTy);
+    auto eleSizeVal = [&]() -> Value {
+      if (eleSize)
+        return builder.create<arith::ConstantIntOp>(loc, eleSize, 64);
+      // FIXME: should also handle ArrayType here.
+      assert(isa<cudaq::cc::StructType>(eleTy) && "handle non-StructType");
+      auto strTy = cast<cudaq::cc::StructType>(eleTy);
+      auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+      auto arrTy = cudaq::cc::ArrayType::get(strTy);
+      auto ptrTy = cudaq::cc::PointerType::get(strTy);
+      auto ptrArrTy = cudaq::cc::PointerType::get(arrTy);
+      Value nullVal = builder.create<cudaq::cc::CastOp>(loc, ptrArrTy, zero);
+      Value sizePtr = builder.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrTy, nullVal, SmallVector<cudaq::cc::ComputePtrArg>{0, 1});
+      auto i64Ty = builder.getI64Type();
+      return builder.create<cudaq::cc::CastOp>(loc, i64Ty, sizePtr);
+    }();
     auto vecLength = builder.create<arith::DivSIOp>(loc, vecSize, eleSizeVal);
     if (innerStdvecTy) {
       // Recursive case: std::vector<std::vector<...>>
@@ -1038,6 +1054,8 @@ public:
 
   void runOnOperation() override {
     auto module = getOperation();
+    DataLayoutAnalysis dla(module); // caches module's data layout information.
+    dataLayout = &dla.getAtOrAbove(module);
     std::error_code ec;
     llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
     if (ec) {
@@ -1230,5 +1248,7 @@ public:
     }
     out.keep();
   }
+
+  const DataLayout *dataLayout = nullptr;
 };
 } // namespace
