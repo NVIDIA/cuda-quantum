@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create your Own CUDA Quantum Compiler Pass &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Create your own CUDA Quantum Compiler Pass &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -442,7 +442,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../advanced.html">Advanced CUDA Quantum Topics</a></li>
-      <li class="breadcrumb-item active">Create your Own CUDA Quantum Compiler Pass</li>
+      <li class="breadcrumb-item active">Create your own CUDA Quantum Compiler Pass</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/using/advanced/mlir_pass.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -456,7 +456,7 @@
            <div itemprop="articleBody">
              
   <section id="create-your-own-cuda-quantum-compiler-pass">
-<h1>Create your Own CUDA Quantum Compiler Pass<a class="headerlink" href="#create-your-own-cuda-quantum-compiler-pass" title="Permalink to this heading">¶</a></h1>
+<h1>Create your own CUDA Quantum Compiler Pass<a class="headerlink" href="#create-your-own-cuda-quantum-compiler-pass" title="Permalink to this heading">¶</a></h1>
 <p>The CUDA Quantum IR can be transformed, analyzed, or optimized
 using standard MLIR patterns and tools. CUDA Quantum provides a registration
 mechanism for the <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> tool that allows one to create, load, and
@@ -467,15 +467,15 @@ Pass code as part of the existing CUDA Quantum CMake system.</p>
 <p>As an example, clone the repository and add the following directory structure
 under <code class="code docutils literal notranslate"><span class="pre">lib</span></code>, <code class="code docutils literal notranslate"><span class="pre">lib/Plugins/MyCustomPlugin/</span></code>. Within this directory create a
 <code class="code docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> file and a <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file. In the CMake file,
-add the following</p>
+add the following:</p>
 <div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">add_llvm_pass_plugin</span><span class="p">(</span><span class="s">MyCustomPlugin</span><span class="w"> </span><span class="s">MyCustomPlugin.cpp</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Creating a CUDA Quantum IR pass starts with the implementation of an
 <code class="code docutils literal notranslate"><span class="pre">mlir::OperationPass</span></code>. A full discussion of the MLIR Pass infrastructure
-is beyond the scope of this document, please see
+is beyond the scope of this document; please see
 <a class="reference external" href="https://mlir.llvm.org/docs/PassManagement">MLIR Passes</a>. To create such
-a pass, start with the following template in the <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file</p>
+a pass, start with the following template in the <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.cpp</span></code> file:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeDialect.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Optimizer/Dialect/Quake/QuakeOps.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Support/Plugin.h&quot;</span>
@@ -537,7 +537,7 @@ that replaces <code class="code docutils literal notranslate"><span class="pre">
 and also that there is a <code class="code docutils literal notranslate"><span class="pre">lib/Plugins/CMakeLists.txt</span></code> file that adds your
 plugin directory with <code class="code docutils literal notranslate"><span class="pre">add_subdirectory</span></code>.</p>
 <p>Then build CUDA Quantum and you will have a <code class="code docutils literal notranslate"><span class="pre">MyCustomPlugin.so</span></code> plugin library
-in the install. You can load the plugin and use it with <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> as follows</p>
+in the install. You can load the plugin and use it with <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> as follows:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cudaq-opt<span class="w"> </span>--load-cudaq-plugin<span class="w"> </span>MyCustomPlugin.so<span class="w"> </span>file.qke<span class="w"> </span>-cudaq-custom-pass
 </pre></div>
 </div>

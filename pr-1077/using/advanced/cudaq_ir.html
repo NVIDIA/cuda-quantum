@@ -29,7 +29,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Create your Own CUDA Quantum Compiler Pass" href="mlir_pass.html" />
+    <link rel="next" title="Create your own CUDA Quantum Compiler Pass" href="mlir_pass.html" />
     <link rel="prev" title="CUDA Quantum and CMake" href="cmake_app.html" /> 
 </head>
 
@@ -448,7 +448,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="cmake_app.html" class="btn btn-neutral float-left" title="CUDA Quantum and CMake" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="mlir_pass.html" class="btn btn-neutral float-right" title="Create your Own CUDA Quantum Compiler Pass" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="mlir_pass.html" class="btn btn-neutral float-right" title="Create your own CUDA Quantum Compiler Pass" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -457,24 +457,25 @@
              
   <section id="working-with-the-cuda-quantum-ir">
 <h1>Working with the CUDA Quantum IR<a class="headerlink" href="#working-with-the-cuda-quantum-ir" title="Permalink to this heading">¶</a></h1>
-<p>Let’s see the output of <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> in verbose mode. Given a simple code like</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+<p>Let’s see the output of <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> in verbose mode. Consider a simple code like the one below, saved to file <code class="code docutils literal notranslate"><span class="pre">simple.cpp</span></code>.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">   #</span>include<span class="w"> </span>&lt;cudaq.h&gt;
 
-<span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="kt">int</span><span class="w"> </span><span class="n">N</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="n">N</span><span class="p">);</span>
-<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
-<span class="w">  </span><span class="p">}</span>
-<span class="p">};</span>
+<span class="go">   struct ghz {</span>
+<span class="go">     void operator()(int N) __qpu__ {</span>
+<span class="go">       cudaq::qvector q(N);</span>
+<span class="go">       h(q[0]);</span>
+<span class="go">       for (int i = 0; i &lt; N - 1; i++) {</span>
+<span class="go">         x&lt;cudaq::ctrl&gt;(q[i], q[i + 1]);</span>
+<span class="go">       }</span>
+<span class="go">       mz(q);</span>
+<span class="go">     }</span>
+<span class="go">   };</span>
 
-<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+<span class="go">   int main() { ... }</span>
+
+<span class="go">We see the following output from :code:`nvq++` verbose mode (up to some absolute paths).</span>
 </pre></div>
 </div>
-<p>saved to file <code class="code docutils literal notranslate"><span class="pre">simple.cpp</span></code>, we see the following output from <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> verbose mode (up to some absolute paths)</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>nvq++<span class="w"> </span>simple.cpp<span class="w"> </span>-v<span class="w"> </span>--save-temps
 
 <span class="go">cudaq-quake --emit-llvm-file simple.cpp -o simple.qke</span>
@@ -487,11 +488,11 @@
 <span class="go">clang++ -Wl,-rpath,lib -Llib -L/usr/lib/gcc/x86_64-linux-gnu/12 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs simple.o -lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-em-default -lcudaq-platform-default -lnvqir -lnvqir-qpp</span>
 </pre></div>
 </div>
-<p>The workflow orchestrated above is best visualized in the following figure.</p>
+<p>This workflow orchestration is represented in the figure below:</p>
 <img alt="../../_images/nvqpp_workflow.png" src="../../_images/nvqpp_workflow.png" />
 <p>We start by mapping CUDA Quantum C++ kernel representations (structs, lambdas, and free functions)
 to the Quake dialect. Since we added <code class="code docutils literal notranslate"><span class="pre">--save-temps</span></code>,
-we can look at the IR code that was produced. <code class="code docutils literal notranslate"><span class="pre">simple.qke</span></code> contains</p>
+we can look at the IR code that was produced. The base Quake file, <code class="code docutils literal notranslate"><span class="pre">simple.qke</span></code>, contains the following:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">module attributes {qtx.mangled_name_map = {__nvqpp__mlirgen__ghz = &quot;_ZN3ghzclEi&quot;}} {</span>
 <span class="go">    func.func @__nvqpp__mlirgen__ghz(%arg0: i32) attributes {&quot;cudaq-entrypoint&quot;, &quot;cudaq-kernel&quot;} {</span>
 <span class="gp">       %</span><span class="nv">alloca</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>memref.alloca<span class="o">()</span><span class="w"> </span>:<span class="w"> </span>memref&lt;i32&gt;
@@ -540,16 +541,16 @@ we can look at the IR code that was produced. <code class="code docutils literal
 <span class="go">}</span>
 </pre></div>
 </div>
-<p>This is the base Quake file, unoptimized and unchanged. It is produced by the
+<p>This base Quake file is unoptimized and unchanged. It is produced by the
 <code class="code docutils literal notranslate"><span class="pre">cudaq-quake</span></code> tool, which also allows us to output the full LLVM IR representation
 for the code. This LLVM IR is classical-only, and is directly produced by <code class="code docutils literal notranslate"><span class="pre">clang++</span></code>
 code-generation. The LLVM IR file <code class="code docutils literal notranslate"><span class="pre">simple.ll</span></code> contains the CUDA Quantum kernel
 <code class="code docutils literal notranslate"><span class="pre">operator()(Args...)</span></code> LLVM function, with a mangled name. Ultimately, we
 want to replace this function with our own MLIR-generated function.</p>
 <p>Next, the <code class="code docutils literal notranslate"><span class="pre">cudaq-opt</span></code> tool is invoked on the <code class="code docutils literal notranslate"><span class="pre">simple.qke</span></code> file. This runs an
-MLIR pass-pipeline that canonicalizes and optimizes the code. It will also process quantum
+MLIR pass pipeline that canonicalizes and optimizes the code. It will also process quantum
 lambdas, lift those lambdas to functions, and synthesis adjoint and controlled versions of
-CUDA Quantum kernel functions if necessary. The most important pass this this step applies is the
+CUDA Quantum kernel functions if necessary. The most important pass that this step applies is the
 <code class="code docutils literal notranslate"><span class="pre">kernel-execution</span></code> pass, which synthesizes a new entry point LLVM function with the
 same name and signature as the original <code class="code docutils literal notranslate"><span class="pre">operator()(Args...)</span></code> call function in the
 classical <code class="code docutils literal notranslate"><span class="pre">simple.ll</span></code> file. We also extract all Quake code representations as strings
@@ -558,7 +559,7 @@ and register them with the CUDA Quantum runtime for runtime IR introspection.</p
 Quake representation to an LLVM IR representation, specifically the QIR. We finish by lowering
 this representation to object code via standard LLVM tools (e.g. <code class="code docutils literal notranslate"><span class="pre">llc</span></code>), and merge all
 object files into a single object file, ensuring that our new mangled <code class="code docutils literal notranslate"><span class="pre">operator()(Args...)</span></code>
-call is injected first, thereby over-writing the original. Finally, based on user compile flags,
+call is injected first, thereby overwriting the original. Finally, based on user compile flags,
 we configure the link line with specific libraries that implement the <code class="code docutils literal notranslate"><span class="pre">quantum_platform</span></code>
 (here the <code class="code docutils literal notranslate"><span class="pre">libcudaq-platform-default.so</span></code>) and NVQIR circuit simulator backend (the
 <code class="code docutils literal notranslate"><span class="pre">libnvqir-qpp.so</span></code> Q++ CPU-only simulation backend). These latter libraries are controlled
@@ -584,8 +585,8 @@ Quake represents an IR closer to the CUDA Quantum source language and models qub
 quantum instructions via memory semantics. Quake can be fully dynamic and in
 that sense represents a quantum circuit template or generator. With runtime
 arguments fully specified, Quake code can be used to generate or synthesize
-a fully-known quantum circuit. The value semantics form of Quake can thus be
-used as a representation for fully-known
+a fully known quantum circuit. The value semantics form of Quake can thus be
+used as a representation for fully known
 or synthesized quantum circuits. Its utility, therefore, lies in its ability to
 optimize quantum code. It departs from the memory semantics model of Quake and
 expresses the flow of quantum information explicitly as MLIR values.
@@ -606,11 +607,11 @@ and produce QIR. Recall the code snippet for the kernel</p>
 <span class="p">};</span>
 </pre></div>
 </div>
-<p>Using the toolchain, we can lower this to directly to QIR</p>
+<p>Using the toolchain, we can lower this directly to QIR,</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cudaq-quake simple.cpp | cudaq-opt --canonicalize | cudaq-translate --convert-to=qir</span>
 </pre></div>
 </div>
-<p>which prints</p>
+<p>which prints:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">; ModuleID = &#39;LLVMDialectModule&#39;</span>
 <span class="go">source_filename = &quot;LLVMDialectModule&quot;</span>
 <span class="go">target datalayout = &quot;e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128&quot;</span>
@@ -698,7 +699,7 @@ composable pipeline of compiler lowering tools.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="cmake_app.html" class="btn btn-neutral float-left" title="CUDA Quantum and CMake" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="mlir_pass.html" class="btn btn-neutral float-right" title="Create your Own CUDA Quantum Compiler Pass" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="mlir_pass.html" class="btn btn-neutral float-right" title="Create your own CUDA Quantum Compiler Pass" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
