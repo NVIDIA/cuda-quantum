@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -47,6 +47,7 @@ RUN if [ -n "$mpi" ]; \
 # creates a dev image that can be used as argument to docker/release/cudaq.Dockerfile
 # to create the released cuda-quantum image.
 ARG install=
+ARG git_source_sha=xxxxxxxx
 RUN if [ -n "$install" ]; \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
@@ -58,5 +59,6 @@ RUN if [ -n "$install" ]; \
             mkdir -p "$expected_prefix"; \
             mv "$CUDAQ_INSTALL_PREFIX"/* "$expected_prefix"; \
             rmdir "$CUDAQ_INSTALL_PREFIX"; \
-        fi \
+        fi; \
+        echo "source-sha: $git_source_sha" > "$CUDAQ_INSTALL_PREFIX/build_info.txt"; \
     fi
