@@ -150,6 +150,7 @@ def testGetStateAsync():
     # Reset for the next tests.
     cudaq.reset_target()
 
+
 @skipIfNoMQPU
 def test_race_condition_1108():
     cudaq.set_target("nvidia-mqpu")
@@ -162,7 +163,7 @@ def test_race_condition_1108():
     count_futures = []
     for qpu in range(num_qpus):
         count_futures.append(cudaq.sample_async(kernel, 2, qpu_id=qpu))
-    
+
     for count_future in count_futures:
         counts = count_future.get()
         assert len(counts) == 4
@@ -172,7 +173,8 @@ def test_race_condition_1108():
         assert '11' in counts
 
     cudaq.reset_target()
-    
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

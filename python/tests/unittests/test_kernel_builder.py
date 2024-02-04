@@ -376,7 +376,8 @@ def test_ctrl_h():
     assert counts1["0011111"] >= 225 and counts1["0011111"] <= 275
     assert counts1["0010011"] >= 225 and counts1["0010011"] <= 275
     assert counts1["0010111"] >= 225 and counts1["0010111"] <= 275
-    assert counts1["0011011"] + counts1["0011111"] + counts1["0010011"] + counts1["0010111"] == 1000
+    assert counts1["0011011"] + counts1["0011111"] + counts1[
+        "0010011"] + counts1["0010111"] == 1000
 
     kernel.h(qubits[3])
     kernel.h(qubits[4])
@@ -942,7 +943,8 @@ def test_exp_pauli():
     want_exp = cudaq.observe(kernel, h, .11).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
-    invalidOp = cudaq.SpinOperator.from_word('XXXY') + cudaq.SpinOperator.from_word("YYYX")
+    invalidOp = cudaq.SpinOperator.from_word(
+        'XXXY') + cudaq.SpinOperator.from_word("YYYX")
     with pytest.raises(RuntimeError) as error:
         kernel.exp_pauli(theta, qubits, invalidOp)
 

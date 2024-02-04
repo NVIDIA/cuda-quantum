@@ -19,13 +19,14 @@ import cudaq
 def test_bad_arg_checking_fix_1130():
     kernel, a, b, c = cudaq.make_kernel(cudaq.qubit, cudaq.qubit, float)
     kernel.cx(a, b)
-    kernel.rz(2*c,b)
+    kernel.rz(2 * c, b)
     kernel.cx(a, b)
 
     qernel, theta = cudaq.make_kernel(float)
     qubits = qernel.qalloc(2)
     qernel.apply_call(kernel, qubits[0], qubits[1], theta)
     print(qernel)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_093606261879(
 # CHECK-SAME:                                                                   %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
