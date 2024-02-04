@@ -39,6 +39,7 @@ def test_fswap_lib_kernel():
     assert np.isclose(np.abs(ss_01[1] - (np.exp(1j * angle / 2.0) * c)),
                       0.0,
                       atol=1e-3)
+    cudaq.disable_jit()
 
 
 def test_givens_lib_kernel():
@@ -60,3 +61,4 @@ def test_givens_lib_kernel():
     print(ss_01)
     assert np.isclose(ss_01[1], c, 1e-3)
     assert np.isclose(ss_01[2], -si, 1e-3)
+    cudaq.disable_jit()
