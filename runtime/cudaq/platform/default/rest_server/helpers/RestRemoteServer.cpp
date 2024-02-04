@@ -56,6 +56,11 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 
 namespace {
 using namespace mlir;
+// Encapsulates a dynamically-loaded NVQIR simulator library
+struct SimulatorHandle {
+  std::string name;
+  void *libHandle;
+};
 
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   int m_port = -1;
@@ -67,8 +72,18 @@ class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
     std::vector<std::string> passes;
   };
   std::unordered_map<std::size_t, CodeTransformInfo> m_codeTransform;
+  // Currently-loaded NVQIR simulator.
+  SimulatorHandle m_simHandle;
+  // Default backend for initialization.
+  // Note: we always need to preload a default backend on the server runtime
+  // since cudaq runtime relies on that.
+  static constexpr const char *DEFAULT_NVQIR_SIMULATION_BACKEND = "qpp";
 
 public:
+  RemoteRestRuntimeServer()
+      : cudaq::RemoteRuntimeServer(),
+        m_simHandle(DEFAULT_NVQIR_SIMULATION_BACKEND,
+                    loadNvqirSimLib(DEFAULT_NVQIR_SIMULATION_BACKEND)) {}
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) override {
     const auto portIter = configs.find("port");
@@ -193,7 +208,15 @@ public:
                              std::string_view ir, std::string_view kernelName,
                              void *kernelArgs, std::uint64_t argsSize,
                              std::size_t seed) override {
-    void *handle = loadNvqirSimLib(backendSimName);
+
+    // If we're changing the backend, load the new simulator library from file.
+    if (m_simHandle.name != backendSimName) {
+      if (m_simHandle.libHandle)
+        dlclose(m_simHandle.libHandle);
+
+      m_simHandle =
+          SimulatorHandle(backendSimName, loadNvqirSimLib(backendSimName));
+    }
     if (seed != 0)
       cudaq::set_random_seed(seed);
     auto &platform = cudaq::get_platform();
@@ -274,7 +297,6 @@ public:
       }
     }
     platform.reset_exec_ctx();
-    dlclose(handle);
   }
 
 private:
