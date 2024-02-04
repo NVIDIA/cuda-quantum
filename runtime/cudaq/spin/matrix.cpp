@@ -10,6 +10,7 @@
 #include "common/EigenDense.h"
 #include "common/FmtCore.h"
 #include <iostream>
+#include <unordered_map>
 
 namespace cudaq {
 

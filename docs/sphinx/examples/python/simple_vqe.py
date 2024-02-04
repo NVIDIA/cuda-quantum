@@ -27,9 +27,10 @@ optimizer = cudaq.optimizers.COBYLA()
 # optimizer.max_iterations = ...
 # optimizer...
 
-# Finally, we can pass all of that into `cudaq.vqe` and it will automatically run our
-# optimization loop and return a tuple of the minimized eigenvalue of our `spin_operator`
+# Finally, we pass all of that into `cudaq.vqe`, and it will automatically run our
+# optimization loop, returning a tuple of the minimized eigenvalue of our `spin_operator`
 # and the list of optimal variational parameters.
+
 energy, parameter = cudaq.vqe(
     kernel=kernel,
     spin_operator=hamiltonian,
