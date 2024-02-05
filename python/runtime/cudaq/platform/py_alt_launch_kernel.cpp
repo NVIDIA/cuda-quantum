@@ -122,6 +122,28 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
 
   auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
 
+  std::string properName = name;
+
+  // Need to first invoke the init_func()
+  auto kernelInitFunc = properName + ".init_func";
+  auto initFuncPtr = jit->lookup(kernelInitFunc);
+  if (!initFuncPtr) {
+    throw std::runtime_error(
+        "cudaq::builder failed to get kernelReg function.");
+  }
+  auto kernelInit = reinterpret_cast<void (*)()>(*initFuncPtr);
+  kernelInit();
+
+  // Need to first invoke the kernelRegFunc()
+  auto kernelRegFunc = properName + ".kernelRegFunc";
+  auto regFuncPtr = jit->lookup(kernelRegFunc);
+  if (!regFuncPtr) {
+    throw std::runtime_error(
+        "cudaq::builder failed to get kernelReg function.");
+  }
+  auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
+  kernelReg();
+
   auto &platform = cudaq::get_platform();
   if (platform.is_remote() || platform.is_emulated()) {
     struct ArgWrapper {

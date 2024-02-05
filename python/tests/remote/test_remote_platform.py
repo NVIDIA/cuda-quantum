@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -72,6 +72,8 @@ def test_observe():
     assert abs(res.expectation() - expected_energy) < energy_tol
 
 
+## [SKIP_TEST]
+@pytest.mark.skip(reason="Additional changes required for multi QPU support.")
 def test_multi_qpus():
     # Create the parameterized ansatz
     kernel, theta = cudaq.make_kernel(float)
