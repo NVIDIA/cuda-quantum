@@ -34,7 +34,7 @@
 # By default, the CUDA Quantum is done with warnings-as-errors turned on.
 # You can turn this setting off by defining the environment variable CUDAQ_WERROR=OFF.
 
-LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
+LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
 CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 
@@ -118,6 +118,7 @@ fi
 echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
+  -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_CUDA_HOST_COMPILER="$CXX" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
