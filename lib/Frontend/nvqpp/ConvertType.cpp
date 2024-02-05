@@ -60,8 +60,7 @@ static bool isStaticArithmeticProductType(Type t) {
 static bool isArithmeticSequenceType(Type t) {
   if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t)) {
     auto eleTy = vec.getElementType();
-    return isa<quake::PauliWordType>(eleTy) || isArithmeticType(eleTy) ||
-           isStaticArithmeticProductType(eleTy) ||
+    return isArithmeticType(eleTy) || isStaticArithmeticProductType(eleTy) ||
            isArithmeticSequenceType(eleTy);
   }
   return isStaticArithmeticSequenceType(t);
@@ -76,7 +75,8 @@ static bool isRecursiveArithmeticProductType(Type t);
 static bool isRecursiveArithmeticSequenceType(Type t) {
   if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t)) {
     auto eleTy = vec.getElementType();
-    return isArithmeticType(eleTy) || isRecursiveArithmeticProductType(eleTy) ||
+    return isa<quake::PauliWordType>(eleTy) || isArithmeticType(eleTy) ||
+           isRecursiveArithmeticProductType(eleTy) ||
            isRecursiveArithmeticSequenceType(eleTy);
   }
   return isStaticArithmeticSequenceType(t);
