@@ -24,6 +24,7 @@ from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
 # which maps the AST representation to an MLIR representation and ultimately
 # executable code.
 
+globalImportedKernels = {}
 
 class PyKernelDecorator(object):
     """
@@ -49,6 +50,7 @@ class PyKernelDecorator(object):
                  jit=False,
                  module=None,
                  kernelName=None):
+        global globalImportedKernels
         self.kernelFunction = function
         self.module = None if module == None else module
         self.verbose = verbose
@@ -137,6 +139,13 @@ class PyKernelDecorator(object):
             self.kernelFunction.__globals__['mz'] = mz
             self.kernelFunction.__globals__['swap'] = swap()
             self.kernelFunction.__globals__['exp_pauli'] = exp_pauli
+            # We need to make imported quantum kernel functions
+            # available to this kernelFunction
+            for name, function in globalImportedKernels.items():
+                if not name in self.kernelFunction.__globals__:
+                    self.kernelFunction.__globals__[name] = function
+            # Register this function too for future kernel invocations
+            globalImportedKernels[self.name] = self.kernelFunction
 
             # Rewrite the function if necessary to convert
             # `r = mz(q)` to `r = mz(q, register_name='r')`

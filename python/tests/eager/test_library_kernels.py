@@ -13,8 +13,6 @@ import numpy as np
 import cudaq
 
 def test_fswap_lib_kernel():
-    cudaq.enable_jit()
-
     from cudaq.lib import fermionic_swap
 
     angle = 0.2
@@ -34,11 +32,24 @@ def test_fswap_lib_kernel():
     assert np.isclose(np.abs(ss_01[1] - (np.exp(1j * angle / 2.0) * c)),
                       0.0,
                       atol=1e-3)
-    cudaq.disable_jit()
+
+    # Can also use the full module import path
+    @cudaq.kernel
+    def baz(angle: float):
+        q = cudaq.qlist(2)
+        x(q[0])
+        cudaq.lib.fermionic_swap(angle, q[0], q[1])
+
+    ss_01 = cudaq.get_state(baz, angle)
+    assert np.isclose(np.abs(ss_01[2] - (-1j * np.exp(1j * angle / 2.0) * si)),
+                      0.0,
+                      atol=1e-3)
+    assert np.isclose(np.abs(ss_01[1] - (np.exp(1j * angle / 2.0) * c)),
+                      0.0,
+                      atol=1e-3)
 
 
 def test_givens_lib_kernel():
-    cudaq.enable_jit()
     from cudaq.lib import givens
 
     angle = 0.2
@@ -56,4 +67,3 @@ def test_givens_lib_kernel():
     print(ss_01)
     assert np.isclose(ss_01[1], c, 1e-3)
     assert np.isclose(ss_01[2], -si, 1e-3)
-    cudaq.disable_jit()
