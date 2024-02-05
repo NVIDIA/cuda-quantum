@@ -245,17 +245,15 @@ public:
 };
 
 class NvcfRuntimeClient : public RemoteRestRuntimeClient {
+private:
   std::string m_apiKey;
   cudaq::RestClient m_restClient;
   std::string m_functionId;
+  std::string m_functionVersionId;
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
-  std::string
-  nvcfInvocationUrl(const std::string &functionVersionId = "") const {
-    return functionVersionId.empty()
-               ? fmt::format("https://{}/nvcf/exec/functions/{}", m_baseUrl,
-                             m_functionId)
-               : fmt::format("https://{}/nvcf/exec/functions/versions/{}",
-                             m_baseUrl, m_functionId, functionVersionId);
+  std::string nvcfInvocationUrl() const {
+    return fmt::format("https://{}/nvcf/exec/functions/{}/versions/{}",
+                       m_baseUrl, m_functionId, m_functionVersionId);
   }
   std::string nvcfAssetUrl() const {
     return fmt::format("https://{}/nvcf/assets", m_baseUrl);
@@ -267,12 +265,23 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
                        invocationRequestId);
   }
 
-  std::map<std::string, std::string> &getHeaders() const {
-    static std::map<std::string, std::string> header{
+  std::map<std::string, std::string> getHeaders() const {
+    std::map<std::string, std::string> header{
         {"Authorization", fmt::format("Bearer {}", m_apiKey)},
         {"Content-type", "application/json"}};
     return header;
   };
+
+  std::vector<cudaq::NvcfFunctionVersionInfo> getFunctionVersions() {
+    auto headers = getHeaders();
+    auto versionDataJs = m_restClient.get(
+        fmt::format("https://{}/nvcf/functions/{}", m_baseUrl, m_functionId),
+        "/versions", headers);
+    cudaq::info("Version data: {}", versionDataJs.dump());
+    std::vector<cudaq::NvcfFunctionVersionInfo> versions;
+    versionDataJs["functions"].get_to(versions);
+    return versions;
+  }
 
 public:
   virtual void setConfig(
@@ -290,6 +299,34 @@ public:
         m_functionId = funcIdIter->second;
       if (m_functionId.empty())
         throw std::runtime_error("No NVCF function Id is provided.");
+    }
+    {
+      auto versions = getFunctionVersions();
+      // The timestamp is an ISO 8601 string, e.g., 2024-01-25T04:14:46.360Z.
+      // To sort it from latest to oldest, we can use string sorting.
+      std::sort(versions.begin(), versions.end(),
+                [](const auto &a, const auto &b) {
+                  return a.createdAt > b.createdAt;
+                });
+      for (const auto &versionInfo : versions)
+        cudaq::info("Found version Id {}, created at {}", versionInfo.versionId,
+                    versionInfo.createdAt);
+
+      auto activeVersions =
+          versions | std::ranges::views::filter(
+                         [](const cudaq::NvcfFunctionVersionInfo &info) {
+                           return info.status == cudaq::FunctionStatus::ACTIVE;
+                         });
+
+      if (activeVersions.empty())
+        throw std::runtime_error(
+            fmt::format("No active version available for NVCF function Id "
+                        "'{}'. Please check your function Id.",
+                        m_functionId));
+
+      m_functionVersionId = activeVersions.front().versionId;
+      cudaq::info("Selected the latest version Id {} for function Id {}",
+                  m_functionVersionId, m_functionId);
     }
   }
   virtual bool
@@ -341,7 +378,6 @@ public:
 
     try {
       cudaq::debug("Sending NVCF request to {}", nvcfInvocationUrl());
-      // cudaq::debug("Request: \n", requestJson.dump());
       auto resultJs = m_restClient.post(nvcfInvocationUrl(), "", requestJson,
                                         jobHeader, false);
       cudaq::debug("Response: {}", resultJs.dump());
@@ -351,8 +387,7 @@ public:
         cudaq::info("Polling result data for Request Id {}", reqId);
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        resultJs =
-            m_restClient.get(nvcfInvocationStatus(reqId), "", getHeaders());
+        resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader);
       }
 
       if (!resultJs.contains("status") || resultJs["status"] != "fulfilled") {
@@ -463,8 +498,9 @@ public:
     requestJson["contentType"] = "application/json";
     requestJson["description"] = "cudaq-nvcf-job";
     try {
-      auto resultJs = m_restClient.post(nvcfAssetUrl(), "", requestJson,
-                                        getHeaders(), false);
+      auto headers = getHeaders();
+      auto resultJs =
+          m_restClient.post(nvcfAssetUrl(), "", requestJson, headers, false);
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
       cudaq::info("Upload NVCF Asset Id {} to {}", assetId, uploadUrl);

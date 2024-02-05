@@ -198,4 +198,26 @@ public:
                                  executionContext, code, args, format, seed,
                                  passes);
 };
+
+enum class FunctionStatus { ACTIVE, DEPLOYING, ERROR, INACTIVE, DELETED };
+NLOHMANN_JSON_SERIALIZE_ENUM(FunctionStatus,
+                             {
+                                 {FunctionStatus::ACTIVE, "ACTIVE"},
+                                 {FunctionStatus::DEPLOYING, "DEPLOYING"},
+                                 {FunctionStatus::ERROR, "ERROR"},
+                                 {FunctionStatus::INACTIVE, "INACTIVE"},
+                                 {FunctionStatus::DELETED, "DELETED"},
+                             });
+// Encapsulates a function version info
+struct NvcfFunctionVersionInfo {
+  std::string id;
+  std::string ncaId;
+  std::string versionId;
+  std::string name;
+  FunctionStatus status;
+  std::string createdAt;
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(NvcfFunctionVersionInfo, id, ncaId, versionId,
+                                 name, status, createdAt);
+};
+
 } // namespace cudaq
