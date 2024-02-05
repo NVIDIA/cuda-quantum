@@ -59,15 +59,16 @@ Metadata:
     - build_info=`cat deployments/staging/$staged/${digest#sha256:}`
     - CUDAQ_MGMN_SVSIM_REPO=`echo "$build_info" | grep -s -o 'nvidia-mgpu-repo:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - CUDAQ_MGMN_SVSIM_COMMIT=`echo "$build_info" | grep -s -o 'nvidia-mgpu-commit:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
-    - touch build.env
-    - if [ -n "$CUDAQ_MGMN_SVSIM_REPO" ]; then echo "CUDAQ_MGMN_SVSIM_REPO=$CUDAQ_MGMN_SVSIM_REPO" >> build.env; fi
-    - if [ -n "$CUDAQ_MGMN_SVSIM_COMMIT" ]; then echo "CUDAQ_MGMN_SVSIM_COMMIT=$CUDAQ_MGMN_SVSIM_COMMIT" >> build.env; fi
+    - echo "CUDAQ_MGMN_SVSIM_REPO is $CUDAQ_MGMN_SVSIM_REPO, CUDAQ_MGMN_SVSIM_COMMIT is $CUDAQ_MGMN_SVSIM_COMMIT"
+    - echo "CUDAQ_MGMN_SVSIM_REPO=$CUDAQ_MGMN_SVSIM_REPO" >> build.env; fi
+    - echo "CUDAQ_MGMN_SVSIM_COMMIT=$CUDAQ_MGMN_SVSIM_COMMIT" >> build.env; fi
 
 Python Wheels:
   rules:
     - if: $staged == "cuda-quantum-devdeps"
   stage: build
-  dependencies: []
+  dependencies: 
+    - metadata
   image: $CI_COMMIT_TITLE
   tags:
     - $runner
@@ -128,7 +129,8 @@ Installer:
   rules:
     - if: $staged == "cuda-quantum-assets"
   stage: build
-  dependencies: []
+  dependencies: 
+    - metadata
   image: $CI_COMMIT_TITLE
   tags:
     - $runner
@@ -153,7 +155,8 @@ Docker Image:
   rules:
     - if: $staged == "cuda-quantum-dev"
   stage: build
-  dependencies: []
+  dependencies: 
+    - metadata
   image: $CI_COMMIT_TITLE
   parallel:
     matrix:
