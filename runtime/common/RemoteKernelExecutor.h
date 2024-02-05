@@ -17,6 +17,7 @@
 #include "common/Registry.h"
 #include <optional>
 #include <string_view>
+#include <unordered_map>
 
 namespace mlir {
 class MLIRContext;
