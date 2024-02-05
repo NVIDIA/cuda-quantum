@@ -727,10 +727,8 @@ jobs:
           distro=`echo ${{ matrix.os_image }} | tr -d . | tr -d :`
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
-          dpkg -i cuda-keyring_1.1-1_all.deb && version_suffix=11-8
-          apt-get update && apt-get install -y --no-install-recommends \
-              cuda-nvtx-${version_suffix} cuda-cudart-${version_suffix} \
-              libcusolver-${version_suffix} libcublas-${version_suffix}
+          dpkg -i cuda-keyring_1.1-1_all.deb
+          apt-get update && apt-get install -y --no-install-recommends libcublas-11-8
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
