@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -118,7 +118,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
           driver-opts: network=host
@@ -174,7 +174,6 @@ jobs:
           context: .
           file: ./docker/release/installer.Dockerfile
           build-args: |
-            release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ steps.config.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
           platforms: ${{ inputs.platform }}
           outputs: type=local,dest=/tmp/install
@@ -199,7 +198,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure build
         id: cache
@@ -214,7 +213,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
 
@@ -256,7 +255,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - id: config
         run: |
@@ -279,7 +278,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -315,7 +314,7 @@ jobs:
       - name: Sanity checks
         run: |
           docker run --rm -dit --name cuda-quantum validation:local
-          (docker exec cuda-quantum bash -l validate.sh > /tmp/validation.out) && passed=true || passed=false
+          (docker exec cuda-quantum bash -l validate.sh | tee /tmp/validation.out) && passed=true || passed=false
           docker stop cuda-quantum
 
           if ! $passed; then 
@@ -433,7 +432,7 @@ jobs:
 
   staging:
     name: Staging
-    needs: [build_installer, validation]
+    needs: [build_installer, build_openmpi, validation]
     if: inputs.environment
     runs-on: ubuntu-latest
     permissions: {}
@@ -452,7 +451,9 @@ jobs:
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
-          echo "cuda-quantum-installer-image: $image_hash" >> "$info_file"
+          echo "cuda-quantum-assets-image: $image_hash" >> "$info_file"
+          echo "platform-base-image: ${{ inputs.platform_base_image }}" >> "$info_file"
+          echo "openmpi-build-cache: ${{ needs.build_openmpi.outputs.build_cache }}" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
 
       - name: Upload build info

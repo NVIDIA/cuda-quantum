@@ -14,7 +14,7 @@ jobs:
     name: "Check links"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Convert reStructuredText files to Markdown
         run: |
@@ -31,7 +31,7 @@ jobs:
     name: Check license headers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: apache/skywalking-eyes/header@v0.4.0
         with:
           config: .licenserc.yaml
@@ -45,7 +45,7 @@ jobs:
       json: ${{ steps.files.outputs.json }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: ${{ (github.event_name == 'pull_request' && '0') || '1' }}
 
@@ -94,7 +94,7 @@ jobs:
     needs: filters
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: C++
         run: |
@@ -161,7 +161,7 @@ jobs:
     needs: filters
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Check spelling allowlist
         run: |

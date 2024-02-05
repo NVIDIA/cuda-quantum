@@ -345,6 +345,20 @@ public:
     return TraverseType(t->desugar());
   }
 
+  // When processing a record type, visit the type of all the field decls. This
+  // will push 1 new type on the stack for each field. These types will be the
+  // member types of the StructType.
+  bool TraverseFieldDecl(clang::FieldDecl *x) {
+    if (inRecType)
+      return TraverseType(x->getType());
+    return Base::TraverseFieldDecl(x);
+  }
+  bool WalkUpFromFieldDecl(clang::FieldDecl *x) {
+    if (inRecType)
+      return true;
+    return Base::WalkUpFromFieldDecl(x);
+  }
+
   bool TraverseRecordType(clang::RecordType *t);
   bool interceptRecordDecl(clang::RecordDecl *x);
   bool VisitRecordDecl(clang::RecordDecl *x);
@@ -544,12 +558,6 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
-  bool skipCompoundScope : 1 = false;
-  bool isEntry : 1 = false;
-  /// If there is a catastrophic error in the bridge (there is no rational way
-  /// to proceed to emit correct code), emit an error using the diagnostic
-  /// engine, set this flag, and return false.
-  bool raisedError : 1 = false;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
@@ -567,6 +575,15 @@ private:
   /// Stack of Types built by the visitor. (right-to-left ordering)
   llvm::SmallVector<mlir::Type> typeStack;
   llvm::DenseMap<clang::RecordType *, mlir::Type> records;
+
+  // State Flags
+
+  bool skipCompoundScope : 1 = false;
+  bool isEntry : 1 = false;
+  /// If there is a catastrophic error in the bridge (there is no rational way
+  /// to proceed to emit correct code), emit an error using the diagnostic
+  /// engine, set this flag, and return false.
+  bool raisedError : 1 = false;
   bool visitImplicitCode : 1 = false;
   bool inRecType : 1 = false;
   bool allowUnknownRecordType : 1 = false;

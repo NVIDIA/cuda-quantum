@@ -66,13 +66,20 @@ def cc_StructType : CCType<"Struct", "struct",
 
     A subobject is indexed by position from `0` to `N-1`, where `N` is the
     number of members in the struct.
+
+    For portability between tools, a StructType may carry its size and alignment
+    as part of the type. These values can come from the C++ front end. If they
+    are not provided, the size of the struct will be deferred and LLVM will
+    determine it.
   }];
 
   let parameters = (ins
     "mlir::StringAttr":$name,
     ArrayRefParameter<"mlir::Type">:$members,
     "bool":$opaque,
-    "bool":$packed
+    "bool":$packed,
+    "std::uint64_t":$bitSize,
+    "unsigned":$alignment
   );
 
   let hasCustomAssemblyFormat = 1;
@@ -81,18 +88,33 @@ def cc_StructType : CCType<"Struct", "struct",
     TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
                  CArg<"bool", "true">:$isOpaque), [{
       return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name),
-                   llvm::ArrayRef<mlir::Type>{}, isOpaque, /*isPacked=*/false);
+                   llvm::ArrayRef<mlir::Type>{}, isOpaque, /*isPacked=*/false,
+                   /*bitSize=*/0, /*alignment=*/0);
     }]>,
     TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
                  CArg<"llvm::ArrayRef<mlir::Type>">:$members,
                  CArg<"bool", "false">:$isPacked), [{
       return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name), members,
-                   /*isOpaque=*/false, isPacked);
+                   /*isOpaque=*/false, isPacked, /*bitSize=*/0,
+                   /*alignment=*/0);
+    }]>,
+    TypeBuilder<(ins CArg<"llvm::StringRef">:$name,
+                 CArg<"llvm::ArrayRef<mlir::Type>">:$members,
+                 CArg<"std::uint64_t">:$size, CArg<"unsigned">:$align,
+                 CArg<"bool", "false">:$isPacked), [{
+      return $_get($_ctxt, mlir::StringAttr::get($_ctxt, name), members,
+                   /*isOpaque=*/false, isPacked, size, align);
     }]>,
     TypeBuilder<(ins CArg<"llvm::ArrayRef<mlir::Type>">:$members,
                  CArg<"bool", "false">:$isPacked), [{
       return $_get($_ctxt, mlir::StringAttr{}, members, /*isOpaque=*/false,
-                   isPacked);
+                   isPacked, /*bitSize=*/0, /*alignment=*/0);
+    }]>,
+    TypeBuilder<(ins CArg<"llvm::ArrayRef<mlir::Type>">:$members,
+                 CArg<"std::uint64_t">:$size, CArg<"unsigned">:$align,
+                 CArg<"bool", "false">:$isPacked), [{
+      return $_get($_ctxt, mlir::StringAttr{}, members, /*isOpaque=*/false,
+                   isPacked, size, align);
     }]>
   ];
 }

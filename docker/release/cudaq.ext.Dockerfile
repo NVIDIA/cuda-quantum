@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,6 +15,9 @@ USER root
 ARG assets=./assets
 COPY "$assets" "$CUDA_QUANTUM_PATH/assets/"
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
+# Remove the base build_info.txt because the migration intentionally does not overwrite
+# existing files, but adds its own entries to the build info.
+RUN rm "$CUDA_QUANTUM_PATH/build_info.txt"
 RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
         rm -rf "$CUDA_QUANTUM_PATH/docs" && mkdir -p "$CUDA_QUANTUM_PATH/docs"; \
         mv "$CUDA_QUANTUM_PATH/assets/documentation"/* "$CUDA_QUANTUM_PATH/docs"; \
@@ -31,7 +34,7 @@ RUN apt-get install -y --no-install-recommends \
         # just here for convenience:
         curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \
-        apt-get install -y --no-install-recommends gcc \
+        apt-get install -y --no-install-recommends gcc libpython3-dev \
         && pip install --no-cache-dir jupyterlab matplotlib; \
         if [ -n "$MPI_ROOT" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \
