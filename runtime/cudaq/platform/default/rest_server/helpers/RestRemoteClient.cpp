@@ -517,7 +517,7 @@ public:
     }
   }
 
-  // Upload IR as an NVCF asset.
+  // Upload a job request as an NVCF asset.
   // Return asset Id on success. Otherwise, return null.
   std::optional<std::string>
   uploadRequest(const cudaq::RestRequest &jobRequest) {
