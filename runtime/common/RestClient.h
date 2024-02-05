@@ -36,7 +36,7 @@ public:
                      std::map<std::string, std::string> &headers);
   /// Put the message to the remote path at the provided URL.
   void put(const std::string_view remoteUrl, const std::string_view path,
-           nlohmann::json &postStr, std::map<std::string, std::string> &headers,
+           nlohmann::json &putData, std::map<std::string, std::string> &headers,
            bool enableLogging = true);
   /// Delete a resource at the provided URL.
   void del(const std::string_view remoteUrl, const std::string_view path,

@@ -78,7 +78,7 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
 }
 
 void RestClient::put(const std::string_view remoteUrl,
-                     const std::string_view path, nlohmann::json &post,
+                     const std::string_view path, nlohmann::json &putData,
                      std::map<std::string, std::string> &headers,
                      bool enableLogging) {
   if (headers.empty())
@@ -91,10 +91,10 @@ void RestClient::put(const std::string_view remoteUrl,
   // Allow caller to disable logging for things like passwords/tokens
   if (enableLogging)
     cudaq::info("Putting to {}/{} with data = {}", remoteUrl, path,
-                post.dump());
+                putData.dump());
 
   auto actualPath = std::string(remoteUrl) + std::string(path);
-  auto r = cpr::Put(cpr::Url{actualPath}, cpr::Body(post.dump()), cprHeaders,
+  auto r = cpr::Put(cpr::Url{actualPath}, cpr::Body(putData.dump()), cprHeaders,
                     cpr::VerifySsl(false));
 
   if (r.status_code > validHttpCode || r.status_code == 0)
