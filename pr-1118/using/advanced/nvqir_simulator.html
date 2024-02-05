@@ -470,10 +470,9 @@ architecture.</p>
 exposes an API that enables qubit allocation and deallocation, quantum operation
 invocation, and measurement and sampling. Subtypes of this class are free to
 override these methods to affect simulation of the quantum code in any
-simulation strategy specific manner (e.g. state vector, tensor network, etc.). Moreover,
+simulation-strategy-specific manner (e.g., state vector, tensor network, etc.). Moreover,
 subtypes are free to implement simulators that leverage classical accelerated computing.</p>
-<p>In this document, we’ll detail this simulator interface and walk through how one
-might extend it for new types of simulation.</p>
+<p>In this document, we’ll detail this simulator interface and walk through how to extend it for new types of simulation.</p>
 <section id="circuitsimulator">
 <h2><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code><a class="headerlink" href="#circuitsimulator" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code> type is defined in <code class="code docutils literal notranslate"><span class="pre">runtime/nvqir/CircuitSimulator.h</span></code>. It
@@ -482,7 +481,7 @@ type. This type is templated on the floating point type used in the simulator’
 This templated type handles a lot of the base functionality required for allocating and deallocated qubits,
 as well as measurement, sampling, and observation under a number of execution contexts.
 This is the type that downstream simulation developers should extend.</p>
-<p>Actual definition of the quantum state data structure, and its overall evolution are
+<p>The actual definition of the quantum state data structure, and its overall evolution are
 left as tasks for <code class="code docutils literal notranslate"><span class="pre">CircuitSimulatorBase</span></code> subclasses. Examples of simulation subtypes can be found
 in <code class="code docutils literal notranslate"><span class="pre">runtime/nvqir/qpp/QppCircuitSimulator.cpp</span></code> or <code class="code docutils literal notranslate"><span class="pre">runtime/nvqir/custatevec/CuStateVecCircuitSimulator.cpp</span></code>.
 The <code class="code docutils literal notranslate"><span class="pre">QppCircuitSimulator</span></code> models the state vector using the <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library, which
@@ -522,7 +521,7 @@ by leveraging the cuQuantum library.</p>
 <td><p>Measure the qubit, produce a bit result, collapse the state.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">sample</span></code></p></td>
-<td><p>qubitIdxs : std::vector&lt;std::size_t&gt;, shots : int</p></td>
+<td><p>:code`qubitIdxs : std::vector&lt;std::size_t&gt;, shots : int`</p></td>
 <td><p>Sample the current multi-qubit state on the provided qubit indices over a certain number of shots</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">name</span></code></p></td>
@@ -531,11 +530,11 @@ by leveraging the cuQuantum library.</p>
 </tr>
 </tbody>
 </table>
-<p>The strategy for extending this class is to create a new <code class="code docutils literal notranslate"><span class="pre">cpp</span></code> implementation file with the same name as your
+<p>To extend a subtype class, you will need to create a new <code class="code docutils literal notranslate"><span class="pre">cpp</span></code> implementation file with the same name as your
 subtype class name. In this file, you will subclass the <code class="code docutils literal notranslate"><span class="pre">CircuitSimulatorBase&lt;FloatType&gt;</span></code> and implement the methods in
 the above table. Finally, the subclass must be registered with the NVQIR library so that it
 can be picked up and used when a user specifies <code class="code docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">--target</span> <span class="pre">mySimulator</span> <span class="pre">...</span></code> from the command line (or <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('mySimulator')</span></code> in Python.)
-Type registration can be performed with a provided NVQIR macro</p>
+Type registration can be performed with a provided NVQIR macro,</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">NVQIR_REGISTER_SIMULATOR</span><span class="p">(</span><span class="n">MySimulatorClassName</span><span class="p">,</span><span class="w"> </span><span class="n">mySimulator</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -556,18 +555,18 @@ must be installed to <code class="code docutils literal notranslate"><span class
 <section id="let-s-see-this-in-action">
 <h2>Let’s see this in action<a class="headerlink" href="#let-s-see-this-in-action" title="Permalink to this heading">¶</a></h2>
 <p>CUDA Quantum provides some CMake utilities to make the creation of your new simulation library
-easier. Specifically, but using <code class="code docutils literal notranslate"><span class="pre">find_package(NVQIR)</span></code>, you’ll get access to a <code class="code docutils literal notranslate"><span class="pre">nvqir_add_backend</span></code> function
-that will automate a lot of the boilerplate for creating your library and configuration file.</p>
+easier. Specifically, by using <code class="code docutils literal notranslate"><span class="pre">find_package(NVQIR)</span></code>, you’ll get access to a <code class="code docutils literal notranslate"><span class="pre">nvqir_add_backend</span></code> function
+that will automate much of the boilerplate for creating your library and configuration file.</p>
 <p>Let’s assume you want a simulation subtype named <code class="code docutils literal notranslate"><span class="pre">MySimulator</span></code>. You can create a folder or
 repository for this code called <code class="code docutils literal notranslate"><span class="pre">my-simulator</span></code> and add <code class="code docutils literal notranslate"><span class="pre">MySimulator.cpp</span></code> and
-<code class="code docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> files. Fill the CMake file with the following</p>
+<code class="code docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> files. Fill the CMake file with the following:</p>
 <div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">cmake_minimum_required</span><span class="p">(</span><span class="s">VERSION</span><span class="w"> </span><span class="s">3.24</span><span class="w"> </span><span class="s">FATAL_ERROR</span><span class="p">)</span>
 <span class="nb">project</span><span class="p">(</span><span class="s">DemoCreateNVQIRBackend</span><span class="w"> </span><span class="s">VERSION</span><span class="w"> </span><span class="s">1.0.0</span><span class="w"> </span><span class="s">LANGUAGES</span><span class="w"> </span><span class="s">CXX</span><span class="p">)</span>
 <span class="nb">find_package</span><span class="p">(</span><span class="s">NVQIR</span><span class="w"> </span><span class="s">REQUIRED</span><span class="p">)</span>
 <span class="nb">nvqir_add_backend</span><span class="p">(</span><span class="s">MySimulator</span><span class="w"> </span><span class="s">MySimulator.cpp</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>and then fill out your <code class="code docutils literal notranslate"><span class="pre">MySimulator.cpp</span></code> file with your subtype implementation, something like</p>
+<p>and then fill out your <code class="code docutils literal notranslate"><span class="pre">MySimulator.cpp</span></code> file with your subtype implementation. For example,</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;CircuitSimulator.h&quot;</span>
 
 <span class="k">namespace</span><span class="w"> </span><span class="p">{</span>
@@ -608,14 +607,14 @@ repository for this code called <code class="code docutils literal notranslate">
 <span class="n">NVQIR_REGISTER_SIMULATOR</span><span class="p">(</span><span class="n">MySimulator</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>To build, install, and use this simulation backend, run the following from the top-level of <code class="code docutils literal notranslate"><span class="pre">my-simulator</span></code></p>
+<p>To build, install, and use this simulation backend, run the following from the top-level of <code class="code docutils literal notranslate"><span class="pre">my-simulator</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">CUDA_QUANTUM_PATH</span><span class="o">=</span>/path/to/cuda_quantum/install
 mkdir<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>build
 cmake<span class="w"> </span>..<span class="w"> </span>-G<span class="w"> </span>Ninja<span class="w"> </span>-DNVQIR_DIR<span class="o">=</span><span class="s2">&quot;</span><span class="nv">$CUDA_QUANTUM_PATH</span><span class="s2">/lib/cmake/nvqir&quot;</span>
 ninja<span class="w"> </span>install
 </pre></div>
 </div>
-<p>Then given any CUDA Quantum source file, you can compile and target your backend simulator with</p>
+<p>Then given any CUDA Quantum source file, you can compile and target your backend simulator with the following:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>file.cpp<span class="w"> </span>--target<span class="w"> </span>MySimulator
 ./a.out
 </pre></div>

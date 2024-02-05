@@ -12,7 +12,7 @@
 // CUDA Quantum supports several different models of noise. In this
 // case, we will examine the modeling of depolarization noise. This
 // depolarization will result in the qubit state decaying into a mix
-// of the basis states, |0> and |1>, with a user provided probability.
+// of the basis states, |0> and |1>, with a user-provided probability.
 
 int main() {
 
@@ -20,10 +20,10 @@ int main() {
   // our depolarization channel to.
   cudaq::noise_model noise;
 
-  // Depolarization channel with `1.0` probability of the qubit state
-  // being scrambled.
+  // We define a depolarization channel setting the probability of the
+  // qubit state being scrambled to `1.0`.
   cudaq::depolarization_channel depolarization(1.);
-  // We will apply the channel to any Y-gate on qubit 0. Meaning,
+  // We will apply the channel to any Y-gate on qubit 0. In other words,
   // for each Y-gate on our qubit, the qubit will have a `1.0`
   // probability of decaying into a mixed state.
   noise.add_channel<cudaq::types::y>({0}, depolarization);

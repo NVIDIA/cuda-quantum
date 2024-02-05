@@ -461,6 +461,24 @@
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples">Examples</a></p></li>
 </ul>
+<p><strong>0.6.0</strong></p>
+<p>The 0.6.0 release contains improved support for various HPC scenarios. We have added a
+<a class="reference internal" href="install.html#distributed-computing-with-mpi"><span class="std std-ref">plugin infrastructure</span></a> for connecting CUDA Quantum
+with an existing MPI installation, and we’ve added a <a class="reference internal" href="using/cudaq/platform.html#remote-mqpu-platform"><span class="std std-ref">new platform target</span></a> that distributes workloads across multiple virtual QPUs,
+each simulated by one or more GPUs.</p>
+<p>Starting with 0.6.0, we are now also distributing
+<a class="reference internal" href="install.html#install-prebuilt-binaries"><span class="std std-ref">pre-built binaries</span></a> for using CUDA Quantum with C++.
+The binaries are built against the <a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>
+version 2.28.
+We’ve added a detailed <a class="reference internal" href="data_center_install.html"><span class="doc">Building from Source</span></a> guide to build these binaries for older <code class="code docutils literal notranslate"><span class="pre">glibc</span></code> versions.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cuda-quantum/">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">C++ installer</a></p></li>
+<li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.6.0">Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.6.0/docs/sphinx/examples">Examples</a></p></li>
+</ul>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">here</a>.</p>
 <p><strong>0.5.0</strong></p>
 <p>With 0.5.0 we have added support for quantum kernel execution on OQC and IQM backends. For more information, see <a class="reference internal" href="using/hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.
 CUDA Quantum now allows to executing adaptive quantum kernels on quantum hardware backends that support it.
@@ -468,12 +486,12 @@ The 0.5.0 release furthermore improves the tensor network simulation tools and a
 <p>Additionally, we are now publishing images for experimental features, which currently includes improved Python language support.
 Please take a look at <a class="reference internal" href="install.html"><span class="doc">Getting Started</span></a> for more information about how to obtain them.</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">Docker image</a></p></li>
-<li><p><a class="reference external" href="https://pypi.org/project/cuda-quantum/">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cuda-quantum/0.5.0">Python wheel</a></p></li>
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.5.0">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.5.0/docs/sphinx/examples">Examples</a></p></li>
 </ul>
-<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">here</a>.</p>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.5.0">here</a>.</p>
 <p><strong>0.4.1</strong></p>
 <p>The 0.4.1 release adds support for ARM processors in the form of multi-platform Docker images and <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> Python wheels. Additionally, all GPU-based backends are now included in the Python wheels as well as in the Docker image.</p>
 <ul class="simple">
