@@ -76,3 +76,5 @@ config.test_exec_root = os.path.join(config.cudaq_obj_root, 'test')
 # Tweak the PATH to include the tools directory.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
 llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
+
+llvm_config.with_environment('OMP_NUM_THREADS', '1')

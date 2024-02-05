@@ -79,11 +79,11 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install iqm-client
+            python3 -m pip install iqm-client psutil
             ctest --output-on-failure --test-dir build -E ctest-nvqpp
             ctest_status=$?
             # TEST only
-            for i in {1..10}; do /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test; done
+            for i in {1..10}; do /opt/llvm/bin/llvm-lit -v --timeout 600 --param nvqpp_site_config=build/test/lit.site.cfg.py build/test; done
             # TEST only
             lit_status=$?
             if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
