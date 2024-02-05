@@ -9,6 +9,10 @@ on:
         type: string
         description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
+      nvidia_mgpu_commit:
+        type: string
+        description: Optional argument to set the GitLab commit to use for the nvidia-mgpu target.
+        required: false
       include_docs:
         type: boolean
         description: Include the generated documentation in the docker image(s).
@@ -160,8 +164,10 @@ jobs:
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
             if [ -n "$(cat "$1.txt" | tail -1)" ]; then echo >> "$1.txt"; fi
 
-            sed -i '/nvidia-mgpu-commit/d' "$1.txt"
-            echo "nvidia-mgpu-commit: fba83e008b4d10ec287c372625c68cb72f2cae4a" >> "$1.txt"
+            if ${{ inputs.nvidia_mgpu_commit != '' }}; then
+              sed -i '/nvidia-mgpu-commit/d' "$1.txt"
+              echo "nvidia-mgpu-commit: ${{ inputs.nvidia_mgpu_commit }}" >> "$1.txt"
+            fi
 
             echo "asset-name: $1.txt" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
