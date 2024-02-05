@@ -1,8 +1,8 @@
 Working with the CUDA Quantum IR
 ********************************
-Let's see the output of :code:`nvq++` in verbose mode. Given a simple code like 
+Let's see the output of :code:`nvq++` in verbose mode. Consider a simple code like the one below, saved to file :code:`simple.cpp`.
 
-.. code-block:: cpp 
+.. code-block:: console 
 
     #include <cudaq.h>
 
@@ -19,7 +19,7 @@ Let's see the output of :code:`nvq++` in verbose mode. Given a simple code like
 
     int main() { ... }
 
-saved to file :code:`simple.cpp`, we see the following output from :code:`nvq++` verbose mode (up to some absolute paths)
+ We see the following output from :code:`nvq++` verbose mode (up to some absolute paths).
 
 .. code-block:: console 
 
@@ -34,13 +34,13 @@ saved to file :code:`simple.cpp`, we see the following output from :code:`nvq++`
     clang++ -L/usr/lib/gcc/x86_64-linux-gnu/12 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs -r simple.qke.o simple.classic.o -o simple.o
     clang++ -Wl,-rpath,lib -Llib -L/usr/lib/gcc/x86_64-linux-gnu/12 -L/usr/lib64 -L/lib/x86_64-linux-gnu -L/lib64 -L/usr/lib/x86_64-linux-gnu -L/lib -L/usr/lib -L/usr/local/cuda/lib64/stubs simple.o -lcudaq -lcudaq-common -lcudaq-mlir-runtime -lcudaq-builder -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-spin -lcudaq-em-default -lcudaq-platform-default -lnvqir -lnvqir-qpp
 
-The workflow orchestrated above is best visualized in the following figure. 
+This workflow orchestration is represented in the figure below: 
 
 .. image:: ../../_static/nvqpp_workflow.png
 
 We start by mapping CUDA Quantum C++ kernel representations (structs, lambdas, and free functions) 
 to the Quake dialect. Since we added :code:`--save-temps`, 
-we can look at the IR code that was produced. :code:`simple.qke` contains 
+we can look at the IR code that was produced. The base Quake file, :code:`simple.qke`, contains the following: 
 
 .. code-block:: console 
 
@@ -91,7 +91,7 @@ we can look at the IR code that was produced. :code:`simple.qke` contains
         }
     }
 
-This is the base Quake file, unoptimized and unchanged. It is produced by the 
+This base Quake file is unoptimized and unchanged. It is produced by the 
 :code:`cudaq-quake` tool, which also allows us to output the full LLVM IR representation 
 for the code. This LLVM IR is classical-only, and is directly produced by :code:`clang++` 
 code-generation. The LLVM IR file :code:`simple.ll` contains the CUDA Quantum kernel 
@@ -99,9 +99,9 @@ code-generation. The LLVM IR file :code:`simple.ll` contains the CUDA Quantum ke
 want to replace this function with our own MLIR-generated function. 
 
 Next, the :code:`cudaq-opt` tool is invoked on the :code:`simple.qke` file. This runs an
-MLIR pass-pipeline that canonicalizes and optimizes the code. It will also process quantum 
+MLIR pass pipeline that canonicalizes and optimizes the code. It will also process quantum 
 lambdas, lift those lambdas to functions, and synthesis adjoint and controlled versions of 
-CUDA Quantum kernel functions if necessary. The most important pass this this step applies is the 
+CUDA Quantum kernel functions if necessary. The most important pass that this step applies is the 
 :code:`kernel-execution` pass, which synthesizes a new entry point LLVM function with the 
 same name and signature as the original :code:`operator()(Args...)` call function in the 
 classical :code:`simple.ll` file. We also extract all Quake code representations as strings
@@ -111,7 +111,7 @@ After :code:`cudaq-opt`, the :code:`cudaq-translate` tool is used to lower the t
 Quake representation to an LLVM IR representation, specifically the QIR. We finish by lowering 
 this representation to object code via standard LLVM tools (e.g. :code:`llc`), and merge all 
 object files into a single object file, ensuring that our new mangled :code:`operator()(Args...)` 
-call is injected first, thereby over-writing the original. Finally, based on user compile flags, 
+call is injected first, thereby overwriting the original. Finally, based on user compile flags, 
 we configure the link line with specific libraries that implement the :code:`quantum_platform` 
 (here the :code:`libcudaq-platform-default.so`) and NVQIR circuit simulator backend (the 
 :code:`libnvqir-qpp.so` Q++ CPU-only simulation backend). These latter libraries are controlled 
@@ -141,8 +141,8 @@ Quake represents an IR closer to the CUDA Quantum source language and models qub
 quantum instructions via memory semantics. Quake can be fully dynamic and in
 that sense represents a quantum circuit template or generator. With runtime 
 arguments fully specified, Quake code can be used to generate or synthesize
-a fully-known quantum circuit. The value semantics form of Quake can thus be
-used as a representation for fully-known
+a fully known quantum circuit. The value semantics form of Quake can thus be
+used as a representation for fully known
 or synthesized quantum circuits. Its utility, therefore, lies in its ability to 
 optimize quantum code. It departs from the memory semantics model of Quake and 
 expresses the flow of quantum information explicitly as MLIR values.
@@ -166,13 +166,13 @@ and produce QIR. Recall the code snippet for the kernel
       }
     };
 
-Using the toolchain, we can lower this to directly to QIR
+Using the toolchain, we can lower this directly to QIR,
 
 .. code-block:: console
 
     cudaq-quake simple.cpp | cudaq-opt --canonicalize | cudaq-translate --convert-to=qir 
 
-which prints 
+which prints: 
 
 .. code-block:: console 
 
