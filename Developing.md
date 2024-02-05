@@ -20,7 +20,7 @@ and examples using your local build. If you edit [this
 file](./runtime/nvqir/CircuitSimulator.h) to add a print statement
 
 ```c++
-std::cout << "Custom registration of " << #NAME << "\n" << std::endl;
+std::cout << "Custom registration of " << #PRINTED_NAME << "\n" << std::endl;
 ```
 
 to the definition of the `NVQIR_REGISTER_SIMULATOR` macro, you should see this
