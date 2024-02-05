@@ -9,7 +9,6 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace cudaq {
 /// Util to invoke a wrapped kernel defined by LLVM IR with serialized
