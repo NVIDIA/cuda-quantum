@@ -239,8 +239,10 @@ then
     do
         echo "## Execution on $t target" >> $GITHUB_STEP_SUMMARY
         cat "$tmpFile_$(echo $t | tr - _)" >> $GITHUB_STEP_SUMMARY
+        rm -rf "$tmpFile_$(echo $t | tr - _)"
     done
 fi
+rm -rf "$tmpFile"
 
 echo "============================="
 echo "$samples examples found."

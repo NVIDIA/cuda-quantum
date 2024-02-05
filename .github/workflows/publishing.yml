@@ -158,6 +158,7 @@ jobs:
             staging_folder="deployments/staging/$3"
             image_hash=`cat "$1.txt" | grep -o "$2: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
+            if [ -n "$(cat "$1.txt" | tail -1)" ]; then echo >> "$1.txt"; fi
 
             echo "asset-name: $1.txt" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
