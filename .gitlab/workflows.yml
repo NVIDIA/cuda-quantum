@@ -23,6 +23,7 @@ workflow:
     - when: always
 
 default:
+  image: ubuntu:22.04
   tags: 
     - hostname/sc-pl-devops-build03.k8s.nvidia.com
   timeout: 1h
@@ -35,7 +36,6 @@ stages:
 
 Metadata:
   stage: metadata
-  image: docker:latest
   artifacts:
     reports:
       dotenv: build.env
