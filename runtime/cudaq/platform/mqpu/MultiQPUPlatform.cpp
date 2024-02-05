@@ -25,7 +25,14 @@ class MultiQPUQuantumPlatform : public cudaq::quantum_platform {
       m_remoteServers;
 
 public:
-  ~MultiQPUQuantumPlatform() = default;
+  ~MultiQPUQuantumPlatform() {
+    // Make sure that we clean up the client QPUs first before cleaning up the
+    // remote servers.
+    platformQPUs.clear();
+    platformNumQPUs = 0;
+    m_remoteServers.clear();
+  }
+
   MultiQPUQuantumPlatform() {
     if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
       int nDevices = cudaq::getCudaGetDeviceCount();
