@@ -6,12 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// This test requires concepts, a C++20 language feature, and should never be
-// expected to compile as C++17. The REQUIRES line below is a workaround for the
-// CI.
+// The source code in this test uses concepts, a C++20 language feature, and 
+// hence is not expected to compile as C++17. The REQUIRES line below reflects this.
 
 // REQUIRES: c++20
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 // Test lambdas that are created within kernels and passed to user-defined
 // kernels as an argument. Since the lambda is an argument, it is not possible
