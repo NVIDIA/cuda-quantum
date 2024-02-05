@@ -42,6 +42,15 @@
 #include <fstream>
 #include <streambuf>
 namespace {
+/// Util class to execute a functor when an object of this class goes
+/// out-of-scope.
+// This can be used to perform some clean up.
+// ```
+// {
+//   ScopeExit cleanUp(f);
+//   ...
+// } <- f() is called to perform some cleanup action.
+// ```
 struct ScopeExit {
   ScopeExit(std::function<void()> &&func) : m_atExitFunc(std::move(func)) {}
   ~ScopeExit() noexcept { m_atExitFunc(); }
@@ -244,34 +253,43 @@ public:
   }
 };
 
+/// REST client submitting jobs to NVCF-hosted `cudaq-qpud` service.
 class NvcfRuntimeClient : public RemoteRestRuntimeClient {
 private:
+  // API key for authentication
   std::string m_apiKey;
+  // Rest client to send HTTP request
   cudaq::RestClient m_restClient;
+  // NVCF function Id to use
   std::string m_functionId;
+  // NVCF version Id of that function to use
   std::string m_functionVersionId;
+  // Base URL for NVCF APIs
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
+  // Return the URL to invoke the function specified in this client
   std::string nvcfInvocationUrl() const {
     return fmt::format("https://{}/nvcf/exec/functions/{}/versions/{}",
                        m_baseUrl, m_functionId, m_functionVersionId);
   }
+  // Return the URL to request an Asset upload link
   std::string nvcfAssetUrl() const {
     return fmt::format("https://{}/nvcf/assets", m_baseUrl);
   }
-
+  // Return the URL to retrieve status/result of an NVCF request.
   std::string
   nvcfInvocationStatus(const std::string &invocationRequestId) const {
     return fmt::format("https://{}/nvcf/exec/status/{}", m_baseUrl,
                        invocationRequestId);
   }
-
+  // Construct the REST headers for calling NVCF REST APIs
   std::map<std::string, std::string> getHeaders() const {
     std::map<std::string, std::string> header{
         {"Authorization", fmt::format("Bearer {}", m_apiKey)},
         {"Content-type", "application/json"}};
     return header;
   };
-
+  // Helper to retrieve the list of all available versions of the specified
+  // function Id.
   std::vector<cudaq::NvcfFunctionVersionInfo> getFunctionVersions() {
     auto headers = getHeaders();
     auto versionDataJs = m_restClient.get(
@@ -334,6 +352,7 @@ public:
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    // Construct the base `cudaq-qpud` request payload.
     cudaq::RestRequest request =
         constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
                             kernelFunc, kernelArgs, argsSize);
@@ -351,6 +370,8 @@ public:
     json requestJson;
     auto jobHeader = getHeaders();
     std::optional<std::string> assetId;
+    // Make sure that we delete the asset that we've uploaded when this
+    // `sendRequest` function exits (success or not).
     ScopeExit deleteAssetOnExit([&]() {
       if (assetId.has_value()) {
         cudaq::info("Deleting NVCF Asset Id {}", assetId.value());
@@ -360,6 +381,7 @@ public:
       }
     });
 
+    // Upload this request as an NVCF asset if needed.
     if (request.code.size() > MAX_SIZE_BYTES) {
       assetId = uploadRequest(request);
       if (!assetId.has_value()) {
@@ -368,6 +390,8 @@ public:
         return false;
       }
       json requestBody;
+      // Use NVCF `inputAssetReferences` field to specify the asset that needs
+      // to be pulled in when invoking this function.
       requestBody["inputAssetReferences"] =
           std::vector<std::string>{assetId.value()};
       requestJson["requestBody"] = requestBody;
@@ -377,6 +401,7 @@ public:
     }
 
     try {
+      // Making the request
       cudaq::debug("Sending NVCF request to {}", nvcfInvocationUrl());
       auto resultJs = m_restClient.post(nvcfInvocationUrl(), "", requestJson,
                                         jobHeader, false);
@@ -400,6 +425,8 @@ public:
         return false;
       }
 
+      // If there is a `responseReference` field, this is a large response.
+      // Hence, need to download result .zip file from the provided URL.
       if (resultJs.contains("responseReference")) {
         // This is a large response that needs to be downloaded
         const std::string downloadUrl = resultJs["responseReference"];
@@ -491,7 +518,7 @@ public:
   }
 
   // Upload IR as an NVCF asset.
-  // Return asset Id
+  // Return asset Id on success. Otherwise, return null.
   std::optional<std::string>
   uploadRequest(const cudaq::RestRequest &jobRequest) {
     json requestJson;

@@ -106,6 +106,7 @@ public:
   }
 };
 
+/// Implementation of QPU subtype that submits simulation request to NVCF.
 class NvcfSimulatorQPU : public RemoteSimulatorQPU {
 public:
   NvcfSimulatorQPU() : RemoteSimulatorQPU() {
@@ -117,14 +118,28 @@ public:
     if (parts.size() % 2 != 0)
       throw std::invalid_argument("Unexpected backend configuration string. "
                                   "Expecting a ';'-separated key-value pairs.");
-    m_client->setConfig(
-        {{"api-key", searchAPIKey()}, {"function-id", searchFunctionId()}});
-    for (std::size_t i = 0; i < parts.size(); i += 2)
+    std::string apiKey, functionId;
+
+    for (std::size_t i = 0; i < parts.size(); i += 2) {
       if (parts[i] == "simulator")
         m_simName = parts[i + 1];
+      // First, check if api key or function Id is provided as target options.
+      if (parts[i] == "function_id")
+        functionId = parts[i + 1];
+      if (parts[i] == "api_key")
+        apiKey = parts[i + 1];
+    }
+    // If none provided, look for them in environment variables or the config
+    // file. This will throw if failed.
+    if (apiKey.empty())
+      apiKey = searchAPIKey();
+    if (functionId.empty())
+      functionId = searchFunctionId();
+    m_client->setConfig({{"api-key", apiKey}, {"function-id", functionId}});
   }
 
 private:
+  // Helper to search API key from environment variable or config file.
   std::string searchAPIKey(const std::string &userSpecifiedConfigFile = "") {
     if (auto apiKey = std::getenv("NVCF_API_KEY")) {
       const auto key = std::string(apiKey);
@@ -169,6 +184,7 @@ private:
     return "";
   }
 
+  // Helper to search function Id from environment variable or config file.
   std::string searchFunctionId() {
     if (auto funcIdEnv = std::getenv("NVCF_FUNCTION_ID"))
       return std::string(funcIdEnv);

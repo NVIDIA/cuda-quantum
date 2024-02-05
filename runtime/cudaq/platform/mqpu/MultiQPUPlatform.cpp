@@ -111,8 +111,15 @@ public:
         auto simName = getOpt(description, "backend");
         if (simName.empty())
           simName = "custatevec-fp32";
-        const std::string configStr =
+        std::string configStr =
             fmt::format("target;nvcf;simulator;{}", simName);
+        auto apiKey = getOpt(description, "api_key");
+        if (!apiKey.empty())
+          configStr += fmt::format(";api_key;{}", apiKey);
+        auto functionId = getOpt(description, "function_id");
+        if (!functionId.empty())
+          configStr += fmt::format(";function_id;{}", functionId);
+
         auto numQpusStr = getOpt(description, "nqpus");
         const int numQpus = numQpusStr.empty() ? 1 : std::stoi(numQpusStr);
         if (numQpus < 1)

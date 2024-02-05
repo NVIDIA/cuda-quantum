@@ -42,6 +42,7 @@ public:
   void del(const std::string_view remoteUrl, const std::string_view path,
            std::map<std::string, std::string> &headers,
            bool enableLogging = true);
+  /// Download a resource at the provided URL and save it to the provided path.
   bool download(const std::string_view remoteUrl, const std::string &filePath,
                 bool enableLogging = true);
 
