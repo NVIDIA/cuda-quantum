@@ -158,7 +158,7 @@ bool RestClient::download(const std::string_view remoteUrl,
   if (r.status_code > validHttpCode || r.status_code == 0)
     return false;
 
-  cudaq::info("Download size: {} bytes to file {}", r.text.size(), filePath);
+  cudaq::info("Downloading {} bytes to file {}", r.text.size(), filePath);
   try {
     // Write the downloaded content to file.
     std::ofstream outfile(filePath, std::ofstream::binary | std::ios::out);
