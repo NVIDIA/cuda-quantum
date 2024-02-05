@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,7 +9,6 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace cudaq {
 /// Util to invoke a wrapped kernel defined by LLVM IR with serialized
