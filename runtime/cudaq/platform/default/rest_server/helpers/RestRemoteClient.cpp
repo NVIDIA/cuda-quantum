@@ -320,31 +320,58 @@ public:
     }
     {
       auto versions = getFunctionVersions();
-      // The timestamp is an ISO 8601 string, e.g., 2024-01-25T04:14:46.360Z.
-      // To sort it from latest to oldest, we can use string sorting.
-      std::sort(versions.begin(), versions.end(),
-                [](const auto &a, const auto &b) {
-                  return a.createdAt > b.createdAt;
-                });
-      for (const auto &versionInfo : versions)
-        cudaq::info("Found version Id {}, created at {}", versionInfo.versionId,
-                    versionInfo.createdAt);
-
-      auto activeVersions =
-          versions | std::ranges::views::filter(
-                         [](const cudaq::NvcfFunctionVersionInfo &info) {
-                           return info.status == cudaq::FunctionStatus::ACTIVE;
+      // Check if a version Id is set
+      const auto versionIdIter = configs.find("version-id");
+      if (versionIdIter != configs.end()) {
+        m_functionVersionId = versionIdIter->second;
+        // Do a sanity check that this is an active version (i.e., usable).
+        const auto versionInfoIter =
+            std::find_if(versions.begin(), versions.end(),
+                         [&](const cudaq::NvcfFunctionVersionInfo &info) {
+                           return info.versionId == m_functionVersionId;
                          });
+        // Invalid version Id.
+        if (versionInfoIter == versions.end())
+          throw std::runtime_error(
+              fmt::format("Version Id '{}' is not valid for NVCF function Id "
+                          "'{}'. Please check your input.",
+                          m_functionVersionId, m_functionId));
+        // The version is not active/deployed.
+        if (versionInfoIter->status != cudaq::FunctionStatus::ACTIVE)
+          throw std::runtime_error(fmt::format(
+              "Version Id '{}' of NVCF function Id "
+              "'{}' is not ACTIVE. Please check your input or contact support.",
+              m_functionVersionId, m_functionId));
+      } else {
+        // No version Id is set. Just pick the latest version of the function
+        // Id. The timestamp is an ISO 8601 string, e.g.,
+        // 2024-01-25T04:14:46.360Z. To sort it from latest to oldest, we can
+        // use string sorting.
+        std::sort(versions.begin(), versions.end(),
+                  [](const auto &a, const auto &b) {
+                    return a.createdAt > b.createdAt;
+                  });
+        for (const auto &versionInfo : versions)
+          cudaq::info("Found version Id {}, created at {}",
+                      versionInfo.versionId, versionInfo.createdAt);
 
-      if (activeVersions.empty())
-        throw std::runtime_error(
-            fmt::format("No active version available for NVCF function Id "
-                        "'{}'. Please check your function Id.",
-                        m_functionId));
+        auto activeVersions =
+            versions |
+            std::ranges::views::filter(
+                [](const cudaq::NvcfFunctionVersionInfo &info) {
+                  return info.status == cudaq::FunctionStatus::ACTIVE;
+                });
 
-      m_functionVersionId = activeVersions.front().versionId;
-      cudaq::info("Selected the latest version Id {} for function Id {}",
-                  m_functionVersionId, m_functionId);
+        if (activeVersions.empty())
+          throw std::runtime_error(
+              fmt::format("No active version available for NVCF function Id "
+                          "'{}'. Please check your function Id.",
+                          m_functionId));
+
+        m_functionVersionId = activeVersions.front().versionId;
+        cudaq::info("Selected the latest version Id {} for function Id {}",
+                    m_functionVersionId, m_functionId);
+      }
     }
   }
   virtual bool

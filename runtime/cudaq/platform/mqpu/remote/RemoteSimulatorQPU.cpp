@@ -113,12 +113,20 @@ public:
     m_client = cudaq::registry::get<cudaq::RemoteRuntimeClient>("NVCF");
   }
 
+  // Encapsulates Nvcf configurations that we need.
+  // Empty strings mean no config available.
+  struct NvcfConfig {
+    std::string apiKey;
+    std::string functionId;
+    std::string versionId;
+  };
+
   virtual void setTargetBackend(const std::string &backend) override {
     auto parts = cudaq::split(backend, ';');
     if (parts.size() % 2 != 0)
       throw std::invalid_argument("Unexpected backend configuration string. "
                                   "Expecting a ';'-separated key-value pairs.");
-    std::string apiKey, functionId;
+    std::string apiKey, functionId, versionId;
 
     for (std::size_t i = 0; i < parts.size(); i += 2) {
       if (parts[i] == "simulator")
@@ -128,68 +136,60 @@ public:
         functionId = parts[i + 1];
       if (parts[i] == "api_key")
         apiKey = parts[i + 1];
+      if (parts[i] == "version_id")
+        versionId = parts[i + 1];
     }
     // If none provided, look for them in environment variables or the config
-    // file. This will throw if failed.
+    // file.
+    const auto config = searchNvcfConfig();
     if (apiKey.empty())
-      apiKey = searchAPIKey();
+      apiKey = config.apiKey;
     if (functionId.empty())
-      functionId = searchFunctionId();
-    m_client->setConfig({{"api-key", apiKey}, {"function-id", functionId}});
+      functionId = config.functionId;
+    if (versionId.empty())
+      versionId = config.versionId;
+
+    // API key and function Id are required.
+    if (apiKey.empty())
+      throw std::runtime_error(
+          "Cannot find NVCF API key. Please provide a valid API key.");
+
+    if (!apiKey.starts_with("nvapi-"))
+      std::runtime_error(
+          "An invalid NVCF API key is provided. Please check your settings.");
+    if (functionId.empty())
+      throw std::runtime_error(
+          "Cannot find NVCF Function ID. Please provide a valid Function ID.");
+
+    std::unordered_map<std::string, std::string> clientConfigs{
+        {"api-key", apiKey}, {"function-id", functionId}};
+    if (!versionId.empty())
+      clientConfigs.emplace("version-id", versionId);
+    m_client->setConfig(clientConfigs);
   }
 
 private:
-  // Helper to search API key from environment variable or config file.
-  std::string searchAPIKey(const std::string &userSpecifiedConfigFile = "") {
+  // Helper to search NVCF config from environment variable or config file.
+  NvcfConfig searchNvcfConfig() {
+    NvcfConfig config;
+    // Search from environment variable
     if (auto apiKey = std::getenv("NVCF_API_KEY")) {
       const auto key = std::string(apiKey);
-      if (key.starts_with("nvapi-"))
-        return key;
-      throw std::runtime_error(
-          "An invalid NVCF API key is set in the NVCF_API_KEY environment "
-          "variable. Please check your settings.");
+      config.apiKey = key;
     }
 
-    std::string hwConfig;
+    if (auto funcIdEnv = std::getenv("NVCF_FUNCTION_ID"))
+      config.functionId = std::string(funcIdEnv);
+
+    if (auto versionIdEnv = std::getenv("NVCF_FUNCTION_VERSION_ID"))
+      config.versionId = std::string(versionIdEnv);
+
+    std::string nvcfConfig;
     // Allow someone to tweak this with an environment variable
     if (auto creds = std::getenv("CUDAQ_NVCF_CREDENTIALS"))
-      hwConfig = std::string(creds);
-    else if (!userSpecifiedConfigFile.empty())
-      hwConfig = userSpecifiedConfigFile;
+      nvcfConfig = std::string(creds);
     else
-      hwConfig = std::string(getenv("HOME")) + std::string("/.nvcf_config");
-    if (cudaq::fileExists(hwConfig)) {
-      std::ifstream stream(hwConfig);
-      std::string contents((std::istreambuf_iterator<char>(stream)),
-                           std::istreambuf_iterator<char>());
-      std::vector<std::string> lines;
-      lines = cudaq::split(contents, '\n');
-      for (const std::string &l : lines) {
-        std::vector<std::string> keyAndValue = cudaq::split(l, ':');
-        if (keyAndValue.size() != 2)
-          throw std::runtime_error("Ill-formed configuration file (" +
-                                   hwConfig +
-                                   "). Key-value pairs must be in `<key> : "
-                                   "<value>` format. (One per line)");
-        cudaq::trim(keyAndValue[0]);
-        cudaq::trim(keyAndValue[1]);
-        if (keyAndValue[0] == "key" || keyAndValue[0] == "apikey")
-          return keyAndValue[1];
-      }
-    }
-
-    throw std::runtime_error("Cannot find NVCF API key. Please set the "
-                             "NVCF_API_KEY environment variable to a valid API "
-                             "key or provide a config file (~/.nvcf_config).");
-    return "";
-  }
-
-  // Helper to search function Id from environment variable or config file.
-  std::string searchFunctionId() {
-    if (auto funcIdEnv = std::getenv("NVCF_FUNCTION_ID"))
-      return std::string(funcIdEnv);
-    const auto nvcfConfig =
-        std::string(getenv("HOME")) + std::string("/.nvcf_config");
+      nvcfConfig = std::string(getenv("HOME")) + std::string("/.nvcf_config");
     if (cudaq::fileExists(nvcfConfig)) {
       std::ifstream stream(nvcfConfig);
       std::string contents((std::istreambuf_iterator<char>(stream)),
@@ -205,16 +205,18 @@ private:
                                    "<value>` format. (One per line)");
         cudaq::trim(keyAndValue[0]);
         cudaq::trim(keyAndValue[1]);
-        if (keyAndValue[0] == "function-id" || keyAndValue[0] == "Function ID")
-          return keyAndValue[1];
+        if (config.apiKey.empty() &&
+            (keyAndValue[0] == "key" || keyAndValue[0] == "apikey"))
+          config.apiKey = keyAndValue[1];
+        if (config.functionId.empty() && (keyAndValue[0] == "function-id" ||
+                                          keyAndValue[0] == "Function ID"))
+          config.functionId = keyAndValue[1];
+        if (config.versionId.empty() &&
+            (keyAndValue[0] == "version-id" || keyAndValue[0] == "Version ID"))
+          config.versionId = keyAndValue[1];
       }
     }
-
-    throw std::runtime_error(
-        "Cannot find NVCF Function ID. Please set the "
-        "NVCF_FUNCTION_ID environment variable to a valid function Id "
-        "or provide a config file (~/.nvcf_config).");
-    return "";
+    return config;
   }
 };
 } // namespace
