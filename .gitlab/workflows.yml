@@ -60,8 +60,8 @@ Metadata:
     - CUDAQ_MGMN_SVSIM_REPO=`echo "$build_info" | grep -s -o 'nvidia-mgpu-repo:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - CUDAQ_MGMN_SVSIM_COMMIT=`echo "$build_info" | grep -s -o 'nvidia-mgpu-commit:\s*\S*' | rev | cut -d ' ' -f 1 | cut -d ':' -f 1 | rev`
     - echo "CUDAQ_MGMN_SVSIM_REPO is $CUDAQ_MGMN_SVSIM_REPO, CUDAQ_MGMN_SVSIM_COMMIT is $CUDAQ_MGMN_SVSIM_COMMIT"
-    - echo "CUDAQ_MGMN_SVSIM_REPO=$CUDAQ_MGMN_SVSIM_REPO" >> build.env; fi
-    - echo "CUDAQ_MGMN_SVSIM_COMMIT=$CUDAQ_MGMN_SVSIM_COMMIT" >> build.env; fi
+    - echo "CUDAQ_MGMN_SVSIM_REPO=$CUDAQ_MGMN_SVSIM_REPO" >> build.env
+    - echo "CUDAQ_MGMN_SVSIM_COMMIT=$CUDAQ_MGMN_SVSIM_COMMIT" >> build.env
 
 Python Wheels:
   rules:
