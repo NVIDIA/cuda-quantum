@@ -6,7 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std -verify %s
+// The error messages produced by a compiler using the -std=c++17 option cannot
+// be expected to be the same.
+
+// REQUIRES: c++20
+// RUN: cudaq-quake -verify %s
 
 #include <bitset>
 #include <cudaq.h>
