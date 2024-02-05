@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -120,9 +120,7 @@ echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
 
-# [RFC]: 
-# enable the examples in the excluded directories
-for ex in `find examples -name '*.py' -not -path '*/python_mlir/*' -not -path '*/python_runtime/*'`;
+for ex in `find examples/ -name '*.py'`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -151,7 +149,7 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
-for ex in `find examples -name '*.cpp'`;
+for ex in `find examples/ -name '*.cpp'`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"

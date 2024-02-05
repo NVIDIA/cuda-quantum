@@ -110,23 +110,17 @@ public:
     std::string configContents((std::istreambuf_iterator<char>(configFile)),
                                std::istreambuf_iterator<char>());
 
-    if (configMap.count("override_qpu")) {
-      platformQPUs.clear();
-      platformQPUs.emplace_back(
-          cudaq::registry::get<cudaq::QPU>(configMap["override_qpu"]));
-    } else {
-      auto lines = cudaq::split(configContents, '\n');
-      for (auto &line : lines) {
-        if (line.find(platformQPU) != std::string::npos) {
-          auto keyVal = cudaq::split(line, '=');
-          auto qpuName = keyVal[1];
-          cudaq::info("Default platform QPU subtype name: {}", qpuName);
-          platformQPUs.clear();
-          platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
-          if (platformQPUs.front() == nullptr)
-            throw std::runtime_error(
-                qpuName + " is not a valid QPU name for the default platform.");
-        }
+    auto lines = cudaq::split(configContents, '\n');
+    for (auto &line : lines) {
+      if (line.find(platformQPU) != std::string::npos) {
+        auto keyVal = cudaq::split(line, '=');
+        auto qpuName = keyVal[1];
+        cudaq::info("Default platform QPU subtype name: {}", qpuName);
+        platformQPUs.clear();
+        platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
+        if (platformQPUs.front() == nullptr)
+          throw std::runtime_error(
+              qpuName + " is not a valid QPU name for the default platform.");
       }
     }
 

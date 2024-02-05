@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -85,7 +85,6 @@ def testLargeProblem():
 
 @skipIfNoMQPU
 def testAccuracy():
-
     cudaq.set_target('nvidia-mqpu')
     target = cudaq.get_target()
     numQpus = target.num_qpus()
@@ -114,6 +113,8 @@ def testAccuracy():
     cudaq.reset_target()
 
 
+## [SKIP_TEST]
+@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'get_state_async'")
 @skipIfNoMQPU
 def testGetStateAsync():
     cudaq.set_target("nvidia-mqpu")

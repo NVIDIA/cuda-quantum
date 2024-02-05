@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#pragma once
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/FmtCore.h"

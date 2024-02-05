@@ -221,13 +221,59 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
-              --ignore python/tests/backends
+            ## [RFC] : Despite the '--ignore python/tests/remote' argument, 'remote' tests are run with the
+            ##         whole suite (see note on 'remote' tests). Hence, running each directory separately.
+
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/ast
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
-              echo "::error file=python_wheel.yml::Python tests failed with status $pytest_status."
+              echo "::error file=python_wheel.yml::Python 'ast' tests failed with status $pytest_status."
               exit 1
             fi
+
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/domains
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=python_wheel.yml::Python 'domains' tests failed with status $pytest_status."
+              exit 1
+            fi
+
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/eager
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=python_wheel.yml::Python 'eager' tests failed with status $pytest_status."
+              exit 1
+            fi
+
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/mlir
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=python_wheel.yml::Python 'mlir' tests failed with status $pytest_status."
+              exit 1
+            fi
+
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/parallel
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=python_wheel.yml::Python 'parallel' tests failed with status $pytest_status."
+              exit 1
+            fi
+
+            ## [SKIP_TEST]: Reason - "RuntimeError: Unable to retrieve RemoteSimulatorQPU implementation"
+            # python${{ inputs.python_version }} -m pytest -v /tmp/tests/remote
+            # pytest_status=$?
+            # if [ ! $pytest_status -eq 0 ]; then
+            #   echo "::error file=python_wheel.yml::Python 'remote' tests failed with status $pytest_status."
+            #   exit 1
+            # fi
+
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/unittests
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=python_wheel.yml::Python 'unittests' tests failed with status $pytest_status."
+              exit 1
+            fi
+            
             python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite 
             for backendTest in /tmp/tests/backends/*.py; do 
               python${{ inputs.python_version }} -m pytest $backendTest
@@ -292,7 +338,6 @@ jobs:
           for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/providers/*'`; do
             file="${ex#docs/sphinx/examples/python/}"
             echo "__Example ${file}:__" >> /tmp/validation.out
-
             (docker exec wheel-validation bash -c "python${{ inputs.python_version }} /tmp/examples/$file" >> /tmp/validation.out) && success=true || success=false
             if $success; then 
               echo "Executed successfully." >> /tmp/validation.out

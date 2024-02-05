@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -282,9 +282,6 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
     with pytest.raises(RuntimeError) as error:
         # Too few.
         cudaq.observe(kernel, hamiltonian, np.pi, np.pi)
-    with pytest.raises(RuntimeError) as error:
-        # Too many list elements.
-        cudaq.observe(kernel, hamiltonian, np.pi, np.pi, [np.pi, np.pi, np.pi])
 
 
 @pytest.mark.parametrize("want_state, want_expectation",

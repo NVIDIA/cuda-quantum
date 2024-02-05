@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -23,7 +23,10 @@ namespace cudaq {
 
 void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
   auto testingSubmodule = mod.def_submodule("testing");
-  py::class_<ExecutionContext>(testingSubmodule, "ExecutionContext", "");
+
+  /// NOTE: "ExecutionContext" is already registered in
+  /// python/runtime/common/py_ExecutionContext.cpp
+  // // py::class_<ExecutionContext>(testingSubmodule, "ExecutionContext", "");
 
   // Vision for all this
   //

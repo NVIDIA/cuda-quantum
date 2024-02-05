@@ -123,6 +123,38 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
   return processed;
 }
 
+/// @brief FIXME. This is a simple version of the above function,
+// it will only process numpy arrays of 1D shape and make them compatible
+// with our MLIR code. Future work should make this function perform more
+// checks, we probably want to take the Kernel MLIR argument Types as input and
+// use that to validate that the passed arguments are good to go.
+inline py::args simplifiedValidateInputArguments(py::args &args) {
+  py::args processed = py::tuple(args.size());
+  for (std::size_t i = 0; i < args.size(); ++i) {
+    auto arg = args[i];
+    // Check if it has tolist, so it might be a 1d buffer (array / numpy
+    // ndarray)
+    if (py::hasattr(args[i], "tolist")) {
+      // This is a valid ndarray if it has tolist and shape
+      if (!py::hasattr(args[i], "shape"))
+        throw std::runtime_error(
+            "Invalid input argument type, could not get shape of array.");
+
+      // This is an ndarray with tolist() and shape attributes
+      // get the shape and check its size
+      auto shape = args[i].attr("shape").cast<py::tuple>();
+      if (shape.size() != 1)
+        throw std::runtime_error("Cannot pass ndarray with shape != (N,).");
+
+      arg = args[i].attr("tolist")();
+    }
+
+    processed[i] = arg;
+  }
+
+  return processed;
+}
+
 /// @brief For general function broadcasting over many argument
 /// sets, this function will create those argument sets from
 /// the input `args`.

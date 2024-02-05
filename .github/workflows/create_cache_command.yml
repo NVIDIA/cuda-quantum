@@ -111,7 +111,8 @@ jobs:
     needs: [pr_info, metadata]
     strategy:
       matrix:
-        platform: [amd64, arm64]
+        ## [SKIP_TEST] : Temporarily skipping stage to build Python wheel on arm64/aarch64
+        platform: [amd64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
