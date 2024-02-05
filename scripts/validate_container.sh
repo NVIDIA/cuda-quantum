@@ -49,7 +49,6 @@ fi
 
 export UCX_LOG_LEVEL=warning
 requested_backends=`\
-    echo "default"
     for target in $@; \
     do echo "$target"; \
     done`
@@ -60,19 +59,21 @@ installed_backends=`\
     do basename $file | cut -d "." -f 1; \
     done`
 
-# remote_rest targets are automatically filtered
+# remote_rest targets are automatically filtered, 
+# so is execution on the photonics backend
 available_backends=`\
     echo "default"
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
     do
-        libEM=$(cat $file | grep "LIBRARY_MODE_EXECUTION_MANAGER=")
-        if grep -q "LIBRARY_MODE_EXECUTION_MANAGER=" $file ; then 
+        if grep -q "LIBRARY_MODE_EXECUTION_MANAGER=photonics" $file ; then 
           continue
         fi 
         platform=$(cat $file | grep "PLATFORM_QPU=")
         qpu=${platform#PLATFORM_QPU=}
+        requirements=$(cat $file | grep "GPU_REQUIREMENTS=")
+        gpus=${requirements#GPU_REQUIREMENTS=}
         if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] \
-        && ($gpu_available || [ -z "$(cat $file | grep "GPU_REQUIREMENTS")" ]); then \
+        && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
     done`
@@ -110,11 +111,13 @@ then
     exit 1 
 fi
 
+# Skip some tests (multi-controlled gates) for the MPS backend;
+# see https://github.com/NVIDIA/cuda-quantum/issues/884
 mps_skipped_tests=(\
-    /home/cudaq/examples/cpp/algorithms/grover.cpp \
-    /home/cudaq/examples/cpp/basics/multi_controlled_operations.cpp \
-    /home/cudaq/examples/cpp/other/builder/builder.cpp \
-    /home/cudaq/examples/cpp/algorithms/amplitude_estimation.cpp)
+    examples/cpp/algorithms/grover.cpp \
+    examples/cpp/basics/multi_controlled_operations.cpp \
+    examples/cpp/other/builder/builder.cpp \
+    examples/cpp/algorithms/amplitude_estimation.cpp)
 
 echo "============================="
 echo "==      Python Tests       =="
@@ -149,6 +152,7 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
+tmpFile=$(mktemp)
 for ex in `find examples -name '*.cpp'`;
 do
     filename=$(basename -- "$ex")
@@ -170,15 +174,19 @@ do
         then
             let "skipped+=1"
             echo "Skipping $t target.";
+            echo ":white_flag: Not intended for this target. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
 
         elif [[ "$ex" != *"nois"* ]] && [ "$t" == "density-matrix-cpu" ];
         then
             let "skipped+=1"
             echo "Skipping $t target."
+            echo ":white_flag: Not executed for performance reasons. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
 
         elif [[ " ${mps_skipped_tests[*]} " =~ " $ex " ]] && [ "$t" == "tensornet-mps" ]; then
             let "skipped+=1"
             echo "Skipping $t target."
+            echo ":white_flag: Issue: https://github.com/NVIDIA/cuda-quantum/issues/884. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
+
         # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
         # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
         # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
@@ -186,32 +194,55 @@ do
         then
             let "skipped+=1"
             echo "Skipping $ex for $t target.";
-        elif [[ "$t" == "remote-mqpu" &&  "$mpi_available" == true &&  "$ssh_available" == false ]];
+            echo ":white_flag: Not executed for performance reasons. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
+
+        elif [[ "$t" == "remote-mqpu" && "$mpi_available" == true && "$ssh_available" == false ]];
         then
             # Don't run remote-mqpu if the MPI installation is incomplete (e.g., missing an ssh-client).
             let "skipped+=1"
             echo "Skipping $t target due to incomplete MPI installation.";
+            echo ":white_flag: Incomplete MPI installation. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
+
         else
             echo "Testing on $t target..."
             if [ "$t" == "default" ]; then 
-                nvq++ $ex
+                nvq++ $ex && status=$?
             else
-                nvq++ $ex --target $t
+                nvq++ $ex --target $t && status=$?
             fi
+            if [ ! $status -eq 0 ]; then
+                let "failed+=1"
+                echo ":x: Compilation failed for $filename." >> "$tmpFile_$(echo $t | tr - _)"
+                continue
+            fi
+
             ./a.out &> /tmp/cudaq_validation.out
             status=$?
             echo "Exited with code $status"
             if [ "$status" -eq "0" ]; then 
                 let "passed+=1"
+                echo ":white_check_mark: Successfully ran $filename." >> "$tmpFile_$(echo $t | tr - _)"
             else
                 cat /tmp/cudaq_validation.out
                 let "failed+=1"
+                echo ":x: Failed to execute $filename." >> "$tmpFile_$(echo $t | tr - _)"
             fi 
             rm a.out /tmp/cudaq_validation.out &> /dev/null
         fi
     done
     echo "============================="
 done
+
+if [ -f "$GITHUB_STEP_SUMMARY" ]; 
+then
+    for t in $requested_backends
+    do
+        echo "## Execution on $t target" >> $GITHUB_STEP_SUMMARY
+        cat "$tmpFile_$(echo $t | tr - _)" >> $GITHUB_STEP_SUMMARY
+        rm -rf "$tmpFile_$(echo $t | tr - _)"
+    done
+fi
+rm -rf "$tmpFile"
 
 echo "============================="
 echo "$samples examples found."

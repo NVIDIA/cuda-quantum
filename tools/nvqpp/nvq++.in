@@ -579,7 +579,7 @@ function delete_temp_files {
 }
 trap delete_temp_files EXIT
 
-COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
+COMPILER_FLAGS="${CPPSTD} -Wno-c++20-extensions ${COMPILER_FLAGS}"
 
 # Goal here is to parse the backend config file, get the
 # platform library name, and any boolean flags, and setup
