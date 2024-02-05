@@ -26,6 +26,7 @@ from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
 
 globalImportedKernels = {}
 
+
 class PyKernelDecorator(object):
     """
     The `PyKernelDecorator` serves as a standard Python decorator that 
@@ -140,7 +141,7 @@ class PyKernelDecorator(object):
             self.kernelFunction.__globals__['swap'] = swap()
             self.kernelFunction.__globals__['exp_pauli'] = exp_pauli
             # We need to make imported quantum kernel functions
-            # available to this kernelFunction
+            # available to this kernel function
             for name, function in globalImportedKernels.items():
                 if not name in self.kernelFunction.__globals__:
                     self.kernelFunction.__globals__[name] = function

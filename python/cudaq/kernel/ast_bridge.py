@@ -609,12 +609,14 @@ class PyASTBridge(ast.NodeVisitor):
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
-            if hasattr(node.func.value, 'id') and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
+            if hasattr(
+                    node.func.value, 'id'
+            ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
                 return
 
-            # If we have a func = ast.Attribute, then it could be that
-            # we have a previously defined kernel function call with prepended module names
-            # e.g. cudaq.lib.test.hello.fermionic_swap. In this case, we assume
+            # If we have a `func = ast.Attribute``, then it could be that
+            # we have a previously defined kernel function call with manually specified module names
+            # e.g. `cudaq.lib.test.hello.fermionic_swap``. In this case, we assume
             # FindDepKernels has found something like this, loaded it, and now we just
             # want to get the function name and call it.
 
@@ -624,7 +626,7 @@ class PyASTBridge(ast.NodeVisitor):
             while isinstance(value, ast.Attribute):
                 moduleNames.append(value.attr)
                 value = value.value
-                if isinstance (value, ast.Name):
+                if isinstance(value, ast.Name):
                     moduleNames.append(value.id)
                     break
 
@@ -632,7 +634,9 @@ class PyASTBridge(ast.NodeVisitor):
             if len(moduleNames):
                 if not node.func.attr in globalKernelRegistry:
                     moduleNames.reverse()
-                    raise RuntimeError("{}.{} is not a valid quantum kernel to call.".format('.'.join(moduleNames), node.func.attr))
+                    raise RuntimeError(
+                        "{}.{} is not a valid quantum kernel to call.".format(
+                            '.'.join(moduleNames), node.func.attr))
 
                 # Iy is in `globalKernelRegistry`, it has to be in this Module
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +

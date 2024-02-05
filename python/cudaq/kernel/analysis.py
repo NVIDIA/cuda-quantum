@@ -242,7 +242,7 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                 while isinstance(value, ast.Attribute):
                     moduleNames.append(value.attr)
                     value = value.value
-                    if isinstance (value, ast.Name):
+                    if isinstance(value, ast.Name):
                         moduleNames.append(value.id)
                         break
 
@@ -251,10 +251,13 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                     # This will throw if the function / module is invalid
                     m = importlib.import_module('.'.join(moduleNames))
                     getattr(m, node.func.attr)
-                    self.depKernels[node.func.attr] = globalAstRegistry[node.func.attr]
+                    self.depKernels[node.func.attr] = globalAstRegistry[
+                        node.func.attr]
 
-                elif hasattr(node.func, 'attr') and node.func.attr in globalAstRegistry:
-                    self.depKernels[node.func.attr] = globalAstRegistry[node.func.attr]
+                elif hasattr(node.func,
+                             'attr') and node.func.attr in globalAstRegistry:
+                    self.depKernels[node.func.attr] = globalAstRegistry[
+                        node.func.attr]
                 elif node.func.value.id == 'cudaq' and node.func.attr in [
                         'control', 'adjoint'
                 ] and node.args[0].id in globalAstRegistry:
