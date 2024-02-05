@@ -68,7 +68,7 @@ Python Wheels:
     - if: $staged == "cuda-quantum-devdeps"
   stage: build
   dependencies: 
-    - metadata
+    - Metadata
   image: $CI_COMMIT_TITLE
   tags:
     - $runner
@@ -130,7 +130,7 @@ Installer:
     - if: $staged == "cuda-quantum-assets"
   stage: build
   dependencies: 
-    - metadata
+    - Metadata
   image: $CI_COMMIT_TITLE
   tags:
     - $runner
@@ -156,7 +156,7 @@ Docker Image:
     - if: $staged == "cuda-quantum-dev"
   stage: build
   dependencies: 
-    - metadata
+    - Metadata
   image: $CI_COMMIT_TITLE
   parallel:
     matrix:
