@@ -160,6 +160,9 @@ jobs:
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
             if [ -n "$(cat "$1.txt" | tail -1)" ]; then echo >> "$1.txt"; fi
 
+            sed -i '/nvidia-mgpu-commit/d' "$1.txt"
+            echo "nvidia-mgpu-commit: fba83e008b4d10ec287c372625c68cb72f2cae4a" >> "$1.txt"
+
             echo "asset-name: $1.txt" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
             echo "artifacts-url: $artifacts_url" >> "$1.txt"
