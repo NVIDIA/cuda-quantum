@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "JIT.h"
-#include "common/Logger.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/ObjectCache.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
@@ -66,9 +65,9 @@ void invokeWrappedKernel(std::string_view irString,
     // Hence, fix the linkage.
     const auto fixUpLinkage = [](auto &func) {
       if (func.hasInternalLinkage()) {
-        cudaq::info("Change linkage type for symbol {} from internal to "
-                    "external linkage.",
-                    func.getName().str());
+        llvm::dbgs() << "Change linkage type for symbol " << func.getName()
+                     << " internal to "
+                        "external linkage.";
         func.setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
       }
     };
@@ -80,14 +79,14 @@ void invokeWrappedKernel(std::string_view irString,
         std::string demangledName(demangledPtr);
         if (demangledName.rfind(wrappedKernelSymbol, 0) == 0 &&
             demangledName.find(templatedTypeName) != std::string::npos) {
-          cudaq::info("Found symbol {} for {}.", func.getName().str(),
-                      wrappedKernelSymbol);
+          llvm::dbgs() << "Found symbol " << func.getName() << " for "
+                       << wrappedKernelSymbol;
           mangledWrapper = func.getName().str();
           fixUpLinkage(func);
         }
         if (demangledName.rfind(funcName, 0) == 0) {
-          cudaq::info("Found symbol {} for {}.", func.getName().str(),
-                      funcName);
+          llvm::dbgs() << "Found symbol " << func.getName() << " for "
+                       << funcName;
           mangledKernel = func.getName().str();
           fixUpLinkage(func);
         }
