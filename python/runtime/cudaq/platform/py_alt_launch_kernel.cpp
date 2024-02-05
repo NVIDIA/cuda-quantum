@@ -122,7 +122,7 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
 
   auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
 
-   std::string properName = name;
+  std::string properName = name;
 
   // Need to first invoke the init_func()
   auto kernelInitFunc = properName + ".init_func";
@@ -143,7 +143,6 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
   }
   auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
   kernelReg();
-
 
   auto &platform = cudaq::get_platform();
   if (platform.is_remote() || platform.is_emulated()) {

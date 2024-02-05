@@ -18,7 +18,7 @@ namespace {
 class PyRemoteSimulatorQPU : public cudaq::BaseRemoteSimulatorQPU {
 public:
   PyRemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {}
-  
+
   virtual bool isEmulated() override { return true; }
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
