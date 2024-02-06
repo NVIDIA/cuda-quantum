@@ -88,6 +88,7 @@ VQE
 Vazirani
 WSL
 accessor
+acknowledgement
 adjoint
 al
 ansatz
@@ -194,6 +195,7 @@ precomputed
 prepend
 preprocessor
 programmatically
+psirt
 pybind
 quantize
 quantized
