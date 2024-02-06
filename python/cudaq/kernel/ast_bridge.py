@@ -2082,8 +2082,15 @@ def compile_to_mlir(astModule, **kwargs):
     vis.visit(astModule)
     depKernels = vis.depKernels
 
-    # Add all dependent kernels to the MLIR Module
-    [bridge.visit(ast) for _, ast in depKernels.items()]
+    # Add all dependent kernels to the MLIR Module,
+    # Do not check any 'dependent' kernels that
+    # have the same name as the main kernel here, i.e.
+    # ignore kernels that have the same name as this one.
+    [
+        bridge.visit(ast)
+        for depName, ast in depKernels.items()
+        if vis.kernelName != depName
+    ]
 
     # Build the MLIR Module for this kernel
     bridge.visit(astModule)
@@ -2099,7 +2106,8 @@ def compile_to_mlir(astModule, **kwargs):
         pm.run(bridge.module)
     except:
         print(bridge.module)
-        raise RuntimeError("could not canonicalize code.")
+        raise RuntimeError("could not canonicalize code for '{}'.".format(
+            bridge.name))
 
     globalAstRegistry[bridge.name] = astModule
 

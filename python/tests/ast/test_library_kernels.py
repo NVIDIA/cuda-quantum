@@ -14,7 +14,7 @@ import cudaq
 
 def test_fswap_lib_kernel():
     cudaq.enable_jit()
-
+    
     from cudaq.lib import fermionic_swap
 
     angle = 0.2
@@ -34,6 +34,7 @@ def test_fswap_lib_kernel():
     assert np.isclose(np.abs(ss_01[1] - (np.exp(1j * angle / 2.0) * c)),
                       0.0,
                       atol=1e-3)
+    cudaq.disable_jit()
 
 def test_fswap_longer_import():
     cudaq.enable_jit()

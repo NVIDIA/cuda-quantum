@@ -193,6 +193,7 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
     def __init__(self, ctx):
         self.depKernels = {}
         self.context = ctx
+        self.kernelName = ''
 
     def visit_FunctionDef(self, node):
         """
@@ -202,6 +203,7 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
         of `ModuleOps` that contain all the functions necessary to inline and 
         synthesize callable block arguments.
         """
+        self.kernelName = node.name
         for arg in node.args.args:
             annotation = arg.annotation
             if annotation == None:
