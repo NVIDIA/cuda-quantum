@@ -15,6 +15,7 @@
 #include "cudaq/spin_op.h"
 #include "helpers/MQPUUtils.h"
 #include "llvm/Support/Base64.h"
+#include <filesystem>
 #include <fstream>
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
@@ -71,6 +72,36 @@ public:
 
   bool supports_task_distribution() const override { return true; }
 
+  std::string getQpuType(const std::string &description) const {
+    // Target name is the first one in the target config string
+    if (description.find(";") != std::string::npos) {
+      const auto targetName = cudaq::split(description, ';').front();
+      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+      auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+      std::string targetConfigFileName = targetName + std::string(".config");
+      auto configFilePath = platformPath / targetConfigFileName;
+      cudaq::info("Config file path for target {} = {}", targetName,
+                  configFilePath.string());
+      // Don't try to load something that doesn't exist.
+      if (!std::filesystem::exists(configFilePath))
+        return "";
+      std::ifstream configFile(configFilePath.string());
+      std::string configContents((std::istreambuf_iterator<char>(configFile)),
+                                 std::istreambuf_iterator<char>());
+      auto lines = cudaq::split(configContents, '\n');
+      constexpr char platformQPU[] = "PLATFORM_QPU";
+      for (auto &line : lines) {
+        if (line.find(platformQPU) != std::string::npos) {
+          const auto keyVal = cudaq::split(line, '=');
+          auto qpuName = keyVal[1];
+          cudaq::trim(qpuName);
+          return qpuName;
+        }
+      }
+    }
+    return "";
+  }
+
   void setTargetBackend(const std::string &description) override {
     const auto getOpt = [](const std::string &str,
                            const std::string &prefix) -> std::string {
@@ -102,11 +133,14 @@ public:
       return "";
     };
 
-    if (description.find("remote_execution") != std::string::npos) {
-      if (description.find("nvcf") != std::string::npos) {
-        if (!cudaq::registry::isRegistered<cudaq::QPU>("NvcfSimulatorQPU"))
-          throw std::runtime_error(
-              "Unable to retrieve NvcfSimulatorQPU implementation.");
+    const auto qpuSubType = getQpuType(description);
+    if (!qpuSubType.empty()) {
+      if (!cudaq::registry::isRegistered<cudaq::QPU>(qpuSubType))
+        throw std::runtime_error(
+            fmt::format("Unable to retrieve {} QPU implementation. Please "
+                        "check your installation.",
+                        qpuSubType));
+      if (qpuSubType == "NvcfSimulatorQPU") {
         platformQPUs.clear();
         auto simName = getOpt(description, "backend");
         if (simName.empty())
@@ -144,9 +178,6 @@ public:
         }
         platformNumQPUs = platformQPUs.size();
       } else {
-        if (!cudaq::registry::isRegistered<cudaq::QPU>("RemoteSimulatorQPU"))
-          throw std::runtime_error(
-              "Unable to retrieve RemoteSimulatorQPU implementation.");
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         auto sims = cudaq::split(getOpt(description, "backend"), ',');
         // Default to qpp simulator if none provided.

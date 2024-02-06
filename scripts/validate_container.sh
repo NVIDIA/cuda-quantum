@@ -71,7 +71,7 @@ available_backends=`\
         fi 
         platform=$(cat $file | grep "PLATFORM_QPU=")
         qpu=${platform#PLATFORM_QPU=}
-        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] \
+        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
         && ($gpu_available || [ -z "$(cat $file | grep "GPU_REQUIREMENTS")" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
@@ -128,7 +128,7 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
+    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"nvcf"* ]];
     then
         let "skipped+=1"
         echo "Skipped.";
