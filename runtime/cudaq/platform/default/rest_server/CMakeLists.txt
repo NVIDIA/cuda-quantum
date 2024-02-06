@@ -17,8 +17,9 @@ find_package(PkgConfig)
 # By default, Minizip has package config (.pc) file.
 # If CMake can find PkgConfig, use it to find minizip
 if (PkgConfig_FOUND) 
-  pkg_check_modules(MINI_ZIP REQUIRED IMPORTED_TARGET minizip)
+  pkg_check_modules(MINI_ZIP IMPORTED_TARGET minizip)
   target_link_libraries(unzip_util PRIVATE PkgConfig::MINI_ZIP)
+  set(MINI_ZIP_FOUND TRUE)
 else()
   # No PkgConfig, locate the lib manually
   find_library(MINI_ZIP_LIB NAMES minizip)
@@ -28,25 +29,28 @@ else()
       ${MINI_LIB_DIR}/../include
       ${MINI_LIB_DIR}/../include/minizip
   )
-  if (NOT MINI_ZIP_LIB OR NOT MINI_UNZIP_INC)
-    message(STATUS "Minizip NOT found. Trying to build it from source...")
-    # Using version 1.3
-    set(ZLIB_VERSION v1.3)
-    file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/unzip.h ${CMAKE_CURRENT_BINARY_DIR}/unzip.h)
-    file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/unzip.c ${CMAKE_CURRENT_BINARY_DIR}/unzip.c)
-    file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/ioapi.h ${CMAKE_CURRENT_BINARY_DIR}/ioapi.h)
-    file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/ioapi.c ${CMAKE_CURRENT_BINARY_DIR}/ioapi.c)
-    # Build the lib directly
-    add_library(mini_unzip STATIC ${CMAKE_CURRENT_BINARY_DIR}/unzip.c ${CMAKE_CURRENT_BINARY_DIR}/ioapi.c)
-    target_link_libraries(mini_unzip PRIVATE z)
-    target_link_libraries(unzip_util PRIVATE mini_unzip)
-    target_include_directories(unzip_util PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-  else()
+  if (MINI_ZIP_LIB AND MINI_UNZIP_INC)
     message(STATUS "Minizip found: ${MINI_ZIP_LIB}/${MINI_UNZIP_INC}")
     target_link_libraries(unzip_util PRIVATE ${MINI_ZIP_LIB})
     get_filename_component(MINI_INCLUDE_DIR ${MINI_UNZIP_INC} DIRECTORY)
-    target_include_directories(unzip_util PRIVATE ${MINI_INCLUDE_DIR})
+    target_include_directories(unzip_util PRIVATE ${MINI_INCLUDE_DIR})  
+    set(MINI_ZIP_FOUND TRUE)
   endif()
+endif()
+
+if (NOT MINI_ZIP_FOUND)
+  message(STATUS "Minizip NOT found. Trying to build it from source...")
+  # Using version 1.3
+  set(ZLIB_VERSION v1.3)
+  file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/unzip.h ${CMAKE_CURRENT_BINARY_DIR}/unzip.h)
+  file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/unzip.c ${CMAKE_CURRENT_BINARY_DIR}/unzip.c)
+  file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/ioapi.h ${CMAKE_CURRENT_BINARY_DIR}/ioapi.h)
+  file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/ioapi.c ${CMAKE_CURRENT_BINARY_DIR}/ioapi.c)
+  # Build the lib directly
+  add_library(mini_unzip STATIC ${CMAKE_CURRENT_BINARY_DIR}/unzip.c ${CMAKE_CURRENT_BINARY_DIR}/ioapi.c)
+  target_link_libraries(mini_unzip PRIVATE z)
+  target_link_libraries(unzip_util PRIVATE mini_unzip)
+  target_include_directories(unzip_util PRIVATE ${CMAKE_CURRENT_BINARY_DIR})    
 endif()
 
 set(LIBRARY_NAME rest-remote-platform-client)
