@@ -759,7 +759,6 @@ each simulated by a <code class="code docutils literal notranslate"><span class=
 <span class="c1"># Number of remote QPUs to launch</span>
 <span class="n">num_qpus</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-mqpu&quot;</span><span class="p">,</span>
-                 <span class="n">remote_execution</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                  <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span>
                  <span class="n">auto_launch</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">num_qpus</span><span class="p">))</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
