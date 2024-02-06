@@ -9,6 +9,10 @@ on:
         type: string
         description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
+      nvidia_mgpu_commit:
+        type: string
+        description: Optional argument to set the GitLab commit to use for the nvidia-mgpu target.
+        required: false
       include_docs:
         type: boolean
         description: Include the generated documentation in the docker image(s).
@@ -158,6 +162,12 @@ jobs:
             staging_folder="deployments/staging/$3"
             image_hash=`cat "$1.txt" | grep -o "$2: \S*" | cut -d ' ' -f 2`
             file_id=`echo $image_hash | rev | cut -d ':' -f 1 | rev`
+            if [ -n "$(cat "$1.txt" | tail -1)" ]; then echo >> "$1.txt"; fi
+
+            if ${{ inputs.nvidia_mgpu_commit != '' }}; then
+              sed -i '/nvidia-mgpu-commit/d' "$1.txt"
+              echo "nvidia-mgpu-commit: ${{ inputs.nvidia_mgpu_commit }}" >> "$1.txt"
+            fi
 
             echo "asset-name: $1.txt" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
@@ -166,6 +176,7 @@ jobs:
 
             echo "Pushing $1 to $staging_branch"
             git add "$staging_folder" && git commit -m "$image_hash"
+            git pull origin -- $staging_branch 2> /dev/null || true
             git push origin $current_branch:$staging_branch
           }
 
@@ -694,8 +705,13 @@ jobs:
     needs: [assets, cudaq_installer]
     runs-on: linux-amd64-gpu-v100-latest-1
 
+    strategy:
+      matrix:
+        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04']
+      fail-fast: false
+
     container:
-      image: redhat/ubi8:8.0
+      image: ${{ matrix.os_image }}
       options: --user root
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
@@ -713,7 +729,19 @@ jobs:
           name: x86_64-installer
           path: /tmp/install
 
-      - name: Install runtime dependencies
+      - name: Runtime dependencies (apt)
+        if: startsWith(matrix.os_image, 'ubuntu')
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends \
+            wget ca-certificates libstdc++-11-dev libopenmpi-dev
+          distro=`echo ${{ matrix.os_image }} | tr -d . | tr -d :`
+          CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
+          wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
+          dpkg -i cuda-keyring_1.1-1_all.deb
+          apt-get update && apt-get install -y --no-install-recommends libcublas-11-8
+
+      - name: Runtime dependencies (dnf)
+        if: startsWith(matrix.os_image, 'redhat')
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
             'dnf-command(config-manager)' gcc-toolset-12
@@ -721,30 +749,49 @@ jobs:
           . "$enable_script"
           . scripts/configure_build.sh install-cudart
 
-      # TODO: Add nvidia-mgpu to the arguments for validate_container.sh
-      # (Currently missing an rpath, since it is not finding libcustatevec.so.1)
+          # We need to install and MPI implementation, otherwise nothing
+          # will be able to run on the nvidia-mgpu backend.
+          # The easiest is to just install it via conda.
+          dnf install -y --nobest --setopt=install_weak_deps=False wget
+          mkdir -p ~/.miniconda3
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/.miniconda3/miniconda.sh
+          bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
+          rm -rf ~/.miniconda3/miniconda.sh
+          eval "$(~/.miniconda3/bin/conda shell.bash hook)"
+          conda install -y -c conda-forge openmpi
+
+          echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
+          echo 'export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"' >> ~/.bashrc
+          echo "export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'" >> ~/.bashrc
+
       - name: Install and run sanity checks
         shell: bash
         run: |
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
-          bash -l scripts/validate_container.sh nvidia tensornet | tee /tmp/validation.out
 
-      - name: Create summary
-        if: always() && !cancelled()
-        run: |
-          if [ -f /tmp/validation.out ]; then
-            echo "## Validation" >> $GITHUB_STEP_SUMMARY
-            echo "The validation of the CUDA Quantum installation produced the following output:" >> $GITHUB_STEP_SUMMARY
-            echo '```text' >> $GITHUB_STEP_SUMMARY
-            cat /tmp/validation.out >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+          install_path=`bash -lc "echo $CUDA_QUANTUM_PATH"`
+          backends_to_test=`\
+            for file in $(ls $install_path/targets/*.config); do \
+              if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then \
+                basename $file | cut -d "." -f 1; \
+              fi; \
+            done`
+
+          GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
+          bash -l scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
+
+          # Check that the tests included the nvidia-mgpu backend:
+          relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
+          tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
+          if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
+            echo "Missing tests for nvidia-mgpu backend." && exit 1
           fi
 
   image_validation:
     name: Docker image validation
-    needs: config
+    needs: [assets, config]
     runs-on: linux-amd64-gpu-v100-latest-1
     permissions:
       contents: read
@@ -763,45 +810,29 @@ jobs:
         TERM: xterm
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.assets.outputs.github_commit }}
+
       - name: Basic validation (GPU backends)
         shell: bash
         run: |
-          status_sum=0 && set +e # Allow script to keep going through errors
-          # Skip some tests (multi-controlled gates) for the MPS backend (https://github.com/NVIDIA/cuda-quantum/issues/884)
-          mps_skipped_tests=(/home/cudaq/examples/cpp/algorithms/grover.cpp /home/cudaq/examples/cpp/basics/multi_controlled_operations.cpp /home/cudaq/examples/cpp/other/builder/builder.cpp /home/cudaq/examples/cpp/algorithms/amplitude_estimation.cpp)
-          for file in `ls $CUDA_QUANTUM_PATH/targets/*.config`; do
-            if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then
-              target=`basename $file | cut -d "." -f 1`
-              echo "## Execute on $target target" >> $GITHUB_STEP_SUMMARY
-              for ex in `find /home/cudaq/examples -name '*.cpp' -not -path '*/providers/*'`; do
-                if [[ " ${mps_skipped_tests[*]} " =~ " ${ex} " ]] && [[ "$target" = "tensornet-mps" ]] ; then
-                  echo ":white_flag: Issue: https://github.com/NVIDIA/cuda-quantum/issues/884. Test skipped." >> $GITHUB_STEP_SUMMARY
-                else
-                  filename=$(basename -- "$ex")
-                  nvq++ $ex --target $target
-                  status=$?
-                  if [ $status -eq 0 ]; then
-                    ./a.out
-                    status=$?
-                    if [ $status -eq 0 ]; then
-                      echo ":white_check_mark: Successfully ran $filename." >> $GITHUB_STEP_SUMMARY
-                    else
-                      echo ":x: Failed to execute $filename." >> $GITHUB_STEP_SUMMARY
-                      status_sum=$((status_sum+1))
-                    fi
-                  else
-                    echo ":x: Compilation failed for $filename." >> $GITHUB_STEP_SUMMARY
-                    status_sum=$((status_sum+1))
-                  fi
-                fi
-              done
-            fi
-          done
+          backends_to_test=`\
+              for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
+              do
+                  if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then \
+                    basename $file | cut -d "." -f 1; \
+                  fi; \
+              done`
+          GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
+          bash scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
 
-          set -e # Re-enable exit code error checking
-          if [ ! $status_sum -eq 0 ]; then
-            echo "::error::$status_sum examples failed; see step summary for a list of failures."
-            exit $status_sum
+          # Check that the tests included the nvidia-mgpu backend:
+          relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
+          tested_backends=`cat /tmp/validation.out | tail -n +$relevant_line | sed -e '/^$/,$d'`
+          if [ -z "$(echo $tested_backends | grep nvidia-mgpu)" ]; then 
+            echo "Missing tests for nvidia-mgpu backend." && exit 1
           fi
 
       - name: MPI validation 
@@ -851,6 +882,12 @@ jobs:
           pattern: '*-wheels'
           path: wheelhouse
 
+      - name: Download CUDA Quantum installer
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-installer'
+          path: installers
+
       # The python wheels are uploaded as a release asset, but not pushed to anywhere else.
       # Note that PyPI packages cannot be updated once pushed;
       #  - We could upload wheels to test-pypi when creating a release.
@@ -860,6 +897,9 @@ jobs:
       # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
       - name: Create release
         run: |
+          for installer in `ls installers/`; do 
+            mv "installers/$installer" "$installer"
+          done
           for dir in `ls wheelhouse/`; do 
             mv "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
           done
@@ -879,6 +919,7 @@ jobs:
             --target $github_commit --draft $prerelease \
             --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
           gh release upload $release_id -R ${{ github.repository }} wheelhouse.zip --clobber
+          gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum.* --clobber
           gh release edit $release_id -R ${{ github.repository }} \
             --title "$release_title" --tag $version $prerelease # --draft=false
         env:

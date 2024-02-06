@@ -170,8 +170,8 @@ done < "$build_config"
 
 if [ -d "$assets/cudaq" ]; then
     move_artifacts "$assets/cudaq" "$CUDA_QUANTUM_PATH"
-    if [ ! -f "$CUDA_QUANTUM_PATH/build_config.yml" ]; then
-        cp "$build_config" "$CUDA_QUANTUM_PATH/build_config.yml"
+    if [ ! -f "$CUDA_QUANTUM_PATH/build_config.xml" ]; then
+        cp "$build_config" "$CUDA_QUANTUM_PATH/build_config.xml"
     fi
     chmod a+rx "$(dirname "$CUDA_QUANTUM_PATH")"
 elif $install; then
