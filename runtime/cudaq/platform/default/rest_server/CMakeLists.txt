@@ -18,8 +18,9 @@ find_package(PkgConfig)
 # If CMake can find PkgConfig, use it to find minizip
 if (PkgConfig_FOUND) 
   pkg_check_modules(MINI_ZIP IMPORTED_TARGET minizip)
-  target_link_libraries(unzip_util PRIVATE PkgConfig::MINI_ZIP)
-  set(MINI_ZIP_FOUND TRUE)
+  if (MINI_ZIP_FOUND)
+    target_link_libraries(unzip_util PRIVATE PkgConfig::MINI_ZIP)
+  endif()
 else()
   # No PkgConfig, locate the lib manually
   find_library(MINI_ZIP_LIB NAMES minizip)
