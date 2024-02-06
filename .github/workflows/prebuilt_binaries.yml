@@ -438,6 +438,9 @@ jobs:
     permissions: {}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Create build info
         id: staging
         run: |
@@ -455,6 +458,7 @@ jobs:
           echo "platform-base-image: ${{ inputs.platform_base_image }}" >> "$info_file"
           echo "openmpi-build-cache: ${{ needs.build_openmpi.outputs.build_cache }}" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
+          cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
         uses: actions/upload-artifact@v4

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -23,7 +23,6 @@ install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 add_subdirectory(helpers/server_impl)
-add_subdirectory(helpers/llvm_jit)
 add_library(rest-remote-platform-server SHARED RemoteRuntimeServer.cpp helpers/RestRemoteServer.cpp)
 target_include_directories(rest-remote-platform-server 
   PUBLIC 
@@ -34,7 +33,6 @@ target_include_directories(rest-remote-platform-server
 target_link_libraries(rest-remote-platform-server
   PRIVATE
     rest_server_impl
-    jit_util
     cudaq 
     cudaq-em-default 
     cudaq-mlir-runtime

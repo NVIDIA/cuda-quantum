@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -106,8 +106,9 @@ install(EXPORT cudaq-common-targets
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 
-add_library(cudaq-mlir-runtime SHARED RuntimeMLIR.cpp)
+add_library(cudaq-mlir-runtime SHARED RuntimeMLIR.cpp JIT.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
+set_source_files_properties(JIT.cpp PROPERTIES COMPILE_FLAGS -fno-rtti)
 
 target_include_directories(cudaq-mlir-runtime
   PRIVATE . ${CMAKE_SOURCE_DIR}/runtime)

@@ -25,12 +25,12 @@ RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
     fi && \
     for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -type d`; \
     do bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$folder" && rm -rf "$folder"; done \
+    && bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$CUDA_QUANTUM_PATH/assets" \
     && rm -rf "$CUDA_QUANTUM_PATH/assets" "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 # Install additional runtime dependencies.
 RUN apt-get install -y --no-install-recommends \
-        cuda-nvtx-11-8 cuda-cudart-11-8 \
-        libcusolver-11-8 libcublas-11-8 \
+        libcusolver-11-8 libcublas-11-8 cuda-cudart-11-8 \
         # just here for convenience:
         curl jq 
 RUN if [ -x "$(command -v pip)" ]; then \

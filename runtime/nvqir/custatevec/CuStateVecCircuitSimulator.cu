@@ -255,8 +255,10 @@ protected:
 
   /// @brief Reset the qubit state.
   void deallocateStateImpl() override {
-    HANDLE_ERROR(custatevecDestroy(handle));
-    HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
+    if (deviceStateVector) {
+      HANDLE_ERROR(custatevecDestroy(handle));
+      HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
+    }
     if (extraWorkspaceSizeInBytes)
       HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
     deviceStateVector = nullptr;
