@@ -563,7 +563,7 @@ repository for this code called <code class="code docutils literal notranslate">
 <div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">cmake_minimum_required</span><span class="p">(</span><span class="s">VERSION</span><span class="w"> </span><span class="s">3.24</span><span class="w"> </span><span class="s">FATAL_ERROR</span><span class="p">)</span>
 <span class="nb">project</span><span class="p">(</span><span class="s">DemoCreateNVQIRBackend</span><span class="w"> </span><span class="s">VERSION</span><span class="w"> </span><span class="s">1.0.0</span><span class="w"> </span><span class="s">LANGUAGES</span><span class="w"> </span><span class="s">CXX</span><span class="p">)</span>
 <span class="nb">find_package</span><span class="p">(</span><span class="s">NVQIR</span><span class="w"> </span><span class="s">REQUIRED</span><span class="p">)</span>
-<span class="nb">nvqir_add_backend</span><span class="p">(</span><span class="s">MySimulator</span><span class="w"> </span><span class="s">MySimulator.cpp</span><span class="p">)</span>
+<span class="nb">nvqir_add_backend</span><span class="p">(</span><span class="s">MySimulator</span><span class="w"> </span><span class="s">MySimulator.cpp</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>and then fill out your <code class="code docutils literal notranslate"><span class="pre">MySimulator.cpp</span></code> file with your subtype implementation. For example,</p>
