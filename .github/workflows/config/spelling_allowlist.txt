@@ -59,6 +59,7 @@ OpenQASM
 OpenSSL
 OpenSUSE
 POSIX
+PSIRT
 Pauli
 Paulis
 PyPI
@@ -195,7 +196,6 @@ precomputed
 prepend
 preprocessor
 programmatically
-psirt
 pybind
 quantize
 quantized
