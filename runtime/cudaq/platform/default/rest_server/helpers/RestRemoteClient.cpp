@@ -34,6 +34,7 @@
 #include "mlir/Pass/PassRegistry.h"
 
 #include "JsonConvert.h"
+#include "UnzipUtils.h"
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
@@ -41,6 +42,7 @@
 #include <dlfcn.h>
 #include <fstream>
 #include <streambuf>
+
 namespace {
 /// Util class to execute a functor when an object of this class goes
 /// out-of-scope.
@@ -473,31 +475,10 @@ public:
             *optionalErrorMsg = "Failed to download large-response result.";
           return false;
         }
-        // FIXME: use system "unzip" command.
-        // libz has a `minizip` addon
-        // (https://github.com/madler/zlib/tree/develop/contrib/minizip) which
-        // could do unzipping.
-        auto unzipExe = llvm::sys::findProgramByName("unzip");
-        if (!unzipExe) {
-          if (optionalErrorMsg)
-            *optionalErrorMsg = "Unable to find 'unzip' command to unzip the "
-                                "large response file. Please install 'unzip'.";
-          return false;
-        }
         std::filesystem::path unzipDir =
             std::filesystem::path(tempDir.c_str()) / reqId;
-        std::vector<llvm::StringRef> unzipArgs = {
-            unzipExe.get(), resultFilePath.c_str(), "-d", unzipDir.c_str()};
-        std::string errorMsg;
-        bool unzipFailed = false;
-        std::optional<llvm::StringRef> redirects[] = {{""}, {""}, {""}};
-        llvm::sys::ExecuteAndWait(unzipExe.get(), unzipArgs, std::nullopt,
-                                  redirects, 0, 0, &errorMsg, &unzipFailed);
-        if (unzipFailed) {
-          if (optionalErrorMsg)
-            *optionalErrorMsg = "Failed to unzip the large response zip file.";
-          return false;
-        }
+        // Unzip the response
+        cudaq::utils::unzip(resultFilePath, unzipDir);
         std::filesystem::path resultJsonFile =
             unzipDir / (reqId + "_result.json");
         if (!std::filesystem::exists(resultJsonFile)) {
