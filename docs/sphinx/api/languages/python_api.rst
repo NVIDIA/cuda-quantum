@@ -103,7 +103,7 @@ Data Types
     :special-members: __getitem__, __str__
 
 .. autoclass:: cudaq::pauli_word
-    :special-members: __getitem__, __str__
+    :special-members: __str__
 
 .. autoclass:: cudaq::SpinOperator
     :members:
