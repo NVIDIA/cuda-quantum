@@ -3,8 +3,8 @@
 // nvq++ --target nvcf nvcf_sample.cpp -o out.x &&
 // ./out.x
 // ```
-// Assumes a valid nvcf API key and function ID have been stored in environment
-// variables or ~/.nvcf_config file. Alternatively, they can be set in the
+// Assumes a valid NVCF API key and function ID have been stored in environment
+// variables or `~/.nvcf_config` file. Alternatively, they can be set in the
 // command line like below.
 // ```
 // nvq++ --target nvcf --nvcf-api-key <YOUR API KEY>
