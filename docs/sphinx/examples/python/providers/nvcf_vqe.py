@@ -2,7 +2,7 @@ import cudaq
 from cudaq import spin
 import math
 
-# This example assumes the NVCF API key and Function Id have been set in the config file/environment variables.
+# This example assumes the NVCF API key and Function Id have been set in the `~/.nvcf_config` file/environment variables.
 # If not, you can set the API Key and Function ID environment variables in the Python script with:
 # ```
 # os.environ["NVCF_API_KEY"] = "<YOUR NVCF API KEY>"`
