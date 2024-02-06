@@ -154,3 +154,22 @@ set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
 
 add_subdirectory(runtime/cudaq/distributed)
 add_subdirectory(runtime/cudaq/domains/plugins)
+
+# Do we have pytest and numpy? 
+execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version
+  OUTPUT_VARIABLE PYTEST_output
+  ERROR_VARIABLE  PYTEST_error
+  RESULT_VARIABLE PYTEST_result)
+execute_process(COMMAND ${Python_EXECUTABLE} -c "import numpy"
+  OUTPUT_VARIABLE NUMPY_output
+  ERROR_VARIABLE NUMPY_error
+  RESULT_VARIABLE NUMPY_result)
+
+if(CUDAQ_BUILD_TESTS)
+  if(${PYTEST_result} EQUAL 0 AND ${NUMPY_result} EQUAL 0)
+    message(STATUS "Pytest and Numpy found, building Python tests.")
+    add_subdirectory(tests)
+    else()
+    message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_BUILD_TESTS=TRUE but can't find numpy or pytest modules required for testing.")
+  endif()
+endif()

@@ -107,7 +107,6 @@ def disable_jit():
 # Expose chemistry domain functions
 from .domains import chemistry
 from .kernels import uccsd
-import lib
 
 if not "CUDAQ_DYNLIBS" in os.environ:
     try:
