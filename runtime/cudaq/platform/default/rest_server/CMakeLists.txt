@@ -12,6 +12,7 @@
 # If failed to locate minizip, download minizip (unzip functionality) and compile directly.  
 add_library(unzip_util STATIC helpers/UnzipUtils.cpp)
 target_link_libraries(unzip_util PRIVATE fmt::fmt-header-only)
+target_include_directories(unzip_util PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)
 find_package(PkgConfig)
 # By default, Minizip has package config (.pc) file.
 # If CMake can find PkgConfig, use it to find minizip
