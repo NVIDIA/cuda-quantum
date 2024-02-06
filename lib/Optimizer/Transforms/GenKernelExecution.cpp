@@ -474,8 +474,11 @@ public:
     auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
     Type eleTy = stdvecTy.getElementType();
     auto innerStdvecTy = dyn_cast<cudaq::cc::StdvecType>(eleTy);
-    std::size_t eleSize =
-        innerStdvecTy ? /*(i64Type/8)*/ 8 : dataLayout->getTypeSize(eleTy);
+    std::size_t eleSize = [&]() -> std::size_t {
+      if (isa<quake::PauliWordType>(eleTy))
+        return 8;
+      return innerStdvecTy ? /*(i64Type/8)*/ 8 : dataLayout->getTypeSize(eleTy);
+    }();
     auto eleSizeVal = [&]() -> Value {
       if (eleSize)
         return builder.create<arith::ConstantIntOp>(loc, eleSize, 64);
