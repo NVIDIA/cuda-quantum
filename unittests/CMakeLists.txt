@@ -19,6 +19,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/builder_tester.cpp
   integration/ccnot_tester.cpp
   integration/deuteron_variational_tester.cpp
+  integration/draw_tester.cpp
   integration/ghz_nisq_tester.cpp
   integration/gradient_tester.cpp
   integration/grover_test.cpp
