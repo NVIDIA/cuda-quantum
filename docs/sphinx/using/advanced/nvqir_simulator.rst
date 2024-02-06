@@ -110,7 +110,7 @@ repository for this code called :code:`my-simulator` and add :code:`MySimulator.
     cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
     project(DemoCreateNVQIRBackend VERSION 1.0.0 LANGUAGES CXX)
     find_package(NVQIR REQUIRED)
-    nvqir_add_backend(MySimulator MySimulator.cpp)
+    nvqir_add_backend(MySimulator MySimulator.cpp "")
 
 and then fill out your :code:`MySimulator.cpp` file with your subtype implementation. For example, 
 
