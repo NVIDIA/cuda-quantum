@@ -27,7 +27,7 @@ else()
       ${MINI_LIB_DIR}/../include
       ${MINI_LIB_DIR}/../include/minizip
   )
-  if (MINI_ZIP_LIB-NOTFOUND OR MINI_UNZIP_INC-NOTFOUND)
+  if (NOT MINI_ZIP_LIB OR NOT MINI_UNZIP_INC)
     message(STATUS "Minizip NOT found. Trying to build it from source...")
     # Using version 1.3
     set(ZLIB_VERSION v1.3)
