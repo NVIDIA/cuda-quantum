@@ -104,8 +104,10 @@ def disable_jit():
     """
     PyKernelDecorator.globalJIT = False
 
+
 def jit_enabled():
     return PyKernelDecorator.globalJIT
+
 
 # Expose chemistry domain functions
 from .domains import chemistry
@@ -135,6 +137,6 @@ if '--target' in sys.argv:
 if '--emulate' in sys.argv:
     initKwargs['emulate'] = True
 if '--eager-mode' in sys.argv:
-    PyKernelDecorator.globalJIT = False 
-    
+    PyKernelDecorator.globalJIT = False
+
 cudaq_runtime.initialize_cudaq(**initKwargs)

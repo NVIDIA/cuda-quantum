@@ -1123,10 +1123,8 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.value.id in ['h', 'x', 'y', 'z', 's', 't'
                                      ] and node.func.attr == 'ctrl':
                 target = self.popValue()
-                # Should be len(node.args) - 1 controls (-1 for the target)
-                controls = [
-                    self.popValue() for i in range(len(node.args)-1)
-                ]
+                # Should be number of arguments minus one for the controls
+                controls = [self.popValue() for i in range(len(node.args) - 1)]
                 negatedControlQubits = None
                 if len(self.controlNegations):
                     negCtrlBools = [None] * len(controls)

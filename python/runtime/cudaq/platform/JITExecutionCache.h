@@ -8,8 +8,8 @@
 #pragma once
 
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
-#include <unordered_map>
 #include <mutex>
+#include <unordered_map>
 
 using namespace mlir;
 
@@ -21,8 +21,8 @@ namespace cudaq {
 class JITExecutionCache {
 protected:
   std::unordered_map<std::size_t, ExecutionEngine *> cacheMap;
-  std::mutex mutex; 
-  
+  std::mutex mutex;
+
 public:
   JITExecutionCache() = default;
   ~JITExecutionCache();
