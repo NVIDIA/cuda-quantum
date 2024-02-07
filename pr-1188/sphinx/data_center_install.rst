@@ -268,7 +268,7 @@ command to build CUDA Quantum:
     :start-after: [>CUDAQuantumBuild]
     :end-before: [<CUDAQuantumBuild]
 
-Please check the build log to confirm that all desired components have been built. 
+Please check the build log printed to the console to confirm that all desired components have been built. 
 In particular, look for a line "Looking for CUDA compiler" in the build output, 
 and confirm that it found the installed CUDA compiler, and the correct host compiler 
 is used.
