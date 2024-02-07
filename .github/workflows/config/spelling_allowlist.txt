@@ -27,6 +27,8 @@ GPU
 GPUs
 GitHub
 HPC
+HTTP
+HTTPS
 Hadamard
 Hadamards
 Hamiltonian
