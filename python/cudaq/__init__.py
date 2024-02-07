@@ -8,7 +8,7 @@
 
 import sys, os
 from ._packages import *
-from .kernel.kernel_decorator import kernel, PyKernelDecorator
+from .kernel.kernel_decorator import kernel, PyKernelDecorator, globalImportedKernels
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
 from .kernel.qubit_qis import adjoint, control, compute_action
@@ -85,9 +85,10 @@ def synthesize(kernel, *args):
 
 
 def __clearKernelRegistries():
-    global globalKernelRegistry, globalAstRegistry
+    global globalKernelRegistry, globalAstRegistry, globalImportedKernels
     globalKernelRegistry.clear()
     globalAstRegistry.clear()
+    globalImportedKernels.clear()
 
 
 def enable_jit():
@@ -103,6 +104,8 @@ def disable_jit():
     """
     PyKernelDecorator.globalJIT = False
 
+def jit_enabled():
+    return PyKernelDecorator.globalJIT
 
 # Expose chemistry domain functions
 from .domains import chemistry

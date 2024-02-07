@@ -62,7 +62,6 @@ def test_givens_lib_kernel():
         x(q[0])
         givens(angle, q[0], q[1])
 
-    print(baz)
     ss_01 = cudaq.get_state(baz, angle)
     print(ss_01)
     assert np.isclose(ss_01[1], c, 1e-3)

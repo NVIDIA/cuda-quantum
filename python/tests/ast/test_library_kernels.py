@@ -13,6 +13,8 @@ import numpy as np
 import cudaq
 
 def test_fswap_lib_kernel():
+    # Enable jit required so that we 
+    # get fermionic_swap mlir
     cudaq.enable_jit()
     
     from cudaq.lib import fermionic_swap

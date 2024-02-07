@@ -10,9 +10,9 @@ import os
 
 import pytest
 import numpy as np
+from typing import Callable 
 
 import cudaq
-
 
 def test_adjoint():
     """Test that adjoint can be called on kernels and operations."""
@@ -51,7 +51,7 @@ def test_adjoint():
     assert len(counts) == 1
 
     @cudaq.kernel
-    def test_kernel_adjoint(q):
+    def test_kernel_adjoint(q:cudaq.qview):
         h(q[0])
         t(q[1])
         s(q[2])
@@ -73,7 +73,7 @@ def test_control():
     """Test that we can control on kernel functions."""
 
     @cudaq.kernel
-    def fancyCnot(a, b):
+    def fancyCnot(a:cudaq.qubit, b:cudaq.qubit):
         x.ctrl(a, b)
 
     @cudaq.kernel
@@ -103,14 +103,14 @@ def test_grover():
     """Test that compute_action works in tandem with kernel composability."""
 
     @cudaq.kernel
-    def reflect(qubits):
+    def reflect(qubits:cudaq.qview):
         ctrls = qubits.front(qubits.size() - 1)
         last = qubits.back()
         cudaq.compute_action(lambda: (h(qubits), x(qubits)),
                              lambda: z.ctrl(ctrls, last))
 
     @cudaq.kernel
-    def grover(N, M, oracle):
+    def grover(N:int, M:int, oracle:Callable[[cudaq.qview], None]):
         q = cudaq.qvector(N)
         h(q)
         for i in range(M):
@@ -119,7 +119,7 @@ def test_grover():
         mz(q)
 
     @cudaq.kernel
-    def oracle(q):
+    def oracle(q:cudaq.qview):
         z.ctrl(q[0], q[2])
         z.ctrl(q[1], q[2])
 

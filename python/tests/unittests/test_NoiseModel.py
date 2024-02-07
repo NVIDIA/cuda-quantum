@@ -75,6 +75,7 @@ def test_depolarization_channel_simple():
     got_one_probability = noisy_counts.probability("1")
     assert np.isclose(got_zero_probability, want_probability, atol=.2)
     assert np.isclose(got_one_probability, want_probability, atol=.2)
+    cudaq.reset_target()
 
 
 def test_amplitude_damping_simple():
@@ -109,7 +110,7 @@ def test_amplitude_damping_simple():
     want_counts = 1000
     got_counts = noisy_counts["0"]
     assert (got_counts == want_counts)
-
+    cudaq.reset_target()
 
 def test_phase_flip_simple():
     """Tests the phase flip channel in the case of `probability = 1.0`"""
@@ -144,6 +145,7 @@ def test_phase_flip_simple():
     noisy_counts = cudaq.sample(kernel, noise_model=noise)
     got_zero_counts = noisy_counts["0"]
     assert got_zero_counts == want_counts
+    cudaq.reset_target
 
 
 def test_bit_flip_simple():
@@ -185,6 +187,7 @@ def test_bit_flip_simple():
     noisy_counts.dump()
     got_one_zero_counts = noisy_counts["10"]
     assert got_one_zero_counts == want_counts
+    cudaq.reset_target()
 
 
 def test_kraus_channel():
@@ -220,6 +223,7 @@ def test_kraus_channel():
     assert (got_count_length == want_count_length)
     assert ('0' in counts)
     assert ('1' in counts)
+    cudaq.reset_target()
 
 
 # leave for gdb debugging
