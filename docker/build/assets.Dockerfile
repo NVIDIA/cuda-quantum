@@ -34,10 +34,6 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip
 
 ## [CUDA]
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
-## [cuQuantum]
-RUN source /cuda-quantum/scripts/configure_build.sh install-cuquantum
-## [cuTensor]
-RUN source /cuda-quantum/scripts/configure_build.sh install-cutensor
 ## [Compiler Toolchain]
 RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
