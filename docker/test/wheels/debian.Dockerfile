@@ -24,8 +24,8 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python${python_version} -m venv "$VIRTUAL_ENV"
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN if [ -n "$preinstalled_modules" ]; then \
-        python${python_version} -m pip uninstall $preinstalled_modules \
-        python${python_version} -m pip install $preinstalled_modules \
+        python${python_version} -m pip uninstall $preinstalled_modules ;\
+        python${python_version} -m pip install $preinstalled_modules ;\
     fi
 
 ARG optional_dependencies=

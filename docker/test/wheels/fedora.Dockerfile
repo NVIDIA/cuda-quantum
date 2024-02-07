@@ -18,8 +18,8 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         python$(echo $python_version | tr -d .) \
     && python${python_version} -m ensurepip --upgrade
 RUN if [ -n "$preinstalled_modules" ]; then \
-        python${python_version} -m pip uninstall $preinstalled_modules \
-        python${python_version} -m pip install $preinstalled_modules \
+        python${python_version} -m pip uninstall $preinstalled_modules ;\
+        python${python_version} -m pip install $preinstalled_modules ;\
     fi
 
 ARG optional_dependencies=
