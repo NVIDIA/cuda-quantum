@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -79,64 +79,74 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
   if (!serverApp)
     throw std::runtime_error(
         "Unable to find CUDA Quantum REST server to launch.");
-  // Use process Id to seed the random port search to minimize collision.
-  // For example, multiple processes trying to auto-launch server app on the
-  // same machine.
-  // Also, prevent collision when a single process (same PID) constructing
-  // multiple AutoLaunchRestServerProcess in a loop by allowing to pass an
-  // offset for the seed.
-  static std::mt19937 gen(::getpid() * 100 + seed_offset);
-  const auto port = getRandomAvailablePort(gen());
 
-  if (!port.has_value())
-    throw std::runtime_error("Unable to find a TCP/IP port on the local "
-                             "machine for auto-launch a REST server.");
-  llvm::StringRef argv[] = {serverApp.get(), "--port", port.value()};
-  std::string errorMsg;
-  bool executionFailed = false;
-  auto processInfo = llvm::sys::ExecuteNoWait(
-      serverApp.get(), argv, std::nullopt, {}, 0, &errorMsg, &executionFailed);
-  if (executionFailed)
-    throw std::runtime_error("Failed to launch " + serverExeName + " at port " +
-                             port.value() + ": " + errorMsg);
-  cudaq::info("Auto launch REST server at http://localhost:{} (PID {})",
-              port.value(), processInfo.Pid);
-  m_pid = processInfo.Pid;
-  m_url = fmt::format("localhost:{}", port.value());
-  // Throttle the delay to ping the server (checking if it's ready).
-  // The idea is to gradually increase the delay so that
-  // (1) on a 'fast' system, we don't wait too much.
-  // (2) on a 'slow' system (heavily loaded), we wait enough for the server
-  // process to be launched, while not spamming the systems with unnecessary
-  // ping requests.
-  constexpr std::size_t MAX_RETRIES = 100;
-  constexpr std::size_t POLL_INTERVAL_MAX_MS = 1000;
-  constexpr std::size_t POLL_INTERVAL_MIN_MS = 10;
-  const auto throttledDelay = [&](int i) {
-    // Gradually prolong the delay:
-    return POLL_INTERVAL_MIN_MS +
-           (POLL_INTERVAL_MAX_MS - POLL_INTERVAL_MIN_MS) * i / MAX_RETRIES;
-  };
-  int totalWaitTimeMs = 0;
-  cudaq::RestClient restClient;
-  for (std::size_t i = 0; i < MAX_RETRIES; ++i) {
-    try {
-      std::map<std::string, std::string> headers;
-      [[maybe_unused]] auto pingResult = restClient.get(m_url, "", headers);
-      cudaq::info("Successfully connected to the REST server at "
-                  "http://localhost:{} (PID {}) after {} milliseconds.",
-                  port.value(), processInfo.Pid, totalWaitTimeMs);
-      return;
-    } catch (std::exception &e) {
-      // Wait and retry
-      const auto delay = throttledDelay(i);
-      totalWaitTimeMs += delay;
-      std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+  constexpr std::size_t PORT_MAX_RETRIES = 10;
+  for (std::size_t j = 0; j < PORT_MAX_RETRIES; j++) {
+    /// Step 1: Look up a port
+    // Use process Id to seed the random port search to minimize collision.
+    // For example, multiple processes trying to auto-launch server app on the
+    // same machine.
+    // Also, prevent collision when a single process (same PID) constructing
+    // multiple AutoLaunchRestServerProcess in a loop by allowing to pass an
+    // offset for the seed.
+    static std::mt19937 gen(::getpid() * 100 + seed_offset);
+    const auto port = getRandomAvailablePort(gen());
+    if (!port.has_value())
+      throw std::runtime_error("Unable to find a TCP/IP port on the local "
+                               "machine for auto-launch a REST server.");
+
+    /// Step 2: Create process and set URL
+    llvm::StringRef argv[] = {serverApp.get(), "--port", port.value()};
+    std::string errorMsg;
+    bool executionFailed = false;
+    auto processInfo =
+        llvm::sys::ExecuteNoWait(serverApp.get(), argv, std::nullopt, {}, 0,
+                                 &errorMsg, &executionFailed);
+    if (executionFailed)
+      throw std::runtime_error("Failed to launch " + serverExeName +
+                               " at port " + port.value() + ": " + errorMsg);
+    cudaq::info("Auto launch REST server at http://localhost:{} (PID {})",
+                port.value(), processInfo.Pid);
+    m_pid = processInfo.Pid;
+    m_url = fmt::format("localhost:{}", port.value());
+
+    /// Step 3: Ping to verify availability
+    // Throttle the delay to ping the server (checking if it's ready).
+    // The idea is to gradually increase the delay so that
+    // (1) on a 'fast' system, we don't wait too much.
+    // (2) on a 'slow' system (heavily loaded), we wait enough for the server
+    // process to be launched, while not spamming the systems with unnecessary
+    // ping requests.
+    constexpr std::size_t MAX_RETRIES = 100;
+    constexpr std::size_t POLL_INTERVAL_MAX_MS = 1000;
+    constexpr std::size_t POLL_INTERVAL_MIN_MS = 10;
+    const auto throttledDelay = [&](int i) {
+      // Gradually prolong the delay:
+      return POLL_INTERVAL_MIN_MS +
+             (POLL_INTERVAL_MAX_MS - POLL_INTERVAL_MIN_MS) * i / MAX_RETRIES;
+    };
+    int totalWaitTimeMs = 0;
+    cudaq::RestClient restClient;
+    for (std::size_t i = 0; i < MAX_RETRIES; ++i) {
+      try {
+        std::map<std::string, std::string> headers;
+        [[maybe_unused]] auto pingResult = restClient.get(m_url, "", headers);
+        cudaq::info("Successfully connected to the REST server at "
+                    "http://localhost:{} (PID {}) after {} milliseconds.",
+                    port.value(), processInfo.Pid, totalWaitTimeMs);
+        return;
+      } catch (std::exception &e) {
+        // Wait and retry
+        const auto delay = throttledDelay(i);
+        totalWaitTimeMs += delay;
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+      }
     }
+    cudaq::info("Timeout Error: No response from the server. Look for another port...");
+    cudaq::info("Shutting down REST server process {}", m_pid);
+    ::kill(m_pid, SIGKILL);
   }
-  throw std::runtime_error(fmt::format(
-      "Timeout Error: No response from the server after {} milliseconds.",
-      totalWaitTimeMs));
+  throw std::runtime_error("No usable ports available");
 }
 
 cudaq::AutoLaunchRestServerProcess::~AutoLaunchRestServerProcess() {
