@@ -142,7 +142,8 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
         std::this_thread::sleep_for(std::chrono::milliseconds(delay));
       }
     }
-    cudaq::info("Timeout Error: No response from the server. Look for another port...");
+    cudaq::info(
+        "Timeout Error: No response from the server. Look for another port...");
     cudaq::info("Shutting down REST server process {}", m_pid);
     ::kill(m_pid, SIGKILL);
   }
