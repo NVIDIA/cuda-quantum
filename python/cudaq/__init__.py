@@ -105,7 +105,10 @@ def disable_jit():
     PyKernelDecorator.globalJIT = False
 
 
-def jit_enabled():
+def is_jit_enabled():
+    """
+    Return True if MLIR JIT mode is enabled. 
+    """
     return PyKernelDecorator.globalJIT
 
 

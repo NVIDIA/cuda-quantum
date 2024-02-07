@@ -19,7 +19,7 @@ def do_something():
         cudaq.enable_jit()
     yield
 
-    if cudaq.jit_enabled(): cudaq.__clearKernelRegistries()
+    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
     cudaq.disable_jit()
 
 def test_state_vector_simple():

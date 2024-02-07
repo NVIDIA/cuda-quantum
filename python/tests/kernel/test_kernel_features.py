@@ -20,7 +20,7 @@ def do_something():
         cudaq.enable_jit()
     yield
 
-    if cudaq.jit_enabled(): cudaq.__clearKernelRegistries()
+    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
     cudaq.disable_jit()
 
 def test_adjoint():
@@ -229,7 +229,7 @@ def test_dynamic_circuit():
     counts = cudaq.sample(simple)
     counts.dump()
     # BUG Fixme, should be c0 not i in ast mode
-    c0 = counts.get_register_counts('i' if cudaq.jit_enabled() else 'c0')
+    c0 = counts.get_register_counts('i' if cudaq.is_jit_enabled() else 'c0')
     assert '0' in c0 and '1' in c0
     assert '00' in counts and '11' in counts
 
