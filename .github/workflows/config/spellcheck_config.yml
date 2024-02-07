@@ -39,6 +39,9 @@ matrix:
       - open: '([A-Za-z_\\\/]+\.)+'
         close: '($|(?=[^a-z]))'
         content: '\S+?'
+      # Ignore email addresses
+      - open: '\b[A-Za-z0-9._%+-]+@'
+        close: '[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
 
 - name: rst
   sources:

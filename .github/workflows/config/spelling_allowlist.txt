@@ -27,6 +27,8 @@ GPU
 GPUs
 GitHub
 HPC
+HTTP
+HTTPS
 Hadamard
 Hadamards
 Hamiltonian
@@ -59,6 +61,7 @@ OpenQASM
 OpenSSL
 OpenSUSE
 POSIX
+PSIRT
 Pauli
 Paulis
 PyPI
@@ -88,6 +91,7 @@ VQE
 Vazirani
 WSL
 accessor
+acknowledgement
 adjoint
 al
 ansatz
