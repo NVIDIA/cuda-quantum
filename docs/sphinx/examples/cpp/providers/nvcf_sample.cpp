@@ -7,7 +7,7 @@
 // variables or `~/.nvcf_config` file. Alternatively, they can be set in the
 // command line like below.
 // ```
-// nvq++ --target nvcf --nvcf-api-key <YOUR API KEY>
+// nvq++ --target nvcf --nvcf-api-key <YOUR API KEY> \
 // --nvcf-function-id <NVCF function Id> nvcf_sample.cpp -o out.x && ./out.x
 // ```
 // Please refer to the documentations for information about how to attain NVCF
