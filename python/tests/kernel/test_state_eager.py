@@ -13,6 +13,14 @@ import numpy as np
 
 import cudaq
 
+@pytest.fixture(autouse=True)
+def do_something():
+    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
+        cudaq.enable_jit()
+    yield
+
+    if cudaq.jit_enabled(): cudaq.__clearKernelRegistries()
+    cudaq.disable_jit()
 
 def test_state_vector_simple():
     """
@@ -57,7 +65,7 @@ def test_state_vector_integration():
     """
     # Make a general 2 qubit SO4 rotation.
     @cudaq.kernel
-    def kernel(parameters):
+    def kernel(parameters:list[float]):
         qubits = cudaq.qvector(2)
         ry(parameters[0], qubits[0])
         ry(parameters[1], qubits[1])

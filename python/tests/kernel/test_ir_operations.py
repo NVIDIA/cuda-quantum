@@ -13,6 +13,14 @@ import numpy as np
 import cudaq
 from cudaq import spin
 
+@pytest.fixture(autouse=True)
+def do_something():
+    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
+        cudaq.enable_jit()
+    yield
+
+    if cudaq.jit_enabled(): cudaq.__clearKernelRegistries()
+    cudaq.disable_jit()
 
 def test_synthesize():
     ## NOTE: Explicitly disable JIT for the next test

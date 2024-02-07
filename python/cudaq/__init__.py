@@ -134,5 +134,7 @@ if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
 if '--emulate' in sys.argv:
     initKwargs['emulate'] = True
-
+if '--eager-mode' in sys.argv:
+    PyKernelDecorator.globalJIT = False 
+    
 cudaq_runtime.initialize_cudaq(**initKwargs)
