@@ -529,7 +529,7 @@ invoking the program with the command</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter an error stating <code class="code docutils literal notranslate"><span class="pre">Invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code>. See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
+<p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter either an error stating <code class="code docutils literal notranslate"><span class="pre">invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code> (missing CUDA libraries), or an error along the lines of <code class="code docutils literal notranslate"><span class="pre">failed</span> <span class="pre">to</span> <span class="pre">launch</span> <span class="pre">kernel</span></code> (missing MPI installation). See the section <a class="reference internal" href="../install.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
 </section>
 <section id="openmp-cpu-only">

@@ -4,9 +4,9 @@
 // ./out.x
 // ```
 // Note: we set `nqpus` to 3 to establish 3 concurrent NVCF job submission
-// pipes. Assumes a valid nvcf API key and function ID have been stored in
-// environment variables or ~/.nvcf_config file. Alternatively, they can be set
-// in the command line like below.
+// pipes. Assumes a valid NVCF API key and function ID have been stored in
+// environment variables or `~/.nvcf_config` file. Alternatively, they can be
+// set in the command line like below.
 // ```
 // nvq++ --target nvcf --nvcf-nqpus 3 --nvcf-api-key <YOUR API KEY>
 // --nvcf-function-id <NVCF function Id> nvcf_vqe.cpp -o out.x && ./out.x
@@ -42,7 +42,7 @@ int main() {
   auto [opt_val, opt_params] = optimizer.optimize(
       /*dim=*/1, /*opt_function*/ [&](const std::vector<double> &params,
                                       std::vector<double> &grads) {
-        // Queue async. jobs to do energy evaluations across multiple QPUs
+        // Queue asynchronous jobs to do energy evaluations across multiple QPUs
         auto energy_future =
             cudaq::observe_async(/*qpu_id=*/0, ansatz, h, params[0]);
         const double paramShift = M_PI_2;
