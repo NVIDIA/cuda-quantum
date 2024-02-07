@@ -24,7 +24,7 @@
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
 LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'}
 PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
-Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
+Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3.8}
 
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
@@ -74,16 +74,13 @@ fi
 if [ "$llvm_source" = "" ]; then
   echo "Cloning LLVM submodule..."
   cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
-  llvm_source=~/.llvm-project
-  llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
-  llvm_commit="$(git submodule | grep tpls/llvm | cut -c2- | cut -d ' ' -f1)"
-  git clone --filter=tree:0 "$llvm_repo" "$llvm_source"
-  cd "$llvm_source" && git checkout $llvm_commit
+  llvm_source=$(pwd)/tpls/llvm
+  git submodule update --init --recommend-shallow --single-branch tpls/llvm
 fi
 
 mkdir -p "$LLVM_INSTALL_PREFIX"
-mkdir -p "$llvm_source/build" && cd "$llvm_source/build"
-mkdir -p logs && rm -rf logs/* 
+mkdir -p "$llvm_source/build/logs"
+cd "$llvm_source/build" && rm -rf logs/*
 
 # Specify which components we need to keep the size of the LLVM build down
 echo "Preparing LLVM build..."

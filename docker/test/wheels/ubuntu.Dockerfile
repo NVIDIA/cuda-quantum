@@ -17,7 +17,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python${python_version} python$(echo ${python_version} | cut -d . -f 1)-pip
 RUN if [ -n "$preinstalled_modules" ]; then \
-        echo $preinstalled_modules | xargs python${python_version} -m pip install; \
+        python${python_version} -m pip uninstall $preinstalled_modules \
+        python${python_version} -m pip install $preinstalled_modules \
     fi
 
 ARG optional_dependencies=
