@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target nvcf nvcf_sample.cpp -o out.x &&
+// nvq++ --target nvcf nvcf_sample.cpp -o out.x && \
 // ./out.x
 // ```
 // Assumes a valid NVCF API key and function ID have been stored in environment
