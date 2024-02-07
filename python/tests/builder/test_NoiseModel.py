@@ -145,7 +145,7 @@ def test_phase_flip_simple():
     noisy_counts = cudaq.sample(kernel, noise_model=noise)
     got_zero_counts = noisy_counts["0"]
     assert got_zero_counts == want_counts
-    cudaq.reset_target
+    cudaq.reset_target()
 
 
 def test_bit_flip_simple():

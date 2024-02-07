@@ -64,14 +64,13 @@ def test_internal_library_kernels():
     c = np.cos(angle)
     si = np.sin(angle)
 
-    # PYTEST Error, baz fails
     @cudaq.kernel
-    def baz2(angle: float):
+    def baz(angle: float):
         q = cudaq.qlist(2)
         x(q[0])
         givens(angle, q[0], q[1])
 
-    ss_01 = cudaq.get_state(baz2, angle)
+    ss_01 = cudaq.get_state(baz, angle)
     print(ss_01)
     assert np.isclose(ss_01[1], c, 1e-3)
     assert np.isclose(ss_01[2], -si, 1e-3)

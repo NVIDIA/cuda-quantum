@@ -13,19 +13,22 @@ import numpy as np
 import cudaq
 from cudaq import spin
 
+
+skipIROperationsForEagerMode = pytest.mark.skipif(
+    os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON',
+    reason="test_ir_operations only tests MLIR mode of execution")
+
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
-        cudaq.enable_jit()
+    cudaq.enable_jit()
     yield
-
     if cudaq.jit_enabled(): cudaq.__clearKernelRegistries()
     cudaq.disable_jit()
 
+@skipIROperationsForEagerMode
 def test_synthesize():
     ## NOTE: Explicitly disable JIT for the next test
     cudaq.disable_jit()
-
     @cudaq.kernel
     def wontWork(numQubits: int):
         q = cudaq.qvector(numQubits)
@@ -34,7 +37,8 @@ def test_synthesize():
     with pytest.raises(RuntimeError) as error:
         cudaq.synthesize(wontWork, 4)
 
-    @cudaq.kernel(jit=True)
+    cudaq.enable_jit()
+    @cudaq.kernel
     def ghz(numQubits: int):
         qubits = cudaq.qvector(numQubits)
         h(qubits.front())
@@ -49,7 +53,7 @@ def test_synthesize():
     counts.dump()
     assert len(counts) == 2 and '0' * 5 in counts and '1' * 5 in counts
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def ansatz(angle: float):
         q = cudaq.qvector(2)
         x(q[0])
@@ -64,7 +68,7 @@ def test_synthesize():
     print(result.expectation())
     assert np.isclose(result.expectation(), -1.74, atol=1e-2)
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def ansatzVec(angle: list[float]):
         q = cudaq.qvector(2)
         x(q[0])
