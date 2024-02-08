@@ -2083,7 +2083,7 @@ def compile_to_mlir(astModule, **kwargs):
     vis.visit(astModule)
     depKernels = vis.depKernels
 
-    # Keep track of a kernel callgraph, we will
+    # Keep track of a kernel call graph, we will
     # sort this later after we build up the graph
     callGraph = {vis.kernelName: {k for k, v in depKernels.items()}}
 
