@@ -228,8 +228,22 @@ def test_dynamic_circuit():
 
     counts = cudaq.sample(simple)
     counts.dump()
-    # BUG Fixme, should be c0 not i in ast mode
-    c0 = counts.get_register_counts('i' if cudaq.is_jit_enabled() else 'c0')
+    c0 = counts.get_register_counts('c0')
+    assert '0' in c0 and '1' in c0
+    assert '00' in counts and '11' in counts
+
+    @cudaq.kernel
+    def simple():
+        q = cudaq.qvector(2)
+        h(q[0])
+        i = mz(q[0])
+        if i:
+            x(q[1])
+        mz(q)
+
+    counts = cudaq.sample(simple)
+    counts.dump()
+    c0 = counts.get_register_counts('i')
     assert '0' in c0 and '1' in c0
     assert '00' in counts and '11' in counts
 
