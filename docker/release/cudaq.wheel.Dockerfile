@@ -25,7 +25,8 @@ ADD "$workspace" "$destination"
 
 ARG python_version=3.10
 RUN echo "Building MLIR bindings for python${python_version}" \
-    && python${python_version} -m pip install --no-cache-dir numpy \
+    && python${python_version} -m pip install --no-cache-dir \
+        numpy pytest fastapi uvicorn llvmlite \
     && rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" \
     && export Python3_EXECUTABLE="$(which python${python_version})" \
     && LLVM_PROJECTS='clang;mlir;python-bindings' \

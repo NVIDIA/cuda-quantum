@@ -79,10 +79,6 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
-RUN LLVM_PROJECTS='clang;mlir' \
-    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v
-    # No clean up of the build or source directory,
-    # since we need to re-build llvm for each python version to get the bindings.
 
 # Install additional dependencies required to build the CUDA Quantum wheel.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
