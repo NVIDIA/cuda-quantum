@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 import ast
+import graphlib
 import sys
 from typing import Callable
 from collections import deque
@@ -2095,15 +2096,40 @@ def compile_to_mlir(astModule, **kwargs):
     vis.visit(astModule)
     depKernels = vis.depKernels
 
+    # Keep track of a kernel call graph, we will
+    # sort this later after we build up the graph
+    callGraph = {vis.kernelName: {k for k, v in depKernels.items()}}
+
+    # Visit dependent kernels recursively to
+    # ensure we have all necessary kernels added to the
+    # module
+    transitiveDeps = depKernels
+    while len(transitiveDeps):
+        # For each found dependency, see if that kernel
+        # has further dependencies
+        for depKernelName, depKernelAst in transitiveDeps.items():
+            localVis = FindDepKernelsVisitor(bridge.ctx)
+            localVis.visit(depKernelAst)
+            # Append the found dependencies to our running tally
+            depKernels = {**depKernels, **localVis.depKernels}
+            # Reset for the next go around
+            transitiveDeps = localVis.depKernels
+            # Update the call graph
+            callGraph[localVis.kernelName] = {
+                k for k, v in localVis.depKernels.items()
+            }
+
+    # Sort the call graph topologically
+    callGraphSorter = graphlib.TopologicalSorter(callGraph)
+    sortedOrder = callGraphSorter.static_order()
+
     # Add all dependent kernels to the MLIR Module,
     # Do not check any 'dependent' kernels that
     # have the same name as the main kernel here, i.e.
     # ignore kernels that have the same name as this one.
-    [
-        bridge.visit(ast)
-        for depName, ast in depKernels.items()
-        if vis.kernelName != depName
-    ]
+    for funcName in sortedOrder:
+        if funcName != vis.kernelName and funcName in depKernels:
+            bridge.visit(depKernels[funcName])
 
     # Build the MLIR Module for this kernel
     bridge.visit(astModule)
