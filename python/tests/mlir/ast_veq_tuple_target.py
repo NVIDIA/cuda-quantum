@@ -13,10 +13,8 @@
 
 import cudaq
 
-cudaq.enable_jit()
 
-
-@cudaq.kernel
+@cudaq.kernel(jit=True)
 def foo():
     q0, q1, q2 = cudaq.qlist(3)
     x(q0)

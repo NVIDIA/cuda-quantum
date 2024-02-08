@@ -12,6 +12,7 @@ using namespace mlir;
 namespace cudaq {
 
 JITExecutionCache::~JITExecutionCache() {
+  std::scoped_lock<std::mutex> lock(mutex);
   for (auto &[k, v] : cacheMap)
     delete v;
   cacheMap.clear();

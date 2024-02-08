@@ -12,18 +12,16 @@
 import cudaq
 from typing import Callable
 
-cudaq.enable_jit()
 
-
-@cudaq.kernel
+@cudaq.kernel(jit=True)
 def bar(q:cudaq.qubit):
     x(q)
 
-@cudaq.kernel
+@cudaq.kernel(jit=True)
 def baz(q:cudaq.qubit):
     x(q)
 
-@cudaq.kernel
+@cudaq.kernel(jit=True)
 def foo(func:Callable[[cudaq.qubit], None], size:int):
     q = cudaq.qvector(size)
     func(q[0])

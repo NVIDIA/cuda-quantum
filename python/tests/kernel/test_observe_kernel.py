@@ -14,19 +14,19 @@ import numpy as np
 import cudaq
 from cudaq import spin
 
-
 @pytest.fixture(autouse=True)
 def do_something():
-    cudaq.__clearKernelRegistries()
+    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
+        cudaq.enable_jit()
     yield
-    return
-
+    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
+    cudaq.disable_jit()
 
 def test_simple_observe():
     """Test that we can create parameterized kernels and call observe."""
 
-    @cudaq.kernel(jit=True)
-    def ansatz(angle: float):
+    @cudaq.kernel
+    def ansatz(angle:float):
         q = cudaq.qvector(2)
         x(q[0])
         ry(angle, q[1])
@@ -43,8 +43,8 @@ def test_simple_observe():
 def test_optimization():
     """Test that we can optimize over a parameterized kernel."""
 
-    @cudaq.kernel(jit=True)
-    def ansatz(angle: float):
+    @cudaq.kernel
+    def ansatz(angle:float):
         q = cudaq.qvector(2)
         x(q[0])
         ry(angle, q[1])
@@ -74,7 +74,7 @@ def test_broadcast():
 
     angles = np.linspace(-np.pi, np.pi, 50)
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def ansatz(angle: float):
         q = cudaq.qvector(2)
         x(q[0])
@@ -110,7 +110,7 @@ def test_broadcast():
             1) + 9.625 - 9.625 * spin.z(2) - 3.913119 * spin.x(1) * spin.x(
                 2) - 3.913119 * spin.y(1) * spin.y(2)
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def kernel(theta: float, phi: float):
         qubits = cudaq.qvector(3)
         x(qubits[0])
@@ -132,7 +132,7 @@ def test_broadcast():
     print(energies)
     assert len(energies) == 50
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def kernel(thetas: list):
         qubits = cudaq.qvector(3)
         x(qubits[0])
@@ -160,11 +160,12 @@ def test_observe_list():
         .21829 * spin.z(0), -6.125 * spin.z(1)
     ]
 
-    circuit, theta = cudaq.make_kernel(float)
-    q = circuit.qalloc(2)
-    circuit.x(q[0])
-    circuit.ry(theta, q[1])
-    circuit.cx(q[1], q[0])
+    @cudaq.kernel
+    def circuit(theta: float):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(theta, q[1])
+        x.ctrl(q[1], q[0])  # can use cx or
 
     results = cudaq.observe(circuit, hamiltonianList, .59)
 
@@ -176,5 +177,27 @@ def test_observe_list():
     assert np.isclose(want_expectation_value, sum, atol=1e-2)
 
 
-# TODO observe_async
+def test_observe_async():
+    @cudaq.kernel()
+    def kernel0(i:int):
+        q = cudaq.qubit()
+        x(q)
+
+    # Measuring in the Z-basis.
+    hamiltonian = spin.z(0)
+
+    # Call `cudaq.observe()` at the specified number of shots.
+    future = cudaq.observe_async(kernel0,
+                                 hamiltonian, 5,
+                                 qpu_id=0)
+    observe_result = future.get()
+    got_expectation = observe_result.expectation()
+    assert np.isclose(-1., got_expectation, atol=1e-12)
+
+    # Test that this throws an exception, the problem here
+    # is we are on a quantum platform with 1 QPU, and we're asking
+    # to run an async job on the 13th QPU with device id 12.
+    with pytest.raises(Exception) as error:
+        future = cudaq.observe_async(kernel0, hamiltonian, qpu_id=12)
+
 # TODO observe_async spin_op list

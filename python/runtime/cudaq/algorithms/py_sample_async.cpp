@@ -19,6 +19,8 @@ namespace cudaq {
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
+static std::vector<py::object> eagerAsyncSampleArgs;
+
 void bindSampleAsync(py::module &mod) {
   py::class_<async_sample_result>(
       mod, "AsyncSampleResult",
@@ -35,6 +37,7 @@ for more information on this programming pattern.)#")
         return f;
       }))
       .def("get", &async_sample_result::get,
+           py::call_guard<py::gil_scoped_release>(),
            "Return the :class:`SampleResult` from the asynchronous sample "
            "execution.\n")
       .def("__str__", [](async_sample_result &res) {
@@ -48,21 +51,53 @@ for more information on this programming pattern.)#")
       [&](py::object &kernel, py::args args, std::size_t shots,
           std::size_t qpu_id) {
         auto &platform = cudaq::get_platform();
+        auto kernelName = kernel.attr("name").cast<std::string>();
+
+        if (py::hasattr(kernel, "library_mode") &&
+            kernel.attr("library_mode").cast<py::bool_>()) {
+
+          // Here we know we are in eager mode. We do not have a
+          // MLIR Module, we just have the python kernel as a callback.
+          // Great care must be taken here with regards to the
+          // GIL and when pythonic data types (PyObject*) gets
+          // destructed. First, we release the GIL since we are
+          // about to launch a new C++ thread. Within the kernel
+          // functor, we must first acquire the GIL so that we can
+          // invoke the Python callback with the Python *args...
+          // The args were captured by value, so they will be destructed
+          // when the lambda implicit type gets destructed, and the
+          // GIL will not be acquired at that point, leading to issues
+          // in destructing the args. So instead we release ownership
+          // of the py::args, and borrow it to a py::object, which
+          // we store globally. Then it should have ref_count = 1
+          // and when the static vector gets destroyed, the ref_count
+          // will drop to 0 and the PyObject will be deallocated.
+          py::gil_scoped_release release;
+          return cudaq::details::runSamplingAsync(
+              [kernelName, kernel, args]() mutable {
+                // Acquire the gil and call the callback
+                py::gil_scoped_acquire gil;
+                kernel(*args);
+                // Take ownership of the args so they get
+                // deleted when we have GIL ownership
+                eagerAsyncSampleArgs.emplace_back(args.release(), true);
+              },
+              platform, kernelName, shots, qpu_id);
+        }
+
         auto *argData = new cudaq::OpaqueArguments();
         cudaq::packArgs(*argData, args);
-        auto kernelName = kernel.attr("name").cast<std::string>();
         auto kernelMod = kernel.attr("module").cast<MlirModule>();
 
         // Should only have C++ going on here, safe to release the GIL
         py::gil_scoped_release release;
-        auto ret = cudaq::details::runSamplingAsync(
+        return cudaq::details::runSamplingAsync(
             [argData, kernelName, kernelMod]() mutable {
               pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
               // delete the raw arg data pointer.
               delete argData;
             },
             platform, kernelName, shots, qpu_id);
-        return ret;
       },
       py::arg("kernel"), py::kw_only(), py::arg("shots_count") = 1000,
       py::arg("qpu_id") = 0,
