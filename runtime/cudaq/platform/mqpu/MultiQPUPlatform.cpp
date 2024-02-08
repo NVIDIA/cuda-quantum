@@ -147,21 +147,14 @@ public:
           simName = "custatevec-fp32";
         std::string configStr =
             fmt::format("target;nvcf;simulator;{}", simName);
-        {
-          auto apiKey = getOpt(description, "api_key");
-          if (!apiKey.empty())
-            configStr += fmt::format(";api_key;{}", apiKey);
-        }
-        {
-          auto functionId = getOpt(description, "function_id");
-          if (!functionId.empty())
-            configStr += fmt::format(";function_id;{}", functionId);
-        }
-        {
-          auto versionId = getOpt(description, "version_id");
-          if (!versionId.empty())
-            configStr += fmt::format(";version_id;{}", versionId);
-        }
+        auto getOptAndSetConfig = [&](const std::string &key) {
+          auto val = getOpt(description, key);
+          if (!val.empty())
+            configStr += fmt::format(";{};{}", key, val);
+        };
+        getOptAndSetConfig("api_key");
+        getOptAndSetConfig("function_id");
+        getOptAndSetConfig("version_id");
 
         auto numQpusStr = getOpt(description, "nqpus");
         const int numQpus = numQpusStr.empty() ? 1 : std::stoi(numQpusStr);
