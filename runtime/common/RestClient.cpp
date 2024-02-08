@@ -52,7 +52,7 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
                                 const std::string_view path,
                                 nlohmann::json &post,
                                 std::map<std::string, std::string> &headers,
-                                bool enableLogging) {
+                                bool enableLogging, bool enableSsl) {
   if (headers.empty())
     headers.insert(std::make_pair("Content-type", "application/json"));
 
@@ -67,7 +67,7 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
 
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Post(cpr::Url{actualPath}, cpr::Body(post.dump()), cprHeaders,
-                     cpr::VerifySsl(false));
+                     cpr::VerifySsl(enableSsl));
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP POST Error - status code " +
@@ -80,7 +80,7 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
 void RestClient::put(const std::string_view remoteUrl,
                      const std::string_view path, nlohmann::json &putData,
                      std::map<std::string, std::string> &headers,
-                     bool enableLogging) {
+                     bool enableLogging, bool enableSsl) {
   if (headers.empty())
     headers.insert(std::make_pair("Content-type", "application/json"));
 
@@ -95,7 +95,7 @@ void RestClient::put(const std::string_view remoteUrl,
 
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Put(cpr::Url{actualPath}, cpr::Body(putData.dump()), cprHeaders,
-                    cpr::VerifySsl(false));
+                    cpr::VerifySsl(enableSsl));
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP PUT Error - status code " +
@@ -105,7 +105,8 @@ void RestClient::put(const std::string_view remoteUrl,
 
 nlohmann::json RestClient::get(const std::string_view remoteUrl,
                                const std::string_view path,
-                               std::map<std::string, std::string> &headers) {
+                               std::map<std::string, std::string> &headers,
+                               bool enableSsl) {
   if (headers.empty())
     headers.insert(std::make_pair("Content-type", "application/json"));
 
@@ -116,7 +117,7 @@ nlohmann::json RestClient::get(const std::string_view remoteUrl,
   cpr::Parameters cprParams;
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Get(cpr::Url{actualPath}, cprHeaders, cprParams,
-                    cpr::VerifySsl(false));
+                    cpr::VerifySsl(enableSsl));
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP GET Error - status code " +
@@ -134,7 +135,7 @@ nlohmann::json RestClient::get(const std::string_view remoteUrl,
 void RestClient::del(const std::string_view remoteUrl,
                      const std::string_view path,
                      std::map<std::string, std::string> &headers,
-                     bool enableLogging) {
+                     bool enableLogging, bool enableSsl) {
   cpr::Header cprHeaders;
   for (auto &kv : headers)
     cprHeaders.insert({kv.first, kv.second});
@@ -142,7 +143,7 @@ void RestClient::del(const std::string_view remoteUrl,
   cpr::Parameters cprParams;
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Delete(cpr::Url{actualPath}, cprHeaders, cprParams,
-                       cpr::VerifySsl(false));
+                       cpr::VerifySsl(enableSsl));
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP DELETE Error - status code " +
@@ -151,9 +152,10 @@ void RestClient::del(const std::string_view remoteUrl,
 }
 
 bool RestClient::download(const std::string_view remoteUrl,
-                          const std::string &filePath, bool enableLogging) {
+                          const std::string &filePath, bool enableLogging,
+                          bool enableSsl) {
   auto r = cpr::Get(cpr::Url{std::string(remoteUrl)}, cpr::Header{},
-                    cpr::Parameters{}, cpr::VerifySsl(false));
+                    cpr::Parameters{}, cpr::VerifySsl(enableSsl));
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     return false;
@@ -165,7 +167,10 @@ bool RestClient::download(const std::string_view remoteUrl,
     outfile.write(r.text.c_str(), r.text.size());
     outfile.close();
     return true;
-  } catch (...) {
+  } catch (std::exception &e) {
+    cudaq::info(
+        "Failed to write downloaded contents to file {}. Exception: {}.",
+        filePath, e.what());
     return false;
   }
 }

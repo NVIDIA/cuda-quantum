@@ -294,9 +294,10 @@ private:
   // function Id.
   std::vector<cudaq::NvcfFunctionVersionInfo> getFunctionVersions() {
     auto headers = getHeaders();
-    auto versionDataJs = m_restClient.get(
-        fmt::format("https://{}/nvcf/functions/{}", m_baseUrl, m_functionId),
-        "/versions", headers);
+    auto versionDataJs =
+        m_restClient.get(fmt::format("https://{}/nvcf/functions/{}", m_baseUrl,
+                                     m_functionId, /*enableSsl=*/true),
+                         "/versions", headers);
     cudaq::info("Version data: {}", versionDataJs.dump());
     std::vector<cudaq::NvcfFunctionVersionInfo> versions;
     versionDataJs["functions"].get_to(versions);
@@ -336,14 +337,15 @@ public:
         if (versionInfoIter == versions.end())
           throw std::runtime_error(
               fmt::format("Version Id '{}' is not valid for NVCF function Id "
-                          "'{}'. Please check your input.",
+                          "'{}'. Please check your NVCF configurations.",
                           m_functionVersionId, m_functionId));
         // The version is not active/deployed.
         if (versionInfoIter->status != cudaq::FunctionStatus::ACTIVE)
-          throw std::runtime_error(fmt::format(
-              "Version Id '{}' of NVCF function Id "
-              "'{}' is not ACTIVE. Please check your input or contact support.",
-              m_functionVersionId, m_functionId));
+          throw std::runtime_error(
+              fmt::format("Version Id '{}' of NVCF function Id "
+                          "'{}' is not ACTIVE. Please check your NVCF "
+                          "configurations or contact support.",
+                          m_functionVersionId, m_functionId));
       } else {
         // No version Id is set. Just pick the latest version of the function
         // Id. The timestamp is an ISO 8601 string, e.g.,
@@ -395,7 +397,7 @@ public:
       return false;
     }
     // Max message size that we can send in the body
-    constexpr std::size_t MAX_SIZE_BYTES = 250 * 1ULL << 10; // 250KB
+    constexpr std::size_t MAX_SIZE_BYTES = 250000; // 250 KB
     json requestJson;
     auto jobHeader = getHeaders();
     std::optional<std::string> assetId;
@@ -406,7 +408,7 @@ public:
         cudaq::info("Deleting NVCF Asset Id {}", assetId.value());
         auto headers = getHeaders();
         m_restClient.del(nvcfAssetUrl(), std::string("/") + assetId.value(),
-                         headers, false);
+                         headers, /*enableLogging=*/false, /*enableSsl=*/true);
       }
     });
 
@@ -432,8 +434,9 @@ public:
     try {
       // Making the request
       cudaq::debug("Sending NVCF request to {}", nvcfInvocationUrl());
-      auto resultJs = m_restClient.post(nvcfInvocationUrl(), "", requestJson,
-                                        jobHeader, false);
+      auto resultJs =
+          m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
+                            /*enableLogging=*/false, /*enableSsl=*/true);
       cudaq::debug("Response: {}", resultJs.dump());
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
@@ -441,7 +444,8 @@ public:
         cudaq::info("Polling result data for Request Id {}", reqId);
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader);
+        resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader,
+                                    /*enableSsl=*/true);
       }
 
       if (!resultJs.contains("status") || resultJs["status"] != "fulfilled") {
@@ -468,7 +472,8 @@ public:
         std::filesystem::path resultFilePath =
             std::filesystem::path(tempDir.c_str()) / (reqId + ".zip");
         const bool downloadOk =
-            m_restClient.download(downloadUrl, resultFilePath.string());
+            m_restClient.download(downloadUrl, resultFilePath.string(),
+                                  /*enableLogging=*/false, /*enableSsl=*/true);
         cudaq::info("Download zip file {}", resultFilePath.string());
         if (!downloadOk) {
           if (optionalErrorMsg)
@@ -494,7 +499,9 @@ public:
           resultJs["response"] = json::parse(resultJsonFromFile);
         } catch (...) {
           if (optionalErrorMsg)
-            *optionalErrorMsg = "Failed to parse the response JSON from file.";
+            *optionalErrorMsg =
+                fmt::format("Failed to parse the response JSON from file '{}'.",
+                            resultJsonFile.string());
           return false;
         }
         cudaq::info(
@@ -535,7 +542,8 @@ public:
     try {
       auto headers = getHeaders();
       auto resultJs =
-          m_restClient.post(nvcfAssetUrl(), "", requestJson, headers, false);
+          m_restClient.post(nvcfAssetUrl(), "", requestJson, headers,
+                            /*enableLogging=*/false, /*enableSsl=*/true);
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
       cudaq::info("Upload NVCF Asset Id {} to {}", assetId, uploadUrl);
@@ -544,7 +552,8 @@ public:
       uploadHeader["Content-Type"] = "application/json";
       uploadHeader["x-amz-meta-nvcf-asset-description"] = "cudaq-nvcf-job";
       json jobRequestJs = jobRequest;
-      m_restClient.put(uploadUrl, "", jobRequestJs, uploadHeader, false);
+      m_restClient.put(uploadUrl, "", jobRequestJs, uploadHeader,
+                       /*enableLogging=*/false, /*enableSsl=*/true);
       return assetId;
     } catch (...) {
       return {};

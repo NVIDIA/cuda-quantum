@@ -28,14 +28,14 @@ static std::string getUnzipErrorString(int errorCode) {
 }
 
 #define HANDLE_MINIZIP_ERROR(x)                                                \
-  {                                                                            \
+  do {                                                                         \
     const auto err = x;                                                        \
     if (err != UNZ_OK) {                                                       \
       throw std::runtime_error(fmt::format("[minizip] %{} in {} (line {})",    \
                                            getUnzipErrorString(err),           \
                                            __FUNCTION__, __LINE__));           \
     }                                                                          \
-  };
+  } while (false)
 
 void unzip(const std::filesystem::path &zipFile,
            const std::filesystem::path &outputDir) {
@@ -63,8 +63,15 @@ void unzip(const std::filesystem::path &zipFile,
     const auto unzipFilePath =
         outputDir / std::filesystem::path(fileNameInZip).filename();
     std::ofstream unzipFile;
-    unzipFile.open(unzipFilePath.string(),
-                   std::ios_base::binary | std::ios::out);
+    try {
+      unzipFile.open(unzipFilePath.string(),
+                     std::ios_base::binary | std::ios::out);
+    } catch (std::exception &e) {
+      throw std::runtime_error(
+          fmt::format("Failed to create the unzip file '{}'. Error: {}",
+                      unzipFilePath.string(), e.what()));
+    }
+
     for (;;) {
       // Break inside
       const int bytesReadOrErrorCode =

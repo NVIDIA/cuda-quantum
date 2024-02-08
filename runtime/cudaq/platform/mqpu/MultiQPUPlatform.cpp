@@ -74,31 +74,35 @@ public:
 
   std::string getQpuType(const std::string &description) const {
     // Target name is the first one in the target config string
-    if (description.find(";") != std::string::npos) {
-      const auto targetName = cudaq::split(description, ';').front();
-      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-      auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-      std::string targetConfigFileName = targetName + std::string(".config");
-      auto configFilePath = platformPath / targetConfigFileName;
-      cudaq::info("Config file path for target {} = {}", targetName,
-                  configFilePath.string());
-      // Don't try to load something that doesn't exist.
-      if (!std::filesystem::exists(configFilePath))
-        return "";
-      std::ifstream configFile(configFilePath.string());
-      std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                                 std::istreambuf_iterator<char>());
-      auto lines = cudaq::split(configContents, '\n');
-      constexpr char platformQPU[] = "PLATFORM_QPU";
-      for (auto &line : lines) {
-        if (line.find(platformQPU) != std::string::npos) {
-          const auto keyVal = cudaq::split(line, '=');
+    // or the whole string if this is the only config.
+    const auto targetName = description.find(";") != std::string::npos
+                                ? cudaq::split(description, ';').front()
+                                : description;
+    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+    std::string targetConfigFileName = targetName + std::string(".config");
+    auto configFilePath = platformPath / targetConfigFileName;
+    cudaq::info("Config file path for target {} = {}", targetName,
+                configFilePath.string());
+    // Don't try to load something that doesn't exist.
+    if (!std::filesystem::exists(configFilePath))
+      return "";
+    std::ifstream configFile(configFilePath.string());
+    std::string configContents((std::istreambuf_iterator<char>(configFile)),
+                               std::istreambuf_iterator<char>());
+    auto lines = cudaq::split(configContents, '\n');
+    constexpr char platformQPU[] = "PLATFORM_QPU";
+    for (auto &line : lines) {
+      if (line.find(platformQPU) != std::string::npos) {
+        const auto keyVal = cudaq::split(line, '=');
+        if (keyVal.size() > 1) {
           auto qpuName = keyVal[1];
           cudaq::trim(qpuName);
           return qpuName;
         }
       }
     }
+
     return "";
   }
 
