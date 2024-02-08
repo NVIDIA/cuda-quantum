@@ -80,13 +80,12 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
 endif()
 
 add_nvqpp_test(photonics_sim providers/photonics.cpp TARGET photonics)
-## [SKIP_TEST]: Reason - "RuntimeError: Unable to retrieve RemoteSimulatorQPU implementation"
-# add_nvqpp_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.cpp TARGET remote-mqpu SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
-# set_tests_properties(
-#   nvqpp_SampleAsyncRemote
-#     PROPERTIES
-#       ENVIRONMENT_MODIFICATION PATH=path_list_append:${CMAKE_BINARY_DIR}/bin
-# )
+add_nvqpp_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.cpp TARGET remote-mqpu SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+set_tests_properties(
+  nvqpp_SampleAsyncRemote
+    PROPERTIES
+      ENVIRONMENT_MODIFICATION PATH=path_list_append:${CMAKE_BINARY_DIR}/bin
+)
 
 # Only add the python tests if we built the python API
 if (CUDAQ_ENABLE_PYTHON)
@@ -101,6 +100,7 @@ if (CUDAQ_ENABLE_PYTHON)
     COMMAND
       bash -c "${PARSED_ARGS_LAUNCH_COMMAND} ${Python_EXECUTABLE} ${PARSED_ARGS_SOURCE_DIR}/${SOURCE_LOCATION}"
     )
+    set_tests_properties(pycudaq_${TEST_NAME} PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
     if(PARSED_ARGS_LABELS)
       set_tests_properties(pycudaq_${TEST_NAME} PROPERTIES LABELS "${PARSED_ARGS_LABELS}")
     endif()
@@ -118,11 +118,10 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(PhaseFlipNoise noise_phase_flip.py)
   add_pycudaq_test(KrausNoise noise_kraus_operator.py)
   
-  ## [SKIP_TEST]: Reason - "RuntimeError: Unable to retrieve RemoteSimulatorQPU implementation"
-  # if (CUTENSORNET_ROOT AND CUDA_FOUND) 
-  #   # This example uses tensornet backend.
-  #   add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
-  # endif()
+  if (CUTENSORNET_ROOT AND CUDA_FOUND) 
+    # This example uses tensornet backend.
+    add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+  endif()
   
   if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
     add_pycudaq_test(SampleAsync using/cudaq/platform/sample_async.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
