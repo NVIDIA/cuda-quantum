@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target nvcf --nvcf-nqpus 3 nvcf_vqe.cpp -o out.x &&
+// nvq++ --target nvcf --nvcf-nqpus 3 nvcf_vqe.cpp -o out.x
 // ./out.x
 // ```
 // Note: we set `nqpus` to 3 to establish 3 concurrent NVCF job submission
@@ -8,8 +8,9 @@
 // environment variables or `~/.nvcf_config` file. Alternatively, they can be
 // set in the command line like below.
 // ```
-// nvq++ --target nvcf --nvcf-nqpus 3 --nvcf-api-key <YOUR API KEY>
-// --nvcf-function-id <NVCF function Id> nvcf_vqe.cpp -o out.x && ./out.x
+// nvq++ --target nvcf --nvcf-nqpus 3 --nvcf-api-key <YOUR API KEY> \
+// --nvcf-function-id <NVCF function Id> nvcf_vqe.cpp -o out.x
+// ./out.x
 // ```
 // Please refer to the documentations for information about how to attain NVCF
 // information.
