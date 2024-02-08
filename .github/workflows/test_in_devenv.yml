@@ -219,6 +219,13 @@ jobs:
               echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
+            CUDAQ_PYTEST_EAGER_MODE=OFF python3 -m pytest -v python/tests/ \
+              --ignore python/tests/backends
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
+              exit 1
+            fi
             for backendTest in python/tests/backends/*.py; do
               python3 -m pytest -v $backendTest
               pytest_status=$?

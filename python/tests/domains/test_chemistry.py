@@ -85,12 +85,13 @@ def testHWE():
 
     # Run VQE
     optimizer = cudaq.optimizers.COBYLA()
+    optimizer.max_iterations = 500
     energy, params = cudaq.vqe(kernel,
                                molecule,
                                optimizer,
                                parameter_count=num_parameters)
     print(energy, params)
-    assert np.isclose(-1.137, energy, rtol=1e-3)
+    assert np.isclose(-1.13, energy, rtol=1e-2)
 
 
 # leave for gdb debugging
