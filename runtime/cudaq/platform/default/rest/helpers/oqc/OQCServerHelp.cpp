@@ -10,7 +10,14 @@
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include <thread>
+#include <sstream>
+#include <map>
+
 namespace cudaq {
+
+const std::string Lucy = "lucy";
+const std::string Toshiko = "toshiko";
+const std::map<std::string, uint> Machines = {{Lucy, 8}, {Toshiko, 32}};
 
 /// @brief The OQCServerHelper class extends the ServerHelper class to handle
 /// interactions with the OQC server for submitting and retrieving quantum
@@ -93,9 +100,23 @@ auto make_env_functor(std::string key, std::string def = "") {
 }
 
 std::string get_from_config(BackendConfig config, const std::string &key,
-                            const auto &envVar) {
+                            const auto &missing_functor) {
   const auto iter = config.find(key);
-  return iter != config.end() ? iter->second : envVar();
+  auto item = iter != config.end() ? iter->second : missing_functor();
+  std::transform(item.begin(), item.end(), item.begin(),
+    [](auto c){ return std::tolower(c);});
+  return item;
+}
+
+void check_machine_allowed(std::string& machine){
+  if(Machines.find(machine) == Machines.end()){
+     std::string allowed;
+     for (const auto &machine : Machines)
+       allowed += machine.first + " ";
+     std::stringstream stream;
+     stream << "machine " << machine << " is not of known oqc-machine set: " << allowed;
+     throw std::runtime_error(stream.str());
+  }
 }
 
 } // namespace
@@ -114,10 +135,14 @@ void OQCServerHelper::initialize(BackendConfig config) {
   config["url"] = get_from_config(
       config, "url",
       make_env_functor("OQC_URL", "https://sandbox.qcaas.oqc.app"));
+  auto machine =get_from_config(
+      config, "machine", [](){return Lucy;});
+  check_machine_allowed(machine);
+  config["machine"] = machine;
   config["version"] = "v0.3";
   config["user_agent"] = "cudaq/0.3.0";
   config["target"] = "Lucy";
-  config["qubits"] = 8;
+  config["qubits"] = Machines.at(machine);
   config["email"] =
       get_from_config(config, "email", make_env_functor("OQC_EMAIL"));
   config["password"] = make_env_functor("OQC_PASSWORD")();
