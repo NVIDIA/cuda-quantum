@@ -155,6 +155,16 @@ set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
 add_subdirectory(runtime/cudaq/distributed)
 add_subdirectory(runtime/cudaq/domains/plugins)
 
+if (NOT SKBUILD)
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
+else()
+  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
+endif()
+
+if (NOT SKBUILD)
+  install(DIRECTORY cudaq DESTINATION .)
+endif()
+
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version
   OUTPUT_VARIABLE PYTEST_output
