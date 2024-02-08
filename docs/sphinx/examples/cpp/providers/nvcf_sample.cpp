@@ -1,14 +1,15 @@
 // Compile and run with:
 // ```
-// nvq++ --target nvcf nvcf_sample.cpp -o out.x && \
+// nvq++ --target nvcf nvcf_sample.cpp -o out.x
 // ./out.x
 // ```
 // Assumes a valid NVCF API key and function ID have been stored in environment
 // variables or `~/.nvcf_config` file. Alternatively, they can be set in the
 // command line like below.
 // ```
-// nvq++ --target nvcf --nvcf-api-key <YOUR API KEY> \
-// --nvcf-function-id <NVCF function Id> nvcf_sample.cpp -o out.x && ./out.x
+// nvq++ --target nvcf --nvcf-api-key <YOUR API KEY> --nvcf-function-id \ 
+// <NVCF function Id> nvcf_sample.cpp -o out.x
+// ./out.x
 // ```
 // Please refer to the documentations for information about how to attain NVCF
 // information.
