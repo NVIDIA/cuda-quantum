@@ -10,7 +10,7 @@ workflow:
         staged: "cuda-quantum-devdeps"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-devdeps@sha256:\S+$/'
       variables:
-        runner: xpl-dvt-55.k8s.nvidia.com
+        runner: hostname/xpl-dvt-55.k8s.nvidia.com
         staged: "cuda-quantum-devdeps"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_BRANCH =~ /arm64/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-assets@sha256:\S+$/'
       variables:
@@ -18,14 +18,14 @@ workflow:
         staged: "cuda-quantum-assets"
     - if: '$CI_COMMIT_BRANCH =~ /^bot/ && $CI_COMMIT_TITLE =~ /^ghcr\.io\/nvidia\/cuda-quantum-assets@sha256:\S+$/'
       variables:
-        runner: xpl-dvt-55.k8s.nvidia.com
+        runner: hostname/xpl-dvt-55.k8s.nvidia.com
         staged: "cuda-quantum-assets"
     - when: always
 
 default:
   image: ubuntu:22.04
   tags: 
-    - xpl-dvt-55.k8s.nvidia.com
+    - hostname/xpl-dvt-55.k8s.nvidia.com
   timeout: 1h
   interruptible: true
 
@@ -160,7 +160,7 @@ Docker Image:
   image: $CI_COMMIT_TITLE
   parallel:
     matrix:
-      - runner: [xpl-dvt-55.k8s.nvidia.com, hostname/core-plab-e114-arm-glr02.nvidia.com]
+      - runner: [hostname/xpl-dvt-55.k8s.nvidia.com, hostname/core-plab-e114-arm-glr02.nvidia.com]
   tags:
     - $runner
   interruptible: false
