@@ -44,7 +44,7 @@ public:
            std::map<std::string, std::string> &headers,
            bool enableLogging = true, bool enableSsl = false);
   /// Download a resource at the provided URL and save it to the provided path.
-  bool download(const std::string_view remoteUrl, const std::string &filePath,
+  void download(const std::string_view remoteUrl, const std::string &filePath,
                 bool enableLogging = true, bool enableSsl = false);
 
   ~RestClient() = default;

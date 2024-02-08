@@ -471,15 +471,9 @@ public:
                                                tempDir);
         std::filesystem::path resultFilePath =
             std::filesystem::path(tempDir.c_str()) / (reqId + ".zip");
-        const bool downloadOk =
-            m_restClient.download(downloadUrl, resultFilePath.string(),
-                                  /*enableLogging=*/false, /*enableSsl=*/true);
-        cudaq::info("Download zip file {}", resultFilePath.string());
-        if (!downloadOk) {
-          if (optionalErrorMsg)
-            *optionalErrorMsg = "Failed to download large-response result.";
-          return false;
-        }
+        m_restClient.download(downloadUrl, resultFilePath.string(),
+                              /*enableLogging=*/false, /*enableSsl=*/true);
+        cudaq::info("Downloaded zip file {}", resultFilePath.string());
         std::filesystem::path unzipDir =
             std::filesystem::path(tempDir.c_str()) / reqId;
         // Unzip the response

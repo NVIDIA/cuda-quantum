@@ -142,6 +142,8 @@ void RestClient::del(const std::string_view remoteUrl,
 
   cpr::Parameters cprParams;
   auto actualPath = std::string(remoteUrl) + std::string(path);
+  if (enableLogging)
+    cudaq::info("Delete resource at path {}/{}", remoteUrl, path);
   auto r = cpr::Delete(cpr::Url{actualPath}, cprHeaders, cprParams,
                        cpr::VerifySsl(enableSsl));
 
@@ -151,27 +153,31 @@ void RestClient::del(const std::string_view remoteUrl,
                              r.error.message + ": " + r.text);
 }
 
-bool RestClient::download(const std::string_view remoteUrl,
+void RestClient::download(const std::string_view remoteUrl,
                           const std::string &filePath, bool enableLogging,
                           bool enableSsl) {
   auto r = cpr::Get(cpr::Url{std::string(remoteUrl)}, cpr::Header{},
                     cpr::Parameters{}, cpr::VerifySsl(enableSsl));
 
   if (r.status_code > validHttpCode || r.status_code == 0)
-    return false;
+    throw std::runtime_error("HTTP Download Error - status code " +
+                             std::to_string(r.status_code) + ": " +
+                             r.error.message + ": " + r.text);
 
-  cudaq::info("Downloading {} bytes to file {}", r.text.size(), filePath);
+  if (enableLogging)
+    cudaq::info("Downloading {} bytes from {} to file {}", r.text.size(),
+                remoteUrl, filePath);
+
   try {
     // Write the downloaded content to file.
     std::ofstream outfile(filePath, std::ofstream::binary | std::ios::out);
     outfile.write(r.text.c_str(), r.text.size());
     outfile.close();
-    return true;
   } catch (std::exception &e) {
-    cudaq::info(
+    // Rethrow it with a descriptive message
+    throw std::runtime_error(fmt::format(
         "Failed to write downloaded contents to file {}. Exception: {}.",
-        filePath, e.what());
-    return false;
+        filePath, e.what()));
   }
 }
 } // namespace cudaq
