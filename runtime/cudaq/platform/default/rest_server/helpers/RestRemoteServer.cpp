@@ -223,9 +223,8 @@ public:
     auto &requestInfo = m_codeTransform[reqId];
     if (requestInfo.format == cudaq::CodeFormat::LLVM) {
       if (io_context.name == "sample") {
-        // One extra check to see if we have mid-circuit
-        // measures in library mode
-        // Trace the kernel function
+        // In library mode (LLVM), check to see if we have mid-circuit measures
+        // by tracing the kernel function.
         cudaq::ExecutionContext context("tracer");
         platform.set_exec_ctx(&context);
         cudaq::invokeWrappedKernel(ir, std::string(kernelName), kernelArgs,
