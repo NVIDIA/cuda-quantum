@@ -233,7 +233,7 @@ public:
         platform.reset_exec_ctx();
         // In trace mode, if we have a measure result
         // that is passed to an if statement, then
-        // we'll have collected registernames
+        // we'll have collected registerNames
         if (!context.registerNames.empty()) {
           // append new register names to the main sample context
           for (std::size_t i = 0; i < context.registerNames.size(); ++i)
