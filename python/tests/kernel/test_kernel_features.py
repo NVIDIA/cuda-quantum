@@ -10,9 +10,10 @@ import os
 
 import pytest
 import numpy as np
-from typing import Callable 
+from typing import Callable
 
 import cudaq
+
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -20,8 +21,10 @@ def do_something():
         cudaq.enable_jit()
     yield
 
-    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
+    if cudaq.is_jit_enabled():
+        cudaq.__clearKernelRegistries()
     cudaq.disable_jit()
+
 
 def test_adjoint():
     """Test that adjoint can be called on kernels and operations."""
@@ -60,7 +63,7 @@ def test_adjoint():
     assert len(counts) == 1
 
     @cudaq.kernel
-    def test_kernel_adjoint(q:cudaq.qview):
+    def test_kernel_adjoint(q: cudaq.qview):
         h(q[0])
         t(q[1])
         s(q[2])
@@ -82,7 +85,7 @@ def test_control():
     """Test that we can control on kernel functions."""
 
     @cudaq.kernel
-    def fancyCnot(a:cudaq.qubit, b:cudaq.qubit):
+    def fancyCnot(a: cudaq.qubit, b: cudaq.qubit):
         x.ctrl(a, b)
 
     @cudaq.kernel
@@ -111,23 +114,24 @@ def test_control():
 def test_grover():
     """Test that compute_action works in tandem with kernel composability."""
 
-    @cudaq.kernel#(verbose=True)
-    def reflect(qubits:cudaq.qview):
+    @cudaq.kernel  #(verbose=True)
+    def reflect(qubits: cudaq.qview):
         ctrls = qubits.front(qubits.size() - 1)
         last = qubits.back()
         cudaq.compute_action(lambda: (h(qubits), x(qubits)),
                              lambda: z.ctrl(ctrls, last))
-        
-    # FIXME This currently has to be defined before the 
+
+    # FIXME This currently has to be defined before the
     # kernel that uses it as input
     @cudaq.kernel
-    def oracle(q:cudaq.qview):
+    def oracle(q: cudaq.qview):
         z.ctrl(q[0], q[2])
         z.ctrl(q[1], q[2])
 
     print(reflect)
+
     @cudaq.kernel
-    def grover(N:int, M:int, oracle:Callable[[cudaq.qview], None]):
+    def grover(N: int, M: int, oracle: Callable[[cudaq.qview], None]):
         q = cudaq.qvector(N)
         h(q)
         for i in range(M):
@@ -135,15 +139,13 @@ def test_grover():
             reflect(q)
         mz(q)
 
-    
     print(grover)
     print(oracle)
-    
+
     counts = cudaq.sample(grover, 3, 1, oracle)
     assert len(counts) == 2
     assert '101' in counts
     assert '011' in counts
-
 
 
 def test_2grover_compute_action():
@@ -190,14 +192,12 @@ def test_2grover_compute_action():
 
 def test_exp_pauli():
     h2_data = [
-      3, 1, 1, 3, 0.0454063,  0,  2,  0, 0, 0, 0.17028,    0,
-      0, 0, 2, 0, -0.220041,  -0, 1,  3, 3, 1, 0.0454063,  0,
-      0, 0, 0, 0, -0.106477,  0,  0,  2, 0, 0, 0.17028,    0,
-      0, 0, 0, 2, -0.220041,  -0, 3,  3, 1, 1, -0.0454063, -0,
-      2, 2, 0, 0, 0.168336,   0,  2,  0, 2, 0, 0.1202,     0,
-      0, 2, 0, 2, 0.1202,     0,  2,  0, 0, 2, 0.165607,   0,
-      0, 2, 2, 0, 0.165607,   0,  0,  0, 2, 2, 0.174073,   0,
-      1, 1, 3, 3, -0.0454063, -0, 15
+        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
+        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
+        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
+        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
+        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
+        1, 3, 3, -0.0454063, -0, 15
     ]
     h = cudaq.SpinOperator(h2_data, 4)
 
@@ -264,3 +264,28 @@ def test_teleport():
     # the register name automatically
     b0 = counts.get_register_counts('b0')
     assert '0' in b0 and '1' in b0
+
+
+def test_transitive_dependencies():
+
+    @cudaq.kernel()
+    def func0(q : cudaq.qubit):
+        x(q)
+
+    @cudaq.kernel()
+    def func1(q: cudaq.qubit):
+        func0(q)
+
+    @cudaq.kernel
+    def func2(q: cudaq.qubit):
+        func1(q)
+
+    @cudaq.kernel()
+    def callMe():
+        q = cudaq.qubit()
+        func2(q)
+
+    print(callMe)
+
+    counts = cudaq.sample(callMe)
+    assert len(counts) == 1 and '1' in counts
