@@ -221,17 +221,14 @@ public:
 
   void synchronize() override {
     for (auto &instruction : instructionQueue) {
-      if (isInTracerMode()) {
-        auto [gateName, params, controls, targets, op] = instruction;
-        std::vector<std::size_t> controlIds;
-        std::transform(controls.begin(), controls.end(),
-                       std::back_inserter(controlIds),
-                       [](const auto &el) { return el.id; });
-        executionContext->kernelResources.appendInstruction(
-            cudaq::Resources::Instruction(gateName, controlIds, targets[0].id));
-      } else {
+      if (!isInTracerMode()) {
         executeInstruction(instruction);
+        continue;
       }
+
+      auto &&[name, params, controls, targets, op] = instruction;
+      executionContext->kernelTrace.appendInstruction(name, params, controls,
+                                                      targets);
     }
     instructionQueue.clear();
   }

@@ -687,7 +687,7 @@ for i in ${SRCS}; do
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
+		run ${CMAKE_FALLBACK_HOST_CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
 		OBJS="${OBJS} ${file}.o"
 		# Go to the next iteration, maybe there
 		# will be cudaq kernels there

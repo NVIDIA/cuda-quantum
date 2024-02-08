@@ -7,8 +7,7 @@
 # ============================================================================ #
 
 # This file builds the development environment that contains the necessary development 
-# dependencies for building a CUDA Quantum Python wheel. It does not include the CUDA,
-# OpenMPI and other dependencies that some of the simulator backends require.
+# dependencies for building a CUDA Quantum Python wheel.
 #
 # Usage:
 # Must be built from the repo root with:
