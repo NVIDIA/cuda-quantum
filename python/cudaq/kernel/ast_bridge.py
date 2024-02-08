@@ -2115,7 +2115,7 @@ def compile_to_mlir(astModule, **kwargs):
     # have the same name as the main kernel here, i.e.
     # ignore kernels that have the same name as this one.
     for funcName in sortedOrder:
-        if funcName != vis.kernelName:
+        if funcName != vis.kernelName and funcName in depKernels:
             bridge.visit(depKernels[funcName])
 
     # Build the MLIR Module for this kernel
