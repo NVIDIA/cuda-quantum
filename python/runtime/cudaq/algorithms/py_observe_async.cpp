@@ -25,8 +25,28 @@ enum class PyParType { thread, mpi };
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
+struct wrappedEagerModeKernel {
+  py::object &kernel;
+  py::args args;
+  void operator()() {
+    py::gil_scoped_acquire gil;
+    kernel(*args);
+  }
+
+  ~wrappedEagerModeKernel() { py::gil_scoped_acquire gil; }
+};
+
+// struct AsyncArgsStorage {
+//   std::vector<py::object> handles;
+//   ~AsyncArgsStorage() {
+//     py::gil_scoped_acquire gil;
+//     for (auto& h : handles)
+//   }
+// };
+static std::vector<py::object> asyncArgs;
+
 async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
-                                    py::args args, std::size_t qpu_id,
+                                    py::args &args, std::size_t qpu_id,
                                     int shots) {
   auto kernelBlockArgs = kernel.attr("arguments");
   if (py::len(kernelBlockArgs) != args.size())
@@ -34,11 +54,45 @@ async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
         "Invalid number of arguments passed to observe_async.");
 
   auto &platform = cudaq::get_platform();
+  auto kernelName = kernel.attr("name").cast<std::string>();
+
+  if (py::hasattr(kernel, "library_mode") &&
+      kernel.attr("library_mode").cast<py::bool_>()) {
+
+    // Here we know we are in eager mode. We do not have a
+    // MLIR Module, we just have the python kernel as a callback.
+    // Great care must be taken here with regards to the
+    // GIL and when pythonic data types (PyObject*) gets
+    // destructed. First, we release the GIL since we are
+    // about to launch a new C++ thread. Within the kernel
+    // functor, we must first acquire the GIL so that we can
+    // invoke the Python callback with the Python *args...
+    // The args were captured by value, so they will be destructed
+    // when the lambda implicit type gets destructed, and the
+    // GIL will not be acquired at that point, leading to issues
+    // in destructing the args. So instead we release ownership
+    // of the py::args, and borrow it to a py::object, which
+    // we store globally. Then it should have ref_count = 1
+    // and when the static vector gets destroyed, the ref_count
+    // will drop to 0 and the PyObject will be deallocated.
+    py::gil_scoped_release release;
+    return details::runObservationAsync(
+        [kernelName, kernel, args]() mutable {
+          // Acquire the gil and call the callback
+          py::gil_scoped_acquire gil;
+          kernel(*args);
+          // Take ownership of the args so they get
+          // deleted when we have GIL ownership
+          asyncArgs.emplace_back(args.release(), true);
+        },
+        spin_operator, platform, shots, kernelName, qpu_id);
+  }
+
+  // The provided kernel is a builder or MLIR kernel
   auto *argData = new cudaq::OpaqueArguments();
   args = simplifiedValidateInputArguments(args);
   cudaq::packArgs(*argData, args,
                   [](OpaqueArguments &, py::object &) { return false; });
-  auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
 
   // Launch the asynchronous execution.

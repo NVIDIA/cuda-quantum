@@ -103,8 +103,10 @@ class PyKernelDecorator(object):
             import astpretty
             astpretty.pprint(self.astModule.body[0])
 
-        # Assign the signature for use later
+        # Assign the signature for use later and
+        # keep a list of arguments (used for validation in the runtime)
         self.signature = inspect.getfullargspec(self.kernelFunction).annotations
+        self.arguments = [(k, v) for k, v in self.signature.items()]
 
         # Run analyzers and attach metadata (only have 1 right now)
         analyzer = MidCircuitMeasurementAnalyzer()

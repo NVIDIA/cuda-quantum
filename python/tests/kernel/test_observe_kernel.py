@@ -177,5 +177,27 @@ def test_observe_list():
     assert np.isclose(want_expectation_value, sum, atol=1e-2)
 
 
-# TODO observe_async
+def test_observe_async():
+    @cudaq.kernel()
+    def kernel0(i:int):
+        q = cudaq.qubit()
+        x(q)
+
+    # Measuring in the Z-basis.
+    hamiltonian = spin.z(0)
+
+    # Call `cudaq.observe()` at the specified number of shots.
+    future = cudaq.observe_async(kernel0,
+                                 hamiltonian, 5,
+                                 qpu_id=0)
+    observe_result = future.get()
+    got_expectation = observe_result.expectation()
+    assert np.isclose(-1., got_expectation, atol=1e-12)
+
+    # Test that this throws an exception, the problem here
+    # is we are on a quantum platform with 1 QPU, and we're asking
+    # to run an async job on the 13th QPU with device id 12.
+    with pytest.raises(Exception) as error:
+        future = cudaq.observe_async(kernel0, hamiltonian, qpu_id=12)
+
 # TODO observe_async spin_op list
