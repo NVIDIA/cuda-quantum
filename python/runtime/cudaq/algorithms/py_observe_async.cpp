@@ -36,14 +36,7 @@ struct wrappedEagerModeKernel {
   ~wrappedEagerModeKernel() { py::gil_scoped_acquire gil; }
 };
 
-// struct AsyncArgsStorage {
-//   std::vector<py::object> handles;
-//   ~AsyncArgsStorage() {
-//     py::gil_scoped_acquire gil;
-//     for (auto& h : handles)
-//   }
-// };
-static std::vector<py::object> asyncArgs;
+static std::vector<py::object> eagerAsyncObserveArgs;
 
 async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
                                     py::args &args, std::size_t qpu_id,
@@ -83,7 +76,7 @@ async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
           kernel(*args);
           // Take ownership of the args so they get
           // deleted when we have GIL ownership
-          asyncArgs.emplace_back(args.release(), true);
+          eagerAsyncObserveArgs.emplace_back(args.release(), true);
         },
         spin_operator, platform, shots, kernelName, qpu_id);
   }
@@ -97,13 +90,12 @@ async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
 
   // Launch the asynchronous execution.
   py::gil_scoped_release release;
-  auto ret = details::runObservationAsync(
+  return details::runObservationAsync(
       [argData, kernelName, kernelMod]() mutable {
         pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
         delete argData;
       },
       spin_operator, platform, shots, kernelName, qpu_id);
-  return ret;
 }
 
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.

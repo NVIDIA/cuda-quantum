@@ -133,3 +133,15 @@ def test_broadcast():
     for i, c in enumerate(allCounts):
         print(runtimeAngles[i, :], c)
         assert len(c) == 2
+
+
+def test_sample_async():
+    @cudaq.kernel()
+    def kernel0(i:int):
+        q = cudaq.qubit()
+        x(q)
+
+    future = cudaq.sample_async(kernel0, 5,
+                                 qpu_id=0)
+    sample_result = future.get()
+    assert '1' in sample_result and len(sample_result) == 1
