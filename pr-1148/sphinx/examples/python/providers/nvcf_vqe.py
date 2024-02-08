@@ -57,6 +57,6 @@ def opt_gradient(parameter_vector):
 
 
 optimizer = cudaq.optimizers.LBFGS()
-optimal_value, optimal_parameters = optimizer.optimize(1, opt_gradient)
+optimal_value, optimal_parameters = optimizer.optimize(/*dim=*/1, opt_gradient)
 print("Ground state energy =", optimal_value)
 print("Optimal parameters =", optimal_parameters)
