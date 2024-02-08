@@ -8,22 +8,34 @@
 
 # Unzip utility based on libz.
 # Minizip is an addon library, not included by default in the official libz distribution.
-# Here, we try to find the minizip library (e.g., if using `install_prerequisites.sh` to build libz).
-# If failed to locate minizip, download minizip (unzip functionality) and compile directly.  
+# Hence, we require libz installation via the `install_prerequisites.sh` script, which does install minizip.
 add_library(unzip_util STATIC helpers/UnzipUtils.cpp)
 target_link_libraries(unzip_util PRIVATE fmt::fmt-header-only)
 target_include_directories(unzip_util PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)
 find_package(PkgConfig)
 # By default, Minizip has package config (.pc) file.
 # If CMake can find PkgConfig, use it to find minizip
-if (PkgConfig_FOUND) 
+find_path(MINIZIP_PKG_CONFIG_DIR NAMES minizip.pc
+  HINTS 
+    ${ZLIB_ROOT}/lib/pkgconfig
+    $ENV{ZLIB_INSTALL_PREFIX}/lib/pkgconfig
+    ${ZLIB_INCLUDE_DIR}/../lib/pkgconfig
+)
+if (PkgConfig_FOUND AND MINIZIP_PKG_CONFIG_DIR) 
+  set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${MINIZIP_PKG_CONFIG_DIR}")
   pkg_check_modules(MINI_ZIP IMPORTED_TARGET minizip)
   if (MINI_ZIP_FOUND)
     target_link_libraries(unzip_util PRIVATE PkgConfig::MINI_ZIP)
+    target_include_directories(unzip_util PRIVATE ${ZLIB_INCLUDE_DIR})  
   endif()
 else()
   # No PkgConfig, locate the lib manually
-  find_library(MINI_ZIP_LIB NAMES minizip)
+  find_library(MINI_ZIP_LIB NAMES minizip
+    HINTS 
+      ${ZLIB_ROOT}
+      $ENV{ZLIB_INSTALL_PREFIX}
+      ${ZLIB_INCLUDE_DIR}/../lib
+  )
   get_filename_component(MINI_LIB_DIR ${MINI_ZIP_LIB} DIRECTORY)
   find_file(MINI_UNZIP_INC NAMES unzip.h 
     HINTS 
@@ -31,27 +43,16 @@ else()
       ${MINI_LIB_DIR}/../include/minizip
   )
   if (MINI_ZIP_LIB AND MINI_UNZIP_INC)
-    message(STATUS "Minizip found: ${MINI_ZIP_LIB}/${MINI_UNZIP_INC}")
+    message(STATUS "Minizip found: ${MINI_ZIP_LIB} and ${MINI_UNZIP_INC}")
     target_link_libraries(unzip_util PRIVATE ${MINI_ZIP_LIB})
     get_filename_component(MINI_INCLUDE_DIR ${MINI_UNZIP_INC} DIRECTORY)
-    target_include_directories(unzip_util PRIVATE ${MINI_INCLUDE_DIR})  
+    target_include_directories(unzip_util PRIVATE ${MINI_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})  
     set(MINI_ZIP_FOUND TRUE)
   endif()
 endif()
 
 if (NOT MINI_ZIP_FOUND)
-  message(STATUS "Minizip NOT found. Trying to build it from source...")
-  # Using version 1.3
-  set(ZLIB_VERSION v1.3)
-  file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/unzip.h ${CMAKE_CURRENT_BINARY_DIR}/unzip.h)
-  file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/unzip.c ${CMAKE_CURRENT_BINARY_DIR}/unzip.c)
-  file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/ioapi.h ${CMAKE_CURRENT_BINARY_DIR}/ioapi.h)
-  file(DOWNLOAD https://raw.githubusercontent.com/madler/zlib/${ZLIB_VERSION}/contrib/minizip/ioapi.c ${CMAKE_CURRENT_BINARY_DIR}/ioapi.c)
-  # Build the lib directly
-  add_library(mini_unzip STATIC ${CMAKE_CURRENT_BINARY_DIR}/unzip.c ${CMAKE_CURRENT_BINARY_DIR}/ioapi.c)
-  target_link_libraries(mini_unzip PRIVATE z)
-  target_link_libraries(unzip_util PRIVATE mini_unzip)
-  target_include_directories(unzip_util PRIVATE ${CMAKE_CURRENT_BINARY_DIR})    
+  message(FATAL_ERROR "Minizip from zLib NOT found. Please run the 'install_prerequisites.sh' script to install zLib with Minizip")
 endif()
 
 set(LIBRARY_NAME rest-remote-platform-client)
