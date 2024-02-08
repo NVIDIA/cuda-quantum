@@ -23,7 +23,7 @@ public:
 
 private:
   /// @brief Pointer to an array of data representing the matrix
-  std::unique_ptr<value_type> internalOwnedData;
+  std::unique_ptr<value_type[]> internalOwnedData;
 
   /// @brief Raw pointer to the data, whether it is
   /// owned or not. This is what should be used primarily

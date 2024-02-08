@@ -7,14 +7,7 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "cudaq/qis/execution_manager.h"
-
-#include <complex>
-#include <functional>
-#include <map>
-#include <queue>
-#include <stack>
 
 namespace cudaq {
 
@@ -41,29 +34,24 @@ protected:
                                  std::vector<cudaq::QuditInfo>, spin_op>;
 
   /// @brief `typedef` for a queue of instructions
-  using InstructionQueue = std::queue<Instruction>;
+  using InstructionQueue = std::vector<Instruction>;
 
-  /// @brief The current execution context, e.g. sampling
-  /// or observation
+  /// @brief The current execution context, e.g. sampling or observation
   cudaq::ExecutionContext *executionContext = nullptr;
 
-  /// @brief Store qudits for delayed deletion under
-  /// certain execution contexts
+  /// @brief Store qudits for delayed deletion under certain execution contexts
   std::vector<QuditInfo> contextQuditIdsForDeletion;
 
   /// @brief The current queue of operations to execute
   InstructionQueue instructionQueue;
 
-  /// @brief When adjoint operations are requested
-  /// we can store them here for delayed execution
-  std::stack<InstructionQueue> adjointQueueStack;
+  /// @brief When adjoint operations are requested we can store them here for
+  /// delayed execution
+  std::vector<InstructionQueue> adjointQueueStack;
 
-  /// @brief When we are in a control region, we
-  /// need to store extra control qudit ids.
+  /// @brief When we are in a control region, we need to store extra control
+  /// qudit ids.
   std::vector<std::size_t> extraControlIds;
-
-  /// @brief Flag to indicate we are in an adjoint region
-  bool inAdjointRegion = false;
 
   /// @brief Subtype-specific qudit allocation method
   virtual void allocateQudit(const QuditInfo &q) = 0;
@@ -78,16 +66,15 @@ protected:
   /// all qudits in the vector.
   virtual void deallocateQudits(const std::vector<QuditInfo> &qudits) = 0;
 
-  /// @brief Subtype-specific handler for when
-  // the execution context changes
+  /// @brief Subtype-specific handler for when the execution context changes
   virtual void handleExecutionContextChanged() = 0;
 
-  /// @brief Subtype-specific handler for when the
-  /// current execution context has ended.
+  /// @brief Subtype-specific handler for when the current execution context has
+  /// ended.
   virtual void handleExecutionContextEnded() = 0;
 
-  /// @brief Subtype-specific method for affecting the
-  /// execution of a queued instruction.
+  /// @brief Subtype-specific method for affecting the execution of a queued
+  /// instruction.
   virtual void executeInstruction(const Instruction &inst) = 0;
 
   /// @brief Subtype-specific method for performing qudit measurement.
@@ -98,7 +85,6 @@ protected:
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
 
   /// @brief Subtype-specific method for performing qudit reset.
-  /// @param q Qudit to reset
   virtual void resetQudit(const QuditInfo &q) = 0;
 
 public:
@@ -108,9 +94,7 @@ public:
   void setExecutionContext(cudaq::ExecutionContext *_ctx) override {
     executionContext = _ctx;
     handleExecutionContextChanged();
-    while (!instructionQueue.empty()) {
-      instructionQueue.pop();
-    }
+    instructionQueue.clear();
   }
 
   void resetExecutionContext() override {
@@ -162,44 +146,30 @@ public:
     contextQuditIdsForDeletion.push_back(qid);
   }
 
-  void startAdjointRegion() override { adjointQueueStack.emplace(); }
+  void startAdjointRegion() override { adjointQueueStack.emplace_back(); }
 
   void endAdjointRegion() override {
-    // Get the top queue and remove it
-    auto adjointQueue = adjointQueueStack.top();
-    adjointQueueStack.pop();
+    assert(!adjointQueueStack.empty() && "There must be at least one queue");
 
-    // Reverse it
-    [](InstructionQueue &q) {
-      std::stack<Instruction> s;
-      while (!q.empty()) {
-        s.push(q.front());
-        q.pop();
-      }
-      while (!s.empty()) {
-        q.push(s.top());
-        s.pop();
-      }
-    }(adjointQueue);
+    auto adjointQueue = std::move(adjointQueueStack.back());
+    adjointQueueStack.pop_back();
 
-    while (!adjointQueue.empty()) {
-      auto front = adjointQueue.front();
-      adjointQueue.pop();
-      if (adjointQueueStack.empty()) {
-        instructionQueue.push(front);
-      } else {
-        adjointQueueStack.top().push(front);
-      }
-    }
+    // Select the queue to which these instructions will be added.
+    InstructionQueue *queue = adjointQueueStack.empty()
+                                  ? &instructionQueue
+                                  : &(adjointQueueStack.back());
+
+    std::reverse(adjointQueue.begin(), adjointQueue.end());
+    for (auto &instruction : adjointQueue)
+      queue->push_back(instruction);
   }
 
   void startCtrlRegion(const std::vector<std::size_t> &controls) override {
-    for (auto &c : controls)
+    for (auto c : controls)
       extraControlIds.push_back(c);
   }
 
   void endCtrlRegion(const std::size_t n_controls) override {
-    // extra_control_qubits.erase(end - n_controls, end);
     extraControlIds.resize(extraControlIds.size() - n_controls);
   }
 
@@ -240,20 +210,18 @@ public:
 
     if (!adjointQueueStack.empty()) {
       // Add to the adjoint instruction queue
-      adjointQueueStack.top().emplace(std::make_tuple(
-          mutable_name, mutable_params, mutable_controls, mutable_targets, op));
+      adjointQueueStack.back().emplace_back(
+          mutable_name, mutable_params, mutable_controls, mutable_targets, op);
       return;
     }
 
     // Add to the instruction queue
-    instructionQueue.emplace(std::make_tuple(std::move(mutable_name),
-                                             mutable_params, mutable_controls,
-                                             mutable_targets, op));
+    instructionQueue.emplace_back(std::move(mutable_name), mutable_params,
+                                  mutable_controls, mutable_targets, op);
   }
 
   void synchronize() override {
-    while (!instructionQueue.empty()) {
-      auto instruction = instructionQueue.front();
+    for (auto &instruction : instructionQueue) {
       if (isInTracerMode()) {
         auto [gateName, params, controls, targets, op] = instruction;
         std::vector<std::size_t> controlIds;
@@ -265,8 +233,8 @@ public:
       } else {
         executeInstruction(instruction);
       }
-      instructionQueue.pop();
     }
+    instructionQueue.clear();
   }
 
   int measure(const cudaq::QuditInfo &target,
