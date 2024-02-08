@@ -24,13 +24,19 @@ find_path(MINIZIP_PKG_CONFIG_DIR NAMES minizip.pc
 if (PkgConfig_FOUND AND MINIZIP_PKG_CONFIG_DIR) 
   set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${MINIZIP_PKG_CONFIG_DIR}")
   pkg_check_modules(MINI_ZIP IMPORTED_TARGET minizip)
+  # Make sure that we link to minizip static library
   if (MINI_ZIP_FOUND)
-    target_link_libraries(unzip_util PRIVATE PkgConfig::MINI_ZIP)
-    target_include_directories(unzip_util PRIVATE ${ZLIB_INCLUDE_DIR})  
+    find_library(MINI_ZIP_LIB NAMES libminizip.a
+      HINTS 
+        ${MINI_ZIP_LIBRARY_DIRS}
+    )
+    target_link_libraries(unzip_util PRIVATE ${MINI_ZIP_LIB})
+    target_include_directories(unzip_util PRIVATE ${ZLIB_INCLUDE_DIR} ${MINI_ZIP_INCLUDE_DIRS})  
   endif()
 else()
   # No PkgConfig, locate the lib manually
-  find_library(MINI_ZIP_LIB NAMES minizip
+  # Make sure that we find minizip static library
+  find_library(MINI_ZIP_LIB NAMES libminizip.a
     HINTS 
       ${ZLIB_ROOT}
       $ENV{ZLIB_INSTALL_PREFIX}
