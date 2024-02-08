@@ -51,6 +51,7 @@ if(OPENSSL_FOUND)
                        GIT_REPOSITORY https://github.com/libcpr/cpr.git
                        GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) 
   set(CURL_STATICLIB ON)
+  set(CURL_USE_STATIC_LIBS TRUE)
   find_package(CURL COMPONENTS HTTP HTTPS)
   if (CURL_FOUND)
     message(STATUS "Using system curl for CPR.")
