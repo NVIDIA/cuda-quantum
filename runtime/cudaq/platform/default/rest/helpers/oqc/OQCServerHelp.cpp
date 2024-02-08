@@ -108,7 +108,7 @@ std::string get_from_config(BackendConfig config, const std::string &key,
   return item;
 }
 
-void check_machine_allowed(std::string& machine){
+void check_machine_allowed(const std::string& machine){
   if(Machines.find(machine) == Machines.end()){
      std::string allowed;
      for (const auto &machine : Machines)
