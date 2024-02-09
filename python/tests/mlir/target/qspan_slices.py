@@ -16,15 +16,13 @@ import numpy as np
 
 import cudaq
 
-cudaq.enable_jit()
-
-@cudaq.kernel 
+@cudaq.kernel(jit=True)
 def bar(qubits:cudaq.qview):
     controls = qubits.front(qubits.size() - 1)
     target = qubits.back()
     x.ctrl(controls, target)
 
-@cudaq.kernel
+@cudaq.kernel(jit=True)
 def foo():
     q = cudaq.qlist(4)
     x(q)

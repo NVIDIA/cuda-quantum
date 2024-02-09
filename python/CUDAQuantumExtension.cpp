@@ -32,6 +32,7 @@
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
@@ -46,6 +47,14 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindRegisterDialects(m);
 
   auto cudaqRuntime = m.def_submodule("cudaq_runtime");
+  cudaqRuntime.def(
+      "registerLLVMDialectTranslation",
+      [](MlirContext ctx) {
+        mlir::registerLLVMDialectTranslation(*unwrap(ctx));
+      },
+      "Utility function for Python clients to register all LLVM Dialect "
+      "Translation passes with the provided MLIR Context. Primarily used by "
+      "kernel_builder and ast_bridge when created new MLIR Contexts.");
   cudaqRuntime.def(
       "initialize_cudaq",
       [&](py::kwargs kwargs) {

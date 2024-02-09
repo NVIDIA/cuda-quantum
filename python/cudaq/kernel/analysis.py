@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import ast, inspect
+import ast, inspect, importlib
 from .utils import globalAstRegistry, globalKernelRegistry, mlirTypeFromAnnotation
 from ..mlir.dialects import cc
 from ..mlir.ir import *
@@ -193,6 +193,7 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
     def __init__(self, ctx):
         self.depKernels = {}
         self.context = ctx
+        self.kernelName = ''
 
     def visit_FunctionDef(self, node):
         """
@@ -202,6 +203,7 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
         of `ModuleOps` that contain all the functions necessary to inline and 
         synthesize callable block arguments.
         """
+        self.kernelName = node.name
         for arg in node.args.args:
             annotation = arg.annotation
             if annotation == None:
@@ -235,7 +237,30 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                           ast.Name) and node.func.id in globalAstRegistry:
                 self.depKernels[node.func.id] = globalAstRegistry[node.func.id]
             elif isinstance(node.func, ast.Attribute):
-                if node.func.value.id == 'cudaq' and node.func.attr in [
+                # May need to somehow import a library kernel, find
+                # all module names in a mod1.mod2.mod3.function type call
+                moduleNames = []
+                value = node.func.value
+                while isinstance(value, ast.Attribute):
+                    moduleNames.append(value.attr)
+                    value = value.value
+                    if isinstance(value, ast.Name):
+                        moduleNames.append(value.id)
+                        break
+
+                if len(moduleNames):
+                    moduleNames.reverse()
+                    # This will throw if the function / module is invalid
+                    m = importlib.import_module('.'.join(moduleNames))
+                    getattr(m, node.func.attr)
+                    self.depKernels[node.func.attr] = globalAstRegistry[
+                        node.func.attr]
+
+                elif hasattr(node.func,
+                             'attr') and node.func.attr in globalAstRegistry:
+                    self.depKernels[node.func.attr] = globalAstRegistry[
+                        node.func.attr]
+                elif node.func.value.id == 'cudaq' and node.func.attr in [
                         'control', 'adjoint'
                 ] and node.args[0].id in globalAstRegistry:
                     self.depKernels[node.args[0].id] = globalAstRegistry[

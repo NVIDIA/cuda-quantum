@@ -128,6 +128,7 @@ for more information on this programming pattern.)#")
         return f;
       }))
       .def("get", &async_observe_result::get,
+           py::call_guard<py::gil_scoped_release>(),
            "Returns the :class:`ObserveResult` from the asynchronous observe "
            "execution.")
       .def("__str__", [](async_observe_result &self) {
