@@ -851,6 +851,20 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id in ['mx', 'my', 'mz']:
+                registerName = self.currentAssignVariableName
+                # By default we set the `register_name` for the measurement
+                # to the assigned variable name (if there is one). But
+                # the use could have manually specified `register_name='something'`
+                # check for that here and use it there
+                if len(node.keywords) == 1 and hasattr(node.keywords[0], 'arg'):
+                    if node.keywords[0].arg == 'register_name':
+                        userProvidedRegName = node.keywords[0]
+                        if not isinstance(userProvidedRegName.value,
+                                          ast.Constant):
+                            raise RuntimeError(
+                                "measurement register_name keyword must be a constant string literal."
+                            )
+                        registerName = userProvidedRegName.value.value
                 qubit = self.popValue()
                 opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
                 i1Ty = self.getIntegerType(1)
@@ -860,9 +874,8 @@ class PyASTBridge(ast.NodeVisitor):
                     self.ctx) if quake.RefType.isinstance(
                         qubit.type) else cc.StdvecType.get(
                             self.ctx, quake.MeasureType.get(self.ctx))
-                measureResult = opCtor(
-                    measTy, [], [qubit],
-                    registerName=self.currentAssignVariableName).result
+                measureResult = opCtor(measTy, [], [qubit],
+                                       registerName=registerName).result
                 self.pushValue(
                     quake.DiscriminateOp(resTy, measureResult).result)
                 return
