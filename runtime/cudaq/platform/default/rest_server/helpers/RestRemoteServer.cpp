@@ -79,6 +79,17 @@ class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   // since cudaq runtime relies on that.
   static constexpr const char *DEFAULT_NVQIR_SIMULATION_BACKEND = "qpp";
 
+protected:
+  // Method to filter incoming request.
+  // The request is only handled iff this returns true.
+  // When returning false, `outValidationMessage` can be used to report the
+  // error message.
+  virtual bool filterRequest(const cudaq::RestRequest &in_request,
+                             std::string &outValidationMessage) const {
+    // Default is no filter.
+    return true;
+  }
+
 public:
   RemoteRestRuntimeServer()
       : cudaq::RemoteRuntimeServer(),
@@ -414,6 +425,15 @@ private:
       static std::size_t g_requestCounter = 0;
       auto requestJson = json::parse(reqBody);
       cudaq::RestRequest request(requestJson);
+      std::string validationMsg;
+      const bool shouldHandle = filterRequest(request, validationMsg);
+      if (!shouldHandle) {
+        json resultJson;
+        resultJson["status"] = "Invalid Request";
+        resultJson["errorMessage"] = validationMsg;
+        return resultJson;
+      }
+
       const auto reqId = g_requestCounter++;
       m_codeTransform[reqId] =
           CodeTransformInfo(request.format, request.passes);
@@ -437,6 +457,23 @@ private:
     }
   }
 };
+
+// Runtime server for NVCF
+class NvcfRuntimeServer : public RemoteRestRuntimeServer {
+protected:
+  virtual bool filterRequest(const cudaq::RestRequest &in_request,
+                             std::string &outValidationMessage) const override {
+    // We only support MLIR payload on the NVCF server.
+    if (in_request.format != cudaq::CodeFormat::MLIR) {
+      outValidationMessage =
+          "Unsupported input format: only CUDA Quantum MLIR data is allowed.";
+      return false;
+    }
+
+    return true;
+  }
+};
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, RemoteRestRuntimeServer, rest)
+CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, NvcfRuntimeServer, nvcf)

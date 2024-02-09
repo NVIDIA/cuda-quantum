@@ -41,6 +41,7 @@
 #include "cudaq.h"
 #include <dlfcn.h>
 #include <fstream>
+#include <iostream>
 #include <streambuf>
 
 namespace {
@@ -74,6 +75,7 @@ class RemoteRestRuntimeClient : public cudaq::RemoteRuntimeClient {
       "inline",
       "canonicalize",
       "apply-op-specialization",
+      "func.func(apply-control-negations)",
       "func.func(memtoreg{quantum=0})",
       "canonicalize",
       "expand-measurements",
@@ -240,9 +242,20 @@ public:
           restClient.post(m_url, "job", requestJson, headers, false);
 
       if (!resultJs.contains("executionContext")) {
+        std::stringstream errorMsg;
+        if (resultJs.contains("status")) {
+          errorMsg << "Failed to execute the kernel on the remote server: "
+                   << resultJs["status"] << "\n";
+          if (resultJs.contains("errorMessage")) {
+            errorMsg << "Error message: " << resultJs["errorMessage"] << "\n";
+          }
+        } else {
+          errorMsg << "Failed to execute the kernel on the remote server.\n";
+          errorMsg << "Unexpected response from the REST server. Missing the "
+                      "required field 'executionContext'.";
+        }
         if (optionalErrorMsg)
-          *optionalErrorMsg = "Unexpected response from the REST server. "
-                              "Missing the required field 'executionContext'.";
+          *optionalErrorMsg = errorMsg.str();
         return false;
       }
       resultJs["executionContext"].get_to(io_context);
@@ -396,6 +409,14 @@ public:
             kernelName;
       return false;
     }
+
+    if (request.format != cudaq::CodeFormat::MLIR) {
+      // The `.config` file may have been tampered with.
+      std::cerr << "Internal error: unsupported kernel IR detected.\nThis may "
+                   "indicate a corrupted CUDA Quantum installation.";
+      std::abort();
+    }
+
     // Max message size that we can send in the body
     constexpr std::size_t MAX_SIZE_BYTES = 250000; // 250 KB
     json requestJson;

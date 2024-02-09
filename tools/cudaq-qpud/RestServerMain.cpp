@@ -31,7 +31,22 @@ int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv, "CUDA Quantum REST server\n");
   if (cudaq::mpi::available())
     cudaq::mpi::initialize();
-  auto restServer = cudaq::registry::get<cudaq::RemoteRuntimeServer>("rest");
+  std::string serverType = "rest";
+  // Check environment variable for any specific server subtype.
+  if (auto serverSubType = std::getenv("CUDAQ_SERVER_TYPE")) {
+    if (cudaq::registry::isRegistered<cudaq::RemoteRuntimeServer>(
+            serverSubType)) {
+      printf("[cudaq-qpud] Using server subtype: %s\n", serverSubType);
+      serverType = serverSubType;
+    } else {
+      throw std::runtime_error(
+          std::string("[cudaq-qpud] Unknown server sub-type requested: ") +
+          std::string(serverSubType));
+    }
+  }
+
+  auto restServer =
+      cudaq::registry::get<cudaq::RemoteRuntimeServer>(serverType);
   restServer->init({{"port", std::to_string(port)}});
   restServer->start();
   if (cudaq::mpi::available())
