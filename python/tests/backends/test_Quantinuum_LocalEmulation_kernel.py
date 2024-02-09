@@ -84,12 +84,11 @@ def test_quantinuum_observe():
     res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100000)
     assert assert_close(res.expectation())
 
-    ## [SKIP_TEST] : Reason - 'cudaq.observe_async' fails with "AttributeError: 'PyKernelDecorator' object has no attribute 'arguments'"
-    # # Launch it asynchronously, enters the job into the queue
-    # future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
-    # # Retrieve the results (since we're emulating)
-    # res = future.get()
-    # assert assert_close(res.expectation())
+    # Launch it asynchronously, enters the job into the queue
+    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
+    # Retrieve the results (since we're emulating)
+    res = future.get()
+    assert assert_close(res.expectation())
 
 
 def test_quantinuum_exp_pauli():
@@ -111,12 +110,11 @@ def test_quantinuum_exp_pauli():
     res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100000)
     assert assert_close(res.expectation())
 
-    ## [SKIP_TEST] : Reason - 'cudaq.observe_async' fails with "AttributeError: 'PyKernelDecorator' object has no attribute 'arguments'"
-    # # Launch it asynchronously, enters the job into the queue
-    # future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
-    # # Retrieve the results (since we're emulating)
-    # res = future.get()
-    # assert assert_close(res.expectation())
+    # Launch it asynchronously, enters the job into the queue
+    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
+    # Retrieve the results (since we're emulating)
+    res = future.get()
+    assert assert_close(res.expectation())
 
 
 # leave for gdb debugging

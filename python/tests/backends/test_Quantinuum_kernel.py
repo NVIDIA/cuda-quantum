@@ -128,25 +128,24 @@ def test_quantinuum_observe():
     res = cudaq.observe(ansatz, hamiltonian, .59)
     assert assert_close(res.expectation())
 
-    ## [SKIP_TEST] : Reason - 'cudaq.observe_async' fails with "AttributeError: 'PyKernelDecorator' object has no attribute 'arguments'"
-    # # Launch it asynchronously, enters the job into the queue
-    # future = cudaq.observe_async(ansatz, hamiltonian, .59)
-    # # Retrieve the results (since we're on a mock server)
-    # res = future.get()
-    # assert assert_close(res.expectation())
+    # Launch it asynchronously, enters the job into the queue
+    future = cudaq.observe_async(ansatz, hamiltonian, .59)
+    # Retrieve the results (since we're on a mock server)
+    res = future.get()
+    assert assert_close(res.expectation())
 
-    # # Launch the job async, job goes in the queue, and
-    # # we're free to dump the future to file
-    # future = cudaq.observe_async(ansatz, hamiltonian, .59)
-    # print(future)
-    # futureAsString = str(future)
+    # Launch the job async, job goes in the queue, and
+    # we're free to dump the future to file
+    future = cudaq.observe_async(ansatz, hamiltonian, .59)
+    print(future)
+    futureAsString = str(future)
 
-    # # Later you can come back and read it in
-    # # You must provide the spin_op so we can reconstruct
-    # # the results from the term job ids.
-    # futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
-    # res = futureReadIn.get()
-    # assert assert_close(res.expectation())
+    # Later you can come back and read it in
+    # You must provide the spin_op so we can reconstruct
+    # the results from the term job ids.
+    futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
+    res = futureReadIn.get()
+    assert assert_close(res.expectation())
 
 
 # leave for gdb debugging
