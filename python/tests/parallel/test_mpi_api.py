@@ -15,8 +15,6 @@ skipIfUnsupported = pytest.mark.skipif(importlib.util.find_spec('mpi4py')
                                        reason="mpi4py not found")
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'mlir_cudaq._mlir_libs._quakeDialects.cudaq_runtime.mpi' has no attribute 'broadcast'")
 @skipIfUnsupported
 def testMPI():
     cudaq.mpi.initialize()

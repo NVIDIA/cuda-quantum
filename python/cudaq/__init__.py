@@ -39,6 +39,7 @@ qreg = cudaq_runtime.qvector
 # Optimizers + Gradients
 optimizers = cudaq_runtime.optimizers
 gradients = cudaq_runtime.gradients
+OptimizationResult = cudaq_runtime.OptimizationResult
 
 # Runtime Functions
 initialize_cudaq = cudaq_runtime.initialize_cudaq

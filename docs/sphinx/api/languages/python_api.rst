@@ -141,9 +141,8 @@ Data Types
 .. .. autoclass:: cudaq::AsyncStateResult
 ..     :members:
 
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'OptimizationResult'
-.. .. autoclass:: cudaq::OptimizationResult
-..     :members:
+.. autoclass:: cudaq::OptimizationResult
+    :members:
 
 
 Optimizers
