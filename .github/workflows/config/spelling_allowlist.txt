@@ -27,6 +27,8 @@ GPU
 GPUs
 GitHub
 HPC
+HTTP
+HTTPS
 Hadamard
 Hadamards
 Hamiltonian
@@ -49,6 +51,7 @@ MSB
 Max-Cut
 MyST
 NGC
+NVCF
 NVIDIA
 NVQIR
 OQC
@@ -59,6 +62,7 @@ OpenQASM
 OpenSSL
 OpenSUSE
 POSIX
+PSIRT
 Pauli
 Paulis
 PyPI
@@ -88,6 +92,7 @@ VQE
 Vazirani
 WSL
 accessor
+acknowledgement
 adjoint
 al
 ancilla

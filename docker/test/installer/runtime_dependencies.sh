@@ -34,7 +34,7 @@ esac
 CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
 CUDA_DISTRIBUTION=${CUDA_DISTRIBUTION:-'rhel9'} # not really a great option, but allows some basic testing
 CUDA_VERSION_SUFFIX=$(echo ${CUDART_VERSION:-'11.8'} | tr . -)
-CUDA_PACKAGES=$(echo "cuda-cudart cuda-nvtx libcusolver libcublas" | sed "s/[^ ]*/&-${CUDA_VERSION_SUFFIX} /g")
+CUDA_PACKAGES=$(echo "cuda-cudart libcusolver libcublas" | sed "s/[^ ]*/&-${CUDA_VERSION_SUFFIX} /g")
 CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 if [ "$pkg_manager" == "apt-get" ]; then

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "Trace.h"
 #include <ostream>
 #include <unordered_map>
 #include <vector>
@@ -28,6 +29,8 @@ private:
   };
 
 public:
+  static Resources compute(const Trace &trace);
+
   /// @brief The Resources::Instruction is a data type that
   /// encapsulates the name of a quantum operation, the set of
   /// optional control indices, and the target qubit index.

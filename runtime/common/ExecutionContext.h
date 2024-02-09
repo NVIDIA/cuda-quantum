@@ -11,7 +11,7 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
-#include "Resources.h"
+#include "Trace.h"
 #include <optional>
 #include <string_view>
 
@@ -68,7 +68,7 @@ public:
 
   /// @brief When run under the tracer context, persist the
   /// traced quantum resources here.
-  Resources kernelResources;
+  Trace kernelTrace;
 
   /// @brief The name of the kernel being executed.
   std::string kernelName = "";
