@@ -181,6 +181,7 @@ class PyKernel(object):
         self.ctx = Context()
         quake.register_dialect(self.ctx)
         cc.register_dialect(self.ctx)
+        cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
 
         self.metadata = {'conditionalOnMeasure': False}
         self.regCounter = 0
@@ -986,7 +987,6 @@ class PyKernel(object):
             else:
                 processedArgs.append(arg)
 
-        print("HELLO: ", processedArgs)
         cudaq_runtime.pyAltLaunchKernel(self.name, self.module, *processedArgs)
 
 

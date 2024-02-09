@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 import ast
+import graphlib
 import sys
 from typing import Callable
 from collections import deque
@@ -58,6 +59,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.ctx = Context()
             quake.register_dialect(self.ctx)
             cc.register_dialect(self.ctx)
+            cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
             self.loc = Location.unknown(context=self.ctx)
             self.module = Module.create(loc=self.loc)
 
@@ -608,10 +610,51 @@ class PyASTBridge(ast.NodeVisitor):
             print("[Visit Call] {}".format(ast.unparse(node)))
 
         # do not walk the FunctionDef decorator_list arguments
-        if isinstance(
-                node.func, ast.Attribute
-        ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
-            return
+        if isinstance(node.func, ast.Attribute):
+            if hasattr(
+                    node.func.value, 'id'
+            ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
+                return
+
+            # If we have a `func = ast.Attribute``, then it could be that
+            # we have a previously defined kernel function call with manually specified module names
+            # e.g. `cudaq.lib.test.hello.fermionic_swap``. In this case, we assume
+            # FindDepKernels has found something like this, loaded it, and now we just
+            # want to get the function name and call it.
+
+            # Start by seeing if we have mod1.mod2.mod3...
+            moduleNames = []
+            value = node.func.value
+            while isinstance(value, ast.Attribute):
+                moduleNames.append(value.attr)
+                value = value.value
+                if isinstance(value, ast.Name):
+                    moduleNames.append(value.id)
+                    break
+
+            # If we did have module names, then this is what we are looking for
+            if len(moduleNames):
+                if not node.func.attr in globalKernelRegistry:
+                    moduleNames.reverse()
+                    raise RuntimeError(
+                        "{}.{} is not a valid quantum kernel to call.".format(
+                            '.'.join(moduleNames), node.func.attr))
+
+                # Iy is in `globalKernelRegistry`, it has to be in this Module
+                otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
+                                                                 node.func.attr]
+                fType = otherKernel.type
+                if len(fType.inputs) != len(node.args):
+                    raise RuntimeError(
+                        "invalid number of arguments passed to callable {} ({} vs required {})"
+                        .format(node.func.id, len(node.args),
+                                len(fType.inputs)))
+
+                [self.visit(arg) for arg in node.args]
+                values = [self.popValue() for _ in node.args]
+                values.reverse()
+                func.CallOp(otherKernel, values)
+                return
 
         if isinstance(node.func, ast.Name):
             # Just visit the arguments, we know the name
@@ -808,6 +851,20 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id in ['mx', 'my', 'mz']:
+                registerName = self.currentAssignVariableName
+                # By default we set the `register_name` for the measurement
+                # to the assigned variable name (if there is one). But
+                # the use could have manually specified `register_name='something'`
+                # check for that here and use it there
+                if len(node.keywords) == 1 and hasattr(node.keywords[0], 'arg'):
+                    if node.keywords[0].arg == 'register_name':
+                        userProvidedRegName = node.keywords[0]
+                        if not isinstance(userProvidedRegName.value,
+                                          ast.Constant):
+                            raise RuntimeError(
+                                "measurement register_name keyword must be a constant string literal."
+                            )
+                        registerName = userProvidedRegName.value.value
                 qubit = self.popValue()
                 opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
                 i1Ty = self.getIntegerType(1)
@@ -817,9 +874,8 @@ class PyASTBridge(ast.NodeVisitor):
                     self.ctx) if quake.RefType.isinstance(
                         qubit.type) else cc.StdvecType.get(
                             self.ctx, quake.MeasureType.get(self.ctx))
-                measureResult = opCtor(
-                    measTy, [], [qubit],
-                    registerName=self.currentAssignVariableName).result
+                measureResult = opCtor(measTy, [], [qubit],
+                                       registerName=registerName).result
                 self.pushValue(
                     quake.DiscriminateOp(resTy, measureResult).result)
                 return
@@ -1082,9 +1138,8 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.value.id in ['h', 'x', 'y', 'z', 's', 't'
                                      ] and node.func.attr == 'ctrl':
                 target = self.popValue()
-                controls = [
-                    self.popValue() for i in range(len(self.valueStack))
-                ]
+                # Should be number of arguments minus one for the controls
+                controls = [self.popValue() for i in range(len(node.args) - 1)]
                 negatedControlQubits = None
                 if len(self.controlNegations):
                     negCtrlBools = [None] * len(controls)
@@ -2041,8 +2096,40 @@ def compile_to_mlir(astModule, **kwargs):
     vis.visit(astModule)
     depKernels = vis.depKernels
 
-    # Add all dependent kernels to the MLIR Module
-    [bridge.visit(ast) for _, ast in depKernels.items()]
+    # Keep track of a kernel call graph, we will
+    # sort this later after we build up the graph
+    callGraph = {vis.kernelName: {k for k, v in depKernels.items()}}
+
+    # Visit dependent kernels recursively to
+    # ensure we have all necessary kernels added to the
+    # module
+    transitiveDeps = depKernels
+    while len(transitiveDeps):
+        # For each found dependency, see if that kernel
+        # has further dependencies
+        for depKernelName, depKernelAst in transitiveDeps.items():
+            localVis = FindDepKernelsVisitor(bridge.ctx)
+            localVis.visit(depKernelAst)
+            # Append the found dependencies to our running tally
+            depKernels = {**depKernels, **localVis.depKernels}
+            # Reset for the next go around
+            transitiveDeps = localVis.depKernels
+            # Update the call graph
+            callGraph[localVis.kernelName] = {
+                k for k, v in localVis.depKernels.items()
+            }
+
+    # Sort the call graph topologically
+    callGraphSorter = graphlib.TopologicalSorter(callGraph)
+    sortedOrder = callGraphSorter.static_order()
+
+    # Add all dependent kernels to the MLIR Module,
+    # Do not check any 'dependent' kernels that
+    # have the same name as the main kernel here, i.e.
+    # ignore kernels that have the same name as this one.
+    for funcName in sortedOrder:
+        if funcName != vis.kernelName and funcName in depKernels:
+            bridge.visit(depKernels[funcName])
 
     # Build the MLIR Module for this kernel
     bridge.visit(astModule)
@@ -2058,7 +2145,8 @@ def compile_to_mlir(astModule, **kwargs):
         pm.run(bridge.module)
     except:
         print(bridge.module)
-        raise RuntimeError("could not canonicalize code.")
+        raise RuntimeError("could not canonicalize code for '{}'.".format(
+            bridge.name))
 
     globalAstRegistry[bridge.name] = astModule
 

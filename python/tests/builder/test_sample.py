@@ -583,7 +583,14 @@ def test_sample_n():
     circuit.ry(angles[1], q[0])
     circuit.cx(q[0], q[1])
 
-    runtimeAngles = np.random.uniform(low=1.0, high=np.pi, size=(10, 2))
+    runtimeAngles = np.array([[1.41075134, 1.16822118], [1.4269374, 1.61847813],
+                              [2.67020804,
+                               2.05479927], [2.09230621, 1.11112451],
+                              [1.57397959, 2.27463287], [1.38422446, 2.4457557],
+                              [2.44441489,
+                               2.51129809], [1.98279822, 2.38289909],
+                              [2.48570709, 2.27008174], [3.05499814,
+                                                         1.4933275]])
     print(runtimeAngles)
     allCounts = cudaq.sample(circuit, runtimeAngles)
     for i, c in enumerate(allCounts):

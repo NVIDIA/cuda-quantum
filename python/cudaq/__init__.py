@@ -8,7 +8,7 @@
 
 import sys, os
 from ._packages import *
-from .kernel.kernel_decorator import kernel, PyKernelDecorator
+from .kernel.kernel_decorator import kernel, PyKernelDecorator, globalImportedKernels
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
 from .kernel.qubit_qis import adjoint, control, compute_action
@@ -39,6 +39,7 @@ qreg = cudaq_runtime.qvector
 # Optimizers + Gradients
 optimizers = cudaq_runtime.optimizers
 gradients = cudaq_runtime.gradients
+OptimizationResult = cudaq_runtime.OptimizationResult
 
 # Runtime Functions
 initialize_cudaq = cudaq_runtime.initialize_cudaq
@@ -85,9 +86,10 @@ def synthesize(kernel, *args):
 
 
 def __clearKernelRegistries():
-    global globalKernelRegistry, globalAstRegistry
+    global globalKernelRegistry, globalAstRegistry, globalImportedKernels
     globalKernelRegistry.clear()
     globalAstRegistry.clear()
+    globalImportedKernels.clear()
 
 
 def enable_jit():
@@ -102,6 +104,13 @@ def disable_jit():
     Disable JIT compilation to MLIR for all cudaq.kernel functions
     """
     PyKernelDecorator.globalJIT = False
+
+
+def is_jit_enabled():
+    """
+    Return True if MLIR JIT mode is enabled. 
+    """
+    return PyKernelDecorator.globalJIT
 
 
 # Expose chemistry domain functions
@@ -131,5 +140,7 @@ if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
 if '--emulate' in sys.argv:
     initKwargs['emulate'] = True
+if '--eager-mode' in sys.argv:
+    PyKernelDecorator.globalJIT = False
 
 cudaq_runtime.initialize_cudaq(**initKwargs)

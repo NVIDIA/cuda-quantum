@@ -12,9 +12,8 @@
 import cudaq
 from cudaq import spin 
 
-cudaq.enable_jit()
 
-@cudaq.kernel
+@cudaq.kernel(jit=True)
 def ansatz(angle: float):
     q = cudaq.qvector(2)
     x(q[0])
