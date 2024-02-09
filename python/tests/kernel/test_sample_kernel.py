@@ -85,6 +85,18 @@ def test_simple_sampling_qpe():
     assert len(counts) == 1
     assert '100' in counts
 
+    # Test that we can define kernels after the 
+    # definition of a composable kernel like qpe 
+    # and use them as input (they get added to the 
+    # MLIR ModuleOp)
+    @cudaq.kernel
+    def xGateAfterKernel(qubit:cudaq.qubit):
+        x(qubit)
+    
+    counts = cudaq.sample(qpe, 3, 1, xGateAfterKernel, tGate)
+    assert len(counts) == 1
+    assert '100' in counts
+
 
 def test_broadcast():
     """Test that sample and observe broadcasting works."""
