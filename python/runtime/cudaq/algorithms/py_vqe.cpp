@@ -67,43 +67,54 @@ OpaqueArguments *toOpaqueArgs(py::args &args) {
 
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
 observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
-                         py::args args, const int shots) {
+                         py::args args, const int shots,
+                         bool argMapperProvided = false) {
   auto kernelName = kernel.attr("name").cast<std::string>();
-  auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto &platform = cudaq::get_platform();
   auto *argData = toOpaqueArgs(args);
 
+  if (py::hasattr(kernel, "library_mode") &&
+      kernel.attr("library_mode").cast<py::bool_>()) {
+    args = simplifiedValidateInputArguments(args);
+    return details::runObservation([&]() mutable { kernel(*args); },
+                                   spin_operator, platform, shots, kernelName)
+        .value();
+  }
+
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto numKernelArgs = getNumArguments(kernelMod, kernelName);
+  if (numKernelArgs == 0)
+    throw std::runtime_error(
+        "[cudaq.vqe] cannot run vqe on a kernel with no input arguments.");
+
+  auto isFirstArgStdVec = isArgumentStdVec(kernelMod, kernelName, 0);
+  // If user did not provide an argument mapper, then
+  // we need to make sure the kernel has 1 argument
+  // and it is a stdvec argument.
+  if (!argMapperProvided && (numKernelArgs != 1 || !isFirstArgStdVec))
+    throw std::runtime_error(
+        "[cudaq.vqe] kernels with signature other than "
+        "`void(List[float])` must provide an `argument_mapper`.");
+
+  if (argMapperProvided && numKernelArgs == 1 && isFirstArgStdVec)
+    throw std::runtime_error(
+        "Argument mapper provided but not needed since this kernel takes a "
+        "single `list[float]` argument.");
+
   // Launch the observation task
-  auto result = details::runObservation(
-                    [&]() mutable {
-                      pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
-                      delete argData;
-                    },
-                    spin_operator, platform, shots, kernelName)
-                    .value();
-  return result;
+  return details::runObservation(
+             [&]() mutable {
+               pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
+               delete argData;
+             },
+             spin_operator, platform, shots, kernelName)
+      .value();
 }
 
 /// @brief Run `cudaq.vqe()` without a gradient strategy.
 optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           const int shots = -1) {
-  auto kernelName = kernel.attr("name").cast<std::string>();
-  if (kernel.attr("module").is_none())
-    throw std::runtime_error(
-        "cudaq.vqe currently only supports the kernel builder pattern.");
-
-  auto kernelMod = kernel.attr("module").cast<MlirModule>();
-  if (getNumArguments(kernelMod, kernelName) != 1)
-    throw std::runtime_error(
-        "Kernels with signature other than "
-        "`void(List[float])` must provide an `argument_mapper`.");
-
-  if (!isArgumentStdVec(kernelMod, kernelName, 0))
-    throw std::runtime_error(
-        "Kernels with signature other than "
-        "`void(List[float])` must provide an `argument_mapper`.");
-
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     py::args params = py::make_tuple(x);
@@ -118,11 +129,6 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
 optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
                           cudaq::optimizer &optimizer, const int n_params,
                           py::function &argumentMapper, const int shots = -1) {
-  auto kernelName = kernel.attr("name").cast<std::string>();
-  if (kernel.attr("module").is_none())
-    throw std::runtime_error(
-        "cudaq.vqe currently only supports the kernel builder pattern.");
-
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
     py::args params;
@@ -131,7 +137,7 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
       params = hasToBeTuple;
     else
       params = py::make_tuple(hasToBeTuple);
-    observe_result result = pyObserve(kernel, hamiltonian, params, shots);
+    observe_result result = pyObserve(kernel, hamiltonian, params, shots, true);
     double energy = result.expectation();
     return energy;
   });
@@ -141,22 +147,6 @@ optimization_result pyVQE(py::object &kernel, spin_op &hamiltonian,
 optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
                           spin_op &hamiltonian, cudaq::optimizer &optimizer,
                           const int n_params, const int shots = -1) {
-  if (kernel.attr("module").is_none())
-    throw std::runtime_error(
-        "cudaq.vqe currently only supports the kernel builder pattern.");
-
-  auto kernelName = kernel.attr("name").cast<std::string>();
-  auto kernelMod = kernel.attr("module").cast<MlirModule>();
-  if (getNumArguments(kernelMod, kernelName) != 1)
-    throw std::runtime_error(
-        "Kernels with signature other than "
-        "`void(List[float])` must provide an `argument_mapper`.");
-
-  if (!isArgumentStdVec(kernelMod, kernelName, 0))
-    throw std::runtime_error(
-        "Kernels with signature other than "
-        "`void(List[float])` must provide an `argument_mapper`.");
-
   // Get the expected value of the system, <H> at the provided
   // vector of parameters. This is passed to `cudaq::gradient::compute`
   // to allow for the calculation of the gradient vector with the
@@ -185,10 +175,6 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
                           spin_op &hamiltonian, cudaq::optimizer &optimizer,
                           const int n_params, py::function &argumentMapper,
                           const int shots = -1) {
-  if (kernel.attr("module").is_none())
-    throw std::runtime_error(
-        "cudaq.vqe currently only supports the kernel builder pattern.");
-
   // Get the expected value of the system, <H> at the provided
   // vector of parameters. This is passed to `cudaq::gradient::compute`
   // to allow for the calculation of the gradient vector with the
@@ -201,7 +187,8 @@ optimization_result pyVQE(py::object &kernel, cudaq::gradient &gradient,
           params = hasToBeTuple;
         else
           params = py::make_tuple(hasToBeTuple);
-        observe_result result = pyObserve(kernel, hamiltonian, params, shots);
+        observe_result result =
+            pyObserve(kernel, hamiltonian, params, shots, true);
         double energy = result.expectation();
         return energy;
       };
