@@ -6,9 +6,15 @@ Tutorials that give an in depth view of CUDA Quantum and its applications in Pyt
 
 .. nbgallery::
 
-    /examples/python/tutorials/executing_circuits.ipynb
     /examples/python/tutorials/cost_minimization.ipynb
-    /examples/python/tutorials/noisy_simulations.ipynb
-    /examples/python/tutorials/vqe.ipynb
+    /examples/python/tutorials/deutschs_algorithm.ipynb
+    /examples/python/tutorials/executing_circuits.ipynb
     /examples/python/tutorials/hybrid_qnns.ipynb
     /examples/python/tutorials/multi_gpu_workflows.ipynb
+    /examples/python/tutorials/multiple_qubits.ipynb
+    /examples/python/tutorials/noisy_simulations.ipynb
+    /examples/python/tutorials/quantum_teleportation.ipynb
+    /examples/python/tutorials/quantum_bits.ipynb
+    /examples/python/tutorials/vqe.ipynb
+
+
