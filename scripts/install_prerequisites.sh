@@ -147,7 +147,9 @@ if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
   make && make install
   cd contrib/minizip 
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
-  autoreconf --install && ./configure --prefix="$ZLIB_INSTALL_PREFIX"
+  autoreconf --install 
+  CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+  ./configure --prefix="$ZLIB_INSTALL_PREFIX"
   make && make install
   cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
   remove_temp_installs
