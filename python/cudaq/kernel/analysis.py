@@ -237,6 +237,10 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                           ast.Name) and node.func.id in globalAstRegistry:
                 self.depKernels[node.func.id] = globalAstRegistry[node.func.id]
             elif isinstance(node.func, ast.Attribute):
+                if hasattr(
+                        node.func.value, 'id'
+                ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
+                    return
                 # May need to somehow import a library kernel, find
                 # all module names in a mod1.mod2.mod3.function type call
                 moduleNames = []
