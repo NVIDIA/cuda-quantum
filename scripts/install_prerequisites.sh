@@ -137,13 +137,20 @@ if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
   echo "Installing libz..."
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
+  temp_install_if_command_unknown automake automake
+  temp_install_if_command_unknown libtool libtool
 
   wget https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
   tar -xzvf zlib-1.3.tar.gz && cd zlib-1.3
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
   ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
   make && make install
-  cd .. && rm -rf zlib-1.3.tar.gz zlib-1.3
+  cd contrib/minizip 
+  autoreconf --install 
+  CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+  ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
+  make && make install
+  cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
   remove_temp_installs
 fi
 

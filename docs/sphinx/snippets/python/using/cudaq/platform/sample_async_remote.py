@@ -39,7 +39,6 @@ if __name__ == '__main__':
     # Set the target to execute on and query the number of QPUs in the system;
     # The number of QPUs is equal to the number of (auto-)launched server instances.
     cudaq.set_target("remote-mqpu",
-                     remote_execution=True,
                      backend=backend,
                      auto_launch=str(servers) if servers.isdigit() else "",
                      url="" if servers.isdigit() else servers)
