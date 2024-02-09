@@ -154,7 +154,7 @@ set(LIBRARY_NAME _pycudaq)
 if (NOT SKBUILD)
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
   set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
-    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../../lib:${_origin_prefix}/../../../../lib/plugins")
+    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../lib/plugins")
 else()
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
   set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
