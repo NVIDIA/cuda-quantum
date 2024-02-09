@@ -349,8 +349,8 @@ int main(int argc, char **argv) {
   });
 
   // Process arguments.
-  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-resource-dir",
-                                     resourceDirPath.string()};
+  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-Wno-c++20-extensions",
+                                     "-resource-dir", resourceDirPath.string()};
   if (verboseClang)
     clArgs.push_back("-v");
 

@@ -52,7 +52,11 @@ static inline crow::response
 invokeRouteHandler(const cudaq::RestServer::RouteHandler &handler,
                    const crow::request &req) {
   try {
-    return handler(req.body).dump();
+    std::unordered_multimap<std::string, std::string> headers;
+    for (const auto &[k, v] : req.headers)
+      headers.emplace(k, v);
+
+    return handler(req.body, headers).dump();
   } catch (std::exception &e) {
     const std::string errorMsg =
         std::string("Unhandled exception encountered: ") + e.what();

@@ -31,6 +31,8 @@ BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
 ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
 OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
 CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
+CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
+CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
 
 function create_llvm_symlinks {
   if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
@@ -137,13 +139,20 @@ if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
   echo "Installing libz..."
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
+  temp_install_if_command_unknown automake automake
+  temp_install_if_command_unknown libtool libtool
 
   wget https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
   tar -xzvf zlib-1.3.tar.gz && cd zlib-1.3
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
   ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
   make && make install
-  cd .. && rm -rf zlib-1.3.tar.gz zlib-1.3
+  cd contrib/minizip 
+  autoreconf --install 
+  CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+  ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
+  make && make install
+  cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
   remove_temp_installs
 fi
 
@@ -205,6 +214,19 @@ if [ ! -d "$llvm_dir" ]; then
 else 
   echo "Configured C compiler: $CC"
   echo "Configured C++ compiler: $CXX"
+fi
+
+# [cuQuantum and cuTensor] Needed for GPU-accelerated components
+cuda_version=`"${CUDACXX:-nvcc}" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
+if [ -n "$cuda_version" ]; then
+  if [ ! -d "$CUQUANTUM_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUQUANTUM_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    echo "Installing cuQuantum..."
+    bash "$this_file_dir/configure_build.sh" install-cuquantum
+  fi
+  if [ ! -d "$CUTENSOR_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUTENSOR_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    echo "Installing cuTensor..."
+    bash "$this_file_dir/configure_build.sh" install-cutensor
+  fi
 fi
 
 echo "All prerequisites have been installed."

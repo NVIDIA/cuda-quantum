@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,7 @@
 #include "common/EigenDense.h"
 #include "common/FmtCore.h"
 #include <iostream>
+#include <unordered_map>
 
 namespace cudaq {
 
@@ -40,7 +41,7 @@ std::unordered_map<Eigen::MatrixXcd,
     generalEigenSolvers;
 
 complex_matrix::complex_matrix(const std::size_t rows, const std::size_t cols)
-    : internalOwnedData(std::unique_ptr<complex_matrix::value_type>(
+    : internalOwnedData(std::unique_ptr<complex_matrix::value_type[]>(
           new complex_matrix::value_type[rows * cols])),
       nRows(rows), nCols(cols) {
   internalData = internalOwnedData.get();

@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -118,7 +118,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
           driver-opts: network=host
@@ -198,7 +198,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure build
         id: cache
@@ -213,7 +213,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
 
@@ -255,7 +255,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - id: config
         run: |
@@ -278,7 +278,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -438,6 +438,9 @@ jobs:
     permissions: {}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Create build info
         id: staging
         run: |
@@ -455,6 +458,7 @@ jobs:
           echo "platform-base-image: ${{ inputs.platform_base_image }}" >> "$info_file"
           echo "openmpi-build-cache: ${{ needs.build_openmpi.outputs.build_cache }}" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
+          cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
         uses: actions/upload-artifact@v4

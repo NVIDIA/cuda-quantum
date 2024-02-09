@@ -34,10 +34,6 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip
 
 ## [CUDA]
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
-## [cuQuantum]
-RUN source /cuda-quantum/scripts/configure_build.sh install-cuquantum
-## [cuTensor]
-RUN source /cuda-quantum/scripts/configure_build.sh install-cutensor
 ## [Compiler Toolchain]
 RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
@@ -114,7 +110,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
         excludes="--label-exclude gpu_required"; \
     fi && cd /cuda-quantum && \
     # FIXME: Disabled nlopt doesn't seem to work properly
-    # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102
+    # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1103
     excludes+=" --exclude-regex NloptTester|ctest-nvqpp" && \
     ctest --output-on-failure --test-dir build $excludes
 
@@ -125,7 +121,4 @@ RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
     dnf install -y --nobest --setopt=install_weak_deps=False file which
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
-        --param nvqpp_site_config=build/test/lit.site.cfg.py \
-        # FIXME: Disabled since these need additional work
-        # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102
-        --filter-out='(custom_pass|mapping_test-1.cpp|negation_error.cpp|kernel_invalid_argument-2.cpp)'
+        --param nvqpp_site_config=build/test/lit.site.cfg.py

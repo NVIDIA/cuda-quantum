@@ -23,7 +23,9 @@ private:
 public:
   // Signature of endpoint handler: accepting a string (HTTP request payload)
   // and returning a JSON object.
-  using RouteHandler = std::function<nlohmann::json(const std::string &)>;
+  using RouteHandler = std::function<nlohmann::json(
+      const std::string &,
+      const std::unordered_multimap<std::string, std::string> &)>;
   enum class Method { GET, POST };
   // Create a REST server serving at a specific port.
   RestServer(int port, const std::string &name = "cudaq");

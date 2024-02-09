@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: "${{ format('refs/pull/{0}/merge', needs.pr_info.outputs.pull_request_number) }}"
 
