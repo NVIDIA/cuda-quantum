@@ -96,6 +96,8 @@ Vazirani
 WSL
 accessor
 acknowledgement
+adaptor
+adaptors
 adjoint
 al
 amongst
@@ -109,6 +111,7 @@ backends
 bitcode
 bitstring
 bitstrings
+bool
 boolean
 broadcasted
 buildable
@@ -125,6 +128,8 @@ composability
 composable
 constructible
 controlled
+const
+coprocessing
 coprocessor
 coprocessors
 copyable
@@ -144,6 +149,7 @@ decrement
 decrementing
 deserialize
 destructor
+dimensionality
 discoverable
 discretization
 discretize
@@ -199,10 +205,12 @@ namespace
 namespaces
 natively
 nullary
+num
 optimizer
 optimizers
 parallelization
 parameterization
+pauli
 performant
 precompute
 precomputed
@@ -210,14 +218,18 @@ prepend
 preprocessor
 programmatically
 pybind
+qarray
 quantize
 quantized
 qubit
 qubits
 qudit
 qudits
+qvector
+qview
 reStructuredText
 runtime
+runtimes
 rvalue
 scalability
 scalable
