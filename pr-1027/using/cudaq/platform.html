@@ -413,8 +413,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cutensor">cuTensor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
@@ -714,32 +712,34 @@ The following code illustrates how to launch asynchronous sampling tasks on mult
 each simulated by a <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> simulator backend.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">C++</label><div class="tab-content docutils">
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">kernelToBeSampled</span><span class="p">,</span><span class="w"> </span><span class="n">runtimeParam</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernelToBeSampled</span><span class="p">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">runtimeParam</span><span class="p">);</span>
-<span class="w">  </span><span class="n">kernelToBeSampled</span><span class="p">.</span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
-<span class="w">  </span><span class="n">kernelToBeSampled</span><span class="p">.</span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Define a kernel to be sampled.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">nrControls</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">controls</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernel</span><span class="p">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">nrControls</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">targets</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernel</span><span class="p">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">kernel</span><span class="p">.</span><span class="n">h</span><span class="p">(</span><span class="n">controls</span><span class="p">);</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">tidx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">tidx</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">tidx</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">kernel</span><span class="p">.</span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">controls</span><span class="p">,</span><span class="w"> </span><span class="n">targets</span><span class="p">[</span><span class="n">tidx</span><span class="p">]);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">kernel</span><span class="p">.</span><span class="n">mz</span><span class="p">(</span><span class="n">controls</span><span class="p">);</span>
+<span class="w">  </span><span class="n">kernel</span><span class="p">.</span><span class="n">mz</span><span class="p">(</span><span class="n">targets</span><span class="p">);</span>
 
-<span class="w">  </span><span class="c1">// Get the quantum_platform singleton</span>
+<span class="w">  </span><span class="c1">// Query the number of QPUs in the system;</span>
+<span class="w">  </span><span class="c1">// The number of QPUs is equal to the number of (auto-)launched server</span>
+<span class="w">  </span><span class="c1">// instances.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">platform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_platform</span><span class="p">();</span>
-
-<span class="w">  </span><span class="c1">// Query the number of QPUs in the system</span>
-<span class="w">  </span><span class="c1">// The number of QPUs is equal to the number of auto-launch server instances.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">num_qpus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">platform</span><span class="p">.</span><span class="n">num_qpus</span><span class="p">();</span>
 <span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Number of QPUs: %zu</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">);</span>
-<span class="w">  </span><span class="c1">// We will launch asynchronous sampling tasks</span>
-<span class="w">  </span><span class="c1">// and will store the results immediately as a future</span>
-<span class="w">  </span><span class="c1">// we can query at some later point.</span>
+
+<span class="w">  </span><span class="c1">// We will launch asynchronous sampling tasks,</span>
+<span class="w">  </span><span class="c1">// and will store the results as a future we can query at some later point.</span>
 <span class="w">  </span><span class="c1">// Each QPU (indexed by an unique Id) is associated with a remote REST server.</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">async_sample_result</span><span class="o">&gt;</span><span class="w"> </span><span class="n">countFutures</span><span class="p">;</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_qpus</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">countFutures</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span>
-<span class="w">        </span><span class="cm">/*qpuId=*/</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">kernelToBeSampled</span><span class="p">,</span><span class="w"> </span><span class="cm">/*runtimeParam=*/</span><span class="mi">5</span><span class="p">));</span>
+<span class="w">        </span><span class="cm">/*qpuId=*/</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="cm">/*nrControls=*/</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">));</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">//</span>
 <span class="w">  </span><span class="c1">// Go do other work, asynchronous execution of sample tasks on-going</span>
-<span class="w">  </span><span class="c1">//</span>
-
 <span class="w">  </span><span class="c1">// Get the results, note future::get() will kick off a wait</span>
 <span class="w">  </span><span class="c1">// if the results are not yet available.</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">counts</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">countFutures</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
@@ -754,30 +754,46 @@ each simulated by a <code class="code docutils literal notranslate"><span class=
 </div>
 </div>
 <input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">Python</label><div class="tab-content docutils">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>    <span class="c1"># Specified as program input, e.g.</span>
+    <span class="c1"># ```</span>
+    <span class="c1"># backend = &quot;tensornet&quot;; servers = &quot;2&quot;</span>
+    <span class="c1"># ```</span>
+    <span class="n">backend</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">backend</span>
+    <span class="n">servers</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">servers</span>
 
-<span class="c1"># Number of remote QPUs to launch</span>
-<span class="n">num_qpus</span> <span class="o">=</span> <span class="mi">2</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-mqpu&quot;</span><span class="p">,</span>
-                 <span class="n">remote_execution</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                 <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span>
-                 <span class="n">auto_launch</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">num_qpus</span><span class="p">))</span>
-<span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of QPUs:&quot;</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">())</span>
+    <span class="c1"># Define a kernel to be sampled.</span>
+    <span class="n">kernel</span><span class="p">,</span> <span class="n">nr_controls</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">controls</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">nr_controls</span><span class="p">)</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">controls</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">tidx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+        <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">controls</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="n">tidx</span><span class="p">])</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">controls</span><span class="p">)</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
 
-<span class="n">kernel</span><span class="p">,</span> <span class="n">runtime_param</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
-<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">runtime_param</span><span class="p">)</span>
-<span class="c1"># Place qubits in superposition state.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
-<span class="c1"># Measure.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+    <span class="c1"># Set the target to execute on and query the number of QPUs in the system;</span>
+    <span class="c1"># The number of QPUs is equal to the number of (auto-)launched server instances.</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-mqpu&quot;</span><span class="p">,</span>
+                     <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span>
+                     <span class="n">auto_launch</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">servers</span><span class="p">)</span> <span class="k">if</span> <span class="n">servers</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                     <span class="n">url</span><span class="o">=</span><span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">servers</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">else</span> <span class="n">servers</span><span class="p">)</span>
+    <span class="n">num_qpus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of virtual QPUs:&quot;</span><span class="p">,</span> <span class="n">num_qpus</span><span class="p">)</span>
 
-<span class="n">count_futures</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="k">for</span> <span class="n">qpu</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qpus</span><span class="p">):</span>
-    <span class="n">count_futures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">qpu</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu</span><span class="p">))</span>
+    <span class="c1"># We will launch asynchronous sampling tasks,</span>
+    <span class="c1"># and will store the results as a future we can query at some later point.</span>
+    <span class="c1"># Each QPU (indexed by an unique Id) is associated with a remote REST server.</span>
+    <span class="n">count_futures</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qpus</span><span class="p">):</span>
+        <span class="n">count_futures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Sampling jobs launched for asynchronous processing.&quot;</span><span class="p">)</span>
 
-<span class="k">for</span> <span class="n">counts</span> <span class="ow">in</span> <span class="n">count_futures</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+    <span class="c1"># Go do other work, asynchronous execution of sample tasks on-going.</span>
+    <span class="c1"># Get the results, note future::get() will kick off a wait</span>
+    <span class="c1"># if the results are not yet available.</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">count_futures</span><span class="p">)):</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">count_futures</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
