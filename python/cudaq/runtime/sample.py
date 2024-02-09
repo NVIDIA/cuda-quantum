@@ -1,11 +1,11 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .utils import __isBroadcast, __createArgumentSet
 
 

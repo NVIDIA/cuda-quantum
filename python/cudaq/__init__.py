@@ -15,7 +15,7 @@ from .kernel.qubit_qis import adjoint, control, compute_action
 from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.state import get_state
-from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
+from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 global globalJIT
 
