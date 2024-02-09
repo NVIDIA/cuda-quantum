@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,7 +13,7 @@
 from abc import abstractmethod, ABCMeta
 import inspect
 import numpy as np
-from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from typing import Callable
 
 qvector = cudaq_runtime.qvector

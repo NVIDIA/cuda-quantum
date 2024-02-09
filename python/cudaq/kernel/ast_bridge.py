@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,11 +12,11 @@ from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
 from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation
-from mlir_cudaq.ir import *
-from mlir_cudaq.passmanager import *
-from mlir_cudaq.dialects import quake, cc
-from mlir_cudaq.dialects import builtin, func, arith, math, complex
-from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic
+from ..mlir.ir import *
+from ..mlir.passmanager import *
+from ..mlir.dialects import quake, cc
+from ..mlir.dialects import builtin, func, arith, math, complex
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic
 
 # This file implements the CUDA Quantum Python AST to MLIR conversion.
 # It provides a `PyASTBridge` class that implements the `ast.NodeVisitor` type

@@ -19,10 +19,9 @@ include(AddMLIRPython)
 # If this is better addressed after updating to a newer LLVM version, track as an issue on GitHub.
 add_compile_options(-Wno-ambiguous-reversed-operator)
 
-# Specifies that all MLIR packages are co-located under the `mlir_cudaq`
+# Specifies that all MLIR packages are co-located under the cudaq
 # top level package (the API has been embedded in a relocatable way).
-# TODO: Add an upstream cmake param for this vs having a global here.
-add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=mlir_cudaq.")
+add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=cudaq.mlir.")
 
 if (CMAKE_COMPILER_IS_GNUCXX)
   # Deals with warnings in gcc12 - may not be needed for gcc 13.
@@ -41,7 +40,7 @@ declare_mlir_python_sources(CUDAQuantumPythonSources)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT CUDAQuantumPythonSources
-  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir_cudaq"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/mlir"
   TD_FILE dialects/QuakeOps.td
   SOURCES
     dialects/quake.py
@@ -49,7 +48,7 @@ declare_mlir_dialect_python_bindings(
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT CUDAQuantumPythonSources
-  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mlir_cudaq"
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/mlir"
   TD_FILE dialects/CCOps.td
   SOURCES
     dialects/cc.py
@@ -112,8 +111,8 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
 
 add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
   INSTALL_COMPONENT CUDAQuantumPythonModules
-  INSTALL_DESTINATION mlir_cudaq/_mlir_libs
-  OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python/mlir_cudaq/_mlir_libs"
+  INSTALL_DESTINATION cudaq/mlir/_mlir_libs
+  OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python/cudaq/mlir/_mlir_libs"
   RELATIVE_INSTALL_ROOT "../.."
   DECLARED_SOURCES
     CUDAQuantumPythonSources
@@ -128,8 +127,8 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
 ################################################################################
 
 add_mlir_python_modules(CUDAQuantumPythonModules
-  ROOT_PREFIX "${MLIR_BINARY_DIR}/python/mlir_cudaq"
-  INSTALL_PREFIX "mlir_cudaq"
+  ROOT_PREFIX "${MLIR_BINARY_DIR}/python/cudaq/mlir"
+  INSTALL_PREFIX "cudaq/mlir"
   DECLARED_SOURCES
     CUDAQuantumPythonSources
     # TODO: Remove this in favor of showing fine grained registration once
@@ -142,24 +141,24 @@ add_mlir_python_modules(CUDAQuantumPythonModules
 
 file (COPY cudaq DESTINATION ${MLIR_BINARY_DIR}/python)
 
-## The Python bindings module for Quake dialect depends on CUDAQ libraires 
+## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
 ## to '$ORIGIN' by default.
 set(_origin_prefix "\$ORIGIN")
 if(APPLE)
   set(_origin_prefix "@loader_path")
 endif()
-set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
-             APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}:${_origin_prefix}/../../lib/")
 
-
-## TODO: Clean-up following from 'old' CMakeLists.txt
-## FIXME: Delete '_pycudaq' target?
+## FIXME: Clean-up from 'old' setup - Delete '_pycudaq' target?
 set(LIBRARY_NAME _pycudaq)
 if (NOT SKBUILD)
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
+    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../../lib:${_origin_prefix}/../../../../lib/plugins")
 else()
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
+    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../cuda_quantum.libs")
 endif()
 pybind11_add_module(_pycudaq 
                      runtime/cudaq/target/py_runtime_target.cpp 

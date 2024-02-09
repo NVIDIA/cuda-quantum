@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,11 +13,11 @@ import string
 import numpy as np
 import ctypes
 
-from mlir_cudaq.ir import *
-from mlir_cudaq.passmanager import *
-from mlir_cudaq.dialects import quake, cc
-from mlir_cudaq.dialects import builtin, func, arith
-from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
+from ..mlir.ir import *
+from ..mlir.passmanager import *
+from ..mlir.dialects import quake, cc
+from ..mlir.dialects import builtin, func, arith
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .utils import mlirTypeFromPyType
 
 qvector = cudaq_runtime.qvector

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,14 +9,14 @@ import ast
 import importlib
 import inspect
 from typing import Callable
-from mlir_cudaq.ir import *
-from mlir_cudaq.passmanager import *
-from mlir_cudaq.dialects import quake, cc
+from ..mlir.ir import *
+from ..mlir.passmanager import *
+from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir
 from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType
 from .qubit_qis import h, x, y, z, s, t, rx, ry, rz, r1, swap, exp_pauli, mx, my, mz, adjoint, control, compute_action
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures
-from mlir_cudaq._mlir_libs._quakeDialects import cudaq_runtime
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # This file implements the decorator mechanism needed to
 # JIT compile CUDA Quantum kernels. It exposes the cudaq.kernel()

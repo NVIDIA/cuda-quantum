@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,8 +8,8 @@
 
 import ast, inspect
 from .utils import globalAstRegistry, globalKernelRegistry, mlirTypeFromAnnotation
-from mlir_cudaq.dialects import cc
-from mlir_cudaq.ir import *
+from ..mlir.dialects import cc
+from ..mlir.ir import *
 
 
 class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
