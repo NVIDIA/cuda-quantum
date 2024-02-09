@@ -198,4 +198,37 @@ public:
                                  executionContext, code, args, format, seed,
                                  passes);
 };
+
+/// NVCF function version status
+enum class FunctionStatus { ACTIVE, DEPLOYING, ERROR, INACTIVE, DELETED };
+NLOHMANN_JSON_SERIALIZE_ENUM(FunctionStatus,
+                             {
+                                 {FunctionStatus::ACTIVE, "ACTIVE"},
+                                 {FunctionStatus::DEPLOYING, "DEPLOYING"},
+                                 {FunctionStatus::ERROR, "ERROR"},
+                                 {FunctionStatus::INACTIVE, "INACTIVE"},
+                                 {FunctionStatus::DELETED, "DELETED"},
+                             });
+
+// Encapsulates a function version info
+// Note: we only parse a subset of required fields (always present). There may
+// be other fields, which are not required.
+struct NvcfFunctionVersionInfo {
+  // Function Id
+  std::string id;
+  // NVIDIA NGC Org Id (NCA Id)
+  std::string ncaId;
+  // Version Id
+  std::string versionId;
+  // Function name
+  std::string name;
+  // Status of this particular function version
+  FunctionStatus status;
+  // Function version creation timestamp (ISO 8601 string)
+  // e.g., "2024-02-05T00:09:51.154Z"
+  std::string createdAt;
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(NvcfFunctionVersionInfo, id, ncaId, versionId,
+                                 name, status, createdAt);
+};
+
 } // namespace cudaq
