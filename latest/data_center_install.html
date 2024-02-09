@@ -413,8 +413,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cutensor">cuTensor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#toolchain">Toolchain</a></li>
 </ul>
 </li>
@@ -618,47 +616,6 @@ install CUDA 11.8:</p>
 dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
 dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-toolkit-<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
-</pre></div>
-</div>
-</section>
-<section id="cuquantum">
-<h3>cuQuantum<a class="headerlink" href="#cuquantum" title="Permalink to this heading">¶</a></h3>
-<p>Each version of CUDA Quantum is compatible only with a specific cuQuantum version.
-As of CUDA Quantum 0.6, this is version 23.10. Newer versions of cuQuantum (if they exist)
-might be compatible but have not been tested.</p>
-<p>Make sure the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDA_ARCH_FOLDER</span></code> is set to either <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code>
-or <code class="code docutils literal notranslate"><span class="pre">sbsa</span></code> (for ARM64) depending on your processor architecture, and <code class="code docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>
-is set to the installed CUDA version.
-Install cuQuantum version 23.10 using the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUQUANTUM_VERSION</span><span class="o">=</span><span class="m">23</span>.10.0.6
-<span class="nv">CUQUANTUM_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
-
-<span class="nv">cuquantum_archive</span><span class="o">=</span>cuquantum-linux-<span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span>-<span class="si">${</span><span class="nv">CUQUANTUM_VERSION</span><span class="si">}</span>_cuda<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span>-archive.tar.xz
-wget<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/linux-</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">cuquantum_archive</span><span class="si">}</span><span class="s2">&quot;</span>
-mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>
-tar<span class="w"> </span>xf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cuquantum_archive</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--strip-components<span class="w"> </span><span class="m">1</span><span class="w"> </span>-C<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>
-rm<span class="w"> </span>-rf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cuquantum_archive</span><span class="si">}</span><span class="s2">&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="cutensor">
-<h3>cuTensor<a class="headerlink" href="#cutensor" title="Permalink to this heading">¶</a></h3>
-<p>Depending on how you installed CUDA, the cuTensor library is usually not included
-in the installation. This library is used by some of the simulator backends.
-Please check the cuQuantum documentation to ensure you choose a version that is
-compatible with the used cuQuantum version, such as version 1.7.</p>
-<p>Make sure the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDA_ARCH_FOLDER</span></code> is set to either <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code>
-or <code class="code docutils literal notranslate"><span class="pre">sbsa</span></code> (for ARM64) depending on your processor architecture, and <code class="code docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>
-is set to the installed CUDA version.
-Install cuTensor version 1.7 using the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUTENSOR_VERSION</span><span class="o">=</span><span class="m">1</span>.7.0.1
-<span class="nv">CUTENSOR_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor
-
-<span class="nv">cutensor_archive</span><span class="o">=</span>libcutensor-linux-<span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span>-<span class="si">${</span><span class="nv">CUTENSOR_VERSION</span><span class="si">}</span>-archive.tar.xz
-wget<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/linux-</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">cutensor_archive</span><span class="si">}</span><span class="s2">&quot;</span>
-mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>tar<span class="w"> </span>xf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cutensor_archive</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--strip-components<span class="w"> </span><span class="m">1</span><span class="w"> </span>-C<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span>/lib/<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span>/*<span class="w"> </span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span>/lib/
-ls<span class="w"> </span>-d<span class="w"> </span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span>/lib/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cutensor_archive</span><span class="si">}</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
 </section>
