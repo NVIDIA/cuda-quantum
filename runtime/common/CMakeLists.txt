@@ -15,6 +15,7 @@ set(COMMON_RUNTIME_SRC
   NoiseModel.cpp 
   ServerHelper.cpp 
   Resources.cpp
+  Trace.cpp
   Future.cpp
 )
 
