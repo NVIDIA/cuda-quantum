@@ -72,8 +72,6 @@ def test_observe():
     assert abs(res.expectation() - expected_energy) < energy_tol
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="Causes 'Fatal Python error'. Additional changes required for multi QPU support.")
 def test_multi_qpus():
     # Create the parameterized ansatz
     kernel, theta = cudaq.make_kernel(float)
