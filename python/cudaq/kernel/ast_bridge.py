@@ -324,8 +324,8 @@ class PyASTBridge(ast.NodeVisitor):
                 opCtor([], parameters, [], [quantumValue])
             else:
                 raise Exception(
-                    'quantum operation on incorrect type {}.'.format(
-                        quantumValue.type))
+                    'quantum operation {} on incorrect type {}.'.format(
+                        opName, quantumValue.type))
         return
 
     def needsStackSlot(self, type):
@@ -454,6 +454,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             globalKernelRegistry[node.name] = f
             self.symbolTable.clear()
+            self.valueStack.clear()
 
     # [RFC]:
     # Examine if we really want to extend Python with a dedicated syntax.
