@@ -12,8 +12,8 @@ from typing import Callable
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
-from .ast_bridge import compile_to_mlir
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType
+from .ast_bridge import compile_to_mlir, PyASTBridge
+from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry
 from .qubit_qis import h, x, y, z, s, t, rx, ry, rz, r1, swap, exp_pauli, mx, my, mz, adjoint, control, compute_action
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -205,6 +205,15 @@ class PyKernelDecorator(object):
             if cc.CallableType.isinstance(mlirType):
                 # Assume this is a PyKernelDecorator
                 callableNames.append(arg.name)
+                # It may be that the provided input callable kernel
+                # is not currently in the ModuleOp. Need to add it
+                # if that is the case, we have to use the AST
+                # so that it shares self.module's MLIR Context
+                symbols = SymbolTable(self.module.operation)
+                if nvqppPrefix + arg.name not in symbols:
+                    tmpBridge = PyASTBridge(existingModule=self.module,
+                                            disableEntryPointTag=True)
+                    tmpBridge.visit(globalAstRegistry[arg.name])
 
             # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
