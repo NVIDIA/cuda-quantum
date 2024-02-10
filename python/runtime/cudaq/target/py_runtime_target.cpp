@@ -79,6 +79,8 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             strValue = value.cast<py::bool_>() ? "true" : "false";
           else if (py::isinstance<py::str>(value))
             strValue = value.cast<std::string>();
+          else if (py::isinstance<py::int_>(value))
+            strValue = std::to_string(value.cast<int>());
           else
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");
@@ -100,6 +102,8 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             strValue = value.cast<py::bool_>() ? "true" : "false";
           else if (py::isinstance<py::str>(value))
             strValue = value.cast<std::string>();
+          else if (py::isinstance<py::int_>(value))
+            strValue = std::to_string(value.cast<int>());
           else
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");

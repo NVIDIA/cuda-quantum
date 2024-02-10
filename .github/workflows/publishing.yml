@@ -463,7 +463,6 @@ jobs:
     name: CUDA Quantum installer
     if: ${{ toJson(fromJson(needs.assets.outputs.installers).info_files) != '[]' }}
     needs: assets
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -477,6 +476,8 @@ jobs:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.installers).info_files }}
       fail-fast: false
+
+    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
 
     steps:
       - name: Checkout repository
