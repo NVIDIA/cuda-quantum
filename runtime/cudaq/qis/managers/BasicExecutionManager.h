@@ -229,7 +229,7 @@ public:
 
   void synchronize() override {
     for (auto &instruction : instructionQueue) {
-       if (!isInTracerMode()) {
+      if (!isInTracerMode()) {
         executeInstruction(instruction);
         continue;
       }
