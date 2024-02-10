@@ -414,8 +414,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cutensor">cuTensor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#toolchain">Toolchain</a></li>
 </ul>
 </li>
@@ -516,11 +514,13 @@ use version 2.28.</p></li>
 <li><p>CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
 architecture. Other architectures may work but are not tested and may require
 adjustments to the build instructions.</p></li>
-<li><p>Needed only on the host system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
+<li><p>Needed <strong>only on the host</strong> system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
 Hopper architecture and <a class="reference external" href="https://developer.nvidia.com/cuda-gpus">Compute Capability</a> 7+. Make sure you have the latest
 <a class="reference external" href="https://www.nvidia.com/download/index.aspx">drivers</a> installed for your
 GPU, and double check that the driver version listed by the <code class="code docutils literal notranslate"><span class="pre">nvidia-smi</span></code>
-command is 470.57.02 or newer.</p></li>
+command is 470.57.02 or newer. You do <em>not</em> need to have a GPU available on the
+build system; the CUDA compiler needed for the build can be installed and used
+without a GPU.</p></li>
 </ul>
 <p>We strongly recommend using a virtual environment for the build that includes
 <em>only</em> the tools and dependencies listed in this guide. If you have additional
@@ -568,21 +568,34 @@ to set the following environment variables prior to proceeding:</p>
 <span class="nb">export</span><span class="w"> </span><span class="nv">CURL_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/curl
 </pre></div>
 </div>
-<p>These environment variables <em>must</em> be set during the build. Their value can be
-chosen freely, but the paths specified during the build are also where the
-corresponding libraries will be installed on the host system. We are working on
-making this more flexible in the future.</p>
+<p>These environment variables <em>must</em> be set during the build. We strongly
+recommend that their value is set to a path that does <em>not</em> already exist;
+this will ensure that these components are built/installed as needed when
+building CUDA Quantum.
+The configured paths can be chosen freely, but the paths specified during the
+build are also where the corresponding libraries will be installed on the
+host system. We are working on making this more flexible in the future.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>If you deviate from the instructions below for installing one of the
-dependencies and instead install it for example via package manager, you will
-need to make sure that the installation path matches the path you set for the
-corresponding environment variable(s).</p>
 <p>Please do <strong>not</strong> set <code class="code docutils literal notranslate"><span class="pre">LLVM_INSTALL_PREFIX</span></code> to an existing directory;
 To avoid compatibility issues, it is important to use the same compiler
 to build the LLVM/MLIR dependencies from source as is later used to
 build CUDA Quantum itself.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are setting the <code class="code docutils literal notranslate"><span class="pre">CURL_INSTALL_PREFIX</span></code> variable to an existing
+CURL installation (not recommended), please make sure the command
+<code class="code docutils literal notranslate"><span class="pre">curl</span> <span class="pre">--version</span></code> lists HTTP and HTTPS as supported protocols. If these
+protocols are not listed, please instead set the <code class="code docutils literal notranslate"><span class="pre">CURL_INSTALL_PREFIX</span></code>
+variable to a path that does <em>not</em> exist. In that case, a suitable
+library will be automatically built from source as part of
+building CUDA Quantum.</p>
+</div>
+<p>If you deviate from the instructions below for installing one of the
+dependencies and instead install it, for example, via package manager, you will
+need to make sure that the installation path matches the path you set for the
+corresponding environment variable(s).</p>
 <section id="cuda">
 <h3>CUDA<a class="headerlink" href="#cuda" title="Permalink to this heading">¶</a></h3>
 <p>Building CUDA Quantum requires a full installation of the CUDA toolkit.
@@ -604,47 +617,6 @@ install CUDA 11.8:</p>
 dnf<span class="w"> </span>config-manager<span class="w"> </span>--add-repo<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/cuda-</span><span class="si">${</span><span class="nv">DISTRIBUTION</span><span class="si">}</span><span class="s2">.repo&quot;</span>
 dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-toolkit-<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>.<span class="w"> </span>-<span class="k">)</span>
-</pre></div>
-</div>
-</section>
-<section id="cuquantum">
-<h3>cuQuantum<a class="headerlink" href="#cuquantum" title="Permalink to this heading">¶</a></h3>
-<p>Each version of CUDA Quantum is compatible only with a specific cuQuantum version.
-As of CUDA Quantum 0.6, this is version 23.10. Newer versions of cuQuantum (if they exist)
-might be compatible but have not been tested.</p>
-<p>Make sure the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDA_ARCH_FOLDER</span></code> is set to either <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code>
-or <code class="code docutils literal notranslate"><span class="pre">sbsa</span></code> (for ARM64) depending on your processor architecture, and <code class="code docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>
-is set to the installed CUDA version.
-Install cuQuantum version 23.10 using the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUQUANTUM_VERSION</span><span class="o">=</span><span class="m">23</span>.10.0.6
-<span class="nv">CUQUANTUM_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
-
-<span class="nv">cuquantum_archive</span><span class="o">=</span>cuquantum-linux-<span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span>-<span class="si">${</span><span class="nv">CUQUANTUM_VERSION</span><span class="si">}</span>_cuda<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span>-archive.tar.xz
-wget<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/linux-</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">cuquantum_archive</span><span class="si">}</span><span class="s2">&quot;</span>
-mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>
-tar<span class="w"> </span>xf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cuquantum_archive</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--strip-components<span class="w"> </span><span class="m">1</span><span class="w"> </span>-C<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>
-rm<span class="w"> </span>-rf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cuquantum_archive</span><span class="si">}</span><span class="s2">&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="cutensor">
-<h3>cuTensor<a class="headerlink" href="#cutensor" title="Permalink to this heading">¶</a></h3>
-<p>Depending on how you installed CUDA, the cuTensor library is usually not included
-in the installation. This library is used by some of the simulator backends.
-Please check the cuQuantum documentation to ensure you choose a version that is
-compatible with the used cuQuantum version, such as version 1.7.</p>
-<p>Make sure the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDA_ARCH_FOLDER</span></code> is set to either <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code>
-or <code class="code docutils literal notranslate"><span class="pre">sbsa</span></code> (for ARM64) depending on your processor architecture, and <code class="code docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>
-is set to the installed CUDA version.
-Install cuTensor version 1.7 using the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUTENSOR_VERSION</span><span class="o">=</span><span class="m">1</span>.7.0.1
-<span class="nv">CUTENSOR_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor
-
-<span class="nv">cutensor_archive</span><span class="o">=</span>libcutensor-linux-<span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span>-<span class="si">${</span><span class="nv">CUTENSOR_VERSION</span><span class="si">}</span>-archive.tar.xz
-wget<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_DOWNLOAD_URL</span><span class="si">}</span><span class="s2">/linux-</span><span class="si">${</span><span class="nv">CUDA_ARCH_FOLDER</span><span class="si">}</span><span class="s2">/</span><span class="si">${</span><span class="nv">cutensor_archive</span><span class="si">}</span><span class="s2">&quot;</span>
-mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>tar<span class="w"> </span>xf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cutensor_archive</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--strip-components<span class="w"> </span><span class="m">1</span><span class="w"> </span>-C<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span>
-mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span>/lib/<span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span>/*<span class="w"> </span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span>/lib/
-ls<span class="w"> </span>-d<span class="w"> </span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="si">}</span>/lib/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cutensor_archive</span><span class="si">}</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
 </section>
@@ -706,12 +678,19 @@ command to build CUDA Quantum:</p>
 bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-uv
 </pre></div>
 </div>
+<p>Please check the build log printed to the console to confirm that all desired components have been built.
+In particular, look for a line “Looking for CUDA compiler” in the build output,
+and confirm that it found the installed CUDA compiler, and the correct host compiler
+is used.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p>The CUDA Quantum build will compile or omit optional components automatically depending
 on whether the necessary pre-requisites are found in the build environment.
-Please check the build log to confirm that all desired components have been built. If
-you see a message that a component has been skipped, make sure you followed the
+If you see a message that a component has been skipped, and/or the CUDA compiler
+is not properly detected, make sure you followed the
 instructions for installing the necessary prerequisites and build dependencies,
 and have set the necessary environment variables as described in this document.</p>
+</div>
 </section>
 <section id="preparing-the-installation">
 <h2>Preparing the Installation<a class="headerlink" href="#preparing-the-installation" title="Permalink to this heading">¶</a></h2>
