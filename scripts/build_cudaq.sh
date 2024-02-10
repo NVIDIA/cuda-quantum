@@ -36,6 +36,7 @@
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
 CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
+CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 
 # Process command line arguments
@@ -93,17 +94,22 @@ fi
 cuda_version=`"${CUDACXX:-nvcc}" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 cuda_major=`echo $cuda_version | cut -d '.' -f 1`
 cuda_minor=`echo $cuda_version | cut -d '.' -f 2`
-if [ ! -x "$(command -v nvidia-smi)" ]; then
-  echo "Warning: nvidia-smi command not found."
-elif [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -lt "8" ] && [ "$cuda_major" -eq "11" ]); then
+if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -lt "8" ] && [ "$cuda_major" -eq "11" ]); then
   echo "CUDA version requirement not satisfied (required: >= 11.8, got: $cuda_version)."
+  echo "GPU-accelerated components will be omitted from the build."
 else 
   echo "CUDA version $cuda_version detected."
-  if [ ! -d "$CUQUANTUM_INSTALL_PREFIX" ]; then
+  if [ ! -d "$CUQUANTUM_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUQUANTUM_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
     echo "No cuQuantum installation detected. Please set the environment variable CUQUANTUM_INSTALL_PREFIX to enable cuQuantum integration."
-    echo "GPU backends will be omitted from the build."
+    echo "Some backends will be omitted from the build."
   else
     echo "Using cuQuantum installation in $CUQUANTUM_INSTALL_PREFIX."
+  fi
+  if [ ! -d "$CUTENSOR_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUTENSOR_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    echo "No cuTensor installation detected. Please set the environment variable CUTENSOR_INSTALL_PREFIX to enable cuTensor integration."
+    echo "Some backends will be omitted from the build."
+  else
+    echo "Using cuQuantum installation in $CUTENSOR_INSTALL_PREFIX."
   fi
 fi
 

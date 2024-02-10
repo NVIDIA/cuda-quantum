@@ -22,6 +22,7 @@
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -38,8 +39,34 @@
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
+#include "common/UnzipUtils.h"
 #include "cudaq.h"
 #include <dlfcn.h>
+#include <fstream>
+#include <streambuf>
+
+namespace {
+/// Util class to execute a functor when an object of this class goes
+/// out-of-scope.
+// This can be used to perform some clean up.
+// ```
+// {
+//   ScopeExit cleanUp(f);
+//   ...
+// } <- f() is called to perform some cleanup action.
+// ```
+struct ScopeExit {
+  ScopeExit(std::function<void()> &&func) : m_atExitFunc(std::move(func)) {}
+  ~ScopeExit() noexcept { m_atExitFunc(); }
+  ScopeExit(const ScopeExit &) = delete;
+  ScopeExit &operator=(const ScopeExit &) = delete;
+  ScopeExit(ScopeExit &&other) = delete;
+  ScopeExit &operator=(ScopeExit &&other) = delete;
+
+private:
+  std::function<void()> m_atExitFunc;
+};
+} // namespace
 
 using namespace mlir;
 
@@ -156,11 +183,11 @@ public:
     }
   }
 
-  virtual bool
-  sendRequest(MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+  cudaq::RestRequest constructJobRequest(
+      MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
+      const std::string &backendSimName, const std::string &kernelName,
+      void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
+
     cudaq::RestRequest request(io_context);
     request.entryPoint = kernelName;
     if (cudaq::__internal__::isLibraryMode(kernelName)) {
@@ -186,6 +213,19 @@ public:
 
     request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
                                           kernelArgs, argsSize);
+    request.simulator = backendSimName;
+    request.seed = cudaq::get_random_seed();
+    return request;
+  }
+
+  virtual bool
+  sendRequest(MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
+              const std::string &backendSimName, const std::string &kernelName,
+              void (*kernelFunc)(void *), void *kernelArgs,
+              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    cudaq::RestRequest request =
+        constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
+                            kernelFunc, kernelArgs, argsSize);
     if (request.code.empty()) {
       if (optionalErrorMsg)
         *optionalErrorMsg =
@@ -194,8 +234,7 @@ public:
             kernelName;
       return false;
     }
-    request.simulator = backendSimName;
-    request.seed = cudaq::get_random_seed();
+
     // Don't let curl adding "Expect: 100-continue" header, which is not
     // suitable for large requests, e.g., bitcode in the JSON request.
     //  Ref: https://gms.tf/when-curl-sends-100-continue.html
