@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -112,8 +112,8 @@ void bindSpinOperator(py::module &mod) {
       .def(
           "__str__", [](cudaq::spin_op &op) { return op.to_string(); },
           "Return a string representation of this :class:`SpinOperator`.")
-      .def("dump", &cudaq::spin_op::dump,
-           "Print a string representation of this :class:`SpinOperator`.")
+     //  .def("dump", &cudaq::spin_op::dump,
+     //       "Print a string representation of this :class:`SpinOperator`.")
       .def("distribute_terms", &cudaq::spin_op::distribute_terms,
            py::arg("chunk_count"),
            "Return a list of :class:`SpinOperator` representing a distribution "
