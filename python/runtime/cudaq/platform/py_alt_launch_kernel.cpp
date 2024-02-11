@@ -43,13 +43,11 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   auto context = cloned.getContext();
 
   // Have we JIT compiled this before?
-  std::string moduleString;
-  {
-    llvm::raw_string_ostream os(moduleString);
-    cloned.print(os);
-  }
-  std::hash<std::string> hasher;
-  auto hashKey = hasher(moduleString);
+  auto hash = llvm::hash_code{0};
+  mod.walk([&hash](Operation *op) {
+    hash = llvm::hash_combine(hash, OperationEquivalence::computeHash(op));
+  });
+  auto hashKey = static_cast<size_t>(hash);
 
   ExecutionEngine *jit = nullptr;
   if (jitCache->hasJITEngine(hashKey))
