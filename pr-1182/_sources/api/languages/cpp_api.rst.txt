@@ -59,6 +59,8 @@ Common
 .. doxygenclass:: cudaq::complex_matrix
     :members:
 
+.. doxygenclass:: cudaq::Trace
+
 .. doxygenclass:: cudaq::Resources
 
 .. doxygentypedef:: cudaq::complex_matrix::value_type

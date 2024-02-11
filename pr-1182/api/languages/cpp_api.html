@@ -411,8 +411,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cutensor">cuTensor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
@@ -1126,8 +1124,8 @@
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext15kernelResourcesE">
-<span class="target" id="classcudaq_1_1ExecutionContext_1a3b8fb3c798575f9dd6ae674337811ecc"></span><a class="reference internal" href="#_CPPv4N5cudaq9ResourcesE" title="cudaq::Resources"><span class="n"><span class="pre">Resources</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kernelResources</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext15kernelResourcesE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext11kernelTraceE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a832079b8beaec29c27462f27704d6386"></span><a class="reference internal" href="#_CPPv4N5cudaq5TraceE" title="cudaq::Trace"><span class="n"><span class="pre">Trace</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kernelTrace</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext11kernelTraceE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>When run under the tracer context, persist the traced quantum resources here. </p>
 </dd></dl>
 
@@ -1833,6 +1831,12 @@
 </dd></dl>
 
 </div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5TraceE">
+<span class="target" id="classcudaq_1_1Trace"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Trace</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5TraceE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A trace is a circuit representation of the executed computation, as seen by the execution manager. (Here, a circuit is represented as a list of instructions on qudits). Since the execution manager cannot “see” control flow, the trace of a kernel with control flow represents a single execution path, and thus two calls to the same kernel might produce traces. </p>
 </dd></dl>
 
 <dl class="cpp class">

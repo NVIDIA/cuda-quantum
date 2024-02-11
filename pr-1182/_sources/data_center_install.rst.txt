@@ -172,43 +172,6 @@ install CUDA 11.8:
     :start-after: [>CUDAInstall]
     :end-before: [<CUDAInstall]
 
-cuQuantum
-+++++++++++++++++++++++++++++++
-
-Each version of CUDA Quantum is compatible only with a specific cuQuantum version.
-As of CUDA Quantum 0.6, this is version 23.10. Newer versions of cuQuantum (if they exist)
-might be compatible but have not been tested.
-
-Make sure the environment variable `CUDA_ARCH_FOLDER` is set to either `x86_64`
-or `sbsa` (for ARM64) depending on your processor architecture, and `CUDA_VERSION`
-is set to the installed CUDA version.
-Install cuQuantum version 23.10 using the following commands:
-
-.. literalinclude:: ../../scripts/configure_build.sh
-    :language: bash
-    :dedent:
-    :start-after: [>cuQuantumInstall]
-    :end-before: [<cuQuantumInstall]
-
-cuTensor
-+++++++++++++++++++++++++++++++
-
-Depending on how you installed CUDA, the cuTensor library is usually not included 
-in the installation. This library is used by some of the simulator backends. 
-Please check the cuQuantum documentation to ensure you choose a version that is 
-compatible with the used cuQuantum version, such as version 1.7.
-
-Make sure the environment variable `CUDA_ARCH_FOLDER` is set to either `x86_64`
-or `sbsa` (for ARM64) depending on your processor architecture, and `CUDA_VERSION`
-is set to the installed CUDA version.
-Install cuTensor version 1.7 using the following commands:
-
-.. literalinclude:: ../../scripts/configure_build.sh
-    :language: bash
-    :dedent:
-    :start-after: [>cuTensorInstall]
-    :end-before: [<cuTensorInstall]
-
 Toolchain
 +++++++++++++++++++++++++++++++
 
