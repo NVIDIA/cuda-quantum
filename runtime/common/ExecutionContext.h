@@ -11,8 +11,8 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
-#include "Trace.h"
 #include "SimulationState.h"
+#include "Trace.h"
 #include <optional>
 #include <string_view>
 
