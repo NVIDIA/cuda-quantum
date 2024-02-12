@@ -16,14 +16,23 @@
 #include "common/SimulationState.h"
 
 namespace nvqir {
+
+/// @brief An MPSTensor is a representation
+/// of a MPS tensor and encapsulates the
+/// tensor devide data and the tensor extents.
+struct MPSTensor {
+  void *deviceData = nullptr;
+  std::vector<int64_t> extents;
+};
+
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
 /// simulator implementation.
 class TensorNetState {
+public:
   std::size_t m_numQubits;
   cutensornetHandle_t m_cutnHandle;
   cutensornetState_t m_quantumState;
 
-public:
   /// @brief Constructor
   TensorNetState(std::size_t numQubits, cutensornetHandle_t handle);
 
@@ -58,10 +67,10 @@ public:
   computeRDM(const std::vector<int32_t> &qubits);
 
   /// Factorize the `cutensornetState_t` into matrix product state form.
-  // Returns MPS tensors in GPU device memory.
-  // Note: the caller assumes the ownership of these pointers, thus needs to
-  // clean them up properly (with cudaFree).
-  std::vector<void *> factorizeMPS(
+  /// Returns MPS tensors in GPU device memory.
+  /// Note: the caller assumes the ownership of these pointers, thus needs to
+  /// clean them up properly (with cudaFree).
+  std::vector<MPSTensor> factorizeMPS(
       int64_t maxExtent, double absCutoff, double relCutoff,
       cutensornetTensorSVDAlgo_t algo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ);
 
@@ -81,19 +90,28 @@ public:
   ~TensorNetState();
 };
 
+/// @brief Default TensorNet SimulationState. Defaults to
+/// just extracting a state-vector representation for users.
 class TensorNetSimulationState : public cudaq::SimulationState {
 protected:
   /// @brief Reference to the `TensorNetState` pointer. We
   /// take ownership of it here.
   TensorNetState *state;
 
-  /// @brief FIXME We should remove this. For not it is for backward
+  /// @brief FIXME We should remove this. For now it is for backward
   /// compatibility
-  const std::vector<cudaq::complex128> stateData;
+  std::vector<cudaq::complex128> stateData;
 
 public:
-  TensorNetSimulationState(TensorNetState *inState)
-      : state(inState), stateData(inState->getStateVector()) {}
+  TensorNetSimulationState(TensorNetState *inState,
+                           bool generateStateVector = true)
+      : state(inState) {
+
+    // Subtypes can specify that the state vector
+    // generation is not used.
+    if (generateStateVector)
+      stateData = state->getStateVector();
+  }
 
   std::size_t getNumQubits() const override { return state->getNumQubits(); }
 

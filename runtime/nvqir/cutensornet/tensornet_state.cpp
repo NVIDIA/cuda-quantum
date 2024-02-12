@@ -248,30 +248,33 @@ TensorNetState::computeRDM(const std::vector<int32_t> &qubits) {
 
 // Returns MPS tensors (device mems)
 // Note: user needs to clean up these tensors
-std::vector<void *>
+std::vector<MPSTensor>
 TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
                              double relCutoff,
                              cutensornetTensorSVDAlgo_t algo) {
   LOG_API_TIME();
-  std::vector<std::vector<int64_t>> extents;
+  std::vector<MPSTensor> mpsTensors(m_numQubits);
+  // std::vector<std::vector<int64_t>> extents;
   std::vector<int64_t *> extentsPtr(m_numQubits);
-  std::vector<void *> d_mpsTensors(m_numQubits, nullptr);
+  // std::vector<void *> d_mpsTensors(m_numQubits, nullptr);
   for (std::size_t i = 0; i < m_numQubits; ++i) {
     if (i == 0) {
-      extents.push_back({2, maxExtent});
-      HANDLE_CUDA_ERROR(cudaMalloc(
-          &d_mpsTensors[i], 2 * maxExtent * sizeof(std::complex<double>)));
-    } else if (i == m_numQubits - 1) {
-      extents.push_back({maxExtent, 2});
-      HANDLE_CUDA_ERROR(cudaMalloc(
-          &d_mpsTensors[i], 2 * maxExtent * sizeof(std::complex<double>)));
-    } else {
-      extents.push_back({maxExtent, 2, maxExtent});
+      mpsTensors[i].extents = {2, maxExtent};
       HANDLE_CUDA_ERROR(
-          cudaMalloc(&d_mpsTensors[i],
+          cudaMalloc(&mpsTensors[i].deviceData,
+                     2 * maxExtent * sizeof(std::complex<double>)));
+    } else if (i == m_numQubits - 1) {
+      mpsTensors[i].extents = {maxExtent, 2};
+      HANDLE_CUDA_ERROR(
+          cudaMalloc(&mpsTensors[i].deviceData,
+                     2 * maxExtent * sizeof(std::complex<double>)));
+    } else {
+      mpsTensors[i].extents = {maxExtent, 2, maxExtent};
+      HANDLE_CUDA_ERROR(
+          cudaMalloc(&mpsTensors[i].deviceData,
                      2 * maxExtent * maxExtent * sizeof(std::complex<double>)));
     }
-    extentsPtr[i] = extents[i].data();
+    extentsPtr[i] = mpsTensors[i].extents.data();
   }
 
   // Specify the final target MPS representation (use default fortran strides)
@@ -309,11 +312,14 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
   }
 
+  std::vector<void *> allData(m_numQubits);
+  for (std::size_t i = 0; auto &tensor : mpsTensors)
+    allData[i++] = tensor.deviceData;
   // Execute MPS computation
   HANDLE_CUTN_ERROR(cutensornetStateCompute(
       m_cutnHandle, m_quantumState, workDesc, extentsPtr.data(),
-      /*strides=*/nullptr, d_mpsTensors.data(), 0));
-  return d_mpsTensors;
+      /*strides=*/nullptr, allData.data(), 0));
+  return mpsTensors;
 }
 
 std::complex<double> TensorNetState::computeExpVal(

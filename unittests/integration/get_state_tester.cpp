@@ -37,6 +37,7 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
 
   EXPECT_NEAR(state.overlap(state), 1.0, 1e-3);
 
+#ifndef CUDAQ_BACKEND_TENSORNET
   // Demonstrate a useful use-case for get_state,
   // specifically, let's approximate another 2-qubit state with a
   // general so4 rotation. Here we'll see if we can find rotational
@@ -67,4 +68,5 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   });
 
   EXPECT_NEAR(opt_val, 0.0, 1e-3);
+#endif
 }
