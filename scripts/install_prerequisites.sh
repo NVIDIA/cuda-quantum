@@ -179,21 +179,22 @@ if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
-  # The Mozilla certificate bundle can be downloaded from https://curl.se/ca/cacert.pem.
-  # For more information, see
+  # The arguments --with-ca-path and --with-ca-bundle can be used to configure the default
+  # locations where Curl will look for certificates. The Mozilla certificate bundle can be 
+  # downloaded from https://curl.se/ca/cacert.pem. For more information, see
   # - https://curl.se/docs/sslcerts.html
   # - https://curl.se/docs/caextract.html
-  # The --with-ca-bundle argument below merely defines a default for where Curl looks for this file.
+  # Unfortunately, it looks like these paths need to be absolute paths known at compile time.
   # While the environment variable CURL_CA_BUNDLE allows to easily override the default path when 
-  # the curl executable is defined, this variable is *not* respected by the built library itself.
+  # the curl executable is defined, this variable is *not* respected by the built library itself;
+  # instead, the user of libcurl is responsible for picking up these environment variables and 
+  # passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO. 
   wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
   tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
   ./configure --prefix="$CURL_INSTALL_PREFIX" \
     --enable-shared=no --enable-static=yes \
     --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
-    --with-ca-bundle=cacert.pem \
-    --with-ca-path=/etc/ssl/certs \
     --without-zstd --without-brotli \
     --disable-ftp --disable-tftp --disable-smtp --disable-ldap --disable-ldaps \
     --disable-smb --disable-gopher --disable-telnet --disable-rtsp \
