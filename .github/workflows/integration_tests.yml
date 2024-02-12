@@ -15,6 +15,7 @@ on:
           - iqm
           - oqc
           - quantinuum
+          - nvcf
       single_test_name:
         type: string
         required: false
@@ -32,7 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: backend-validation
     container:
-      image: nvcr.io/nvidia/nightly/cuda-quantum:latest
+      # TODO: switch back to `cuda-quantum:latest` once the publishing image is ready
+      image: nvcr.io/nvidia/nightly/cuda-quantum:latest-base
       options: --user root
 
     steps:
@@ -252,4 +254,111 @@ jobs:
               ;;
             esac
           done
+        shell: bash
+      
+      - name: Setup NVCF test function
+        if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'nvcf'
+        run: |
+          # Deploy a test function version with the image for testing
+
+      - name: Submit to NVCF 
+        if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        run: |
+          echo "### Submit to NVCF" >> $GITHUB_STEP_SUMMARY
+          export NVCF_API_KEY="${{ secrets.NVCF_API_KEY }}"
+          export NVCF_FUNCTION_ID="${{ secrets.NVCF_FUNCTION_ID }}"
+          export CUDAQ_LOG_LEVEL="info"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          # FIXME: remove this step
+          wget https://curl.haxx.se/ca/cacert.pem 
+          # Test all NVQPP execution tests
+          for filename in `find test/NVQPP/ -name '*.cpp'`; do
+            echo "$filename"
+            # Only run tests that require execution (not a syntax-only check)
+            if grep -q "ifndef SYNTAX_CHECK" "$filename"; then 
+              # TODO: remove --enable-mlir
+              nvq++ -v $filename --target nvcf --enable-mlir
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                ./a.out
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              else
+                echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            fi
+          done
+
+          # Test all remote-sim tests 
+          for filename in `find test/Remote-Sim -name '*.cpp'`; do
+            echo "$filename"
+            # TODO: remove --enable-mlir
+            nvcf_config="--enable-mlir"
+            # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
+            num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
+            if [ -n "$num_qpus" ]; then
+              echo "Intended to run on '$num_qpus' QPUs."
+              nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
+            fi
+            nvq++ $filename --target nvcf $nvcf_config
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+                echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+            fi
+          done
+
+          # Test NVCF C++ examples
+          for filename in `find examples/cpp/providers/ -name 'nvcf_*.cpp'`; do
+            echo "$filename"
+            nvcf_config=""
+            # Look for a --nvcf-backend flag to nvq++ in the 
+            intended_target=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-backend\s+\K\S+'`
+            if [ -n "$intended_target" ]; then
+              echo "Intended for execution on '$intended_target' backend."
+              nvcf_config="$nvcf_config --nvcf-backend $intended_target"
+            fi
+            # Look for a --nvcf-nqpus flag to nvq++ in the 
+            num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-nqpus\s+\K\S+'`
+            if [ -n "$num_qpus" ]; then
+              echo "Intended to run on '$num_qpus' QPUs."
+              nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
+            fi
+            nvq++ $filename --target nvcf $nvcf_config
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+                echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
         shell: bash
