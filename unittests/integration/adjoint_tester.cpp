@@ -218,3 +218,52 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   // ctrl ry pi / 4 1 2
   // }
 }
+
+// This implementation is based on:
+// Knuth, D. E. (2014). Art of computer programming, volume 2: Seminumerical
+//                      algorithms. Addison-Wesley Professional.
+// (See page 233 for the discussion on floating points that was adapted here to
+// implement the comparison for std::complex<double>. Here we use the Euclidean
+// distance to compare the complex numbers.)
+inline bool
+essentially_equal(std::complex<double> a, std::complex<double> b,
+                  double epsilon = std::numeric_limits<double>::epsilon()) {
+  double tmp = std::min(std::abs(b), std::abs(a));
+  return std::abs(a - b) <= (tmp * epsilon);
+}
+
+// From issue: https://github.com/NVIDIA/cuda-quantum/issues/1215
+
+__qpu__ void foo(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
+
+__qpu__ void bar() {
+  cudaq::qubit q;
+  rz<cudaq::adj>(M_PI_2, q);
+  cudaq::adjoint(foo, q);
+}
+
+CUDAQ_TEST(AdjointTester, checkEvenAdjointNesting) {
+  auto result = cudaq::get_state(bar);
+  auto amplitudes = result.get_data();
+  std::array<std::complex<double>, 2> expected = {1., 0};
+  EXPECT_TRUE(essentially_equal(expected[0], amplitudes[0]));
+  EXPECT_TRUE(essentially_equal(expected[1], amplitudes[1]));
+}
+
+__qpu__ void zaz(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
+
+__qpu__ void foo_2(cudaq::qubit &q) { cudaq::adjoint(zaz, q); }
+
+__qpu__ void bar_2() {
+  cudaq::qubit q;
+  rz(M_PI_2, q);
+  cudaq::adjoint(foo_2, q);
+}
+
+CUDAQ_TEST(AdjointTester, checkOddAdjointNesting) {
+  auto result = cudaq::get_state(bar_2);
+  auto amplitudes = result.get_data();
+  std::array<std::complex<double>, 2> expected = {1., 0};
+  EXPECT_TRUE(essentially_equal(expected[0], amplitudes[0]));
+  EXPECT_TRUE(essentially_equal(expected[1], amplitudes[1]));
+}
