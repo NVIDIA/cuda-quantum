@@ -132,6 +132,70 @@ of an NOT operation. The :code:`sample_result` returned for this sampling
 tasks contains the default :code:`__global__` register as well as the user 
 specified :code:`reg1` register. 
 
+The contents of the :code:`__global__` register will depend on how your kernel
+is written:
+
+1. If no measurements appear in the kernel, then the :code:`__global__`
+   register is formed with implicit measurements being added for *all* the
+   qubits defined in the kernel, and the measurements all occur at the end of
+   the kernel. The order of the bits in the bitstring corresponds to the qubit
+   allocation order specified in the kernel.  That is - the :code:`[0]` element
+   in the :code:`__global__` bitstring corresponds with the first declared qubit
+   in the kernel. For example,
+
+   .. code-block:: cpp
+
+       auto kernel = []() __qpu__ {
+         cudaq::qubit a, b;
+         x(a);
+       };
+       cudaq::sample(kernel).dump();
+
+   should produce 
+
+   .. code-block:: bash 
+
+       { 
+         __global__ : { 10:1000 }
+       }
+
+2. Conversely, if any measurements appear in the kernel, then only the measured
+   qubits will appear in the :code:`__global__` register. Similar to #1, the 
+   bitstring corresponds to the qubit allocation order specified in the kernel.
+   Also (again, similar to #1), the values of the sampled qubits always
+   correspond to the values *at the end of the kernel execution*. That is - if a
+   qubit is measured in the middle of a kernel and subsequent operations change
+   the state of the qubit, the qubit will be implicitly re-measured at the end
+   of the kernel, and that re-measured value is the value that will appear in
+   the :code:`__global__` register. For example,
+
+   .. code-block:: cpp
+
+       auto kernel = []() __qpu__ {
+         cudaq::qubit a, b;
+         x(a);
+         mz(b);
+         mz(a);
+       };
+       cudaq::sample(kernel).dump();
+
+   should produce 
+
+   .. code-block:: bash 
+
+       { 
+         __global__ : { 10:1000 }
+       }
+
+.. note::
+
+  If you don't specify any measurements in your kernel and allow the :code:`nvq++`
+  compiler to perform passes that introduce ancilla qubits into your kernel, it
+  may be difficult to discern which qubits are the ancilla qubits vs which ones
+  are your qubits. In this case, it is recommended that you provide explicit
+  measurements in your kernel in order to only receive measurements from your
+  qubits and silently discard the measurements from the ancillary qubits.
+
 The API exposed by the :code:`sample_result` data type allows one to extract
 the information contained at a variety of levels and for each available 
 register name. One can get the number of times a bit string was observed via 
