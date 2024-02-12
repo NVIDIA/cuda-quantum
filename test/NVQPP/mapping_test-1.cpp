@@ -19,9 +19,9 @@ __qpu__ void foo() {
   x(q1);
   x<cudaq::ctrl>(q0, q1);
   x<cudaq::ctrl>(q0, q2); // requires a swap(q0,q1)
-  auto q0result = mz(q0);
-  auto q1result = mz(q1);
-  auto q2result = mz(q2);
+  mz(q0);
+  mz(q1);
+  mz(q2);
 }
 
 int main() {
@@ -43,9 +43,9 @@ int main() {
 // QUAKE:       tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* writeonly null)
 // QUAKE:       tail call void @__quantum__qis__mz__body(%Qubit* null, %Result* nonnull writeonly inttoptr (i64 1 to %Result*))
 // QUAKE:       tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull writeonly inttoptr (i64 2 to %Result*))
-// QUAKE:       tail call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([9 x i8], [9 x i8]* @cstr.{{.*}}, i64 0, i64 0))
-// QUAKE:       tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* nonnull getelementptr inbounds ([9 x i8], [9 x i8]* @cstr.{{.*}}, i64 0, i64 0))
-// QUAKE:       tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* nonnull getelementptr inbounds ([9 x i8], [9 x i8]* @cstr.{{.*}}, i64 0, i64 0))
+// QUAKE:       tail call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
+// QUAKE:       tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
+// QUAKE:       tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
 // QUAKE:       ret void
 
 // CHECK-LABEL: most_probable "101"
