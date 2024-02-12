@@ -12,6 +12,7 @@
 #include <thread>
 #include <sstream>
 #include <map>
+#include <regex>
 
 namespace cudaq {
 
@@ -83,6 +84,10 @@ public:
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) override;
+
+  /// @brief Update `passPipeline` with architecture-specific pass options
+  void updatePassPipeline(const std::filesystem::path &platformPath,
+                              std::string &passPipeline) override;
 };
 
 namespace {
@@ -404,6 +409,16 @@ RestHeaders OQCServerHelper::getHeaders() {
   // Return the headers
   return headers;
 }
+
+void OQCServerHelper::updatePassPipeline(
+        const std::filesystem::path &platformPath, std::string &passPipeline) {
+    std::string pathToFile =
+            platformPath / std::string("mapping/oqc") /
+            (backendConfig["machine"] + std::string(".txt"));
+    passPipeline =
+            std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
+  }
+
 
 } // namespace cudaq
 
