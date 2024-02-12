@@ -298,29 +298,32 @@ jobs:
 
           # Test all remote-sim tests 
           for filename in `find test/Remote-Sim -name '*.cpp'`; do
-            echo "$filename"
-            # TODO: remove --enable-mlir
-            nvcf_config="--enable-mlir"
-            # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
-            num_qpus=`cat $filename | grep -oP -m 1 '^//\s*RUN:\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
-            if [ -n "$num_qpus" ]; then
-              echo "Intended to run on '$num_qpus' QPUs."
-              nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
-            fi
-            nvq++ -v $filename --target nvcf $nvcf_config
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              ./a.out
+            # unsupport_args is a compile error test
+            if [[ "$filename" != *"unsupport_args"* ]]; then
+              echo "$filename"
+              # TODO: remove --enable-mlir
+              nvcf_config="--enable-mlir"
+              # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
+              num_qpus=`cat $filename | grep -oP -m 1 '^//\s*RUN:\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
+              if [ -n "$num_qpus" ]; then
+                echo "Intended to run on '$num_qpus' QPUs."
+                nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
+              fi
+              nvq++ -v $filename --target nvcf $nvcf_config
               test_status=$?
               if [ $test_status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                ./a.out
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
               else
-                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                test_err_sum=$((test_err_sum+1))
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
               fi
-            else
-                echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                test_err_sum=$((test_err_sum+1))
             fi
           done
 
