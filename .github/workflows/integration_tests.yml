@@ -302,7 +302,7 @@ jobs:
             # TODO: remove --enable-mlir
             nvcf_config="--enable-mlir"
             # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
-            num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*RUN:\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
+            num_qpus=`cat $filename | grep -oP -m 1 '^//\s*RUN:\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
             if [ -n "$num_qpus" ]; then
               echo "Intended to run on '$num_qpus' QPUs."
               nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
