@@ -68,7 +68,8 @@ RestClient::RestClient() : sslOptions(std::make_unique<cpr::SslOptions>()) {
         "certificate authority bundles. If this does not work, try setting "
         "the CURL_CA_BUNDLE environment variable to a valid path to a CA "
         "Bundle file, like one downloaded from here: "
-        "https://curl.se/ca/cacert.pem.", certPath.string());
+        "https://curl.se/ca/cacert.pem.",
+        certPath.string());
     return "";
   }();
 
