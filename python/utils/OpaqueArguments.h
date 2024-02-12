@@ -340,4 +340,14 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   return false;
 }
 
+/// @brief Create a new OpaqueArguments pointer and pack the
+/// python arguments in it. Clients must delete the memory.
+inline OpaqueArguments *toOpaqueArgs(py::args &args) {
+  auto *argData = new cudaq::OpaqueArguments();
+  args = simplifiedValidateInputArguments(args);
+  cudaq::packArgs(*argData, args,
+                  [](OpaqueArguments &, py::object &) { return false; });
+  return argData;
+}
+
 } // namespace cudaq
