@@ -327,39 +327,78 @@ jobs:
             fi
           done
 
-          # Test NVCF C++ examples
-          for filename in `find examples/cpp/providers/ -name 'nvcf_*.cpp'`; do
-            echo "$filename"
-            # TODO: remove --enable-mlir
-            nvcf_config="--enable-mlir"
-            # Look for a --nvcf-backend flag to nvq++ in the 
-            intended_target=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-backend\s+\K\S+'`
-            if [ -n "$intended_target" ]; then
-              echo "Intended for execution on '$intended_target' backend."
-              nvcf_config="$nvcf_config --nvcf-backend $intended_target"
-            fi
-            # Look for a --nvcf-nqpus flag to nvq++ in the 
-            num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-nqpus\s+\K\S+'`
-            if [ -n "$num_qpus" ]; then
-              echo "Intended to run on '$num_qpus' QPUs."
-              nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
-            fi
-            nvq++ -v $filename --target nvcf $nvcf_config
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              ./a.out
+          # Test C++ examples with NVCF
+          for filename in `find examples/cpp/ -name '*.cpp'`; do
+            if [[ "$filename" != *"nois"* ]] && [[ "$filename" != *"ionq"* ]] && [[ "$filename" != *"iqm"* ]] && [[ "$filename" != *"orca"* ]] && [[ "$filename" != *"photonics"* ]] && [[ "$filename" != *"quantinuum"* ]]; then
+              echo "$filename"
+              # TODO: remove --enable-mlir
+              nvcf_config="--enable-mlir"
+              # Look for a --nvcf-backend flag to nvq++ in the 
+              nvcf_backend=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-backend\s+\K\S+'`
+              if [ -n "$nvcf_backend" ]; then
+                echo "Intended for execution on '$nvcf_backend' backend."
+                nvcf_config="$nvcf_config --nvcf-backend $nvcf_backend"
+              fi
+              # Look for a --nvcf-nqpus flag to nvq++ in the 
+              num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-nqpus\s+\K\S+'`
+              if [ -n "$num_qpus" ]; then
+                echo "Intended to run on '$num_qpus' QPUs."
+                nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
+              fi
+              nvq++ -v $filename --target nvcf $nvcf_config
               test_status=$?
               if [ $test_status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                ./a.out
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
               else
-                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+              fi
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+          
+          # Test NVCF Python examples
+          for ex in `find examples/python -name '*.py'`; do 
+            filename=$(basename -- "$ex")
+            filename="${filename%.*}"
+            echo "Testing $filename:"
+            if [[ "$ex" == *"nvcf"* ]]; then
+              # This is an NVCF example
+              python3 $ex 1> /dev/null
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
                 test_err_sum=$((test_err_sum+1))
               fi
             else
-                echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                test_err_sum=$((test_err_sum+1))
+              # Only run examples that are not target-specific (e.g., ionq, iqm)
+              if ! grep -q "set_target" "$ex"; then 
+                # Use --target command line option to run these examples with
+                python3 --target nvcf $ex 1> /dev/null
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              fi
             fi
           done
+          
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
