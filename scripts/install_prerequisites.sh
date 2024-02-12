@@ -180,21 +180,37 @@ if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
   temp_install_if_command_unknown make make
 
   # The arguments --with-ca-path and --with-ca-bundle can be used to configure the default
-  # locations where Curl will look for certificates. The Mozilla certificate bundle can be 
+  # locations where Curl will look for certificates. Note that the paths where certificates
+  # are stored by default varies across operating systems, and to build a Curl library that 
+  # can run out of the box on various operating systems pretty much necessitates including 
+  # and distributing a certificate bundle, or downloading such a bundle dynamically at
+  # at runtime if needed. The Mozilla certificate bundle can be 
   # downloaded from https://curl.se/ca/cacert.pem. For more information, see
   # - https://curl.se/docs/sslcerts.html
   # - https://curl.se/docs/caextract.html
-  # Unfortunately, it looks like these paths need to be absolute paths known at compile time.
-  # While the environment variable CURL_CA_BUNDLE allows to easily override the default path when 
-  # the curl executable is defined, this variable is *not* respected by the built library itself;
-  # instead, the user of libcurl is responsible for picking up these environment variables and 
-  # passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO. 
+  wget https://curl.se/ca/cacert.pem 
+  wget https://curl.se/ca/cacert.pem.sha256
+  if [ "$(sha256sum cacert.pem)" != "$(cat cacert.pem.sha256)" ]; then 
+    echo -e "\e[01;31mWarning: Incorrect sha256sum of cacert.pem. The file cacert.pem has been removed. The file can be downloaded manually from https://curl.se/docs/sslcerts.html.\e[0m" >&2
+    rm cacert.pem cacert.pem.sha256
+  else
+    mkdir -p "$CURL_INSTALL_PREFIX" && mv cacert.pem "$CURL_INSTALL_PREFIX"
+  fi
+  
+  # Unfortunately, it looks like the default paths need to be absolute and known at compile time.
+  # Note that while the environment variable CURL_CA_BUNDLE allows to easily override the default 
+  # path when invoking the Curl executable, this variable is *not* respected by default by the 
+  # built library itself; instead, the user of libcurl is responsible for picking up the 
+  # environment variables and passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO. 
+  # We opt to build Curl without any default paths, and instead have the CUDA Quantum runtime
+  # determine and pass a suitable path.
   wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
   tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
   ./configure --prefix="$CURL_INSTALL_PREFIX" \
     --enable-shared=no --enable-static=yes \
     --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
+    --without-ca-bundle --without-ca-path \
     --without-zstd --without-brotli \
     --disable-ftp --disable-tftp --disable-smtp --disable-ldap --disable-ldaps \
     --disable-smb --disable-gopher --disable-telnet --disable-rtsp \

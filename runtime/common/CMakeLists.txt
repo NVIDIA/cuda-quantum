@@ -94,6 +94,9 @@ install(EXPORT cudaq-common-targets
         FILE CUDAQCommonTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
+if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
+  install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
+endif()
 
 ## ----- Runtime MLIR Library ----- 
 ## We need support in the runtime for compiler-level things, 
