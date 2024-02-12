@@ -302,12 +302,12 @@ jobs:
             # TODO: remove --enable-mlir
             nvcf_config="--enable-mlir"
             # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
-            num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
+            num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*RUN:\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
             if [ -n "$num_qpus" ]; then
               echo "Intended to run on '$num_qpus' QPUs."
               nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
             fi
-            nvq++ $filename --target nvcf $nvcf_config
+            nvq++ -v $filename --target nvcf $nvcf_config
             test_status=$?
             if [ $test_status -eq 0 ]; then
               ./a.out
@@ -327,7 +327,8 @@ jobs:
           # Test NVCF C++ examples
           for filename in `find examples/cpp/providers/ -name 'nvcf_*.cpp'`; do
             echo "$filename"
-            nvcf_config=""
+            # TODO: remove --enable-mlir
+            nvcf_config="--enable-mlir"
             # Look for a --nvcf-backend flag to nvq++ in the 
             intended_target=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-backend\s+\K\S+'`
             if [ -n "$intended_target" ]; then
@@ -340,7 +341,7 @@ jobs:
               echo "Intended to run on '$num_qpus' QPUs."
               nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
             fi
-            nvq++ $filename --target nvcf $nvcf_config
+            nvq++ -v $filename --target nvcf $nvcf_config
             test_status=$?
             if [ $test_status -eq 0 ]; then
               ./a.out
