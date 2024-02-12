@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -47,6 +47,8 @@ RUN git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 RUN if [ "$toolchain" == 'gcc11' ]; then \
         dev_tools=gcc-toolset-11 && CC=$(which gcc | sed 's/[0-9]\{1,2\}/11/g') && CXX=$(which g++ | sed 's/[0-9]\{1,2\}/11/g'); \
+    elif [ "$toolchain" == 'gcc12' ]; then \
+        dev_tools=gcc-toolset-12 && CC=$(which gcc | sed 's/[0-9]\{1,2\}/12/g') && CXX=$(which g++ | sed 's/[0-9]\{1,2\}/12/g'); \
     elif [ "$toolchain" == 'clang15' ]; then \
         dev_tools=clang && CC=$(which clang-15) && CXX=$(which clang++-15); \
     else echo "Toolchain not supported." && exit 1; \
