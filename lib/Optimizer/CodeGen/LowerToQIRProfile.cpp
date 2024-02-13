@@ -587,6 +587,54 @@ cudaq::opt::verifyQIRProfilePass(llvm::StringRef convertTo) {
   return std::make_unique<VerifyQIRProfilePass>(convertTo);
 }
 
+namespace {
+/// Verify that the QIR doesn't have any "bonus" calls to arbitrary code that is
+/// not possibly defined in the QIR standard or NVQIR runtime.
+struct VerifyNVQIRCallOpsPass
+    : public cudaq::opt::VerifyNVQIRCallOpsBase<VerifyNVQIRCallOpsPass> {
+  explicit VerifyNVQIRCallOpsPass() : VerifyNVQIRCallOpsBase() {}
+
+  void runOnOperation() override {
+    LLVM::LLVMFuncOp func = getOperation();
+    bool passFailed = false;
+    // Check that a function name is either QIR or NVQIR registered.
+    const auto isKnownFunctionName = [](llvm::StringRef functionName) -> bool {
+      if (functionName.startswith("__quantum_"))
+        return true;
+      static const std::vector<llvm::StringRef> NVQIR_FUNCS = {
+          cudaq::opt::NVQIRInvokeWithControlBits,
+          cudaq::opt::NVQIRInvokeRotationWithControlBits,
+          cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
+          cudaq::opt::NVQIRPackSingleQubitInArray,
+          cudaq::opt::NVQIRReleasePackedQubitArray};
+      return std::find(NVQIR_FUNCS.begin(), NVQIR_FUNCS.end(), functionName) !=
+             NVQIR_FUNCS.end();
+    };
+
+    func.walk([&](Operation *op) {
+      if (auto call = dyn_cast<LLVM::CallOp>(op)) {
+        auto funcName = call.getCalleeAttr().getValue();
+        if (!isKnownFunctionName(funcName)) {
+          call.emitOpError("unexpected function call in NVQIR");
+          passFailed = true;
+          return WalkResult::interrupt();
+        }
+        return WalkResult::advance();
+      }
+      return WalkResult::advance();
+    });
+    if (passFailed) {
+      emitError(func.getLoc(),
+                "function " + func.getName() + " not compatible with NVQIR.");
+      signalPassFailure();
+    }
+  }
+};
+} // namespace
+std::unique_ptr<mlir::Pass> cudaq::opt::createVerifyNVQIRCallOpsPass() {
+  return std::make_unique<VerifyNVQIRCallOpsPass>();
+}
+
 // The various passes defined here should be added as a pass pipeline.
 
 void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,

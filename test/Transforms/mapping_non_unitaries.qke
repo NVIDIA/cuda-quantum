@@ -37,7 +37,7 @@ func.func @test_measurement() {
   return
 }
 
-// CHECK-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [0, 2, 1]} {
+// CHECK-LABEL:   func.func @test_measurement() attributes {mapping_reorder_idx = [0, 2, 1], mapping_v2p = [0, 2, 1]} {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
@@ -52,5 +52,5 @@ func.func @test_measurement() {
 // CHECK:           return
 // CHECK:         }
 
-// STAR52-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [0, 1, 2]} {
-// STAR50-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [2, 1, 0]} {
+// STAR52-LABEL:   func.func @test_measurement() attributes {mapping_reorder_idx = [0, 1, 2], mapping_v2p = [0, 1, 2]} {
+// STAR50-LABEL:   func.func @test_measurement() attributes {mapping_reorder_idx = [2, 1, 0], mapping_v2p = [2, 1, 0]} {

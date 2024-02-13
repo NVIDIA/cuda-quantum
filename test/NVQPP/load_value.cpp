@@ -26,7 +26,7 @@ __qpu__ void load_value(unsigned value) {
       x(qubits[3 - i]);
   }
 
-  auto results = mz(qubits);
+  mz(qubits);
 }
 
 int main() {
