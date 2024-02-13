@@ -413,8 +413,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#cutensor">cuTensor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
@@ -460,25 +458,30 @@
              
   <section id="cuda-quantum-in-python">
 <h1>CUDA Quantum in Python<a class="headerlink" href="#cuda-quantum-in-python" title="Permalink to this heading">¶</a></h1>
-<p>Welcome to CUDA Quantum!
-This is a introduction by example for using CUDA Quantum in Python.</p>
+<p>Welcome to CUDA Quantum! On this page we will illustrate CUDA Quantum in Python with several examples.
+We first introduce how to code a kernel and execute it on a state vector simulator before moving onto
+common algorithms such as Bernstein-Vazirani, Variational Quantum Eigensolver, and QAOA. The next sections
+demonstrate how to run noisy simulations on the density matrix simulator and how to execute quantum kernels on real hardware.</p>
 <section id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h2>
 <p>We’re going to take a look at how to construct quantum programs through CUDA Quantum’s <code class="code docutils literal notranslate"><span class="pre">Kernel</span></code> API.</p>
 <p>When you create a <code class="code docutils literal notranslate"><span class="pre">Kernel</span></code> and invoke its methods, a quantum program is constructed that can then be executed by calling, for example, <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code>. Let’s take a closer look!</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
-<span class="c1"># We begin by defining the `Kernel` that we will construct our</span>
-<span class="c1"># program with.</span>
+<span class="c1"># We begin by defining the `Kernel`to build our quantum program.</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
 
-<span class="c1"># Next, we can allocate qubits to the kernel via `qalloc(qubit_count)`.</span>
+<span class="c1"># Next, we allocate qubits to the kernel via `qalloc(qubit_count)`.</span>
+<span class="c1"># In this example, we will allocate one qubit.</span>
 <span class="c1"># An empty call to `qalloc` will return a single qubit.</span>
 <span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 
-<span class="c1"># Now we can begin adding instructions to apply to this qubit!</span>
-<span class="c1"># Here we&#39;ll just add every non-parameterized</span>
-<span class="c1"># single qubit gate that is supported by CUDA Quantum.</span>
+<span class="c1"># Now we begin adding instructions to apply to this qubit!</span>
+<span class="c1"># Here, we&#39;ll just add a few of the non-parameterized</span>
+<span class="c1"># single qubit gates that are supported by CUDA Quantum.</span>
+<span class="c1"># In addition to the gates below, we could have also added</span>
+<span class="c1"># the gates representing the adjoint of these operators</span>
+<span class="c1"># (for example, `kernel.tdg(qubit)`).</span>
 <span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 <span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 <span class="n">kernel</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
@@ -487,26 +490,27 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 <span class="n">kernel</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 <span class="c1"># Next, we add a measurement to the kernel so that we can sample</span>
-<span class="c1"># the measurement results on our simulator!</span>
+<span class="c1"># the measurement results on our simulator.</span>
 <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
-<span class="c1"># Finally, we can execute this kernel on the state vector simulator</span>
+<span class="c1"># Finally, we execute this kernel on the state vector simulator</span>
 <span class="c1"># by calling `cudaq.sample`. This will execute the provided kernel</span>
 <span class="c1"># `shots_count` number of times and return the sampled distribution</span>
 <span class="c1"># as a `cudaq.SampleResult` dictionary.</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 
-<span class="c1"># Now let&#39;s take a look at the `SampleResult` we&#39;ve gotten back!</span>
+<span class="c1"># Now let&#39;s take a look at the `SampleResult` that we&#39;ve gotten back!</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>  <span class="c1"># or result.dump()</span>
 </pre></div>
 </div>
 </section>
 <section id="bernstein-vazirani">
 <h2>Bernstein-Vazirani<a class="headerlink" href="#bernstein-vazirani" title="Permalink to this heading">¶</a></h2>
-<p>Bernstein Vazirani is an algorithm for finding the bitstring encoded in a given function.</p>
+<p>The Bernstein-Vazirani algorithm aims to identify the bitstring encoded in a given function.</p>
 <p>For the original source of this algorithm, see
 <a class="reference external" href="https://epubs.siam.org/doi/10.1137/S0097539796300921">this publication</a>.</p>
-<p>In this example, we generate a random bitstring, encode it into an inner-product oracle, then we simulate the kernel and return the most probable bitstring from its execution.</p>
+<p>In this example, we generate a random bitstring and encode it into an inner-product oracle,
+and define a kernel for the Bernstein-Vazirani algorithm.  Then, we simulate the kernel and return the most probable bitstring from its execution.</p>
 <p>If all goes well, the state measured with the highest probability should be our hidden bitstring!</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">cudaq</span>
@@ -523,12 +527,12 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 <span class="k">def</span> <span class="nf">oracle</span><span class="p">(</span><span class="n">kernel</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">Kernel</span><span class="p">,</span> <span class="n">register</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span>
            <span class="n">auxillary_qubit</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">QuakeValue</span><span class="p">,</span> <span class="n">hidden_bitstring</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    The inner-product oracle for Bernstein Vazirani.</span>
+<span class="sd">    The inner-product oracle for the Bernstein-Vazirani algorithm.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hidden_bitstring</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">bit</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
             <span class="c1"># Apply identity operation to the qubit if it&#39;s</span>
-            <span class="c1"># to be in the 0-state.</span>
+            <span class="c1"># in the 0-state.</span>
             <span class="c1"># In this case, we do nothing.</span>
             <span class="k">pass</span>
         <span class="k">else</span><span class="p">:</span>
@@ -539,7 +543,7 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 
 <span class="k">def</span> <span class="nf">bernstein_vazirani</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Returns a kernel implementing the Bernstein Vazirani algorithm</span>
+<span class="sd">    Returns a kernel implementing the Bernstein-Vazirani algorithm</span>
 <span class="sd">    for a random, hidden bitstring.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
@@ -626,7 +630,13 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 </section>
 <section id="variational-quantum-eigensolver">
 <h2>Variational Quantum Eigensolver<a class="headerlink" href="#variational-quantum-eigensolver" title="Permalink to this heading">¶</a></h2>
-<p>Let’s take a look at how we can use CUDA Quantum’s built-in <code class="code docutils literal notranslate"><span class="pre">vqe</span></code> module to run our own custom VQE routines! Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA Quantum’s optimizers, <code class="code docutils literal notranslate"><span class="pre">cudaq.vqe</span></code> will find and return the optimal set of parameters that minimize the energy, &lt;Z&gt;, of the system.</p>
+<p>The Variational Quantum Eigensolver (VQE) algorithm, originally proposed in
+<a class="reference external" href="https://arxiv.org/abs/1304.3061">this publication</a>,
+is a hybrid algorithm that can make use of both quantum and classical resources.</p>
+<p>Let’s take a look at how we can use CUDA Quantum’s built-in <code class="code docutils literal notranslate"><span class="pre">vqe</span></code> module to run our own custom VQE routines!
+Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA Quantum’s optimizers,
+<code class="code docutils literal notranslate"><span class="pre">cudaq.vqe</span></code> will find and return the optimal set of parameters that minimize the energy, &lt;Z&gt;, of the system.</p>
+<p>The code block below represents the contents of a file titled <code class="code docutils literal notranslate"><span class="pre">simple_vqe.py</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
@@ -656,9 +666,10 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 <span class="c1"># optimizer.max_iterations = ...</span>
 <span class="c1"># optimizer...</span>
 
-<span class="c1"># Finally, we can pass all of that into `cudaq.vqe` and it will automatically run our</span>
-<span class="c1"># optimization loop and return a tuple of the minimized eigenvalue of our `spin_operator`</span>
+<span class="c1"># Finally, we pass all of that into `cudaq.vqe`, and it will automatically run our</span>
+<span class="c1"># optimization loop, returning a tuple of the minimized eigenvalue of our `spin_operator`</span>
 <span class="c1"># and the list of optimal variational parameters.</span>
+
 <span class="n">energy</span><span class="p">,</span> <span class="n">parameter</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">vqe</span><span class="p">(</span>
     <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
     <span class="n">spin_operator</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
@@ -670,7 +681,7 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimal theta = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">16</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Let’s look at a more advanced examples.</p>
+<p>Let’s look at a more advanced variation of the previous example.</p>
 <p>As an alternative to <code class="code docutils literal notranslate"><span class="pre">cudaq.vqe</span></code>, we can also use the <code class="code docutils literal notranslate"><span class="pre">cudaq.optimizers</span></code> suite on its own to write custom variational algorithm routines. Much of this can be slightly modified for use with third-party optimizers, such as <code class="code docutils literal notranslate"><span class="pre">scipy</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
@@ -679,9 +690,9 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 
 <span class="c1"># We will be optimizing over a custom objective function that takes a vector</span>
 <span class="c1"># of parameters as input and returns either the cost as a single float,</span>
-<span class="c1"># or in a tuple of (cost, gradient_vector) depending on the optimizer used.</span>
+<span class="c1"># or a tuple of (cost, gradient_vector) depending on the optimizer used.</span>
 
-<span class="c1"># In this case, we will use the spin Hamiltonian and ansatz from `simple_vqe.py`</span>
+<span class="c1"># In this example, we will use the spin Hamiltonian and ansatz from `simple_vqe.py`</span>
 <span class="c1"># and find the `thetas` that minimize the expectation value of the system.</span>
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span>
     <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -746,7 +757,9 @@ This is a introduction by example for using CUDA Quantum in Python.</p>
 </section>
 <section id="quantum-approximate-optimization-algorithm">
 <h2>Quantum Approximate Optimization Algorithm<a class="headerlink" href="#quantum-approximate-optimization-algorithm" title="Permalink to this heading">¶</a></h2>
-<p>Let’s now see how we can leverage the VQE algorithm to compute the Max-Cut of a rectangular graph.</p>
+<p>Let’s now see how we can implement the Quantum Approximate Optimization Algorithm (QAOA) to compute the Max-Cut of a rectangular graph by leveraging
+<code class="code docutils literal notranslate"><span class="pre">cudaq:vqe</span></code>. For more on the QAOA algorithm and the Max-Cut problem, refer to
+<a class="reference external" href="https://arxiv.org/abs/1411.4028">this paper</a>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
 
@@ -843,15 +856,16 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># our depolarization channel to.</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 
-<span class="c1"># Depolarization channel with `1.0` probability of the qubit state</span>
-<span class="c1"># being scrambled.</span>
+<span class="c1"># We define a depolarization channel setting the probability</span>
+<span class="c1"># of the qubit state being scrambled to `1.0`.</span>
 <span class="n">depolarization</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">DepolarizationChannel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
-<span class="c1"># We will apply the channel to any Y-gate on qubit 0. Meaning,</span>
+
+<span class="c1"># We will apply the channel to any Y-gate on qubit 0. In other words,</span>
 <span class="c1"># for each Y-gate on our qubit, the qubit will have a `1.0`</span>
 <span class="c1"># probability of decaying into a mixed state.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">depolarization</span><span class="p">)</span>
 
-<span class="c1"># Now we may define our simple kernel function and allocate</span>
+<span class="c1"># Now we define our simple kernel function and allocate</span>
 <span class="c1"># a qubit to it.</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
 <span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
@@ -887,15 +901,17 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># our damping channel to.</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 
-<span class="c1"># Amplitude damping channel with `1.0` probability of the qubit</span>
+<span class="c1"># We define an amplitude damping channel setting to `1.0` the</span>
+<span class="c1"># probability of the qubit</span>
 <span class="c1"># decaying to the ground state.</span>
 <span class="n">amplitude_damping</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">AmplitudeDampingChannel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+
 <span class="c1"># We will apply this channel to any Hadamard gate on the qubit.</span>
-<span class="c1"># Meaning, after each Hadamard on the qubit, there will be a</span>
-<span class="c1"># probability of `1.0` that the qubit decays back to ground.</span>
+<span class="c1"># In other words, after each Hadamard on the qubit, there will be a</span>
+<span class="c1"># probability of `1.0` that the qubit decays back to the ground state.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">amplitude_damping</span><span class="p">)</span>
 
-<span class="c1"># Now we may define our simple kernel function and allocate a qubit.</span>
+<span class="c1"># Now we define our simple kernel function and allocate a qubit.</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
 <span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 
@@ -908,7 +924,7 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 <span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
-<span class="c1"># Note: We must pass the noise model to sample via key-word.</span>
+<span class="c1"># Note: We must pass the noise model to sample via keyword.</span>
 <span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
 <span class="n">noisy_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 
@@ -937,13 +953,14 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># these decoherence channels to.</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 
-<span class="c1"># Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.</span>
+<span class="c1"># We define a bit-flip channel setting to `1.0` probability of the</span>
+<span class="c1"># qubit flipping 180 degrees about the X axis.</span>
 <span class="n">bit_flip</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">BitFlipChannel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
 <span class="c1"># We will apply this channel to any X gate on the qubit, giving each X-gate</span>
 <span class="c1"># a probability of `1.0` of undergoing an extra X-gate.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bit_flip</span><span class="p">)</span>
 
-<span class="c1"># Now we may define our simple kernel function and allocate a register</span>
+<span class="c1"># Now we define our simple kernel function and allocate a register</span>
 <span class="c1"># of qubits to it.</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
 <span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
@@ -955,7 +972,7 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 <span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
-<span class="c1"># Note: We must pass the noise model to sample via key-word.</span>
+<span class="c1"># Note: We must pass the noise model to sample via keyword.</span>
 <span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
 <span class="n">noisy_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 
@@ -983,11 +1000,11 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># our phase flip channel to.</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 
-<span class="c1"># Phase flip channel with `1.0` probability of the qubit</span>
+<span class="c1"># We define a phase-flip channel setting to `1.0` the probability of the qubit</span>
 <span class="c1"># undergoing a phase rotation of 180 degrees (π).</span>
 <span class="n">phase_flip</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">PhaseFlipChannel</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
 <span class="c1"># We will apply this channel to any Z gate on the qubit.</span>
-<span class="c1"># Meaning, after each Z gate on qubit 0, there will be a</span>
+<span class="c1"># In other words, after each Z gate on qubit 0, there will be a</span>
 <span class="c1"># probability of `1.0` that the qubit undergoes an extra</span>
 <span class="c1"># Z rotation.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phase_flip</span><span class="p">)</span>
@@ -1048,15 +1065,16 @@ Let’s take a look at the various built-in noise models we support, before conc
     <span class="k">return</span> <span class="p">[</span><span class="n">kraus_0</span><span class="p">,</span> <span class="n">kraus_1</span><span class="p">]</span>
 
 
-<span class="c1"># Manually defined amplitude damping channel with `1.0` probability</span>
-<span class="c1"># of the qubit decaying to the ground state.</span>
+<span class="c1"># We manually define an amplitude damping channel setting to `1.0`</span>
+<span class="c1"># the probability of the qubit decaying to the ground state.</span>
 <span class="n">amplitude_damping</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">KrausChannel</span><span class="p">(</span><span class="n">kraus_operators</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
+
 <span class="c1"># We will apply this channel to any Hadamard gate on the qubit.</span>
-<span class="c1"># Meaning, after each Hadamard on the qubit, there will be a</span>
+<span class="c1"># In other words, after each Hadamard on the qubit, there will be a</span>
 <span class="c1"># probability of `1.0` that the qubit decays back to ground.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">amplitude_damping</span><span class="p">)</span>
 
-<span class="c1"># Now we may define our simple kernel function and allocate a qubit.</span>
+<span class="c1"># Now we define our simple kernel function and allocate a qubit.</span>
 <span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
 <span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 
@@ -1069,7 +1087,7 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 <span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
-<span class="c1"># Note: We must pass the noise model to sample via key-word.</span>
+<span class="c1"># Note: We must pass the noise model to sample via keyword.</span>
 <span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
 <span class="n">noisy_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
 
@@ -1086,7 +1104,7 @@ Let’s take a look at the various built-in noise models we support, before conc
 </section>
 <section id="using-quantum-hardware-providers">
 <span id="python-examples-for-hardware-providers"></span><h2>Using Quantum Hardware Providers<a class="headerlink" href="#using-quantum-hardware-providers" title="Permalink to this heading">¶</a></h2>
-<p>CUDA Quantum contains support for using a set of hardware providers.
+<p>CUDA Quantum contains support for using a set of hardware providers (Quantinuum, IonQ, and IQM).
 For more information about executing quantum kernels on different hardware backends, please take a look at <a class="reference internal" href="hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.</p>
 <p>The following code illustrates how to run kernels on Quantinuum’s backends.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -1132,7 +1150,7 @@ For more information about executing quantum kernels on different hardware backe
 <span class="c1"># ```</span>
 <span class="c1"># async_counts = async_results.get()</span>
 <span class="c1"># ```</span>
-<span class="c1"># or wee can also write the job reference (`async_results`) to</span>
+<span class="c1"># or we can also write the job reference (`async_results`) to</span>
 <span class="c1"># a file and load it later or from a different process.</span>
 <span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
@@ -1180,7 +1198,7 @@ For more information about executing quantum kernels on different hardware backe
 <span class="c1"># ```</span>
 <span class="c1"># async_counts = async_results.get()</span>
 <span class="c1"># ```</span>
-<span class="c1"># or wee can also write the job reference (`async_results`) to</span>
+<span class="c1"># or we can also write the job reference (`async_results`) to</span>
 <span class="c1"># a file and load it later or from a different process.</span>
 <span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;future.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">async_results</span><span class="p">))</span>
