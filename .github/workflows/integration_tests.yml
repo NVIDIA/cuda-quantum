@@ -329,7 +329,7 @@ jobs:
 
           # Test C++ examples with NVCF
           for filename in `find examples/cpp/ -name '*.cpp'`; do
-            if [[ "$filename" != *"nois"* ]] && [[ "$filename" != *"ionq"* ]] && [[ "$filename" != *"iqm"* ]] && [[ "$filename" != *"orca"* ]] && [[ "$filename" != *"photonics"* ]] && [[ "$filename" != *"quantinuum"* ]] && [[ "$filename" != *"vqe_h2"* ]] && [[ "$filename" != *"qaoa_maxcut"* ]] && [["$filename" != *"gradients"* ]]; then
+            if [[ "$filename" == *"nvcf"* ]]; then
               echo "$filename"
               # TODO: remove --enable-mlir
               nvcf_config="--enable-mlir"
@@ -382,7 +382,7 @@ jobs:
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then 
                 # Use --target command line option to run these examples with
-                python3 --target nvcf $ex 1> /dev/null
+                python3 $ex --target nvcf 1> /dev/null
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
