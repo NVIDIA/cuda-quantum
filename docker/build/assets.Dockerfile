@@ -113,8 +113,10 @@ ADD "cmake" /cuda-quantum/cmake
 ADD "include" /cuda-quantum/include
 ADD "lib" /cuda-quantum/lib
 ADD "runtime" /cuda-quantum/runtime
+ADD "tools" /cuda-quantum/tools
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
+ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
 ADD "NOTICE" /cuda-quantum/NOTICE
