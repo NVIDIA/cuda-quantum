@@ -125,7 +125,7 @@ ENV CUDA_QUANTUM_VERSION=$release_version
 ARG PYTHON=python3.11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && \
     ${PYTHON} -m ensurepip --upgrade && \
-    ${PYTHON} -m pip install build auditwheel patchelf
+    ${PYTHON} -m pip install numpy build auditwheel patchelf
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_INSTALL_PREFIX="$(mktemp -d)" && \

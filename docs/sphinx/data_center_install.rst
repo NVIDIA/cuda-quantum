@@ -294,8 +294,8 @@ Python-specific tools:
 -	Pip package manager: Make sure the `pip` module is enable for your Python version.
   We refer to the Python `documentation <https://pip.pypa.io/en/stable/installation/>`__ for 
   more information about installing/enabling `pip`. 
--	Python modules: Install the additional modules `build`, `auditwheel`, and `patchelf` for your 
-  python version, e.g. `python3 -m pip install build auditwheel patchelf`.
+-	Python modules: Install the additional modules `numpy`, `build`, `auditwheel`, and `patchelf` for your 
+  python version, e.g. `python3 -m pip install numpy build auditwheel patchelf`.
 
 From within the folder where you cloned the CUDA Quantum repository, run the following
 command to build the CUDA Quantum Python wheel:
