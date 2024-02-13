@@ -67,6 +67,7 @@ RUN echo "Re-building wheel for python${python_version}." \
         CUDAQ_ENABLE_STATIC_LINKING=ON \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
+    && $python -m pip install --no-cache-dir auditwheel \
     && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
         $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl \
             --exclude libcustatevec.so.1 \
