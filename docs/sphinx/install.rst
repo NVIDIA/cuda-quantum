@@ -1,4 +1,4 @@
-Getting Started
+Installation Guide
 *******************************************
 
 This guide walks through how to :ref:`install CUDA Quantum <install-cuda-quantum>` on your system, and how to set up :ref:`VS Code for local development <local-development-with-vscode>`.
