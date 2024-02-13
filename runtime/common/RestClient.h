@@ -14,7 +14,7 @@
 // Forward declarations to avoid including CPR header files
 namespace cpr {
 struct SslOptions;
-};
+}
 
 namespace cudaq {
 
