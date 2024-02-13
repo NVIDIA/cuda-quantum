@@ -31,6 +31,9 @@ RUN echo "Building MLIR bindings for python${python_version}" \
     && LLVM_PROJECTS='clang;mlir;python-bindings' \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
 
+ENV CC=/opt/rh/gcc-toolset-12/root/usr/bin/cc
+ENV CXX=/opt/rh/gcc-toolset-12/root/usr/bin/c++
+
 # Build the wheel
 RUN echo "Building wheel for python${python_version}." \
     && cd cuda-quantum && python=python${python_version} \
@@ -49,7 +52,17 @@ RUN echo "Building wheel for python${python_version}." \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
         CUDAQ_ENABLE_STATIC_LINKING=ON \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
-        $python -m build --wheel 
+        $python -m build --wheel \
+    && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
+        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl \
+            --exclude libcustatevec.so.1 \
+            --exclude libcutensornet.so.2 \
+            --exclude libcublas.so.11 \
+            --exclude libcublasLt.so.11 \
+            --exclude libcusolver.so.11 \
+            --exclude libcutensor.so.1 \
+            --exclude libnvToolsExt.so.1 \ 
+            --exclude libcudart.so.11.0 
 
 FROM scratch
-COPY --from=wheelbuild /cuda-quantum/dist/cuda_quantum-*manylinux_*.whl . 
+COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
