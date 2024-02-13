@@ -98,7 +98,7 @@ jobs:
             --inference-url /job \
             --name cudaq-nightly-integration-test \
             ${{ secrets.NVCF_FUNCTION_ID }})
-          version_id=$(echo "$create_function_result" | grep 'Version: \S*' |  head -1 | cut -d ':' -f 2)
+          version_id=$(echo "$create_function_result" | grep 'Version: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
           echo "Create version Id: $version_id"
           echo "nvcf_function_version_id=$version_id" >> $GITHUB_OUTPUT
           # Deploy it
@@ -107,7 +107,7 @@ jobs:
           while [ "$function_status" =  "DEPLOYING" ];
             do echo "Waiting for deploying NVCF function version $version_id ..." && sleep 300; 
             function_info=$(ngc-cli/ngc cloud-function function info ${{ secrets.NVCF_FUNCTION_ID }}:$version_id)
-            function_status=$(echo "$function_info" | grep 'Status: \S*' |  head -1 | cut -d ':' -f 2)
+            function_status=$(echo "$function_info" | grep 'Status: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
           done
           if [ "$function_status" !=  "ACTIVE" ]
             echo "::error:: Failed to deploy NVCF Test Function"
