@@ -327,24 +327,40 @@ private:
     opts.sharedLibPaths = sharedLibs;
 
     auto ctx = module.getContext();
-    PassManager pm(ctx);
-    std::string errMsg;
-    llvm::raw_string_ostream os(errMsg);
-    const std::string pipeline =
-        std::accumulate(passes.begin(), passes.end(), std::string(),
-                        [](const auto &ss, const auto &s) {
-                          return ss.empty() ? s : ss + "," + s;
-                        });
-    if (failed(parsePassPipeline(pipeline, pm, os)))
-      throw std::runtime_error(
-          "Remote rest platform failed to add passes to pipeline (" + errMsg +
-          ").");
+    {
+      PassManager pm(ctx);
+      std::string errMsg;
+      llvm::raw_string_ostream os(errMsg);
+      const std::string pipeline =
+          std::accumulate(passes.begin(), passes.end(), std::string(),
+                          [](const auto &ss, const auto &s) {
+                            return ss.empty() ? s : ss + "," + s;
+                          });
+      if (failed(parsePassPipeline(pipeline, pm, os)))
+        throw std::runtime_error(
+            "Remote rest platform failed to add passes to pipeline (" + errMsg +
+            ").");
 
-    if (failed(pm.run(module)))
-      throw std::runtime_error(
-          "Remote rest platform: applying IR passes failed.");
+      if (failed(pm.run(module)))
+        throw std::runtime_error(
+            "Remote rest platform: applying IR passes failed.");
 
-    cudaq::info("- Pass manager was applied.");
+      cudaq::info("- Pass manager was applied.");
+    }
+    // Verify MLIR conforming to the NVQIR-spec (known runtime functions and/or
+    // QIR functions)
+    {
+      // Note: run this verification as a standalone step to decouple IR
+      // conversion and verfication.
+      PassManager pm(ctx);
+      pm.addNestedPass<LLVM::LLVMFuncOp>(
+          cudaq::opt::createVerifyNVQIRCallOpsPass());
+      if (failed(pm.run(module)))
+        throw std::runtime_error(
+            "Failed to IR compliance verification against NVQIR runtime.");
+
+      cudaq::info("- Finish IR input verification.");
+    }
 
     opts.llvmModuleBuilder =
         [](Operation *module,
