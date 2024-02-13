@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -45,14 +45,18 @@ RUN git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project
 # on the installed toolchain. Unfortunately, a symbolic link won't work.
 # Using update-alternatives for c++ and cc could maybe be a better option.
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
-RUN if [ "$toolchain" == 'gcc11' ]; then \
-        dev_tools=gcc-toolset-11 && CC=$(which gcc | sed 's/[0-9]\{1,2\}/11/g') && CXX=$(which g++ | sed 's/[0-9]\{1,2\}/11/g'); \
-    elif [ "$toolchain" == 'clang15' ]; then \
-        dev_tools=clang && CC=$(which clang-15) && CXX=$(which clang++-15); \
+RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
+        gcc_version=`echo $toolchain | grep -o '[0-9]*'` && \
+        if [ -z "$(which gcc 2> /dev/null | grep $gcc_version)" ]; then \
+            dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-$gcc_version && \
+            enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"; \
+        fi && \
+        CC="$(which gcc)" && CXX="$(which g++)"; \
+    elif [ "$toolchain" == 'clang16' ]; then \
+        dnf install -y --nobest --setopt=install_weak_deps=False clang-16.0.6 && \
+        CC="$(which clang-16)" && CXX="$(which clang++-16)"; \
     else echo "Toolchain not supported." && exit 1; \
-    fi \
-    && dnf install -y --nobest --setopt=install_weak_deps=False $dev_tools.$(uname -m) \
-    && dnf clean all \
+    fi && dnf clean all \
     && mkdir -p "$LLVM_INSTALL_PREFIX/bootstrap" \
     && echo -e '#!/bin/bash\n"'$CC'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
     && echo -e '#!/bin/bash\n"'$CXX'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cxx" \

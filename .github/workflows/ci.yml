@@ -110,7 +110,7 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc11
+      toolchain: gcc13
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         distro=rhel8
@@ -208,7 +208,7 @@ jobs:
       matrix:
         ## [SKIP_TEST] : Temporarily skipping stage to build Python wheel on arm64/aarch64
         platform: [amd64, arm64]
-        python_version: ['3.10']
+        python_version: ['3.9', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:
