@@ -45,6 +45,13 @@ jobs:
         with:
           endpoint: builder_context
 
+      - name: Login to NGC container registry
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_NVCF_CREDENTIALS }}
+
       - name: Build NVCF image
         id: docker_build
         uses: docker/build-push-action@v5
@@ -54,7 +61,7 @@ jobs:
           build-args: |
             base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest-base
           tags: nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly
-          push: false
+          push: true
   
   integration_test:
     name: Integration test
