@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -35,7 +35,6 @@ void extractStateData(py::buffer_info &info, complex *data) {
 state pyGetState(kernel_builder<> &kernel, py::args args) {
   // Ensure the user input is correct.
   auto validatedArgs = validateInputArguments(kernel, args);
-  kernel.jitCode();
   OpaqueArguments argData;
   packArgs(argData, validatedArgs);
   return details::extractState(
