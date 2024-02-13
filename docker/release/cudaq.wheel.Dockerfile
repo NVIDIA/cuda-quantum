@@ -23,7 +23,7 @@ ARG workspace=.
 ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
-ENV python_version=3.11
+ARG python_version=3.10
 RUN echo "Building MLIR bindings for python${python_version}" \
     && python${python_version} -m pip install --no-cache-dir numpy \
     && rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" \
@@ -50,25 +50,6 @@ RUN echo "Building wheel for python${python_version}." \
         CUDAQ_ENABLE_STATIC_LINKING=ON \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
-    && rm -rf dist
-
-ARG python_version=3.10
-ENV CC=/opt/rh/gcc-toolset-12/root/usr/bin/cc
-ENV CXX=/opt/rh/gcc-toolset-12/root/usr/bin/c++
-
-RUN echo "Re-building wheel for python${python_version}." \
-    && cd cuda-quantum && python=python${python_version} \
-    && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \
-    && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/assets" \
-    && cuquantum_location=`python3.11 -m pip show cuquantum-cu11 | grep -e 'Location: .*$'` \
-    && export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location: }/cuquantum" \
-    && cutensor_location=`python3.11 -m pip show cutensor-cu11 | grep -e 'Location: .*$'` \
-    && export CUTENSOR_INSTALL_PREFIX="${cutensor_location#Location: }/cutensor" \
-    &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
-        CUDAQ_ENABLE_STATIC_LINKING=ON \
-        CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
-        $python -m build --wheel \
-    && $python -m pip install --no-cache-dir auditwheel \
     && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
         $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl \
             --exclude libcustatevec.so.1 \
