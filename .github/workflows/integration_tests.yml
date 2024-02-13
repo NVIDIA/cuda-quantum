@@ -48,15 +48,12 @@ jobs:
       - name: Build NVCF image
         id: docker_build
         uses: docker/build-push-action@v5
-        env:
-          NGC_CLI_ORG: ${{ secrets.NGC_ORG }}
-          NGC_CLI_TEAM: 'cuda-quantum'
         with:
           context: .
           file: ./docker/release/cudaq.nvcf.Dockerfile
           build-args: |
             base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest-base
-          tags: nvcr.io/${NGC_CLI_ORG}/${NGC_CLI_TEAM}/cuda-quantum:nightly
+          tags: nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly
           push: false
   
   integration_test:
