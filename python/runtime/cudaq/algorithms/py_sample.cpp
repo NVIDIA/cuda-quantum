@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -31,7 +31,6 @@ sample_result pySample(kernel_builder<> &builder, py::args args = {},
   auto validatedArgs = validateInputArguments(builder, args);
 
   cudaq::info("Sampling the provided pythonic kernel.");
-  builder.jitCode();
   auto kernelName = builder.name();
 
   // Map py::args to OpaqueArguments handle
@@ -57,7 +56,6 @@ pySampleN(kernel_builder<> &kernel, py::args args = {},
           std::optional<noise_model> noise = std::nullopt) {
   auto argSet = createArgumentSet(args);
   auto N = argSet.size();
-  kernel.jitCode();
   auto name = kernel.name();
   auto &platform = cudaq::get_platform();
   if (noise)
@@ -90,8 +88,7 @@ async_sample_result pySampleAsync(kernel_builder<> &builder,
   auto &platform = cudaq::get_platform();
   cudaq::info("Asynchronously sampling the provided pythonic kernel.");
 
-  // JIT the code and get the kernel name
-  builder.jitCode();
+  // Get the kernel name
   auto kernelName = builder.name();
 
   // Create the argument holder and pack the runtime arguments

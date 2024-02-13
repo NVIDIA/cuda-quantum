@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -39,7 +39,6 @@ observe_result pyObserve(kernel_builder<> &kernel, spin_op &spin_operator,
 
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
-  kernel.jitCode();
   auto name = kernel.name();
 
   // Launch the observation task
@@ -67,9 +66,6 @@ async_observe_result pyObserveAsync(kernel_builder<> &kernel,
 
   // TODO: would like to handle errors in the case that
   // `kernel.num_qubits() >= spin_operator.num_qubits()`
-
-  // JIT the code
-  kernel.jitCode();
 
   // Get the kernel name
   auto name = kernel.name();
@@ -169,7 +165,6 @@ pyObserveN(kernel_builder<> &kernel, spin_op &op, py::args args = {},
   auto &platform = cudaq::get_platform();
   if (noise)
     platform.set_noise(&*noise);
-  kernel.jitCode();
   auto name = kernel.name();
   std::vector<observe_result> results;
   for (std::size_t currentIter = 0; auto &a : argSet) {
