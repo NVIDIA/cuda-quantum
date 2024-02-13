@@ -413,8 +413,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cutensor">cuTensor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
@@ -1128,8 +1126,8 @@
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext15kernelResourcesE">
-<span class="target" id="classcudaq_1_1ExecutionContext_1a3b8fb3c798575f9dd6ae674337811ecc"></span><a class="reference internal" href="#_CPPv4N5cudaq9ResourcesE" title="cudaq::Resources"><span class="n"><span class="pre">Resources</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kernelResources</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext15kernelResourcesE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext11kernelTraceE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a832079b8beaec29c27462f27704d6386"></span><a class="reference internal" href="#_CPPv4N5cudaq5TraceE" title="cudaq::Trace"><span class="n"><span class="pre">Trace</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kernelTrace</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext11kernelTraceE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>When run under the tracer context, persist the traced quantum resources here. </p>
 </dd></dl>
 
@@ -1155,6 +1153,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext13registerNamesE">
 <span class="target" id="classcudaq_1_1ExecutionContext_1aff429589472a75c69a48edd06ced97d6"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">registerNames</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext13registerNamesE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>For mid-circuit measurements in library mode keep track of the register names. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext10reorderIdxE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a33d991dd8e3d37e040eb8fc625228c19"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reorderIdx</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext10reorderIdxE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A vector containing information about how to reorder the global register after execution. Empty means no reordering. </p>
 </dd></dl>
 
 </div>
@@ -1368,6 +1372,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultEv">
 <span class="target" id="classcudaq_1_1sample__result_1ae8f611495ea923027a4008a4da8019a8"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Nullary constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultERR15ExecutionResult">
+<span class="target" id="classcudaq_1_1sample__result_1ab6d5dd37a325832f89d8ee70130d6b80"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">result</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultERR15ExecutionResult" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The constructor, sets the <strong>global</strong> sample result. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -1835,6 +1845,12 @@
 </dd></dl>
 
 </div>
+</dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5TraceE">
+<span class="target" id="classcudaq_1_1Trace"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Trace</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5TraceE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A trace is a circuit representation of the executed computation, as seen by the execution manager. (Here, a circuit is represented as a list of instructions on qudits). Since the execution manager cannot “see” control flow, the trace of a kernel with control flow represents a single execution path, and thus two calls to the same kernel might produce traces. </p>
 </dd></dl>
 
 <dl class="cpp class">

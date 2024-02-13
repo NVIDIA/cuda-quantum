@@ -413,8 +413,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#cutensor">cuTensor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
@@ -776,7 +774,6 @@ each simulated by a <code class="code docutils literal notranslate"><span class=
     <span class="c1"># Set the target to execute on and query the number of QPUs in the system;</span>
     <span class="c1"># The number of QPUs is equal to the number of (auto-)launched server instances.</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-mqpu&quot;</span><span class="p">,</span>
-                     <span class="n">remote_execution</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                      <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span>
                      <span class="n">auto_launch</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">servers</span><span class="p">)</span> <span class="k">if</span> <span class="n">servers</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
                      <span class="n">url</span><span class="o">=</span><span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">servers</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">else</span> <span class="n">servers</span><span class="p">)</span>

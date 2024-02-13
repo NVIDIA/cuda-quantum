@@ -66,12 +66,14 @@ will be installed and used.
 - CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
   architecture. Other architectures may work but are not tested and may require
   adjustments to the build instructions.
-- Needed only on the host system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
+- Needed **only on the host** system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
   Hopper architecture and `Compute Capability
   <https://developer.nvidia.com/cuda-gpus>`__ 7+. Make sure you have the latest
   `drivers <https://www.nvidia.com/download/index.aspx>`__ installed for your
   GPU, and double check that the driver version listed by the `nvidia-smi`
-  command is 470.57.02 or newer.
+  command is 470.57.02 or newer. You do *not* need to have a GPU available on the
+  build system; the CUDA compiler needed for the build can be installed and used
+  without a GPU.
 
 We strongly recommend using a virtual environment for the build that includes
 *only* the tools and dependencies listed in this guide. If you have additional
@@ -118,22 +120,35 @@ to set the following environment variables prior to proceeding:
     :start-after: [>InstallLocations]
     :end-before: [<InstallLocations]
 
-These environment variables *must* be set during the build. Their value can be
-chosen freely, but the paths specified during the build are also where the
-corresponding libraries will be installed on the host system. We are working on
-making this more flexible in the future.
+These environment variables *must* be set during the build. We strongly
+recommend that their value is set to a path that does *not* already exist; 
+this will ensure that these components are built/installed as needed when
+building CUDA Quantum.
+The configured paths can be chosen freely, but the paths specified during the
+build are also where the corresponding libraries will be installed on the 
+host system. We are working on making this more flexible in the future.
 
 .. note::
-
-  If you deviate from the instructions below for installing one of the
-  dependencies and instead install it for example via package manager, you will
-  need to make sure that the installation path matches the path you set for the
-  corresponding environment variable(s).
 
   Please do **not** set `LLVM_INSTALL_PREFIX` to an existing directory;
   To avoid compatibility issues, it is important to use the same compiler
   to build the LLVM/MLIR dependencies from source as is later used to 
   build CUDA Quantum itself.
+
+.. note::
+
+  If you are setting the `CURL_INSTALL_PREFIX` variable to an existing 
+  CURL installation (not recommended), please make sure the command 
+  `curl --version` lists HTTP and HTTPS as supported protocols. If these 
+  protocols are not listed, please instead set the `CURL_INSTALL_PREFIX` 
+  variable to a path that does *not* exist. In that case, a suitable 
+  library will be automatically built from source as part of
+  building CUDA Quantum.
+
+If you deviate from the instructions below for installing one of the
+dependencies and instead install it, for example, via package manager, you will
+need to make sure that the installation path matches the path you set for the
+corresponding environment variable(s).
 
 CUDA
 +++++++++++++++++++++++++++++++
@@ -156,43 +171,6 @@ install CUDA 11.8:
     :dedent:
     :start-after: [>CUDAInstall]
     :end-before: [<CUDAInstall]
-
-cuQuantum
-+++++++++++++++++++++++++++++++
-
-Each version of CUDA Quantum is compatible only with a specific cuQuantum version.
-As of CUDA Quantum 0.6, this is version 23.10. Newer versions of cuQuantum (if they exist)
-might be compatible but have not been tested.
-
-Make sure the environment variable `CUDA_ARCH_FOLDER` is set to either `x86_64`
-or `sbsa` (for ARM64) depending on your processor architecture, and `CUDA_VERSION`
-is set to the installed CUDA version.
-Install cuQuantum version 23.10 using the following commands:
-
-.. literalinclude:: ../../scripts/configure_build.sh
-    :language: bash
-    :dedent:
-    :start-after: [>cuQuantumInstall]
-    :end-before: [<cuQuantumInstall]
-
-cuTensor
-+++++++++++++++++++++++++++++++
-
-Depending on how you installed CUDA, the cuTensor library is usually not included 
-in the installation. This library is used by some of the simulator backends. 
-Please check the cuQuantum documentation to ensure you choose a version that is 
-compatible with the used cuQuantum version, such as version 1.7.
-
-Make sure the environment variable `CUDA_ARCH_FOLDER` is set to either `x86_64`
-or `sbsa` (for ARM64) depending on your processor architecture, and `CUDA_VERSION`
-is set to the installed CUDA version.
-Install cuTensor version 1.7 using the following commands:
-
-.. literalinclude:: ../../scripts/configure_build.sh
-    :language: bash
-    :dedent:
-    :start-after: [>cuTensorInstall]
-    :end-before: [<cuTensorInstall]
 
 Toolchain
 +++++++++++++++++++++++++++++++
@@ -253,12 +231,19 @@ command to build CUDA Quantum:
     :start-after: [>CUDAQuantumBuild]
     :end-before: [<CUDAQuantumBuild]
 
-The CUDA Quantum build will compile or omit optional components automatically depending
-on whether the necessary pre-requisites are found in the build environment.
-Please check the build log to confirm that all desired components have been built. If
-you see a message that a component has been skipped, make sure you followed the 
-instructions for installing the necessary prerequisites and build dependencies, 
-and have set the necessary environment variables as described in this document.
+Please check the build log printed to the console to confirm that all desired components have been built. 
+In particular, look for a line "Looking for CUDA compiler" in the build output, 
+and confirm that it found the installed CUDA compiler, and the correct host compiler 
+is used.
+
+.. note::
+
+  The CUDA Quantum build will compile or omit optional components automatically depending
+  on whether the necessary pre-requisites are found in the build environment.
+  If you see a message that a component has been skipped, and/or the CUDA compiler
+  is not properly detected, make sure you followed the 
+  instructions for installing the necessary prerequisites and build dependencies, 
+  and have set the necessary environment variables as described in this document.
 
 Preparing the Installation
 ------------------------------------
