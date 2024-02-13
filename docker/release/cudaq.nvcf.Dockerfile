@@ -14,6 +14,8 @@
 
 # Base image is CUDA Quantum image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest
+FROM $base_image as nvcf_image
+
 USER root
 
 ENV CUDAQ_LOG_LEVEL=info
