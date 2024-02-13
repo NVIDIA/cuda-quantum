@@ -59,9 +59,9 @@ RUN echo "Re-building wheel for python${python_version}." \
     && cd cuda-quantum && python=python${python_version} \
     && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \
     && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/assets" \
-    && cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location: .*$'` \
+    && cuquantum_location=`python3.11 -m pip show cuquantum-cu11 | grep -e 'Location: .*$'` \
     && export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location: }/cuquantum" \
-    && cutensor_location=`$python -m pip show cutensor-cu11 | grep -e 'Location: .*$'` \
+    && cutensor_location=`python3.11 -m pip show cutensor-cu11 | grep -e 'Location: .*$'` \
     && export CUTENSOR_INSTALL_PREFIX="${cutensor_location#Location: }/cutensor" \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
         CUDAQ_ENABLE_STATIC_LINKING=ON \
