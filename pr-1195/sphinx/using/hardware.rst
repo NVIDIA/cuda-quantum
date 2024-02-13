@@ -312,8 +312,8 @@ To see a complete example for using IQM server backends, take a look at our :ref
 OQC
 ==================================
 
-`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA quantum integration for both our Quantum Processing Unit types.
-Our 8 qubit ring topology Lucy device and our 32 qubit Kagome lattice topology Toshiko device are both supported via machine options described below.
+`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA quantum integration for multiple Quantum Processing Unit types.
+The 8 qubit ring topology Lucy device and the 32 qubit Kagome lattice topology Toshiko device are both supported via machine options described below.
 
 Setting Credentials
 `````````````````````````

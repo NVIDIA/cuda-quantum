@@ -6,7 +6,7 @@ import os
 # To use different targets in the same file, you must update
 # it via another call to `cudaq.set_target()`
 
-# To use the OQC target you will need to set the following env variables
+# To use the OQC target you will need to set the following environment variables
 # OQC_URL
 # OQC_EMAIL
 # OQC_PASSWORD
