@@ -79,6 +79,11 @@ if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
   set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 endif()
 
+# Enable the REST code by default.
+if (NOT DEFINED CUDAQ_ENABLE_REST)
+  set(CUDAQ_ENABLE_REST ON)
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
