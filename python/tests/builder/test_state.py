@@ -17,8 +17,6 @@ def assert_close(want, got, tolerance=1.e-5) -> bool:
     return abs(want - got) < tolerance
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'State'")
 @pytest.mark.parametrize("want_vector", [
     np.array([0.0, 1.0], dtype=np.complex128),
     np.array([1.0, 0.0], dtype=np.complex128),
@@ -64,8 +62,6 @@ def test_state_buffer_vector(want_vector):
     # assert np.allclose(want_vector, got_vector_b)
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'State'")
 @pytest.mark.parametrize("want_matrix", [
     np.array([[0.0, 0.0], [0.0, 1.0]], dtype=np.complex128),
     np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128),
@@ -100,8 +96,6 @@ def test_state_buffer_density_matrix(want_matrix):
     assert np.allclose(want_matrix, got_matrix_b)
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'State'")
 def test_state_vector_simple():
     """
     A simple end-to-end test of the state class on a state vector
@@ -145,8 +139,6 @@ def test_state_vector_simple():
     assert np.isclose(got_state.overlap(got_state), 1.0)
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'State'")
 def test_state_vector_integration():
     """
     An integration test on the state vector class. Uses a CUDA Quantum
@@ -188,8 +180,6 @@ def test_state_vector_integration():
     assert np.allclose(want_state, bell_state, atol=1e-3)
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'State'")
 def test_state_density_matrix_simple():
     """
     A simple end-to-end test of the state class on a density matrix
@@ -233,8 +223,6 @@ def test_state_density_matrix_simple():
     cudaq.reset_target()
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'State'")
 def test_state_density_matrix_integration():
     """
     An integration test on the state density matrix class. Uses a CUDA Quantum
@@ -280,8 +268,6 @@ def test_state_density_matrix_integration():
     cudaq.reset_target()
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'get_state_async'")
 def test_state_vector_async():
     """Tests `cudaq.get_state_async` on a simple kernel."""
 
@@ -298,6 +284,7 @@ def test_state_vector_async():
     want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
                           dtype=np.complex128)
     state = future.get()
+    state.dump()
     assert np.allclose(state, want_state, atol=1e-3)
     # Check invalid qpu_id
     with pytest.raises(Exception) as error:
