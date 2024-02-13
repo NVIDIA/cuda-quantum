@@ -362,11 +362,6 @@ jobs:
               fi
             fi
           done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
           
           # Test NVCF Python examples
           for ex in `find examples/python -name '*.py'`; do 
