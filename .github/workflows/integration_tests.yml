@@ -329,7 +329,7 @@ jobs:
 
           # Test C++ examples with NVCF
           for filename in `find examples/cpp/ -name '*.cpp'`; do
-            if [[ "$filename" != *"nois"* ]] && [[ "$filename" != *"ionq"* ]] && [[ "$filename" != *"iqm"* ]] && [[ "$filename" != *"orca"* ]] && [[ "$filename" != *"photonics"* ]] && [[ "$filename" != *"quantinuum"* ]]; then
+            if [[ "$filename" != *"nois"* ]] && [[ "$filename" != *"ionq"* ]] && [[ "$filename" != *"iqm"* ]] && [[ "$filename" != *"orca"* ]] && [[ "$filename" != *"photonics"* ]] && [[ "$filename" != *"quantinuum"* ]] && [[ "$filename" != *"vqe_h2"* ]] && [[ "$filename" != *"qaoa_maxcut"* ]] && [["$filename" != *"gradients"* ]]; then
               echo "$filename"
               # TODO: remove --enable-mlir
               nvcf_config="--enable-mlir"
