@@ -61,11 +61,13 @@ jobs:
           build-args: |
             base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest-base
           tags: nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly
+          platforms: linux/amd64
           push: true
   
   deploy_nvcf_test_function:
     name: Deploy NVCF function
     runs-on: ubuntu-latest
+    needs: build_nvcf_image
     environment: backend-validation
     steps:
       - name: Checkout repository
@@ -86,9 +88,17 @@ jobs:
           NGC_CLI_API_KEY: ${{ secrets.NGC_NVCF_CREDENTIALS }}
           NGC_CLI_ORG: ${{ secrets.NGC_NVCF_ORG }}
           NGC_CLI_TEAM: cuda-quantum
-        # Test only: list available GPUs
         run: |
-          ngc-cli/ngc cloud-function available-gpus
+          create_function_result=$(ngc-cli/ngc cloud-function function create \
+            --container-image nvcr.io/${NGC_NVCF_ORG}/cuda-quantum/cuda-quantum:nightly \
+            --api-body-format CUSTOM \
+            --inference-port 3030 \
+            --health-uri / \
+            --inference-url /job \
+            --name cudaq-nightly-integration-test \
+            ${{ secrets.NVCF_FUNCTION_ID }})
+          version_id=$(echo "$create_function" | grep 'Version: \S*' |  head -1 | cut -d ':' -f 2)
+          echo "Create version Id: $version_id"
 
   integration_test:
     name: Integration test
