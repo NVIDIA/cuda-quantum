@@ -90,7 +90,7 @@ jobs:
           NGC_CLI_TEAM: cuda-quantum
         run: |
           create_function_result=$(ngc-cli/ngc cloud-function function create \
-            --container-image nvcr.io/${NGC_NVCF_ORG}/cuda-quantum/cuda-quantum:nightly \
+            --container-image nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly \
             --api-body-format CUSTOM \
             --inference-port 3030 \
             --health-uri / \
