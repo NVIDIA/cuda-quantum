@@ -63,6 +63,34 @@ jobs:
           tags: nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly
           push: true
   
+  deploy_nvcf_test_function:
+    name: Deploy NVCF function
+    runs-on: ubuntu-latest
+    environment: backend-validation
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install NGC CLI
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends wget
+          wget -O ngccli_linux.zip --content-disposition \
+            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.38.0/files/ngccli_linux.zip
+          if [ -z "$(sha256sum ngccli_linux.zip | grep -o '427c67684d792b673b63882a6d0cbb8777815095c0f2f31559c1570a91187388 ')" ]; then
+            echo "::error::NGC CLI was corrupted during download." && exit 1
+          fi
+          unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
+          echo "export PATH=\"\$PATH:$(pwd)/ngc-cli\"" >> ~/.bash_profile && source ~/.bash_profile
+
+      - name: Deploy NVCF Function
+        env:
+          NGC_CLI_API_KEY: ${{ secrets.NGC_NVCF_CREDENTIALS }}
+          NGC_CLI_ORG: ${{ secrets.NGC_NVCF_ORG }}
+          NGC_CLI_TEAM: cuda-quantum
+        # Test only: list available GPUs
+        run: |
+          ngc cloud-function available-gpus
+
   integration_test:
     name: Integration test
     runs-on: ubuntu-latest
