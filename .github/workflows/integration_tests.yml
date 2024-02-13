@@ -98,7 +98,7 @@ jobs:
             --inference-url /job \
             --name cudaq-nightly-integration-test \
             ${{ secrets.NVCF_FUNCTION_ID }})
-          version_id=$(echo "$create_function" | grep 'Version: \S*' |  head -1 | cut -d ':' -f 2)
+          version_id=$(echo "$create_function_result" | grep 'Version: \S*' |  head -1 | cut -d ':' -f 2)
           echo "Create version Id: $version_id"
 
   integration_test:
