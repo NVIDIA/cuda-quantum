@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -49,17 +49,7 @@ RUN echo "Building wheel for python${python_version}." \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
         CUDAQ_ENABLE_STATIC_LINKING=ON \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
-        $python -m build --wheel \
-    && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
-        $python -m auditwheel -v repair dist/cuda_quantum-*linux_*.whl \
-            --exclude libcustatevec.so.1 \
-            --exclude libcutensornet.so.2 \
-            --exclude libcublas.so.11 \
-            --exclude libcublasLt.so.11 \
-            --exclude libcusolver.so.11 \
-            --exclude libcutensor.so.1 \
-            --exclude libnvToolsExt.so.1 \ 
-            --exclude libcudart.so.11.0 
+        $python -m build --wheel 
 
 FROM scratch
-COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
+COPY --from=wheelbuild /cuda-quantum/dist/cuda_quantum-*manylinux_*.whl . 
