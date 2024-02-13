@@ -7,18 +7,21 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
 
 **CUDA Quantum** is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.
 
+.. TODO: Move data center into install guide
+
 .. toctree::
    :caption: Contents
    :maxdepth: 2
 
-      Getting Started <install.rst>
-      Learn the Basics <using/cudaq.rst>
-      Advanced Topics  <using/advanced.rst>
+      Quick Start <quick_start.rst>
+      Basics <using/cudaq.rst>
       Examples <using/examples.rst>
-      Tutorials <using/tutorials.rst>
+      Applications <using/tutorials.rst>
+      Installation Guide <install.rst>
+      Data Center Installation Guide <data_center_install.rst> 
+      Extending CUDA Quantum  <using/advanced.rst>
       Simulator Backends <using/simulators.rst>
       Hardware Backends <using/hardware.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
-      Data Center Installation Guide <data_center_install.rst>
       Other Versions <versions.rst>

@@ -16,13 +16,6 @@ the :code:`cuStateVec` library.
 
 To execute a program on the :code:`nvidia` target, use the following commands:
 
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target nvidia program.cpp [...] -o program.x
-        ./program.x
-
 .. tab:: Python
 
     .. code:: bash 
@@ -36,6 +29,13 @@ To execute a program on the :code:`nvidia` target, use the following commands:
         cudaq.set_target('nvidia')
 
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target nvidia program.cpp [...] -o program.x
+        ./program.x
 
 By default, this will leverage :code:`FP32` floating point types for the simulation. To 
 switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead. 
@@ -55,13 +55,6 @@ state vector.
 
 The multi-node multi-GPU simulator expects to run within an MPI context.
 To execute a program on the :code:`nvidia-mgpu` target, use the following commands (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target nvidia-mgpu program.cpp [...] -o program.x
-        mpiexec -np 2 ./program.x
 
 .. tab:: Python
 
@@ -89,6 +82,13 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
 
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target nvidia-mgpu program.cpp [...] -o program.x
+        mpiexec -np 2 ./program.x
+
 .. note:: 
 
   This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter either an error stating `invalid simulator requested` (missing CUDA libraries), or an error along the lines of `failed to launch kernel` (missing MPI installation). See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
@@ -104,13 +104,6 @@ This is the default target when running on CPU-only systems.
 To execute a program on the :code:`qpp-cpu` target even if a GPU-accelerated backend is available, 
 use the following commands:
 
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target qpp-cpu program.cpp [...] -o program.x
-        ./program.x
-
 .. tab:: Python
 
     .. code:: bash 
@@ -124,6 +117,13 @@ use the following commands:
         cudaq.set_target('qpp-cpu')
 
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target qpp-cpu program.cpp [...] -o program.x
+        ./program.x
 
 
 Tensor Network Simulators
@@ -144,13 +144,6 @@ This backend supports multi-node, multi-GPU distribution of tensor operations re
 
 To execute a program on the :code:`tensornet` target using a *single GPU*, use the following commands:
 
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target tensornet program.cpp [...] -o program.x
-        ./program.x
-
 .. tab:: Python
 
     .. code:: bash 
@@ -165,6 +158,13 @@ To execute a program on the :code:`tensornet` target using a *single GPU*, use t
 
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
 
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target tensornet program.cpp [...] -o program.x
+        ./program.x
+
 If you have *multiple GPUs* available on your system, you can use MPI to automatically distribute parallelization across the visible GPUs. 
 
 .. note::
@@ -173,13 +173,6 @@ If you have *multiple GPUs* available on your system, you can use MPI to automat
   We will add support for it in future releases. For more information, see this `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/920>`__.
 
 Use the following commands to enable distribution across multiple GPUs (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
-
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target tensornet program.cpp [...] -o program.x
-        mpiexec -np 2 ./program.x
 
 .. tab:: Python
 
@@ -193,6 +186,13 @@ Use the following commands to enable distribution across multiple GPUs (adjust t
     .. code:: bash 
 
         mpiexec -np 2 python3 -m mpi4py program.py [...] --target tensornet
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target tensornet program.cpp [...] -o program.x
+        mpiexec -np 2 ./program.x
 
 .. note::
 
@@ -230,13 +230,6 @@ The :code:`tensornet-mps` backend only supports single-GPU simulation. Its appro
 
 To execute a program on the :code:`tensornet-mps` target, use the following commands:
 
-.. tab:: C++
-
-    .. code:: bash 
-
-        nvq++ --target tensornet-mps program.cpp [...] -o program.x
-        ./program.x
-
 .. tab:: Python
 
     .. code:: bash 
@@ -250,6 +243,13 @@ To execute a program on the :code:`tensornet-mps` target, use the following comm
         cudaq.set_target('tensornet-mps')
 
     If a target is set in the application code, this target will override the :code:`--target` command line flag given during program invocation.
+
+.. tab:: C++
+
+    .. code:: bash 
+
+        nvq++ --target tensornet-mps program.cpp [...] -o program.x
+        ./program.x
 
 Specific aspects of the simulation can be configured by defining the following environment variables:
 
@@ -284,18 +284,18 @@ For CUDA Quantum Python API, the environment variable at the time when `cudaq` m
 
 For example,
 
+.. tab:: Python
+
+    .. code:: bash 
+
+        CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu python3 program.py [...]
+        
 .. tab:: C++
 
     .. code:: bash 
 
         CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu nvq++ program.cpp [...] -o program.x
         ./program.x
-
-.. tab:: Python
-
-    .. code:: bash 
-
-        CUDAQ_DEFAULT_SIMULATOR=density-matrix-cpu python3 program.py [...]
 
 This will use the density matrix simulator target.
 
