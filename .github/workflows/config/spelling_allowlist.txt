@@ -39,6 +39,7 @@ JIT
 JSON
 Jupyter
 JupyterLab
+Kagome
 Kraus
 LLVM
 LSB
@@ -88,6 +89,7 @@ SVD
 TCP
 TableGen
 Toffoli
+Toshiko
 VQE
 Vazirani
 WSL
