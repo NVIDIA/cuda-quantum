@@ -109,8 +109,8 @@ def uccsd_num_parameters(n_electrons, n_qubits):
     return sum((singles, doubles, total))
 
 
-def single_excitation_gate(kernel, qubits: cudaq.qlist, p_occ: int, q_virt: int,
-                           theta: list[float]):
+def single_excitation_gate(kernel, qubits: cudaq.qvector, p_occ: int,
+                           q_virt: int, theta: list[float]):
 
     # Y_p X_q
     kernel.rx(np.pi / 2.0, qubits[p_occ])
@@ -143,7 +143,7 @@ def single_excitation_gate(kernel, qubits: cudaq.qlist, p_occ: int, q_virt: int,
     kernel.h(qubits[p_occ])
 
 
-def double_excitation_gate_opt(kernel, qubits: cudaq.qlist, p_occ: int,
+def double_excitation_gate_opt(kernel, qubits: cudaq.qvector, p_occ: int,
                                q_occ: int, r_virt: int, s_virt: int,
                                theta: list[float]):
 
@@ -317,7 +317,7 @@ def double_excitation_gate_opt(kernel, qubits: cudaq.qlist, p_occ: int,
     kernel.rx(-np.pi / 2.0, qubits[i_occ])
 
 
-def uccsd(kernel, qubits: cudaq.qlist, thetas: list[float], n_electrons: int,
+def uccsd(kernel, qubits: cudaq.qvector, thetas: list[float], n_electrons: int,
           n_qubits: int):
 
     # This function generates a quantum circuit for the VQE-UCCSD ansatz

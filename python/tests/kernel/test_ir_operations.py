@@ -13,22 +13,25 @@ import numpy as np
 import cudaq
 from cudaq import spin
 
-
 skipIROperationsForEagerMode = pytest.mark.skipif(
     os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON',
     reason="test_ir_operations only tests MLIR mode of execution")
+
 
 @pytest.fixture(autouse=True)
 def do_something():
     cudaq.enable_jit()
     yield
-    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
+    if cudaq.is_jit_enabled():
+        cudaq.__clearKernelRegistries()
     cudaq.disable_jit()
+
 
 @skipIROperationsForEagerMode
 def test_synthesize():
     ## NOTE: Explicitly disable JIT for the next test
     cudaq.disable_jit()
+
     @cudaq.kernel
     def wontWork(numQubits: int):
         q = cudaq.qvector(numQubits)
@@ -38,6 +41,7 @@ def test_synthesize():
         cudaq.synthesize(wontWork, 4)
 
     cudaq.enable_jit()
+
     @cudaq.kernel
     def ghz(numQubits: int):
         qubits = cudaq.qvector(numQubits)
