@@ -23,16 +23,13 @@ ARG workspace=.
 ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
-ARG python_version=3.10
+ENV python_version=3.11
 RUN echo "Building MLIR bindings for python${python_version}" \
     && python${python_version} -m pip install --no-cache-dir numpy \
     && rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" \
     && export Python3_EXECUTABLE="$(which python${python_version})" \
     && LLVM_PROJECTS='clang;mlir;python-bindings' \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
-
-ENV CC=/opt/rh/gcc-toolset-12/root/usr/bin/cc
-ENV CXX=/opt/rh/gcc-toolset-12/root/usr/bin/c++
 
 # Build the wheel
 RUN echo "Building wheel for python${python_version}." \
@@ -49,6 +46,23 @@ RUN echo "Building wheel for python${python_version}." \
     && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1 $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so \
     && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so \
     && ln -s $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so.1 $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so \
+    &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
+        CUDAQ_ENABLE_STATIC_LINKING=ON \
+        CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
+        $python -m build --wheel
+
+ARG python_version=3.10
+ENV CC=/opt/rh/gcc-toolset-12/root/usr/bin/cc
+ENV CXX=/opt/rh/gcc-toolset-12/root/usr/bin/c++
+
+RUN echo "Re-building wheel for python${python_version}." \
+    && cd cuda-quantum && python=python${python_version} \
+    && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \
+    && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/assets" \
+    && cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location: .*$'` \
+    && export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location: }/cuquantum" \
+    && cutensor_location=`$python -m pip show cutensor-cu11 | grep -e 'Location: .*$'` \
+    && export CUTENSOR_INSTALL_PREFIX="${cutensor_location#Location: }/cutensor" \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
         CUDAQ_ENABLE_STATIC_LINKING=ON \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
