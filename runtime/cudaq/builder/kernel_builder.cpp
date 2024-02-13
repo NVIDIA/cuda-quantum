@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -760,12 +760,11 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto currentModule = function->getParentOfType<ModuleOp>();
 
   // Create a unique hash from that ModuleOp
-  std::string modulePrintOut;
-  {
-    llvm::raw_string_ostream os(modulePrintOut);
-    currentModule.print(os);
-  }
-  auto moduleHash = std::hash<std::string>{}(modulePrintOut);
+  auto hash = llvm::hash_code{0};
+  currentModule.walk([&hash](Operation *op) {
+    hash = llvm::hash_combine(hash, OperationEquivalence::computeHash(op));
+  });
+  auto moduleHash = static_cast<size_t>(hash);
 
   if (jit) {
     // Have we added more instructions

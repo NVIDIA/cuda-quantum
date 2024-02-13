@@ -477,7 +477,7 @@ jobs:
 
     steps:
       - name: Delete artifacts
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const res = await github.rest.actions.listArtifactsForRepo({

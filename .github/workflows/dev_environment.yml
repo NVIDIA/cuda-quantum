@@ -303,7 +303,7 @@ jobs:
           fi
 
       - name: Check out local cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
@@ -353,7 +353,7 @@ jobs:
 
       - name: Update local cache
         if: inputs.create_local_cache
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
@@ -410,7 +410,7 @@ jobs:
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         id: cache_upload
         if: steps.uploaded_image.outcome != 'skipped' && steps.uploaded_image.outputs.image_hash == ''
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
           key: ${{ steps.cache.outputs.tar_cache }}
@@ -428,7 +428,7 @@ jobs:
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
 
     steps:        
-      - uses: cloudposse/github-action-matrix-outputs-write@0.3.0
+      - uses: cloudposse/github-action-matrix-outputs-write@0.5.0
         id: write_json
         with:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
