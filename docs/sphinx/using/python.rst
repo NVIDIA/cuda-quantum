@@ -2,6 +2,8 @@
 CUDA Quantum in Python
 ======================
 
+.. _python-examples-landing-page:
+
 Welcome to CUDA Quantum! On this page we will illustrate CUDA Quantum in Python with several examples. 
 We first introduce how to code a kernel and execute it on a state vector simulator before moving onto 
 common algorithms such as Bernstein-Vazirani, Variational Quantum Eigensolver, and QAOA. The next sections 
