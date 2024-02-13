@@ -617,7 +617,7 @@ struct VerifyNVQIRCallOpsPass
         if (!isKnownFunctionName(funcName)) {
           call.emitOpError("unexpected function call in NVQIR");
           passFailed = true;
-          return WalkResult::advance();
+          return WalkResult::interrupt();
         }
         return WalkResult::advance();
       }
