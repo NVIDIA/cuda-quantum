@@ -20,6 +20,7 @@ USER root
 
 ENV CUDAQ_LOG_LEVEL=info
 ADD ./scripts/launch_qpud.sh /launch_qpud.sh
+RUN chmod +x /launch_qpud.sh
 
 # Start the cudaq-qpud service
 ENTRYPOINT ["/launch_qpud.sh"]
