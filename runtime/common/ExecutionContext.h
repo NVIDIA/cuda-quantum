@@ -11,7 +11,7 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
-#include "Resources.h"
+#include "Trace.h"
 #include <optional>
 #include <string_view>
 
@@ -68,7 +68,7 @@ public:
 
   /// @brief When run under the tracer context, persist the
   /// traced quantum resources here.
-  Resources kernelResources;
+  Trace kernelTrace;
 
   /// @brief The name of the kernel being executed.
   std::string kernelName = "";
@@ -84,6 +84,10 @@ public:
   /// @brief For mid-circuit measurements in library mode
   /// keep track of the register names.
   std::vector<std::string> registerNames;
+
+  /// @brief A vector containing information about how to reorder the global
+  /// register after execution. Empty means no reordering.
+  std::vector<std::size_t> reorderIdx;
 
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context

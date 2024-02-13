@@ -5,21 +5,17 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
+#include "common/Logger.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
-#include "cudaq/qis/qudit.h"
 #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "photonics_qis.h"
 #include "qpp.h"
 #include <cmath>
 #include <complex>
 #include <cstring>
 #include <functional>
 #include <iostream>
-#include <map>
-#include <queue>
 #include <sstream>
-#include <stack>
 
 namespace cudaq {
 

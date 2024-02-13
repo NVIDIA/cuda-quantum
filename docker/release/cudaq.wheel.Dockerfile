@@ -31,10 +31,6 @@ RUN echo "Building MLIR bindings for python${python_version}" \
     && LLVM_PROJECTS='clang;mlir;python-bindings' \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
 
-# Install additional dependencies
-# They might be optionally pulled in during auditwheel if necessary.
-RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
-
 # Build the wheel
 RUN echo "Building wheel for python${python_version}." \
     && cd cuda-quantum && python=python${python_version} \
