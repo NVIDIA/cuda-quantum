@@ -62,6 +62,7 @@ jobs:
             base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest-base
           tags: nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly
           platforms: linux/amd64
+          provenance: false
           push: true
   
   deploy_nvcf_test_function:
