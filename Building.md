@@ -6,10 +6,14 @@ instructions][official_install] for released packages and nightly builds.
 
 [cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/latest
 [official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
+[data_center_install]:
+    https://nvidia.github.io/cuda-quantum/latest/data_center_install.html
 
-This document contains instructions for how to build CUDA Quantum from source.
-This is only needed if you cannot use our pre-built container images or
-if you would like to add your own modifications to this code base.
+This document is intended for anyone who wants to develop their own
+modifications of, or contributions to, this code base. If you want to build CUDA
+Quantum from source for the purpose of installing it on a system that is not
+officially supported by our distributed packages, please take a look at our
+[installation guide][data_center_install] instead.
 
 To build the CUDA Quantum source code locally, fork this repository and follow
 the [instructions for setting up your environment](./Dev_Setup.md). Once you
@@ -40,20 +44,20 @@ developing](./Developing.md).
 
 CUDA Quantum comes with a range of simulator backends for testing and debugging
 application code. In addition to simulators that run on CPUs, there are also
-multiple backends leveraging [cuQuantum][cuquantum] for GPU accelerated
-simulation. This repository does not require you to have a GPU; if no GPU is
-detected, the corresponding backends will simply be omitted from the build.
+multiple backends leveraging [cuQuantum][cuquantum] and [cuTensor][cutensor] for
+GPU accelerated simulation. You can take a look at the
+[install_prerequisites.sh](scripts/install_prerequisites.sh) script to see how
+these dependencies are installed.
 
-To use or develop GPU-based simulators, you will need to make sure you have a
-suitable NVIDIA GPU with the [latest driver][nvidia_driver] installed. You can
-confirm the GPU is properly detected running the command `nvidia-smi` in your
-development environment.
-
-If you are not working in our development container, you may need to specify the
-correct path to your cuQuantum installation by setting the environment variable
-`CUQUANTUM_INSTALL_PREFIX`.
+Developing code in this repository does not require you to have a GPU; if the
+CUDA compiler is not found during the build, the corresponding components will
+simply be omitted from the build. However, to use or develop/test GPU-based
+simulators, you will need to make sure you have a suitable NVIDIA GPU with the
+[latest driver][nvidia_driver] installed. You can confirm the GPU is properly
+detected running the command `nvidia-smi` in your development environment.
 
 [cuquantum]: https://developer.nvidia.com/cuquantum-sdk
+[cutensor]: https://developer.nvidia.com/cutensor
 [nvidia_driver]: https://www.nvidia.com/download/index.aspx
 
 ## Building CUDA Quantum with a custom LLVM version

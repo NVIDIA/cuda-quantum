@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -61,14 +61,15 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && git submodule && \
     source scripts/configure_build.sh install-$install_before_build
 
-FROM prereqs as build
 # Checking out a CUDA Quantum commit is suboptimal, since the source code
 # version must match this file. At the same time, adding the entire current
-# directory will always rebuild CUDA Quantum, so instead just checking out
-# the required folders here. 
+# directory will always rebuild CUDA Quantum, so we instead just add only
+# the necessary files for the build to each build stage.
 ADD .git/index /cuda-quantum/.git/index
 ADD .git/modules/ /cuda-quantum/.git/modules/
 
+## [C++ support]
+FROM prereqs as cpp_build
 ADD "cmake" /cuda-quantum/cmake
 ADD "docs/CMakeLists.txt" /cuda-quantum/docs/CMakeLists.txt
 ADD "docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
@@ -94,7 +95,7 @@ ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    ## [>CUDAQuantumBuild]
+    ## [>CUDAQuantumCppBuild]
     CUDAQ_WERROR=false \
     CUDAQ_PYTHON_SUPPORT=OFF \
     CUDAHOSTCXX="$CXX" \
@@ -102,10 +103,56 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LDFLAGS='-static-libgcc -static-libstdc++' \
     LLVM_PROJECTS='clang;lld;mlir' \
     bash scripts/build_cudaq.sh -uv
-    ## [<CUDAQuantumBuild]
+    ## [<CUDAQuantumCppBuild]
+
+## [Python support]
+FROM prereqs as python_build
+ADD "pyproject.toml" /cuda-quantum/pyproject.toml
+ADD "python" /cuda-quantum/python
+ADD "cmake" /cuda-quantum/cmake
+ADD "include" /cuda-quantum/include
+ADD "lib" /cuda-quantum/lib
+ADD "runtime" /cuda-quantum/runtime
+ADD "tpls/customizations" /cuda-quantum/tpls/customizations
+ADD "tpls/json" /cuda-quantum/tpls/json
+ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
+ADD "LICENSE" /cuda-quantum/LICENSE
+ADD "NOTICE" /cuda-quantum/NOTICE
+
+ARG release_version=
+ENV CUDA_QUANTUM_VERSION=$release_version
+
+ARG PYTHON=python3.11
+RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && \
+    ${PYTHON} -m ensurepip --upgrade && \
+    ${PYTHON} -m pip install build auditwheel patchelf
+
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    LLVM_INSTALL_PREFIX="$(mktemp -d)" && \
+    ## [>CUDAQuantumPythonBuild]
+    bash scripts/install_prerequisites.sh && \
+    CUDAHOSTCXX="$CXX" \
+    CUDAQ_ENABLE_STATIC_LINKING=true \
+    python3 -m build --wheel
+    ## [<CUDAQuantumPythonBuild]
+
+RUN echo "Patching up wheel using auditwheel..." && \
+    ## [>CUDAQuantumWheel]
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/_skbuild/lib" \ 
+    MANYLINUX_PLATFORM="$(ls dist/cuda_quantum* | grep -o 'manylinux_[^\.]*')" \
+    python3 -m auditwheel -v repair dist/cuda_quantum-*-manylinux_*.whl \
+        --plat ${MANYLINUX_PLATFORM} \
+        --exclude libcublas.so.11 \
+        --exclude libcublasLt.so.11 \
+        --exclude libcusolver.so.11 \
+        --exclude libcutensor.so.1 \
+        --exclude libcutensornet.so.2 \
+        --exclude libcustatevec.so.1 \
+        --exclude libcudart.so.11.0 
+    ## [>CUDAQuantumWheel]
 
 ## [Tests]
-FROM build
+FROM cpp_build
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \
     fi && cd /cuda-quantum && \
@@ -122,3 +169,6 @@ RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
         --param nvqpp_site_config=build/test/lit.site.cfg.py
+
+# Tests for the Python wheel are run post-installation.
+COPY --from=python_build /wheelhouse /cuda_quantum/wheelhouse

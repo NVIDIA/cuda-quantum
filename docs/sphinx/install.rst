@@ -19,9 +19,8 @@ The following sections contain instructions for how to install CUDA Quantum on y
 
 If you would like to build CUDA Quantum from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for :doc:`data_center_install`. 
 If, on the other hand, you want to contribute to the development of CUDA Quantum itself and hence want to 
-build a custom version of CUDA Quantum from source, follow the instructions on the `CUDA Quantum GitHub repository`_ instead.
-
-.. _CUDA Quantum GitHub repository: https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md
+build a custom version of CUDA Quantum from source, follow the instructions on the 
+`CUDA Quantum GitHub repository <https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md>`__ instead.
 
 If you are unsure which option suits you best, we recommend using our :ref:`Docker image <install-docker-image>` to develop your applications in a controlled environment that does not depend on, or interfere with, other software
 that is installed on your system.
@@ -191,19 +190,27 @@ Installation instructions can be found in the `project description <https://pypi
 For more information about available versions and documentation,
 see :doc:`versions`.
 
+There are currently no source distributions available on PyPI, but you can download the 
+source code for the latest version of the CUDA Quantum Python wheels from our 
+`GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__. 
+The source code for previous versions can be downloaded from the respective 
+`GitHub Release <https://github.com/NVIDIA/cuda-quantum/releases>`__.
+
 At this time, wheels are distributed for Linux operating systems only. 
+If your platform is not :ref:`officially supported <dependencies-and-compatibility>` and
+`pip` does not find a compatible wheel to install, you can build your own 
+wheel from source following the instructions here: :doc:`data_center_install`.
 
-There are currently no source distributions available on PyPI, but you can download the source code for the latest version of the CUDA Quantum Python wheels from our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__. The source code for previous versions can be downloaded from the respective `GitHub Release <https://github.com/NVIDIA/cuda-quantum/releases>`__.
-
-To build the CUDA Quantum Python API from source using pip, run the following commands:
+To build the CUDA Quantum Python API for the purpose of contributing to
+our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__,
+follow the instructions for 
+`Setting up your Environment <https://github.com/NVIDIA/cuda-quantum/blob/main/Dev_Setup.md>`__, 
+and then run the following commands in the repository root:
 
 .. code-block:: console
 
-    git clone https://github.com/NVIDIA/cuda-quantum.git
-    cd cuda-quantum && bash scripts/install_prerequisites.sh
-    pip install .
-
-For more information about building the entire C++ and Python API from source, we refer to the `CUDA Quantum GitHub repository`_.
+    bash scripts/install_prerequisites.sh
+    pip install . --user
 
 .. _install-prebuilt-binaries:
 

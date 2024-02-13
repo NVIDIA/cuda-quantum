@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -75,5 +75,11 @@ ADD scripts/validate_container.sh /home/cudaq/validate.sh
 ADD scripts/configure_build.sh /home/cudaq/configure_build.sh
 ADD docker/test/installer/mpi_cuda_check.cpp /home/cudaq/mpi_cuda_check.cpp
 ADD docs/sphinx/examples/cpp /home/cudaq/examples
+
+# Wheel to check side-by-side installation of Python and C++ support
+ARG cuda_quantum_wheel='cuda_quantum_*.whl'
+ADD "${cuda_quantum_wheel}" /tmp/
+ADD python/tests /home/cudaq/python
+
 ENTRYPOINT ["bash", "-l"]
 

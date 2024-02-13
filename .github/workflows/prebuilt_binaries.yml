@@ -297,16 +297,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ needs.build_installer.outputs.artifact_name }}
+          path: /tmp/artifacts
 
       - name: Install in clean environment
         run: |
           config='${{ needs.create_test_config.outputs.json }}'
           system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
           additional_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
+          unzip /tmp/artifacts/*.zip && rm /tmp/artifacts/*.zip
 
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
             --build-arg cuda_quantum_installer=install_cuda_quantum.$(uname -m) \
+            --build-arg cuda_quantum_wheel=cuda_quantum_*$(uname -m).whl \
             --build-arg base_image=${{ matrix.os_image }} \
             --build-arg base_image_mpibuild=${{ inputs.platform_base_image }} \
             $(echo $additional_build_args | xargs | sed "s/[^ ]*/--build-arg &/g")
@@ -321,6 +324,26 @@ jobs:
             echo "::error::Validation failed; see job summary for more details."
             exit 1
           fi
+
+      - name: Side-by-side installation of Python support
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: validation:local
+          user: cudaq
+          shell: bash -l
+          run: |
+            PYTHON=python3.$(ls /tmp/cuda_quantum_*.whl | grep -o cp3[0-9]* | cut -c 4-)
+            dnf install -y --nobest --setopt=install_weak_deps=False $PYTHON
+            ${PYTHON} -m ensurepip --upgrade
+            ${PYTHON} -m pip install /tmp/cuda_quantum_*.whl
+            ${PYTHON} -m pip install pytest numpy
+            ${PYTHON} -m pytest -v /tmp/tests/ \
+              --ignore python/tests/backends \
+              --ignore python/tests/domains
+            if [ ! $? -eq 0 ]; then
+              echo "::error file=prebuilt_binaries.yml::Sanity tests failed for side-by-side Python support."
+              exit 1
+            fi
 
       - name: Additional validation (MPI and uninstall)
         uses: ./.github/actions/run-in-docker
