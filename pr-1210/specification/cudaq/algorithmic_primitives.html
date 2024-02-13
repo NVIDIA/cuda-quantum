@@ -576,6 +576,65 @@ register named <code class="code docutils literal notranslate"><span class="pre"
 of an NOT operation. The <code class="code docutils literal notranslate"><span class="pre">sample_result</span></code> returned for this sampling
 tasks contains the default <code class="code docutils literal notranslate"><span class="pre">__global__</span></code> register as well as the user
 specified <code class="code docutils literal notranslate"><span class="pre">reg1</span></code> register.</p>
+<p>The contents of the <code class="code docutils literal notranslate"><span class="pre">__global__</span></code> register will depend on how your kernel
+is written:</p>
+<ol class="arabic">
+<li><p>If no measurements appear in the kernel, then the <code class="code docutils literal notranslate"><span class="pre">__global__</span></code>
+register is formed with implicit measurements being added for <em>all</em> the
+qubits defined in the kernel, and the measurements all occur at the end of
+the kernel. The order of the bits in the bitstring corresponds to the qubit
+allocation order specified in the kernel.  That is - the <code class="code docutils literal notranslate"><span class="pre">[0]</span></code> element
+in the <code class="code docutils literal notranslate"><span class="pre">__global__</span></code> bitstring corresponds with the first declared qubit
+in the kernel. For example,</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+<span class="w">  </span><span class="n">x</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">).</span><span class="n">dump</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>should produce</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">{</span>
+<span class="w">  </span>__global__<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="m">10</span>:1000<span class="w"> </span><span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+</li>
+<li><p>Conversely, if any measurements appear in the kernel, then only the measured
+qubits will appear in the <code class="code docutils literal notranslate"><span class="pre">__global__</span></code> register. Similar to #1, the
+bitstring corresponds to the qubit allocation order specified in the kernel.
+Also (again, similar to #1), the values of the sampled qubits always
+correspond to the values <em>at the end of the kernel execution</em>. That is - if a
+qubit is measured in the middle of a kernel and subsequent operations change
+the state of the qubit, the qubit will be implicitly re-measured at the end
+of the kernel, and that re-measured value is the value that will appear in
+the <code class="code docutils literal notranslate"><span class="pre">__global__</span></code> register. For example,</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+<span class="w">  </span><span class="n">x</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
+<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">).</span><span class="n">dump</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>should produce</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">{</span>
+<span class="w">  </span>__global__<span class="w"> </span>:<span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="m">10</span>:1000<span class="w"> </span><span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you don’t specify any measurements in your kernel and allow the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code>
+compiler to perform passes that introduce ancilla qubits into your kernel, it
+may be difficult to discern which qubits are the ancilla qubits vs which ones
+are your qubits. In this case, it is recommended that you provide explicit
+measurements in your kernel in order to only receive measurements from your
+qubits and silently discard the measurements from the ancillary qubits.</p>
+</div>
 <p>The API exposed by the <code class="code docutils literal notranslate"><span class="pre">sample_result</span></code> data type allows one to extract
 the information contained at a variety of levels and for each available
 register name. One can get the number of times a bit string was observed via
