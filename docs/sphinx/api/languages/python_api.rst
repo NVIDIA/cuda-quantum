@@ -59,8 +59,7 @@ Kernel Execution
 .. autofunction:: cudaq::observe
 .. autofunction:: cudaq::observe_async
 .. autofunction:: cudaq::get_state
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'get_state_async'
-.. .. autofunction:: cudaq::get_state_async
+.. autofunction:: cudaq::get_state_async
 .. autofunction:: cudaq::vqe
 
 Backend Configuration
@@ -83,9 +82,8 @@ Data Types
 .. autoclass:: cudaq::Target
     :members:
 
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'State'
-.. .. autoclass:: cudaq::State
-..     :members:
+.. autoclass:: cudaq::State
+    :members:
 
 .. autoclass:: cudaq::QuakeValue
 
@@ -137,9 +135,8 @@ Data Types
 .. autoclass:: cudaq::AsyncObserveResult
     :members:
 
-.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'AsyncStateResult'. Did you mean: 'AsyncSampleResult'?
-.. .. autoclass:: cudaq::AsyncStateResult
-..     :members:
+.. autoclass:: cudaq::AsyncStateResult
+    :members:
 
 .. autoclass:: cudaq::OptimizationResult
     :members:

@@ -830,8 +830,8 @@ def test_can_progressively_build():
     print(kernel)
     state = cudaq.get_state(kernel)
     assert np.isclose(1. / np.sqrt(2.), state[0].real)
-    assert np.isclose(0., state[2].real)
-    assert np.isclose(1. / np.sqrt(2.), state[1].real)
+    assert np.isclose(0., state[1].real)
+    assert np.isclose(1. / np.sqrt(2.), state[2].real)
     assert np.isclose(0., state[3].real)
 
     counts = cudaq.sample(kernel)
@@ -959,16 +959,16 @@ def test_givens_rotation_op():
     test_01.x(qubits_01[0])
     test_01.givens_rotation(angle, qubits_01[0], qubits_01[1])
     ss_01 = cudaq.get_state(test_01)
-    assert np.isclose(ss_01[1], c, 1e-3)
-    assert np.isclose(ss_01[2], -s, 1e-3)
+    assert np.isclose(ss_01[1], -s, 1e-3)
+    assert np.isclose(ss_01[2], c, 1e-3)
 
     test_10 = cudaq.make_kernel()
     qubits_10 = test_10.qalloc(2)
     test_10.x(qubits_10[1])
     test_10.givens_rotation(angle, qubits_10[0], qubits_10[1])
     ss_10 = cudaq.get_state(test_10)
-    assert np.isclose(ss_10[1], s, 1e-3)
-    assert np.isclose(ss_10[2], c, 1e-3)
+    assert np.isclose(ss_10[1], c, 1e-3)
+    assert np.isclose(ss_10[2], s, 1e-3)
 
 
 def test_fermionic_swap_op():
@@ -981,8 +981,8 @@ def test_fermionic_swap_op():
     test_01.x(qubits_01[0])
     test_01.fermionic_swap(angle, qubits_01[0], qubits_01[1])
     ss_01 = cudaq.get_state(test_01)
-    val1 = np.abs(ss_01[2] - (-1j * np.exp(1j * angle / 2.0) * s))
-    val2 = np.abs(ss_01[1] - (np.exp(1j * angle / 2.0) * c))
+    val1 = np.abs(ss_01[1] - (-1j * np.exp(1j * angle / 2.0) * s))
+    val2 = np.abs(ss_01[2] - (np.exp(1j * angle / 2.0) * c))
     assert np.isclose(val1, 0.0, atol=1e-6)
     assert np.isclose(val2, 0.0, atol=1e-6)
 
@@ -991,8 +991,8 @@ def test_fermionic_swap_op():
     test_10.x(qubits_10[1])
     test_10.fermionic_swap(angle, qubits_10[0], qubits_10[1])
     ss_10 = cudaq.get_state(test_10)
-    val3 = np.abs(ss_10[2] - (np.exp(1j * angle / 2.0) * c))
-    val4 = np.abs(ss_10[1] - (-1j * np.exp(1j * angle / 2.0) * s))
+    val3 = np.abs(ss_10[1] - (np.exp(1j * angle / 2.0) * c))
+    val4 = np.abs(ss_10[2] - (-1j * np.exp(1j * angle / 2.0) * s))
     assert np.isclose(val3, 0.0, atol=1e-6)
     assert np.isclose(val4, 0.0, atol=1e-6)
 
