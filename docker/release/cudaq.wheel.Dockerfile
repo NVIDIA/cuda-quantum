@@ -49,7 +49,8 @@ RUN echo "Building wheel for python${python_version}." \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
         CUDAQ_ENABLE_STATIC_LINKING=ON \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
-        $python -m build --wheel
+        $python -m build --wheel \
+    && rm -rf dist
 
 ARG python_version=3.10
 ENV CC=/opt/rh/gcc-toolset-12/root/usr/bin/cc
