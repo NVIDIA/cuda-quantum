@@ -718,14 +718,26 @@ class PyASTBridge(ast.NodeVisitor):
                                        TypeAttr.get(iTy),
                                        seqSize=totalSize).result
 
+                # Logic here is as follows:
+                # We are building an array like this
                 # array = [start, start +- step, start +- 2*step, start +- 3*step, ...]
+                # So we need to know the start and step (already have them),
+                # but we also need to keep track of a counter
+                counter = cc.AllocaOp(cc.PointerType.get(self.ctx, iTy),
+                                      TypeAttr.get(iTy)).result
+                cc.StoreOp(zero, counter)
+
                 def bodyBuilder(iterVar):
-                    tmp = arith.MulIOp(iterVar, stepVal).result
+                    loadedCounter = cc.LoadOp(counter).result
+                    tmp = arith.MulIOp(loadedCounter, stepVal).result
                     arrElementVal = arith.AddIOp(startVal, tmp).result
                     eleAddr = cc.ComputePtrOp(
-                        cc.PointerType.get(self.ctx, iTy), iterable, [iterVar],
+                        cc.PointerType.get(self.ctx, iTy), iterable,
+                        [loadedCounter],
                         DenseI32ArrayAttr.get([-2147483648], context=self.ctx))
                     cc.StoreOp(arrElementVal, eleAddr)
+                    incrementedCounter = arith.AddIOp(loadedCounter, one).result
+                    cc.StoreOp(incrementedCounter, counter)
 
                 self.createInvariantForLoop(endVal,
                                             bodyBuilder,
@@ -2070,6 +2082,9 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 self.pushValue(self.symbolTable[node.id])
             return
+
+        # FIXME We should handle the case that the name is not
+        # in the symbol table
 
 
 def compile_to_mlir(astModule, **kwargs):
