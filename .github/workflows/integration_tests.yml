@@ -363,14 +363,14 @@ jobs:
           export NVCF_FUNCTION_ID="${{ secrets.NVCF_FUNCTION_ID }}"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
+          apt-get update && apt-get install -y --no-install-recommends ca-certificates
           test_err_sum=0
           # Test all NVQPP execution tests
           for filename in `find test/NVQPP/ -name '*.cpp'`; do
             echo "$filename"
             # Only run tests that require execution (not a syntax-only check)
             if grep -q "ifndef SYNTAX_CHECK" "$filename"; then 
-              # TODO: remove --enable-mlir
-              nvq++ -v $filename --target nvcf --enable-mlir
+              nvq++ -v $filename --target nvcf
               test_status=$?
               if [ $test_status -eq 0 ]; then
                 ./a.out
@@ -393,8 +393,7 @@ jobs:
             # unsupport_args is a compile error test
             if [[ "$filename" != *"unsupport_args"* ]]; then
               echo "$filename"
-              # TODO: remove --enable-mlir
-              nvcf_config="--enable-mlir"
+              nvcf_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
               num_qpus=`cat $filename | grep -oP -m 1 '^//\s*RUN:\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
               if [ -n "$num_qpus" ]; then
@@ -423,8 +422,7 @@ jobs:
           for filename in `find examples/cpp/ -name '*.cpp'`; do
             if [[ "$filename" == *"nvcf"* ]]; then
               echo "$filename"
-              # TODO: remove --enable-mlir
-              nvcf_config="--enable-mlir"
+              nvcf_config=""
               # Look for a --nvcf-backend flag to nvq++ in the 
               nvcf_backend=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-backend\s+\K\S+'`
               if [ -n "$nvcf_backend" ]; then
