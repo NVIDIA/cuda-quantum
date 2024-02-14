@@ -106,7 +106,7 @@ do not need to be present on the host system.
 In addition to installing the needed build dependencies listed above, make sure
 to set the following environment variables prior to proceeding:
 
-.. literalinclude:: ../../scripts/configure_build.sh
+.. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
     :dedent:
     :start-after: [>InstallLocations]
@@ -158,7 +158,7 @@ linked on that page.
 Within the tested AlmaLinux 8 environment, for example, the following commands
 install CUDA 11.8:
 
-.. literalinclude:: ../../scripts/configure_build.sh
+.. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
     :dedent:
     :start-after: [>CUDAInstall]
@@ -179,7 +179,7 @@ Other toolchains may be supported but have not been tested.
 Within the tested AlmaLinux 8 environment, for example, the following commands
 install GCC 11:
 
-.. literalinclude:: ../../scripts/configure_build.sh
+.. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
     :dedent:
     :start-after: [>gccInstall]
@@ -188,7 +188,7 @@ install GCC 11:
 Independent on which compiler toolchain you installed, set the following
 environment variables to point to the respective compilers on your build system:
 
-.. literalinclude:: ../../scripts/configure_build.sh
+.. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
     :dedent:
     :start-after: [>ToolchainConfiguration]
@@ -255,7 +255,7 @@ To easily migrate the built binaries to the host system, we recommend creating a
 `makeself script(s) <https://github.com/megastep/makeself>`__ and move the necessary 
 files to install into a separate folder using the command
 
-.. literalinclude:: ../../docker/release/installer.Dockerfile
+.. literalinclude:: ../../../../docker/release/installer.Dockerfile
     :language: bash
     :dedent:
     :start-after: [>CUDAQuantumAssets]
@@ -399,7 +399,7 @@ the complete CUDA toolkit like you did for the CUDA Quantum build.
 If you prefer to only install the minimal set of runtime libraries, the following 
 commands, for example, install the necessary packages for the AlmaLinux 8 environment:
 
-.. literalinclude:: ../../scripts/configure_build.sh
+.. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
     :dedent:
     :start-after: [>CUDARTInstall]
@@ -422,7 +422,7 @@ The commands below assume you have the necessary prerequisites for the OpenMPI b
 installed on the build system. Within the tested AlmaLinux 8 environment, for example,
 the packages `autoconf`, `libtool`, `flex`, and `make` need to be installed.
 
-.. literalinclude:: ../../scripts/configure_build.sh
+.. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
     :dedent:
     :start-after: [>OpenMPIBuild]
@@ -431,7 +431,7 @@ the packages `autoconf`, `libtool`, `flex`, and `make` need to be installed.
 Confirm that you have a suitable MPI implementation installed. For OpenMPI and MPICH,
 for example, this can be done by compiling and running the following program:
 
-.. literalinclude:: ../../docker/test/installer/mpi_cuda_check.cpp
+.. literalinclude:: ../../../../docker/test/installer/mpi_cuda_check.cpp
     :language: cpp
 
 .. note::
