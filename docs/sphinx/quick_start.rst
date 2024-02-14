@@ -19,7 +19,7 @@ Python
 
 To install the latest stable release of the CUDA Quantum Python API:  
 
-.. code-block:: bash
+.. code-block:: console
 
     pip install cuda-quantum 
 
@@ -48,7 +48,7 @@ To test your installation, create a file titled `first_program.py`, containing t
 
 You may now execute this file as you do any other Python program. For example, from the command line:
 
-.. code-block:: bash
+.. code-block:: console
 
     python3 first_program.py
 
@@ -86,7 +86,7 @@ To test your installation, create a file titled `first_program.cpp`, containing 
 
 You may now execute this file from the command line using the `nvq++` toolchain:
 
-.. code-block:: bash
+.. code-block:: console
 
     nvq++ first_program.cpp && ./a.out
 
