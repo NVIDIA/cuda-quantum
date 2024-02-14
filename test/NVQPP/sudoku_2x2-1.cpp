@@ -46,7 +46,7 @@ __qpu__ void grover() {
     reflect_uniform(qubits);
   }
 
-  auto results = mz(qubits);
+  mz(qubits);
 };
 
 int main() {

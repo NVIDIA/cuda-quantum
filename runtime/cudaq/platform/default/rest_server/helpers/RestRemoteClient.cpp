@@ -158,6 +158,14 @@ public:
             kernelName;
       return false;
     }
+
+    if (request.format != cudaq::CodeFormat::MLIR) {
+      // The `.config` file may have been tampered with.
+      std::cerr << "Internal error: unsupported kernel IR detected.\nThis may "
+                   "indicate a corrupted CUDA Quantum installation.";
+      std::abort();
+    }
+
     // Max message size that we can send in the body
     constexpr std::size_t MAX_SIZE_BYTES = 250000; // 250 KB
     json requestJson;

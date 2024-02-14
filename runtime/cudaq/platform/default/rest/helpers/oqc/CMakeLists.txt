@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -20,3 +20,5 @@ target_link_libraries(cudaq-serverhelper-oqc
 )
 install(TARGETS cudaq-serverhelper-oqc DESTINATION lib)
 
+add_target_mapping_arch(oqc lucy.txt)
+add_target_mapping_arch(oqc toshiko.txt)
