@@ -104,12 +104,13 @@ jobs:
           # Deploy it
           ngc-cli/ngc cloud-function function deploy create --deployment-specification ${{ secrets.NGC_NVCF_DEPLOYMENT_SPEC }} ${{ secrets.NVCF_FUNCTION_ID }}:$version_id
           function_status=DEPLOYING
-          while [ "$function_status" =  "DEPLOYING" ];
-            do echo "Waiting for deploying NVCF function version $version_id ..." && sleep 300; 
+          while [ "$function_status" =  "DEPLOYING" ]; do 
+            echo "Waiting for deploying NVCF function version $version_id ..." 
+            sleep 300 
             function_info=$(ngc-cli/ngc cloud-function function info ${{ secrets.NVCF_FUNCTION_ID }}:$version_id)
             function_status=$(echo "$function_info" | grep 'Status: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
           done
-          if [ "$function_status" !=  "ACTIVE" ]
+          if [ "$function_status" !=  "ACTIVE" ]; then
             echo "::error:: Failed to deploy NVCF Test Function"
             exit 1
           fi
