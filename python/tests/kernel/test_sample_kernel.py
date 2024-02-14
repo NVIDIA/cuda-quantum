@@ -10,23 +10,26 @@ import os
 
 import pytest
 import numpy as np
-from typing import Callable 
+from typing import Callable
 
 import cudaq
+
 
 @pytest.fixture(autouse=True)
 def do_something():
     if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
         cudaq.enable_jit()
     yield
-    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
+    if cudaq.is_jit_enabled():
+        cudaq.__clearKernelRegistries()
     cudaq.disable_jit()
+
 
 def test_simple_sampling_ghz():
     """Test that we can build a very simple kernel and sample it."""
 
     @cudaq.kernel
-    def simple(numQubits:int):
+    def simple(numQubits: int):
         qubits = cudaq.qvector(numQubits)
         h(qubits.front())
         for i, qubit in enumerate(qubits.front(numQubits - 1)):
@@ -46,7 +49,7 @@ def test_simple_sampling_qpe():
     """Test that we can build up a set of kernels, compose them, and sample."""
 
     @cudaq.kernel
-    def iqft(qubits:cudaq.qview):
+    def iqft(qubits: cudaq.qview):
         N = qubits.size()
         for i in range(N // 2):
             swap(qubits[i], qubits[N - i - 1])
@@ -60,15 +63,16 @@ def test_simple_sampling_qpe():
         h(qubits[N - 1])
 
     @cudaq.kernel
-    def tGate(qubit:cudaq.qubit):
+    def tGate(qubit: cudaq.qubit):
         t(qubit)
 
     @cudaq.kernel
-    def xGate(qubit:cudaq.qubit):
+    def xGate(qubit: cudaq.qubit):
         x(qubit)
 
     @cudaq.kernel
-    def qpe(nC:int, nQ:int, statePrep:Callable[[cudaq.qubit], None], oracle:Callable[[cudaq.qubit], None]):
+    def qpe(nC: int, nQ: int, statePrep: Callable[[cudaq.qubit], None],
+            oracle: Callable[[cudaq.qubit], None]):
         q = cudaq.qvector(nC + nQ)
         countingQubits = q.front(nC)
         stateRegister = q.back()
@@ -85,14 +89,14 @@ def test_simple_sampling_qpe():
     assert len(counts) == 1
     assert '100' in counts
 
-    # Test that we can define kernels after the 
-    # definition of a composable kernel like qpe 
-    # and use them as input (they get added to the 
+    # Test that we can define kernels after the
+    # definition of a composable kernel like qpe
+    # and use them as input (they get added to the
     # MLIR ModuleOp)
     @cudaq.kernel
-    def xGateAfterKernel(qubit:cudaq.qubit):
+    def xGateAfterKernel(qubit: cudaq.qubit):
         x(qubit)
-    
+
     counts = cudaq.sample(qpe, 3, 1, xGateAfterKernel, tGate)
     assert len(counts) == 1
     assert '100' in counts
@@ -148,12 +152,12 @@ def test_broadcast():
 
 
 def test_sample_async():
+
     @cudaq.kernel()
-    def kernel0(i:int):
+    def kernel0(i: int):
         q = cudaq.qubit()
         x(q)
 
-    future = cudaq.sample_async(kernel0, 5,
-                                 qpu_id=0)
+    future = cudaq.sample_async(kernel0, 5, qpu_id=0)
     sample_result = future.get()
     assert '1' in sample_result and len(sample_result) == 1

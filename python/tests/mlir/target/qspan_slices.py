@@ -24,7 +24,7 @@ def bar(qubits:cudaq.qview):
 
 @cudaq.kernel(jit=True)
 def foo():
-    q = cudaq.qlist(4)
+    q = cudaq.qvector(4)
     x(q)
     bar(q)
     result = mz(q)

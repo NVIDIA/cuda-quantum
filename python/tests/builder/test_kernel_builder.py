@@ -871,7 +871,8 @@ def test_recursive_calls():
 
 
 ## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'from_state'")
+@pytest.mark.skip(
+    reason="AttributeError: module 'cudaq' has no attribute 'from_state'")
 def test_from_state():
     cudaq.reset_target()
     state = np.asarray([.70710678, 0., 0., 0.70710678])

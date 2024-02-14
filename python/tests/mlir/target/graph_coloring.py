@@ -21,7 +21,7 @@ if '--force-eager-exec-mode' in sys.argv:
     localJit=False
 
 @cudaq.kernel(jit=localJit)
-def init_state(qubits:cudaq.qlist, theta: float):
+def init_state(qubits:cudaq.qvector, theta: float):
     ry(theta, qubits[0])
     h.ctrl(qubits[0], qubits[1])
     x(qubits[1])
@@ -39,7 +39,7 @@ def init_state(qubits:cudaq.qlist, theta: float):
     x(qubits[7])
 
 @cudaq.kernel(jit=localJit)
-def reflect_uniform(qubits:cudaq.qlist, theta:float):
+def reflect_uniform(qubits:cudaq.qvector, theta:float):
     cudaq.adjoint(init_state, qubits, theta)
     x(qubits)
     z.ctrl(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4], qubits[5], qubits[6], qubits[7])
@@ -47,7 +47,7 @@ def reflect_uniform(qubits:cudaq.qlist, theta:float):
     init_state(qubits, theta)
 
 @cudaq.kernel (jit=localJit)
-def oracle(cs:cudaq.qlist, target :cudaq.qubit):
+def oracle(cs:cudaq.qvector, target :cudaq.qubit):
     x.ctrl(cs[0], ~cs[1], cs[2], ~cs[3], cs[5], target)
     x.ctrl(cs[0], ~cs[1], cs[2], ~cs[3], cs[7], target)
     x.ctrl(cs[0], ~cs[1], ~cs[3], cs[4], cs[7], target)
@@ -70,7 +70,7 @@ def oracle(cs:cudaq.qlist, target :cudaq.qubit):
 
 @cudaq.kernel(jit=localJit)
 def grover(theta:float):
-    qubits = cudaq.qlist(8)
+    qubits = cudaq.qvector(8)
     ancilla = cudaq.qubit()
 
     #/ Initialization
