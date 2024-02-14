@@ -285,17 +285,17 @@ use the same Python version for the build as the one that is installed on the ho
 To build the CUDA Quantum Python wheel, you will need to install the following additional 
 Python-specific tools:
 
--	Python development headers: The development headers for your Python version are installed 
-  in the way as you installed Python itself. If you installed Python via the package manager 
+- Python development headers: The development headers for your Python version are installed
+  in the way as you installed Python itself. If you installed Python via the package manager
   for your system, you may need to install an additional package to get the development headers.
   The package name is usually your python version followed by either a `-dev` or `-devel` suffix.
   If you are using a `Conda environment <https://conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-python>`__,
   the necessary headers should already be installed.
--	Pip package manager: Make sure the `pip` module is enable for your Python version.
-  We refer to the Python `documentation <https://pip.pypa.io/en/stable/installation/>`__ for 
-  more information about installing/enabling `pip`. 
--	Python modules: Install the additional modules `numpy`, `build`, `auditwheel`, and `patchelf` for your 
-  python version, e.g. `python3 -m pip install numpy build auditwheel patchelf`.
+- Pip package manager: Make sure the `pip` module is enable for your Python version.
+  We refer to the Python `documentation <https://pip.pypa.io/en/stable/installation/>`__ for
+  more information about installing/enabling `pip`.
+- Python modules: Install the additional modules `numpy`, `build`, `auditwheel`, and `patchelf` for your
+  Python version, e.g. `python3 -m pip install numpy build auditwheel patchelf`.
 
 From within the folder where you cloned the CUDA Quantum repository, run the following
 command to build the CUDA Quantum Python wheel:
