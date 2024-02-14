@@ -24,6 +24,17 @@ on:
         type: string
         required: false
         description: 'Target machine (e.g., H1-1E).'
+      cudaq_test_image:
+        type: string
+        required: false
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
+        description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image if left blank.'
+      cudaq_nvcf_deploy_image:
+        type: string
+        required: false
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
+        description: 'CUDA Quantum image to use for NVCF deployment. Default to the latest CUDA Quantum nightly image if left blank.'
+
   schedule:
     - cron: 0 3 * * *
 
@@ -60,7 +71,7 @@ jobs:
           context: .
           file: ./docker/release/cudaq.nvcf.Dockerfile
           build-args: |
-            base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest-base
+            base_image=${{ inputs.cudaq_nvcf_deploy_image }}
           tags: nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
@@ -127,8 +138,7 @@ jobs:
     needs: [build_nvcf_image, deploy_nvcf_test_function]
     environment: backend-validation
     container:
-      # TODO: switch back to `cuda-quantum:latest` once the publishing image is ready
-      image: nvcr.io/nvidia/nightly/cuda-quantum:latest-base
+      image: ${{ inputs.cudaq_test_image }}
       options: --user root
 
     steps:

@@ -11,4 +11,4 @@
 # This script allows us to launch cudaq-qpud with MPI ranks == Number of NVIDIA GPUs
 numGPUS=$(nvidia-smi --list-gpus | wc -l)
 echo $numGPUS
-mpiexec --allow-run-as-root -np $numGPUS cudaq-qpud
+mpiexec --allow-run-as-root -np $numGPUS cudaq-qpud --type nvcf
