@@ -515,7 +515,7 @@ jobs:
 
       - name: Install wheel
         run: |
-          workflow_id= ${{ inputs.workflow_id }} 
+          workflow_id=${{ inputs.workflow_id }}
           if [ -z "${workflow_id}" ]; then
             workflow_id=$(gh run list --branch main --workflow Publishing --status completed --event workflow_dispatch --limit 1 --json databaseId | jq '.[0].databaseId')
           fi
