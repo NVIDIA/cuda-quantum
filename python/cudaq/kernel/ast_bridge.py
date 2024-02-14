@@ -1957,6 +1957,16 @@ class PyASTBridge(ast.NodeVisitor):
         self.visit(node.right)
         right = self.popValue()
 
+        if not IntegerType.isinstance(left.type) and not F64Type.isinstance(
+                left.type) and not ComplexType.isinstance(left.type):
+            raise RuntimeError("Invalid type for Binary Op {} ({})".format(
+                type(node.op), right))
+
+        if not IntegerType.isinstance(right.type) and not F64Type.isinstance(
+                right.type) and not ComplexType.isinstance(right.type):
+            raise RuntimeError("Invalid type for Binary Op {} ({})".format(
+                type(node.op), right))
+
         # Basedon the op type and the leaf types, create the MLIR operator
         if isinstance(node.op, ast.Add):
             if IntegerType.isinstance(left.type):
