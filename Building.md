@@ -51,7 +51,7 @@ these dependencies are installed.
 
 Developing code in this repository does not require you to have a GPU; if the
 CUDA compiler is not found during the build, the corresponding components will
-simply be omitted from the build. However, to use or develop/test GPU-based
+simply be omitted from the build. However, to use or develop and test GPU-based
 simulators, you will need to make sure you have a suitable NVIDIA GPU with the
 [latest driver][nvidia_driver] installed. You can confirm the GPU is properly
 detected running the command `nvidia-smi` in your development environment.
