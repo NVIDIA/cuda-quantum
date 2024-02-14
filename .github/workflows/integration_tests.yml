@@ -72,6 +72,9 @@ jobs:
     needs: build_nvcf_image
     if: (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
     environment: backend-validation
+    outputs:
+      nvcf_function_version_id: ${{ steps.deploy.outputs.nvcf_function_version_id }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -87,6 +90,7 @@ jobs:
           unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
 
       - name: Deploy NVCF Function
+        id: deploy
         env:
           NGC_CLI_API_KEY: ${{ secrets.NGC_NVCF_CREDENTIALS }}
           NGC_CLI_ORG: ${{ secrets.NGC_NVCF_ORG }}
@@ -360,8 +364,6 @@ jobs:
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
-          # FIXME: remove this step
-          wget https://curl.haxx.se/ca/cacert.pem 
           # Test all NVQPP execution tests
           for filename in `find test/NVQPP/ -name '*.cpp'`; do
             echo "$filename"
@@ -514,6 +516,7 @@ jobs:
           NGC_CLI_ORG: ${{ secrets.NGC_NVCF_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
+          echo "Version Id: ${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
           # Remove deployment (make it inactive)
           ngc-cli/ngc cloud-function function deploy remove ${{ secrets.NVCF_FUNCTION_ID }}:${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}
           # Remove the function version
