@@ -14,7 +14,8 @@ endif()
 add_subdirectory(remote)
 
 set(LIBRARY_NAME cudaq-platform-mqpu)
-add_library(${LIBRARY_NAME} SHARED MultiQPUPlatform.cpp ../common/QuantumExecutionQueue.cpp)
+add_library(${LIBRARY_NAME}
+  SHARED MultiQPUPlatform.cpp ../common/QuantumExecutionQueue.cpp)
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
@@ -41,6 +42,7 @@ if (CUDA_FOUND AND CUSTATEVEC_ROOT)
 endif()
   
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-mqpu-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+  EXPORT cudaq-platform-mqpu-targets DESTINATION lib)
 add_target_config(remote-mqpu)
 add_target_config(nvcf)
