@@ -91,14 +91,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install NGC CLI
-        run: |
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends wget
-          wget -O ngccli_linux.zip --content-disposition \
-            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.38.0/files/ngccli_linux.zip
-          if [ -z "$(sha256sum ngccli_linux.zip | grep -o '427c67684d792b673b63882a6d0cbb8777815095c0f2f31559c1570a91187388 ')" ]; then
-            echo "::error::NGC CLI was corrupted during download." && exit 1
-          fi
-          unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.38.0
+          checksum: 427c67684d792b673b63882a6d0cbb8777815095c0f2f31559c1570a91187388
 
       - name: Deploy NVCF Function
         id: deploy
@@ -509,14 +505,10 @@ jobs:
     environment: backend-validation
     steps:
       - name: Install NGC CLI
-        run: |
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends wget
-          wget -O ngccli_linux.zip --content-disposition \
-            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.38.0/files/ngccli_linux.zip
-          if [ -z "$(sha256sum ngccli_linux.zip | grep -o '427c67684d792b673b63882a6d0cbb8777815095c0f2f31559c1570a91187388 ')" ]; then
-            echo "::error::NGC CLI was corrupted during download." && exit 1
-          fi
-          unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.38.0
+          checksum: 427c67684d792b673b63882a6d0cbb8777815095c0f2f31559c1570a91187388
 
       - name: Cleanup
         env:
