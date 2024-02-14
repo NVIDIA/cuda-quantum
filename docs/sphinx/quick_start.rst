@@ -5,8 +5,8 @@ Quick Start
 
 CUDA Quantum streamlines hybrid application development and promotes productivity and scalability
 in quantum algorithm research. It offers a unified programming model designed for a hybrid
-setting--that is, CPUs, GPUs, and QPUs working together, and consists of language extensions
-for Python and C++ and a system level toolchain that enables application acceleration.
+setting |---| that is, CPUs, GPUs, and QPUs working together. Further enabling application
+acceleration, CUDA Quantum includes language extensions for Python and C++ and a system-level toolchain.
 
 Learn more about CUDA Quantum’s key benefits here [FIXME: Link to CUDA Quantum Marketing page]
 
@@ -94,3 +94,7 @@ The Hadamard gate places the qubit in a superposition state, giving a roughly 50
 of measurments in the `|0>` and `|1>` states.
 
 Now that you have succesfully run your first program, you are ready to move on to our :ref:`Basics Section <cudaq-basics-landing-page>`.
+
+
+.. |---|   unicode:: U+2014 .. EM DASH
+   :trim:

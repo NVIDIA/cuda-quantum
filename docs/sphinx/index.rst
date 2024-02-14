@@ -17,8 +17,7 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
       Basics <using/cudaq.rst>
       Examples <using/examples.rst>
       Applications <using/tutorials.rst>
-      Installation Guide <install.rst>
-      Data Center Installation Guide <data_center_install.rst> 
+      Installation Guides <install.rst>
       Extending CUDA Quantum  <using/advanced.rst>
       Simulator Backends <using/simulators.rst>
       Hardware Backends <using/hardware.rst>

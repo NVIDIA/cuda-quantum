@@ -3,12 +3,6 @@ CUDA Quantum Basics
 
 .. _cudaq-basics-landing-page:
 
-Here we demonstrate the unique aspects of the CUDA Quantum programming model via 
-illustrative tutorials and discussions. We use these examples to drive the discussion for 
-how CUDA Quantum is intended to be leveraged in the development of quantum-classical 
-application codes. 
-
-
 .. toctree::
   :maxdepth: 1
 
