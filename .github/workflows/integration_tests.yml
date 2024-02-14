@@ -510,6 +510,9 @@ jobs:
     if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
 
     steps:
+      - name: Get code
+        uses: actions/checkout@v4
+
       - name: Install wheel
         run: |
           workflow_id= ${{ inputs.workflow_id }} 
@@ -521,9 +524,6 @@ jobs:
           apt-get update && apt-get install -y --no-install-recommends python3.10 python3-pip
           wheelfile=$(find . -name 'cuda_quantum*cp310*x86_64.whl')
           python3.10 -m pip install $wheelfile
-
-      - name: Get code
-        uses: actions/checkout@v4
 
       - name: Test NVCF 
         run: |
@@ -562,6 +562,9 @@ jobs:
     if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
     environment: backend-validation
     steps:
+      - name: Get code
+        uses: actions/checkout@v4
+        
       - name: Install NGC CLI
         uses: ./.github/actions/install-ngc-cli
         with:
