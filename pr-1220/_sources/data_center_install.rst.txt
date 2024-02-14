@@ -353,7 +353,7 @@ copy the built `.whl` file to the host system, and install it using `pip`; e.g.
 
 .. code-block:: bash
 
-  pip install cuda_quantum*.whl
+    pip install cuda_quantum*.whl
 
 To install the necessary CUDA and MPI dependencies for some of the components, 
 you can either follow the instructions on `PyPI.org <https://pypi.org/project/cuda-quantum/>`__, 
