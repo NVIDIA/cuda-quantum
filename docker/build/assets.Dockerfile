@@ -139,8 +139,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 
 RUN echo "Patching up wheel using auditwheel..." && \
     ## [>CUDAQuantumWheel]
+    MANYLINUX_PLATFORM="$(find . -name 'cuda_quantum*.whl' | grep -o 'manylinux_[^\.]*')" && \
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/_skbuild/lib" \ 
-    MANYLINUX_PLATFORM="$(find . -name 'cuda_quantum*.whl' | grep -o 'manylinux_[^\.]*')" \
     python3 -m auditwheel -v repair dist/cuda_quantum-*-manylinux_*.whl \
         --plat ${MANYLINUX_PLATFORM} \
         --exclude libcublas.so.11 \
