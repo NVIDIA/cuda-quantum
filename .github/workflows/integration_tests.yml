@@ -28,12 +28,12 @@ on:
         type: string
         required: false
         default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
-        description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image if left blank.'
+        description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image.'
       cudaq_nvcf_deploy_image:
         type: string
         required: false
         default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
-        description: 'CUDA Quantum image to use for NVCF deployment. Default to the latest CUDA Quantum nightly image if left blank.'
+        description: 'CUDA Quantum image to use for NVCF deployment. Default to the latest CUDA Quantum nightly image.'
 
   schedule:
     - cron: 0 3 * * *
