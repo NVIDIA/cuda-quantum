@@ -23,9 +23,9 @@ RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
         mv "$CUDA_QUANTUM_PATH/assets/documentation"/* "$CUDA_QUANTUM_PATH/docs"; \
         rmdir "$CUDA_QUANTUM_PATH/assets/documentation"; \
     fi && \
-    for folder in `find "$CUDA_QUANTUM_PATH/assets"/*$(uname -m)/* -maxdepth 0 -type d`; \
+    for folder in `find "$CUDA_QUANTUM_PATH/assets/$(uname -m)"/* -maxdepth 0 -type d`; \
     do bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$folder" && rm -rf "$folder"; done \
-    && bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$CUDA_QUANTUM_PATH/assets" \
+    && bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$CUDA_QUANTUM_PATH/assets/$(uname -m)" \
     && rm -rf "$CUDA_QUANTUM_PATH/assets" "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
 # Install additional runtime dependencies.

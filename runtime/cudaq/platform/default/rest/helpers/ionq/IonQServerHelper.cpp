@@ -88,9 +88,6 @@ private:
 
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
-
-  /// @brief Output names indexed by jobID/taskID
-  std::map<std::string, OutputNamesType> outputNames;
 };
 
 // Initialize the IonQ server helper with a given backend configuration
@@ -120,24 +117,8 @@ void IonQServerHelper::initialize(BackendConfig config) {
   if (!config["shots"].empty())
     this->setShots(std::stoul(config["shots"]));
 
-  // Parse the output_names.* (for each job) and place it in outputNames[]
-  for (auto &[key, val] : config) {
-    if (key.starts_with("output_names.")) {
-      // Parse `val` into jobOutputNames.
-      // Note: See `FunctionAnalysisData::resultQubitVals` of
-      // LowerToQIRProfile.cpp for an example of how this was populated.
-      OutputNamesType jobOutputNames;
-      nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
-      for (const auto &el : outputNamesJSON[0]) {
-        auto result = el[0].get<std::size_t>();
-        auto qubit = el[1][0].get<std::size_t>();
-        auto registerName = el[1][1].get<std::string>();
-        jobOutputNames[result] = {qubit, registerName};
-      }
+  parseConfigForCommonParams(config);
 
-      this->outputNames[key] = jobOutputNames;
-    }
-  }
   // Enable debiasing
   if (config.find("debias") != config.end())
     backendConfig["debias"] = config["debias"];
@@ -390,10 +371,10 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   cudaq::debug("nQubits is : {}", nQubits);
   cudaq::debug("Results message: {}", results.dump());
 
-  if (outputNames.find("output_names." + jobID) == outputNames.end())
+  if (outputNames.find(jobID) == outputNames.end())
     throw std::runtime_error("Could not find output names for job " + jobID);
 
-  auto &output_names = outputNames["output_names." + jobID];
+  auto &output_names = outputNames[jobID];
   for (auto &[result, info] : output_names) {
     cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
                 info.registerName);
@@ -439,44 +420,31 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
 
   std::vector<ExecutionResult> execResults;
 
-  // Make a map sorted by register name ([str] --> <qubit,result>)
-  std::map<std::string, std::pair<std::size_t, std::size_t>> mapResultStr;
-  for (const auto &[result, info] : output_names)
-    mapResultStr[info.registerName] = std::make_pair(info.qubitNum, result);
-
   // Get a reduced list of qubit numbers that were in the original program
   // so that we can slice the output data and extract the bits that the user
-  // was interested in.
+  // was interested in. Sort by QIR qubit number.
   std::vector<std::size_t> qubitNumbers;
   qubitNumbers.reserve(output_names.size());
-  for (const auto &[regName, qubitAndResult] : mapResultStr)
-    qubitNumbers.push_back(qubitAndResult.first);
+  for (auto &[result, info] : output_names) {
+    qubitNumbers.push_back(info.qubitNum);
+  }
 
   // For each original counts entry in the full sample results, reduce it
-  // down to the user component and add to userGlobal. This is similar to
-  // `get_marginal()`, but that sorts the input indices, which isn't
-  // necessarily desirable here.
-  CountsDictionary userGlobal;
-  for (const auto &[bits, count] : fullSampleResults) {
-    std::string userBitStr;
-    for (const auto &qubit : qubitNumbers) {
-      if (qubit < bits.size())
-        userBitStr += bits[qubit];
-      else
-        throw std::runtime_error(fmt::format(
-            "Cannot fetch qubit index {} from bits '{}'; bits.size() = {}",
-            qubit, bits, bits.size()));
-    }
-    userGlobal[userBitStr] += count;
+  // down to the user component and add to userGlobal. If qubitNumbers is empty,
+  // that means all qubits were measured.
+  if (qubitNumbers.empty()) {
+    execResults.emplace_back(ExecutionResult{fullSampleResults.to_map()});
+  } else {
+    auto subset = fullSampleResults.get_marginal(qubitNumbers);
+    execResults.emplace_back(ExecutionResult{subset.to_map()});
   }
-  execResults.emplace_back(userGlobal);
 
   // Now add to `execResults` one register at a time
-  for (const auto &[regName, qubitAndResult] : mapResultStr) {
+  for (const auto &[result, info] : output_names) {
     CountsDictionary regCounts;
     for (const auto &[bits, count] : fullSampleResults)
-      regCounts[std::string{bits[qubitAndResult.first]}] += count;
-    execResults.emplace_back(regCounts, regName);
+      regCounts[std::string{bits[info.qubitNum]}] += count;
+    execResults.emplace_back(regCounts, info.registerName);
   }
 
   // Return a sample result including the global register and all individual

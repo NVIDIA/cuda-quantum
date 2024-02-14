@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,6 +11,11 @@
 #include <map>
 #include <string>
 
+// Forward declarations to avoid including CPR header files
+namespace cpr {
+struct SslOptions;
+}
+
 namespace cudaq {
 
 /// @brief The RestClient exposes a simple REST GET/POST
@@ -20,10 +25,19 @@ protected:
   // Use verbose printout
   bool verbose = false;
 
+  /// SSL options to use for transfers
+  std::unique_ptr<cpr::SslOptions> sslOptions;
+
 public:
   /// @brief set verbose printout
   /// @param v
   void setVerbose(bool v) { verbose = v; }
+
+  /// @brief Constructor
+  RestClient();
+
+  /// @brief Destructor
+  ~RestClient();
 
   /// Post the message to the remote path at the provided URL.
   nlohmann::json post(const std::string_view remoteUrl,
@@ -46,7 +60,5 @@ public:
   /// Download a resource at the provided URL and save it to the provided path.
   void download(const std::string_view remoteUrl, const std::string &filePath,
                 bool enableLogging = true, bool enableSsl = false);
-
-  ~RestClient() = default;
 };
 } // namespace cudaq
