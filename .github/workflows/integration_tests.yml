@@ -520,7 +520,7 @@ jobs:
             workflow_id=$(gh run list --branch main --workflow Publishing --status completed --event workflow_dispatch --limit 1 --json databaseId | jq '.[0].databaseId')
           fi
           echo "Using artifacts from workflow id $workflow_id"
-          gh run download $workflow_id
+          # gh run download $workflow_id
           apt-get update && apt-get install -y --no-install-recommends python3.10 python3-pip
           wheelfile=$(find . -name 'cuda_quantum*cp310*x86_64.whl')
           python3.10 -m pip install $wheelfile
