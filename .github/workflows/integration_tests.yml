@@ -1,5 +1,10 @@
 name: Nightly integration tests
 
+concurrency:
+  # only one integration tests workflow to be run at a time, since it involves pushing/cleaning up a test image (same tag).
+  group: ${{ github.workflow }}${{ github.event.workflow_run.name }} 
+  cancel-in-progress: false
+
 # Run on request and every day at 3 AM UTC
 on:
   workflow_dispatch:
