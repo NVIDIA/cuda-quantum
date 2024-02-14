@@ -429,13 +429,13 @@ jobs:
             if [[ "$filename" == *"nvcf"* ]]; then
               echo "$filename"
               nvcf_config=""
-              # Look for a --nvcf-backend flag to nvq++ in the 
+              # Look for a --nvcf-backend flag to nvq++ in the comment block
               nvcf_backend=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-backend\s+\K\S+'`
               if [ -n "$nvcf_backend" ]; then
                 echo "Intended for execution on '$nvcf_backend' backend."
                 nvcf_config="$nvcf_config --nvcf-backend $nvcf_backend"
               fi
-              # Look for a --nvcf-nqpus flag to nvq++ in the 
+              # Look for a --nvcf-nqpus flag to nvq++ in the comment block
               num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-nqpus\s+\K\S+'`
               if [ -n "$num_qpus" ]; then
                 echo "Intended to run on '$num_qpus' QPUs."
