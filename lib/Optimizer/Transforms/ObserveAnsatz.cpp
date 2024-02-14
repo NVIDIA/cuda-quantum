@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -46,8 +46,12 @@ struct AnsatzMetadata {
   /// elements provided
   std::size_t nQubits = 0;
 
-  /// Check that we have no measures
-  std::size_t nMeasures = 0;
+  /// Track pre-existing measurements and attempt to remove them during
+  /// processing
+  SmallVector<Operation *> measurements;
+
+  /// Whether or not the mapping pass has been run
+  bool mappingPassRan = false;
 
   /// Map qubit indices to their mlir Value
   DenseMap<std::size_t, Value> qubitValues;
@@ -113,14 +117,9 @@ private:
             dyn_cast_if_present<ArrayAttr>(funcOp->getAttr("mapping_v2p"))) {
       // First populate mapping_v2p[].
       SmallVector<std::size_t> mapping_v2p(mappingAttr.size());
-      for (auto [origIx, mappedIx] : llvm::enumerate(mappingAttr)) {
-        if (auto val = dyn_cast<IntegerAttr>(mappedIx))
-          mapping_v2p[origIx] = val.getInt();
-        else {
-          emitError(funcOp.getLoc(), "invalid mapping_v2p found in function");
-          return; // no cleanup necessary because infoMap is unmodified
-        }
-      }
+      std::transform(
+          mappingAttr.begin(), mappingAttr.end(), mapping_v2p.begin(),
+          [](Attribute attr) { return attr.cast<IntegerAttr>().getInt(); });
 
       // Next create newQubitValues[]
       DenseMap<std::size_t, Value> newQubitValues;
@@ -130,10 +129,11 @@ private:
       // Now replace the values in data
       data.nQubits = mapping_v2p.size();
       data.qubitValues = newQubitValues;
+      data.mappingPassRan = true;
     }
 
     // Count all measures
-    funcOp->walk([&](quake::MzOp op) { data.nMeasures++; });
+    funcOp->walk([&](quake::MzOp op) { data.measurements.push_back(op); });
 
     infoMap.insert({operation, data});
   }
@@ -158,17 +158,6 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
                                 PatternRewriter &rewriter) const override {
     rewriter.startRootUpdate(funcOp);
 
-    OpBuilder builder = OpBuilder::atBlockTerminator(&funcOp.getBody().back());
-    auto loc = funcOp.getBody().back().getTerminator()->getLoc();
-
-    // We want to insert after the last quantum operation
-    Operation *last = &funcOp.getBody().back().front();
-    funcOp.walk([&](Operation *op) {
-      if (dyn_cast<quake::OperatorInterface>(op))
-        last = op;
-    });
-    builder.setInsertionPointAfter(last);
-
     // Use an Analysis to count the number of qubits.
     auto iter = infoMap.find(funcOp);
     if (iter == infoMap.end()) {
@@ -177,7 +166,6 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       return failure();
     }
     auto nQubits = iter->second.nQubits;
-    auto nMeasures = iter->second.nMeasures;
 
     if (nQubits != termBSF.size() / 2) {
       std::string msg = "Invalid number of binary-symplectic elements "
@@ -187,11 +175,36 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
       return failure();
     }
 
-    if (nMeasures != 0) {
+    // If the mapping pass was not run, we expect no pre-existing measurements.
+    if (!iter->second.mappingPassRan && !iter->second.measurements.empty()) {
       std::string msg = "Cannot observe kernel with measures in it.\n";
       funcOp.emitError(msg);
       return failure();
     }
+    // Attempt to remove measurements. Note that the mapping pass may add
+    // measurements to kernels that don't contain any measurements. For
+    // observe kernels, we remove them here since we are adding specific
+    // measurements below.
+    for (auto *op : iter->second.measurements) {
+      if (!op->getUsers().empty()) {
+        std::string msg =
+            "Cannot observe kernel with non dangling measurements.\n";
+        funcOp.emitError(msg);
+        return failure();
+      }
+      op->erase();
+    }
+
+    // We want to insert after the last quantum operation. We must perform this
+    // after erasing the measurements above.
+    OpBuilder builder = OpBuilder::atBlockTerminator(&funcOp.getBody().back());
+    auto loc = funcOp.getBody().back().getTerminator()->getLoc();
+    Operation *last = &funcOp.getBody().back().front();
+    funcOp.walk([&](Operation *op) {
+      if (dyn_cast<quake::OperatorInterface>(op))
+        last = op;
+    });
+    builder.setInsertionPointAfter(last);
 
     // Loop over the binary-symplectic form provided and append
     // measurements as necessary.
