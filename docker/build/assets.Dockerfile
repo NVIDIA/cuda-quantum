@@ -122,7 +122,7 @@ ADD "LICENSE" /cuda-quantum/LICENSE
 ADD "NOTICE" /cuda-quantum/NOTICE
 
 ARG release_version=
-ENV CUDA_QUANTUM_VERSION=$release_version
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=$release_version
 
 ARG PYTHON=python3.11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && \

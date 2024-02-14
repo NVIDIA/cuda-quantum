@@ -305,14 +305,10 @@ jobs:
           system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
           additional_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
 
-          echo "/tmp:" && ls /tmp
-          echo "/tmp/install:" && ls /tmp/install
-          unzip /tmp/install/*.zip && rm /tmp/install/*.zip
-
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
-            --build-arg cuda_quantum_installer=install_cuda_quantum.$(uname -m) \
-            --build-arg cuda_quantum_wheel=cuda_quantum*$(uname -m).whl \
+            --build-arg cuda_quantum_installer=/tmp/install/install_cuda_quantum.$(uname -m) \
+            --build-arg cuda_quantum_wheel=/tmp/install/cuda_quantum*$(uname -m).whl \
             --build-arg base_image=${{ matrix.os_image }} \
             --build-arg base_image_mpibuild=${{ inputs.platform_base_image }} \
             $(echo $additional_build_args | xargs | sed "s/[^ ]*/--build-arg &/g")
