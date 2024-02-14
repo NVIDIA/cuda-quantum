@@ -524,6 +524,8 @@ jobs:
           apt-get update && apt-get install -y --no-install-recommends python3.10 python3-pip
           wheelfile=$(find . -name 'cuda_quantum*cp310*x86_64.whl')
           python3.10 -m pip install $wheelfile
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Test NVCF 
         run: |
