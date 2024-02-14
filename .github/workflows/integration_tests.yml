@@ -371,6 +371,7 @@ jobs:
           echo "### Submit to NVCF" >> $GITHUB_STEP_SUMMARY
           export NVCF_API_KEY="${{ secrets.NVCF_API_KEY }}"
           export NVCF_FUNCTION_ID="${{ secrets.NVCF_FUNCTION_ID }}"
+          export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           apt-get update && apt-get install -y --no-install-recommends ca-certificates
@@ -529,6 +530,7 @@ jobs:
           echo "### Submit to NVCF from Python wheels" >> $GITHUB_STEP_SUMMARY
           export NVCF_API_KEY="${{ secrets.NVCF_API_KEY }}"
           export NVCF_FUNCTION_ID="${{ secrets.NVCF_FUNCTION_ID }}"
+          export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
