@@ -360,11 +360,6 @@ jobs:
             esac
           done
         shell: bash
-      
-      - name: Setup NVCF test function
-        if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'nvcf'
-        run: |
-          # Deploy a test function version with the image for testing
 
       - name: Submit to NVCF 
         if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
