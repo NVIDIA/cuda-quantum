@@ -26,6 +26,12 @@ This target enables asynchronous parallel execution of quantum kernel tasks.
 
 Here is a simple example demonstrating its usage.
 
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async.py
+        :language: python
+        :start-after: [Begin Documentation]
+
 .. tab:: C++
 
     .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/sample_async.cpp
@@ -40,12 +46,6 @@ Here is a simple example demonstrating its usage.
 
         nvq++ sample_async.cpp -target nvidia-mqpu
         ./a.out
-
-.. tab:: Python
-
-    .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async.py
-        :language: python
-        :start-after: [Begin Documentation]
 
 CUDA Quantum exposes asynchronous versions of the default :code:`cudaq` algorithmic
 primitive functions like :code:`sample` and :code:`observe` (e.g., :code:`sample_async` function in the above code snippets).
@@ -77,6 +77,12 @@ expectation value computations of a multi-term Hamiltonian across multiple virtu
 
 Here is an example.
 
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu.py
+        :language: python
+        :start-after: [Begin Documentation]
+
 .. tab:: C++
 
     .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu.cpp
@@ -91,12 +97,6 @@ Here is an example.
 
         nvq++ observe_mqpu.cpp -target nvidia-mqpu
         ./a.out
-
-.. tab:: Python
-
-    .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu.py
-        :language: python
-        :start-after: [Begin Documentation]
 
 In the above code snippets, since the Hamiltonian contains four non-identity terms, there are four quantum circuits that need to be executed
 in order to compute the expectation value of that Hamiltonian and given the quantum state prepared by the ansatz kernel. When the :code:`nvidia-mqpu` platform
@@ -117,6 +117,16 @@ should be used.
 
 An example of MPI distribution mode usage in both C++ and Python is given below:
 
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu_mpi.py
+        :language: python
+        :start-after: [Begin Documentation]
+
+    .. code-block:: console
+
+        mpiexec -np <N> python3 file.py
+
 .. tab:: C++
 
     .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/observe_mqpu_mpi.cpp
@@ -128,17 +138,6 @@ An example of MPI distribution mode usage in both C++ and Python is given below:
 
         nvq++ file.cpp -target nvidia-mqpu
         mpiexec -np <N> a.out
-
-
-.. tab:: Python
-
-    .. literalinclude:: ../../snippets/python/using/cudaq/platform/observe_mqpu_mpi.py
-        :language: python
-        :start-after: [Begin Documentation]
-
-    .. code-block:: console
-
-        mpiexec -np <N> python3 file.py
 
 In the above example, the parallel distribution mode was set to :code:`mpi` using :code:`cudaq::parallel::mpi` in C++ or :code:`cudaq.parallel.mpi` in Python.
 CUDA Quantum provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime. 
@@ -157,6 +156,13 @@ which encapsulates simulated QPUs as independent HTTP REST server instances.
 The following code illustrates how to launch asynchronous sampling tasks on multiple virtual QPUs, 
 each simulated by a `tensornet` simulator backend.
 
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async_remote.py
+        :language: python
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
+
 .. tab:: C++
 
     .. literalinclude:: ../../snippets/cpp/using/cudaq/platform/sample_async_remote.cpp
@@ -170,14 +176,6 @@ each simulated by a `tensornet` simulator backend.
 
         nvq++ sample_async.cpp -o sample_async.x --target remote-mqpu --remote-mqpu-backend tensornet --remote-mqpu-auto-launch 2
         ./sample_async.x
-
-
-.. tab:: Python
-
-    .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async_remote.py
-        :language: python
-        :start-after: [Begin Documentation]
-        :end-before: [End Documentation]
 
 In the above code snippets, the :code:`remote-mqpu` platform was used in the auto-launch mode,
 whereby a specific number of server instances, i.e., virtual QPUs, are launched on the local machine
@@ -219,18 +217,17 @@ With these invocations, each virtual QPU is locally addressable at the URL `loca
 
 User code can then target these QPUs for multi-QPU workloads, such as asynchronous sample or observe shown above for the :code:`nvidia-mqpu` platform.
 
-.. tab:: C++
-
-    .. code-block:: console
-
-        nvq++ distributed.cpp --target remote-mqpu --remote-mqpu-url localhost:<port1>,localhost:<port2>,localhost:<port3>,localhost:<port4> --remote-mqpu-backend nvidia-mgpu
-
-
 .. tab:: Python
 
      .. code:: python 
 
         cudaq.set_target("remote-mqpu", url="localhost:<port1>,localhost:<port2>,localhost:<port3>,localhost:<port4>", backend="nvidia-mgpu")
+        
+.. tab:: C++
+
+    .. code-block:: console
+
+        nvq++ distributed.cpp --target remote-mqpu --remote-mqpu-url localhost:<port1>,localhost:<port2>,localhost:<port3>,localhost:<port4> --remote-mqpu-backend nvidia-mgpu
     
 
 Each URL is treated as an independent QPU, hence the number of QPUs (:code:`num_qpus()`) is equal to the number of URLs provided. 

@@ -188,7 +188,7 @@ Python wheels
 CUDA Quantum Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. 
 Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
 For more information about available versions and documentation,
-see :doc:`versions`.
+see :doc:`../../versions`.
 
 There are currently no source distributions available on PyPI, but you can download the 
 source code for the latest version of the CUDA Quantum Python wheels from our 
@@ -245,7 +245,7 @@ upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/i
 
 To install CUDA Quantum, execute the command
 
-.. literalinclude:: ../../docker/test/installer/linux.Dockerfile
+.. literalinclude:: ../../../../docker/test/installer/linux.Dockerfile
     :language: bash
     :dedent:
     :start-after: [>CUDAQuantumInstall]
@@ -690,7 +690,7 @@ the necessary CUDA runtime libraries to use GPU-acceleration in CUDA Quantum.
 If you prefer to only install the minimal set of runtime libraries, the following 
 commands, for example, install the necessary packages for RHEL 8:
 
-.. literalinclude:: ../../scripts/configure_build.sh
+.. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
     :dedent:
     :start-after: [>CUDARTInstall]
@@ -798,7 +798,7 @@ instructions :ref:`above <install-prebuilt-binaries>`.
 Dependencies and Compatibility
 --------------------------------
 
-CUDA Quantum can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also :doc:`using/simulators`.
+CUDA Quantum can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also :doc:`../accelerating/simulators`.
 
 The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.
 
@@ -844,7 +844,7 @@ You can now compile and/or run the C++ and Python examples using the terminal.
 To open a terminal in VS Code, open the Command Palette with `Ctrl+Shift+P` and 
 enter "View: Show Terminal".
 
-.. image:: _static/getToWork.png 
+.. image:: ../../_static/getToWork.png 
 
 The CUDA Quantum image contains a folder with examples and tutorials in the :code:`/home/cudaq` directory. 
 These examples are provided to get you started with CUDA Quantum and understanding 
@@ -857,33 +857,33 @@ The samples contain an implementation of a
 `Bernstein-Vazirani algorithm <https://en.wikipedia.org/wiki/Bernstein%E2%80%93Vazirani_algorithm>`__. 
 To run the example, execute the command:
 
-.. tab:: C++
-
-  .. code-block:: console
-
-      nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp && ./a.out
-
 .. tab:: Python
 
   .. code-block:: console
 
       python examples/python/bernstein_vazirani.py --size 5
 
-This will execute the program on the :ref:`default simulator <default-simulator>`, which will use GPU-acceleration if 
-a suitable GPU has been detected. To confirm that the GPU acceleration works, you can 
-increase the size of the secret string, and pass the target as a command line argument:
-
 .. tab:: C++
 
   .. code-block:: console
 
-      nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target nvidia && ./a.out
+      nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp && ./a.out
+
+This will execute the program on the :ref:`default simulator <default-simulator>`, which will use GPU-acceleration if 
+a suitable GPU has been detected. To confirm that the GPU acceleration works, you can 
+increase the size of the secret string, and pass the target as a command line argument:
 
 .. tab:: Python
 
   .. code-block:: console
 
       python examples/python/bernstein_vazirani.py --size 25 --target nvidia
+
+.. tab:: C++
+
+  .. code-block:: console
+
+      nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target nvidia && ./a.out
 
 This program should complete fairly quickly. Depending on the available memory on your GPU,
 you can set the size of the secret string to up to 28-32 when running on the `nvidia` target. 
@@ -900,23 +900,23 @@ you can set the size of the secret string to up to 28-32 when running on the `nv
 
 Let's compare that to using only your CPU:
 
-.. tab:: C++
-
-  .. code-block:: console
-
-      nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target qpp-cpu && ./a.out
-
 .. tab:: Python
 
   .. code-block:: console
 
       python examples/python/bernstein_vazirani.py --size 25 --target qpp-cpu
 
+.. tab:: C++
+
+  .. code-block:: console
+
+      nvq++ examples/cpp/algorithms/bernstein_vazirani.cpp -DSIZE=25 --target qpp-cpu && ./a.out
+
 When you execute this command, the program simply seems to hang; that is because it takes
 a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with `Ctrl+C`.
 
 You are now all set to start developing quantum applications using CUDA Quantum!
-Please proceed to :doc:`Basics <using/cudaq>` for an introduction
+Please proceed to :doc:`Basics <../basics>` for an introduction
 to the fundamental features of CUDA Quantum.
 
 
