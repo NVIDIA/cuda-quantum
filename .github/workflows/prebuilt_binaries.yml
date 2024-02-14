@@ -297,14 +297,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ needs.build_installer.outputs.artifact_name }}
-          path: /tmp/artifacts
+          path: /tmp/install
 
       - name: Install in clean environment
         run: |
           config='${{ needs.create_test_config.outputs.json }}'
           system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
           additional_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
-          unzip /tmp/artifacts/*.zip && rm /tmp/artifacts/*.zip
+
+          echo "/tmp:" && ls /tmp
+          echo "/tmp/install:" && ls /tmp/install
+          unzip /tmp/install/*.zip && rm /tmp/install/*.zip
 
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
