@@ -509,15 +509,7 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-if (NOT CUDAQ_DISABLE_TOOLS)
-  add_subdirectory(tools)
-endif()
-
-if (CUDAQ_ENABLE_REST)
-  # Add cudaq-qpud executable/tool (including Python wheels)
-  add_subdirectory(tools/cudaq-qpud)
-endif()
-
+add_subdirectory(tools)
 add_subdirectory(utils)
 
 if (CUDAQ_ENABLE_PYTHON)
