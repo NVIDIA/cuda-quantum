@@ -17,15 +17,17 @@ cudaq.set_target("nvcf", backend="tensornet")
 
 num_qubits = 50
 
+
 @cudaq.kernel(jit=True)
 def ghz(num_qubits: int):
     qubits = cudaq.qvector(num_qubits)
     # Place qubits in GHZ state.
     h(qubits[0])
     for i in range(num_qubits - 1):
-        x.ctrl(qubits[i], qubits[i + 1]) 
+        x.ctrl(qubits[i], qubits[i + 1])
     # Measure.
     mz(qubits)
+
 
 counts = cudaq.sample(ghz, num_qubits, shots_count=100)
 print(counts)

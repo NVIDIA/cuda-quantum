@@ -18,6 +18,8 @@ import math
 cudaq.set_target("nvcf", nqpus=3)
 
 print("Number of QPUs:", cudaq.get_target().num_qpus())
+
+
 # Note: depending on the user's account, there might be different
 # number of NVCF worker instances available. Hence, although we're making
 # concurrent job submissions across multiple QPUs, the speedup would be
@@ -28,7 +30,8 @@ def ansatz(theta: float):
     qubits = cudaq.qvector(2)
     x(qubits[0])
     ry(theta, qubits[1])
-    x.ctrl(qubits[1], qubits[0]) 
+    x.ctrl(qubits[1], qubits[0])
+
 
 # Define its spin Hamiltonian.
 hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
