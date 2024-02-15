@@ -696,7 +696,8 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </section>
 <section id="oqc">
 <h2>OQC<a class="headerlink" href="#oqc" title="Permalink to this heading">¶</a></h2>
-<p><a class="reference external" href="https://oxfordquantumcircuits.com/">Oxford Quantum Circuits</a> (OQC) is currently providing CUDA quantum integration for our 8 qubit ring topology Lucy device.</p>
+<p><a class="reference external" href="https://oxfordquantumcircuits.com/">Oxford Quantum Circuits</a> (OQC) is currently providing CUDA quantum integration for multiple Quantum Processing Unit types.
+The 8 qubit ring topology Lucy device and the 32 qubit Kagome lattice topology Toshiko device are both supported via machine options described below.</p>
 <section id="id7">
 <h3>Setting Credentials<a class="headerlink" href="#id7" title="Permalink to this heading">¶</a></h3>
 <p>In order to use the OQC devices you will need to register.
@@ -728,7 +729,9 @@ This will emit any target specific compiler warnings and diagnostics, before run
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>There is currently no requirement to specify the machine in use. This is configured via the URL which points to the relevant system.</p>
+<p>The oqc target supports a <code class="docutils literal notranslate"><span class="pre">--oqc-machine</span></code> option.
+The default is the 8 qubit Lucy device.
+You can set this to be either <code class="docutils literal notranslate"><span class="pre">toshiko</span></code> or <code class="docutils literal notranslate"><span class="pre">lucy</span></code> via this flag.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -738,12 +741,13 @@ This will emit any target specific compiler warnings and diagnostics, before run
 <section id="id9">
 <h3>Submission from Python<a class="headerlink" href="#id9" title="Permalink to this heading">¶</a></h3>
 <p>To set which OQC URL, set the <code class="code docutils literal notranslate"><span class="pre">url</span></code> parameter.
-To set which OQC email, set the <code class="code docutils literal notranslate"><span class="pre">email</span></code> parameter.</p>
+To set which OQC email, set the <code class="code docutils literal notranslate"><span class="pre">email</span></code> parameter.
+To set which OQC machine, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">cudaq</span>
 <span class="c1"># ...</span>
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;OQC_PASSWORD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">password</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="s2">&quot;oqc&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;oqc&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">url</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;lucy&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>You can then execute a kernel against the platform using the OQC Lucy device</p>
