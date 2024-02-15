@@ -331,6 +331,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 </ul>
 </li>
@@ -349,6 +350,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#data-types">Data Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.State"><code class="docutils literal notranslate"><span class="pre">State</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
@@ -363,6 +365,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#gradients">Gradients</a></li>
@@ -1153,6 +1156,12 @@
 <dd><p>For mid-circuit measurements in library mode keep track of the register names. </p>
 </dd></dl>
 
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext10reorderIdxE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a33d991dd8e3d37e040eb8fc625228c19"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reorderIdx</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext10reorderIdxE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A vector containing information about how to reorder the global register after execution. Empty means no reordering. </p>
+</dd></dl>
+
 </div>
 </dd></dl>
 
@@ -1364,6 +1373,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultEv">
 <span class="target" id="classcudaq_1_1sample__result_1ae8f611495ea923027a4008a4da8019a8"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Nullary constructor. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultERR15ExecutionResult">
+<span class="target" id="classcudaq_1_1sample__result_1ab6d5dd37a325832f89d8ee70130d6b80"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">result</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultERR15ExecutionResult" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The constructor, sets the <strong>global</strong> sample result. </p>
 </dd></dl>
 
 <dl class="cpp function">
