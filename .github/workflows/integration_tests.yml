@@ -103,7 +103,7 @@ jobs:
         with:
           registry: nvcr.io
           username: '$oauthtoken'
-          password: ${{ secrets.NGC_NVCF_CREDENTIALS }}
+          password: ${{ secrets.NVQC_CREDENTIALS  }}
 
       - name: Build NVCF image
         id: docker_build
@@ -113,7 +113,7 @@ jobs:
           file: ./docker/release/cudaq.nvcf.Dockerfile
           build-args: |
             base_image=${{ inputs.cudaq_nvcf_deploy_image }}
-          tags: nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly
+          tags: nvcr.io/${{ secrets.NGC_QUANTUM_ORG }}/cuda-quantum/cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
           push: true
@@ -143,12 +143,12 @@ jobs:
       - name: Deploy NVCF Function
         id: deploy
         env:
-          NGC_CLI_API_KEY: ${{ secrets.NGC_NVCF_CREDENTIALS }}
-          NGC_CLI_ORG: ${{ secrets.NGC_NVCF_ORG }}
+          NGC_CLI_API_KEY: ${{ secrets.NVQC_CREDENTIALS  }}
+          NGC_CLI_ORG: ${{ secrets.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
           create_function_result=$(ngc-cli/ngc cloud-function function create \
-            --container-image nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly \
+            --container-image nvcr.io/${{ secrets.NGC_QUANTUM_ORG }}/cuda-quantum/cuda-quantum:nightly \
             --api-body-format CUSTOM \
             --inference-port 3030 \
             --health-uri / \
@@ -402,7 +402,7 @@ jobs:
         if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
         run: |
           echo "### Submit to NVCF" >> $GITHUB_STEP_SUMMARY
-          export NVCF_API_KEY="${{ secrets.NVCF_API_KEY }}"
+          export NVQC_SERVICE_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
           export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
           export CUDAQ_LOG_LEVEL="info"
@@ -566,7 +566,7 @@ jobs:
       - name: Test NVCF 
         run: |
           echo "### Submit to NVCF from Python wheels" >> $GITHUB_STEP_SUMMARY
-          export NVCF_API_KEY="${{ secrets.NVCF_API_KEY }}"
+          export NVQC_SERVICE_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
           export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
           export CUDAQ_LOG_LEVEL="info"
@@ -611,8 +611,8 @@ jobs:
 
       - name: Cleanup
         env:
-          NGC_CLI_API_KEY: ${{ secrets.NGC_NVCF_CREDENTIALS }}
-          NGC_CLI_ORG: ${{ secrets.NGC_NVCF_ORG }}
+          NGC_CLI_API_KEY: ${{ secrets.NVQC_CREDENTIALS  }}
+          NGC_CLI_ORG: ${{ secrets.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
           echo "Version Id: ${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
@@ -621,4 +621,4 @@ jobs:
           # Remove the function version
           ngc-cli/ngc cloud-function function remove $NVCF_FUNCTION_ID:${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}
           # Remove the docker image
-          ngc-cli/ngc registry image remove -y nvcr.io/${{ secrets.NGC_NVCF_ORG }}/cuda-quantum/cuda-quantum:nightly
+          ngc-cli/ngc registry image remove -y nvcr.io/${{ secrets.NGC_QUANTUM_ORG }}/cuda-quantum/cuda-quantum:nightly
