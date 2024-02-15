@@ -42,7 +42,7 @@ on:
       workflow_id:
         type: string
         required: false
-        description: 'Workflow Id to retrieve the Python wheel for testing. Default to the latest Publishing workflow of the main branch if left blank'
+        description: 'Workflow Id to retrieve the Python wheel for testing. Default to the wheels produced by the Publishing workflow associated with the latest nightly CUDA Quantum Docker image if left blank'
 
   schedule:
     - cron: 0 3 * * *
