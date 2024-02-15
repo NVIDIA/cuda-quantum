@@ -391,7 +391,10 @@ protected:
 
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
-  virtual cudaq::State getStateData() { return {}; }
+  virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() {
+    throw std::runtime_error(
+        "Simulation data not available for this simulator backend.");
+  }
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in resetExecutionContext. Return true to indicate this is
@@ -870,7 +873,7 @@ public:
     // Set the state data if requested.
     if (executionContext->name == "extract-state") {
       flushGateQueue();
-      executionContext->simulationData = getStateData();
+      executionContext->simulationState = getSimulationState();
     }
 
     // Deallocate the deferred qubits, but do so

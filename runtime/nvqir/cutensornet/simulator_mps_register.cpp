@@ -6,8 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "mps_simulation_state.h"
 #include "simulator_cutensornet.h"
+
 #include <charconv>
+
 namespace nvqir {
 
 class SimulatorMPS : public SimulatorTensorNetBase {
@@ -17,7 +20,7 @@ class SimulatorMPS : public SimulatorTensorNetBase {
   double m_absCutoff = 1e-5;
   // Default relative cutoff
   double m_relCutoff = 1e-5;
-  std::vector<void *> m_mpsTensors_d;
+  std::vector<MPSTensor> m_mpsTensors_d;
 
 public:
   SimulatorMPS() : SimulatorTensorNetBase() {
@@ -71,7 +74,7 @@ public:
     LOG_API_TIME();
     // Clean up previously factorized MPS tensors
     for (auto &tensor : m_mpsTensors_d) {
-      HANDLE_CUDA_ERROR(cudaFree(tensor));
+      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
     }
     m_mpsTensors_d.clear();
     // Factorize the state:
@@ -102,9 +105,16 @@ public:
     thread_local static auto simulator = std::make_unique<SimulatorMPS>();
     return simulator.get();
   }
+
+  std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
+    LOG_API_TIME();
+    return std::make_unique<MPSSimulationState>(m_state.release(), m_maxBond,
+                                                m_absCutoff, m_relCutoff);
+  }
+
   virtual ~SimulatorMPS() noexcept {
     for (auto &tensor : m_mpsTensors_d) {
-      HANDLE_CUDA_ERROR(cudaFree(tensor));
+      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
     }
     m_mpsTensors_d.clear();
   }

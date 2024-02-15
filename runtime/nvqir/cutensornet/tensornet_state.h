@@ -12,15 +12,27 @@
 #include "timing_utils.h"
 #include <unordered_map>
 
+#include "common/EigenDense.h"
+#include "common/SimulationState.h"
+
 namespace nvqir {
+
+/// @brief An MPSTensor is a representation
+/// of a MPS tensor and encapsulates the
+/// tensor devide data and the tensor extents.
+struct MPSTensor {
+  void *deviceData = nullptr;
+  std::vector<int64_t> extents;
+};
+
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
 /// simulator implementation.
 class TensorNetState {
+public:
   std::size_t m_numQubits;
   cutensornetHandle_t m_cutnHandle;
   cutensornetState_t m_quantumState;
 
-public:
   /// @brief Constructor
   TensorNetState(std::size_t numQubits, cutensornetHandle_t handle);
 
@@ -55,10 +67,10 @@ public:
   computeRDM(const std::vector<int32_t> &qubits);
 
   /// Factorize the `cutensornetState_t` into matrix product state form.
-  // Returns MPS tensors in GPU device memory.
-  // Note: the caller assumes the ownership of these pointers, thus needs to
-  // clean them up properly (with cudaFree).
-  std::vector<void *> factorizeMPS(
+  /// Returns MPS tensors in GPU device memory.
+  /// Note: the caller assumes the ownership of these pointers, thus needs to
+  /// clean them up properly (with cudaFree).
+  std::vector<MPSTensor> factorizeMPS(
       int64_t maxExtent, double absCutoff, double relCutoff,
       cutensornetTensorSVDAlgo_t algo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ);
 
@@ -76,5 +88,135 @@ public:
 
   /// @brief Destructor
   ~TensorNetState();
+};
+
+/// @brief Default TensorNet SimulationState. Defaults to
+/// just extracting a state-vector representation for users.
+class TensorNetSimulationState : public cudaq::SimulationState {
+protected:
+  /// @brief Reference to the `TensorNetState` pointer. We
+  /// take ownership of it here.
+  TensorNetState *state;
+
+  /// @brief FIXME We should remove this. For now it is for backward
+  /// compatibility
+  std::vector<cudaq::complex128> stateData;
+
+public:
+  TensorNetSimulationState(TensorNetState *inState,
+                           bool generateStateVector = true)
+      : state(inState) {
+
+    // Subtypes can specify that the state vector
+    // generation is not used.
+    if (generateStateVector)
+      stateData = state->getStateVector();
+  }
+
+  std::size_t getNumQubits() const override { return state->getNumQubits(); }
+
+  /// @brief Return the shape of the data.
+  std::vector<std::size_t> getDataShape() const override {
+    // FIXME I imagine this should be different
+    return {getNumQubits()};
+  }
+
+  /// @brief Compute the overlap of this state with the provided one.
+  /// If the other state is not on GPU device, this function will
+  /// copy the data from host.
+  double overlap(const cudaq::SimulationState &other) override {
+    if (other.getDataShape() != getDataShape())
+      throw std::runtime_error("[tensornet-state] overlap error - other state "
+                               "dimension not equal to this state dimension.");
+
+    if (other.isDeviceData())
+      throw std::runtime_error("[tensornet-state] cannot compute "
+                               "overlap with GPU state data yet.");
+
+    return std::abs(
+        Eigen::Map<Eigen::VectorXcd>(
+            const_cast<cudaq::complex128 *>(stateData.data()), stateData.size())
+            .transpose()
+            .dot(Eigen::Map<Eigen::VectorXcd>(
+                reinterpret_cast<cudaq::complex128 *>(other.ptr()),
+                stateData.size()))
+            .real());
+  }
+
+  /// @brief Compute the overlap of this state with the data provided as a
+  /// `std::vector<double>`. If this device state is not FP64, throw an
+  /// exception. This overload requires an explicit copy from host memory.
+  double overlap(const std::vector<cudaq::complex128> &other) override {
+    if (stateData.size() != other.size())
+      throw std::runtime_error("[tensornet-state] overlap error - other state "
+                               "dimension not equal to this state dimension.");
+    return std::abs(
+        Eigen::Map<Eigen::VectorXcd>(
+            const_cast<cudaq::complex128 *>(stateData.data()), stateData.size())
+            .transpose()
+            .dot(Eigen::Map<Eigen::VectorXcd>(
+                reinterpret_cast<cudaq::complex128 *>(
+                    const_cast<cudaq::complex128 *>(other.data())),
+                other.size()))
+            .real());
+  }
+
+  /// @brief Compute the overlap of this state with the data provided as a
+  /// `std::vector<float>`. If this device state is not FP32, throw an
+  /// exception. This overload requires an explicit copy from host memory.
+  double overlap(const std::vector<cudaq::complex64> &other) override {
+    throw std::runtime_error(
+        "[tensornet-state] requires FP64 data for overlap computation.");
+  }
+
+  /// @brief Compute the overlap of this state with the data provided as a raw
+  /// pointer. This overload will check if this pointer corresponds to a device
+  /// pointer. It will copy the data from host to device if necessary.
+  double overlap(cudaq::complex128 *other, std::size_t numElements) override {
+    if (stateData.size() != numElements)
+      throw std::runtime_error("[tensornet-state] overlap error - other state "
+                               "dimension not equal to this state dimension.");
+
+    return std::abs(
+        Eigen::Map<Eigen::VectorXcd>(
+            const_cast<cudaq::complex128 *>(stateData.data()), stateData.size())
+            .transpose()
+            .dot(Eigen::Map<Eigen::VectorXcd>(other, numElements))
+            .real());
+  }
+
+  double overlap(cudaq::complex64 *other, std::size_t numElements) override {
+    throw std::runtime_error(
+        "[tensornet-state] requires FP64 data for overlap computation.");
+  }
+
+  /// @brief Return the vector element at the given index.
+  cudaq::complex128 vectorElement(std::size_t idx) override {
+    return stateData[idx];
+  }
+
+  /// @brief Dump the state to the given output stream
+  void dump(std::ostream &os) const override {
+    os << Eigen::Map<Eigen::VectorXcd>(
+              const_cast<cudaq::complex128 *>(stateData.data()),
+              stateData.size())
+       << "\n";
+  }
+
+  /// @brief This state is GPU device data, always return true.
+  bool isDeviceData() const override { return false; }
+
+  /// @brief Return the raw pointer to the device data.
+  void *ptr() const override {
+    return const_cast<cudaq::complex128 *>(stateData.data());
+  }
+
+  /// @brief Return the precision of the state data elements.
+  precision getPrecision() const override {
+    return cudaq::SimulationState::precision::fp64;
+  }
+
+  /// @brief Free the device data.
+  void destroyState() override { delete state; }
 };
 } // namespace nvqir

@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #pragma once
+
+#include "common/EigenDense.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
@@ -32,6 +34,144 @@ void from_json(const json &j, std::complex<T> &p) {
 } // namespace std
 
 namespace cudaq {
+
+/// @brief Implement `SimulationState` to handle state data
+/// coming from the remote server.
+class RemoteJsonSimulationState : public SimulationState {
+private:
+  /// @brief The shape of the underlying state data.
+  std::vector<std::size_t> m_shape;
+
+  /// @brief The underlying state data.
+  std::vector<std::complex<double>> m_data;
+
+public:
+  RemoteJsonSimulationState(const std::vector<std::size_t> &shape,
+                            const std::vector<std::complex<double>> &data)
+      : m_shape(shape), m_data(data) {}
+
+  std::size_t getNumQubits() const override {
+    if (m_shape.size() == 1)
+      return std::log2(m_data.size());
+
+    return std::log2(m_shape[0]);
+  }
+
+  std::vector<std::size_t> getDataShape() const override { return m_shape; }
+
+  double overlap(const cudaq::SimulationState &other) override {
+    if (other.getDataShape() != getDataShape())
+      throw std::runtime_error(
+          "[remote json state] overlap error - other state "
+          "dimension not equal to this state dimension.");
+
+    if (other.isDeviceData())
+      throw std::runtime_error("remote qpu simulation data cannot compute "
+                               "overlap with GPU state data.");
+
+    if (m_shape.size() == 1) {
+      return std::abs(
+          Eigen::Map<Eigen::VectorXcd>(
+              const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
+              .transpose()
+              .dot(Eigen::Map<Eigen::VectorXcd>(
+                  reinterpret_cast<cudaq::complex *>(other.ptr()),
+                  other.getDataShape()[0]))
+              .real());
+    }
+
+    // Create rho and sigma matrices
+    Eigen::MatrixXcd rho = Eigen::Map<Eigen::MatrixXcd>(
+        m_data.data(), getDataShape()[0], getDataShape()[1]);
+    Eigen::MatrixXcd sigma = Eigen::Map<Eigen::MatrixXcd>(
+        reinterpret_cast<cudaq::complex *>(other.ptr()),
+        other.getDataShape()[0], other.getDataShape()[1]);
+
+    // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
+    // sqrt(det(rho)*det(sigma))
+    auto detprod = rho.determinant() * sigma.determinant();
+    return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
+  }
+
+  double overlap(const std::vector<cudaq::complex128> &data) override {
+    if (data.size() != getDataShape()[0])
+      throw std::runtime_error(
+          "[remote json state] overlap error - other state "
+          "dimension not equal to this state dimension.");
+    if (m_shape.size() == 1) {
+      return std::abs(
+          Eigen::Map<Eigen::VectorXcd>(
+              const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
+              .transpose()
+              .dot(Eigen::Map<Eigen::VectorXcd>(
+                  reinterpret_cast<cudaq::complex *>(
+                      const_cast<cudaq::complex *>(data.data())),
+                  m_shape[0]))
+              .real());
+    }
+
+    // Create rho and sigma matrices
+    Eigen::MatrixXcd rho = Eigen::Map<Eigen::MatrixXcd>(
+        m_data.data(), getDataShape()[0], getDataShape()[1]);
+    Eigen::MatrixXcd sigma = Eigen::Map<Eigen::MatrixXcd>(
+        reinterpret_cast<cudaq::complex *>(
+            const_cast<cudaq::complex *>(data.data())),
+        m_shape[0], m_shape[1]);
+
+    // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
+    // sqrt(det(rho)*det(sigma))
+    auto detprod = rho.determinant() * sigma.determinant();
+    return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
+  }
+
+  double overlap(const std::vector<complex64> &data) override {
+    throw std::runtime_error("remote rest json state vector requires FP64 data "
+                             "for overlap computation.");
+  }
+
+  double overlap(complex128 *data, std::size_t numElements) override {
+    throw std::runtime_error(
+        "[remote json state] overlap with pointer is not supported.");
+  }
+
+  double overlap(complex64 *data, std::size_t numElements) override {
+    throw std::runtime_error(
+        "[remote json state] overlap with pointer is not supported.");
+  }
+
+  cudaq::complex vectorElement(std::size_t idx) override {
+    if (m_shape.size() != 1)
+      throw std::runtime_error("[remote rest json] vectorElement not supported "
+                               "for density matrix data.");
+    return m_data[idx];
+  }
+  cudaq::complex matrixElement(std::size_t idx, std::size_t jdx) override {
+    if (m_shape.size() != 2)
+      throw std::runtime_error("[remote rest json] matrixElement not supported "
+                               "for state vector data.");
+    return Eigen::Map<Eigen::MatrixXcd>(m_data.data(), m_shape[0],
+                                        m_shape[1])(idx, jdx);
+  }
+
+  void dump(std::ostream &os) const override {
+    if (m_shape.size() == 1)
+      os << Eigen::Map<Eigen::VectorXcd>(
+                const_cast<std::complex<double> *>(m_data.data()), m_shape[0])
+         << "\n";
+  }
+
+  void *ptr() const override {
+    return reinterpret_cast<void *>(
+        const_cast<std::complex<double> *>(m_data.data()));
+  }
+
+  precision getPrecision() const override {
+    return cudaq::SimulationState::precision::fp64;
+  }
+
+  void destroyState() override {}
+};
+
 // `ExecutionResult` serialization.
 // Here, we capture full data (not just bit string statistics) since the remote
 // platform can populate simulator-only data, such as `expectationValue`.
@@ -79,9 +219,27 @@ inline void to_json(json &j, const ExecutionContext &context) {
   if (context.expectationValue.has_value()) {
     j["expectationValue"] = context.expectationValue.value();
   }
+
   j["simulationData"] = json();
-  j["simulationData"]["dim"] = std::get<0>(context.simulationData);
-  j["simulationData"]["data"] = std::get<1>(context.simulationData);
+  if (context.simulationState) {
+    j["simulationData"]["dim"] = context.simulationState->getDataShape();
+    std::vector<std::complex<double>> hostData(
+        context.simulationState->getNumElements());
+    if (context.simulationState->isDeviceData()) {
+      context.simulationState->toHost(hostData.data(), hostData.size());
+      j["simulationData"]["data"] = hostData;
+    } else {
+      auto *ptr = reinterpret_cast<std::complex<double> *>(
+          context.simulationState->ptr());
+      j["simulationData"]["data"] = std::vector<std::complex<double>>(
+          ptr, ptr + context.simulationState->getNumElements());
+    }
+
+  } else {
+    j["simulationData"]["dim"] = std::vector<std::size_t>{};
+    j["simulationData"]["data"] = std::vector<std::complex<double>>{};
+  }
+
   if (context.spin.has_value() && context.spin.value() != nullptr) {
     const std::vector<double> spinOpRepr =
         context.spin.value()->getDataRepresentation();
@@ -123,8 +281,10 @@ inline void from_json(const json &j, ExecutionContext &context) {
     std::vector<std::complex<double>> stateData;
     j["simulationData"]["dim"].get_to(stateDim);
     j["simulationData"]["data"].get_to(stateData);
-    context.simulationData =
-        std::make_tuple(std::move(stateDim), std::move(stateData));
+
+    // Create the simulation specific SimulationState
+    context.simulationState =
+        std::make_unique<RemoteJsonSimulationState>(stateDim, stateData);
   }
 
   if (j.contains("registerNames"))

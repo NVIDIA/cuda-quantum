@@ -196,6 +196,8 @@ nitpick_ignore = [
     ('cpp:identifier', 'BinarySymplecticForm'),
     ('cpp:identifier', 'CountsDictionary'),
     ('cpp:identifier', 'QuakeValueOrNumericType'),
+    ('cpp:identifier', 'complex64'),
+    ('cpp:identifier', 'complex128'),
     ('cpp:identifier', 'cudaq::ctrl'),
     ('py:class', 'function'),
     ('py:class', 'type'),

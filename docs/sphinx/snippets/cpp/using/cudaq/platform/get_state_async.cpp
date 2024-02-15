@@ -12,7 +12,7 @@
 // && ./get_state_async.x
 // ```
 #include <cudaq.h>
-#include <cudaq/algorithms/state.h>
+#include <cudaq/algorithms/get_state.h>
 int main() {
   // [Begin Documentation]
   auto kernelToRun = [](int runtimeParam) __qpu__ {

@@ -11,17 +11,13 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
+#include "SimulationState.h"
 #include "Trace.h"
 #include <optional>
 #include <string_view>
 
 namespace cudaq {
 class spin_op;
-
-// A State is the vector of data for the density matrix or state vector,
-// as well as the array shape (n,n) or (n)
-using State =
-    std::tuple<std::vector<std::size_t>, std::vector<std::complex<double>>>;
 
 /// @brief The ExecutionContext is an abstraction to indicate
 /// how a CUDA Quantum kernel should be executed.
@@ -62,9 +58,8 @@ public:
   /// the expected results as a cudaq::future here.
   details::future futureResult;
 
-  /// @brief simulationData provides a mechanism for
-  /// simulation clients to extract the underlying simulation data.
-  State simulationData;
+  /// @brief Pointer to simulation-specific simulation data.
+  std::unique_ptr<SimulationState> simulationState;
 
   /// @brief When run under the tracer context, persist the
   /// traced quantum resources here.

@@ -51,7 +51,13 @@ Common
 .. doxygenclass:: cudaq::sample_result
     :members:
 
-.. doxygentypedef:: cudaq::State
+.. doxygenclass:: cudaq::SimulationState
+
+.. doxygenclass:: cudaq::RemoteJsonSimulationState
+
+.. doxygenclass:: nvqir::TensorNetSimulationState
+
+.. doxygenclass:: cudaq::CusvState
 
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:
