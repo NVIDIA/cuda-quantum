@@ -332,3 +332,16 @@ def test_transitive_dependencies():
     result = cudaq.sample(vqe_kernel, 2)
     print(result)
     assert len(result) == 2 and '00' in result and '11' in result
+
+
+def test_decrementing_range():
+
+    @cudaq.kernel
+    def test(q: int, p: int):
+        qubits = cudaq.qvector(5)
+        for k in range(q, p, -1):
+            x(qubits[k])
+
+    counts = cudaq.sample(test, 2, 0)
+    counts.dump()
+    assert '01100' in counts and len(counts) == 1
