@@ -19,16 +19,18 @@ bit_flip = cudaq.BitFlipChannel(1.0)
 # a probability of `1.0` of undergoing an extra X-gate.
 noise.add_channel('x', [0], bit_flip)
 
+
 # Now we define our simple kernel function and allocate a register
 # of qubits to it.
-kernel = cudaq.make_kernel()
-qubit = kernel.qalloc()
+@cudaq.kernel(jit=True)
+def kernel():
+    qubit = cudaq.qubit()
+    # Apply an X-gate to the qubit.
+    # It will remain in the |1> state with a probability of `1 - p = 0.0`.
+    x(qubit)
+    # Measure.
+    mz(qubit)
 
-# Apply an X-gate to the qubit.
-# It will remain in the |1> state with a probability of `1 - p = 0.0`.
-kernel.x(qubit)
-# Measure.
-kernel.mz(qubit)
 
 # Now we're ready to run the noisy simulation of our kernel.
 # Note: We must pass the noise model to sample via keyword.

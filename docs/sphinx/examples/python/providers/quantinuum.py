@@ -5,13 +5,16 @@ import cudaq
 # By default, we will submit to the Quantinuum syntax checker.
 cudaq.set_target("quantinuum")
 
+
 # Create the kernel we'd like to execute on Quantinuum.
-kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(2)
-kernel.h(qubits[0])
-kernel.cx(qubits[0], qubits[1])
-kernel.mz(qubits[0])
-kernel.mz(qubits[1])
+@cudaq.kernel(jit=True)
+def kernel():
+    qubits = cudaq.qvector(2)
+    h(qubits[0])
+    x.ctrl(qubits[0], qubits[1])
+    mz(qubits[0])
+    mz(qubits[1])
+
 
 # Submit to Quantinuum's endpoint and confirm the program is valid.
 

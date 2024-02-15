@@ -22,17 +22,20 @@ amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
 # probability of `1.0` that the qubit decays back to the ground state.
 noise.add_channel('h', [0], amplitude_damping)
 
+
 # Now we define our simple kernel function and allocate a qubit.
-kernel = cudaq.make_kernel()
-qubit = kernel.qalloc()
+@cudaq.kernel(jit=True)
+def kernel():
+    qubit = cudaq.qubit()
 
-# Then we apply a Hadamard gate to the qubit.
-# This will bring it to `1/sqrt(2) (|0> + |1>)`, where it will remain
-# with a probability of `1 - p = 0.0`.
-kernel.h(qubit)
+    # Then we apply a Hadamard gate to the qubit.
+    # This will bring it to `1/sqrt(2) (|0> + |1>)`, where it will remain
+    # with a probability of `1 - p = 0.0`.
+    h(qubit)
 
-# Measure.
-kernel.mz(qubit)
+    # Measure.
+    mz(qubit)
+
 
 # Now we're ready to run the noisy simulation of our kernel.
 # Note: We must pass the noise model to sample via keyword.

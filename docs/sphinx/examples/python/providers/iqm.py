@@ -15,12 +15,15 @@ cudaq.set_target("iqm",
 #        |
 #       QB5
 
+
 # Create the kernel we'd like to execute on IQM.
-kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(5)
-kernel.h(qubits[2])  # QB3
-kernel.cx(qubits[2], qubits[0])
-kernel.mz(qubits)
+@cudaq.kernel(jit=True)
+def kernel():
+    qubits = cudaq.qvector(5)
+    h(qubits[2])  # QB3
+    x.ctrl(qubits[2], qubits[0])
+    mz(qubits)
+
 
 # Execute on IQM Server and print out the results.
 

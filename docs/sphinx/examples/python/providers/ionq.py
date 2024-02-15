@@ -6,11 +6,14 @@ import cudaq
 # it via another call to `cudaq.set_target()`
 cudaq.set_target("ionq")
 
+
 # Create the kernel we'd like to execute on IonQ.
-kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(2)
-kernel.h(qubits[0])
-kernel.cx(qubits[0], qubits[1])
+@cudaq.kernel(jit=True)
+def kernel():
+    qubits = cudaq.qvector(2)
+    h(qubits[0])
+    x.ctrl(qubits[0], qubits[1])
+
 
 # Note: All qubits will be measured at the end upon performing
 # the sampling. You may encounter a pre-flight error on IonQ
