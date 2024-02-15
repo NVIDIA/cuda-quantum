@@ -385,12 +385,9 @@ the `/etc/profile` file:
 
 .. note:: 
 
-  The `nvq++` compiler is configured to use its own linker, meaning the 
-  `LLD <https://lld.llvm.org/>`__ linker, by default. While this linker should be 
-  a drop-in replacement for system linkers, in rare cases it may be necessary to use
-  your own linker instead. You can configure CUDA Quantum to use an external linker 
-  setting the `NVQPP_LD_PATH` environment variable to point to it; for example
-  `export NVQPP_LD_PATH=ld`.
+  CUDA Quantum includes its own linker, specifically the `LLD <https://lld.llvm.org/>`__ 
+  linker. You can customize which linker the `nvq++` compiler uses by setting the
+  `NVQPP_LD_PATH` environment variable; for example `export NVQPP_LD_PATH=ld`.
 
 The remaining sections in this document list additional runtime dependencies 
 that are not included in the migrated assets and are needed to use some of the 
