@@ -1,5 +1,19 @@
 import cudaq
 
+
+@cudaq.kernel(jit=True)
+def kernel():
+    # Single qubit initialized to the |0> state.
+    qubit = cudaq.qubit()
+    # Place qubit in superposition state.
+    h(qubit)
+    # Rotate the phase around Z by 180 degrees (π).
+    z(qubit)
+    # Apply another Hadamard and measure.
+    h(qubit)
+    mz(qubit)
+
+
 # Set the target to our density matrix simulator.
 cudaq.set_target('density-matrix-cpu')
 
@@ -20,20 +34,6 @@ phase_flip = cudaq.PhaseFlipChannel(1.0)
 # probability of `1.0` that the qubit undergoes an extra
 # Z rotation.
 noise.add_channel('z', [0], phase_flip)
-
-kernel = cudaq.make_kernel()
-# Single qubit initialized to the |0> state.
-qubit = kernel.qalloc()
-
-# Place qubit in superposition state.
-kernel.h(qubit)
-
-# Rotate the phase around Z by 180 degrees (π).
-kernel.z(qubit)
-
-# Apply another Hadamard and measure.
-kernel.h(qubit)
-kernel.mz(qubit)
 
 # Without noise, we'd expect the qubit to end in the |1>
 # state due to the phase rotation between the two Hadamard
