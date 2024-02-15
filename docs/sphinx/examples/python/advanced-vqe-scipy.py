@@ -35,5 +35,5 @@ if __name__== "__main__":
     
     print('Optimizer exited successfully: ',result_vqe.success)
     print(result_vqe.message)
-    print('[Cudaq] VQE-UCCSD energy= ', result_vqe.fun)
+    print('[Cudaq] Energy= ', result_vqe.fun)
 
