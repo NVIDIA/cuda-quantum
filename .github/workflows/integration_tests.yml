@@ -47,6 +47,16 @@ on:
         type: string
         required: false
         description: 'Workflow Id to retrieve the Python wheel for testing. Default to the wheels produced by the Publishing workflow associated with the latest nightly CUDA Quantum Docker image if left blank'
+      python_version:
+        type: choice
+        required: true
+        default: '3.10'
+        description: 'Python version to run wheel test'
+        options:
+        - 3.8
+        - 3.9
+        - 3.10
+        - 3.11
 
   schedule:
     - cron: 0 3 * * *
@@ -552,7 +562,6 @@ jobs:
           fetch-depth: 1
 
       - name: Install wheel
-        # Note: we only test Python 3.10 wheel in this workflow to do a quick sanity check for NVCF integration. 
         run: |
           workflow_id=${{ inputs.workflow_id }}
           if [ -z "${workflow_id}" ]; then
@@ -560,9 +569,11 @@ jobs:
           fi
           echo "Using artifacts from workflow id $workflow_id"
           gh run download $workflow_id
-          apt-get update && apt-get install -y --no-install-recommends python3.10 python3-pip
-          wheelfile=$(find . -name 'cuda_quantum*cp310*x86_64.whl')
-          python3.10 -m pip install $wheelfile
+          python_version=${{ inputs.python_version }}
+          python_version_filename=$(echo "${python_version//.}")
+          apt-get update && apt-get install -y --no-install-recommends python$python_version python3-pip
+          wheelfile=$(find . -name "cuda_quantum*cp$python_version_filename*x86_64.whl")
+          python$python_version -m pip install $wheelfile
         env:
           GH_TOKEN: ${{ github.token }}
 
