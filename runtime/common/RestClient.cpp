@@ -8,6 +8,7 @@
 
 #include "RestClient.h"
 #include "Logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <cpr/cpr.h>
 #include <zlib.h>
 
@@ -48,6 +49,38 @@ std::string decompress_gzip(const std::string &data) {
   return decompressed;
 }
 
+RestClient::RestClient() : sslOptions(std::make_unique<cpr::SslOptions>()) {
+  auto caInfo = [&]() -> std::string {
+    if (auto *curlCABundleStr = getenv("CURL_CA_BUNDLE")) {
+      if (std::filesystem::exists(curlCABundleStr))
+        return curlCABundleStr;
+      else
+        cudaq::info(
+            "{} does not exist. Will fall back on CUDAQ installed certs",
+            curlCABundleStr);
+    }
+    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    auto certPath = cudaqLibPath.parent_path().parent_path() / "cacert.pem";
+    if (std::filesystem::exists(certPath))
+      return certPath.string();
+    cudaq::info(
+        "{} does not exist, so we will rely on CURL finding the correct "
+        "certificate authority bundles. If this does not work, try setting "
+        "the CURL_CA_BUNDLE environment variable to a valid path to a CA "
+        "Bundle file, like one downloaded from here: "
+        "https://curl.se/ca/cacert.pem.",
+        certPath.string());
+    return "";
+  }();
+
+  if (!caInfo.empty())
+    sslOptions->SetOption(cpr::ssl::CaInfo(std::move(caInfo)));
+}
+
+// Must define this in the cpp file instead of the header file
+// because CPR headers aren't included in RestClient.h.
+RestClient::~RestClient() = default;
+
 nlohmann::json RestClient::post(const std::string_view remoteUrl,
                                 const std::string_view path,
                                 nlohmann::json &post,
@@ -67,7 +100,7 @@ nlohmann::json RestClient::post(const std::string_view remoteUrl,
 
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Post(cpr::Url{actualPath}, cpr::Body(post.dump()), cprHeaders,
-                     cpr::VerifySsl(enableSsl));
+                     cpr::VerifySsl(enableSsl), *sslOptions);
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP POST Error - status code " +
@@ -95,7 +128,7 @@ void RestClient::put(const std::string_view remoteUrl,
 
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Put(cpr::Url{actualPath}, cpr::Body(putData.dump()), cprHeaders,
-                    cpr::VerifySsl(enableSsl));
+                    cpr::VerifySsl(enableSsl), *sslOptions);
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP PUT Error - status code " +
@@ -117,7 +150,7 @@ nlohmann::json RestClient::get(const std::string_view remoteUrl,
   cpr::Parameters cprParams;
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Get(cpr::Url{actualPath}, cprHeaders, cprParams,
-                    cpr::VerifySsl(enableSsl));
+                    cpr::VerifySsl(enableSsl), *sslOptions);
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP GET Error - status code " +
@@ -145,7 +178,7 @@ void RestClient::del(const std::string_view remoteUrl,
   if (enableLogging)
     cudaq::info("Delete resource at path {}/{}", remoteUrl, path);
   auto r = cpr::Delete(cpr::Url{actualPath}, cprHeaders, cprParams,
-                       cpr::VerifySsl(enableSsl));
+                       cpr::VerifySsl(enableSsl), *sslOptions);
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP DELETE Error - status code " +
@@ -157,7 +190,7 @@ void RestClient::download(const std::string_view remoteUrl,
                           const std::string &filePath, bool enableLogging,
                           bool enableSsl) {
   auto r = cpr::Get(cpr::Url{std::string(remoteUrl)}, cpr::Header{},
-                    cpr::Parameters{}, cpr::VerifySsl(enableSsl));
+                    cpr::Parameters{}, cpr::VerifySsl(enableSsl), *sslOptions);
 
   if (r.status_code > validHttpCode || r.status_code == 0)
     throw std::runtime_error("HTTP Download Error - status code " +

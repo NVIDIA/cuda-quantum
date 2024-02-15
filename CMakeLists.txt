@@ -79,6 +79,20 @@ if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
   set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 endif()
 
+# Enable the REST code by default.
+if (NOT DEFINED CUDAQ_ENABLE_REST)
+  set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
+endif()
+
+# Enable the remote simulator by default.
+if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
+  set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building cudaq-qpud.")
+  # Optionally enable the tests that use cudaq-qpud.
+  if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
+    set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
+  endif()
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -504,12 +518,7 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-if (NOT CUDAQ_DISABLE_TOOLS)
-  add_subdirectory(tools)
-endif()
-# Always add cudaq-qpud executable/tool (including Python wheels)
-add_subdirectory(tools/cudaq-qpud)
-
+add_subdirectory(tools)
 add_subdirectory(utils)
 
 if (CUDAQ_ENABLE_PYTHON)
