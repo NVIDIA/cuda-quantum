@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -20,11 +20,8 @@ skipIROperationsForEagerMode = pytest.mark.skipif(
 
 @pytest.fixture(autouse=True)
 def do_something():
-    cudaq.enable_jit()
     yield
-    if cudaq.is_jit_enabled():
-        cudaq.__clearKernelRegistries()
-    cudaq.disable_jit()
+    cudaq.__clearKernelRegistries()
 
 
 @skipIROperationsForEagerMode
