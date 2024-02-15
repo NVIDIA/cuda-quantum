@@ -176,6 +176,9 @@ jobs:
     name: Integration test using Docker
     runs-on: ubuntu-latest
     needs: [metadata, build_nvcf_image, deploy_nvcf_test_function]
+    # when none of the needed jobs fail or are cancelled (skipped or successful jobs are ok).
+    # For example, if only one hardware backend test is requested (ionq, iqm, etc.), NVCF setup jobs are skipped.
+    if: ${{ always() && !failure() && !cancelled() }} 
     environment: backend-validation
     container:
       image: ${{ inputs.cudaq_test_image }}
