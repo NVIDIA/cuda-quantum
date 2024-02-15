@@ -1,69 +1,44 @@
 import cudaq
 from cudaq import spin
+import scipy
 
-from typing import List, Tuple
+@cudaq.kernel(jit=True)
+def ansatz(qubits: cudaq.qvector, thetas: list[float]):
 
-# We will be optimizing over a custom objective function that takes a vector
-# of parameters as input and returns either the cost as a single float,
-# or a tuple of (cost, gradient_vector) depending on the optimizer used.
+    x(qubits[0])
+    ry(thetas[0], qubits[1])
+    x.ctrl(qubits[1], qubits[0])
 
-# In this example, we will use the spin Hamiltonian and ansatz from `simple_vqe.py`
-# and find the `thetas` that minimize the expectation value of the system.
-hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-    0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+@cudaq.kernel(jit=True)
+def main_kernel(qubits_num: int, thetas: list[float]):
 
-kernel, thetas = cudaq.make_kernel(list)
-qubits = kernel.qalloc(2)
-kernel.x(qubits[0])
-kernel.ry(thetas[0], qubits[1])
-kernel.cx(qubits[1], qubits[0])
+    qubits=cudaq.qvector(qubits_num)
+    ansatz(qubits, thetas)
 
-# Define the optimizer that we'd like to use.
+
+
+qubits_num: int= 2
+thetas: list[float]=[0.0]
+
+spin_ham = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
 optimizer = cudaq.optimizers.Adam()
-
-# Since we'll be using a gradient-based optimizer, we can leverage
-# CUDA Quantum's gradient helper class to automatically compute the gradient
-# vector for us. The use of this class for gradient calculations is
-# purely optional and can be replaced with your own custom gradient
-# routine.
 gradient = cudaq.gradients.CentralDifference()
 
+def objective_func(parameter_vector: list[float], hamiltonian=spin_ham, gradient=gradient, kernel=main_kernel, qubits_num=qubits_num):
 
-def objective_function(parameter_vector: List[float],
-                       hamiltonian=hamiltonian,
-                       gradient_strategy=gradient,
-                       kernel=kernel) -> Tuple[float, List[float]]:
-    """
-    Note: the objective function may also take extra arguments, provided they
-    are passed into the function as default arguments in python.
-    """
+    get_result = lambda parameter_vector: cudaq.observe(kernel, hamiltonian, qubits_num, parameter_vector).expectation() 
+    #get_result = lambda parameter_vector: cudaq.observe(kernel, hamiltonian, qubits_num, parameter_vector, shots_count=100).expectation() 
 
-    # Call `cudaq.observe` on the spin operator and ansatz at the
-    # optimizer provided parameters. This will allow us to easily
-    # extract the expectation value of the entire system in the
-    # z-basis.
-
-    # We define the call to `cudaq.observe` here as a lambda to
-    # allow it to be passed into the gradient strategy as a
-    # function. If you were using a gradient-free optimizer,
-    # you could purely define `cost = cudaq.observe().expectation()`.
-    get_result = lambda parameter_vector: cudaq.observe(
-        kernel, hamiltonian, parameter_vector, shots_count=100).expectation()
-    # `cudaq.observe` returns a `cudaq.ObserveResult` that holds the
-    # counts dictionary and the `expectation`.
     cost = get_result(parameter_vector)
-    print(f"<H> = {cost}")
-    # Compute the gradient vector using `cudaq.gradients.STRATEGY.compute()`.
-    gradient_vector = gradient_strategy.compute(parameter_vector, get_result,
-                                                cost)
 
-    # Return the (cost, gradient_vector) tuple.
+    gradient_vector = gradient.compute(parameter_vector, get_result, cost)
+    print(f"<H> = {cost}")
+
     return cost, gradient_vector
 
-
-cudaq.set_random_seed(13)  # make repeatable
-energy, parameter = optimizer.optimize(dimensions=1,
-                                       function=objective_function)
+energy, parameter = optimizer.optimize(dimensions=1,function=objective_func)
 
 print(f"\nminimized <H> = {round(energy,16)}")
 print(f"optimal theta = {round(parameter[0],16)}")
+
