@@ -347,9 +347,9 @@ jobs:
             
             ${PYTHON} -m pip install cuda_quantum*.whl
             ${PYTHON} -m pip install pytest numpy
-            ${PYTHON} -m pytest -v /tmp/tests/ \
-              --ignore python/tests/backends \
-              --ignore python/tests/domains
+            ${PYTHON} -m pytest -v /home/cudaq/python \
+              --ignore /home/cudaq/python/backends \
+              --ignore /home/cudaq/python/domains
             if [ ! $? -eq 0 ]; then
               echo "::error file=prebuilt_binaries.yml::Sanity tests failed for side-by-side Python support."
               exit 1
