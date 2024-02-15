@@ -827,12 +827,9 @@ the <code class="code docutils literal notranslate"><span class="pre">/etc/profi
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler is configured to use its own linker, meaning the
-<a class="reference external" href="https://lld.llvm.org/">LLD</a> linker, by default. While this linker should be
-a drop-in replacement for system linkers, in rare cases it may be necessary to use
-your own linker instead. You can configure CUDA Quantum to use an external linker
-setting the <code class="code docutils literal notranslate"><span class="pre">NVQPP_LD_PATH</span></code> environment variable to point to it; for example
-<code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">NVQPP_LD_PATH=ld</span></code>.</p>
+<p>CUDA Quantum includes its own linker, specifically the <a class="reference external" href="https://lld.llvm.org/">LLD</a>
+linker. You can customize which linker the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler uses by setting the
+<code class="code docutils literal notranslate"><span class="pre">NVQPP_LD_PATH</span></code> environment variable; for example <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">NVQPP_LD_PATH=ld</span></code>.</p>
 </div>
 <p>The remaining sections in this document list additional runtime dependencies
 that are not included in the migrated assets and are needed to use some of the
