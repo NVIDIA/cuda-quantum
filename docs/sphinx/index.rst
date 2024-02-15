@@ -9,7 +9,7 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
 
 .. toctree::
    :caption: Contents
-   :maxdepth: 2
+   :maxdepth: 1
 
       Quick Start <quick_start.rst>
       Basics <using/basics.rst>

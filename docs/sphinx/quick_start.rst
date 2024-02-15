@@ -84,7 +84,7 @@ To test your installation, create a file titled `first_program.cpp`, containing 
       result.dump();  // { 1:500 0:500 }
     } 
 
-You may now execute this file from the command line using the `nvq++` toolchain:
+You may now compile and execute this file from the command line using the `nvq++` toolchain:
 
 .. code-block:: console
 
