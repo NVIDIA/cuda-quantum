@@ -332,8 +332,7 @@ jobs:
           user: cudaq
           shell: bash -l
           run: |
-            PYTHON="python3.$(ls cuda_quantum*.whl | grep -o cp3[0-9]* | cut -c 4-)"
-            echo $PYTHON
+            PYTHON="python3.$(ls cuda_quantum*.whl | grep -o cp3[0-9]* | cut -c 4- | head -1)"
             if [ -x "$(command -v apt-get)" ]; then
               sudo apt-get update && sudo apt-get install -y --no-install-recommends $PYTHON $PYTHON-venv
               $PYTHON -m venv "$HOME/.venv" && PATH="$HOME/.venv/bin:$PATH"

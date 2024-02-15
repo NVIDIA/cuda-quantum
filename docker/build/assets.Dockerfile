@@ -27,7 +27,7 @@ ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 
 # [Prerequisites]
 ARG PYTHON=python3.11
-RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON} glibc-static
+RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}
 
 # [Build Dependencies]
 RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip
