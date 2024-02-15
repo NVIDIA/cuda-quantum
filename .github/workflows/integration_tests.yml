@@ -34,6 +34,10 @@ on:
         required: false
         default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
         description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image'
+      commit_sha:
+        type: string
+        required: false
+        description: 'Commit SHA to pull the code (examples/tests) for testing. Default to the commit associated with the CUDA Quantum docker image if left blank'
       cudaq_nvcf_deploy_image:
         type: string
         required: false
@@ -66,7 +70,11 @@ jobs:
       - name: Get commit SHA
         id: commit-sha
         run: |
-          echo "sha=$(cat $CUDA_QUANTUM_PATH/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
+          if [ -n "${{ inputs.commit_sha }}" ]; then
+            echo "sha=${{ inputs.commit_sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "sha=$(cat $CUDA_QUANTUM_PATH/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
+          fi
   
   build_nvcf_image:
     name: Build NVCF deployment image
