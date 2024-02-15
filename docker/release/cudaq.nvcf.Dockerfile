@@ -16,11 +16,10 @@
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest
 FROM $base_image as nvcf_image
 
-USER root
-
 ENV CUDAQ_LOG_LEVEL=info
-ADD ./scripts/launch_qpud.sh /launch_qpud.sh
-RUN chmod +x /launch_qpud.sh
+
+# Launch script: launch cudaq-qpud (nvcf mode) with MPI ranks == Number of NVIDIA GPUs
+RUN echo 'mpiexec -np $(nvidia-smi --list-gpus | wc -l) cudaq-qpud --type nvcf' > launch.sh
 
 # Start the cudaq-qpud service
-ENTRYPOINT ["/launch_qpud.sh"]
+ENTRYPOINT ["bash", "-l", "launch.sh"]
