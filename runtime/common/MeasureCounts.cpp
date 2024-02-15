@@ -155,11 +155,14 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
   }
 }
 
-sample_result::sample_result(ExecutionResult &result) {
-  sampleResults.insert({result.registerName, std::move(result)});
+sample_result::sample_result(ExecutionResult &&result) {
+  sampleResults.insert({result.registerName, result});
   for (auto &[bits, count] : result.counts)
     totalShots += count;
 }
+
+sample_result::sample_result(ExecutionResult &result)
+    : sample_result(std::move(result)) {}
 
 sample_result::sample_result(std::vector<ExecutionResult> &results) {
   for (auto &result : results) {

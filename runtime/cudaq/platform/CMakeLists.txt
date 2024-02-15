@@ -10,5 +10,6 @@ add_subdirectory(default)
 if (OPENSSL_FOUND)
   add_subdirectory(orca)
 endif()
-
-add_subdirectory(mqpu)
+if (CUDAQ_ENABLE_REST)
+  add_subdirectory(mqpu)
+endif()

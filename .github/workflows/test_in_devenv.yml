@@ -38,7 +38,7 @@ jobs:
       - name: Restore environment
         id: restore_devdeps
         if: inputs.devdeps_image == ''
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -171,7 +171,7 @@ jobs:
       - name: Restore environment
         id: restore_devdeps
         if: inputs.devdeps_image == ''
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}

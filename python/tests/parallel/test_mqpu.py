@@ -113,8 +113,6 @@ def testAccuracy():
     cudaq.reset_target()
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="AttributeError: module 'cudaq' has no attribute 'get_state_async'")
 @skipIfNoMQPU
 def testGetStateAsync():
     cudaq.set_target("nvidia-mqpu")

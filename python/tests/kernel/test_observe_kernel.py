@@ -14,19 +14,22 @@ import numpy as np
 import cudaq
 from cudaq import spin
 
+
 @pytest.fixture(autouse=True)
 def do_something():
     if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
         cudaq.enable_jit()
     yield
-    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
+    if cudaq.is_jit_enabled():
+        cudaq.__clearKernelRegistries()
     cudaq.disable_jit()
+
 
 def test_simple_observe():
     """Test that we can create parameterized kernels and call observe."""
 
     @cudaq.kernel
-    def ansatz(angle:float):
+    def ansatz(angle: float):
         q = cudaq.qvector(2)
         x(q[0])
         ry(angle, q[1])
@@ -44,7 +47,7 @@ def test_optimization():
     """Test that we can optimize over a parameterized kernel."""
 
     @cudaq.kernel
-    def ansatz(angle:float):
+    def ansatz(angle: float):
         q = cudaq.qvector(2)
         x(q[0])
         ry(angle, q[1])
@@ -178,8 +181,9 @@ def test_observe_list():
 
 
 def test_observe_async():
+
     @cudaq.kernel()
-    def kernel0(i:int):
+    def kernel0(i: int):
         q = cudaq.qubit()
         x(q)
 
@@ -187,9 +191,7 @@ def test_observe_async():
     hamiltonian = spin.z(0)
 
     # Call `cudaq.observe()` at the specified number of shots.
-    future = cudaq.observe_async(kernel0,
-                                 hamiltonian, 5,
-                                 qpu_id=0)
+    future = cudaq.observe_async(kernel0, hamiltonian, 5, qpu_id=0)
     observe_result = future.get()
     got_expectation = observe_result.expectation()
     assert np.isclose(-1., got_expectation, atol=1e-12)
@@ -199,5 +201,6 @@ def test_observe_async():
     # to run an async job on the 13th QPU with device id 12.
     with pytest.raises(Exception) as error:
         future = cudaq.observe_async(kernel0, hamiltonian, qpu_id=12)
+
 
 # TODO observe_async spin_op list

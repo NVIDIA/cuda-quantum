@@ -14,7 +14,6 @@ from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
 from .kernel.qubit_qis import adjoint, control, compute_action
 from .runtime.sample import sample
 from .runtime.observe import observe
-from .runtime.state import get_state
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 global globalJIT
@@ -27,11 +26,11 @@ spin = cudaq_runtime.spin
 qubit = cudaq_runtime.qubit
 qvector = cudaq_runtime.qvector
 qview = cudaq_runtime.qview
-qlist = qvector
 SpinOperator = cudaq_runtime.SpinOperator
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
+State = cudaq_runtime.State
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
@@ -66,10 +65,13 @@ BitFlipChannel = cudaq_runtime.BitFlipChannel
 # Functions
 sample_async = cudaq_runtime.sample_async
 observe_async = cudaq_runtime.observe_async
+get_state = cudaq_runtime.get_state
+get_state_async = cudaq_runtime.get_state_async
 SampleResult = cudaq_runtime.SampleResult
 ObserveResult = cudaq_runtime.ObserveResult
 AsyncSampleResult = cudaq_runtime.AsyncSampleResult
 AsyncObserveResult = cudaq_runtime.AsyncObserveResult
+AsyncStateResult = cudaq_runtime.AsyncStateResult
 vqe = cudaq_runtime.vqe
 
 ComplexMatrix = cudaq_runtime.ComplexMatrix

@@ -13,14 +13,17 @@ import numpy as np
 
 import cudaq
 
+
 @pytest.fixture(autouse=True)
 def do_something():
     if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
         cudaq.enable_jit()
     yield
 
-    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
+    if cudaq.is_jit_enabled():
+        cudaq.__clearKernelRegistries()
     cudaq.disable_jit()
+
 
 def test_state_vector_simple():
     """
@@ -65,7 +68,7 @@ def test_state_vector_integration():
     """
     # Make a general 2 qubit SO4 rotation.
     @cudaq.kernel
-    def kernel(parameters:list[float]):
+    def kernel(parameters: list[float]):
         qubits = cudaq.qvector(2)
         ry(parameters[0], qubits[0])
         ry(parameters[1], qubits[1])
@@ -132,3 +135,28 @@ def test_state_density_matrix_simple():
     assert np.allclose(want_state, np.array(got_state))
 
     cudaq.reset_target()
+
+
+def test_state_vector_async():
+    """Tests `cudaq.get_state_async` on a simple kernel."""
+
+    @cudaq.kernel
+    def kernel(theta: float, phi: float):
+        qubits = cudaq.qvector(2)
+        ry(phi, qubits[0])
+        rx(theta, qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+
+    # Creating the bell state with rx and ry instead of hadamard
+    # need a pi rotation and a pi/2 rotation
+    # Note: rx(pi)ry(pi/2) == -i*H (with a global phase)
+    future = cudaq.get_state_async(kernel, np.pi, np.pi / 2.)
+    want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
+                          dtype=np.complex128)
+    state = future.get()
+    state.dump()
+    assert np.allclose(state, want_state, atol=1e-3)
+    # Check invalid qpu_id
+    with pytest.raises(Exception) as error:
+        # Invalid qpu_id type.
+        result = cudaq.get_state_async(kernel, 0.0, 0.0, qpu_id=12)

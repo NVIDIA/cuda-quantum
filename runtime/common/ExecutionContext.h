@@ -85,6 +85,10 @@ public:
   /// keep track of the register names.
   std::vector<std::string> registerNames;
 
+  /// @brief A vector containing information about how to reorder the global
+  /// register after execution. Empty means no reordering.
+  std::vector<std::size_t> reorderIdx;
+
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
   ExecutionContext(const std::string n) : name(n) {}

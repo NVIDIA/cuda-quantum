@@ -55,16 +55,6 @@ bool isArgumentStdVec(MlirModule &module, const std::string &kernelName,
   return isa<cudaq::cc::StdvecType>(kernel.getArgument(argIdx).getType());
 }
 
-/// @brief Create a new OpaqueArguments pointer and pack the
-/// python arguments in it. Clients must delete the memory.
-OpaqueArguments *toOpaqueArgs(py::args &args) {
-  auto *argData = new cudaq::OpaqueArguments();
-  args = simplifiedValidateInputArguments(args);
-  cudaq::packArgs(*argData, args,
-                  [](OpaqueArguments &, py::object &) { return false; });
-  return argData;
-}
-
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
 observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
                          py::args args, const int shots,

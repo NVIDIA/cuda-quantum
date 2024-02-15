@@ -39,7 +39,7 @@ def mlirTypeFromAnnotation(annotation, ctx):
 
     if hasattr(annotation, 'attr'):
         if annotation.value.id == 'cudaq':
-            if annotation.attr in ['qlist', 'qview', 'qvector']:
+            if annotation.attr in ['qview', 'qvector']:
                 return quake.VeqType.get(ctx)
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)

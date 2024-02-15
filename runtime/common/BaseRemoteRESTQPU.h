@@ -413,9 +413,28 @@ public:
     // Run the config-specified pass pipeline
     runPassPipeline(passPipelineConfig, moduleOp);
 
+    auto entryPointFunc = moduleOp.lookupSymbol<func::FuncOp>(
+        std::string("__nvqpp__mlirgen__") + kernelName);
+    std::vector<std::size_t> mapping_reorder_idx;
+    if (auto mappingAttr = dyn_cast_if_present<ArrayAttr>(
+            entryPointFunc->getAttr("mapping_reorder_idx"))) {
+      mapping_reorder_idx.resize(mappingAttr.size());
+      std::transform(
+          mappingAttr.begin(), mappingAttr.end(), mapping_reorder_idx.begin(),
+          [](Attribute attr) { return attr.cast<IntegerAttr>().getInt(); });
+    }
+
+    if (executionContext) {
+      if (executionContext->name == "sample")
+        executionContext->reorderIdx = mapping_reorder_idx;
+      else
+        executionContext->reorderIdx.clear();
+    }
+
     std::vector<std::pair<std::string, ModuleOp>> modules;
     // Apply observations if necessary
     if (executionContext && executionContext->name == "observe") {
+      mapping_reorder_idx.clear();
       runPassPipeline("canonicalize,cse", moduleOp);
       cudaq::spin_op &spin = *executionContext->spin.value();
       for (const auto &term : spin) {
@@ -483,7 +502,7 @@ public:
       // Form an output_names mapping from codeStr
       nlohmann::json j = formOutputNames(codegenTranslation, codeStr);
 
-      codes.emplace_back(name, codeStr, j);
+      codes.emplace_back(name, codeStr, j, mapping_reorder_idx);
     }
 
     cleanupContext(contextPtr);
@@ -526,6 +545,7 @@ public:
       future = cudaq::details::future(std::async(
           std::launch::async,
           [&, codes, localShots, kernelName, seed,
+           reorderIdx = executionContext->reorderIdx,
            localJIT = std::move(jitEngines)]() mutable -> cudaq::sample_result {
             std::vector<cudaq::ExecutionResult> results;
 
@@ -567,6 +587,7 @@ public:
 
             for (std::size_t i = 0; i < codes.size(); i++) {
               cudaq::ExecutionContext context("sample", localShots);
+              context.reorderIdx = reorderIdx;
               cudaq::getExecutionManager()->setExecutionContext(&context);
               invokeJITKernelAndRelease(localJIT[i], kernelName);
               cudaq::getExecutionManager()->resetExecutionContext();

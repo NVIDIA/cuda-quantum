@@ -283,7 +283,7 @@ def test_teleport():
 def test_transitive_dependencies():
 
     @cudaq.kernel()
-    def func0(q : cudaq.qubit):
+    def func0(q: cudaq.qubit):
         x(q)
 
     @cudaq.kernel()
@@ -304,28 +304,27 @@ def test_transitive_dependencies():
     counts = cudaq.sample(callMe)
     assert len(counts) == 1 and '1' in counts
 
-    # This test is for a bug where by 
-    # vqe_kernel thought kernel was a 
-    # dependency because cudaq.kernel 
+    # This test is for a bug where by
+    # vqe_kernel thought kernel was a
+    # dependency because cudaq.kernel
     # is a Call node in the AST.
     @cudaq.kernel
     def kernel():
-        qubit=cudaq.qvector(2)
+        qubit = cudaq.qvector(2)
         h(qubit[0])
-        x.ctrl(qubit[0],qubit[1])
+        x.ctrl(qubit[0], qubit[1])
         mz(qubit)
 
     result = cudaq.sample(kernel)
     print(result)
     assert len(result) == 2 and '00' in result and '11' in result
 
-
     @cudaq.kernel
-    def vqe_kernel(nn:int):
-        qubit=cudaq.qvector(nn)
+    def vqe_kernel(nn: int):
+        qubit = cudaq.qvector(nn)
 
         h(qubit[0])
-        x.ctrl(qubit[0],qubit[1])
+        x.ctrl(qubit[0], qubit[1])
 
         mz(qubit)
 
@@ -333,5 +332,3 @@ def test_transitive_dependencies():
     result = cudaq.sample(vqe_kernel, 2)
     print(result)
     assert len(result) == 2 and '00' in result and '11' in result
-
-

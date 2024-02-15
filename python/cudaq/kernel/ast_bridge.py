@@ -977,7 +977,7 @@ class PyASTBridge(ast.NodeVisitor):
                         node.func.attr))
 
             if node.func.value.id == 'cudaq':
-                if node.func.attr in ['qvector', 'qlist']:
+                if node.func.attr in ['qvector']:
                     # Handle `cudaq.qvector(N)`
                     size = self.popValue()
                     if hasattr(size, "literal_value"):

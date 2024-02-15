@@ -39,6 +39,7 @@ JIT
 JSON
 Jupyter
 JupyterLab
+Kagome
 Kraus
 LLVM
 LSB
@@ -88,6 +89,7 @@ SVD
 TCP
 TableGen
 Toffoli
+Toshiko
 UCCSD
 VQE
 Vazirani
@@ -96,6 +98,7 @@ accessor
 acknowledgement
 adjoint
 al
+ancilla
 ansatz
 ansatzes
 arity
