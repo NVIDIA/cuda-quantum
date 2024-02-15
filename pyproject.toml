@@ -19,7 +19,7 @@ license = { file="LICENSE" }
 dependencies = [
   'astpretty ~= 3.0',
   'cuquantum-cu11 ~= 23.10',
-  'numpy ~= 1.26'
+  'numpy >= 1.24'
 ]
 
 [project.urls]
