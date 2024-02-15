@@ -23,7 +23,7 @@ import lit.formats
 # The name of this test suite.
 config.name = 'CUDAQ-Target'
 
-# testFormat: The test format to use to interpret tests.
+# `testFormat`: The test format to use to interpret tests.
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 
 config.suffixes = ['.cpp']
