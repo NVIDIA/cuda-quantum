@@ -87,7 +87,7 @@ endif()
 # Enable the remote simulator by default.
 if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
   set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building quake-qpud.")
-  # Optionally enable the tests that use quake-qpud.
+  # Optionally enable the tests that use cudaq-qpud.
   if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
     set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
   endif()
