@@ -61,12 +61,12 @@ WORKDIR /home/cudaq
 
 ## [Install]
 ARG cuda_quantum_installer='install_cuda_quantum.*'
-ADD "${cuda_quantum_installer}" install_cuda_quantum.sh
+ADD "${cuda_quantum_installer}" .
 RUN source /etc/environment && \
     echo "Installing CUDA Quantum..." && \
     ## [>CUDAQuantumInstall]
     MPI_PATH=/usr/local/openmpi \
-    sudo -E bash install_cuda_quantum.* --accept && . /etc/profile
+    sudo -E bash install_cuda_quantum.$(uname -m) --accept && . /etc/profile
     ## [<CUDAQuantumInstall]
 RUN . /etc/profile && nvq++ --help
 
@@ -78,7 +78,7 @@ ADD docs/sphinx/examples/cpp /home/cudaq/examples
 
 # Wheel to check side-by-side installation of Python and C++ support
 ARG cuda_quantum_wheel='cuda_quantum_*.whl'
-ADD "${cuda_quantum_wheel}" /tmp/
+ADD "${cuda_quantum_wheel}" /home/cudaq
 ADD python/tests /home/cudaq/python
 
 ENTRYPOINT ["bash", "-l"]

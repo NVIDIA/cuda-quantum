@@ -368,7 +368,7 @@ and install it by running the commands
 
 .. code-block:: bash
 
-    sudo bash install_cuda_quantum.* --accept
+    sudo bash install_cuda_quantum.$(uname -m) --accept
     . /opt/nvidia/cudaq/set_env.sh
 
 This will extract the built assets and move them to the correct locations.
