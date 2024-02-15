@@ -12,3 +12,5 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/oqc.config
 target_sources(cudaq-rest-qpu PRIVATE OQCServerHelp.cpp)
 add_target_config(oqc)
 
+add_target_mapping_arch(oqc lucy.txt)
+add_target_mapping_arch(oqc toshiko.txt)

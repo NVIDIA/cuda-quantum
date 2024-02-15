@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,8 +9,16 @@
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include <map>
+#include <regex>
+#include <sstream>
 #include <thread>
+
 namespace cudaq {
+
+const std::string Lucy = "lucy";
+const std::string Toshiko = "toshiko";
+const std::map<std::string, uint> Machines = {{Lucy, 8}, {Toshiko, 32}};
 
 /// @brief The OQCServerHelper class extends the ServerHelper class to handle
 /// interactions with the OQC server for submitting and retrieving quantum
@@ -76,6 +84,10 @@ public:
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) override;
+
+  /// @brief Update `passPipeline` with architecture-specific pass options
+  void updatePassPipeline(const std::filesystem::path &platformPath,
+                          std::string &passPipeline) override;
 };
 
 namespace {
@@ -93,9 +105,24 @@ auto make_env_functor(std::string key, std::string def = "") {
 }
 
 std::string get_from_config(BackendConfig config, const std::string &key,
-                            const auto &envVar) {
+                            const auto &missing_functor) {
   const auto iter = config.find(key);
-  return iter != config.end() ? iter->second : envVar();
+  auto item = iter != config.end() ? iter->second : missing_functor();
+  std::transform(item.begin(), item.end(), item.begin(),
+                 [](auto c) { return std::tolower(c); });
+  return item;
+}
+
+void check_machine_allowed(const std::string &machine) {
+  if (Machines.find(machine) == Machines.end()) {
+    std::string allowed;
+    for (const auto &machine : Machines)
+      allowed += machine.first + " ";
+    std::stringstream stream;
+    stream << "machine " << machine
+           << " is not of known oqc-machine set: " << allowed;
+    throw std::runtime_error(stream.str());
+  }
 }
 
 } // namespace
@@ -104,10 +131,17 @@ std::string get_from_config(BackendConfig config, const std::string &key,
 void OQCServerHelper::initialize(BackendConfig config) {
 
   cudaq::info("Initializing OQC Backend.");
+
+  // Fetch machine info before checking emulate because we want to be able to
+  // emulate specific machines.
+  auto machine = get_from_config(config, "machine", []() { return Lucy; });
+  check_machine_allowed(machine);
+  config["machine"] = machine;
   const auto emulate_it = config.find("emulate");
   if (emulate_it != config.end() && emulate_it->second == "true") {
     cudaq::info("Emulation is enabled, ignore all oqc connection specific "
                 "information.");
+    backendConfig = std::move(config);
     return;
   }
   // Set the necessary configuration variables for the OQC API
@@ -117,7 +151,7 @@ void OQCServerHelper::initialize(BackendConfig config) {
   config["version"] = "v0.3";
   config["user_agent"] = "cudaq/0.3.0";
   config["target"] = "Lucy";
-  config["qubits"] = 8;
+  config["qubits"] = Machines.at(machine);
   config["email"] =
       get_from_config(config, "email", make_env_functor("OQC_EMAIL"));
   config["password"] = make_env_functor("OQC_PASSWORD")();
@@ -378,6 +412,17 @@ RestHeaders OQCServerHelper::getHeaders() {
 
   // Return the headers
   return headers;
+}
+
+void OQCServerHelper::updatePassPipeline(
+    const std::filesystem::path &platformPath, std::string &passPipeline) {
+  auto machine =
+      get_from_config(backendConfig, "machine", []() { return Lucy; });
+  check_machine_allowed(machine);
+  std::string pathToFile = platformPath / std::string("mapping/oqc") /
+                           (machine + std::string(".txt"));
+  passPipeline =
+      std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
 }
 
 } // namespace cudaq
