@@ -52,6 +52,9 @@ on:
     - cron: 0 3 * * *
 
 env:
+  # NGC nv-quantum organization: pnyjrcojiblh
+  NGC_QUANTUM_ORG: pnyjrcojiblh
+  NGC_QUANTUM_TEAM: cuda-quantum
   NVCF_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
   NGC_NVCF_DEPLOYMENT_SPEC: GFN:L40G:gl40g_1.br20_2xlarge:1:1 
@@ -113,7 +116,7 @@ jobs:
           file: ./docker/release/cudaq.nvcf.Dockerfile
           build-args: |
             base_image=${{ inputs.cudaq_nvcf_deploy_image }}
-          tags: nvcr.io/${{ secrets.NGC_QUANTUM_ORG }}/cuda-quantum/cuda-quantum:nightly
+          tags: nvcr.io/$NGC_QUANTUM_ORG/$NGC_QUANTUM_TEAM/cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
           push: true
@@ -144,11 +147,11 @@ jobs:
         id: deploy
         env:
           NGC_CLI_API_KEY: ${{ secrets.NVQC_CREDENTIALS  }}
-          NGC_CLI_ORG: ${{ secrets.NGC_QUANTUM_ORG }}
+          NGC_CLI_ORG: $NGC_QUANTUM_ORG
           NGC_CLI_TEAM: cuda-quantum
         run: |
           create_function_result=$(ngc-cli/ngc cloud-function function create \
-            --container-image nvcr.io/${{ secrets.NGC_QUANTUM_ORG }}/cuda-quantum/cuda-quantum:nightly \
+            --container-image nvcr.io/$NGC_QUANTUM_ORG/$NGC_QUANTUM_TEAM/cuda-quantum:nightly \
             --api-body-format CUSTOM \
             --inference-port 3030 \
             --health-uri / \
@@ -612,7 +615,7 @@ jobs:
       - name: Cleanup
         env:
           NGC_CLI_API_KEY: ${{ secrets.NVQC_CREDENTIALS  }}
-          NGC_CLI_ORG: ${{ secrets.NGC_QUANTUM_ORG }}
+          NGC_CLI_ORG: $NGC_QUANTUM_ORG
           NGC_CLI_TEAM: cuda-quantum
         run: |
           echo "Version Id: ${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
@@ -621,4 +624,4 @@ jobs:
           # Remove the function version
           ngc-cli/ngc cloud-function function remove $NVCF_FUNCTION_ID:${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}
           # Remove the docker image
-          ngc-cli/ngc registry image remove -y nvcr.io/${{ secrets.NGC_QUANTUM_ORG }}/cuda-quantum/cuda-quantum:nightly
+          ngc-cli/ngc registry image remove -y nvcr.io/$NGC_QUANTUM_ORG/$NGC_QUANTUM_TEAM/cuda-quantum:nightly
