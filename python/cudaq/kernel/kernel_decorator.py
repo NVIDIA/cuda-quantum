@@ -40,9 +40,9 @@ class PyKernelDecorator(object):
     MLIR `ExecutionEngine` if not in library mode. 
     """
 
-    # Enable one to use JIT exclusively and not have to
-    # specify it every time
-    globalJIT = False
+    # Enable one to use JIT exclusively and not have to specify it every time
+    # Default to MLIR mode
+    globalJIT = True
 
     def __init__(self,
                  function,

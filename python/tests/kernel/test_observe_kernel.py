@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -17,12 +17,12 @@ from cudaq import spin
 
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
-        cudaq.enable_jit()
+    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON':
+        cudaq.disable_jit()
     yield
     if cudaq.is_jit_enabled():
         cudaq.__clearKernelRegistries()
-    cudaq.disable_jit()
+    cudaq.enable_jit()
 
 
 def test_simple_observe():

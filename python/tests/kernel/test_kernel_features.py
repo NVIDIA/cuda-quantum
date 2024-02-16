@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -17,13 +17,12 @@ import cudaq
 
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
-        cudaq.enable_jit()
+    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON':
+        cudaq.disable_jit()
     yield
-
     if cudaq.is_jit_enabled():
         cudaq.__clearKernelRegistries()
-    cudaq.disable_jit()
+    cudaq.enable_jit()
 
 
 def test_adjoint():
@@ -332,3 +331,16 @@ def test_transitive_dependencies():
     result = cudaq.sample(vqe_kernel, 2)
     print(result)
     assert len(result) == 2 and '00' in result and '11' in result
+
+
+def test_decrementing_range():
+
+    @cudaq.kernel
+    def test(q: int, p: int):
+        qubits = cudaq.qvector(5)
+        for k in range(q, p, -1):
+            x(qubits[k])
+
+    counts = cudaq.sample(test, 2, 0)
+    counts.dump()
+    assert '01100' in counts and len(counts) == 1
