@@ -24,17 +24,21 @@ target_include_directories(${LIBRARY_NAME}
     PRIVATE . ../../)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC pthread cudaq-em-default cudaq-spin cudaq-common PRIVATE fmt::fmt-header-only)
+  PUBLIC
+    pthread cudaq-em-default cudaq-spin cudaq-common
+  PRIVATE
+    fmt::fmt-header-only)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-default-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+  EXPORT cudaq-platform-default-targets DESTINATION lib)
 
 install(EXPORT cudaq-platform-default-targets
         FILE CUDAQPlatformDefaultTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
 
-if (OPENSSL_FOUND)
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   add_subdirectory(rest)
   add_subdirectory(rest_server)
 endif()

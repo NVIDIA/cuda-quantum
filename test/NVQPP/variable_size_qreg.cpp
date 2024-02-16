@@ -20,7 +20,7 @@
 __qpu__ void variable_qreg(unsigned value) {
   cudaq::qvector qubits(value);
 
-  auto result = mz(qubits);
+  mz(qubits);
 }
 
 int main() {

@@ -218,3 +218,59 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   // ctrl ry pi / 4 1 2
   // }
 }
+
+// From issue: https://github.com/NVIDIA/cuda-quantum/issues/1215
+
+#ifdef CUDAQ_BACKEND_CUSTATEVEC_FP32
+#define EPSILON std::numeric_limits<float>::epsilon()
+#else
+#define EPSILON std::numeric_limits<double>::epsilon()
+#endif
+
+// This implementation is based on:
+// Knuth, D. E. (2014). Art of computer programming, volume 2: Seminumerical
+//                      algorithms. Addison-Wesley Professional.
+// (See page 233 for the discussion on floating points that was adapted here to
+// implement the comparison for std::complex<double>. Here we use the Euclidean
+// distance to compare the complex numbers.)
+static bool essentially_equal(std::complex<double> a, std::complex<double> b,
+                              double epsilon = EPSILON) {
+  double tmp = std::min(std::abs(b), std::abs(a));
+  return std::abs(a - b) <= (tmp * epsilon);
+}
+
+#undef EPSILON
+
+static __qpu__ void foo(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
+
+static __qpu__ void bar() {
+  cudaq::qubit q;
+  rz<cudaq::adj>(M_PI_2, q);
+  cudaq::adjoint(foo, q);
+}
+
+CUDAQ_TEST(AdjointTester, checkEvenAdjointNesting) {
+  auto result = cudaq::get_state(bar);
+  auto amplitudes = result.get_data();
+  std::array<std::complex<double>, 2> expected = {1., 0};
+  EXPECT_TRUE(essentially_equal(expected[0], amplitudes[0]));
+  EXPECT_TRUE(essentially_equal(expected[1], amplitudes[1]));
+}
+
+static __qpu__ void zaz(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
+
+static __qpu__ void foo_2(cudaq::qubit &q) { cudaq::adjoint(zaz, q); }
+
+static __qpu__ void bar_2() {
+  cudaq::qubit q;
+  rz(M_PI_2, q);
+  cudaq::adjoint(foo_2, q);
+}
+
+CUDAQ_TEST(AdjointTester, checkOddAdjointNesting) {
+  auto result = cudaq::get_state(bar_2);
+  auto amplitudes = result.get_data();
+  std::array<std::complex<double>, 2> expected = {1., 0};
+  EXPECT_TRUE(essentially_equal(expected[0], amplitudes[0]));
+  EXPECT_TRUE(essentially_equal(expected[1], amplitudes[1]));
+}

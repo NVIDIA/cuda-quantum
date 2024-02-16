@@ -61,22 +61,6 @@ CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
   EXPECT_EQ(counts.size(), 4);
 }
 
-CUDAQ_TEST(IQMTester, executeNoMeasurementsProgram) {
-  std::string arch = "Apollo";
-  auto backendString = fmt::format(fmt::runtime(backendStringTemplate), arch);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
-  auto kernel = cudaq::make_kernel();
-  auto qubit = kernel.qalloc(2);
-  kernel.h(qubit[0]);
-
-  EXPECT_THAT([&]() { auto counts = cudaq::sample(kernel); },
-              testing::ThrowsMessage<std::runtime_error>(
-                  testing::HasSubstr("Circuit contains no measurements")));
-}
-
 CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
   std::string arch = "Apollo";
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate), arch);

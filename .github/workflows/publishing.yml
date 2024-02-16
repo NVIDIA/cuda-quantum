@@ -452,7 +452,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Configure validation
-        uses: cloudposse/github-action-matrix-outputs-write@0.3.0
+        uses: cloudposse/github-action-matrix-outputs-write@0.5.0
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ matrix.info_file }}
@@ -463,7 +463,6 @@ jobs:
     name: CUDA Quantum installer
     if: ${{ toJson(fromJson(needs.assets.outputs.installers).info_files) != '[]' }}
     needs: assets
-    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -477,6 +476,8 @@ jobs:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.installers).info_files }}
       fail-fast: false
+
+    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
 
     steps:
       - name: Checkout repository
@@ -690,7 +691,7 @@ jobs:
     steps:
       - name: Get matrix job output
         id: read_json
-        uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+        uses: cloudposse/github-action-matrix-outputs-read@0.1.2
         with:
           matrix-step-name: docker_images
 
@@ -811,7 +812,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.assets.outputs.github_commit }}
 
@@ -955,7 +956,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Delete artifacts
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const res = await github.rest.actions.listArtifactsForRepo({

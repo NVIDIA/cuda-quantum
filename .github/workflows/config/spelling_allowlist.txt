@@ -27,6 +27,8 @@ GPU
 GPUs
 GitHub
 HPC
+HTTP
+HTTPS
 Hadamard
 Hadamards
 Hamiltonian
@@ -37,6 +39,7 @@ JIT
 JSON
 Jupyter
 JupyterLab
+Kagome
 Kraus
 LLVM
 LSB
@@ -49,6 +52,7 @@ MSB
 Max-Cut
 MyST
 NGC
+NVCF
 NVIDIA
 NVQIR
 OQC
@@ -85,6 +89,7 @@ SVD
 TCP
 TableGen
 Toffoli
+Toshiko
 VQE
 Vazirani
 WSL
@@ -92,6 +97,7 @@ accessor
 acknowledgement
 adjoint
 al
+ancilla
 ansatz
 ansatzes
 arity

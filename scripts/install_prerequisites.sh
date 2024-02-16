@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -31,6 +31,8 @@ BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
 ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
 OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
 CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
+CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
+CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
 
 function create_llvm_symlinks {
   if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
@@ -137,13 +139,20 @@ if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
   echo "Installing libz..."
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
+  temp_install_if_command_unknown automake automake
+  temp_install_if_command_unknown libtool libtool
 
   wget https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
   tar -xzvf zlib-1.3.tar.gz && cd zlib-1.3
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
   ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
   make && make install
-  cd .. && rm -rf zlib-1.3.tar.gz zlib-1.3
+  cd contrib/minizip 
+  autoreconf --install 
+  CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+  ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
+  make && make install
+  cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
   remove_temp_installs
 fi
 
@@ -179,14 +188,38 @@ if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
   temp_install_if_command_unknown wget wget
   temp_install_if_command_unknown make make
 
+  # The arguments --with-ca-path and --with-ca-bundle can be used to configure the default
+  # locations where Curl will look for certificates. Note that the paths where certificates
+  # are stored by default varies across operating systems, and to build a Curl library that 
+  # can run out of the box on various operating systems pretty much necessitates including 
+  # and distributing a certificate bundle, or downloading such a bundle dynamically at
+  # at runtime if needed. The Mozilla certificate bundle can be 
+  # downloaded from https://curl.se/ca/cacert.pem. For more information, see
+  # - https://curl.se/docs/sslcerts.html
+  # - https://curl.se/docs/caextract.html
+  wget https://curl.se/ca/cacert.pem 
+  wget https://curl.se/ca/cacert.pem.sha256
+  if [ "$(sha256sum cacert.pem)" != "$(cat cacert.pem.sha256)" ]; then 
+    echo -e "\e[01;31mWarning: Incorrect sha256sum of cacert.pem. The file cacert.pem has been removed. The file can be downloaded manually from https://curl.se/docs/sslcerts.html.\e[0m" >&2
+    rm cacert.pem cacert.pem.sha256
+  else
+    mkdir -p "$CURL_INSTALL_PREFIX" && mv cacert.pem "$CURL_INSTALL_PREFIX"
+  fi
+  
+  # Unfortunately, it looks like the default paths need to be absolute and known at compile time.
+  # Note that while the environment variable CURL_CA_BUNDLE allows to easily override the default 
+  # path when invoking the Curl executable, this variable is *not* respected by default by the 
+  # built library itself; instead, the user of libcurl is responsible for picking up the 
+  # environment variables and passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO. 
+  # We opt to build Curl without any default paths, and instead have the CUDA Quantum runtime
+  # determine and pass a suitable path.
   wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
   tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
-  wget https://curl.haxx.se/ca/cacert.pem
   CFLAGS="-fPIC" CXXFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
   ./configure --prefix="$CURL_INSTALL_PREFIX" \
     --enable-shared=no --enable-static=yes \
     --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
-    --with-ca-bundle=cacert.pem \
+    --without-ca-bundle --without-ca-path \
     --without-zstd --without-brotli \
     --disable-ftp --disable-tftp --disable-smtp --disable-ldap --disable-ldaps \
     --disable-smb --disable-gopher --disable-telnet --disable-rtsp \
@@ -205,6 +238,19 @@ if [ ! -d "$llvm_dir" ]; then
 else 
   echo "Configured C compiler: $CC"
   echo "Configured C++ compiler: $CXX"
+fi
+
+# [cuQuantum and cuTensor] Needed for GPU-accelerated components
+cuda_version=`"${CUDACXX:-nvcc}" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
+if [ -n "$cuda_version" ]; then
+  if [ ! -d "$CUQUANTUM_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUQUANTUM_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    echo "Installing cuQuantum..."
+    bash "$this_file_dir/configure_build.sh" install-cuquantum
+  fi
+  if [ ! -d "$CUTENSOR_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUTENSOR_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    echo "Installing cuTensor..."
+    bash "$this_file_dir/configure_build.sh" install-cutensor
+  fi
 fi
 
 echo "All prerequisites have been installed."

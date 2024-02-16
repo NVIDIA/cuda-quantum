@@ -112,5 +112,15 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
   let constructor = "cudaq::opt::createRemoveMeasurementsPass()";
 }
 
+def VerifyNVQIRCallOps : Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
+  let summary =
+    "Verify that all LLVM CallOps' callees are NVQIR compliant";
+  let description = [{
+    This is a function pass to verify that all function calls within the function body are 
+    referring to QIR functions, i.e., starting with a __quantum prefix, or NVQIR runtime functions.
+  }];
+
+  let constructor = "cudaq::opt::createVerifyNVQIRCallOpsPass()";
+}
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

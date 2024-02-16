@@ -15,6 +15,7 @@ set(COMMON_RUNTIME_SRC
   NoiseModel.cpp 
   ServerHelper.cpp 
   Resources.cpp
+  Trace.cpp
   Future.cpp
 )
 
@@ -51,6 +52,7 @@ if(OPENSSL_FOUND)
                        GIT_REPOSITORY https://github.com/libcpr/cpr.git
                        GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) 
   set(CURL_STATICLIB ON)
+  set(CURL_USE_STATIC_LIBS TRUE)
   find_package(CURL COMPONENTS HTTP HTTPS)
   if (CURL_FOUND)
     message(STATUS "Using system curl for CPR.")
@@ -94,6 +96,12 @@ install(EXPORT cudaq-common-targets
         FILE CUDAQCommonTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
+if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
+  # Copy to build directory so that developers can run from the build directory
+  file(COPY "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION "${CMAKE_BINARY_DIR}")
+  # Also include it as an install target
+  install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
+endif()
 
 ## ----- Runtime MLIR Library ----- 
 ## We need support in the runtime for compiler-level things, 
