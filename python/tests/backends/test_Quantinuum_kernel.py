@@ -62,7 +62,7 @@ def configureTarget(startUpMockServer):
 
 def test_quantinuum_sample():
     # Create the kernel we'd like to execute on Quantinuum
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def simple():
         qubits = cudaq.qvector(2)
         h(qubits[0])
@@ -113,7 +113,7 @@ def test_quantinuum_sample():
 
 def test_quantinuum_observe():
     # Create the parameterized ansatz
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def ansatz(theta: float):
         qreg = cudaq.qvector(2)
         x(qreg[0])

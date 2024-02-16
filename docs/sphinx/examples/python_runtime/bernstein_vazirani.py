@@ -33,7 +33,7 @@ qubit_count = 5  # set to around 30 qubits for `nvidia` target
 hidden_bitstring = random_bitstring(qubit_count)
 
 
-@cudaq.kernel
+@cudaq.kernel(jit=False)
 def oracle(register: cudaq.qview, auxillary_qubit: cudaq.qubit,
            hidden_bitstring: list[int]):
     for index, bit in enumerate(hidden_bitstring):

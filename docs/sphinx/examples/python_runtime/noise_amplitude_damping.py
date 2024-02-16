@@ -22,7 +22,7 @@ noise.add_channel('h', [0], amplitude_damping)
 
 
 # Now we may define our simple kernel function and allocate a qubit.
-@cudaq.kernel(jit=True)
+@cudaq.kernel(jit=False)
 def kernel():
     qubit = cudaq.qubit()
     # Then we apply a Hadamard gate to the qubit.

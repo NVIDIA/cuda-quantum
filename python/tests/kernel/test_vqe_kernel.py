@@ -24,12 +24,12 @@ def assert_close(want, got, tolerance=1.e-4) -> bool:
 
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
-        cudaq.enable_jit()
+    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON':
+        cudaq.disable_jit()
     yield
     if cudaq.is_jit_enabled():
         cudaq.__clearKernelRegistries()
-    cudaq.disable_jit()
+    cudaq.enable_jit()
 
 
 def test_two_qubit_vqe_float():
