@@ -3,7 +3,7 @@ import cudaq
 
 # We begin by defining the `Kernel` that we will construct our
 # program with.
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def kernel():
     '''
     This is our first CUDA Quantum kernel.
