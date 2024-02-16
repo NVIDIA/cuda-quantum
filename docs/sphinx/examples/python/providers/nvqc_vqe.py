@@ -2,26 +2,26 @@ import cudaq
 from cudaq import spin
 import math
 
-# This example assumes the NVCF API key and Function Id have been set in the `~/.nvcf_config` file/environment variables.
+# This example assumes the NVQC API key and Function Id have been set in the `~/.nvqc_config` file/environment variables.
 # If not, you can set the API Key and Function ID environment variables in the Python script with:
 # ```
-# os.environ["NVCF_API_KEY"] = "<YOUR NVCF API KEY>"`
-# os.environ["NVCF_FUNCTION_ID"] = "<YOUR NVCF FUNCTION ID>"
+# os.environ["NVQC_API_KEY"] = "<YOUR NVQC API KEY>"`
+# os.environ["NVQC_FUNCTION_ID"] = "<YOUR NVQC FUNCTION ID>"
 # ```
 # Alternatively, the `api_key` and `function_id` values can be passed to the target directly,
 # ```
-# cudaq.set_target("nvcf",
+# cudaq.set_target("nvqc",
 #                 nqpus=3,
-#                 api_key="<YOUR NVCF API KEY>"
-#                 function_id="<YOUR NVCF FUNCTION ID>")
+#                 api_key="<YOUR NVQC API KEY>"
+#                 function_id="<YOUR NVQC FUNCTION ID>")
 # ```
-cudaq.set_target("nvcf", nqpus=3)
+cudaq.set_target("nvqc", nqpus=3)
 
 print("Number of QPUs:", cudaq.get_target().num_qpus())
 # Note: depending on the user's account, there might be different
-# number of NVCF worker instances available. Hence, although we're making
+# number of NVQC worker instances available. Hence, although we're making
 # concurrent job submissions across multiple QPUs, the speedup would be
-# determined by the number of NVCF worker instances.
+# determined by the number of NVQC worker instances.
 # Create the parameterized ansatz
 kernel, theta = cudaq.make_kernel(float)
 qreg = kernel.qalloc(2)
@@ -37,7 +37,7 @@ hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
 
 def opt_gradient(parameter_vector):
     # Evaluate energy and gradient on different remote QPUs
-    # (i.e., concurrent job submissions to NVCF)
+    # (i.e., concurrent job submissions to NVQC)
     energy_future = cudaq.observe_async(kernel,
                                         hamiltonian,
                                         parameter_vector[0],

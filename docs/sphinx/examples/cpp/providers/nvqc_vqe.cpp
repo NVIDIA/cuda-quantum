@@ -1,18 +1,18 @@
 // Compile and run with:
 // ```
-// nvq++ --target nvcf --nvcf-nqpus 3 nvcf_vqe.cpp -o out.x
+// nvq++ --target nvqc --nvqc-nqpus 3 nvqc_vqe.cpp -o out.x
 // ./out.x
 // ```
-// Note: we set `nqpus` to 3 to establish 3 concurrent NVCF job submission
-// pipes. Assumes a valid NVCF API key and function ID have been stored in
-// environment variables or `~/.nvcf_config` file. Alternatively, they can be
+// Note: we set `nqpus` to 3 to establish 3 concurrent NVQC job submission
+// pipes. Assumes a valid NVQC API key and function ID have been stored in
+// environment variables or `~/.nvqc_config` file. Alternatively, they can be
 // set in the command line like below.
 // ```
-// nvq++ --target nvcf --nvcf-nqpus 3 --nvcf-api-key <YOUR API KEY> \
-// --nvcf-function-id <NVCF function Id> nvcf_vqe.cpp -o out.x
+// nvq++ --target nvqc --nvqc-nqpus 3 --nvqc-api-key <YOUR API KEY> \
+// --nvqc-function-id <NVQC function Id> nvqc_vqe.cpp -o out.x
 // ./out.x
 // ```
-// Please refer to the documentations for information about how to attain NVCF
+// Please refer to the documentations for information about how to attain NVQC
 // information.
 
 #include <cudaq.h>
@@ -34,11 +34,11 @@ int main() {
   ansatz.x<cudaq::ctrl>(r, q);
 
   // Run VQE with a gradient-based optimizer.
-  // Delegate cost function and gradient computation across different NVCF-based
+  // Delegate cost function and gradient computation across different NVQC-based
   // QPUs. Note: depending on the user's account, there might be different
-  // number of NVCF worker instances available. Hence, although we're making
+  // number of NVQC worker instances available. Hence, although we're making
   // concurrent job submissions across multiple QPUs, the speedup would be
-  // determined by the number of NVCF worker instances.
+  // determined by the number of NVQC worker instances.
   cudaq::optimizers::lbfgs optimizer;
   auto [opt_val, opt_params] = optimizer.optimize(
       /*dim=*/1, /*opt_function*/ [&](const std::vector<double> &params,

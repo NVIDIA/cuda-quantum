@@ -1,19 +1,19 @@
 import cudaq
 
-# This example assumes the NVCF API key and Function Id have been set in the `~/.nvcf_config` file/environment variables.
+# This example assumes the NVQC API key and Function Id have been set in the `~/.nvqc_config` file/environment variables.
 # If not, you can set the API Key and Function ID environment variables in the Python script with:
 # ```
-# os.environ["NVCF_API_KEY"] = "<YOUR NVCF API KEY>"`
-# os.environ["NVCF_FUNCTION_ID"] = "<YOUR NVCF FUNCTION ID>"
+# os.environ["NVQC_API_KEY"] = "<YOUR NVQC API KEY>"`
+# os.environ["NVQC_FUNCTION_ID"] = "<YOUR NVQC FUNCTION ID>"
 # ```
 # Alternatively, the `api_key` and `function_id` values can be passed to the target directly,
 # ```
-# cudaq.set_target("nvcf",
+# cudaq.set_target("nvqc",
 #                 backend="tensornet",
-#                 api_key="<YOUR NVCF API KEY>"
-#                 function_id="<YOUR NVCF FUNCTION ID>")
+#                 api_key="<YOUR NVQC API KEY>"
+#                 function_id="<YOUR NVQC FUNCTION ID>")
 # ```
-cudaq.set_target("nvcf", backend="tensornet")
+cudaq.set_target("nvqc", backend="tensornet")
 
 num_qubits = 50
 kernel = cudaq.make_kernel()

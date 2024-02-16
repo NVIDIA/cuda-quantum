@@ -152,14 +152,14 @@ public:
     // API key and function Id are required.
     if (apiKey.empty())
       throw std::runtime_error(
-          "Cannot find NVCF API key. Please provide a valid API key.");
+          "Cannot find NVQC API key. Please provide a valid API key.");
 
     if (!apiKey.starts_with("nvapi-"))
       std::runtime_error(
-          "An invalid NVCF API key is provided. Please check your settings.");
+          "An invalid NVQC API key is provided. Please check your settings.");
     if (functionId.empty())
       throw std::runtime_error(
-          "Cannot find NVCF Function ID. Please provide a valid Function ID.");
+          "Cannot find NVQC Function ID. Please provide a valid Function ID.");
 
     std::unordered_map<std::string, std::string> clientConfigs{
         {"api-key", apiKey}, {"function-id", functionId}};
@@ -169,29 +169,29 @@ public:
   }
 
 private:
-  // Helper to search NVCF config from environment variable or config file.
+  // Helper to search NVQC config from environment variable or config file.
   NvcfConfig searchNvcfConfig() {
     NvcfConfig config;
     // Search from environment variable
-    if (auto apiKey = std::getenv("NVCF_API_KEY")) {
+    if (auto apiKey = std::getenv("NVQC_API_KEY")) {
       const auto key = std::string(apiKey);
       config.apiKey = key;
     }
 
-    if (auto funcIdEnv = std::getenv("NVCF_FUNCTION_ID"))
+    if (auto funcIdEnv = std::getenv("NVQC_FUNCTION_ID"))
       config.functionId = std::string(funcIdEnv);
 
-    if (auto versionIdEnv = std::getenv("NVCF_FUNCTION_VERSION_ID"))
+    if (auto versionIdEnv = std::getenv("NVQC_FUNCTION_VERSION_ID"))
       config.versionId = std::string(versionIdEnv);
 
-    std::string nvcfConfig;
+    std::string nvqcConfig;
     // Allow someone to tweak this with an environment variable
-    if (auto creds = std::getenv("CUDAQ_NVCF_CREDENTIALS"))
-      nvcfConfig = std::string(creds);
+    if (auto creds = std::getenv("CUDAQ_NVQC_CREDENTIALS"))
+      nvqcConfig = std::string(creds);
     else
-      nvcfConfig = std::string(getenv("HOME")) + std::string("/.nvcf_config");
-    if (cudaq::fileExists(nvcfConfig)) {
-      std::ifstream stream(nvcfConfig);
+      nvqcConfig = std::string(getenv("HOME")) + std::string("/.nvqc_config");
+    if (cudaq::fileExists(nvqcConfig)) {
+      std::ifstream stream(nvqcConfig);
       std::string contents((std::istreambuf_iterator<char>(stream)),
                            std::istreambuf_iterator<char>());
       std::vector<std::string> lines;
@@ -200,7 +200,7 @@ private:
         std::vector<std::string> keyAndValue = cudaq::split(l, ':');
         if (keyAndValue.size() != 2)
           throw std::runtime_error("Ill-formed configuration file (" +
-                                   nvcfConfig +
+                                   nvqcConfig +
                                    "). Key-value pairs must be in `<key> : "
                                    "<value>` format. (One per line)");
         cudaq::trim(keyAndValue[0]);

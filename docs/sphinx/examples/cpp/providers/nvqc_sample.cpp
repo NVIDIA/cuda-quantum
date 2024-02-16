@@ -1,23 +1,23 @@
 // Compile and run with:
 // ```
-// nvq++ --target nvcf nvcf_sample.cpp -o out.x
+// nvq++ --target nvqc nvqc_sample.cpp -o out.x
 // ./out.x
 // ```
-// Assumes a valid NVCF API key and function ID have been stored in environment
-// variables or `~/.nvcf_config` file. Alternatively, they can be set in the
+// Assumes a valid NVQC API key and function ID have been stored in environment
+// variables or `~/.nvqc_config` file. Alternatively, they can be set in the
 // command line like below.
 // ```
-// nvq++ --target nvcf --nvcf-api-key <YOUR API KEY> --nvcf-function-id \
-// <NVCF function Id> nvcf_sample.cpp -o out.x
+// nvq++ --target nvqc --nvqc-api-key <YOUR API KEY> --nvqc-function-id \
+// <NVQC function Id> nvqc_sample.cpp -o out.x
 // ./out.x
 // ```
-// Please refer to the documentations for information about how to attain NVCF
+// Please refer to the documentations for information about how to attain NVQC
 // information.
 
 #include <cudaq.h>
 #include <iostream>
 
-// Define a simple quantum kernel to execute on NVCF.
+// Define a simple quantum kernel to execute on NVQC.
 struct ghz {
   // Maximally entangled state between 25 qubits.
   auto operator()() __qpu__ {
@@ -32,17 +32,17 @@ struct ghz {
 };
 
 int main() {
-  // Submit to NVCF asynchronously (e.g., continue executing
+  // Submit to NVQC asynchronously (e.g., continue executing
   // code in the file until the job has been returned).
   auto async_counts_handle = cudaq::sample_async(ghz{});
   // ... classical code to execute in the meantime ...
-  std::cout << "Waiting for NVCF result...\n";
+  std::cout << "Waiting for NVQC result...\n";
 
   // Calling .get() on the handle to synchronize the result.
   auto async_counts = async_counts_handle.get();
   async_counts.dump();
 
-  // OR: Submit to NVCF synchronously (e.g., wait for the job
+  // OR: Submit to NVQC synchronously (e.g., wait for the job
   // result to be returned before proceeding).
   auto counts = cudaq::sample(ghz{});
   counts.dump();
