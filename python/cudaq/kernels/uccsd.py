@@ -109,43 +109,43 @@ def uccsd_num_parameters(n_electrons, n_qubits):
     return sum((singles, doubles, total))
 
 
-def single_excitation_gate(kernel, qubits: cudaq.qview, p_occ: int, q_virt: int,
-                           theta: list[float]):
+def single_excitation_gate(builder, qubits: cudaq.qview, p_occ: int, q_virt: int,
+                           theta: float):
 
     # Y_p X_q
-    kernel.rx(np.pi / 2.0, qubits[p_occ])
-    kernel.h(qubits[q_virt])
+    builder.rx(np.pi / 2.0, qubits[p_occ])
+    builder.h(qubits[q_virt])
 
     for i in range(p_occ, q_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(0.5 * theta, qubits[q_virt])
+    builder.rz(0.5 * theta, qubits[q_virt])
 
     for i in range(q_virt, p_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
+        builder.cx(qubits[i - 1], qubits[i])
 
-    kernel.h(qubits[q_virt])
-    kernel.rx(-np.pi / 2.0, qubits[p_occ])
+    builder.h(qubits[q_virt])
+    builder.rx(-np.pi / 2.0, qubits[p_occ])
 
     # -X_p Y_q
-    kernel.h(qubits[p_occ])
-    kernel.rx(np.pi / 2.0, qubits[q_virt])
+    builder.h(qubits[p_occ])
+    builder.rx(np.pi / 2.0, qubits[q_virt])
 
     for i in range(p_occ, q_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(-0.5 * theta, qubits[q_virt])
+    builder.rz(-0.5 * theta, qubits[q_virt])
 
     for i in range(q_virt, p_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
+        builder.cx(qubits[i - 1], qubits[i])
 
-    kernel.rx(-np.pi / 2.0, qubits[q_virt])
-    kernel.h(qubits[p_occ])
+    builder.rx(-np.pi / 2.0, qubits[q_virt])
+    builder.h(qubits[p_occ])
 
 
-def double_excitation_gate_opt(kernel, qubits: cudaq.qview, p_occ: int,
+def double_excitation_gate_opt(builder, qubits: cudaq.qview, p_occ: int,
                                q_occ: int, r_virt: int, s_virt: int,
-                               theta: list[float]):
+                               theta: float):
 
     if (p_occ < q_occ) and (r_virt < s_virt):
         i_occ, j_occ = p_occ, q_occ
@@ -168,156 +168,156 @@ def double_excitation_gate_opt(kernel, qubits: cudaq.qview, p_occ: int,
     #Block I: x_i x_j x_a y_b + x_i x_j y_a x_b + x_i y_i y_a y_b - x_i y_j x_a x_b
     #Block II: - y_i x_j x_a x_b +y_i x_j y_a y_b - y_i x_j x_a x_b - y_i y_j y_a x_b
 
-    kernel.h(qubits[i_occ])
-    kernel.h(qubits[j_occ])
-    kernel.h(qubits[a_virt])
-    kernel.rx(np.pi / 2.0, qubits[b_virt])
+    builder.h(qubits[i_occ])
+    builder.h(qubits[j_occ])
+    builder.h(qubits[a_virt])
+    builder.rx(np.pi / 2.0, qubits[b_virt])
 
     for i in range(i_occ, j_occ):
-        kernel.cx(qubits[i], qubits[i + 1])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i], qubits[i + 1])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(0.125 * theta, qubits[b_virt])
+    builder.rz(0.125 * theta, qubits[b_virt])
 
     for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i - 1], qubits[i])
+    builder.cx(qubits[j_occ], qubits[a_virt])
 
-    kernel.rx(-np.pi / 2.0, qubits[b_virt])
-    kernel.h(qubits[a_virt])
+    builder.rx(-np.pi / 2.0, qubits[b_virt])
+    builder.h(qubits[a_virt])
 
-    kernel.rx(np.pi / 2.0, qubits[a_virt])
-    kernel.h(qubits[b_virt])
+    builder.rx(np.pi / 2.0, qubits[a_virt])
+    builder.h(qubits[b_virt])
 
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(0.125 * theta, qubits[b_virt])
+    builder.rz(0.125 * theta, qubits[b_virt])
 
     for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i - 1], qubits[i])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(j_occ, i_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
+        builder.cx(qubits[i - 1], qubits[i])
 
-    kernel.rx(-np.pi / 2.0, qubits[a_virt])
-    kernel.h(qubits[j_occ])
+    builder.rx(-np.pi / 2.0, qubits[a_virt])
+    builder.h(qubits[j_occ])
 
-    kernel.rx(np.pi / 2.0, qubits[j_occ])
-    kernel.h(qubits[a_virt])
+    builder.rx(np.pi / 2.0, qubits[j_occ])
+    builder.h(qubits[a_virt])
 
     for i in range(i_occ, j_occ):
-        kernel.cx(qubits[i], qubits[i + 1])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i], qubits[i + 1])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(-0.125 * theta, qubits[b_virt])
+    builder.rz(-0.125 * theta, qubits[b_virt])
 
     for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i - 1], qubits[i])
+    builder.cx(qubits[j_occ], qubits[a_virt])
 
-    kernel.h(qubits[b_virt])
-    kernel.h(qubits[a_virt])
+    builder.h(qubits[b_virt])
+    builder.h(qubits[a_virt])
 
-    kernel.rx(np.pi / 2.0, qubits[a_virt])
-    kernel.rx(np.pi / 2.0, qubits[b_virt])
+    builder.rx(np.pi / 2.0, qubits[a_virt])
+    builder.rx(np.pi / 2.0, qubits[b_virt])
 
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(0.125 * theta, qubits[b_virt])
+    builder.rz(0.125 * theta, qubits[b_virt])
 
     for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i - 1], qubits[i])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(j_occ, i_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
+        builder.cx(qubits[i - 1], qubits[i])
 
-    kernel.rx(-np.pi / 2.0, qubits[j_occ])
-    kernel.h(qubits[i_occ])
+    builder.rx(-np.pi / 2.0, qubits[j_occ])
+    builder.h(qubits[i_occ])
 
-    kernel.rx(np.pi / 2.0, qubits[i_occ])
-    kernel.h(qubits[j_occ])
+    builder.rx(np.pi / 2.0, qubits[i_occ])
+    builder.h(qubits[j_occ])
 
     for i in range(i_occ, j_occ):
-        kernel.cx(qubits[i], qubits[i + 1])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i], qubits[i + 1])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(0.125 * theta, qubits[b_virt])
+    builder.rz(0.125 * theta, qubits[b_virt])
 
     for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i - 1], qubits[i])
+    builder.cx(qubits[j_occ], qubits[a_virt])
 
-    kernel.rx(-np.pi / 2.0, qubits[b_virt])
-    kernel.rx(-np.pi / 2.0, qubits[a_virt])
+    builder.rx(-np.pi / 2.0, qubits[b_virt])
+    builder.rx(-np.pi / 2.0, qubits[a_virt])
 
-    kernel.h(qubits[a_virt])
-    kernel.h(qubits[b_virt])
+    builder.h(qubits[a_virt])
+    builder.h(qubits[b_virt])
 
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(-0.125 * theta, qubits[b_virt])
+    builder.rz(-0.125 * theta, qubits[b_virt])
 
     for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i - 1], qubits[i])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(j_occ, i_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
+        builder.cx(qubits[i - 1], qubits[i])
 
-    kernel.h(qubits[b_virt])
-    kernel.h(qubits[j_occ])
+    builder.h(qubits[b_virt])
+    builder.h(qubits[j_occ])
 
-    kernel.rx(np.pi / 2.0, qubits[j_occ])
-    kernel.rx(np.pi / 2.0, qubits[b_virt])
+    builder.rx(np.pi / 2.0, qubits[j_occ])
+    builder.rx(np.pi / 2.0, qubits[b_virt])
 
     for i in range(i_occ, j_occ):
-        kernel.cx(qubits[i], qubits[i + 1])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i], qubits[i + 1])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(-0.125 * theta, qubits[b_virt])
+    builder.rz(-0.125 * theta, qubits[b_virt])
 
     for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i - 1], qubits[i])
+    builder.cx(qubits[j_occ], qubits[a_virt])
 
-    kernel.rx(-np.pi / 2.0, qubits[b_virt])
-    kernel.h(qubits[a_virt])
+    builder.rx(-np.pi / 2.0, qubits[b_virt])
+    builder.h(qubits[a_virt])
 
-    kernel.rx(np.pi / 2.0, qubits[a_virt])
-    kernel.h(qubits[b_virt])
+    builder.rx(np.pi / 2.0, qubits[a_virt])
+    builder.h(qubits[b_virt])
 
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
+        builder.cx(qubits[i], qubits[i + 1])
 
-    kernel.rz(-0.125 * theta, qubits[b_virt])
+    builder.rz(-0.125 * theta, qubits[b_virt])
 
     for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
+        builder.cx(qubits[i - 1], qubits[i])
+    builder.cx(qubits[j_occ], qubits[a_virt])
     for i in range(j_occ, i_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
+        builder.cx(qubits[i - 1], qubits[i])
 
-    kernel.h(qubits[b_virt])
-    kernel.rx(-np.pi / 2.0, qubits[a_virt])
-    kernel.rx(-np.pi / 2.0, qubits[j_occ])
-    kernel.rx(-np.pi / 2.0, qubits[i_occ])
+    builder.h(qubits[b_virt])
+    builder.rx(-np.pi / 2.0, qubits[a_virt])
+    builder.rx(-np.pi / 2.0, qubits[j_occ])
+    builder.rx(-np.pi / 2.0, qubits[i_occ])
 
 
-def uccsd(kernel, qubits: cudaq.qview, thetas: list[float], n_electrons: int,
+def uccsd(builder, qubits: cudaq.qview, thetas: list[float], n_electrons: int,
           n_qubits: int):
 
     # This function generates a quantum circuit for the VQE-UCCSD ansatz
@@ -337,29 +337,29 @@ def uccsd(kernel, qubits: cudaq.qview, thetas: list[float], n_electrons: int,
 
     thetaCounter = 0
     for i in range(n_alpha_singles):
-        single_excitation_gate(kernel, qubits, singles_alpha[i][0],
+        single_excitation_gate(builder, qubits, singles_alpha[i][0],
                                singles_alpha[i][1], thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_singles):
-        single_excitation_gate(kernel, qubits, singles_beta[i][0],
+        single_excitation_gate(builder, qubits, singles_beta[i][0],
                                singles_beta[i][1], thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_mixed_doubles):
-        double_excitation_gate_opt(kernel, qubits, doubles_mixed[i][0],
+        double_excitation_gate_opt(builder, qubits, doubles_mixed[i][0],
                                    doubles_mixed[i][1], doubles_mixed[i][2],
                                    doubles_mixed[i][3], thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_alpha_doubles):
-        double_excitation_gate_opt(kernel, qubits, doubles_alpha[i][0],
+        double_excitation_gate_opt(builder, qubits, doubles_alpha[i][0],
                                    doubles_alpha[i][1], doubles_alpha[i][2],
                                    doubles_alpha[i][3], thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_doubles):
-        double_excitation_gate_opt(kernel, qubits, doubles_beta[i][0],
+        double_excitation_gate_opt(builder, qubits, doubles_beta[i][0],
                                    doubles_beta[i][1], doubles_beta[i][2],
                                    doubles_beta[i][3], thetas[thetaCounter])
         thetaCounter += 1
