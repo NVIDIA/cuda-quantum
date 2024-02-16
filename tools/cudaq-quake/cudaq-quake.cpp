@@ -305,7 +305,8 @@ int main(int argc, char **argv) {
   [[maybe_unused]] llvm::InitLLVM unused(argc, argv);
   cl::ParseCommandLineOptions(argc, argv, toolName);
   if (showVersion)
-    llvm::errs() << "nvq++ Version " << cudaq::getVersion() << '\n';
+    llvm::errs() << "nvq++ Version " << cudaq::getVersion() << " ("
+                 << cudaq::getFullRepositoryVersion() << ")" << '\n';
   ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrError =
       MemoryBuffer::getFileOrSTDIN(inputFilename);
   if (auto ec = fileOrError.getError()) {
