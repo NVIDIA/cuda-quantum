@@ -198,7 +198,22 @@ public:
     for (auto &t : targets)
       mutable_targets.push_back(t);
 
-    if (isAdjoint || !adjointQueueStack.empty()) {
+    // We need to check if we need take the adjoint of the operation. To do this
+    // we use a logical XOR between `isAdjoint` and whether the size of
+    // `adjointQueueStack` is even. The size of `adjointQueueStack` corresponds
+    // to the number of nested `cudaq::adjoint` calls. If the size is even, then
+    // we need to change the operation when `isAdjoint` is true. If the size is
+    // odd, then we need to change the operation when `isAdjoint` is false.
+    // (Adjoint modifiers cancel each other, e.g, `adj adj r1` is `r1`.)
+    //
+    // The cases:
+    //  * not-adjoint, even number of `cudaq::adjoint` => _no_ need to change op
+    //  * not-adjoint, odd number of `cudaq::adjoint`  => change op
+    //  * adjoint,     even number of `cudaq::adjoint` => change op
+    //  * adjoint,     odd number `cudaq::adjoint`     => _no_ need to change op
+    //
+    bool evenAdjointStack = (adjointQueueStack.size() % 2) == 0;
+    if (isAdjoint != !evenAdjointStack) {
       for (std::size_t i = 0; i < params.size(); i++)
         mutable_params[i] = -1.0 * params[i];
       if (gateName == "t")
