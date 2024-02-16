@@ -49,7 +49,7 @@ def testUCCSD():
     kernel.x(qubits[1])
     cudaq.kernels.uccsd(kernel, qubits, thetas, numElectrons, numQubits)
 
-    num_parameters = cudaq.kernels.uccsd_num_parameters(numElectrons, numQubits)
+    num_parameters = cudaq.uccsd_num_parameters(numElectrons, numQubits)
 
     # Run VQE
     optimizer = cudaq.optimizers.COBYLA()

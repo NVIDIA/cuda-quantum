@@ -117,7 +117,7 @@ def is_jit_enabled():
 
 # Expose chemistry domain functions
 from .domains import chemistry
-from .kernels import uccsd
+from .kernels import uccsd, uccsd_num_parameters
 
 if not "CUDAQ_DYNLIBS" in os.environ:
     try:
