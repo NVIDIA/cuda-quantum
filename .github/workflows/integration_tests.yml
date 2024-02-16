@@ -415,7 +415,7 @@ jobs:
         if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
         run: |
           echo "### Submit to NVCF" >> $GITHUB_STEP_SUMMARY
-          export NVQC_SERVICE_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
+          export NVCF_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
           export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
           export CUDAQ_LOG_LEVEL="info"
@@ -580,7 +580,7 @@ jobs:
       - name: Test NVCF 
         run: |
           echo "### Submit to NVCF from Python wheels" >> $GITHUB_STEP_SUMMARY
-          export NVQC_SERVICE_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
+          export NVCF_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
           export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
           export CUDAQ_LOG_LEVEL="info"
