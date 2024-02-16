@@ -31,6 +31,7 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 build_configuration=Release
 verbose=false
 compiler_rt=false
+llvm_runtimes=""
 
 __optind__=$OPTIND
 OPTIND=1
@@ -39,7 +40,7 @@ while getopts ":c:rs:v" opt; do
     c) build_configuration="$OPTARG"
     ;;
     r) compiler_rt=true
-    LLVM_PROJECTS="${LLVM_PROJECTS};compiler-rt"
+    llvm_runtimes="compiler-rt"
     ;;
     s) llvm_source="$OPTARG"
     ;;
@@ -150,6 +151,7 @@ cmake_args="-G Ninja ../llvm \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
   -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
+  -DLLVM_ENABLE_RUNTIMES="$llvm_runtimes" \
   -DLLVM_DISTRIBUTION_COMPONENTS=$llvm_components \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
@@ -191,34 +193,10 @@ else
 fi
 
 if $compiler_rt; then
-  # This installs a bunch of large executables that aren't needed. Only keep this files
-  echo "Removing unneeded binaries to free up space"
-  cat > /tmp/keep.txt << EOF
-^FileCheck$
-^clang$
-^clang++$
-^clang-16$
-^clang-cl$
-^clang-cpp$
-^clang-format$
-^count$
-^git-clang-format$
-^ld.lld$
-^ld64.lld$
-^llc$
-^lld$
-^lld-link$
-^llvm-addr2line$
-^llvm-ar$
-^llvm-config$
-^llvm-lit$
-^llvm-nm$
-^llvm-symbolizer$
-^mlir-tblgen$
-^not$
-^wasm-ld$
-EOF
-  cd $LLVM_INSTALL_PREFIX/bin
-  ls | grep -v -f /tmp/keep.txt | xargs rm
-  rm /tmp/keep.txt
+  cd $llvm_source/build && ninja runtimes && ninja install-runtimes
+  status=$?
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo "Build failed. Please check the files in the `pwd`/logs directory."
+    cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+  fi
 fi
