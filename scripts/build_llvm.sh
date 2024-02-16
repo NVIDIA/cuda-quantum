@@ -39,6 +39,7 @@ while getopts ":c:rs:v" opt; do
     c) build_configuration="$OPTARG"
     ;;
     r) compiler_rt=true
+    LLVM_PROJECTS="${LLVM_PROJECTS};compiler-rt"
     ;;
     s) llvm_source="$OPTARG"
     ;;
@@ -116,7 +117,7 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
 fi
 echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
-llvm_components+="llvm-config;llvm-ar;llc;FileCheck;count;not;"
+llvm_components+="llvm-config;llvm-ar;llvm-nm;llvm-symbolizer;llc;FileCheck;count;not;"
 
 if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
   echo "- including additional projects "$(echo "${projects[*]}" | xargs | tr ' ' ',')
@@ -189,31 +190,35 @@ else
   cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
 fi
 
-
 if $compiler_rt; then
-  # Build and install compiler-rt
-  cd "$llvm_source"
-  mkdir build-compiler-rt
-  cd build-compiler-rt
-  cmake -G Ninja ../compiler-rt \
-    -DLLVM_CMAKE_DIR=$llvm_source/build/cmake/modules \
-    -DCMAKE_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX/lib/clang/16
-
-  # Note that install-distribution-stripped is not a valid target for compiler-rt
-  echo "Building LLVM compiler-rt ..."
-  if $verbose; then
-    ninja install
-    status=$?
-  else
-    echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
-    ninja install 2> logs/ninja_error.txt 1> logs/ninja_output.txt
-    status=$?
-  fi
-
-  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
-    echo "Build failed. Please check the files in the `pwd`/logs directory."
-    cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
-  else
-    echo "Installed compiler-rt"
-  fi
+  # This installs a bunch of large executables that aren't needed. Only keep this files
+  echo "Removing unneeded binaries to free up space"
+  cat > /tmp/keep.txt << EOF
+^FileCheck$
+^clang$
+^clang++$
+^clang-16$
+^clang-cl$
+^clang-cpp$
+^clang-format$
+^count$
+^git-clang-format$
+^ld.lld$
+^ld64.lld$
+^llc$
+^lld$
+^lld-link$
+^llvm-addr2line$
+^llvm-ar$
+^llvm-config$
+^llvm-lit$
+^llvm-nm$
+^llvm-symbolizer$
+^mlir-tblgen$
+^not$
+^wasm-ld$
+EOF
+  cd $LLVM_INSTALL_PREFIX/bin
+  ls | grep -v -f /tmp/keep.txt | xargs rm
+  rm /tmp/keep.txt
 fi

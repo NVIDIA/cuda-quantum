@@ -82,9 +82,6 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project
 
-# toolchain=llvm needs nm command for compiler-rt
-RUN apt-get update && apt-get install -y --no-install-recommends binutils
-
 # Now we install LLVM to the final location
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 
