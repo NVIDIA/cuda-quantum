@@ -418,7 +418,6 @@ jobs:
           export NVCF_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
           export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
-          export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
           # Test all NVQPP execution tests
@@ -552,7 +551,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [metadata, build_nvcf_image, deploy_nvcf_test_function]
     environment: backend-validation
-    if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    if: inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly'
 
     steps:
       - name: Get code
@@ -562,28 +561,61 @@ jobs:
           fetch-depth: 1
 
       - name: Install wheel
+        id: install_wheel
         run: |
-          workflow_id=${{ inputs.workflow_id }}
-          if [ -z "${workflow_id}" ]; then
-            workflow_id=$(gh run list --commit ${{ needs.metadata.outputs.cudaq_commit }} --workflow Publishing --status completed --event workflow_dispatch --limit 1 --json databaseId | jq '.[0].databaseId')
-          fi
-          echo "Using artifacts from workflow id $workflow_id"
-          gh run download $workflow_id
           python_version=${{ inputs.python_version }}
-          python_version_filename=$(echo "${python_version//.}")
-          apt-get update && apt-get install -y --no-install-recommends python$python_version python3-pip
-          wheelfile=$(find . -name "cuda_quantum*cp$python_version_filename*x86_64.whl")
-          python$python_version -m pip install $wheelfile
+          workflow_id=${{ inputs.workflow_id }}
+          # Helper to get the *valid* Publishing run Id for a commit hash
+          # Notes: runs that have 'CUDA Quantum Python wheels' jobs skipped are not considered.
+          function get_publishing_run_id {
+            # Find all successful Publishing runs
+            publishing_run_ids=$(gh run list --commit $1 --workflow Publishing --status success --json databaseId --jq .[].databaseId)
+            for run_id in $publishing_run_ids ; do
+                # Look into its jobs: if "CUDA Quantum Python wheels" matrix build was performed, 
+                # then we have multiple jobs, like "CUDA Quantum Python wheels (python_arm64....")
+                cuda_wheel_build_jobs=$(gh run view $run_id --jq '.jobs.[] | select(.name | startswith("CUDA Quantum Python wheels (python_")).name' --json jobs)
+                if [ ! -z "$cuda_wheel_build_jobs" ]; then
+                  # This is a valid run that produces wheel artifacts
+                  echo $run_id
+                  break
+                fi
+            done
+          } 
+          
+          if [ -z "${workflow_id}" ]; then
+            workflow_id=$(get_publishing_run_id ${{ needs.metadata.outputs.cudaq_commit }})
+          fi
+          if [ ! -z "$workflow_id" ]; then
+            echo "Using artifacts from workflow id $workflow_id"
+            gh run download $workflow_id --name "x86_64-py$python_version-wheels" 
+            retVal=$?
+            if [ $retVal -ne 0 ]; then
+              echo "Failed to download wheels artifact from Publishing workflow run Id $workflow_id. Perhaps the artifacts have been expired."
+              # This is allowed since there might be a period where no Publishing workflow is run (e.g., no PR merged to main).
+              echo "skipped=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            python_version_filename=$(echo "${python_version//.}")
+            # Install Python and the wheel
+            apt-get update && apt-get install -y --no-install-recommends python$python_version python3-pip
+            wheelfile=$(find . -name "cuda_quantum*cp$python_version_filename*x86_64.whl")
+            python$python_version -m pip install $wheelfile  
+            echo "skipped=false" >> $GITHUB_OUTPUT
+          else
+            echo "Failed to retrieve Publishing workflow run Id for commit ${{ needs.metadata.outputs.cudaq_commit }}"
+            exit 1
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Test NVCF 
+        if: ${{ ! steps.install_wheel.skipped }}
         run: |
           echo "### Submit to NVCF from Python wheels" >> $GITHUB_STEP_SUMMARY
+          python_version=${{ inputs.python_version }}
           export NVCF_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
           export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
-          export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
           for ex in `find examples/python -name '*.py'`; do 
@@ -591,7 +623,7 @@ jobs:
             filename="${filename%.*}"
             echo "Testing $filename:"
             if [[ "$ex" == *"nvcf"* ]]; then
-              python3 $ex 1> /dev/null
+              python$python_version $ex 1> /dev/null
               test_status=$?
               if [ $test_status -eq 0 ]; then
                 echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
