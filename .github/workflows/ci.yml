@@ -109,7 +109,7 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      toolchain: gcc12
+      toolchain: gcc11
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         distro=rhel8
