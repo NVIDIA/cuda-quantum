@@ -1,8 +1,6 @@
 import cudaq
 import random
 
-cudaq.enable_jit()
-
 
 def random_bitstring(length: int):
     bitstring = []
