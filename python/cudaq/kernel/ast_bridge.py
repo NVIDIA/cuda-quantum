@@ -1355,7 +1355,7 @@ class PyASTBridge(ast.NodeVisitor):
         # `for i, r in enumerate(listVar):`
         # `   listVar[i] = expr(r)`
 
-        # Let's handle the following listVar types
+        # Let's handle the following `listVar` types
         # `   %9 = cc.alloca !cc.array<!cc.stdvec<T> x 2> -> ptr<array<stdvec<T> x N>`
         # or
         # `    %3 = cc.alloca T[%2 : i64] -> ptr<array<T>>`
