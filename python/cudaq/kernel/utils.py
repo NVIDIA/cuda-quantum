@@ -73,7 +73,7 @@ def mlirTypeFromAnnotation(annotation, ctx):
         return IntegerType.get_signless(64)
     elif annotation.id == 'float':
         return F64Type.get()
-    elif annotation.id == 'list' or annotation.id == 'List':
+    elif annotation.id == 'list':
         return cc.StdvecType.get(ctx, F64Type.get())
     elif annotation.id == 'bool':
         return IntegerType.get_signless(1)
