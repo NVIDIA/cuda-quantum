@@ -1351,18 +1351,18 @@ class PyASTBridge(ast.NodeVisitor):
         # General case of
         # `listVar = [expr(i) for i in iterable]`
         # Need to think of this as
-        # listVar = stdvec(iterable.size)
-        # for i, r in enumerate(listVar):
-        #    listVar[i] = expr(r)
+        # `listVar = stdvec(iterable.size)`
+        # `for i, r in enumerate(listVar):`
+        # `   listVar[i] = expr(r)`
 
         # Let's handle the following listVar types
-        #    %9 = cc.alloca !cc.array<!cc.stdvec<T> x 2> -> ptr<array<stdvec<T> x N>
+        # `   %9 = cc.alloca !cc.array<!cc.stdvec<T> x 2> -> ptr<array<stdvec<T> x N>`
         # or
-        #     %3 = cc.alloca T[%2 : i64] -> ptr<array<T>>
+        # `    %3 = cc.alloca T[%2 : i64] -> ptr<array<T>>`
         self.visit(node.generators[0].iter)
         iterableSize = self.popValue()
         iterable = self.popValue()
-        # We require that the iterable is a pointer to an array<T>
+        # We require that the iterable is a pointer to an `array<T>`
         if not cc.PointerType.isinstance(iterable.type):
             raise RuntimeError(
                 "CUDA Quantum only considers general list comprehension on iterables from range(...)"
@@ -1376,9 +1376,9 @@ class PyASTBridge(ast.NodeVisitor):
 
         arrayEleTy = cc.ArrayType.getElementType(arrayTy)
 
-        # If node.elt is ast.List, then we want to allocated a
-        # cc.array<cc.stdvec<i64> x len(node.elt.elts)>
-        # otherwise we just want to allocate an array<T>
+        # If `node.elt` is `ast.List`, then we want to allocate a
+        # `cc.array<cc.stdvec<i64> x len(node.elt.elts)>`
+        # otherwise we just want to allocate an `array<T>`
         listValue = None
         listComputePtrTy = arrayEleTy
         if not isinstance(node.elt, ast.List):
@@ -1651,7 +1651,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(var)
                 return
             if cc.ArrayType.isinstance(ptrEleTy):
-                # Here we want subscript on ptr<array<>>
+                # Here we want subscript on `ptr<array<>>`
                 arrayEleTy = cc.ArrayType.getElementType(ptrEleTy)
                 ptrEleTy = cc.PointerType.get(self.ctx, arrayEleTy)
                 casted = cc.CastOp(ptrEleTy, var).result
