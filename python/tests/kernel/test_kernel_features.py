@@ -113,15 +113,13 @@ def test_control():
 def test_grover():
     """Test that compute_action works in tandem with kernel composability."""
 
-    @cudaq.kernel  #(verbose=True)
+    @cudaq.kernel 
     def reflect(qubits: cudaq.qview):
         ctrls = qubits.front(qubits.size() - 1)
         last = qubits.back()
         cudaq.compute_action(lambda: (h(qubits), x(qubits)),
                              lambda: z.ctrl(ctrls, last))
 
-    # FIXME This currently has to be defined before the
-    # kernel that uses it as input
     @cudaq.kernel
     def oracle(q: cudaq.qview):
         z.ctrl(q[0], q[2])
@@ -344,3 +342,68 @@ def test_decrementing_range():
     counts = cudaq.sample(test, 2, 0)
     counts.dump()
     assert '01100' in counts and len(counts) == 1
+
+
+def test_no_dynamic_lists():
+    with pytest.raises(RuntimeError) as error:
+        @cudaq.kernel(jit=True)
+        def kernel(params : list[float]):
+            params.append(1.0)
+
+    with pytest.raises(RuntimeError) as error:
+        @cudaq.kernel(jit=True)
+        def kernel():
+            l = [i for i in range(10)]
+            l.append(11)
+        print(kernel)
+    
+    with pytest.raises(RuntimeError) as error:
+        @cudaq.kernel(jit=True)
+        def kernel():
+            l = [[i,i,i] for i in range(10)]
+            l.append([11,12,13])
+        print(kernel)
+
+def test_simple_return_types():
+    @cudaq.kernel
+    def kernel(a:int, b:int) -> int:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert ret == 8
+
+    @cudaq.kernel
+    def qernel(a:float, b:float) -> float:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert np.isclose(ret, 8., atol=1e-12)
+
+    with pytest.raises(RuntimeError) as error:
+        @cudaq.kernel
+        def kernel(a:int, b:int): # No return type
+            return a * b
+
+
+def test_list_creation():
+
+    N = 10 
+    @cudaq.kernel
+    def kernel(N :int, idx: int) -> int:
+        myList = [i+1 for i in range(N-1)]
+        return myList[idx]
+
+    for i in range(N-1):
+        assert kernel(N, i) == i+1
+    
+    @cudaq.kernel
+    def kernel2(N: int, i:int, j:int) -> int:
+        myList = [[k,k] for k in range(N)]
+        l = myList[i] 
+        return l[j]
+    
+    print(kernel2(5, 0, 0))
+    for i in range(N):
+        for j in range(2):
+            print(i, j, kernel2(N, i, j))
+            assert kernel2(N, i, j) == i

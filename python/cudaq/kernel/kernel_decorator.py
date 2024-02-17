@@ -15,7 +15,7 @@ from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry
 from .qubit_qis import h, x, y, z, s, t, rx, ry, rz, r1, swap, exp_pauli, mx, my, mz, adjoint, control, compute_action
-from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures
+from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # This file implements the decorator mechanism needed to
@@ -83,6 +83,8 @@ class PyKernelDecorator(object):
                         'arg{}'.format(i): mlirTypeToPyType(v.type)
                         for i, v in enumerate(self.argTypes)
                     }
+                    self.returnType = self.signature[
+                        'return'] if 'return' in self.signature else None
                 return
             else:
                 raise RuntimeError(
@@ -106,7 +108,19 @@ class PyKernelDecorator(object):
         # Assign the signature for use later and
         # keep a list of arguments (used for validation in the runtime)
         self.signature = inspect.getfullargspec(self.kernelFunction).annotations
-        self.arguments = [(k, v) for k, v in self.signature.items()]
+        self.arguments = [
+            (k, v) for k, v in self.signature.items() if k != 'return'
+        ]
+        self.returnType = self.signature[
+            'return'] if 'return' in self.signature else None
+
+        # Validate that we have a return type annotation if necessary
+        hasRetNodeVis = HasReturnNodeVisitor()
+        hasRetNodeVis.visit(self.astModule)
+        if hasRetNodeVis.hasReturnNode and 'return' not in self.signature:
+            raise RuntimeError(
+                'CUDA Quantum kernel has return statement but no return type annotation.'
+            )
 
         # Run analyzers and attach metadata (only have 1 right now)
         analyzer = MidCircuitMeasurementAnalyzer()
@@ -115,8 +129,10 @@ class PyKernelDecorator(object):
 
         if not self.library_mode:
             # If not eager mode, JIT compile to MLIR
-            self.module, self.argTypes = compile_to_mlir(self.astModule,
-                                                         verbose=self.verbose)
+            self.module, self.argTypes = compile_to_mlir(
+                self.astModule,
+                verbose=self.verbose,
+                returnType=self.returnType)
             if self.metadata['conditionalOnMeasure']:
                 SymbolTable(
                     self.module.operation)[nvqppPrefix +
@@ -182,8 +198,7 @@ class PyKernelDecorator(object):
 
         # Library Mode, don't need Quake, just call the function
         if self.library_mode:
-            self.kernelFunction(*args)
-            return
+            return self.kernelFunction(*args)
 
         if len(args) != len(self.argTypes):
             raise RuntimeError(
@@ -225,10 +240,18 @@ class PyKernelDecorator(object):
             else:
                 processedArgs.append(arg)
 
-        cudaq_runtime.pyAltLaunchKernel(self.name,
-                                        self.module,
-                                        *processedArgs,
-                                        callable_names=callableNames)
+        if self.returnType == None:
+            cudaq_runtime.pyAltLaunchKernel(self.name,
+                                            self.module,
+                                            *processedArgs,
+                                            callable_names=callableNames)
+        else:
+            return cudaq_runtime.pyAltLaunchKernelR(
+                self.name,
+                self.module,
+                mlirTypeFromPyType(self.returnType, self.module.context),
+                *processedArgs,
+                callable_names=callableNames)
 
 
 def kernel(function=None, **kwargs):

@@ -13,10 +13,12 @@ from ..mlir.ir import *
 
 
 class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
-    """The `MidCircuitMeasurementAnalyzer` is a utility class searches for 
-       common measurement - conditional patterns to indicate to the runtime 
-       that we have a circuit with mid-circuit measurement and subsequent conditional 
-       quantum operation application."""
+    """
+    The `MidCircuitMeasurementAnalyzer` is a utility class searches for 
+    common measurement - conditional patterns to indicate to the runtime 
+    that we have a circuit with mid-circuit measurement and subsequent conditional 
+    quantum operation application.
+    """
 
     def __init__(self):
         self.measureResultsVars = []
@@ -269,3 +271,18 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                 ] and node.args[0].id in globalAstRegistry:
                     self.depKernels[node.args[0].id] = globalAstRegistry[
                         node.args[0].id]
+
+
+class HasReturnNodeVisitor(ast.NodeVisitor):
+    """
+    This visitor will visit the function definition and report 
+    true if that function has a return statement.
+    """
+
+    def __init__(self):
+        self.hasReturnNode = False
+
+    def visit_FunctionDef(self, node):
+        for n in node.body:
+            if isinstance(n, ast.Return):
+                self.hasReturnNode = True

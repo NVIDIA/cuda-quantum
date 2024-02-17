@@ -85,7 +85,11 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     };
 
     auto jitOrError = ExecutionEngine::create(cloned, opts);
-    assert(!!jitOrError);
+    if (auto E = jitOrError.takeError())
+      throw std::runtime_error(
+          "CUDA Quantum failed to create Execution Engine - " +
+          llvm::toString(std::move(E)));
+
     auto uniqueJit = std::move(jitOrError.get());
     jit = uniqueJit.release();
     jitCache->cache(hashKey, jit);
@@ -107,9 +111,10 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   return std::make_tuple(jit, rawArgs, size);
 }
 
-void pyAltLaunchKernel(const std::string &name, MlirModule module,
-                       cudaq::OpaqueArguments &runtimeArgs,
-                       const std::vector<std::string> &names) {
+std::tuple<void *, std::size_t>
+pyAltLaunchKernelBase(const std::string &name, MlirModule module,
+                      cudaq::OpaqueArguments &runtimeArgs,
+                      const std::vector<std::string> &names) {
   auto [jit, rawArgs, size] =
       jitAndCreateArgs(name, module, runtimeArgs, names);
 
@@ -157,7 +162,43 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
   } else
     cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size, 0);
 
+  return std::make_tuple(rawArgs, size);
+}
+
+void pyAltLaunchKernel(const std::string &name, MlirModule module,
+                       cudaq::OpaqueArguments &runtimeArgs,
+                       const std::vector<std::string> &names) {
+  auto [rawArgs, size] =
+      pyAltLaunchKernelBase(name, module, runtimeArgs, names);
   std::free(rawArgs);
+}
+
+py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
+                              MlirType returnType,
+                              cudaq::OpaqueArguments &runtimeArgs,
+                              const std::vector<std::string> &names) {
+
+  auto [rawArgs, size] =
+      pyAltLaunchKernelBase(name, module, runtimeArgs, names);
+  auto unwrapped = unwrap(returnType);
+
+  if (unwrapped.isInteger(64)) {
+    std::size_t concrete;
+    // Here we know the return type should be at
+    // the last 8 bytes of memory
+    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
+    std::free(rawArgs);
+    return py::int_(concrete);
+  } else if (isa<FloatType>(unwrapped)) {
+    double concrete;
+    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
+    std::free(rawArgs);
+    return py::float_(concrete);
+  }
+
+  std::free(rawArgs);
+  unwrapped.dump();
+  throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
 }
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
@@ -245,6 +286,18 @@ void bindAltLaunchKernel(py::module &mod) {
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
       py::arg("callable_names") = std::vector<std::string>{}, "DOC STRING");
+  mod.def(
+      "pyAltLaunchKernelR",
+      [&](const std::string &kernelName, MlirModule module, MlirType returnType,
+          py::args runtimeArgs, std::vector<std::string> callable_names) {
+        cudaq::OpaqueArguments args;
+        cudaq::packArgs(args, runtimeArgs, callableArgHandler);
+        return pyAltLaunchKernelR(kernelName, module, returnType, args,
+                                  callable_names);
+      },
+      py::arg("kernelName"), py::arg("module"), py::arg("returnType"),
+      py::kw_only(), py::arg("callable_names") = std::vector<std::string>{},
+      "DOC STRING");
 
   mod.def("synthesize", [](py::object kernel, py::args runtimeArgs) {
     MlirModule module = kernel.attr("module").cast<MlirModule>();
