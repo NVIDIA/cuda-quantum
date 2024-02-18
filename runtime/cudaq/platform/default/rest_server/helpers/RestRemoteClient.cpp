@@ -325,14 +325,14 @@ public:
       if (apiKeyIter != configs.end())
         m_apiKey = apiKeyIter->second;
       if (m_apiKey.empty())
-        throw std::runtime_error("No NVCF API key is provided.");
+        throw std::runtime_error("No NVQC API key is provided.");
     }
     {
       const auto funcIdIter = configs.find("function-id");
       if (funcIdIter != configs.end())
         m_functionId = funcIdIter->second;
       if (m_functionId.empty())
-        throw std::runtime_error("No NVCF function Id is provided.");
+        throw std::runtime_error("No NVQC function Id is provided.");
     }
     {
       auto versions = getFunctionVersions();
@@ -349,14 +349,14 @@ public:
         // Invalid version Id.
         if (versionInfoIter == versions.end())
           throw std::runtime_error(
-              fmt::format("Version Id '{}' is not valid for NVCF function Id "
-                          "'{}'. Please check your NVCF configurations.",
+              fmt::format("Version Id '{}' is not valid for NVQC function Id "
+                          "'{}'. Please check your NVQC configurations.",
                           m_functionVersionId, m_functionId));
         // The version is not active/deployed.
         if (versionInfoIter->status != cudaq::FunctionStatus::ACTIVE)
           throw std::runtime_error(
-              fmt::format("Version Id '{}' of NVCF function Id "
-                          "'{}' is not ACTIVE. Please check your NVCF "
+              fmt::format("Version Id '{}' of NVQC function Id "
+                          "'{}' is not ACTIVE. Please check your NVQC "
                           "configurations or contact support.",
                           m_functionVersionId, m_functionId));
       } else {
@@ -381,7 +381,7 @@ public:
 
         if (activeVersions.empty())
           throw std::runtime_error(
-              fmt::format("No active version available for NVCF function Id "
+              fmt::format("No active version available for NVQC function Id "
                           "'{}'. Please check your function Id.",
                           m_functionId));
 
@@ -426,7 +426,7 @@ public:
     // `sendRequest` function exits (success or not).
     ScopeExit deleteAssetOnExit([&]() {
       if (assetId.has_value()) {
-        cudaq::info("Deleting NVCF Asset Id {}", assetId.value());
+        cudaq::info("Deleting NVQC Asset Id {}", assetId.value());
         auto headers = getHeaders();
         m_restClient.del(nvcfAssetUrl(), std::string("/") + assetId.value(),
                          headers, /*enableLogging=*/false, /*enableSsl=*/true);
@@ -438,7 +438,7 @@ public:
       assetId = uploadRequest(request);
       if (!assetId.has_value()) {
         if (optionalErrorMsg)
-          *optionalErrorMsg = "Failed to upload request as NVCF assets";
+          *optionalErrorMsg = "Failed to upload request to NVQC as NVCF assets";
         return false;
       }
       json requestBody;
@@ -454,7 +454,7 @@ public:
 
     try {
       // Making the request
-      cudaq::debug("Sending NVCF request to {}", nvcfInvocationUrl());
+      cudaq::debug("Sending NVQC request to {}", nvcfInvocationUrl());
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
@@ -528,13 +528,13 @@ public:
 
       if (!resultJs.contains("response")) {
         if (optionalErrorMsg)
-          *optionalErrorMsg = "Unexpected response from the NVCF invocation. "
+          *optionalErrorMsg = "Unexpected response from the NVQC invocation. "
                               "Missing the 'response' field.";
         return false;
       }
       if (!resultJs["response"].contains("executionContext")) {
         if (optionalErrorMsg)
-          *optionalErrorMsg = "Unexpected response from the NVCF response. "
+          *optionalErrorMsg = "Unexpected response from the NVQC response. "
                               "Missing the required field 'executionContext'.";
         return false;
       }
@@ -553,7 +553,7 @@ public:
   uploadRequest(const cudaq::RestRequest &jobRequest) {
     json requestJson;
     requestJson["contentType"] = "application/json";
-    requestJson["description"] = "cudaq-nvcf-job";
+    requestJson["description"] = "cudaq-nvqc-job";
     try {
       auto headers = getHeaders();
       auto resultJs =
@@ -561,11 +561,12 @@ public:
                             /*enableLogging=*/false, /*enableSsl=*/true);
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
-      cudaq::info("Upload NVCF Asset Id {} to {}", assetId, uploadUrl);
+      cudaq::info("Upload NVQC job request as NVCF Asset Id {} to {}", assetId,
+                  uploadUrl);
       std::map<std::string, std::string> uploadHeader;
       // This must match the request to create the upload link
       uploadHeader["Content-Type"] = "application/json";
-      uploadHeader["x-amz-meta-nvcf-asset-description"] = "cudaq-nvcf-job";
+      uploadHeader["x-amz-meta-nvcf-asset-description"] = "cudaq-nvqc-job";
       json jobRequestJs = jobRequest;
       m_restClient.put(uploadUrl, "", jobRequestJs, uploadHeader,
                        /*enableLogging=*/false, /*enableSsl=*/true);
