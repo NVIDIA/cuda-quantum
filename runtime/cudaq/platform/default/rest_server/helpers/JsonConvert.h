@@ -11,7 +11,7 @@
 #include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
 #include "nlohmann/json.hpp"
-/*! \file JsonConvert.h
+/*! \file
     \brief Utility to support JSON serialization between the client and server.
 */
 
