@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -935,7 +935,10 @@ public:
                                const std::vector<std::size_t> &targets) {
     flushAnySamplingTasks();
     QuantumOperation gate;
-    cudaq::info(gateToString(gate.name(), controls, angles, targets));
+    // This is a very hot section of code. Don't form the log string unless
+    // we're actually going to use it.
+    if (cudaq::details::should_log(cudaq::details::LogLevel::info))
+      cudaq::info(gateToString(gate.name(), controls, angles, targets));
     enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
   }
 
