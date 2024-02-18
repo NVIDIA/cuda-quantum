@@ -81,7 +81,16 @@ endif()
 
 # Enable the REST code by default.
 if (NOT DEFINED CUDAQ_ENABLE_REST)
-  set(CUDAQ_ENABLE_REST ON)
+  set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
+endif()
+
+# Enable the remote simulator by default.
+if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
+  set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building cudaq-qpud.")
+  # Optionally enable the tests that use cudaq-qpud.
+  if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
+    set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
+  endif()
 endif()
 
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
