@@ -152,14 +152,16 @@ public:
     // API key and function Id are required.
     if (apiKey.empty())
       throw std::runtime_error(
-          "Cannot find NVQC API key. Please provide a valid API key.");
+          "Cannot find NVQC API key. Please refer to the documentation for "
+          "information about obtaining and using your NVQC API key.");
 
     if (!apiKey.starts_with("nvapi-"))
       std::runtime_error(
           "An invalid NVQC API key is provided. Please check your settings.");
     if (functionId.empty())
       throw std::runtime_error(
-          "Cannot find NVQC Function ID. Please provide a valid Function ID.");
+          "Cannot find NVQC Function ID. Please refer to the documentation for "
+          "information about obtaining and using your NVQC Function ID.");
 
     std::unordered_map<std::string, std::string> clientConfigs{
         {"api-key", apiKey}, {"function-id", functionId}};
