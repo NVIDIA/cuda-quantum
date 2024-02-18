@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: remote-sim
+
 // clang-format off
 // RUN: nvq++ %cpp_std --target remote-mqpu %s 2>&1 | FileCheck %s
 // clang-format on

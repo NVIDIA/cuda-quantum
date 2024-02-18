@@ -1,1 +1,1 @@
-../../test/NVQPP/sudoku_2x2-bit_names.cpp
+../execution/sudoku_2x2-bit_names.cpp
