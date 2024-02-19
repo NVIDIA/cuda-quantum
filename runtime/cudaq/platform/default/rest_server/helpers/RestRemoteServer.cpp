@@ -350,11 +350,26 @@ private:
     // Verify MLIR conforming to the NVQIR-spec (known runtime functions and/or
     // QIR functions)
     {
+      // Collect all functions that are defined in this module Ops.
+      const std::vector<llvm::StringRef> allFunctionNames = [&]() {
+        std::vector<llvm::StringRef> allFuncs;
+        for (auto &op : *module.getBody()) {
+          auto funcOp = dyn_cast<func::FuncOp>(op);
+          if (!funcOp)
+            continue;
+          allFuncs.emplace_back(funcOp.getName());
+        }
+        return allFuncs;
+      }();
       // Note: run this verification as a standalone step to decouple IR
       // conversion and verfication.
+      // Verification condition: all function definitions can only make function
+      // calls to:
+      //  (1) NVQIR-compliance functions, or
+      //  (2) other functions defined in this module.
       PassManager pm(ctx);
       pm.addNestedPass<LLVM::LLVMFuncOp>(
-          cudaq::opt::createVerifyNVQIRCallOpsPass());
+          cudaq::opt::createVerifyNVQIRCallOpsPass(allFunctionNames));
       if (failed(pm.run(module)))
         throw std::runtime_error(
             "Failed to IR compliance verification against NVQIR runtime.");

@@ -129,6 +129,16 @@ public:
       if (!module)
         throw std::runtime_error("module cannot be parsed");
 
+      {
+        // To optimize remote kernel submission, always apply aggressive early
+        // inlining pass when processing the kernel code.
+        cudaq::info("Apply aggressive early inlining.\n");
+        PassManager pm(&mlirContext);
+        cudaq::opt::addAggressiveEarlyInlining(pm);
+        if (failed(pm.run(module.get())))
+          throw std::runtime_error(
+              "Could not successfully apply aggressive early inlining.");
+      }
       // Extract the kernel name
       auto func = module->lookupSymbol<mlir::func::FuncOp>(
           std::string("__nvqpp__mlirgen__") + name);
