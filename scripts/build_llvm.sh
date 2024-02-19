@@ -198,5 +198,7 @@ if $compiler_rt; then
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo "Build failed. Please check the files in the `pwd`/logs directory."
     cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+  else
+    cd "$working_dir" && echo "Successfully added runtime components."
   fi
 fi
