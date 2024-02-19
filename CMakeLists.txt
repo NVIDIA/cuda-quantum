@@ -419,6 +419,27 @@ configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
 install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
   DESTINATION include/nvqpp)
 
+# Version
+# ==============================================================================
+if (DEFINED ENV{CUDA_QUANTUM_VERSION})
+  # The version was defined by the user (likely a bot performing the build), so
+  # use the value provided as is.
+  set(CUDA_QUANTUM_VERSION "$ENV{CUDA_QUANTUM_VERSION}")
+else()
+  # Otherwise, create a version based on the nearest tag in the git repo.
+  execute_process(COMMAND git describe --tags --abbrev=0 --dirty=-developer
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE CUDA_QUANTUM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+
+# Retrieve the commit SHA for full revision description
+execute_process(COMMAND git rev-parse --verify HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE CUDA_QUANTUM_COMMIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in" 
+               "${CUDAQ_BINARY_DIR}/include/cudaq/Support/Version.h" @ONLY)
+
 # Check optional dependencies
 # ==============================================================================
 find_package(OpenMP)

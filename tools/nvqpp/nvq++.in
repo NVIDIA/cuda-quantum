@@ -173,6 +173,9 @@ function show_help {
 -v
 	Verbose output. Shows the commands the driver executes.
 
+--version
+	Display compiler version information.
+
 -h | --help
 	Print this help.
 HELP
@@ -190,7 +193,8 @@ llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 
 IS_RELOCATABLE_INSTALL=@CUDAQ_RELOCATABLE_BOOL@
 INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
-
+# Full version string of this nvq++ script.
+NVQPP_VERSION_STRING="nvq++ Version @CUDA_QUANTUM_VERSION@ (https://github.com/NVIDIA/cuda-quantum @CUDA_QUANTUM_COMMIT_SHA@)"
 # If we are a relocatable package, then we
 # want to re-divert llvm_install_dir to the install_dir
 if ${IS_RELOCATABLE_INSTALL}; then
@@ -533,7 +537,6 @@ while [ $# -ne 0 ]; do
 		LINKLIBS="${LINKLIBS} $1"
 		;;
 	--version)
-		CUDAQ_QUAKE_ARGS="--nvqpp-version ${CUDAQ_QUAKE_ARGS}"
 		SHOW_VERSION=true
 		;;
 	-v)
@@ -675,9 +678,8 @@ fi
 OPT_PASSES="builtin.module(${OPT_PASSES})"
 
 if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
-	# If version is requested and no source files were provided, bypass the
-	# cudaq-quake path that expects to read code from stdin.
-	echo "" | ${TOOLBIN}cudaq-quake ${CUDAQ_QUAKE_ARGS}
+	# If version is requested and no source files were provided, log the version string.
+	echo "$NVQPP_VERSION_STRING"
 	DO_LINK=false
 fi
 
