@@ -416,6 +416,7 @@ jobs:
     environment: backend-validation
     container:
       image: ${{ inputs.cudaq_test_image }}
+      options: --user root
 
     steps:
       - name: Get code
