@@ -1,1 +1,1 @@
-../../test/NVQPP/sudoku_2x2.cpp
+../execution/sudoku_2x2.cpp
