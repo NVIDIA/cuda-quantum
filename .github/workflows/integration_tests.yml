@@ -20,7 +20,7 @@ on:
           - iqm
           - oqc
           - quantinuum
-          - nvcf
+          - nvqc
       single_test_name:
         type: string
         required: false
@@ -38,11 +38,11 @@ on:
         type: string
         required: false
         description: 'Commit SHA to pull the code (examples/tests) for testing. Default to the commit associated with the CUDA Quantum docker image if left blank'
-      cudaq_nvcf_deploy_image:
+      cudaq_nvqc_deploy_image:
         type: string
         required: false
         default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
-        description: 'CUDA Quantum image to use for NVCF deployment. Default to the latest CUDA Quantum nightly image'
+        description: 'CUDA Quantum image to use for NVQC deployment to NVCF. Default to the latest CUDA Quantum nightly image'
       workflow_id:
         type: string
         required: false
@@ -65,9 +65,9 @@ env:
   # NGC nv-quantum organization: pnyjrcojiblh
   NGC_QUANTUM_ORG: pnyjrcojiblh
   NGC_QUANTUM_TEAM: cuda-quantum
-  NVCF_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
+  NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
-  NGC_NVCF_DEPLOYMENT_SPEC: GFN:L40G:gl40g_1.br20_2xlarge:1:1 
+  NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40G:gl40g_1.br20_2xlarge:1:1 
 
 jobs:
   metadata:
@@ -89,12 +89,12 @@ jobs:
             echo "sha=$(cat $CUDA_QUANTUM_PATH/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
           fi
   
-  build_nvcf_image:
-    name: Build NVCF deployment image
+  build_nvqc_image:
+    name: Build NVQC deployment image
     runs-on: ubuntu-latest
     needs: metadata
     environment: backend-validation
-    if: (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -118,27 +118,27 @@ jobs:
           username: '$oauthtoken'
           password: ${{ secrets.NVQC_CREDENTIALS  }}
 
-      - name: Build NVCF image
+      - name: Build NVQC image
         id: docker_build
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/release/cudaq.nvcf.Dockerfile
+          file: ./docker/release/cudaq.nvqc.Dockerfile
           build-args: |
-            base_image=${{ inputs.cudaq_nvcf_deploy_image }}
+            base_image=${{ inputs.cudaq_nvqc_deploy_image }}
           tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
           push: true
   
-  deploy_nvcf_test_function:
-    name: Deploy NVCF function
+  deploy_nvqc_test_function:
+    name: Deploy NVQC function
     runs-on: ubuntu-latest
-    needs: [metadata, build_nvcf_image]
-    if: (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    needs: [metadata, build_nvqc_image]
+    if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
     environment: backend-validation
     outputs:
-      nvcf_function_version_id: ${{ steps.deploy.outputs.nvcf_function_version_id }}
+      nvqc_function_version_id: ${{ steps.deploy.outputs.nvqc_function_version_id }}
     
     steps:
       - name: Checkout repository
@@ -153,7 +153,7 @@ jobs:
           version: 3.38.0
           checksum: 427c67684d792b673b63882a6d0cbb8777815095c0f2f31559c1570a91187388
 
-      - name: Deploy NVCF Function
+      - name: Deploy NVQC Function
         id: deploy
         env:
           NGC_CLI_API_KEY: ${{ secrets.NVQC_CREDENTIALS  }}
@@ -167,21 +167,21 @@ jobs:
             --health-uri / \
             --inference-url /job \
             --name cudaq-nightly-integration-test \
-            $NVCF_FUNCTION_ID)
+            $NVQC_FUNCTION_ID)
           version_id=$(echo "$create_function_result" | grep 'Version: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
           echo "Create version Id: $version_id"
-          echo "nvcf_function_version_id=$version_id" >> $GITHUB_OUTPUT
+          echo "nvqc_function_version_id=$version_id" >> $GITHUB_OUTPUT
           # Deploy it
-          ngc-cli/ngc cloud-function function deploy create --deployment-specification $NGC_NVCF_DEPLOYMENT_SPEC $NVCF_FUNCTION_ID:$version_id
+          ngc-cli/ngc cloud-function function deploy create --deployment-specification $NGC_NVQC_DEPLOYMENT_SPEC $NVQC_FUNCTION_ID:$version_id
           function_status=DEPLOYING
           while [ "$function_status" =  "DEPLOYING" ]; do 
-            echo "Waiting for deploying NVCF function version $version_id ..." 
+            echo "Waiting for deploying NVQC function version $version_id ..." 
             sleep 120 
-            function_info=$(ngc-cli/ngc cloud-function function info $NVCF_FUNCTION_ID:$version_id)
+            function_info=$(ngc-cli/ngc cloud-function function info $NVQC_FUNCTION_ID:$version_id)
             function_status=$(echo "$function_info" | grep 'Status: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
           done
           if [ "$function_status" !=  "ACTIVE" ]; then
-            echo "::error:: Failed to deploy NVCF Test Function"
+            echo "::error:: Failed to deploy NVQC Test Function"
             exit 1
           fi
 
@@ -408,11 +408,11 @@ jobs:
           done
         shell: bash
 
-  nvcf_integration_docker_test:
-    name: NVCF integration test using Docker image
+  nvqc_integration_docker_test:
+    name: NVQC integration test using Docker image
     runs-on: ubuntu-latest
-    if: (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
-    needs: [metadata, build_nvcf_image, deploy_nvcf_test_function]
+    if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    needs: [metadata, build_nvqc_image, deploy_nvqc_test_function]
     environment: backend-validation
     container:
       image: ${{ inputs.cudaq_test_image }}
@@ -425,12 +425,12 @@ jobs:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
           fetch-depth: 1
 
-      - name: Submit to NVCF 
+      - name: Submit to NVQC 
         run: |
-          echo "### Submit to NVCF" >> $GITHUB_STEP_SUMMARY
-          export NVCF_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
-          export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
-          export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
+          echo "### Submit to NVQC" >> $GITHUB_STEP_SUMMARY
+          export NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
+          export NVQC_FUNCTION_ID="$NVQC_FUNCTION_ID"
+          export NVQC_FUNCTION_VERSION_ID="${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
           set +e # Allow script to keep going through errors
           test_err_sum=0
           # Test all NVQPP execution tests
@@ -438,7 +438,7 @@ jobs:
             echo "$filename"
             # Only run tests that require execution (not a syntax-only check)
             if grep -q "ifndef SYNTAX_CHECK" "$filename"; then 
-              nvq++ -v $filename --target nvcf
+              nvq++ -v $filename --target nvqc
               test_status=$?
               if [ $test_status -eq 0 ]; then
                 ./a.out
@@ -461,14 +461,14 @@ jobs:
             # unsupport_args is a compile error test
             if [[ "$filename" != *"unsupport_args"* ]]; then
               echo "$filename"
-              nvcf_config=""
+              nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
               num_qpus=`cat $filename | grep -oP -m 1 '^//\s*RUN:\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
               if [ -n "$num_qpus" ]; then
                 echo "Intended to run on '$num_qpus' QPUs."
-                nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
+                nvqc_config="$nvqc_config --nvqc-nqpus $num_qpus"
               fi
-              nvq++ -v $filename --target nvcf $nvcf_config
+              nvq++ -v $filename --target nvqc $nvqc_config
               test_status=$?
               if [ $test_status -eq 0 ]; then
                 ./a.out
@@ -486,24 +486,24 @@ jobs:
             fi
           done
 
-          # Test C++ examples with NVCF
+          # Test C++ examples with NVQC
           for filename in `find examples/cpp/ -name '*.cpp'`; do
-            if [[ "$filename" == *"nvcf"* ]]; then
+            if [[ "$filename" == *"nvqc"* ]]; then
               echo "$filename"
-              nvcf_config=""
-              # Look for a --nvcf-backend flag to nvq++ in the comment block
-              nvcf_backend=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-backend\s+\K\S+'`
-              if [ -n "$nvcf_backend" ]; then
-                echo "Intended for execution on '$nvcf_backend' backend."
-                nvcf_config="$nvcf_config --nvcf-backend $nvcf_backend"
+              nvqc_config=""
+              # Look for a --nvqc-backend flag to nvq++ in the comment block
+              nvqc_backend=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvqc-backend\s+\K\S+'`
+              if [ -n "$nvqc_backend" ]; then
+                echo "Intended for execution on '$nvqc_backend' backend."
+                nvqc_config="$nvqc_config --nvqc-backend $nvqc_backend"
               fi
-              # Look for a --nvcf-nqpus flag to nvq++ in the comment block
-              num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-nqpus\s+\K\S+'`
+              # Look for a --nvqc-nqpus flag to nvq++ in the comment block
+              num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvqc-nqpus\s+\K\S+'`
               if [ -n "$num_qpus" ]; then
                 echo "Intended to run on '$num_qpus' QPUs."
-                nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
+                nvqc_config="$nvqc_config --nvqc-nqpus $num_qpus"
               fi
-              nvq++ -v $filename --target nvcf $nvcf_config
+              nvq++ -v $filename --target nvqc $nvqc_config
               test_status=$?
               if [ $test_status -eq 0 ]; then
                 ./a.out
@@ -521,13 +521,13 @@ jobs:
             fi
           done
           
-          # Test NVCF Python examples
+          # Test NVQC Python examples
           for ex in `find examples/python -name '*.py'`; do 
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
-            if [[ "$ex" == *"nvcf"* ]]; then
-              # This is an NVCF example
+            if [[ "$ex" == *"nvqc"* ]]; then
+              # This is an NVQC example
               python3 $ex 1> /dev/null
               test_status=$?
               if [ $test_status -eq 0 ]; then
@@ -540,7 +540,7 @@ jobs:
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then 
                 # Use --target command line option to run these examples with
-                python3 $ex --target nvcf 1> /dev/null
+                python3 $ex --target nvqc 1> /dev/null
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
@@ -559,12 +559,12 @@ jobs:
           fi
         shell: bash
 
-  nvcf_integration_wheel_test:
-    name: NVCF integration test using Python wheels
+  nvqc_integration_wheel_test:
+    name: NVQC integration test using Python wheels
     runs-on: ubuntu-latest
-    needs: [metadata, build_nvcf_image, deploy_nvcf_test_function]
+    needs: [metadata, build_nvqc_image, deploy_nvqc_test_function]
     environment: backend-validation
-    if: inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly'
+    if: inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly'
 
     steps:
       - name: Get code
@@ -624,21 +624,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Test NVCF 
+      - name: Test NVQC 
         if: ${{ ! steps.install_wheel.skipped }}
         run: |
-          echo "### Submit to NVCF from Python wheels" >> $GITHUB_STEP_SUMMARY
+          echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
           python_version=${{ inputs.python_version }}
-          export NVCF_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
-          export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
-          export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
+          export NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
+          export NVQC_FUNCTION_ID="$NVQC_FUNCTION_ID"
+          export NVQC_FUNCTION_VERSION_ID="${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
           set +e # Allow script to keep going through errors
           test_err_sum=0
           for ex in `find examples/python -name '*.py'`; do 
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
-            if [[ "$ex" == *"nvcf"* ]]; then
+            if [[ "$ex" == *"nvqc"* ]]; then
               python$python_version $ex 1> /dev/null
               test_status=$?
               if [ $test_status -eq 0 ]; then
@@ -655,11 +655,11 @@ jobs:
             exit 1
           fi
 
-  cleanup_nvcf_resources:
-    name: Cleanup NVCF resources
+  cleanup_nvqc_resources:
+    name: Cleanup NVQC resources
     runs-on: ubuntu-latest
-    needs: [build_nvcf_image, deploy_nvcf_test_function, nvcf_integration_docker_test, nvcf_integration_wheel_test]
-    if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    needs: [build_nvqc_image, deploy_nvqc_test_function, nvqc_integration_docker_test, nvqc_integration_wheel_test]
+    if: (success() || failure()) && (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
     environment: backend-validation
     steps:
       - name: Get code
@@ -677,10 +677,10 @@ jobs:
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
-          echo "Version Id: ${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
+          echo "Version Id: ${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
           # Remove deployment (make it inactive)
-          ngc-cli/ngc cloud-function function deploy remove $NVCF_FUNCTION_ID:${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}
+          ngc-cli/ngc cloud-function function deploy remove $NVQC_FUNCTION_ID:${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}
           # Remove the function version
-          ngc-cli/ngc cloud-function function remove $NVCF_FUNCTION_ID:${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}
+          ngc-cli/ngc cloud-function function remove $NVQC_FUNCTION_ID:${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}
           # Remove the docker image
           ngc-cli/ngc registry image remove -y nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly

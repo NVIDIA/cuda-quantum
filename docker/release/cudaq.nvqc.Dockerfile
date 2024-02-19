@@ -6,11 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file is used to build CUDA Quantum NVCF service container.
+# This file is used to build CUDA Quantum NVQC service container to be deployed to NVCF.
 #
 # Usage:
 # Must be built from the repo root with:
-#   DOCKER_BUILDKIT=1 docker build -f docker/release/cudaq.nvcf.Dockerfile . --output out
+#   DOCKER_BUILDKIT=1 docker build -f docker/release/cudaq.nvqc.Dockerfile . --output out
 
 # Base image is CUDA Quantum image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest
