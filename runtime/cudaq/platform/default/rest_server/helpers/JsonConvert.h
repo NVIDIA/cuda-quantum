@@ -162,7 +162,7 @@ private:
 public:
   RestRequest(ExecutionContext &context)
       : executionContext(context), version(SCHEMA_VERSION),
-        client_version(CUDA_QUANTUM_VERSION) {}
+        clientVersion(CUDA_QUANTUM_VERSION) {}
   RestRequest(const json &j)
       : m_deserializedContext(
             std::make_unique<ExecutionContext>(j["executionContext"]["name"])),
@@ -203,11 +203,11 @@ public:
   // Version of this schema for compatibility check.
   std::size_t version;
   // Version of the runtime client submitting the request.
-  std::string client_version;
+  std::string clientVersion;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
                                  executionContext, code, args, format, seed,
-                                 passes, client_version);
+                                 passes, clientVersion);
 };
 
 /// NVCF function version status

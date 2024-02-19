@@ -443,7 +443,7 @@ private:
       cudaq::RestRequest request(requestJson);
       cudaq::info(
           "[RemoteRestRuntimeServer] Incoming job request from client {}",
-          request.client_version);
+          request.clientVersion);
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);
       if (!shouldHandle) {
