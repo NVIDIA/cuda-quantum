@@ -221,18 +221,25 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
 
 // From issue: https://github.com/NVIDIA/cuda-quantum/issues/1215
 
+#ifdef CUDAQ_BACKEND_CUSTATEVEC_FP32
+#define EPSILON std::numeric_limits<float>::epsilon()
+#else
+#define EPSILON std::numeric_limits<double>::epsilon()
+#endif
+
 // This implementation is based on:
 // Knuth, D. E. (2014). Art of computer programming, volume 2: Seminumerical
 //                      algorithms. Addison-Wesley Professional.
 // (See page 233 for the discussion on floating points that was adapted here to
 // implement the comparison for std::complex<double>. Here we use the Euclidean
 // distance to compare the complex numbers.)
-static bool
-essentially_equal(std::complex<double> a, std::complex<double> b,
-                  double epsilon = std::numeric_limits<double>::epsilon()) {
+static bool essentially_equal(std::complex<double> a, std::complex<double> b,
+                              double epsilon = EPSILON) {
   double tmp = std::min(std::abs(b), std::abs(a));
   return std::abs(a - b) <= (tmp * epsilon);
 }
+
+#undef EPSILON
 
 static __qpu__ void foo(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
 

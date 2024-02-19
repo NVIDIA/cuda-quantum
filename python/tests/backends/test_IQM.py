@@ -53,7 +53,7 @@ def startUpMockServer():
     with os.popen("git rev-parse --show-toplevel") as f:
         git_top = f.read().strip()
         if os.path.isdir(git_top):
-            mapping_file = f"{git_top}/test/Supplemental/Apollo Variant.txt"
+            mapping_file = f"{git_top}/targettests/Supplemental/Apollo Variant.txt"
             kwargs["mapping_file"] = mapping_file
     cudaq.set_target("iqm", url="http://localhost:{}".format(port), **kwargs)
 
