@@ -434,7 +434,7 @@ jobs:
           set +e # Allow script to keep going through errors
           test_err_sum=0
           # Test all NVQPP execution tests
-          for filename in `find test/NVQPP/ -name '*.cpp'`; do
+          for filename in `find targettests/execution/ -name '*.cpp'`; do
             echo "$filename"
             # Only run tests that require execution (not a syntax-only check)
             if grep -q "ifndef SYNTAX_CHECK" "$filename"; then 
@@ -457,7 +457,7 @@ jobs:
           done
 
           # Test all remote-sim tests 
-          for filename in `find test/Remote-Sim -name '*.cpp'`; do
+          for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
             # unsupport_args is a compile error test
             if [[ "$filename" != *"unsupport_args"* ]]; then
               echo "$filename"
