@@ -111,7 +111,11 @@ will need to manually install all prerequisites for building the code on this
 repository, and configure your preferred IDE for working with Python, C++, MLIR,
 and LLVM components. To install all necessary build and runtime dependencies,
 please follow the instructions in our [official guide][data_center_install] for
-building and installing CUDA Quantum from source.
+building and installing CUDA Quantum from source. The guide details how to get
+a fully featured CUDA Quantum installation that can be deployed on a system other
+than the one used for the build. For development purposes, components/certain 
+prerequisites can be omitted as needed, and additional tools and flags for 
+debugging purposes may be beneficial.
 
 [data_center_install]:
     https://nvidia.github.io/cuda-quantum/latest/data_center_install.html
