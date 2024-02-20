@@ -1,1 +1,1 @@
-../../test/NVQPP/graph_coloring.cpp
+../execution/graph_coloring.cpp
