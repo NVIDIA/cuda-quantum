@@ -73,7 +73,7 @@ jobs:
   metadata:
     name: Retrieve commit info
     runs-on: ubuntu-latest
-    environment: backend-validation
+    # environment: backend-validation
     container:
       image: ${{ inputs.cudaq_test_image }}
       options: --user root
@@ -93,7 +93,7 @@ jobs:
     name: Build NVCF deployment image
     runs-on: ubuntu-latest
     needs: metadata
-    environment: backend-validation
+    # environment: backend-validation
     if: (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
     steps:
       - name: Checkout repository
@@ -136,7 +136,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [metadata, build_nvcf_image]
     if: (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
-    environment: backend-validation
+    # environment: backend-validation
     outputs:
       nvcf_function_version_id: ${{ steps.deploy.outputs.nvcf_function_version_id }}
     
@@ -660,7 +660,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build_nvcf_image, deploy_nvcf_test_function, nvcf_integration_docker_test, nvcf_integration_wheel_test]
     if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
-    environment: backend-validation
+    # environment: backend-validation
     steps:
       - name: Get code
         uses: actions/checkout@v4
