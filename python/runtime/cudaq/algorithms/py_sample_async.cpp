@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -52,38 +52,6 @@ for more information on this programming pattern.)#")
           std::size_t qpu_id) {
         auto &platform = cudaq::get_platform();
         auto kernelName = kernel.attr("name").cast<std::string>();
-
-        if (py::hasattr(kernel, "library_mode") &&
-            kernel.attr("library_mode").cast<py::bool_>()) {
-
-          // Here we know we are in eager mode. We do not have a
-          // MLIR Module, we just have the python kernel as a callback.
-          // Great care must be taken here with regards to the
-          // GIL and when pythonic data types (PyObject*) gets
-          // destructed. First, we release the GIL since we are
-          // about to launch a new C++ thread. Within the kernel
-          // functor, we must first acquire the GIL so that we can
-          // invoke the Python callback with the Python *args...
-          // The args were captured by value, so they will be destructed
-          // when the lambda implicit type gets destructed, and the
-          // GIL will not be acquired at that point, leading to issues
-          // in destructing the args. So instead we release ownership
-          // of the py::args, and borrow it to a py::object, which
-          // we store globally. Then it should have ref_count = 1
-          // and when the static vector gets destroyed, the ref_count
-          // will drop to 0 and the PyObject will be deallocated.
-          py::gil_scoped_release release;
-          return cudaq::details::runSamplingAsync(
-              [kernelName, kernel, args]() mutable {
-                // Acquire the gil and call the callback
-                py::gil_scoped_acquire gil;
-                kernel(*args);
-                // Take ownership of the args so they get
-                // deleted when we have GIL ownership
-                eagerAsyncSampleArgs.emplace_back(args.release(), true);
-              },
-              platform, kernelName, shots, qpu_id);
-        }
 
         auto *argData = new cudaq::OpaqueArguments();
         cudaq::packArgs(*argData, args);

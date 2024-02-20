@@ -16,8 +16,6 @@ from .runtime.sample import sample
 from .runtime.observe import observe
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
-global globalJIT
-
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
 
@@ -94,27 +92,6 @@ def __clearKernelRegistries():
     globalImportedKernels.clear()
 
 
-def enable_jit():
-    """
-    Enable JIT compilation to MLIR for all cudaq.kernel functions
-    """
-    PyKernelDecorator.globalJIT = True
-
-
-def disable_jit():
-    """
-    Disable JIT compilation to MLIR for all cudaq.kernel functions
-    """
-    PyKernelDecorator.globalJIT = False
-
-
-def is_jit_enabled():
-    """
-    Return True if MLIR JIT mode is enabled. 
-    """
-    return PyKernelDecorator.globalJIT
-
-
 # Expose chemistry domain functions
 from .domains import chemistry
 from .kernels import uccsd
@@ -142,7 +119,5 @@ if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
 if '--emulate' in sys.argv:
     initKwargs['emulate'] = True
-if '--eager-mode' in sys.argv:
-    PyKernelDecorator.globalJIT = False
 
 cudaq_runtime.initialize_cudaq(**initKwargs)

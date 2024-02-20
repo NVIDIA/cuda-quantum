@@ -18,10 +18,6 @@ skipIfPythonLessThan39 = pytest.mark.skipif(
     sys.version_info < (3, 9),
     reason="built-in collection types such as `list` not supported")
 
-skipIROperationsForEagerMode = pytest.mark.skipif(
-    os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON',
-    reason="test_ir_operations only tests MLIR mode of execution")
-
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -29,20 +25,7 @@ def do_something():
     cudaq.__clearKernelRegistries()
 
 
-@skipIROperationsForEagerMode
 def test_synthesize():
-    ## NOTE: Explicitly disable JIT for the next test
-    cudaq.disable_jit()
-
-    @cudaq.kernel
-    def wontWork(numQubits: int):
-        q = cudaq.qvector(numQubits)
-        h(q)
-
-    with pytest.raises(RuntimeError) as error:
-        cudaq.synthesize(wontWork, 4)
-
-    cudaq.enable_jit()
 
     @cudaq.kernel
     def ghz(numQubits: int):

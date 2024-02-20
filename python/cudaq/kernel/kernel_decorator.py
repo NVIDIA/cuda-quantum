@@ -29,28 +29,16 @@ globalImportedKernels = {}
 
 class PyKernelDecorator(object):
     """
-    The `PyKernelDecorator` serves as a standard Python decorator that 
-    takes the decorated function as input and optionally lowers its 
-    AST representation to executable code via MLIR. This decorator enables 
-    both library-mode execution (no JIT, just library calls to affect local simulation 
-    of the quantum code) and full JIT compilation mode, where the function is lowered
-    to an MLIR representation. 
+    The `PyKernelDecorator` serves as a standard Python decorator that takes 
+    the decorated function as input and optionally lowers its  AST 
+    representation to executable code via MLIR. This decorator enables full JIT
+    compilation mode, where the function is lowered to an MLIR representation.
 
     This decorator exposes a call overload that executes the code via the 
     MLIR `ExecutionEngine` if not in library mode. 
     """
 
-    # Enable one to use JIT exclusively and not have to specify it every time
-    # Default to MLIR mode
-    globalJIT = True
-
-    def __init__(self,
-                 function,
-                 verbose=False,
-                 library_mode=True,
-                 jit=False,
-                 module=None,
-                 kernelName=None):
+    def __init__(self, function, verbose=False, module=None, kernelName=None):
         global globalImportedKernels
         self.kernelFunction = function
         self.module = None if module == None else module
@@ -58,18 +46,9 @@ class PyKernelDecorator(object):
         self.name = kernelName if kernelName != None else self.kernelFunction.__name__
         self.argTypes = None
 
-        # check if the user requested JIT be used exclusively
-        if self.globalJIT:
-            jit = True
-            library_mode = False
-
-        # Library Mode
-        self.library_mode = library_mode
-        if jit == True:
-            self.library_mode = False
-
         if self.kernelFunction is None:
             if self.module is not None:
+                ## ASKME: Is the following still needed?
                 # Could be that we don't have a function
                 # but someone has provided an external Module.
                 # But if we want this new decorator to be callable
@@ -113,53 +92,17 @@ class PyKernelDecorator(object):
         analyzer.visit(self.astModule)
         self.metadata = {'conditionalOnMeasure': analyzer.hasMidCircuitMeasures}
 
-        if not self.library_mode:
-            # If not eager mode, JIT compile to MLIR
-            self.module, self.argTypes = compile_to_mlir(self.astModule,
-                                                         verbose=self.verbose)
-            if self.metadata['conditionalOnMeasure']:
-                SymbolTable(
-                    self.module.operation)[nvqppPrefix +
-                                           self.name].attributes.__setitem__(
-                                               'qubitMeasurementFeedback',
-                                               BoolAttr.get(
-                                                   True,
-                                                   context=self.module.context))
-        else:
-            # If eager mode, implicitly load the quantum operations
-            self.kernelFunction.__globals__['h'] = h()
-            self.kernelFunction.__globals__['x'] = x()
-            self.kernelFunction.__globals__['y'] = y()
-            self.kernelFunction.__globals__['z'] = z()
-            self.kernelFunction.__globals__['s'] = s()
-            self.kernelFunction.__globals__['t'] = t()
-            self.kernelFunction.__globals__['rx'] = rx()
-            self.kernelFunction.__globals__['ry'] = ry()
-            self.kernelFunction.__globals__['rz'] = rz()
-            self.kernelFunction.__globals__['r1'] = r1()
-            self.kernelFunction.__globals__['mx'] = mx
-            self.kernelFunction.__globals__['my'] = my
-            self.kernelFunction.__globals__['mz'] = mz
-            self.kernelFunction.__globals__['swap'] = swap()
-            self.kernelFunction.__globals__['exp_pauli'] = exp_pauli
-            # We need to make imported quantum kernel functions
-            # available to this kernel function
-            for name, function in globalImportedKernels.items():
-                if not name in self.kernelFunction.__globals__:
-                    self.kernelFunction.__globals__[name] = function
-            # Register this function too for future kernel invocations
-            globalImportedKernels[self.name] = self.kernelFunction
-
-            # Rewrite the function if necessary to convert
-            # `r = mz(q)` to `r = mz(q, register_name='r')`
-            vis = RewriteMeasures()
-            res = self.kernelFunction.__globals__
-            exec(
-                compile(ast.fix_missing_locations(vis.visit(self.astModule)),
-                        filename='<ast>',
-                        mode='exec'), res)
-            self.kernelFunction = res[self.name]
-            return
+        # JIT compile to MLIR
+        self.module, self.argTypes = compile_to_mlir(self.astModule,
+                                                     verbose=self.verbose)
+        if self.metadata['conditionalOnMeasure']:
+            SymbolTable(
+                self.module.operation)[nvqppPrefix +
+                                       self.name].attributes.__setitem__(
+                                           'qubitMeasurementFeedback',
+                                           BoolAttr.get(
+                                               True,
+                                               context=self.module.context))
 
     def __str__(self):
         if not self.module == None:
@@ -177,13 +120,6 @@ class PyKernelDecorator(object):
                 raise RuntimeError(
                     "this kernel is not callable (no function and no MLIR argument types found)"
                 )
-            # if here, we can execute, but not in library mode
-            self.library_mode = False
-
-        # Library Mode, don't need Quake, just call the function
-        if self.library_mode:
-            self.kernelFunction(*args)
-            return
 
         if len(args) != len(self.argTypes):
             raise RuntimeError(

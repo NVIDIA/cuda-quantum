@@ -15,12 +15,8 @@ import cudaq
 
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON':
-        cudaq.disable_jit()
     yield
-    if cudaq.is_jit_enabled():
-        cudaq.__clearKernelRegistries()
-    cudaq.enable_jit()
+    cudaq.__clearKernelRegistries()
 
 
 def test_internal_library_kernels():
