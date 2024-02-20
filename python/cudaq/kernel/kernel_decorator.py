@@ -24,8 +24,6 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 # which maps the AST representation to an MLIR representation and ultimately
 # executable code.
 
-globalImportedKernels = {}
-
 
 class PyKernelDecorator(object):
     """
@@ -35,11 +33,10 @@ class PyKernelDecorator(object):
     compilation mode, where the function is lowered to an MLIR representation.
 
     This decorator exposes a call overload that executes the code via the 
-    MLIR `ExecutionEngine` if not in library mode. 
+    MLIR `ExecutionEngine` for the MLIR mode. 
     """
 
     def __init__(self, function, verbose=False, module=None, kernelName=None):
-        global globalImportedKernels
         self.kernelFunction = function
         self.module = None if module == None else module
         self.verbose = verbose
