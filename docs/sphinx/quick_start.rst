@@ -8,8 +8,9 @@ in quantum algorithm research. It offers a unified programming model designed fo
 setting |---| that is, CPUs, GPUs, and QPUs working together. Further enabling application
 acceleration, CUDA Quantum includes language extensions for Python and C++ and a system-level toolchain.
 
-Learn more about CUDA Quantum’s key benefits here [FIXME: Link to CUDA Quantum Marketing page]
+.. [FIXME]: Learn more about CUDA Quantum’s key benefits here [Link to CUDA Quantum Marketing page]
 
+This Quick Start page guides you through getting set up with CUDA Quantum and running your first program.
 If you have already installed and configured CUDA Quantum, we encourage you to move directly to our
 :ref:`Basics Section <cudaq-basics-landing-page>`.
 
@@ -17,7 +18,8 @@ If you have already installed and configured CUDA Quantum, we encourage you to m
 Python
 -------
 
-To install the latest stable release of the CUDA Quantum Python API:  
+If you want to develop CUDA Quantum applications using Python, install the
+latest stable release of the CUDA Quantum Python API:  
 
 .. code-block:: console
 
@@ -55,7 +57,7 @@ You may now execute this file as you do any other Python program. For example, f
 The Hadamard gate places the qubit in a superposition state, giving a roughly 50/50 mixture
 of measurments in the `|0>` and `|1>` states.
 
-Now that you have succesfully run your first program, you are ready to move on to our :ref:`Basics Section <cudaq-basics-landing-page>`.
+Now that you have successfully run your first program, you are ready to move on to our :ref:`Basics Section <cudaq-basics-landing-page>`.
 
 
 C++
@@ -93,7 +95,7 @@ You may now compile and execute this file from the command line using the `nvq++
 The Hadamard gate places the qubit in a superposition state, giving a roughly 50/50 mixture
 of measurments in the `|0>` and `|1>` states.
 
-Now that you have succesfully run your first program, you are ready to move on to our :ref:`Basics Section <cudaq-basics-landing-page>`.
+Now that you have successfully run your first program, you are ready to move on to our :ref:`Basics Section <cudaq-basics-landing-page>`.
 
 
 .. |---|   unicode:: U+2014 .. EM DASH
