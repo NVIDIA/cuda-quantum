@@ -91,7 +91,6 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   PRIVATE_LINK_LIBS
    OptCodeGen
    OptTransforms
-   LLVMSupport
 )
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
