@@ -116,7 +116,7 @@ jobs:
         with:
           registry: nvcr.io
           username: '$oauthtoken'
-          password: ${{ secrets.NVQC_CREDENTIALS  }}
+          password: ${{ secrets.NGC_CREDENTIALS  }}
 
       - name: Build NVCF image
         id: docker_build
@@ -156,7 +156,7 @@ jobs:
       - name: Deploy NVCF Function
         id: deploy
         env:
-          NGC_CLI_API_KEY: ${{ secrets.NVQC_CREDENTIALS  }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS  }}
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
@@ -673,7 +673,7 @@ jobs:
 
       - name: Cleanup
         env:
-          NGC_CLI_API_KEY: ${{ secrets.NVQC_CREDENTIALS  }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS  }}
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
