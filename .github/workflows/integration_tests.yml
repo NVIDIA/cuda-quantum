@@ -1,5 +1,10 @@
 name: Nightly integration tests
 
+concurrency:
+  # only one integration tests workflow to be run at a time, since it involves pushing/cleaning up a test image (same tag).
+  group: ${{ github.workflow }}${{ github.event.workflow_run.name }} 
+  cancel-in-progress: false
+
 # Run on request and every day at 3 AM UTC
 on:
   workflow_dispatch:
@@ -15,6 +20,7 @@ on:
           - iqm
           - oqc
           - quantinuum
+          - nvcf
       single_test_name:
         type: string
         required: false
@@ -23,28 +29,176 @@ on:
         type: string
         required: false
         description: 'Target machine (e.g., H1-1E).'
+      cudaq_test_image:
+        type: string
+        required: false
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
+        description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image'
+      commit_sha:
+        type: string
+        required: false
+        description: 'Commit SHA to pull the code (examples/tests) for testing. Default to the commit associated with the CUDA Quantum docker image if left blank'
+      cudaq_nvcf_deploy_image:
+        type: string
+        required: false
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
+        description: 'CUDA Quantum image to use for NVCF deployment. Default to the latest CUDA Quantum nightly image'
+      workflow_id:
+        type: string
+        required: false
+        description: 'Workflow Id to retrieve the Python wheel for testing. Default to the wheels produced by the Publishing workflow associated with the latest nightly CUDA Quantum Docker image if left blank'
+      python_version:
+        type: choice
+        required: true
+        default: '3.10'
+        description: 'Python version to run wheel test'
+        options:
+        - '3.8'
+        - '3.9'
+        - '3.10'
+        - '3.11'
+
   schedule:
     - cron: 0 3 * * *
 
+env:
+  # NGC nv-quantum organization: pnyjrcojiblh
+  NGC_QUANTUM_ORG: pnyjrcojiblh
+  NGC_QUANTUM_TEAM: cuda-quantum
+  NVCF_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
+  # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
+  NGC_NVCF_DEPLOYMENT_SPEC: GFN:L40G:gl40g_1.br20_2xlarge:1:1 
+
 jobs:
-  integration_test:
-    name: Integration test
+  metadata:
+    name: Retrieve commit info
     runs-on: ubuntu-latest
     environment: backend-validation
     container:
-      image: nvcr.io/nvidia/nightly/cuda-quantum:latest
+      image: ${{ inputs.cudaq_test_image }}
       options: --user root
-
+    outputs:
+      cudaq_commit: ${{ steps.commit-sha.outputs.sha }}
     steps:
       - name: Get commit SHA
         id: commit-sha
         run: |
-          echo "sha=$(cat $CUDA_QUANTUM_PATH/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
+          if [ -n "${{ inputs.commit_sha }}" ]; then
+            echo "sha=${{ inputs.commit_sha }}" >> $GITHUB_OUTPUT
+          else
+            echo "sha=$(cat $CUDA_QUANTUM_PATH/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
+          fi
+  
+  build_nvcf_image:
+    name: Build NVCF deployment image
+    runs-on: ubuntu-latest
+    needs: metadata
+    environment: backend-validation
+    if: (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.cudaq_commit }}
+          fetch-depth: 1
 
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v3
+        with:
+          endpoint: builder_context
+
+      - name: Login to NGC container registry
+        uses: docker/login-action@v3
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NVQC_CREDENTIALS  }}
+
+      - name: Build NVCF image
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/release/cudaq.nvcf.Dockerfile
+          build-args: |
+            base_image=${{ inputs.cudaq_nvcf_deploy_image }}
+          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly
+          platforms: linux/amd64
+          provenance: false
+          push: true
+  
+  deploy_nvcf_test_function:
+    name: Deploy NVCF function
+    runs-on: ubuntu-latest
+    needs: [metadata, build_nvcf_image]
+    if: (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    environment: backend-validation
+    outputs:
+      nvcf_function_version_id: ${{ steps.deploy.outputs.nvcf_function_version_id }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.cudaq_commit }}
+          fetch-depth: 1
+
+      - name: Install NGC CLI
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.38.0
+          checksum: 427c67684d792b673b63882a6d0cbb8777815095c0f2f31559c1570a91187388
+
+      - name: Deploy NVCF Function
+        id: deploy
+        env:
+          NGC_CLI_API_KEY: ${{ secrets.NVQC_CREDENTIALS  }}
+          NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
+          NGC_CLI_TEAM: cuda-quantum
+        run: |
+          create_function_result=$(ngc-cli/ngc cloud-function function create \
+            --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly \
+            --api-body-format CUSTOM \
+            --inference-port 3030 \
+            --health-uri / \
+            --inference-url /job \
+            --name cudaq-nightly-integration-test \
+            $NVCF_FUNCTION_ID)
+          version_id=$(echo "$create_function_result" | grep 'Version: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
+          echo "Create version Id: $version_id"
+          echo "nvcf_function_version_id=$version_id" >> $GITHUB_OUTPUT
+          # Deploy it
+          ngc-cli/ngc cloud-function function deploy create --deployment-specification $NGC_NVCF_DEPLOYMENT_SPEC $NVCF_FUNCTION_ID:$version_id
+          function_status=DEPLOYING
+          while [ "$function_status" =  "DEPLOYING" ]; do 
+            echo "Waiting for deploying NVCF function version $version_id ..." 
+            sleep 120 
+            function_info=$(ngc-cli/ngc cloud-function function info $NVCF_FUNCTION_ID:$version_id)
+            function_status=$(echo "$function_info" | grep 'Status: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
+          done
+          if [ "$function_status" !=  "ACTIVE" ]; then
+            echo "::error:: Failed to deploy NVCF Test Function"
+            exit 1
+          fi
+
+  hardware_providers_integration_test:
+    name: Integration test with hardware providers
+    runs-on: ubuntu-latest
+    needs: [metadata]
+    environment: backend-validation
+    container:
+      image: ${{ inputs.cudaq_test_image }}
+      options: --user root
+
+    steps:
       - name: Get code
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.commit-sha.outputs.sha }}
+          ref: ${{ needs.metadata.outputs.cudaq_commit }}
           fetch-depth: 1
 
       - name: Get tests
@@ -253,3 +407,280 @@ jobs:
             esac
           done
         shell: bash
+
+  nvcf_integration_docker_test:
+    name: NVCF integration test using Docker image
+    runs-on: ubuntu-latest
+    if: (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    needs: [metadata, build_nvcf_image, deploy_nvcf_test_function]
+    environment: backend-validation
+    container:
+      image: ${{ inputs.cudaq_test_image }}
+      options: --user root
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.cudaq_commit }}
+          fetch-depth: 1
+
+      - name: Submit to NVCF 
+        run: |
+          echo "### Submit to NVCF" >> $GITHUB_STEP_SUMMARY
+          export NVCF_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
+          export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
+          export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          # Test all NVQPP execution tests
+          for filename in `find targettests/execution/ -name '*.cpp'`; do
+            echo "$filename"
+            # Only run tests that require execution (not a syntax-only check)
+            if grep -q "ifndef SYNTAX_CHECK" "$filename"; then 
+              nvq++ -v $filename --target nvcf
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                ./a.out
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              else
+                echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            fi
+          done
+
+          # Test all remote-sim tests 
+          for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
+            # unsupport_args is a compile error test
+            if [[ "$filename" != *"unsupport_args"* ]]; then
+              echo "$filename"
+              nvcf_config=""
+              # Look for a --remote-mqpu-auto-launch to determine the number of QPUs
+              num_qpus=`cat $filename | grep -oP -m 1 '^//\s*RUN:\s*nvq++.+--remote-mqpu-auto-launch\s+\K\S+'`
+              if [ -n "$num_qpus" ]; then
+                echo "Intended to run on '$num_qpus' QPUs."
+                nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
+              fi
+              nvq++ -v $filename --target nvcf $nvcf_config
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                ./a.out
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+              fi
+            fi
+          done
+
+          # Test C++ examples with NVCF
+          for filename in `find examples/cpp/ -name '*.cpp'`; do
+            if [[ "$filename" == *"nvcf"* ]]; then
+              echo "$filename"
+              nvcf_config=""
+              # Look for a --nvcf-backend flag to nvq++ in the comment block
+              nvcf_backend=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-backend\s+\K\S+'`
+              if [ -n "$nvcf_backend" ]; then
+                echo "Intended for execution on '$nvcf_backend' backend."
+                nvcf_config="$nvcf_config --nvcf-backend $nvcf_backend"
+              fi
+              # Look for a --nvcf-nqpus flag to nvq++ in the comment block
+              num_qpus=`sed -e '/^$/,$d' $filename | grep -oP -m 1 '^//\s*nvq++.+--nvcf-nqpus\s+\K\S+'`
+              if [ -n "$num_qpus" ]; then
+                echo "Intended to run on '$num_qpus' QPUs."
+                nvcf_config="$nvcf_config --nvcf-nqpus $num_qpus"
+              fi
+              nvq++ -v $filename --target nvcf $nvcf_config
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                ./a.out
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+              fi
+            fi
+          done
+          
+          # Test NVCF Python examples
+          for ex in `find examples/python -name '*.py'`; do 
+            filename=$(basename -- "$ex")
+            filename="${filename%.*}"
+            echo "Testing $filename:"
+            if [[ "$ex" == *"nvcf"* ]]; then
+              # This is an NVCF example
+              python3 $ex 1> /dev/null
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              # Only run examples that are not target-specific (e.g., ionq, iqm)
+              if ! grep -q "set_target" "$ex"; then 
+                # Use --target command line option to run these examples with
+                python3 $ex --target nvcf 1> /dev/null
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              fi
+            fi
+          done
+          
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
+  nvcf_integration_wheel_test:
+    name: NVCF integration test using Python wheels
+    runs-on: ubuntu-latest
+    needs: [metadata, build_nvcf_image, deploy_nvcf_test_function]
+    environment: backend-validation
+    if: inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly'
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.metadata.outputs.cudaq_commit }}
+          fetch-depth: 1
+
+      - name: Install wheel
+        id: install_wheel
+        run: |
+          python_version=${{ inputs.python_version }}
+          workflow_id=${{ inputs.workflow_id }}
+          # Helper to get the *valid* Publishing run Id for a commit hash
+          # Notes: runs that have 'CUDA Quantum Python wheels' jobs skipped are not considered.
+          function get_publishing_run_id {
+            # Find all successful Publishing runs
+            publishing_run_ids=$(gh run list --commit $1 --workflow Publishing --status success --json databaseId --jq .[].databaseId)
+            for run_id in $publishing_run_ids ; do
+                # Look into its jobs: if "CUDA Quantum Python wheels" matrix build was performed, 
+                # then we have multiple jobs, like "CUDA Quantum Python wheels (python_arm64....")
+                cuda_wheel_build_jobs=$(gh run view $run_id --jq '.jobs.[] | select(.name | startswith("CUDA Quantum Python wheels (python_")).name' --json jobs)
+                if [ ! -z "$cuda_wheel_build_jobs" ]; then
+                  # This is a valid run that produces wheel artifacts
+                  echo $run_id
+                  break
+                fi
+            done
+          } 
+          
+          if [ -z "${workflow_id}" ]; then
+            workflow_id=$(get_publishing_run_id ${{ needs.metadata.outputs.cudaq_commit }})
+          fi
+          if [ ! -z "$workflow_id" ]; then
+            echo "Using artifacts from workflow id $workflow_id"
+            # Allow error when trying to download wheel artifacts since they might be expired.
+            set +e
+            gh run download $workflow_id --name "x86_64-py$python_version-wheels" 
+            retVal=$?
+            set -e
+            if [ $retVal -ne 0 ]; then
+              echo "Failed to download wheels artifact from Publishing workflow run Id $workflow_id. Perhaps the artifacts have been expired."
+              # This is allowed since there might be a period where no Publishing workflow is run (e.g., no PR merged to main).
+              echo "skipped=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            python_version_filename=$(echo "${python_version//.}")
+            # Install Python and the wheel
+            apt-get update && apt-get install -y --no-install-recommends python$python_version python3-pip
+            wheelfile=$(find . -name "cuda_quantum*cp$python_version_filename*x86_64.whl")
+            python$python_version -m pip install $wheelfile  
+            echo "skipped=false" >> $GITHUB_OUTPUT
+          else
+            echo "Failed to retrieve Publishing workflow run Id for commit ${{ needs.metadata.outputs.cudaq_commit }}"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Test NVCF 
+        if: ${{ ! steps.install_wheel.skipped }}
+        run: |
+          echo "### Submit to NVCF from Python wheels" >> $GITHUB_STEP_SUMMARY
+          python_version=${{ inputs.python_version }}
+          export NVCF_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
+          export NVCF_FUNCTION_ID="$NVCF_FUNCTION_ID"
+          export NVCF_FUNCTION_VERSION_ID="${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          for ex in `find examples/python -name '*.py'`; do 
+            filename=$(basename -- "$ex")
+            filename="${filename%.*}"
+            echo "Testing $filename:"
+            if [[ "$ex" == *"nvcf"* ]]; then
+              python$python_version $ex 1> /dev/null
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            fi
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+
+  cleanup_nvcf_resources:
+    name: Cleanup NVCF resources
+    runs-on: ubuntu-latest
+    needs: [build_nvcf_image, deploy_nvcf_test_function, nvcf_integration_docker_test, nvcf_integration_wheel_test]
+    if: (success() || failure()) && (inputs.target == 'nvcf' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    environment: backend-validation
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+        
+      - name: Install NGC CLI
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.38.0
+          checksum: 427c67684d792b673b63882a6d0cbb8777815095c0f2f31559c1570a91187388
+
+      - name: Cleanup
+        env:
+          NGC_CLI_API_KEY: ${{ secrets.NVQC_CREDENTIALS  }}
+          NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
+          NGC_CLI_TEAM: cuda-quantum
+        run: |
+          echo "Version Id: ${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}"
+          # Remove deployment (make it inactive)
+          ngc-cli/ngc cloud-function function deploy remove $NVCF_FUNCTION_ID:${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}
+          # Remove the function version
+          ngc-cli/ngc cloud-function function remove $NVCF_FUNCTION_ID:${{ needs.deploy_nvcf_test_function.outputs.nvcf_function_version_id }}
+          # Remove the docker image
+          ngc-cli/ngc registry image remove -y nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly
