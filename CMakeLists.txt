@@ -81,7 +81,16 @@ endif()
 
 # Enable the REST code by default.
 if (NOT DEFINED CUDAQ_ENABLE_REST)
-  set(CUDAQ_ENABLE_REST ON)
+  set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
+endif()
+
+# Enable the remote simulator by default.
+if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
+  set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building cudaq-qpud.")
+  # Optionally enable the tests that use cudaq-qpud.
+  if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
+    set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
+  endif()
 endif()
 
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
@@ -521,6 +530,7 @@ if (CUDAQ_ENABLE_PYTHON)
 endif()
 
 if(CUDAQ_BUILD_TESTS)
+  umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
   # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
@@ -535,11 +545,13 @@ if(CUDAQ_BUILD_TESTS)
   endif()
   include(GoogleTest)
   include(CTest)
+  add_subdirectory(test)
   if (NOT CUDAQ_DISABLE_RUNTIME)
+    add_subdirectory(targettests)
     add_subdirectory(unittests)
     add_subdirectory(docs)
   endif()
-  add_subdirectory(test)
+  umbrella_lit_testsuite_end(check-all)
 endif()
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND) 
