@@ -1,1 +1,1 @@
-../../test/NVQPP/cudaq_observe.cpp
+../execution/cudaq_observe.cpp
