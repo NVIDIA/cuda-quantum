@@ -19,7 +19,10 @@ FROM $base_image as nvcf_image
 ENV CUDAQ_LOG_LEVEL=info
 
 # Launch script: launch cudaq-qpud (nvcf mode) with MPI ranks == Number of NVIDIA GPUs
-RUN echo 'mpiexec -np $(nvidia-smi --list-gpus | wc -l) cudaq-qpud --type nvcf' > launch.sh
+# IMPORTANT: NVCF function must set container environment variable `NUM_GPUS` equal to the number of GPUs on the target platform.
+# This will allow clients to query the function capability (number of GPUs) by looking at function info.
+# The below entry point script helps prevent mis-configuration by checking that functions are created and deployed appropriately.
+RUN echo 'if [[ "$NUM_GPUS" == "$(nvidia-smi --list-gpus | wc -l)" ]]; then mpiexec -np $(nvidia-smi --list-gpus | wc -l) cudaq-qpud --type nvcf; else echo "Invalid Deployment: Number of GPUs does not match the hardware" && exit 1; fi' > launch.sh
 
 # Start the cudaq-qpud service
 ENTRYPOINT ["bash", "-l", "launch.sh"]

@@ -126,7 +126,7 @@ public:
     if (parts.size() % 2 != 0)
       throw std::invalid_argument("Unexpected backend configuration string. "
                                   "Expecting a ';'-separated key-value pairs.");
-    std::string apiKey, functionId, versionId;
+    std::string apiKey, functionId, versionId, ngpus;
 
     for (std::size_t i = 0; i < parts.size(); i += 2) {
       if (parts[i] == "simulator")
@@ -138,6 +138,8 @@ public:
         apiKey = parts[i + 1];
       if (parts[i] == "version_id")
         versionId = parts[i + 1];
+      if (parts[i] == "ngpus")
+        ngpus = parts[i + 1];
     }
     // If none provided, look for them in environment variables or the config
     // file.
@@ -158,15 +160,15 @@ public:
     if (!apiKey.starts_with("nvapi-"))
       std::runtime_error(
           "An invalid NVQC API key is provided. Please check your settings.");
-    if (functionId.empty())
-      throw std::runtime_error(
-          "Cannot find NVQC Function ID. Please refer to the documentation for "
-          "information about obtaining and using your NVQC Function ID.");
-
     std::unordered_map<std::string, std::string> clientConfigs{
-        {"api-key", apiKey}, {"function-id", functionId}};
+        {"api-key", apiKey}};
+    if (!functionId.empty())
+      clientConfigs.emplace("function-id", functionId);
     if (!versionId.empty())
       clientConfigs.emplace("version-id", versionId);
+    if (!ngpus.empty())
+      clientConfigs.emplace("ngpus", ngpus);
+
     m_client->setConfig(clientConfigs);
   }
 

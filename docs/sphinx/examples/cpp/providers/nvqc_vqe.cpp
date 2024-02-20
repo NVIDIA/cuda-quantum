@@ -4,16 +4,16 @@
 // ./out.x
 // ```
 // Note: we set `nqpus` to 3 to establish 3 concurrent NVQC job submission
-// pipes. Assumes a valid NVQC API key and function ID have been stored in
+// pipes. Assumes a valid NVQC API key has been stored in
 // environment variables or `~/.nvqc_config` file. Alternatively, they can be
 // set in the command line like below.
 // ```
 // nvq++ --target nvqc --nvqc-nqpus 3 --nvqc-api-key <YOUR API KEY> \
-// --nvqc-function-id <NVQC function Id> nvqc_vqe.cpp -o out.x
+// nvqc_vqe.cpp -o out.x
 // ./out.x
 // ```
 // Please refer to the documentations for information about how to attain NVQC
-// information.
+// API key.
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

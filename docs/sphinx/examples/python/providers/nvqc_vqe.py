@@ -2,18 +2,16 @@ import cudaq
 from cudaq import spin
 import math
 
-# This example assumes the NVQC API key and Function Id have been set in the `~/.nvqc_config` file/environment variables.
-# If not, you can set the API Key and Function ID environment variables in the Python script with:
+# This example assumes the NVQC API key has been set in the `~/.nvqc_config` file/environment variables.
+# If not, you can set the API Key environment variable in the Python script with:
 # ```
 # os.environ["NVQC_API_KEY"] = "<YOUR NVQC API KEY>"`
-# os.environ["NVQC_FUNCTION_ID"] = "<YOUR NVQC FUNCTION ID>"
 # ```
-# Alternatively, the `api_key` and `function_id` values can be passed to the target directly,
+# Alternatively, the `api_key` value can be passed to the target directly,
 # ```
 # cudaq.set_target("nvqc",
 #                 nqpus=3,
-#                 api_key="<YOUR NVQC API KEY>"
-#                 function_id="<YOUR NVQC FUNCTION ID>")
+#                 api_key="<YOUR NVQC API KEY>")
 # ```
 cudaq.set_target("nvqc", nqpus=3)
 

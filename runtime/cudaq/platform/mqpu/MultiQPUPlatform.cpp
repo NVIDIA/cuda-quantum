@@ -159,6 +159,7 @@ public:
         getOptAndSetConfig("api_key");
         getOptAndSetConfig("function_id");
         getOptAndSetConfig("version_id");
+        getOptAndSetConfig("ngpus");
 
         auto numQpusStr = getOpt(description, "nqpus");
         const int numQpus = numQpusStr.empty() ? 1 : std::stoi(numQpusStr);
