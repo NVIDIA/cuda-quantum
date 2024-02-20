@@ -33,9 +33,9 @@ The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/r
 
 **0.5.0**
 
-With 0.5.0 we have added support for quantum kernel execution on OQC and IQM backends. For more information, see :doc:`using/accelerating/hardware`.
+With 0.5.0 we have added support for quantum kernel execution on OQC and IQM backends. For more information, see :doc:`using/backends/hardware`.
 CUDA Quantum now allows to executing adaptive quantum kernels on quantum hardware backends that support it.
-The 0.5.0 release furthermore improves the tensor network simulation tools and adds a matrix product state simulator, see :doc:`using/accelerating/simulators`.
+The 0.5.0 release furthermore improves the tensor network simulation tools and adds a matrix product state simulator, see :doc:`using/backends/simulators`.
 
 Additionally, we are now publishing images for experimental features, which currently includes improved Python language support.
 Please take a look at :doc:`using/install/install` for more information about how to obtain them.
@@ -61,7 +61,7 @@ The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/r
 **0.4.0**
 
 CUDA Quantum is now available on PyPI!
-The 0.4.0 release adds support for quantum kernel execution on Quantinuum and IonQ backends. For more information, see :doc:`using/accelerating/hardware`.
+The 0.4.0 release adds support for quantum kernel execution on Quantinuum and IonQ backends. For more information, see :doc:`using/backends/hardware`.
 
 The 0.4.0 PyPI release does not yet include all of the GPU-based backends.
 The fully featured version is available as a Docker image for `linux/amd64` platforms.
