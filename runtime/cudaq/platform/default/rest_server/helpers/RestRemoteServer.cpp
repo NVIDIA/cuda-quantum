@@ -315,6 +315,12 @@ private:
               const std::vector<std::string> &extraLibPaths = {}) {
     cudaq::info("Running jitCode.");
     auto module = currentModule.clone();
+    // The "fast" instruction selection compilation algorithm is actually very
+    // slow fast for large quantum circuits. Disable that here. Revisit this
+    // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
+    // in the future.
+    const char *argv[] = {"", "-fast-isel=0", nullptr};
+    llvm::cl::ParseCommandLineOptions(2, argv);
     ExecutionEngineOptions opts;
     opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
     opts.enableObjectDump = true;

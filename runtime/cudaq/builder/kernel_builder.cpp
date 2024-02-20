@@ -829,6 +829,13 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
 
+  // The "fast" instruction selection compilation algorithm is actually very
+  // slow fast for large quantum circuits. Disable that here. Revisit this
+  // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
+  // in the future.
+  const char *argv[] = {"", "-fast-isel=0", nullptr};
+  llvm::cl::ParseCommandLineOptions(2, argv);
+
   cudaq::info("- Pass manager was applied.");
   ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
