@@ -9,15 +9,16 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
 
 .. toctree::
    :caption: Contents
-   :maxdepth: 1
+   :maxdepth: 2
 
       Quick Start <quick_start.rst>
       Basics <using/basics.rst>
       Examples <using/examples.rst>
       Applications <using/tutorials.rst>
+      Backends <using/backends/backends.rst>
+      Acceleration <using/accelerating/accelerating.rst>
       Installation Guides <using/install/install.rst>
-      Accelerating CUDA Quantum <using/accelerating/accelerating.rst>
-      Extending CUDA Quantum  <using/extending/extending.rst>
+      Extending CUDA Quantum <using/extending/extending.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
       Other Versions <versions.rst>
