@@ -16,9 +16,6 @@ Things that will get modified but stay here
   Multi-processor Platforms <platform.rst>
   Debugging and Verbose Logging <verbose_out.rst>
   Combining CUDA (GPU) with CUDA Quantum <cuda_gpu.rst>
-  Simulator Backends <simulators.rst>
-  Hardware Backends <hardware.rst>
-
 
 Parts of old basics section to remove
 ----------------------------------------
