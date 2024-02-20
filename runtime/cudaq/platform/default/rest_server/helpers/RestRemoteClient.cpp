@@ -129,16 +129,6 @@ public:
       if (!module)
         throw std::runtime_error("module cannot be parsed");
 
-      {
-        // To optimize remote kernel submission, always apply aggressive early
-        // inlining pass when processing the kernel code.
-        cudaq::info("Apply aggressive early inlining.\n");
-        PassManager pm(&mlirContext);
-        cudaq::opt::addAggressiveEarlyInlining(pm);
-        if (failed(pm.run(module.get())))
-          throw std::runtime_error(
-              "Could not successfully apply aggressive early inlining.");
-      }
       // Extract the kernel name
       auto func = module->lookupSymbol<mlir::func::FuncOp>(
           std::string("__nvqpp__mlirgen__") + name);
@@ -146,11 +136,19 @@ public:
       // Create a new Module to clone the function into
       auto location = FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
       ImplicitLocOpBuilder builder(location, &mlirContext);
+      // Add cuda quantum kernel attribute if not already set.
+      if (!func->hasAttr(cudaq::kernelAttrName))
+        func->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
       // Add entry-point attribute if not already set.
       if (!func->hasAttr(cudaq::entryPointAttrName))
         func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
       auto moduleOp = builder.create<ModuleOp>();
-      moduleOp.push_back(func.clone());
+      for (auto &op : *module) {
+        auto funcOp = dyn_cast<func::FuncOp>(op);
+        // Add quantum kernels defined in the module.
+        if (funcOp && funcOp->hasAttr(cudaq::kernelAttrName))
+          moduleOp.push_back(funcOp.clone());
+      }
 
       if (args) {
         cudaq::info("Run Quake Synth.\n");

@@ -354,7 +354,7 @@ private:
       const std::vector<llvm::StringRef> allFunctionNames = [&]() {
         std::vector<llvm::StringRef> allFuncs;
         for (auto &op : *module.getBody()) {
-          auto funcOp = dyn_cast<func::FuncOp>(op);
+          auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op);
           if (!funcOp)
             continue;
           allFuncs.emplace_back(funcOp.getName());
