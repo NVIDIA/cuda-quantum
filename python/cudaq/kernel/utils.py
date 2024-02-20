@@ -10,7 +10,7 @@ from ..mlir.dialects import quake, cc
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 import numpy as np
-from typing import Callable
+from typing import Callable, List
 import ast
 
 qvector = cudaq_runtime.qvector
@@ -59,7 +59,9 @@ def mlirTypeFromAnnotation(annotation, ctx):
         ]
         return cc.CallableType.get(ctx, argTypes)
 
-    if isinstance(annotation, ast.Subscript) and annotation.value.id == 'list':
+    if isinstance(annotation,
+                  ast.Subscript) and (annotation.value.id == 'list' or
+                                      annotation.value.id == 'List'):
         if not hasattr(annotation, 'slice'):
             raise RuntimeError('list subscript missing slice node.')
 
@@ -93,7 +95,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType == complex:
         return ComplexType.get(mlirTypeFromPyType(float, ctx))
 
-    if argType in [list, np.ndarray]:
+    if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
 
@@ -145,11 +147,11 @@ def mlirTypeToPyType(argType):
         eleTy = cc.StdvecType.getElementType(argType)
         if IntegerType.isinstance(argType):
             if IntegerType(argType).width == 1:
-                return list[bool]
-            return list[int]
+                return List[bool]
+            return List[int]
         if F64Type.isinstance(argType):
-            return list[float]
+            return List[float]
         if ComplexType.isinstance(argType):
-            return list[complex]
+            return List[complex]
 
     raise RuntimeError("unhandled mlir-to-pytype {}".format(argType))
