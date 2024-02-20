@@ -18,7 +18,7 @@ if (NOT CUDAQ_DISABLE_TOOLS)
   endif()
 endif()
 
-if (CUDAQ_ENABLE_REST)
+if (CUDAQ_ENABLE_REMOTE_SIM)
   # Add cudaq-qpud executable/tool (including Python wheels)
   add_subdirectory(cudaq-qpud)
 endif()
