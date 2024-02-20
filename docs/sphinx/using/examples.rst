@@ -2,6 +2,8 @@
 CUDA Quantum by Example
 *************************
 
+.. _cuda-quantum-examples:
+
 Examples that illustrate how to use CUDA Quantum for application development are available in C++ and Python.
 
 .. toctree::
