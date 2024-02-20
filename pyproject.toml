@@ -19,7 +19,6 @@ license = { file="LICENSE" }
 dependencies = [
   'astpretty ~= 3.0',
   'cuquantum-cu11 ~= 23.10',
-  'graphlib-backport >= 1.0',
   'numpy >= 1.24'
 ]
 

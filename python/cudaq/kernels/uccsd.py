@@ -9,10 +9,6 @@
 import numpy as np
 import cudaq
 
-## NOTE: https://docs.python.org/3.9/whatsnew/3.9.html#type-hinting-generics-in-standard-collections
-## To support Python v3.8, using `typing.List[float]` instead of `list[float]`
-from typing import List
-
 
 def uccsd_get_excitation_list(n_electrons, n_qubits):
 
@@ -114,7 +110,7 @@ def uccsd_num_parameters(n_electrons, n_qubits):
 
 
 def single_excitation_gate(kernel, qubits: cudaq.qview, p_occ: int, q_virt: int,
-                           theta: List[float]):
+                           theta: list[float]):
 
     # Y_p X_q
     kernel.rx(np.pi / 2.0, qubits[p_occ])
@@ -149,7 +145,7 @@ def single_excitation_gate(kernel, qubits: cudaq.qview, p_occ: int, q_virt: int,
 
 def double_excitation_gate_opt(kernel, qubits: cudaq.qview, p_occ: int,
                                q_occ: int, r_virt: int, s_virt: int,
-                               theta: List[float]):
+                               theta: list[float]):
 
     if (p_occ < q_occ) and (r_virt < s_virt):
         i_occ, j_occ = p_occ, q_occ
@@ -321,7 +317,7 @@ def double_excitation_gate_opt(kernel, qubits: cudaq.qview, p_occ: int,
     kernel.rx(-np.pi / 2.0, qubits[i_occ])
 
 
-def uccsd(kernel, qubits: cudaq.qview, thetas: List[float], n_electrons: int,
+def uccsd(kernel, qubits: cudaq.qview, thetas: list[float], n_electrons: int,
           n_qubits: int):
 
     # This function generates a quantum circuit for the VQE-UCCSD ansatz

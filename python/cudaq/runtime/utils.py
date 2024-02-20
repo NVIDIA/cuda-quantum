@@ -11,7 +11,6 @@ from ..kernel.kernel_decorator import PyKernelDecorator
 from ..mlir.dialects import quake, cc
 
 import numpy as np
-from typing import List
 
 
 def __isBroadcast(kernel, *args):
@@ -23,8 +22,7 @@ def __isBroadcast(kernel, *args):
 
         firstArg = args[0]
         firstArgTypeIsStdvec = cc.StdvecType.isinstance(argTypes[0])
-        if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
+        if isinstance(firstArg, list) and not firstArgTypeIsStdvec:
             return True
 
         if hasattr(firstArg, "shape"):
@@ -44,11 +42,9 @@ def __isBroadcast(kernel, *args):
         firstArg = args[0]
         firstArgType = next(iter(argTypes))
         firstArgTypeIsStdvec = argTypes[firstArgType] in [
-            list, list[float], list[complex], list[int], np.ndarray, List,
-            List[float], List[complex], List[int]
+            list, list[float], list[complex], list[int], np.ndarray
         ]
-        if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
+        if isinstance(firstArg, list) and not firstArgTypeIsStdvec:
             return True
 
         if hasattr(firstArg, "shape"):
@@ -69,7 +65,7 @@ def __createArgumentSet(*args):
         currentArgs = [0 for i in range(len(args))]
         for i, arg in enumerate(args):
 
-            if isinstance(arg, list) or isinstance(arg, List):
+            if isinstance(arg, list):
                 currentArgs[i] = arg[j]
 
             if hasattr(arg, "tolist"):

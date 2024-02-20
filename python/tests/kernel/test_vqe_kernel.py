@@ -7,17 +7,12 @@
 # ============================================================================ #
 
 import os
+
 import pytest
-import sys
-from typing import List
 
 import cudaq
 from cudaq import spin
 import numpy as np
-
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
 
 
 # Helper function for asserting two values are within a
@@ -60,33 +55,11 @@ def test_two_qubit_vqe_float():
     assert np.isclose(got_expectation, -1.74, atol=1e-2)
 
 
-@skipIfPythonLessThan39
 def test_two_qubit_vqe_vecfloat():
     """A 2-qubit VQE ansatz used to benchmark `cudaq.vqe`."""
 
     @cudaq.kernel()
     def kernel_vecfloat(thetas: list[float]):
-        qubits = cudaq.qvector(2)
-        x(qubits[0])
-        ry(thetas[0], qubits[1])
-        x.ctrl(qubits[1], qubits[0])
-
-    optimizer = cudaq.optimizers.COBYLA()
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
-    got_expectation, got_parameters = cudaq.vqe(kernel_vecfloat,
-                                                hamiltonian,
-                                                optimizer,
-                                                parameter_count=1)
-
-    assert np.isclose(got_expectation, -1.74, atol=1e-2)
-
-
-def test_two_qubit_vqe_with_List():
-    """A 2-qubit VQE ansatz used to benchmark `cudaq.vqe`."""
-
-    @cudaq.kernel()
-    def kernel_vecfloat(thetas: List[float]):
         qubits = cudaq.qvector(2)
         x(qubits[0])
         ry(thetas[0], qubits[1])
@@ -147,7 +120,6 @@ def test_vqe_two_qubit_float_gradients():
                                                  got_parameters))
 
 
-@skipIfPythonLessThan39
 def test_vqe_two_qubit_list_gradients():
     """
     Test `cudaq.vqe` on a 2-qubit benchmark for each gradient based optimizer,
