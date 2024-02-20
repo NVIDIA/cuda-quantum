@@ -15,6 +15,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -37,7 +38,7 @@ static std::unique_ptr<JITExecutionCache> jitCache;
 std::tuple<ExecutionEngine *, void *, std::size_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
-                 const std::vector<std::string> &names) {
+                 const std::vector<std::string> &names, Type returnType) {
   auto mod = unwrap(module);
   auto cloned = mod.clone();
   auto context = cloned.getContext();
@@ -85,14 +86,29 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     };
 
     auto jitOrError = ExecutionEngine::create(cloned, opts);
-    if (auto E = jitOrError.takeError())
-      throw std::runtime_error(
-          "CUDA Quantum failed to create Execution Engine - " +
-          llvm::toString(std::move(E)));
+    assert(!!jitOrError);
 
     auto uniqueJit = std::move(jitOrError.get());
     jit = uniqueJit.release();
     jitCache->cache(hashKey, jit);
+  }
+
+  // We need to append the return type to the OpaqueArguments here 
+  // so that we get a spot in the `rawArgs` memory for the 
+  // altLaunchKernel function to dump the result 
+  if (!isa<NoneType>(returnType)) {
+    if (returnType.isInteger(64)) {
+      py::args returnVal = py::make_tuple(py::int_(0));
+      packArgs(runtimeArgs, returnVal);
+    } else {
+      std::string msg;
+      {
+        llvm::raw_string_ostream os(msg);
+        returnType.print(os);
+      }
+      throw std::runtime_error(
+          "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
+    }
   }
 
   void *rawArgs = nullptr;
@@ -113,10 +129,10 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
 
 std::tuple<void *, std::size_t>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
-                      cudaq::OpaqueArguments &runtimeArgs,
+                      Type returnType, cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names) {
   auto [jit, rawArgs, size] =
-      jitAndCreateArgs(name, module, runtimeArgs, names);
+      jitAndCreateArgs(name, module, runtimeArgs, names, returnType);
 
   auto mod = unwrap(module);
   auto thunkName = name + ".thunk";
@@ -168,8 +184,9 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 void pyAltLaunchKernel(const std::string &name, MlirModule module,
                        cudaq::OpaqueArguments &runtimeArgs,
                        const std::vector<std::string> &names) {
+  auto noneType = mlir::NoneType::get(unwrap(module).getContext());
   auto [rawArgs, size] =
-      pyAltLaunchKernelBase(name, module, runtimeArgs, names);
+      pyAltLaunchKernelBase(name, module, noneType, runtimeArgs, names);
   std::free(rawArgs);
 }
 
@@ -177,15 +194,14 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
                               const std::vector<std::string> &names) {
-
-  auto [rawArgs, size] =
-      pyAltLaunchKernelBase(name, module, runtimeArgs, names);
+  auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
+                                               runtimeArgs, names);
   auto unwrapped = unwrap(returnType);
-
   if (unwrapped.isInteger(64)) {
     std::size_t concrete;
     // Here we know the return type should be at
     // the last 8 bytes of memory
+    // FIXME revisit this calculation when we support returning vectors
     std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
     std::free(rawArgs);
     return py::int_(concrete);
@@ -203,7 +219,10 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
                             cudaq::OpaqueArguments &runtimeArgs) {
-  auto [jit, rawArgs, size] = jitAndCreateArgs(name, module, runtimeArgs, {});
+  auto noneType = mlir::NoneType::get(unwrap(module).getContext());
+
+  auto [jit, rawArgs, size] =
+      jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
   registerLLVMDialectTranslation(*context);
@@ -227,7 +246,10 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
 std::string getQIRLL(const std::string &name, MlirModule module,
                      cudaq::OpaqueArguments &runtimeArgs,
                      std::string &profile) {
-  auto [jit, rawArgs, size] = jitAndCreateArgs(name, module, runtimeArgs, {});
+  auto noneType = mlir::NoneType::get(unwrap(module).getContext());
+
+  auto [jit, rawArgs, size] =
+      jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
 

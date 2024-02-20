@@ -91,6 +91,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   PRIVATE_LINK_LIBS
    OptCodeGen
    OptTransforms
+   LLVMSupport
 )
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
@@ -140,7 +141,7 @@ add_mlir_python_modules(CUDAQuantumPythonModules
     CUDAQuantumPythonCAPI
   )
 
-file (COPY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python/)
+file (COPY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
 
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set

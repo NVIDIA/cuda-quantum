@@ -259,8 +259,12 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                     # This will throw if the function / module is invalid
                     m = importlib.import_module('.'.join(moduleNames))
                     getattr(m, node.func.attr)
-                    self.depKernels[node.func.attr] = globalAstRegistry[
-                        node.func.attr]
+                    name = node.func.attr
+                    if not name in globalAstRegistry:
+                        if "__mlir__cudaq__"+name in globalAstRegistry:
+                            name = "__mlir__cudaq__"+name 
+
+                    self.depKernels[name] = globalAstRegistry[name]
 
                 elif hasattr(node.func,
                              'attr') and node.func.attr in globalAstRegistry:
@@ -284,5 +288,5 @@ class HasReturnNodeVisitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         for n in node.body:
-            if isinstance(n, ast.Return):
+            if isinstance(n, ast.Return) and n.value != None:
                 self.hasReturnNode = True
