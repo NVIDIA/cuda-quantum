@@ -18,11 +18,11 @@ import cudaq
 
 def test_tuple_assign():
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def fancyCnot(a: cudaq.qubit, b: cudaq.qubit):
         x.ctrl(a, b)
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def toffoli():
         q = cudaq.qvector(3)
         ctrl = q.front()

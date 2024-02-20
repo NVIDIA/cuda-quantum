@@ -174,8 +174,7 @@ def kernel(function=None, **kwargs):
     is a CUDA Quantum kernel and should be compile and executed on 
     an available quantum coprocessor.
 
-    One can indicate JIT compilation to MLIR via the `jit=True` flag. Verbose 
-    logging can also be enabled via verbose=True. 
+    Verbose logging can be enabled via `verbose=True`. 
     """
     if function:
         return PyKernelDecorator(function)

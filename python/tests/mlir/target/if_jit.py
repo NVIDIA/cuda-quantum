@@ -16,7 +16,7 @@ import numpy as np
 
 import cudaq
 
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def foo(value:bool):
     q = cudaq.qubit()
     if value:

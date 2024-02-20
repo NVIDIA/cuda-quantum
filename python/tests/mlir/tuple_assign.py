@@ -18,7 +18,7 @@ import cudaq
 
 def test_tuple_assign():
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def test():
         q, r, s = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
         x(q, s)

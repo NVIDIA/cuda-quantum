@@ -14,7 +14,7 @@
 import cudaq
 
 
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def foo():
     q0, q1, q2 = cudaq.qvector(3)
     x(q0)

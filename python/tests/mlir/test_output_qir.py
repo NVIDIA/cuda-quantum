@@ -18,7 +18,7 @@ import cudaq
 
 def test_synth_and_qir():
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def ghz(numQubits: int):
         qubits = cudaq.qvector(numQubits)
         h(qubits.front())

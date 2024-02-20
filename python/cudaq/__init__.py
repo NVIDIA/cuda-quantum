@@ -78,8 +78,6 @@ testing = cudaq_runtime.testing
 
 
 def synthesize(kernel, *args):
-    if kernel.module is None:
-        raise RuntimeError("kernel must have jit=True for cudaq.synthesize")
     return PyKernelDecorator(None,
                              module=cudaq_runtime.synthesize(kernel, *args),
                              kernelName=kernel.name)

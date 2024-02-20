@@ -18,14 +18,15 @@ import cudaq
 
 def test_decrementing_range():
 
-    @cudaq.kernel(jit=True)
-    def test(q:int, p:int):
-        qubits = cudaq.qvector(5) 
+    @cudaq.kernel
+    def test(q: int, p: int):
+        qubits = cudaq.qvector(5)
         for k in range(q, p, -1):
             x(qubits[k])
 
     print(test)
     test(2, 0)
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test(
 # CHECK-SAME:                                      %[[VAL_0:.*]]: i64,

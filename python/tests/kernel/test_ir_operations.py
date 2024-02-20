@@ -59,7 +59,6 @@ def test_synthesize():
 
 
 @skipIfPythonLessThan39
-@skipIROperationsForEagerMode
 def test_synthesize_param_list():
 
     @cudaq.kernel
@@ -77,7 +76,6 @@ def test_synthesize_param_list():
     assert np.isclose(result.expectation(), -1.74, atol=1e-2)
 
 
-@skipIROperationsForEagerMode
 def test_synthesize_param_List():
 
     @cudaq.kernel

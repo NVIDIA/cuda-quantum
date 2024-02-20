@@ -18,7 +18,7 @@ import cudaq
 
 def test_while():
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def cost():
         q = cudaq.qvector(6)
         i = 5
@@ -57,7 +57,7 @@ def test_while():
 
 def test_complex_conditional():
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def cost():
         q = cudaq.qvector(6)
         i = 5
