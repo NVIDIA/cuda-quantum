@@ -343,13 +343,13 @@ def test_decrementing_range():
 def test_no_dynamic_lists():
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel(params: list[float]):
             params.append(1.0)
 
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel():
             l = [i for i in range(10)]
             l.append(11)
@@ -358,7 +358,7 @@ def test_no_dynamic_lists():
 
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel():
             l = [[i, i, i] for i in range(10)]
             l.append([11, 12, 13])
