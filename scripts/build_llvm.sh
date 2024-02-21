@@ -20,9 +20,15 @@
 # bash scripts/build_llvm.sh -c DEBUG
 # -or-
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
+#
+# For documentation on how to assemble a complete toolchain, multi-stage builds,
+# and OpenMP support within Clang, see
+# - https://clang.llvm.org/docs/Toolchain.html
+# - https://llvm.org/docs/AdvancedBuilds.html
+# - https://github.com/llvm/llvm-project/blob/main/openmp/docs/SupportAndFAQ.rst#q-how-to-build-an-openmp-gpu-offload-capable-compiler
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
-LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;compiler-rt;openmp;mlir;python-bindings'}
+LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;compiler-rt;mlir;python-bindings'}
 PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
@@ -38,7 +44,7 @@ while getopts ":c:rs:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
-    r) llvm_runtimes="libcxx;libcxxabi;libunwind"
+    r) llvm_runtimes="libcxx;libcxxabi;libunwind;openmp"
     ;;
     s) llvm_source="$OPTARG"
     ;;
@@ -91,7 +97,9 @@ mkdir -p "$LLVM_INSTALL_PREFIX"
 mkdir -p "$llvm_source/build" && cd "$llvm_source/build"
 mkdir -p logs && rm -rf logs/* 
 
-# Specify which components we need to keep the size of the LLVM build down
+# Specify which components we need to keep the size of the LLVM build down.
+# To get a list of install targets, check the output of the following command in the build folder:
+#   ninja -t targets | grep -Po 'install-\K.*(?=-stripped:)'
 echo "Preparing LLVM build..."
 llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*clang;*}" ]; then
@@ -113,6 +121,11 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
   llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
   llvm_components+="lld;"
   projects=("${projects[@]/lld}")
+fi
+if [ -z "${llvm_projects##*compiler-rt;*}" ]; then
+  echo "- including compiler-rt components"
+  llvm_components+="compiler-rt;compiler-rt-headers;"
+  projects=("${projects[@]/compiler-rt}")
 fi
 echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
@@ -147,16 +160,16 @@ cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 #  -DLIBCXXABI_ENABLE_SHARED=OFF \
 #  -DLIBUNWIND_ENABLE_SHARED=OFF \
 #  -DLIBCXX_ENABLE_SHARED=OFF \
+#  -DBOOTSTRAP_LLVM_ENABLE_LLD=TRUE \
 #  -DLIBCXX_STATICALLY_LINK_ABI_IN_STATIC_LIBRARY=ON 
 #  -DLIBCXXABI_STATICALLY_LINK_UNWINDER_IN_STATIC_LIBRARY=ON
 #  -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY - see https://libcxx.llvm.org/BuildingLibcxx.html
-#  -DLLVM_RUNTIME_DISTRIBUTION_COMPONENTS="$llvm_runtime_components"
 #  -DLIBCXX_HERMETIC_STATIC_LIBRARY - see https://libcxx.llvm.org/BuildingLibcxx.html
 # see also https://github.com/llvm/llvm-project/issues/62114
 # variables set manually: 
 # - LD_LIBRARY_PATH to find the built libc++ binaries
+# - LIBRARY_PATH to find the built libc++ binaries
 # - CUDAHOSTCXX="$CXX", since otherwise CUDA check was unhappy
-llvm_runtime_components="cxx-headers;$llvm_runtimes"
 cmake_args="-G Ninja ../llvm \
   -DLLVM_TARGETS_TO_BUILD="host" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
@@ -165,6 +178,7 @@ cmake_args="-G Ninja ../llvm \
   -DLLVM_ENABLE_RUNTIMES="$llvm_runtimes" \
   -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
   -DLLVM_DISTRIBUTION_COMPONENTS="$llvm_components" \
+  -DLLVM_ENABLE_LIBCXX=ON \
   -DLIBCXX_CXX_ABI=libcxxabi \
   -DLIBCXX_USE_COMPILER_RT=ON \
   -DLIBCXXABI_USE_COMPILER_RT=ON \
@@ -176,6 +190,8 @@ cmake_args="-G Ninja ../llvm \
   -DLIBCXX_HAS_ATOMIC_LIB=FALSE \
   -DCLANG_DEFAULT_CXX_STDLIB=libc++ \
   -DCLANG_DEFAULT_RTLIB=compiler-rt \
+  -DCLANG_DEFAULT_UNWINDLIB=libunwind \
+  -DCLANG_DEFAULT_OPENMP_RUNTIME=libomp \
   -DCLANG_DEFAULT_LINKER=lld \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \

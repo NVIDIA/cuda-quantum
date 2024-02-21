@@ -22,13 +22,14 @@
 # can be used to customize which projects are built, and pybind11 will be built and 
 # installed in the location defined by PYBIND11_INSTALL_PREFIX if necessary.
 # The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler 
-# is installed. A compiler toolchain, cmake, and ninja will be installed unless the 
-# corresponding commands already exist. If the commands already exist, compatibility 
-# or versions won't be validated.
+# is installed. 
 # 
 # By default, all prerequisites as outlines above are installed even if the
 # corresponding *_INSTALL_PREFIX is not defined. The command line flag -m changes
 # that behavior to only install the libraries for which this variable is defined.
+# A compiler toolchain, cmake, and ninja will be installed unless the the -m flag 
+# is passed or the corresponding commands already exist. If the commands already 
+# exist, compatibility or versions won't be validated.
 
 # Process command line arguments
 install_all=true
@@ -110,31 +111,32 @@ trap 'prepare_exit && ((return 0 2>/dev/null) && return 1 || exit 1)' EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 # [Toolchain] CMake, ninja and C/C++ compiler
-if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-  source "$this_file_dir/install_toolchain.sh" -t gcc12
-fi
-if [ ! -x "$(command -v cmake)" ]; then
-  echo "Installing CMake..."
-  temp_install_if_command_unknown wget wget
-  wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
-  bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
-fi
-if [ ! -x "$(command -v ninja)" ]; then
-  echo "Installing Ninja..."
-  temp_install_if_command_unknown wget wget
-  temp_install_if_command_unknown make make
+if $install_all; then
+  if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+    source "$this_file_dir/install_toolchain.sh" -t gcc12
+  fi
+  if [ ! -x "$(command -v cmake)" ]; then
+    echo "Installing CMake..."
+    temp_install_if_command_unknown wget wget
+    wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
+    bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
+  fi
+  if [ ! -x "$(command -v ninja)" ]; then
+    echo "Installing Ninja..."
+    temp_install_if_command_unknown wget wget
+    temp_install_if_command_unknown make make
 
-  # The pre-built binary for Linux on GitHub is built for x86_64 only, 
-  # see also https://github.com/ninja-build/ninja/issues/2284.
-  wget https://github.com/ninja-build/ninja/archive/refs/tags/v1.11.1.tar.gz
-  tar -xzvf v1.11.1.tar.gz && cd ninja-1.11.1
-  cmake -B build && cmake --build build
-  mv build/ninja /usr/local/bin/
-  rm -rf v1.11.1.tar.gz ninja-1.11.1
+    # The pre-built binary for Linux on GitHub is built for x86_64 only, 
+    # see also https://github.com/ninja-build/ninja/issues/2284.
+    wget https://github.com/ninja-build/ninja/archive/refs/tags/v1.11.1.tar.gz
+    tar -xzvf v1.11.1.tar.gz && cd ninja-1.11.1
+    cmake -B build && cmake --build build
+    mv build/ninja /usr/local/bin/
+    rm -rf v1.11.1.tar.gz ninja-1.11.1
+  fi
+  echo "Configured C compiler: $CC"
+  echo "Configured C++ compiler: $CXX"
 fi
-
-echo "Configured C compiler: $CC"
-echo "Configured C++ compiler: $CXX"
 
 # [Blas] Needed for certain optimizers
 if [ -n "$BLAS_INSTALL_PREFIX" ]; then
