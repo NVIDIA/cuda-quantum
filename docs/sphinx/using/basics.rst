@@ -39,21 +39,11 @@ Building your first CUDA Quantum Program
   `@cudaq.kernel` decorator. Let's begin with a simple GHZ-state example, producing a state of
   maximal entanglement amongst an allocated set of qubits. 
   
-    .. code-block:: python
+  .. literalinclude:: ../snippets/python/using/first_kernel.py
+      :language: python
+      :start-after: [Begin Documentation]
+      :end-before: [End Documentation]
 
-        @cudaq.kernel
-        def ghz_kernel(qubit_count: int):
-            # Allocate our qubits.
-            qvector = cudaq.qvector(qubit_count)
-            # Place the first qubit in the superposition state.
-            h(qvector[0])
-            # Loop through the allocated qubits and apply controlled-X,
-            # or CNOT, operations between them.
-            for (qubit in range(qubit_count - 1)):
-                x.ctrl(qvector[qubit], qvector[qubit + 1])
-            # Measure the qubits.
-            mz(qvector)
-            
   This kernel function can accept any number of arguments, allowing for flexibility in the construction
   of the quantum program. In this case, the `qubit_count` argument allows us to dynamically control the
   number of qubits allocated to the kernel. As we will see in further `examples <cuda-quantum-examples>`,
@@ -66,22 +56,11 @@ Building your first CUDA Quantum Program
   We can define our quantum kernel as we do any other typed callable in C++, through the use of the
   `__qpu__` annotation. For the following example, we will define a kernel for a simple GHZ-state as
   a standard free function.
-  
-    .. code-block:: cpp
 
-      __qpu__ void kernel(int qubit_count) {
-        // Allocate our qubits.
-        cudaq::qvector qvector(qubit_count);
-        // Place the first qubit in the superposition state.
-        h(qvector[0]);
-        // Loop through the allocated qubits and apply controlled-X,
-        // or CNOT, operations between them.
-        for (auto qubit : cudaq::range(qubit_count - 1)) {
-          x<cudaq::ctrl>(qvector[qubit], qvector[qubit + 1]);
-        }
-        // Measure the qubits.
-        mz(qvector);
-      }
+  .. literalinclude:: ../snippets/cpp/using/first_kernel.cpp
+      :language: cpp
+      :start-after: [Begin Documentation]
+      :end-before: [End Documentation]
 
   This kernel function can accept any number of arguments, allowing for flexibility in the construction
   of the quantum program. In this case, the `qubit_count` argument allows us to dynamically control the
