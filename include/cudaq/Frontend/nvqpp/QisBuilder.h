@@ -20,6 +20,7 @@ public:
   buildInstruction(mlir::OpBuilder &builder, mlir::Location loc,
                    mlir::ValueRange general_operands) = 0;
 };
+
 using QISBuilderRegistry = llvm::Registry<nvqpp::QISBuilder>;
 
 } // namespace nvqpp

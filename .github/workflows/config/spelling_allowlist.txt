@@ -184,6 +184,7 @@ linker
 linkers
 lookup
 lookups
+lossy
 lvalue
 makefiles
 merchantability
