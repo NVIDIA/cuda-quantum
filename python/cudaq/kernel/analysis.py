@@ -260,10 +260,6 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                     m = importlib.import_module('.'.join(moduleNames))
                     getattr(m, node.func.attr)
                     name = node.func.attr
-                    if not name in globalAstRegistry:
-                        if "__mlir__cudaq__"+name in globalAstRegistry:
-                            name = "__mlir__cudaq__"+name 
-
                     self.depKernels[name] = globalAstRegistry[name]
 
                 elif hasattr(node.func,

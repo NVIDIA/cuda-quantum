@@ -115,6 +115,20 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         if isinstance(argInstance[0], complex):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
 
+        if isinstance(argInstance[0], list):
+            return cc.StdvecType.get(
+                ctx,
+                mlirTypeFromPyType(
+                    type(argInstance[0]),
+                    ctx,
+                    argInstance=argInstance[0],
+                    argTypeToCompareTo=cc.StdvecType.getElementType(
+                        argTypeToCompareTo)))
+
+        raise RuntimeError(
+            '[mlirTypeFromPyType] invalid list element type ({})'.format(
+                argType))
+
     if argType == qvector or argType == qreg:
         return quake.VeqType.get(ctx)
     if argType == qubit:
