@@ -67,7 +67,6 @@ env:
   NGC_QUANTUM_TEAM: cuda-quantum
   NVCF_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
-  # NGC_NVCF_DEPLOYMENT_SPEC: GFN:L40G:gl40g_1.br20_2xlarge:1:1 
   NGC_NVCF_DEPLOYMENT_SPEC: NVCFInternal:A100:Standard_ND96amsr_A100_v4_1x:1:1
 
 jobs:
@@ -582,8 +581,12 @@ jobs:
           # Helper to get the *valid* Publishing run Id for a commit hash
           # Notes: runs that have 'CUDA Quantum Python wheels' jobs skipped are not considered.
           function get_publishing_run_id {
-            # Find all successful Publishing runs
-            publishing_run_ids=$(gh run list --commit $1 --workflow Publishing --status success --json databaseId --jq .[].databaseId)
+            # Find all Publishing runs, we'll look into its jobs' status later
+            if [[ -z "$1" ]]; then
+              publishing_run_ids=$(gh run list --workflow Publishing --json databaseId --jq .[].databaseId)
+            else
+              publishing_run_ids=$(gh run list --commit $1 --workflow Publishing --json databaseId --jq .[].databaseId)
+            fi
             for run_id in $publishing_run_ids ; do
                 # Look into its jobs: if "CUDA Quantum Python wheels" matrix build was performed, 
                 # then we have multiple jobs, like "CUDA Quantum Python wheels (python_arm64....")
