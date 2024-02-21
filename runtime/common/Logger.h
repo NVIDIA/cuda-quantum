@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,6 +17,10 @@ namespace cudaq {
 
 // Keep all spdlog headers hidden in the implementation file
 namespace details {
+// This enum must match spdlog::level enums. This is checked via static_assert
+// in Logger.cpp.
+enum class LogLevel { trace, debug, info };
+bool should_log(const LogLevel logLevel);
 void trace(const std::string_view msg);
 void info(const std::string_view msg);
 void debug(const std::string_view msg);
@@ -40,20 +44,29 @@ std::string pathToFileName(const std::string_view fullFilePath);
          const char *funcName = __builtin_FUNCTION(),                          \
          const char *fileName = __builtin_FILE(),                              \
          int lineNo = __builtin_LINE()) {                                      \
-      auto msg = fmt::format(fmt::runtime(message), args...);                  \
-      std::string name = funcName;                                             \
-      auto start = name.find_first_of(" ");                                    \
-      name = name.substr(start + 1, name.find_first_of("(") - start - 1);      \
-      msg = "[" + details::pathToFileName(fileName) + ":" +                    \
-            std::to_string(lineNo) + "] " + msg;                               \
-      details::NAME(msg);                                                      \
+      if (details::should_log(details::LogLevel::NAME)) {                      \
+        auto msg = fmt::format(fmt::runtime(message), args...);                \
+        std::string name = funcName;                                           \
+        auto start = name.find_first_of(" ");                                  \
+        name = name.substr(start + 1, name.find_first_of("(") - start - 1);    \
+        msg = "[" + details::pathToFileName(fileName) + ":" +                  \
+              std::to_string(lineNo) + "] " + msg;                             \
+        details::NAME(msg);                                                    \
+      }                                                                        \
     }                                                                          \
   };                                                                           \
   template <typename... Args>                                                  \
   NAME(const std::string_view, Args &&...) -> NAME<Args...>;
 
 CUDAQ_LOGGER_DEDUCTION_STRUCT(info);
+
+#ifdef CUDAQ_DEBUG
 CUDAQ_LOGGER_DEDUCTION_STRUCT(debug);
+#else
+// Remove cudaq::debug log messages from Release binaries
+template <typename... Args>
+void debug(const std::string_view, Args &&...) {}
+#endif
 
 /// @brief This type is meant to provided quick tracing
 /// of function calls. Instantiate at the beginning
@@ -92,40 +105,48 @@ private:
   /// @brief Any arguments the user would also like to print
   std::string argsMsg;
 
-  static inline short int globalTraceStack = -1;
+  thread_local static inline short int globalTraceStack = -1;
 
 public:
   /// @brief The constructor
-  ScopedTrace(const std::string &name)
-      : startTime(std::chrono::system_clock::now()), traceName(name) {
-    globalTraceStack++;
+  ScopedTrace(const std::string &name) {
+    if (details::should_log(details::LogLevel::trace)) {
+      startTime = std::chrono::system_clock::now();
+      traceName = name;
+      globalTraceStack++;
+    }
   }
 
   /// @brief  Constructor, take and print user-specified critical arguments
   template <typename... Args>
-  ScopedTrace(const std::string &name, Args &&...args)
-      : startTime(std::chrono::system_clock::now()), traceName(name) {
-    argsMsg = " (args = {{";
-    constexpr std::size_t nArgs = sizeof...(Args);
-    for (std::size_t i = 0; i < nArgs; i++) {
-      argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
+  ScopedTrace(const std::string &name, Args &&...args) {
+    if (details::should_log(details::LogLevel::trace)) {
+      startTime = std::chrono::system_clock::now();
+      traceName = name;
+      argsMsg = " (args = {{";
+      constexpr std::size_t nArgs = sizeof...(Args);
+      for (std::size_t i = 0; i < nArgs; i++) {
+        argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
+      }
+      argsMsg = fmt::format(fmt::runtime(argsMsg), args...);
+      globalTraceStack++;
     }
-    argsMsg = fmt::format(fmt::runtime(argsMsg), args...);
-    globalTraceStack++;
   }
 
   /// The destructor, get the elapsed time and trace.
   ~ScopedTrace() {
-    auto duration = static_cast<double>(
-        std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::system_clock::now() - startTime)
-            .count() /
-        1000.0);
-    details::trace(fmt::format(
-        "{}{} executed in {} ms.{}",
-        globalTraceStack > 0 ? std::string(globalTraceStack, '-') + " " : "",
-        traceName, duration, argsMsg));
-    globalTraceStack--;
+    if (details::should_log(details::LogLevel::trace)) {
+      auto duration = static_cast<double>(
+          std::chrono::duration_cast<std::chrono::microseconds>(
+              std::chrono::system_clock::now() - startTime)
+              .count() /
+          1000.0);
+      details::trace(fmt::format(
+          "{}{} executed in {} ms.{}",
+          globalTraceStack > 0 ? std::string(globalTraceStack, '-') + " " : "",
+          traceName, duration, argsMsg));
+      globalTraceStack--;
+    }
   }
 };
 } // namespace cudaq

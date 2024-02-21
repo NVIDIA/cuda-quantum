@@ -9,9 +9,10 @@
 #pragma once
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
+#include "cudaq/Support/Version.h"
 #include "nlohmann/json.hpp"
 
-/*! \file JsonConvert.h
+/*! \file
     \brief Utility to support JSON serialization between the client and server.
 */
 
@@ -150,10 +151,18 @@ private:
   // This needs to be bumped whenever a breaking change is introduced.
   // e.g., adding/removing non-optional fields, changing field names, etc.
   static constexpr std::size_t SCHEMA_VERSION = 1;
+  // Version string identifying the client version.
+  static inline const std::string CUDA_QUANTUM_VERSION = []() {
+    std::stringstream ss;
+    ss << "CUDA Quantum Version " << cudaq::getVersion() << " ("
+       << cudaq::getFullRepositoryVersion() << ")";
+    return ss.str();
+  }();
 
 public:
   RestRequest(ExecutionContext &context)
-      : executionContext(context), version(SCHEMA_VERSION) {}
+      : executionContext(context), version(SCHEMA_VERSION),
+        clientVersion(CUDA_QUANTUM_VERSION) {}
   RestRequest(const json &j)
       : m_deserializedContext(
             std::make_unique<ExecutionContext>(j["executionContext"]["name"])),
@@ -193,10 +202,12 @@ public:
   std::vector<uint8_t> args;
   // Version of this schema for compatibility check.
   std::size_t version;
+  // Version of the runtime client submitting the request.
+  std::string clientVersion;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
                                  executionContext, code, args, format, seed,
-                                 passes);
+                                 passes, clientVersion);
 };
 
 /// NVCF function version status
