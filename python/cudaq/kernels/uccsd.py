@@ -91,7 +91,6 @@ def uccsd_get_excitation_list(n_electrons, n_qubits):
     return singles_alpha, singles_beta, doubles_mixed, doubles_alpha, doubles_beta
 
 
-
 def uccsd_num_parameters(n_electrons, n_qubits):
     # Compute the size of theta parameters for all UCCSD excitation.
 
@@ -148,34 +147,34 @@ def single_excitation(qubits: cudaq.qview, p_occ: int, q_virt: int,
 
 @cudaq.kernel
 def double_excitation_opt(qubits: cudaq.qview, p_occ: int, q_occ: int,
-                               r_virt: int, s_virt: int, theta: float):
+                          r_virt: int, s_virt: int, theta: float):
 
     i_occ = 0
     j_occ = 0
     a_virt = 0
     b_virt = 0
     if (p_occ < q_occ) and (r_virt < s_virt):
-        i_occ = p_occ 
+        i_occ = p_occ
         j_occ = q_occ
-        a_virt = r_virt 
+        a_virt = r_virt
         b_virt = s_virt
 
     elif (p_occ > q_occ) and (r_virt > s_virt):
-        i_occ = q_occ 
+        i_occ = q_occ
         j_occ = p_occ
-        a_virt = s_virt 
+        a_virt = s_virt
         b_virt = r_virt
 
     elif (p_occ < q_occ) and (r_virt > s_virt):
-        i_occ = p_occ 
+        i_occ = p_occ
         j_occ = q_occ
-        a_virt = s_virt 
+        a_virt = s_virt
         b_virt = r_virt
         # theta *= -1.0 FIXME
         theta = theta * -1.
 
     elif (p_occ > q_occ) and (r_virt < s_virt):
-        i_occ = q_occ 
+        i_occ = q_occ
         j_occ = p_occ
         a_virt = r_virt
         b_virt = s_virt
@@ -331,9 +330,10 @@ def double_excitation_opt(qubits: cudaq.qview, p_occ: int, q_occ: int,
     rx(-np.pi / 2.0, qubits[j_occ])
     rx(-np.pi / 2.0, qubits[i_occ])
 
+
 @cudaq.kernel
-def uccsd_odd_electrons(qubits: cudaq.qview, thetas: List[float], n_electrons: int,
-          n_qubits: int):
+def uccsd_odd_electrons(qubits: cudaq.qview, thetas: List[float],
+                        n_electrons: int, n_qubits: int):
     n_spatial_orbitals = n_qubits // 2
     n_occupied = int(np.ceil(n_electrons / 2))
     n_virtual = n_spatial_orbitals - n_occupied
@@ -342,37 +342,39 @@ def uccsd_odd_electrons(qubits: cudaq.qview, thetas: List[float], n_electrons: i
     virtual_alpha_indices = [i * 2 + n_electrons + 1 for i in range(n_virtual)]
 
     occupied_beta_indices = [i * 2 + 1 for i in range(n_occupied - 1)]
-    virtual_beta_indices = [0 for k in range(n_virtual+1)]
+    virtual_beta_indices = [0 for k in range(n_virtual + 1)]
     virtual_beta_indices[0] = 2 * n_occupied - 1
     for i in range(n_virtual):
-        virtual_beta_indices[i+1] = i * 2 + 1 + n_electrons
+        virtual_beta_indices[i + 1] = i * 2 + 1 + n_electrons
 
     lenOccA = len(occupied_alpha_indices)
     lenOccB = len(occupied_beta_indices)
     lenVirtA = len(virtual_alpha_indices)
     lenVirtB = len(virtual_beta_indices)
 
-    singles_a = [[0, 0] for k in range(lenOccA*lenVirtA)]
+    singles_a = [[0, 0] for k in range(lenOccA * lenVirtA)]
     counter = 0
     for p in occupied_alpha_indices:
         for q in virtual_alpha_indices:
-            singles_a[counter] = [p,q]
+            singles_a[counter] = [p, q]
             counter = counter + 1
-    
+
     counter = 0
     singles_b = [[0, 0] for k in range(lenOccB * lenVirtB)]
     for p in occupied_beta_indices:
         for q in virtual_beta_indices:
-            singles_b[counter] = [p,q]
+            singles_b[counter] = [p, q]
             counter = counter + 1
-    
+
     counter = 0
-    doubles_m = [[0, 0, 0, 0] for k in range(lenOccB * lenVirtB * lenOccA *lenVirtA)]
+    doubles_m = [
+        [0, 0, 0, 0] for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)
+    ]
     for p in occupied_alpha_indices:
         for q in occupied_beta_indices:
             for r in virtual_beta_indices:
                 for s in virtual_alpha_indices:
-                    doubles_m[counter] = [p,q,r,s]
+                    doubles_m[counter] = [p, q, r, s]
                     counter = counter + 1
 
     counter = 0
@@ -417,38 +419,37 @@ def uccsd_odd_electrons(qubits: cudaq.qview, thetas: List[float], n_electrons: i
 
     thetaCounter = 0
     for i in range(n_alpha_singles):
-        single_excitation(qubits, singles_a[i][0],
-                               singles_a[i][1], thetas[thetaCounter])
+        single_excitation(qubits, singles_a[i][0], singles_a[i][1],
+                          thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_singles):
-        single_excitation(qubits, singles_b[i][0],
-                               singles_b[i][1], thetas[thetaCounter])
+        single_excitation(qubits, singles_b[i][0], singles_b[i][1],
+                          thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_mixed_doubles):
-        double_excitation_opt(qubits, doubles_m[i][0],
-                                   doubles_m[i][1], doubles_m[i][2],
-                                   doubles_m[i][3], thetas[thetaCounter])
+        double_excitation_opt(qubits, doubles_m[i][0], doubles_m[i][1],
+                              doubles_m[i][2], doubles_m[i][3],
+                              thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_alpha_doubles):
-        double_excitation_opt(qubits, doubles_a[i][0],
-                                   doubles_a[i][1], doubles_a[i][2],
-                                   doubles_a[i][3], thetas[thetaCounter])
+        double_excitation_opt(qubits, doubles_a[i][0], doubles_a[i][1],
+                              doubles_a[i][2], doubles_a[i][3],
+                              thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_doubles):
-        double_excitation_opt(qubits, doubles_b[i][0],
-                                   doubles_b[i][1], doubles_b[i][2],
-                                   doubles_b[i][3], thetas[thetaCounter])
+        double_excitation_opt(qubits, doubles_b[i][0], doubles_b[i][1],
+                              doubles_b[i][2], doubles_b[i][3],
+                              thetas[thetaCounter])
         thetaCounter += 1
 
-    
 
-@cudaq.kernel 
-def uccsd_even_electrons(qubits: cudaq.qview, thetas: List[float], n_electrons: int,
-          n_qubits: int):
+@cudaq.kernel
+def uccsd_even_electrons(qubits: cudaq.qview, thetas: List[float],
+                         n_electrons: int, n_qubits: int):
     n_spatial_orbitals = n_qubits // 2
     n_occupied = int(np.ceil(n_electrons / 2))
     n_virtual = n_spatial_orbitals - n_occupied
@@ -464,27 +465,29 @@ def uccsd_even_electrons(qubits: cudaq.qview, thetas: List[float], n_electrons: 
     lenVirtA = len(virtual_alpha_indices)
     lenVirtB = len(virtual_beta_indices)
 
-    singles_a = [[0, 0] for k in range(lenOccA*lenVirtA)]
+    singles_a = [[0, 0] for k in range(lenOccA * lenVirtA)]
     counter = 0
     for p in occupied_alpha_indices:
         for q in virtual_alpha_indices:
-            singles_a[counter] = [p,q]
+            singles_a[counter] = [p, q]
             counter = counter + 1
-    
+
     counter = 0
     singles_b = [[0, 0] for k in range(lenOccB * lenVirtB)]
     for p in occupied_beta_indices:
         for q in virtual_beta_indices:
-            singles_b[counter] = [p,q]
+            singles_b[counter] = [p, q]
             counter = counter + 1
-    
+
     counter = 0
-    doubles_m = [[0, 0, 0, 0] for k in range(lenOccB * lenVirtB * lenOccA *lenVirtA)]
+    doubles_m = [
+        [0, 0, 0, 0] for k in range(lenOccB * lenVirtB * lenOccA * lenVirtA)
+    ]
     for p in occupied_alpha_indices:
         for q in occupied_beta_indices:
             for r in virtual_beta_indices:
                 for s in virtual_alpha_indices:
-                    doubles_m[counter] = [p,q,r,s]
+                    doubles_m[counter] = [p, q, r, s]
                     counter = counter + 1
 
     counter = 0
@@ -527,43 +530,41 @@ def uccsd_even_electrons(qubits: cudaq.qview, thetas: List[float], n_electrons: 
     n_alpha_doubles = len(doubles_a)
     n_beta_doubles = len(doubles_b)
 
-
     thetaCounter = 0
     for i in range(n_alpha_singles):
-        single_excitation(qubits, singles_a[i][0],
-                               singles_a[i][1], thetas[thetaCounter])
+        single_excitation(qubits, singles_a[i][0], singles_a[i][1],
+                          thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_singles):
-        single_excitation(qubits, singles_b[i][0],
-                               singles_b[i][1], thetas[thetaCounter])
+        single_excitation(qubits, singles_b[i][0], singles_b[i][1],
+                          thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_mixed_doubles):
-        double_excitation_opt(qubits, doubles_m[i][0],
-                                   doubles_m[i][1], doubles_m[i][2],
-                                   doubles_m[i][3], thetas[thetaCounter])
+        double_excitation_opt(qubits, doubles_m[i][0], doubles_m[i][1],
+                              doubles_m[i][2], doubles_m[i][3],
+                              thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_alpha_doubles):
-        double_excitation_opt(qubits, doubles_a[i][0],
-                                   doubles_a[i][1], doubles_a[i][2],
-                                   doubles_a[i][3], thetas[thetaCounter])
+        double_excitation_opt(qubits, doubles_a[i][0], doubles_a[i][1],
+                              doubles_a[i][2], doubles_a[i][3],
+                              thetas[thetaCounter])
         thetaCounter += 1
 
     for i in range(n_beta_doubles):
-        double_excitation_opt(qubits, doubles_b[i][0],
-                                   doubles_b[i][1], doubles_b[i][2],
-                                   doubles_b[i][3], thetas[thetaCounter])
+        double_excitation_opt(qubits, doubles_b[i][0], doubles_b[i][1],
+                              doubles_b[i][2], doubles_b[i][3],
+                              thetas[thetaCounter])
         thetaCounter += 1
 
 
 @cudaq.kernel
 def uccsd(qubits: cudaq.qview, thetas: List[float], n_electrons: int,
           n_qubits: int):
-    
+
     if n_electrons % 2 == 0:
         uccsd_even_electrons(qubits, thetas, n_electrons, n_qubits)
     else:
         uccsd_odd_electrons(qubits, thetas, n_electrons, n_qubits)
-

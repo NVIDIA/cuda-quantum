@@ -1069,10 +1069,11 @@ class PyASTBridge(ast.NodeVisitor):
                     maybeIterableSize = self.popValue()
                     maybeIterable = self.popValue()
 
-                    # Make sure that we have a list + size 
+                    # Make sure that we have a list + size
                     if IntegerType.isinstance(maybeIterableSize.type):
                         if cc.PointerType.isinstance(maybeIterable.type):
-                            ptrEleTy = cc.PointerType.getElementType(maybeIterable.type)
+                            ptrEleTy = cc.PointerType.getElementType(
+                                maybeIterable.type)
                             if cc.ArrayType.isinstance(ptrEleTy):
                                 # We're good, just pass this back through.
                                 self.pushValue(maybeIterable)
@@ -1080,10 +1081,10 @@ class PyASTBridge(ast.NodeVisitor):
                                 return
                 if len(self.valueStack) == 1:
                     if cc.StdvecType.isinstance(self.valueStack[0].type):
-                        return 
+                        return
                     if cc.ArrayType.isinstance(self.valueStack[0].type):
-                        return 
-                     
+                        return
+
                 raise RuntimeError('Invalid list() cast requested.')
 
             else:

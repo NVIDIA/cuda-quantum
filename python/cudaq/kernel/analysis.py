@@ -260,6 +260,10 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                     m = importlib.import_module('.'.join(moduleNames))
                     getattr(m, node.func.attr)
                     name = node.func.attr
+                    if name not in globalAstRegistry:
+                        raise RuntimeError(
+                            f"{name} is not a valid kernel to call.")
+
                     self.depKernels[name] = globalAstRegistry[name]
 
                 elif hasattr(node.func,
