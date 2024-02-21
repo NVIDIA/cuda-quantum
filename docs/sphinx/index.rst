@@ -13,7 +13,7 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
 
       Quick Start <quick_start.rst>
       Basics <using/basics.rst>
-      Examples <using/examples.rst>
+      Examples <using/examples/examples.rst>
       Applications <using/tutorials.rst>
       Backends <using/backends/backends.rst>
       Acceleration <using/accelerating/accelerating.rst>
