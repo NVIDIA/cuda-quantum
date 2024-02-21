@@ -75,7 +75,60 @@ Running your first CUDA Quantum Program
 
 Todo
 
+
 Language Fundamentals
 ----------------------
 
+CUDA Quantum kernels support a subset of native Python syntax. We will now outline the supported syntax
+and highlight important features of the CUDA Quantum kernel API.
+.. FIXME ... better copy here
+
+Quantum Memory
+++++++++++++++++++++++++++++++++++
+
 Todo
+
+
+
+Troubleshooting
+-----------------
+
+
+Debugging and Verbose Simulation Output
++++++++++++++++++++++++++++++++++++++++++
+
+One helpful mechanism of debugging CUDA Quantum simulation execution is
+the :code:`CUDAQ_LOG_LEVEL` environment variable. For any CUDA Quantum
+executable, just prepend this and turn it on:
+
+.. tab:: Python
+
+  .. code-block:: bash
+
+      CUDAQ_LOG_LEVEL=info python3 file.py
+
+.. tab:: C++
+
+    .. code-block:: bash
+
+      CUDAQ_LOG_LEVEL=info ./a.out
+
+Similarly, one may write the IR to their console or to a file before remote
+submission. This may be done through the :code:`CUDAQ_DUMP_JIT_IR` environment
+variable. For any CUDA Quantum executable, just prepend as follows:
+
+.. tab:: Python
+
+  .. code-block:: bash
+
+      CUDAQ_DUMP_JIT_IR=1 python3 file.py
+      # or
+      CUDAQ_DUMP_JIT_IR=<output_filename> python3 file.py
+
+.. tab:: C++
+
+  .. code-block:: bash
+
+      CUDAQ_DUMP_JIT_IR=1 ./a.out
+      # or
+      CUDAQ_DUMP_JIT_IR=<output_filename> ./a.out

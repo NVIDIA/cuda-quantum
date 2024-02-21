@@ -14,8 +14,6 @@ Things that will get modified but stay here
   :maxdepth: 1
   
   Multi-processor Platforms <platform.rst>
-  Debugging and Verbose Logging <verbose_out.rst>
-  Combining CUDA (GPU) with CUDA Quantum <cuda_gpu.rst>
 
 Parts of old basics section to remove
 ----------------------------------------
