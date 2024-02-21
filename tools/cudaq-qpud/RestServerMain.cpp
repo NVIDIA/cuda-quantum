@@ -36,12 +36,11 @@ int main(int argc, char **argv) {
   // slow fast for large quantum circuits. Disable that here. Revisit this
   // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
   // in the future.
-  std::vector<const char *> extraArgv(argc + 2);
-  for (int i = 0; i < argc; i++) {
+  std::vector<const char *> extraArgv(
+      argc + 2); // +1 for new parameter, +1 for nullptr at end of list
+  for (int i = 0; i < argc; i++)
     extraArgv[i] = argv[i];
-  }
-  extraArgv.push_back("-fast-isel=0");
-  extraArgv.push_back(nullptr);
+  extraArgv[argc] = "-fast-isel=0";
 
   llvm::cl::ParseCommandLineOptions(argc + 1, extraArgv.data(),
                                     "CUDA Quantum REST server\n");
