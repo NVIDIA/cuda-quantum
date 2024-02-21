@@ -73,7 +73,7 @@ jobs:
   metadata:
     name: Retrieve commit info
     runs-on: ubuntu-latest
-    # environment: backend-validation
+    environment: backend-validation
     container:
       image: ${{ inputs.cudaq_test_image }}
       options: --user root
