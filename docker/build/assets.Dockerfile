@@ -94,14 +94,15 @@ ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    # IMPORTANT:
+    # The same variables that are configured here also need to be set for 
+    # scripts/configure_build.sh install-prereqs!
     ## [>CUDAQuantumBuild]
     CUDAQ_WERROR=false \
     CUDAQ_PYTHON_SUPPORT=OFF \
     CUDAHOSTCXX="$CXX" \
-    CUDAQ_ENABLE_STATIC_LINKING=true \
-    LDFLAGS='-static-libgcc -static-libstdc++' \
-    LLVM_PROJECTS='clang;lld;mlir' \
-    bash scripts/build_cudaq.sh -uv
+    LLVM_PROJECTS='clang;lld;mlir;compiler-rt' \
+    bash scripts/build_cudaq.sh -t llvm -v
     ## [<CUDAQuantumBuild]
 
 ## [Tests]

@@ -43,15 +43,15 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
-install_prereqs=false
+install_prereqs=""
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:uv" opt; do
+while getopts ":c:t:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
-    u) install_prereqs=true
+    t) install_prereqs="$OPTARG"
     ;;
     v) verbose=true
     ;;
@@ -72,15 +72,24 @@ mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
 mkdir -p "$working_dir/build" && cd "$working_dir/build" && rm -rf * 
 mkdir -p logs && rm -rf logs/*
 
-if $install_prereqs; then
+if [ -n "$install_prereqs" ]; then
   echo "Installing pre-requisites..."
+  if [ "$install_prereqs" = "llvm" ]; then
+    llvm_stage2_build="$LLVM_INSTALL_PREFIX"
+    llvm_stage1_build="$LLVM_INSTALL_PREFIX/stage1/"
+    LLVM_INSTALL_PREFIX="$llvm_stage1_build"
+  fi
   if $verbose; then
-    source "$this_file_dir/install_prerequisites.sh"
+    source "$this_file_dir/install_prerequisites.sh" -t "$install_prereqs"
     status=$?
   else
     echo "The install log can be found in `pwd`/logs/prereqs_output.txt."
-    source "$this_file_dir/install_prerequisites.sh" 2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
+    source "$this_file_dir/install_prerequisites.sh" -t "$install_prereqs" \
+      2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
     status=$?
+  fi
+  if [ "$install_prereqs" = "llvm" ]; then
+    LLVM_INSTALL_PREFIX="$llvm_stage2_build"
   fi
 
   (return 0 2>/dev/null) && is_sourced=true || is_sourced=false

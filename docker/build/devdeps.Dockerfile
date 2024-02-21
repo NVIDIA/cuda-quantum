@@ -89,7 +89,7 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
 # - https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#Code%20Gen%20Options
 # - https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html#C_002b_002b-Dialect-Options
 RUN source /opt/llvm/bootstrap/init_command.sh && \
-    bash /scripts/build_llvm.sh -r -s /llvm-project -c Release -v \
+    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
 FROM llvmbuild as prereqs

@@ -36,15 +36,12 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
 verbose=false
-llvm_runtimes=""
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:rs:v" opt; do
+while getopts ":c:s:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
-    ;;
-    r) llvm_runtimes="libcxx;libcxxabi;libunwind;openmp"
     ;;
     s) llvm_source="$OPTARG"
     ;;
@@ -123,7 +120,8 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
   projects=("${projects[@]/lld}")
 fi
 if [ -z "${llvm_projects##*compiler-rt;*}" ]; then
-  echo "- including compiler-rt components"
+  echo "- including runtime components"
+  llvm_runtimes="libcxx;libcxxabi;libunwind;openmp"
   llvm_components+="compiler-rt;compiler-rt-headers;"
   projects=("${projects[@]/compiler-rt}")
 fi

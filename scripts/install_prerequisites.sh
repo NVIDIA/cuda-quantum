@@ -35,9 +35,14 @@
 install_all=true
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":m" opt; do
+while getopts ":t:m" opt; do
   case $opt in
+    t) toolchain="$OPTARG"
+    ;;
     m) install_all=false
+    ;;
+    :) echo "Option -$OPTARG requires an argument."
+    (return 0 2>/dev/null) && return 1 || exit 1
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -113,7 +118,7 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all; then
   if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-    source "$this_file_dir/install_toolchain.sh" -t gcc12
+    source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
   fi
   if [ ! -x "$(command -v cmake)" ]; then
     echo "Installing CMake..."

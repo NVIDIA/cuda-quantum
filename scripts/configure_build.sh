@@ -106,8 +106,7 @@ export CUDACXX=/usr/local/cuda/bin/nvcc
 # [<ToolchainConfiguration]
 
 if [ "$1" == "install-prereqs" ]; then
-    export LDFLAGS="-static-libgcc -static-libstdc++"
-    export LLVM_PROJECTS='clang;lld;mlir'
+    export LLVM_PROJECTS='clang;lld;mlir;compiler-rt'
     this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
     bash "$this_file_dir/install_prerequisites.sh"
 fi
