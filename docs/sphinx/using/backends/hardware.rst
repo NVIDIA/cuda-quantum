@@ -1,6 +1,8 @@
 CUDA Quantum Hardware Backends
 *********************************
 
+.. _hardware-landing-page:
+
 CUDA Quantum supports submission to a set of hardware providers. 
 To submit to a hardware backend, you need an account with the respective provider.
 
