@@ -441,6 +441,9 @@ private:
       static std::size_t g_requestCounter = 0;
       auto requestJson = json::parse(reqBody);
       cudaq::RestRequest request(requestJson);
+      cudaq::info(
+          "[RemoteRestRuntimeServer] Incoming job request from client {}",
+          request.clientVersion);
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);
       if (!shouldHandle) {
