@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -22,7 +22,7 @@
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
-LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'}
+LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;compiler-rt;openmp;mlir;python-bindings'}
 PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
@@ -30,16 +30,22 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
 verbose=false
+llvm_runtimes=""
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:s:p:v" opt; do
+while getopts ":c:rs:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
+    ;;
+    r) llvm_runtimes="libcxx;libcxxabi;libunwind"
     ;;
     s) llvm_source="$OPTARG"
     ;;
     v) verbose=true
+    ;;
+    :) echo "Option -$OPTARG requires an argument."
+    if $is_sourced; then return 1; else exit 1; fi
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     if $is_sourced; then return 1; else exit 1; fi
@@ -110,7 +116,7 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
 fi
 echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
-llvm_components+="llvm-config;llvm-ar;llc;FileCheck;count;not;"
+llvm_components+="llvm-config;llvm-ar;llvm-nm;llvm-symbolizer;llc;FileCheck;count;not;"
 
 if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
   echo "- including additional projects "$(echo "${projects[*]}" | xargs | tr ' ' ',')
@@ -137,13 +143,40 @@ fi
 cat "../llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 
-# Generate CMake files
+# Generate CMake files; -DCLANG_RESOURCE_DIR=...
+#  -DLIBCXXABI_ENABLE_SHARED=OFF \
+#  -DLIBUNWIND_ENABLE_SHARED=OFF \
+#  -DLIBCXX_ENABLE_SHARED=OFF \
+#  -DLIBCXX_STATICALLY_LINK_ABI_IN_STATIC_LIBRARY=ON 
+#  -DLIBCXXABI_STATICALLY_LINK_UNWINDER_IN_STATIC_LIBRARY=ON
+#  -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY - see https://libcxx.llvm.org/BuildingLibcxx.html
+#  -DLLVM_RUNTIME_DISTRIBUTION_COMPONENTS="$llvm_runtime_components"
+#  -DLIBCXX_HERMETIC_STATIC_LIBRARY - see https://libcxx.llvm.org/BuildingLibcxx.html
+# see also https://github.com/llvm/llvm-project/issues/62114
+# variables set manually: 
+# - LD_LIBRARY_PATH to find the built libc++ binaries
+# - CUDAHOSTCXX="$CXX", since otherwise CUDA check was unhappy
+llvm_runtime_components="cxx-headers;$llvm_runtimes"
 cmake_args="-G Ninja ../llvm \
   -DLLVM_TARGETS_TO_BUILD="host" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
   -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
-  -DLLVM_DISTRIBUTION_COMPONENTS=$llvm_components \
+  -DLLVM_ENABLE_RUNTIMES="$llvm_runtimes" \
+  -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
+  -DLLVM_DISTRIBUTION_COMPONENTS="$llvm_components" \
+  -DLIBCXX_CXX_ABI=libcxxabi \
+  -DLIBCXX_USE_COMPILER_RT=ON \
+  -DLIBCXXABI_USE_COMPILER_RT=ON \
+  -DLIBUNWIND_USE_COMPILER_RT=ON \
+  -DLIBCXXABI_USE_LLVM_UNWINDER=ON \
+  -DCOMPILER_RT_USE_LIBCXX=ON \
+  -DLIBCXX_HAS_GCC_LIB=FALSE \
+  -DLIBCXX_HAS_GCC_S_LIB=FALSE \
+  -DLIBCXX_HAS_ATOMIC_LIB=FALSE \
+  -DCLANG_DEFAULT_CXX_STDLIB=libc++ \
+  -DCLANG_DEFAULT_RTLIB=compiler-rt \
+  -DCLANG_DEFAULT_LINKER=lld \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DPython3_EXECUTABLE="$Python3_EXECUTABLE" \
@@ -181,4 +214,15 @@ if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
 else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
   cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
+fi
+
+if [ -n "$llvm_runtimes" ]; then
+  cd $llvm_source/build && ninja runtimes && ninja install-runtimes
+  status=$?
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo "Build failed. Please check the files in the `pwd`/logs directory."
+    cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+  else
+    cd "$working_dir" && echo "Successfully added runtime components."
+  fi
 fi

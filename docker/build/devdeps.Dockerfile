@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -77,7 +77,7 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && cmake --build . --target install --config Release \
     && cd .. && rm -rf /pybind11-project
 RUN source /opt/llvm/bootstrap/init_command.sh && \
-    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
+    bash /scripts/build_llvm.sh -r -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
 FROM llvmbuild as prereqs
