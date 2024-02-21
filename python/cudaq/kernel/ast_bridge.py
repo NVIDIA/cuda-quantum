@@ -12,7 +12,7 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation
+from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
@@ -23,6 +23,42 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic
 # It provides a `PyASTBridge` class that implements the `ast.NodeVisitor` type
 # to walk the Python AST for a `cudaq.kernel` annotated function and generate
 # valid MLIR code using `Quake`, `CC`, `Arith`, and `Math` dialects.
+
+
+class PyScopedSymbolTable(object):
+
+    def __init__(self):
+        self.symbolTable = deque()
+
+    def pushScope(self):
+        self.symbolTable.append({})
+
+    def popScope(self):
+        self.symbolTable.pop()
+
+    def __contains__(self, symbol):
+        for st in reversed(self.symbolTable):
+            if symbol in st:
+                return True
+
+        return False
+
+    def __setitem__(self, symbol, value):
+        self.symbolTable[-1][symbol] = value
+        return
+
+    def __getitem__(self, symbol):
+        for st in reversed(self.symbolTable):
+            if symbol in st:
+                return st[symbol]
+
+        raise RuntimeError(
+            f"{symbol} is not a valid variable name in this scope.")
+
+    def clear(self):
+        while len(self.symbolTable):
+            self.symbolTable.pop()
+        return
 
 
 class PyASTBridge(ast.NodeVisitor):
@@ -63,16 +99,26 @@ class PyASTBridge(ast.NodeVisitor):
             self.loc = Location.unknown(context=self.ctx)
             self.module = Module.create(loc=self.loc)
 
+        # If the driver of this AST bridge instance has indicated
+        # that there is a return type from analysis on the Python AST,
+        # then we want to set the known result type so that the
+        # FuncOp can have it.
+        if 'returnTypeIsFromPython' in kwargs and kwargs[
+                'returnTypeIsFromPython'] and self.knownResultType is not None:
+            self.knownResultType = mlirTypeFromPyType(self.knownResultType,
+                                                      self.ctx)
+
         self.disableEntryPointTag = kwargs[
             'disableEntryPointTag'] if 'disableEntryPointTag' in kwargs else False
         self.disableNvqppPrefix = kwargs[
             'disableNvqppPrefix'] if 'disableNvqppPrefix' in kwargs else False
-        self.symbolTable = {}
+        self.symbolTable = PyScopedSymbolTable()
         self.increment = 0
         self.buildingEntryPoint = False
         self.inForBodyStack = deque()
         self.inIfStmtBlockStack = deque()
         self.controlNegations = []
+        self.subscriptPushPointerValue = False
         self.verbose = 'verbose' in kwargs and kwargs['verbose']
 
     def getVeqType(self, size=None):
@@ -291,11 +337,13 @@ class PyASTBridge(ast.NodeVisitor):
 
         bodyBlock = Block.create_at_start(loop.bodyRegion, [iTy])
         with InsertionPoint(bodyBlock):
+            self.symbolTable.pushScope()
             self.pushForBodyStack(bodyBlock.arguments)
             bodyBuilder(bodyBlock.arguments[0])
             if not self.hasTerminator(bodyBlock):
                 cc.ContinueOp(bodyBlock.arguments)
             self.popForBodyStack()
+            self.symbolTable.popScope()
 
         stepBlock = Block.create_at_start(loop.stepRegion, [iTy])
         with InsertionPoint(stepBlock):
@@ -405,6 +453,7 @@ class PyASTBridge(ast.NodeVisitor):
             f = func.FuncOp(fullName, (self.argTypes, [] if self.knownResultType
                                        == None else [self.knownResultType]),
                             loc=self.loc)
+            self.kernelFuncOp = f
 
             # Set this kernel as an entry point if the argument types are classical only
             def isQuantumTy(ty):
@@ -421,6 +470,7 @@ class PyASTBridge(ast.NodeVisitor):
             # Set the insertion point to the start of the entry block
             with InsertionPoint(self.entry):
                 self.buildingEntryPoint = True
+                self.symbolTable.pushScope()
                 # Add the block arguments to the symbol table,
                 # create a stack slot for value arguments
                 blockArgs = self.entry.arguments
@@ -440,6 +490,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if not self.hasTerminator(self.entry):
                     ret = func.ReturnOp([])
                 self.buildingEntryPoint = False
+                self.symbolTable.popScope()
 
             if True not in areQuantumTypes:
                 attr = DictAttr.get(
@@ -512,11 +563,53 @@ class PyASTBridge(ast.NodeVisitor):
         if self.verbose:
             print('[Visit Assign {}]'.format(ast.unparse(node)))
 
+        # CUDA Quantum does not yet support dynamic memory allocation
+        if isinstance(node.value, ast.List) and len(node.value.elts) == 0:
+            raise RuntimeError(
+                "CUDA Quantum does not support allocating lists of zero size (no dynamic memory allocation)"
+            )
+
         # Retain the variable name for potential children (like `mz(q, registerName=...)`)
-        if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
-            self.currentAssignVariableName = str(node.targets[0].id)
-            self.visit(node.value)
-            self.currentAssignVariableName = None
+        if len(node.targets) == 1 and not isinstance(node.targets[0],
+                                                     ast.Tuple):
+            # Handle simple `var = expr`
+            if isinstance(node.targets[0], ast.Name):
+                self.currentAssignVariableName = str(node.targets[0].id)
+                self.visit(node.value)
+                self.currentAssignVariableName = None
+            # Handle assignments like `listVar[IDX] = VALUE`
+            # `listVAR` must be in the symbol table
+            elif isinstance(node.targets[0], ast.Subscript) and isinstance(
+                    node.targets[0].value,
+                    ast.Name) and node.targets[0].value.id in self.symbolTable:
+                # Visit_Subscript will try to load any pointer and return it
+                # but here we want the pointer, so flip that flag
+                self.subscriptPushPointerValue = True
+                # Visit the subscript node, get the pointer value
+                self.visit(node.targets[0])
+                ptrVal = self.popValue()
+                if not cc.PointerType.isinstance(ptrVal.type):
+                    raise RuntimeError(
+                        "Invalid CUDA Quantum subscript assignment, variable must be a pointer."
+                    )
+                # See if this is a pointer to an array, if so cast it
+                # to a pointer on the array type
+                ptrEleType = cc.PointerType.getElementType(ptrVal.type)
+                if cc.ArrayType.isinstance(ptrEleType):
+                    ptrVal = cc.CastOp(
+                        cc.PointerType.get(
+                            self.ctx, cc.ArrayType.getElementType(ptrEleType)),
+                        ptrVal).result
+
+                # Visit the value being assigned
+                self.visit(node.value)
+                valueToStore = self.popValue()
+                # Store the value
+                cc.StoreOp(valueToStore, ptrVal)
+                # Reset the push pointer value flag
+                self.subscriptPushPointerValue = False
+                return
+
         else:
             self.visit(node.value)
 
@@ -542,6 +635,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.symbolTable[varNames[i]] = value
             elif varNames[i] in self.symbolTable:
                 cc.StoreOp(value, self.symbolTable[varNames[i]])
+            elif cc.PointerType.isinstance(value.type):
+                self.symbolTable[varNames[i]] = value
+
             else:
                 # We should allocate and store
                 alloca = cc.AllocaOp(cc.PointerType.get(self.ctx, value.type),
@@ -558,11 +654,22 @@ class PyASTBridge(ast.NodeVisitor):
         if self.verbose:
             print('[Visit Attribute]')
 
-        if node.value.id in self.symbolTable and node.attr == 'size' and quake.VeqType.isinstance(
-                self.symbolTable[node.value.id].type):
-            self.pushValue(
-                quake.VeqSizeOp(self.getIntegerType(64),
-                                self.symbolTable[node.value.id]).result)
+        # Disallow list.append since we don't do dynamic memory allocation
+        if node.value.id in self.symbolTable:
+            value = self.symbolTable[node.value.id]
+            if node.attr == 'append':
+                type = value.type
+                if cc.PointerType.isinstance(type):
+                    type = cc.PointerType.getElementType(type)
+                if cc.StdvecType.isinstance(type) or cc.ArrayType.isinstance(
+                        type):
+                    raise RuntimeError(
+                        "CUDA Quantum does not allow dynamic list resizing.")
+
+            if node.attr == 'size' and quake.VeqType.isinstance(value.type):
+                self.pushValue(
+                    quake.VeqSizeOp(self.getIntegerType(64),
+                                    self.symbolTable[node.value.id]).result)
             return
 
         if node.value.id in ['np', 'numpy'] and node.attr == 'pi':
@@ -635,15 +742,16 @@ class PyASTBridge(ast.NodeVisitor):
 
             # If we did have module names, then this is what we are looking for
             if len(moduleNames):
-                if not node.func.attr in globalKernelRegistry:
+                name = node.func.attr
+                if not name in globalKernelRegistry:
                     moduleNames.reverse()
                     raise RuntimeError(
                         "{}.{} is not a valid quantum kernel to call.".format(
                             '.'.join(moduleNames), node.func.attr))
 
-                # Iy is in `globalKernelRegistry`, it has to be in this Module
+                # If it is in `globalKernelRegistry`, it has to be in this Module
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
-                                                                 node.func.attr]
+                                                                 name]
                 fType = otherKernel.type
                 if len(fType.inputs) != len(node.args):
                     raise RuntimeError(
@@ -942,6 +1050,43 @@ class PyASTBridge(ast.NodeVisitor):
                 quake.ExpPauliOp(theta, qubits, pauliWord)
                 return
 
+            elif node.func.id == 'int':
+                # cast operation
+                value = self.popValue()
+                if IntegerType.isinstance(value.type):
+                    self.pushValue(value)
+                    return
+
+                if F64Type.isinstance(value.type):
+                    self.pushValue(
+                        arith.FPToSIOp(self.getIntegerType(), value).result)
+                    return
+
+                raise RuntimeError("Invalid cast to integer.")
+
+            elif node.func.id == 'list':
+                if len(self.valueStack) == 2:
+                    maybeIterableSize = self.popValue()
+                    maybeIterable = self.popValue()
+
+                    # Make sure that we have a list + size
+                    if IntegerType.isinstance(maybeIterableSize.type):
+                        if cc.PointerType.isinstance(maybeIterable.type):
+                            ptrEleTy = cc.PointerType.getElementType(
+                                maybeIterable.type)
+                            if cc.ArrayType.isinstance(ptrEleTy):
+                                # We're good, just pass this back through.
+                                self.pushValue(maybeIterable)
+                                self.pushValue(maybeIterableSize)
+                                return
+                if len(self.valueStack) == 1:
+                    if cc.StdvecType.isinstance(self.valueStack[0].type):
+                        return
+                    if cc.ArrayType.isinstance(self.valueStack[0].type):
+                        return
+
+                raise RuntimeError('Invalid list() cast requested.')
+
             else:
                 print(globalKernelRegistry.keys())
                 raise RuntimeError("unhandled function call - {}".format(
@@ -982,6 +1127,13 @@ class PyASTBridge(ast.NodeVisitor):
                     value = complex.CreateOp(ComplexType.get(value.type), value,
                                              self.getConstantFloat(0.0)).result
                     self.pushValue(complex.SqrtOp(value).result)
+                    return
+                if node.func.attr == 'ceil':
+                    value = self.popValue()
+                    if IntegerType.isinstance(value.type):
+                        value = arith.SIToFPOp(self.getFloatType(),
+                                               value).result
+                    self.pushValue(math.CeilOp(value).result)
                     return
 
                 raise RuntimeError(
@@ -1254,7 +1406,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
         This method currently supports lowering simple list comprehensions 
         to the MLIR. By simple, we mean expressions like 
-        `[expr(iter) for iter in iterable]`
+        `[expr(iter) for iter in iterable]` or 
+        `myList = [exprThatReturns(iter) for iter in iterable]`.
         """
 
         if len(node.generators) > 1:
@@ -1266,13 +1419,94 @@ class PyASTBridge(ast.NodeVisitor):
             raise RuntimeError(
                 "only support named targets in list comprehension")
 
-        # now we know we have `[expr(r) for r in iterable]`
-        # reuse what we do in `visit_For()`
-        forNode = ast.For()
-        forNode.iter = node.generators[0].iter
-        forNode.target = node.generators[0].target
-        forNode.body = [node.elt]
-        self.visit_For(forNode)
+        # Handle the case of `[qOp(q) for q in veq]`
+        if isinstance(
+                node.generators[0].iter,
+                ast.Name) and node.generators[0].iter.id in self.symbolTable:
+            if quake.VeqType.isinstance(
+                    self.symbolTable[node.generators[0].iter.id].type):
+                # now we know we have `[expr(r) for r in iterable]`
+                # reuse what we do in `visit_For()`
+                forNode = ast.For()
+                forNode.iter = node.generators[0].iter
+                forNode.target = node.generators[0].target
+                forNode.body = [node.elt]
+                self.visit_For(forNode)
+                return
+
+        # General case of
+        # `listVar = [expr(i) for i in iterable]`
+        # Need to think of this as
+        # `listVar = stdvec(iterable.size)`
+        # `for i, r in enumerate(listVar):`
+        # `   listVar[i] = expr(r)`
+
+        # Let's handle the following `listVar` types
+        # `   %9 = cc.alloca !cc.array<!cc.stdvec<T> x 2> -> ptr<array<stdvec<T> x N>`
+        # or
+        # `    %3 = cc.alloca T[%2 : i64] -> ptr<array<T>>`
+        self.visit(node.generators[0].iter)
+
+        if len(self.valueStack) != 2:
+            raise RuntimeError(
+                "Invalid CUDA Quantum list creation via list comprehension - valid iterable not detected."
+            )
+
+        iterableSize = self.popValue()
+        iterable = self.popValue()
+        # We require that the iterable is a pointer to an `array<T>`
+        if not cc.PointerType.isinstance(iterable.type):
+            raise RuntimeError(
+                "CUDA Quantum only considers general list comprehension on iterables from range(...)"
+            )
+
+        arrayTy = cc.PointerType.getElementType(iterable.type)
+        if not cc.ArrayType.isinstance(arrayTy):
+            raise RuntimeError(
+                "CUDA Quantum only considers general list comprehension on iterables from range(...)"
+            )
+
+        arrayEleTy = cc.ArrayType.getElementType(arrayTy)
+
+        # If `node.elt` is `ast.List`, then we want to allocate a
+        # `cc.array<cc.stdvec<i64> x len(node.elt.elts)>`
+        # otherwise we just want to allocate an `array<T>`
+        listValue = None
+        listComputePtrTy = arrayEleTy
+        if not isinstance(node.elt, ast.List):
+            listValue = cc.AllocaOp(cc.PointerType.get(self.ctx, arrayTy),
+                                    TypeAttr.get(arrayEleTy),
+                                    seqSize=iterableSize).result
+        else:
+            listComputePtrTy = cc.StdvecType.get(self.ctx, arrayEleTy)
+            arrOfStdvecTy = cc.ArrayType.get(self.ctx, listComputePtrTy)
+            listValue = cc.AllocaOp(cc.PointerType.get(self.ctx, arrOfStdvecTy),
+                                    TypeAttr.get(listComputePtrTy),
+                                    seqSize=iterableSize).result
+            listValue = cc.CastOp(
+                cc.PointerType.get(self.ctx, listComputePtrTy),
+                listValue).result
+
+        def bodyBuilder(iterVar):
+            self.symbolTable.pushScope()
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, arrayEleTy), iterable, [iterVar],
+                DenseI32ArrayAttr.get([-2147483648], context=self.ctx))
+            loadedEle = cc.LoadOp(eleAddr).result
+            self.symbolTable[node.generators[0].target.id] = loadedEle
+            self.visit(node.elt)
+            result = self.popValue()
+            listValueAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, listComputePtrTy), listValue,
+                [iterVar], DenseI32ArrayAttr.get([-2147483648],
+                                                 context=self.ctx))
+            cc.StoreOp(result, listValueAddr)
+            self.symbolTable.popScope()
+
+        self.createInvariantForLoop(iterableSize, bodyBuilder)
+        self.pushValue(
+            cc.StdvecInitOp(cc.StdvecType.get(self.ctx, listComputePtrTy),
+                            listValue, iterableSize).result)
         return
 
     def visit_List(self, node):
@@ -1354,10 +1588,13 @@ class PyASTBridge(ast.NodeVisitor):
                 DenseI32ArrayAttr.get([-2147483648], context=self.ctx)).result
             cc.StoreOp(v, eleAddr)
 
+        vecTy = listElementValues[0].type
+        if cc.PointerType.isinstance(vecTy):
+            vecTy = cc.PointerType.getElementType(vecTy)
+
         self.pushValue(
-            cc.StdvecInitOp(
-                cc.StdvecType.get(self.ctx, listElementValues[0].type), alloca,
-                arrSize).result)
+            cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
+                            arrSize).result)
 
     def visit_Constant(self, node):
         """
@@ -1501,11 +1738,31 @@ class PyASTBridge(ast.NodeVisitor):
             eleAddr = cc.ComputePtrOp(
                 elePtrTy, vecPtr, [idx],
                 DenseI32ArrayAttr.get([-2147483648], context=self.ctx)).result
+            if self.subscriptPushPointerValue:
+                self.pushValue(eleAddr)
+                return
             self.pushValue(cc.LoadOp(eleAddr).result)
             return
+        elif cc.PointerType.isinstance(var.type):
+            ptrEleTy = cc.PointerType.getElementType(var.type)
+            # Return the pointer if someone asked for it
+            if self.subscriptPushPointerValue:
+                self.pushValue(var)
+                return
+            if cc.ArrayType.isinstance(ptrEleTy):
+                # Here we want subscript on `ptr<array<>>`
+                arrayEleTy = cc.ArrayType.getElementType(ptrEleTy)
+                ptrEleTy = cc.PointerType.get(self.ctx, arrayEleTy)
+                casted = cc.CastOp(ptrEleTy, var).result
+                eleAddr = cc.ComputePtrOp(
+                    ptrEleTy, casted, [idx],
+                    DenseI32ArrayAttr.get([-2147483648],
+                                          context=self.ctx)).result
+                self.pushValue(cc.LoadOp(eleAddr).result)
+                return
         else:
-            raise RuntimeError("unhandled subscript: {}".format(
-                ast.unparse(node)))
+            raise RuntimeError("unhandled subscript: {} {}".format(
+                ast.unparse(node), var))
 
     def visit_For(self, node):
         """
@@ -1622,11 +1879,13 @@ class PyASTBridge(ast.NodeVisitor):
         one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
 
         def bodyBuilder(iterVar):
+            self.symbolTable.pushScope()
             # we set the extract functor above, use it here
             values = extractFunctor(iterable, iterVar)
             for i, v in enumerate(values):
                 self.symbolTable[varNames[i]] = v
             [self.visit(b) for b in node.body]
+            self.symbolTable.popScope()
 
         self.createInvariantForLoop(totalSize, bodyBuilder)
 
@@ -1656,11 +1915,13 @@ class PyASTBridge(ast.NodeVisitor):
 
         bodyBlock = Block.create_at_start(loop.bodyRegion, [])
         with InsertionPoint(bodyBlock):
+            self.symbolTable.pushScope()
             self.pushForBodyStack([])
             [self.visit(b) for b in node.body]
             if not self.hasTerminator(bodyBlock):
                 cc.ContinueOp([])
             self.popForBodyStack()
+            self.symbolTable.popScope()
 
     def visit_BoolOp(self, node):
         """
@@ -1821,24 +2082,31 @@ class PyASTBridge(ast.NodeVisitor):
         ifOp = cc.IfOp([], condition)
         thenBlock = Block.create_at_start(ifOp.thenRegion, [])
         with InsertionPoint(thenBlock):
+            self.symbolTable.pushScope()
             self.pushIfStmtBlockStack()
             [self.visit(b) for b in node.body]
             if not self.hasTerminator(thenBlock):
                 cc.ContinueOp([])
             self.popIfStmtBlockStack()
+            self.symbolTable.popScope()
 
         if len(node.orelse) > 0:
             elseBlock = Block.create_at_start(ifOp.elseRegion, [])
             with InsertionPoint(elseBlock):
+                self.symbolTable.pushScope()
                 self.pushIfStmtBlockStack()
                 [self.visit(b) for b in node.orelse]
                 if not self.hasTerminator(elseBlock):
                     cc.ContinueOp([])
                 self.popIfStmtBlockStack()
+                self.symbolTable.popScope()
 
     def visit_Return(self, node):
         if self.verbose:
             print("[Visit Return] = {}]".format(ast.unparse(node)))
+
+        if node.value == None:
+            return
 
         self.visit(node.value)
 
@@ -1862,7 +2130,11 @@ class PyASTBridge(ast.NodeVisitor):
             func.ReturnOp([res])
             return
 
-        raise RuntimeError("Return op not implemented.")
+        if result.owner.parent != self.kernelFuncOp:
+            cc.UnwindReturnOp([result])
+            return
+
+        func.ReturnOp([result])
 
     def visit_UnaryOp(self, node):
         """
@@ -1957,15 +2229,20 @@ class PyASTBridge(ast.NodeVisitor):
         self.visit(node.right)
         right = self.popValue()
 
+        if cc.PointerType.isinstance(left.type):
+            left = cc.LoadOp(left).result
+        if cc.PointerType.isinstance(right.type):
+            right = cc.LoadOp(right).result
+
         if not IntegerType.isinstance(left.type) and not F64Type.isinstance(
                 left.type) and not ComplexType.isinstance(left.type):
-            raise RuntimeError("Invalid type for Binary Op {} ({})".format(
-                type(node.op), right))
+            raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
+                type(node.op), left, right))
 
         if not IntegerType.isinstance(right.type) and not F64Type.isinstance(
                 right.type) and not ComplexType.isinstance(right.type):
-            raise RuntimeError("Invalid type for Binary Op {} ({})".format(
-                type(node.op), right))
+            raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
+                type(node.op), right, right))
 
         # Basedon the op type and the leaf types, create the MLIR operator
         if isinstance(node.op, ast.Add):
@@ -2081,9 +2358,16 @@ class PyASTBridge(ast.NodeVisitor):
         if self.verbose:
             print("[Visit Name {}]".format(node.id))
 
+        if node.id in globalKernelRegistry:
+            return
+
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
             if cc.PointerType.isinstance(value.type):
+                if cc.ArrayType.isinstance(
+                        cc.PointerType.getElementType(value.type)):
+                    self.pushValue(value)
+                    return
                 loaded = cc.LoadOp(value).result
                 self.pushValue(loaded)
             elif cc.CallableType.isinstance(
@@ -2093,8 +2377,11 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(self.symbolTable[node.id])
             return
 
-        # FIXME We should handle the case that the name is not
+        # Throw an exception for the case that the name is not
         # in the symbol table
+        raise RuntimeError(
+            f"Invalid variable name requested - '{node.id}' not in the symbol table."
+        )
 
 
 def compile_to_mlir(astModule, **kwargs):
@@ -2112,9 +2399,12 @@ def compile_to_mlir(astModule, **kwargs):
 
     global globalAstRegistry
     verbose = 'verbose' in kwargs and kwargs['verbose']
+    returnType = kwargs['returnType'] if 'returnType' in kwargs else None
 
     # Create the AST Bridge
-    bridge = PyASTBridge(verbose=verbose)
+    bridge = PyASTBridge(verbose=verbose,
+                         knownResultType=returnType,
+                         returnTypeIsFromPython=True)
 
     # First we need to find any dependent kernels, they have to be
     # built as part of this ModuleOp...
@@ -2155,7 +2445,8 @@ def compile_to_mlir(astModule, **kwargs):
     # ignore kernels that have the same name as this one.
     for funcName in sortedOrder:
         if funcName != vis.kernelName and funcName in depKernels:
-            bridge.visit(depKernels[funcName])
+            PyASTBridge(existingModule=bridge.module).visit(
+                depKernels[funcName])
 
     # Build the MLIR Module for this kernel
     bridge.visit(astModule)
