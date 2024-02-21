@@ -91,8 +91,6 @@ def uccsd_get_excitation_list(n_electrons, n_qubits):
     return singles_alpha, singles_beta, doubles_mixed, doubles_alpha, doubles_beta
 
 
-#########################################################################
-
 
 def uccsd_num_parameters(n_electrons, n_qubits):
     # Compute the size of theta parameters for all UCCSD excitation.
@@ -111,40 +109,6 @@ def uccsd_num_parameters(n_electrons, n_qubits):
     total = singles + doubles
 
     return sum((singles, doubles, total))
-
-
-def single_excitation_gate(kernel, qubits: cudaq.qview, p_occ: int, q_virt: int,
-                           theta: float):
-
-    # Y_p X_q
-    kernel.rx(np.pi / 2.0, qubits[p_occ])
-    kernel.h(qubits[q_virt])
-
-    for i in range(p_occ, q_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(0.5 * theta, qubits[q_virt])
-
-    for i in range(q_virt, p_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-
-    kernel.h(qubits[q_virt])
-    kernel.rx(-np.pi / 2.0, qubits[p_occ])
-
-    # -X_p Y_q
-    kernel.h(qubits[p_occ])
-    kernel.rx(np.pi / 2.0, qubits[q_virt])
-
-    for i in range(p_occ, q_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(-0.5 * theta, qubits[q_virt])
-
-    for i in range(q_virt, p_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-
-    kernel.rx(-np.pi / 2.0, qubits[q_virt])
-    kernel.h(qubits[p_occ])
 
 
 @cudaq.kernel
@@ -180,193 +144,6 @@ def single_excitation(qubits: cudaq.qview, p_occ: int, q_virt: int,
 
     rx(-np.pi / 2.0, qubits[q_virt])
     h(qubits[p_occ])
-
-
-def double_excitation_gate_opt(kernel, qubits: cudaq.qview, p_occ: int,
-                               q_occ: int, r_virt: int, s_virt: int,
-                               theta: float):
-
-    i_occ = 0
-    j_occ = 0
-    a_virt = 0
-    b_virt = 0
-    if (p_occ < q_occ) and (r_virt < s_virt):
-        i_occ = p_occ 
-        j_occ = q_occ
-        a_virt = r_virt 
-        b_virt = s_virt
-
-    elif (p_occ > q_occ) and (r_virt > s_virt):
-        i_occ = q_occ 
-        j_occ = p_occ
-        a_virt = s_virt 
-        b_virt = r_virt
-
-    elif (p_occ < q_occ) and (r_virt > s_virt):
-        i_occ = p_occ 
-        j_occ = q_occ
-        a_virt = s_virt 
-        b_virt = r_virt
-        # theta *= -1.0 FIXME
-        theta = theta * -1.
-
-    elif (p_occ > q_occ) and (r_virt < s_virt):
-        i_occ = q_occ 
-        j_occ = p_occ
-        a_virt = r_virt
-        b_virt = s_virt
-        theta = theta * -1.0
-
-    #Block I: x_i x_j x_a y_b + x_i x_j y_a x_b + x_i y_i y_a y_b - x_i y_j x_a x_b
-    #Block II: - y_i x_j x_a x_b +y_i x_j y_a y_b - y_i x_j x_a x_b - y_i y_j y_a x_b
-
-    kernel.h(qubits[i_occ])
-    kernel.h(qubits[j_occ])
-    kernel.h(qubits[a_virt])
-    kernel.rx(np.pi / 2.0, qubits[b_virt])
-
-    for i in range(i_occ, j_occ):
-        kernel.cx(qubits[i], qubits[i + 1])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(0.125 * theta, qubits[b_virt])
-
-    for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-
-    kernel.rx(-np.pi / 2.0, qubits[b_virt])
-    kernel.h(qubits[a_virt])
-
-    kernel.rx(np.pi / 2.0, qubits[a_virt])
-    kernel.h(qubits[b_virt])
-
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(0.125 * theta, qubits[b_virt])
-
-    for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(j_occ, i_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-
-    kernel.rx(-np.pi / 2.0, qubits[a_virt])
-    kernel.h(qubits[j_occ])
-
-    kernel.rx(np.pi / 2.0, qubits[j_occ])
-    kernel.h(qubits[a_virt])
-
-    for i in range(i_occ, j_occ):
-        kernel.cx(qubits[i], qubits[i + 1])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(-0.125 * theta, qubits[b_virt])
-
-    for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-
-    kernel.h(qubits[b_virt])
-    kernel.h(qubits[a_virt])
-
-    kernel.rx(np.pi / 2.0, qubits[a_virt])
-    kernel.rx(np.pi / 2.0, qubits[b_virt])
-
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(0.125 * theta, qubits[b_virt])
-
-    for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(j_occ, i_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-
-    kernel.rx(-np.pi / 2.0, qubits[j_occ])
-    kernel.h(qubits[i_occ])
-
-    kernel.rx(np.pi / 2.0, qubits[i_occ])
-    kernel.h(qubits[j_occ])
-
-    for i in range(i_occ, j_occ):
-        kernel.cx(qubits[i], qubits[i + 1])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(0.125 * theta, qubits[b_virt])
-
-    for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-
-    kernel.rx(-np.pi / 2.0, qubits[b_virt])
-    kernel.rx(-np.pi / 2.0, qubits[a_virt])
-
-    kernel.h(qubits[a_virt])
-    kernel.h(qubits[b_virt])
-
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(-0.125 * theta, qubits[b_virt])
-
-    for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(j_occ, i_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-
-    kernel.h(qubits[b_virt])
-    kernel.h(qubits[j_occ])
-
-    kernel.rx(np.pi / 2.0, qubits[j_occ])
-    kernel.rx(np.pi / 2.0, qubits[b_virt])
-
-    for i in range(i_occ, j_occ):
-        kernel.cx(qubits[i], qubits[i + 1])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(-0.125 * theta, qubits[b_virt])
-
-    for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-
-    kernel.rx(-np.pi / 2.0, qubits[b_virt])
-    kernel.h(qubits[a_virt])
-
-    kernel.rx(np.pi / 2.0, qubits[a_virt])
-    kernel.h(qubits[b_virt])
-
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(a_virt, b_virt):
-        kernel.cx(qubits[i], qubits[i + 1])
-
-    kernel.rz(-0.125 * theta, qubits[b_virt])
-
-    for i in range(b_virt, a_virt, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-    kernel.cx(qubits[j_occ], qubits[a_virt])
-    for i in range(j_occ, i_occ, -1):
-        kernel.cx(qubits[i - 1], qubits[i])
-
-    kernel.h(qubits[b_virt])
-    kernel.rx(-np.pi / 2.0, qubits[a_virt])
-    kernel.rx(-np.pi / 2.0, qubits[j_occ])
-    kernel.rx(-np.pi / 2.0, qubits[i_occ])
 
 
 @cudaq.kernel
@@ -782,7 +559,7 @@ def uccsd_even_electrons(qubits: cudaq.qview, thetas: List[float], n_electrons: 
 
 
 @cudaq.kernel
-def uccsd(qubits: cudaq.qview, thetas: list[float], n_electrons: int,
+def uccsd(qubits: cudaq.qview, thetas: List[float], n_electrons: int,
           n_qubits: int):
     
     if n_electrons % 2 == 0:
@@ -790,51 +567,3 @@ def uccsd(qubits: cudaq.qview, thetas: list[float], n_electrons: int,
     else:
         uccsd_odd_electrons(qubits, thetas, n_electrons, n_qubits)
 
-
-
-def __builder__cudaq__uccsd(kernel: cudaq.PyKernel, qubits: cudaq.qview, thetas: list[float], n_electrons: int,
-          n_qubits: int):
-
-    # This function generates a quantum circuit for the VQE-UCCSD ansatz
-    # To construct an efficient quantum circuit with minimum number of `cnot`,
-    # we use gate cancellation.
-
-    # Generate the relevant UCCSD excitation list indices
-    singles_alpha,singles_beta,doubles_mixed,doubles_alpha,doubles_beta=\
-        uccsd_get_excitation_list(n_electrons, n_qubits)
-
-    n_alpha_singles = len(singles_alpha)
-    n_beta_singles = len(singles_beta)
-    n_mixed_doubles = len(doubles_mixed)
-    n_alpha_doubles = len(doubles_alpha)
-    n_beta_doubles = len(doubles_beta)
-    total = n_alpha_singles + n_beta_singles + n_mixed_doubles + n_beta_doubles + n_alpha_doubles
-
-    thetaCounter = 0
-    for i in range(n_alpha_singles):
-        single_excitation_gate(kernel, qubits, singles_alpha[i][0],
-                               singles_alpha[i][1], thetas[thetaCounter])
-        thetaCounter += 1
-
-    for i in range(n_beta_singles):
-        single_excitation_gate(kernel, qubits, singles_beta[i][0],
-                               singles_beta[i][1], thetas[thetaCounter])
-        thetaCounter += 1
-
-    for i in range(n_mixed_doubles):
-        double_excitation_gate_opt(kernel, qubits, doubles_mixed[i][0],
-                                   doubles_mixed[i][1], doubles_mixed[i][2],
-                                   doubles_mixed[i][3], thetas[thetaCounter])
-        thetaCounter += 1
-
-    for i in range(n_alpha_doubles):
-        double_excitation_gate_opt(kernel, qubits, doubles_alpha[i][0],
-                                   doubles_alpha[i][1], doubles_alpha[i][2],
-                                   doubles_alpha[i][3], thetas[thetaCounter])
-        thetaCounter += 1
-
-    for i in range(n_beta_doubles):
-        double_excitation_gate_opt(kernel, qubits, doubles_beta[i][0],
-                                   doubles_beta[i][1], doubles_beta[i][2],
-                                   doubles_beta[i][3], thetas[thetaCounter])
-        thetaCounter += 1
