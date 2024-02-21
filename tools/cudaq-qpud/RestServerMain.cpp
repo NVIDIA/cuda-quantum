@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -32,7 +32,19 @@ static llvm::cl::opt<std::string> serverSubType(
     llvm::cl::init(DEFAULT_SERVER_IMPL));
 
 int main(int argc, char **argv) {
-  llvm::cl::ParseCommandLineOptions(argc, argv, "CUDA Quantum REST server\n");
+  // The "fast" instruction selection compilation algorithm is actually very
+  // slow fast for large quantum circuits. Disable that here. Revisit this
+  // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
+  // in the future.
+  std::vector<const char *> extraArgv(argc + 2);
+  for (int i = 0; i < argc; i++) {
+    extraArgv[i] = argv[i];
+  }
+  extraArgv.push_back("-fast-isel=0");
+  extraArgv.push_back(nullptr);
+
+  llvm::cl::ParseCommandLineOptions(argc + 1, extraArgv.data(),
+                                    "CUDA Quantum REST server\n");
   if (cudaq::mpi::available())
     cudaq::mpi::initialize();
   // Check the server type arg is valid.
