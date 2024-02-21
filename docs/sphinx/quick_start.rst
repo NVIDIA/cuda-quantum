@@ -23,7 +23,7 @@ latest stable release of the CUDA Quantum Python API:
 
 .. code-block:: console
 
-    pip install cuda-quantum 
+    pip install cuda-quantum
 
 For further information, see the `CUDA Quantum project <https://pypi.org/project/cuda-quantum/>`_ on PyPI.
 
@@ -35,18 +35,9 @@ You should now be able to import CUDA Quantum and start building quantum program
 
 To test your installation, create a file titled `first_program.py`, containing the following code:
 
-.. code-block:: Python
-
-    import cudaq
-
-    @cudaq.kernel
-    def kernel():
-        qubit = cudaq.qubit()
-        h(qubit)
-        mz(qubit)
-
-    result = cudaq.sample(kernel)
-    print(result)  # { 1:500 0:500 }
+.. literalinclude:: /snippets/python/quick_start.py
+    :language: python
+    :start-after: [Begin Documentation]
 
 You may now execute this file as you do any other Python program. For example, from the command line:
 
@@ -73,18 +64,10 @@ You should now have the CUDA Quantum compiler toolchain available via the comman
 
 To test your installation, create a file titled `first_program.cpp`, containing the following code:
 
-.. code-block:: cpp
-
-    __qpu__ void kernel() { 
-      cudaq::qubit qubit; 
-      h(qubit); 
-      mz(qubit); 
-    } 
-
-    int main() { 
-      auto result = cudaq::sample(kernel); 
-      result.dump();  // { 1:500 0:500 }
-    } 
+  .. literalinclude:: /snippets/cpp/quick_start.cpp
+      :language: cpp
+      :start-after: [Begin Documentation]
+      :end-before: [End Documentation]
 
 You may now compile and execute this file from the command line using the `nvq++` toolchain:
 
