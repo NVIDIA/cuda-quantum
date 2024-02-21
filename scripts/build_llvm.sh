@@ -189,7 +189,6 @@ cmake_args="-G Ninja ../llvm \
   -DCLANG_DEFAULT_CXX_STDLIB=libc++ \
   -DCLANG_DEFAULT_RTLIB=compiler-rt \
   -DCLANG_DEFAULT_UNWINDLIB=libunwind \
-  -DCLANG_DEFAULT_OPENMP_RUNTIME=libomp \
   -DCLANG_DEFAULT_LINKER=lld \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
