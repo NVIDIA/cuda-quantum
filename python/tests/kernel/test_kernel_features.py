@@ -416,3 +416,27 @@ def test_list_creation():
         for j in range(2):
             print(i, j, kernel2(N, i, j))
             assert kernel2(N, i, j) == i
+
+    @cudaq.kernel
+    def kernel3(N: int):
+        myList = list(range(N))
+        q = cudaq.qvector(N)
+        for i in myList:
+            x(q[i])
+
+    print(kernel3)
+    counts = cudaq.sample(kernel3, 5)
+    assert len(counts) == 1
+    assert '1' * 5 in counts
+
+    @cudaq.kernel
+    def kernel4(myList: list[int]):
+        q = cudaq.qvector(len(myList))
+        casted = list(myList)
+        for i in casted:
+            x(q[i])
+
+    print(kernel4)
+    counts = cudaq.sample(kernel4, list(range(5)))
+    assert len(counts) == 1
+    assert '1' * 5 in counts

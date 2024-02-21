@@ -1064,6 +1064,28 @@ class PyASTBridge(ast.NodeVisitor):
 
                 raise RuntimeError("Invalid cast to integer.")
 
+            elif node.func.id == 'list':
+                if len(self.valueStack) == 2:
+                    maybeIterableSize = self.popValue()
+                    maybeIterable = self.popValue()
+
+                    # Make sure that we have a list + size 
+                    if IntegerType.isinstance(maybeIterableSize.type):
+                        if cc.PointerType.isinstance(maybeIterable.type):
+                            ptrEleTy = cc.PointerType.getElementType(maybeIterable.type)
+                            if cc.ArrayType.isinstance(ptrEleTy):
+                                # We're good, just pass this back through.
+                                self.pushValue(maybeIterable)
+                                self.pushValue(maybeIterableSize)
+                                return
+                if len(self.valueStack) == 1:
+                    if cc.StdvecType.isinstance(self.valueStack[0].type):
+                        return 
+                    if cc.ArrayType.isinstance(self.valueStack[0].type):
+                        return 
+                     
+                raise RuntimeError('Invalid list() cast requested.')
+
             else:
                 print(globalKernelRegistry.keys())
                 raise RuntimeError("unhandled function call - {}".format(
