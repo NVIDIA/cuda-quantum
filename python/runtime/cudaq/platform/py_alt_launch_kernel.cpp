@@ -93,9 +93,9 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     jitCache->cache(hashKey, jit);
   }
 
-  // We need to append the return type to the OpaqueArguments here 
-  // so that we get a spot in the `rawArgs` memory for the 
-  // altLaunchKernel function to dump the result 
+  // We need to append the return type to the OpaqueArguments here
+  // so that we get a spot in the `rawArgs` memory for the
+  // altLaunchKernel function to dump the result
   if (!isa<NoneType>(returnType)) {
     if (returnType.isInteger(64)) {
       py::args returnVal = py::make_tuple(py::int_(0));
