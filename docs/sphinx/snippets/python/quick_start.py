@@ -9,6 +9,8 @@
 # [Begin Documentation]
 import cudaq
 
+print(f"Simulation Target = {cudaq.get_target().name}")
+
 @cudaq.kernel
 def kernel():
     qubit = cudaq.qubit()
