@@ -21,6 +21,15 @@ from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
+
+## Refer: https://peps.python.org/pep-0616/
+def remove_prefix(inputStr: str, prefix: str) -> str:
+    if inputStr.startswith(prefix):
+        return inputStr[len(prefix):]
+    else:
+        return inputStr[:]
+
+
 qvector = cudaq_runtime.qvector
 
 # This file reproduces the cudaq::kernel_builder in Python
@@ -191,7 +200,7 @@ class PyKernel(object):
             nvqppPrefix, ''.join(
                 random.choice(string.ascii_uppercase + string.digits)
                 for _ in range(10)))
-        self.name = self.funcName.removeprefix(nvqppPrefix)
+        self.name = remove_prefix(self.funcName, nvqppPrefix)
         self.funcNameEntryPoint = self.funcName + '_entryPointRewrite'
         attr = DictAttr.get(
             {
