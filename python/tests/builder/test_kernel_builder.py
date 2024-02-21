@@ -998,6 +998,71 @@ def test_fermionic_swap_op():
     assert np.isclose(val4, 0.0, atol=1e-6)
 
 
+def test_call_kernel_expressions():
+
+    @cudaq.kernel()
+    def kernelThatTakesInt(qubits: cudaq.qview, val: int):
+        x(qubits[val])
+
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(5)
+    kernel.apply_call(kernelThatTakesInt, qubits, 2)
+    print(kernel)
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert len(counts) == 1
+    assert '00100' in counts
+
+    @cudaq.kernel()
+    def kernelThatTakesIntAndFloat(qubits: cudaq.qview, qbit: int, val: float):
+        ry(val, qubits[qbit])
+
+    ansatz = cudaq.make_kernel()
+    qubits = ansatz.qalloc(2)
+    ansatz.x(qubits[0])
+    ansatz.apply_call(kernelThatTakesIntAndFloat, qubits, 1, .59)
+    ansatz.cx(qubits[1], qubits[0])
+
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    assert np.isclose(-1.74,
+                      cudaq.observe(ansatz, hamiltonian).expectation(),
+                      atol=1e-2)
+
+    @cudaq.kernel()
+    def kernelThatTakesIntAndListFloat(qubits: cudaq.qview, qbit: int,
+                                       val: list[float]):
+        ry(val[0], qubits[qbit])
+
+    ansatz = cudaq.make_kernel()
+    qubits = ansatz.qalloc(2)
+    ansatz.x(qubits[0])
+    ansatz.apply_call(kernelThatTakesIntAndListFloat, qubits, 1, [.59])
+    ansatz.cx(qubits[1], qubits[0])
+
+    assert np.isclose(-1.74,
+                      cudaq.observe(ansatz, hamiltonian).expectation(),
+                      atol=1e-2)
+
+    @cudaq.kernel()
+    def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
+                                           val: list[list[float]]):
+        ry(val[0][0], qubits[qbit])
+
+    print(kernelThatTakesIntAndListListFloat)
+    ansatz = cudaq.make_kernel()
+    qubits = ansatz.qalloc(2)
+    ansatz.x(qubits[0])
+    ansatz.apply_call(kernelThatTakesIntAndListListFloat, qubits, 1, [[.59]])
+    ansatz.cx(qubits[1], qubits[0])
+
+    assert np.isclose(-1.74,
+                      cudaq.observe(ansatz, hamiltonian).expectation(),
+                      atol=1e-2)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
