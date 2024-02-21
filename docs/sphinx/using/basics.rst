@@ -46,7 +46,7 @@ Building your first CUDA Quantum Program
 
   This kernel function can accept any number of arguments, allowing for flexibility in the construction
   of the quantum program. In this case, the `qubit_count` argument allows us to dynamically control the
-  number of qubits allocated to the kernel. As we will see in further `examples <cuda-quantum-examples>`,
+  number of qubits allocated to the kernel. As we will see in further :ref:`examples <python-examples-landing-page>`,
   we could also use these arguments to control various parameters of the gates themselves, such as rotation
   angles.
 
@@ -64,7 +64,7 @@ Building your first CUDA Quantum Program
 
   This kernel function can accept any number of arguments, allowing for flexibility in the construction
   of the quantum program. In this case, the `qubit_count` argument allows us to dynamically control the
-  number of qubits allocated to the kernel. As we will see in further `examples <cuda-quantum-examples>`,
+  number of qubits allocated to the kernel. As we will see in further :ref:`examples <cpp-examples-landing-page>`,
   we could also use these arguments to control various parameters of the gates themselves, such as rotation
   angles.
 

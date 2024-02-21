@@ -21,7 +21,7 @@ Python
 If you want to develop CUDA Quantum applications using Python, install the
 latest stable release of the CUDA Quantum Python API:  
 
-.. code-block:: console
+.. code-block:: bash
 
     pip install cuda-quantum
 
@@ -41,7 +41,7 @@ To test your installation, create a file titled `first_program.py`, containing t
 
 You may now execute this file as you do any other Python program. For example, from the command line:
 
-.. code-block:: console
+.. code-block:: bash
 
     python3 first_program.py
 
@@ -64,14 +64,14 @@ You should now have the CUDA Quantum compiler toolchain available via the comman
 
 To test your installation, create a file titled `first_program.cpp`, containing the following code:
 
-  .. literalinclude:: /snippets/cpp/quick_start.cpp
-      :language: cpp
-      :start-after: [Begin Documentation]
-      :end-before: [End Documentation]
+.. literalinclude:: /snippets/cpp/quick_start.cpp
+    :language: cpp
+    :start-after: [Begin Documentation]
+    :end-before: [End Documentation]
 
 You may now compile and execute this file from the command line using the `nvq++` toolchain:
 
-.. code-block:: console
+.. code-block:: bash
 
     nvq++ first_program.cpp && ./a.out
 

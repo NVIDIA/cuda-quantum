@@ -2,6 +2,8 @@
 CUDA Quantum in C++
 ======================
 
+.. _cpp-examples-landing-page:
+
 Welcome to CUDA Quantum! ON this page, we will illustrate CUDA Quantum in C++ through several examples.
 
 Introduction
@@ -12,7 +14,7 @@ We're going to take a look at how to construct quantum programs using CUDA Quant
 CUDA Quantum kernels are any typed callable in the language that is annotated with the :code:`__qpu__` attribute. Let's take a look at a very 
 simple "Hello World" example, specifically a CUDA Quantum kernel that prepares a GHZ state on a programmer-specified number of qubits. 
 
-.. literalinclude:: ../examples/cpp/basics/static_kernel.cpp
+.. literalinclude:: ../../examples/cpp/basics/static_kernel.cpp
     :language: cpp
 
 Here we see that we can define a custom :code:`struct` that is templated on a :code:`size_t` parameter. 
@@ -41,7 +43,7 @@ CUDA Quantum provides generic library functions enabling one to compute expectat
 of quantum spin operators with respect to a parameterized CUDA Quantum kernel. Let's take a look 
 at an example of this:
 
-.. literalinclude:: ../examples/cpp/basics/expectation_values.cpp
+.. literalinclude:: ../../examples/cpp/basics/expectation_values.cpp
     :language: cpp
 
 Here we define a parameterized CUDA Quantum kernel, a callable type named :code:`ansatz` that takes as 
@@ -69,7 +71,7 @@ Now let's take a look at how CUDA Quantum allows one to control a general unitar
 on an arbitrary number of control qubits. For this scenario, our general unitary can be described 
 by another pre-defined CUDA Quantum kernel expression. 
 
-.. literalinclude:: ../examples/cpp/basics/multi_controlled_operations.cpp
+.. literalinclude:: ../../examples/cpp/basics/multi_controlled_operations.cpp
     :language: cpp
 
 In this example, we show two distinct ways for generating a Toffoli operation. The first one in host code 
@@ -97,7 +99,7 @@ CUDA Quantum provides native support for cuQuantum-accelerated state vector and 
 simulations. Let's take a look at an example that is too large for a standard CPU-only simulator, but 
 can be trivially simulated via a NVIDIA GPU-accelerated backend:
 
-.. literalinclude:: ../examples/cpp/basics/cuquantum_backends.cpp
+.. literalinclude:: ../../examples/cpp/basics/cuquantum_backends.cpp
     :language: cpp
 
 Here we generate a GHZ state on 28 qubits. To run with the built-in cuQuantum state 
@@ -118,27 +120,27 @@ Let's take a look at the various built-in noise models we support, before conclu
 
 The following code illustrates how to run a simulation with depolarization noise.
 
-.. literalinclude:: ../examples/cpp/basics/noise_depolarization.cpp
+.. literalinclude:: ../../examples/cpp/basics/noise_depolarization.cpp
    :language: cpp
 
 The following code illustrates how to run a simulation with amplitude damping noise.
 
-.. literalinclude:: ../examples/cpp/basics/noise_amplitude_damping.cpp
+.. literalinclude:: ../../examples/cpp/basics/noise_amplitude_damping.cpp
    :language: cpp
 
 The following code illustrates how to run a simulation with bit-flip noise.
 
-.. literalinclude:: ../examples/cpp/basics/noise_bit_flip.cpp
+.. literalinclude:: ../../examples/cpp/basics/noise_bit_flip.cpp
    :language: cpp
 
 The following code illustrates how to run a simulation with phase-flip noise.
 
-.. literalinclude:: ../examples/cpp/basics/noise_phase_flip.cpp
+.. literalinclude:: ../../examples/cpp/basics/noise_phase_flip.cpp
    :language: cpp
 
 The following code illustrates how to run a simulation with a custom noise model.
 
-.. literalinclude:: ../examples/cpp/basics/noise_modeling.cpp
+.. literalinclude:: ../../examples/cpp/basics/noise_modeling.cpp
    :language: cpp
 
 .. _cpp-examples-for-hardware-providers:
@@ -148,14 +150,14 @@ Using Quantum Hardware Providers
 
 CUDA Quantum contains support for using a set of hardware providers. In the code blocks below,
 we will run kernels on Quantinuum and IonQ machines. 
-For more information about executing quantum kernels on different hardware backends, please take a look at :doc:`backends/hardware`.
+For more information about executing quantum kernels on different hardware backends, please take a look at :ref:`hardware <hardware-landing-page>`.
 
 The following code illustrates how to run kernels on Quantinuum's backends.
 
-.. literalinclude:: ../examples/cpp/providers/quantinuum.cpp
+.. literalinclude:: ../../examples/cpp/providers/quantinuum.cpp
     :language: cpp
 
 The following code illustrates how to run kernels on IonQ's backends.
 
-.. literalinclude:: ../examples/cpp/providers/ionq.cpp
+.. literalinclude:: ../../examples/cpp/providers/ionq.cpp
     :language: cpp
