@@ -338,7 +338,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             currentST = SymbolTable(self.module.operation)
             argsTy += [self.getIntegerType()]
-            # If printf is not in the module, or if it is but the last argument type is not an integer
+            # If `printf` is not in the module, or if it is but the last argument type is not an integer
             # then we have to add it
             if not 'printf' in currentST or not IntegerType.isinstance(
                     currentST['printf'].type.inputs[-1]):
@@ -357,7 +357,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             currentST = SymbolTable(self.module.operation)
             argsTy += [self.getFloatType()]
-            # If printf is not in the module, or if it is but the last argument type is not an float
+            # If `printf` is not in the module, or if it is but the last argument type is not an float
             # then we have to add it
             if not 'printf' in currentST or not F64Type.isinstance(
                     currentST['printf'].type.inputs[-1]):
@@ -873,7 +873,7 @@ class PyASTBridge(ast.NodeVisitor):
                     break
 
             if all(x in moduleNames for x in ['cudaq', 'dbg', 'ast']):
-                # Handle a dbg print statement
+                # Handle a debug print statement
                 [self.visit(arg) for arg in node.args]
                 if len(self.valueStack) != 1:
                     self.emitFatalError(
@@ -913,7 +913,7 @@ class PyASTBridge(ast.NodeVisitor):
             [self.visit(arg) for arg in node.args]
             if node.func.id == "len":
                 listVal = self.popValue()
-                # FIXME could this be an array, anyway we need emitFatalError here
+                # FIXME could this be an array, anyway we need `emitFatalError` here
                 assert cc.StdvecType.isinstance(listVal.type)
                 self.pushValue(
                     cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
@@ -1046,7 +1046,7 @@ class PyASTBridge(ast.NodeVisitor):
                             "could not infer enumerate tuple type ({})".format(
                                 iterable.type), node)
                 else:
-                    # FIXME this should be an emitFatalError
+                    # FIXME this should be an `emitFatalError`
                     assert len(
                         self.valueStack
                     ) == 2, 'Error in AST processing, should have 2 values on the stack for enumerate {}'.format(
