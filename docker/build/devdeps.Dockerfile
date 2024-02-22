@@ -62,14 +62,14 @@ ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 RUN LLVM_SOURCE=/llvm-project \
-    source scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain} \
+    source scripts/install_toolchain.sh -e "$LLVM_INSTALL_PREFIX/bootstrap" -t ${toolchain} \
     && rm -rf /llvm-project/build
 
 # Clone and build pybind11 (used for MLIR generated Python bindings).
 RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
-    && source /opt/llvm/bootstrap/init_command.sh \
+    && source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
     && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     && cmake --build . --target install --config Release \
@@ -88,7 +88,7 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
 # - https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html
 # - https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#Code%20Gen%20Options
 # - https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html#C_002b_002b-Dialect-Options
-RUN source /opt/llvm/bootstrap/init_command.sh && \
+RUN source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" && \
     bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
     && rm -rf /llvm-project 
 
@@ -98,7 +98,7 @@ ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     # When possible, build the prerequisites using the same toolchain as CUDA Quantum.
-    && source /opt/llvm/bootstrap/init_command.sh \
+    && source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" \
     && bash /scripts/install_prerequisites.sh \
     && apt-get remove -y ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*

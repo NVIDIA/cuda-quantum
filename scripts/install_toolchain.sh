@@ -46,15 +46,19 @@ if [ "$(type -t temp_install_if_command_unknown)" != "function" ]; then
     }
 fi
 
+function find_executable {
+    find / -path '*/bin*' -name $1 | head -1
+}
+
 if [ "$toolchain" = "gcc11" ] ; then
 
     apt-get update && apt-get install -y --no-install-recommends gcc-11 g++-11
-    CC=/usr/bin/gcc-11 && CXX=/usr/bin/g++-11
+    CC="$(find_executable gcc-11)" CXX="$(find_executable g++-11)" \
 
 elif [ "$toolchain" = "gcc12" ] ; then
 
     apt-get update && apt-get install -y --no-install-recommends gcc-12 g++-12
-    CC=/usr/bin/gcc-12 && CXX=/usr/bin/g++-12
+    CC="$(find_executable gcc-12)" CXX="$(find_executable g++-12)" \
 
 elif [ "$toolchain" = "clang15" ]; then
 
@@ -66,7 +70,7 @@ elif [ "$toolchain" = "clang15" ]; then
     wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
     add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main"
     apt-get update && apt-get install -y --no-install-recommends clang-15
-    CC=/usr/lib/llvm-15/bin/clang && CXX=/usr/lib/llvm-15/bin/clang++
+    CC="$(find_executable clang-15)" CXX="$(find_executable clang++-15)"
 
 elif [ "$toolchain" = "clang16" ]; then
 
@@ -78,7 +82,7 @@ elif [ "$toolchain" = "clang16" ]; then
     wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
     add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
     apt-get update && apt-get install -y --no-install-recommends clang-16
-    CC=/usr/lib/llvm-16/bin/clang && CXX=/usr/lib/llvm-16/bin/clang++
+    CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)"
 
 elif [ "$toolchain" = "llvm" ]; then
 
@@ -107,8 +111,8 @@ elif [ "$toolchain" = "llvm" ]; then
         temp_install_if_command_unknown ninja ninja-build
         temp_install_if_command_unknown cmake cmake
         LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
-        CC=/usr/lib/llvm-16/bin/clang CXX=/usr/lib/llvm-16/bin/clang++ \
-        LLVM_PROJECTS='clang;lld' bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v
+        CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)" \
+        LLVM_PROJECTS='clang;lld;compiler-rt' bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v
         if [ -d "$llvm_tmp_dir" ]; then
             echo "The build logs have been moved to $LLVM_INSTALL_PREFIX/logs."
             mkdir -p "$LLVM_INSTALL_PREFIX/logs" && mv "$llvm_tmp_dir/build/logs"/* "$LLVM_INSTALL_PREFIX/logs/"
