@@ -471,3 +471,44 @@ def test_list_creation_with_cast():
     counts = cudaq.sample(kernel, list(range(5)))
     assert len(counts) == 1
     assert '1' * 5 in counts
+
+
+@skipIfPythonLessThan39
+def test_list_creation_with_cast():
+
+    @cudaq.kernel
+    def kernel(myList: list[int]):
+        q = cudaq.qvector(len(myList))
+        casted = list(myList)
+        for i in casted:
+            x(q[i])
+
+    print(kernel)
+    counts = cudaq.sample(kernel, list(range(5)))
+    assert len(counts) == 1
+    assert '1' * 5 in counts
+
+
+def test_control_operations():
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(4)
+        x.ctrl(q[0], q[1])
+        cx(q[0], q[1])
+
+    print(test)
+    counts = cudaq.sample(test)
+
+
+def test_control_operations():
+
+    @cudaq.kernel
+    def test(angle: float):
+        q = cudaq.qvector(4)
+        x.ctrl(q[0], q[1])
+        cx(q[0], q[1])
+        rx.ctrl(angle, q[0], q[1])
+        crx(angle, q[0], q[1])
+
+    print(test)
+    counts = cudaq.sample(test, 0.785398)

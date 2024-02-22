@@ -960,6 +960,26 @@ class PyASTBridge(ast.NodeVisitor):
                 self.__applyQuantumOperation(node.func.id, [], qubitTargets)
                 return
 
+            if node.func.id in ["ch", "cx", "cy", "cz", "cs", "ct"]:
+                # These are single target controlled quantum operation
+                target = self.popValue()
+                # Should be number of arguments minus one for the controls
+                controls = [self.popValue() for i in range(len(node.args) - 1)]
+                negatedControlQubits = None
+                if len(self.controlNegations):
+                    negCtrlBools = [None] * len(controls)
+                    for i, c in enumerate(controls):
+                        negCtrlBools[i] = c in self.controlNegations
+                    negatedControlQubits = DenseBoolArrayAttr.get(negCtrlBools)
+                    self.controlNegations.clear()
+                # Map "cx" to "XOp"
+                opCtor = getattr(
+                    quake, '{}Op'.format(node.func.id.title()[1:].upper()))
+                opCtor([], [],
+                       controls, [target],
+                       negated_qubit_controls=negatedControlQubits)
+                return
+
             if node.func.id in ["rx", "ry", "rz", "r1"]:
                 numValues = len(self.valueStack)
                 qubitTargets = [self.popValue() for _ in range(numValues - 1)]
@@ -969,6 +989,21 @@ class PyASTBridge(ast.NodeVisitor):
                     param = arith.SIToFPOp(self.getFloatType(), param).result
                 self.__applyQuantumOperation(node.func.id, [param],
                                              qubitTargets)
+                return
+
+            if node.func.id in ["crx", "cry", "crz", "cr1"]:
+                ## These are single target, one parameter, controlled quantum operations
+                target = self.popValue()
+                controls = [
+                    self.popValue() for i in range(len(self.valueStack))
+                ]
+                param = controls[-1]
+                if IntegerType.isinstance(param.type):
+                    param = arith.SIToFPOp(self.getFloatType(), param).result
+                # Map "crx" to "RxOp"
+                opCtor = getattr(
+                    quake, '{}Op'.format(node.func.id.title()[1:].capitalize()))
+                opCtor([], [param], controls[:-1], [target])
                 return
 
             if node.func.id in ['mx', 'my', 'mz']:
