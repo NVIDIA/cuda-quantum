@@ -413,6 +413,11 @@ ASTBridgeAction::ASTBridgeConsumer::ASTBridgeConsumer(
                      StringAttr::get(module->getContext(), dataLayout));
 }
 
+static bool isX86_64(clang::ASTContext &astContext) {
+  return astContext.getTargetInfo().getTriple().getArch() ==
+         llvm::Triple::x86_64;
+}
+
 void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
     const clang::FunctionDecl *funcDecl, details::QuakeBridgeVisitor &visitor,
     FunctionType funcTy, StringRef devFuncName) {
@@ -466,12 +471,14 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
     if (auto *recTy = paramType->getAs<clang::RecordType>()) {
       auto *d = recTy->getDecl();
       if (isa<clang::CXXRecordDecl>(d)) {
-        // canPassInRegisters() returning true corresponds to RAA_Default, which
-        // means the compiler should use "normal C aggregate rules". Therefore,
-        // this struct type value is passed using a pointer and the byval
-        // attribute. Otherwise, the compiler will pass by an indirection
-        // (pointer), omit the byval attribute, and skip making copies, etc.
-        if (d->canPassInRegisters()) {
+        // On x86_64, canPassInRegisters() returning true corresponds to
+        // RAA_Default, which means the compiler should use "normal C aggregate
+        // rules". Therefore, this struct type value is passed using a pointer
+        // and the byval attribute. Otherwise, the compiler will pass by an
+        // indirection (pointer), omit the byval attribute, and skip making
+        // copies, etc.
+        // On aarch64, the convention is to omit the byval attribute.
+        if (d->canPassInRegisters() && isX86_64(astContext)) {
           auto argPos = iter.index() + delta;
           auto strTy = cast<cudaq::cc::PointerType>(funcTy.getInput(argPos))
                            .getElementType();

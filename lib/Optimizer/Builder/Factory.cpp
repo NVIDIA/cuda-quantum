@@ -150,6 +150,20 @@ cc::LoopOp factory::createInvariantLoop(
 
 // FIXME: some ABIs may return a small struct in registers rather than via an
 // sret pointer.
+//
+// On x86_64,
+//   pair of:  argument         return value    packed from msb to lsb
+//    i32   :   i64              i64             (second, first)
+//    i64   :   i64, i64         { i64, i64 }
+//    f32   :   <2 x float>      <2 x float>
+//    f64   :   double, double   { double, double }
+//
+// On aarch64,
+//   pair of:  argument         return value    packed from msb to lsb
+//    i32   :   i64              i64             (second, first)
+//    i64   :   [2 x i64]        [2 x i64]
+//    f32   :   [2 x float]      { float, float }
+//    f64   :   [2 x double]     { double, double }
 bool factory::hasHiddenSRet(FunctionType funcTy) {
   // If a function has more than 1 result, the results are promoted to a
   // structured return argument. Otherwise, if there is 1 result and it is an
