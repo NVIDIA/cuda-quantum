@@ -534,3 +534,5 @@ def test_capture_simple_vars_parent_scope():
         x(q)
     
     print(test)
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '1'*qubitCount in counts
