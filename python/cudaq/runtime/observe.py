@@ -68,6 +68,12 @@ Returns:
     of `observe` function broadcasting. If `shots_count` was provided, the 
     :class:`ObserveResult` will also contain a :class:`SampleResult` dictionary.
     """
+
+    validityCheck = cudaq_runtime.isValidObserveKernel(kernel)
+    if not validityCheck[0]:
+        raise RuntimeError('observe specification violated for \'' +
+                           kernel.name + '\': ' + validityCheck[1])
+
     # Handle parallel execution use cases
     if execution != None:
         return cudaq_runtime.observe_parallel(kernel,

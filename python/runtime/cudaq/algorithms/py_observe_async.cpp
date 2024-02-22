@@ -10,7 +10,11 @@
 #include "cudaq/Todo.h"
 #include "cudaq/algorithms/observe.h"
 #include "utils/OpaqueArguments.h"
+
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/CAPI/IR.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
 #include <fmt/core.h>
 #include <pybind11/stl.h>
@@ -21,6 +25,44 @@ namespace cudaq {
 inline constexpr int defaultShotsValue = -1;
 inline constexpr int defaultQpuIdValue = 0;
 enum class PyParType { thread, mpi };
+
+/// @brief Analyze the MLIR Module for the kernel and check for
+/// CUDA Quantum specification adherence. Check that the kernel
+/// returns void and does not contain measurements.
+std::tuple<bool, std::string> isValidObserveKernel(py::object &kernel) {
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+
+  using namespace mlir;
+
+  ModuleOp mod = unwrap(kernelMod);
+  func::FuncOp kernelFunc;
+  mod.walk([&](func::FuncOp function) {
+    if (function.getName().equals("__nvqpp__mlirgen__" + kernelName)) {
+      kernelFunc = function;
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+
+  // Do we have a return type?
+  if (kernelFunc.getNumResults())
+    return std::make_tuple(
+        false, "kernels passed to observe must have void return type.");
+
+  // Are measurements specified?
+  bool hasMeasures = false;
+  kernelFunc.walk([&](quake::MeasurementInterface measure) {
+    hasMeasures = true;
+    return WalkResult::interrupt();
+  });
+  if (hasMeasures)
+    return std::make_tuple(
+        false, "kernels passed to observe cannot have measurements specified.");
+
+  // Valid kernel...
+  return std::make_tuple(true, "");
+}
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
@@ -154,6 +196,8 @@ Args:
 Returns:
   :class:`AsyncObserveResult`: 
   A future containing the result of the call to observe.)#");
+
+  mod.def("isValidObserveKernel", &isValidObserveKernel);
 
   mod.def(
       "observe_parallel",

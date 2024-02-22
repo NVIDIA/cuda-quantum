@@ -234,4 +234,26 @@ def test_observe_async():
         future = cudaq.observe_async(kernel0, hamiltonian, qpu_id=12)
 
 
-# TODO observe_async spin_op list
+def test_spec_adherence():
+    
+    @cudaq.kernel
+    def circuit(theta: float):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(theta, q[1])
+        x.ctrl(q[1], q[0]) 
+        mz(q[0])
+    
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.observe(circuit, hamiltonian, .59)
+
+    @cudaq.kernel
+    def returnsSomethign() -> int :
+        return 0
+    
+    with pytest.raises(RuntimeError) as e:
+        cudaq.observe(returnsSomethign, hamiltonian, .59)
+    
