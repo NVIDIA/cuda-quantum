@@ -12,9 +12,16 @@
 import pytest
 import random
 import numpy as np
+import sys
+from typing import List
 
 import cudaq
 from cudaq import spin
+
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
 
 
 def test_sdg_0_state():
@@ -1031,6 +1038,50 @@ def test_call_kernel_expressions():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
+
+def test_call_kernel_expressions_List():
+
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    @cudaq.kernel()
+    def kernelThatTakesIntAndListFloat(qubits: cudaq.qview, qbit: int,
+                                       val: List[float]):
+        ry(val[0], qubits[qbit])
+
+    ansatz = cudaq.make_kernel()
+    qubits = ansatz.qalloc(2)
+    ansatz.x(qubits[0])
+    ansatz.apply_call(kernelThatTakesIntAndListFloat, qubits, 1, [.59])
+    ansatz.cx(qubits[1], qubits[0])
+
+    assert np.isclose(-1.74,
+                      cudaq.observe(ansatz, hamiltonian).expectation(),
+                      atol=1e-2)
+
+    @cudaq.kernel()
+    def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
+                                           val: List[List[float]]):
+        ry(val[0][0], qubits[qbit])
+
+    print(kernelThatTakesIntAndListListFloat)
+    ansatz = cudaq.make_kernel()
+    qubits = ansatz.qalloc(2)
+    ansatz.x(qubits[0])
+    ansatz.apply_call(kernelThatTakesIntAndListListFloat, qubits, 1, [[.59]])
+    ansatz.cx(qubits[1], qubits[0])
+
+    assert np.isclose(-1.74,
+                      cudaq.observe(ansatz, hamiltonian).expectation(),
+                      atol=1e-2)
+
+
+@skipIfPythonLessThan39
+def test_call_kernel_expressions_list():
+
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
     @cudaq.kernel()
     def kernelThatTakesIntAndListFloat(qubits: cudaq.qview, qbit: int,
                                        val: list[float]):
@@ -1067,3 +1118,4 @@ def test_call_kernel_expressions():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
+

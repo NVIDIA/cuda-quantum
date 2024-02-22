@@ -5,12 +5,15 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+from __future__ import annotations
+
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..kernel.kernel_builder import PyKernel
 from ..kernel.kernel_decorator import PyKernelDecorator
 from ..mlir.dialects import quake, cc
 
 import numpy as np
+import sys
 from typing import List
 
 
@@ -43,10 +46,13 @@ def __isBroadcast(kernel, *args):
             return False
         firstArg = args[0]
         firstArgType = next(iter(argTypes))
-        firstArgTypeIsStdvec = argTypes[firstArgType] in [
-            list, list[float], list[complex], list[int], np.ndarray, List,
-            List[float], List[complex], List[int]
+        checkList = [
+            list, np.ndarray, List, List[float], List[complex], List[int]
         ]
+        ## [PYTHON_VERSION_FIX]
+        if sys.version_info >= (3, 9):
+            checkList.extend([list[float], list[complex], list[int]])
+        firstArgTypeIsStdvec = argTypes[firstArgType] in checkList
         if (isinstance(firstArg, list) or
                 isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
             return True
