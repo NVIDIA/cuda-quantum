@@ -118,7 +118,8 @@ elif [ "$toolchain" = "llvm" ]; then
         temp_install_if_command_unknown ninja ninja-build
         temp_install_if_command_unknown cmake cmake
         LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
-        LLVM_PROJECTS='clang;flang;lld;compiler-rt' bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v
+        LLVM_PROJECTS='clang;flang;lld;compiler-rt' \
+        CC="$CC" CXX="$CXX" bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v
         if [ -d "$llvm_tmp_dir" ]; then
             echo "The build logs have been moved to $LLVM_INSTALL_PREFIX/logs."
             mkdir -p "$LLVM_INSTALL_PREFIX/logs" && mv "$llvm_tmp_dir/build/logs"/* "$LLVM_INSTALL_PREFIX/logs/"
