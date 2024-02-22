@@ -317,7 +317,7 @@ public:
                                             FunctionType devKernelTy,
                                             cudaq::cc::StructType msgStructTy,
                                             const std::string &classNameStr,
-                                            func::FuncOp hostFunc,
+                                            FunctionType hostFuncTy,
                                             bool hasThisPtr) {
     auto *ctx = builder.getContext();
     Type ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
@@ -325,10 +325,9 @@ public:
     Type i64Ty = builder.getI64Type();
     auto structPtrTy = cudaq::cc::PointerType::get(msgStructTy);
     auto getHostArgType = [&](unsigned idx) {
-      bool hasSRet =
-          cudaq::opt::factory::hasHiddenSRet(hostFunc.getFunctionType());
+      bool hasSRet = cudaq::opt::factory::hasHiddenSRet(hostFuncTy);
       unsigned count = cudaq::cc::numberOfHiddenArgs(hasThisPtr, hasSRet);
-      return hostFunc.getFunctionType().getInput(count + idx);
+      return hostFuncTy.getInput(count + idx);
     };
 
     // Create the function that we'll fill.
@@ -1035,16 +1034,21 @@ public:
     return bufferAddendum;
   }
 
-  static func::FuncOp lookupHostEntryPointFunc(StringRef mangledEntryPointName,
-                                               ModuleOp module) {
+  static std::pair<bool, func::FuncOp>
+  lookupHostEntryPointFunc(StringRef mangledEntryPointName, ModuleOp module,
+                           func::FuncOp funcOp) {
+    if (mangledEntryPointName.equals("BuilderKernel.EntryPoint")) {
+      // No host entry point needed.
+      return {false, func::FuncOp{}};
+    }
     if (auto *decl = module.lookupSymbol(mangledEntryPointName))
       if (auto func = dyn_cast<func::FuncOp>(decl)) {
         func.eraseBody();
-        return func;
+        return {true, func};
       }
-    module.emitOpError("could not generate the host-side kernel function (" +
+    funcOp.emitOpError("could not generate the host-side kernel function (" +
                        mangledEntryPointName + ")");
-    return {};
+    return {true, func::FuncOp{}};
   }
 
   /// Generate an all new entry point body, calling launchKernel in the runtime
@@ -1364,23 +1368,37 @@ public:
       auto mangledAttr = mangledNameMap.getAs<StringAttr>(funcOp.getName());
       assert(mangledAttr && "funcOp must appear in mangled name map");
       StringRef mangledName = mangledAttr.getValue();
-      auto hostFunc = lookupHostEntryPointFunc(mangledName, module);
-      if (!hostFunc)
-        return;
+      auto [hostEntryNeeded, hostFunc] =
+          lookupHostEntryPointFunc(mangledName, module, funcOp);
+      FunctionType hostFuncTy;
+      const bool hasThisPtr = !funcOp->hasAttr("no_this");
+      if (hostEntryNeeded) {
+        if (hostFunc) {
+          hostFuncTy = hostFunc.getFunctionType();
+        } else {
+          // Fatal error was already raised in lookupHostEntryPointFunc().
+          return;
+        }
+      } else {
+        // Autogenerate an assumed host side function signature for the purpose
+        // of constructing the argsCreator function.
+        hostFuncTy =
+            cudaq::opt::factory::toHostSideFuncType(funcTy, hasThisPtr);
+      }
 
       // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
       auto thunk = genThunkFunction(loc, builder, classNameStr, structTy,
                                     funcTy, funcOp);
 
-      bool hasThisPtr = !funcOp->hasAttr("no_this");
       // Generate the argsCreator function used by synthesis.
       auto argsCreatorFunc = genKernelArgsCreatorFunction(
-          loc, builder, funcTy, structTy, classNameStr, hostFunc, hasThisPtr);
+          loc, builder, funcTy, structTy, classNameStr, hostFuncTy, hasThisPtr);
 
       // Generate a new mangled function on the host side to call the
       // callback function.
-      genNewHostEntryPoint(loc, builder, funcTy, structTy, kernelNameObj, thunk,
-                           hostFunc, hasThisPtr);
+      if (hostEntryNeeded)
+        genNewHostEntryPoint(loc, builder, funcTy, structTy, kernelNameObj,
+                             thunk, hostFunc, hasThisPtr);
 
       // Generate a function at startup to register this kernel as having
       // been processed for kernel execution.

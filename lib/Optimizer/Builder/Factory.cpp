@@ -148,6 +148,8 @@ cc::LoopOp factory::createInvariantLoop(
   return loop;
 }
 
+// FIXME: some ABIs may return a small struct in registers rather than via an
+// sret pointer.
 bool factory::hasHiddenSRet(FunctionType funcTy) {
   // If a function has more than 1 result, the results are promoted to a
   // structured return argument. Otherwise, if there is 1 result and it is an
