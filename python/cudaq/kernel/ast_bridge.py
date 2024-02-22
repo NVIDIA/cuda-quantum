@@ -323,6 +323,10 @@ class PyASTBridge(ast.NodeVisitor):
             type) or ComplexType.isinstance(type)
 
     def __insertDbgStmt(self, value, dbgStmt):
+        """
+        Insert a debug print out statement if the programmer requested. Handles 
+        statements like `cudaq.dbg.ast.print_i64(i)`.
+        """
         printFunc = None
         printStr = '[cudaq-ast-dbg] '
         argsTy = [cc.PointerType.get(self.ctx, self.getIntegerType(8))]
@@ -2583,6 +2587,7 @@ def compile_to_mlir(astModule, **kwargs):
                          returnTypeIsFromPython=True,
                          locationOffset=lineNumberOffset)
 
+    # First validate the arguments, make sure they are annotated
     bridge.validateArgumentAnnotations(astModule)
 
     # First we need to find any dependent kernels, they have to be

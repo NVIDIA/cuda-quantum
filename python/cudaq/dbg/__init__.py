@@ -6,4 +6,4 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .ast import print_i64
+from .ast import print_i64, print_f64
