@@ -528,7 +528,7 @@ To get started with DGX Cloud, you can
 `request access here <https://www.nvidia.com/en-us/data-center/dgx-cloud/trial/>`__.
 Once you have access, `sign in <https://ngc.nvidia.com/signin>`__ to your account,
 and `generate an API key <https://ngc.nvidia.com/setup/api-key>`__. 
-`Install the NGC CLI <https://ngc.nvidia.com/setup/installers/cli>`__
+`Install the NGC CLI <https://ngc.nvidia.com/setup/cli>`__
 and configure it with 
 
 .. code-block:: console
