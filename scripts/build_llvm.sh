@@ -106,7 +106,7 @@ if [ -z "${llvm_projects##*clang;*}" ]; then
 fi
 if [ -z "${llvm_projects##*flang;*}" ]; then
   echo "- including Flang components"
-  llvm_components+="flang-new;flang-headers;flang-libraries;flang-cmake-exports;"
+  llvm_components+="flang-new;"
   projects=("${projects[@]/flang}")
 fi
 if [ -z "${llvm_projects##*mlir;*}" ]; then
