@@ -136,7 +136,7 @@ def test_broadcast():
     assert len(energies) == 50
 
     @cudaq.kernel
-    def kernel(thetas: list):
+    def kernel(thetas: list[float]):
         qubits = cudaq.qvector(3)
         x(qubits[0])
         ry(thetas[0], qubits[1])

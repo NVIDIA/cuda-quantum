@@ -118,6 +118,7 @@ def is_jit_enabled():
 # Expose chemistry domain functions
 from .domains import chemistry
 from .kernels import uccsd
+from .dbg import ast
 
 if not "CUDAQ_DYNLIBS" in os.environ:
     try:
@@ -144,5 +145,7 @@ if '--emulate' in sys.argv:
     initKwargs['emulate'] = True
 if '--eager-mode' in sys.argv:
     PyKernelDecorator.globalJIT = False
+if not '--cudaq-full-stack-trace' in sys.argv:
+    sys.tracebacklimit = 0
 
 cudaq_runtime.initialize_cudaq(**initKwargs)

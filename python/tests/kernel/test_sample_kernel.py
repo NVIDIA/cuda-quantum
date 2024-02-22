@@ -131,7 +131,7 @@ def test_broadcast():
         assert '0' * testNpArray[i] in c and '1' * testNpArray[i] in c
 
     @cudaq.kernel
-    def circuit(angles: list):
+    def circuit(angles: list[float]):
         q = cudaq.qvector(2)
         rx(angles[0], q[0])
         ry(angles[1], q[0])
