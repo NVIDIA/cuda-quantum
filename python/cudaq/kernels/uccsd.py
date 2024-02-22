@@ -5,11 +5,11 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
+from __future__ import annotations
 import numpy as np
 import cudaq
 
-## NOTE: https://docs.python.org/3.9/whatsnew/3.9.html#type-hinting-generics-in-standard-collections
+## [PYTHON_VERSION_FIX]
 ## To support Python v3.8, using `typing.List[float]` instead of `list[float]`
 from typing import List
 

@@ -10,9 +10,15 @@ import os
 
 import pytest
 import numpy as np
-from typing import Callable
+from typing import Callable, List
+import sys
 
 import cudaq
+
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
 
 
 @pytest.fixture(autouse=True)
@@ -344,11 +350,11 @@ def test_decrementing_range():
     assert '01100' in counts and len(counts) == 1
 
 
-def test_no_dynamic_lists():
+def test_no_dynamic_Lists():
     with pytest.raises(RuntimeError) as error:
 
         @cudaq.kernel(jit=True)
-        def kernel(params: list[float]):
+        def kernel(params: List[float]):
             params.append(1.0)
 
     with pytest.raises(RuntimeError) as error:
@@ -368,6 +374,15 @@ def test_no_dynamic_lists():
             l.append([11, 12, 13])
 
         print(kernel)
+
+
+@skipIfPythonLessThan39
+def test_no_dynamic_lists():
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel(jit=True)
+        def kernel(params: list[float]):
+            params.append(1.0)
 
 
 def test_simple_return_types():
@@ -430,7 +445,7 @@ def test_list_creation():
     assert '1' * 5 in counts
 
     @cudaq.kernel
-    def kernel4(myList: list[int]):
+    def kernel4(myList: List[int]):
         q = cudaq.qvector(len(myList))
         casted = list(myList)
         for i in casted:
@@ -438,5 +453,21 @@ def test_list_creation():
 
     print(kernel4)
     counts = cudaq.sample(kernel4, list(range(5)))
+    assert len(counts) == 1
+    assert '1' * 5 in counts
+
+
+@skipIfPythonLessThan39
+def test_list_creation_with_cast():
+
+    @cudaq.kernel
+    def kernel(myList: list[int]):
+        q = cudaq.qvector(len(myList))
+        casted = list(myList)
+        for i in casted:
+            x(q[i])
+
+    print(kernel)
+    counts = cudaq.sample(kernel, list(range(5)))
     assert len(counts) == 1
     assert '1' * 5 in counts
