@@ -13,15 +13,12 @@ target = cudaq.get_target()
 num_qpus = target.num_qpus()
 print("Number of QPUs:", num_qpus)
 
-@cudaq.kernel(jit=True)
-def kernel(nr_qubits: int):
-
-    qubits = cudaq.qvector(nr_qubits)
-    # Place qubits in superposition state.
-    kernel.h(qubits)
-    # Measure.
-    kernel.mz(qubits)
-
+kernel, runtime_param = cudaq.make_kernel(int)
+qubits = kernel.qalloc(runtime_param)
+# Place qubits in superposition state.
+kernel.h(qubits)
+# Measure.
+kernel.mz(qubits)
 
 count_futures = []
 for qpu in range(num_qpus):

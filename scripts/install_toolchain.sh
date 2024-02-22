@@ -96,14 +96,19 @@ elif [ "$toolchain" = "llvm" ]; then
             git clone -b main --single-branch --depth 1 https://github.com/llvm/llvm-project "$LLVM_SOURCE"
         fi
         
-        temp_install_if_command_unknown gcc-12 gcc-12
-        temp_install_if_command_unknown g++-12 g++-12
+        # We use the clang to bootstrap the llvm build since it is faster than gcc.
+        temp_install_if_command_unknown wget wget
+        temp_install_if_command_unknown gpg gnupg
+        temp_install_if_command_unknown add-apt-repository software-properties-common
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+        add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
+        apt-get update && temp_install_if_command_unknown clang-16 clang-16
+
         temp_install_if_command_unknown ninja ninja-build
         temp_install_if_command_unknown cmake cmake
         LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
-        CC=/usr/bin/gcc-12 && CXX=/usr/bin/g++-12 \
-        LLVM_PROJECTS='clang;lld;compiler-rt;openmp' \
-        bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v
+        CC=/usr/lib/llvm-16/bin/clang CXX=/usr/lib/llvm-16/bin/clang++ \
+        LLVM_PROJECTS='clang;lld' bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release
         if [ -d "$llvm_tmp_dir" ]; then
             echo "The build logs have been moved to $LLVM_INSTALL_PREFIX/logs."
             mkdir -p "$LLVM_INSTALL_PREFIX/logs" && mv "$llvm_tmp_dir/build/logs"/* "$LLVM_INSTALL_PREFIX/logs/"
