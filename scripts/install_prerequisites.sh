@@ -118,6 +118,7 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all; then
   if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+    LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX/bootstrap" \
     source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
   fi
   if [ ! -x "$(command -v cmake)" ]; then
