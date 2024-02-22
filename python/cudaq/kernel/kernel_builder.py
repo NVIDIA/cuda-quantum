@@ -22,6 +22,7 @@ from ..mlir.dialects import builtin, func, arith
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
+## [PYTHON_VERSION_FIX]
 ## Refer: https://peps.python.org/pep-0616/
 def remove_prefix(inputStr: str, prefix: str) -> str:
     if inputStr.startswith(prefix):
