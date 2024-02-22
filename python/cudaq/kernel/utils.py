@@ -77,8 +77,12 @@ def mlirTypeFromAnnotation(annotation, ctx):
 
     if hasattr(annotation, 'id'):
         id = annotation.id
-    elif hasattr(annotation.value, 'id'):
-        id = annotation.value.id
+    elif hasattr(annotation, 'value'):
+        if hasattr(annotation.value, 'id'):
+            id = annotation.value.id
+        elif hasattr(annotation.value, 'value') and hasattr(
+                annotation.value.value, 'id'):
+            id = annotation.value.value.id
     else:
         raise RuntimeError('{} is not a supported type yet.'.format(annotation))
 
@@ -86,7 +90,7 @@ def mlirTypeFromAnnotation(annotation, ctx):
         return IntegerType.get_signless(64)
     elif id == 'float':
         return F64Type.get()
-    elif id == 'list':
+    elif id == 'list' or id == 'List':
         return cc.StdvecType.get(ctx, F64Type.get())
     elif id == 'bool':
         return IntegerType.get_signless(1)
