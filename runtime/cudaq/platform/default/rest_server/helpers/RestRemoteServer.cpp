@@ -62,6 +62,19 @@ struct SimulatorHandle {
   void *libHandle;
 };
 
+// Implementation of llvm::cantFail which throws a C++ exception rather than
+// emits a signal/asserts.
+template <typename T>
+T getValueOrThrow(llvm::Expected<T> valOrErr,
+                  const std::string &errorMsgToThrow) {
+  if (valOrErr)
+    return std::move(*valOrErr);
+  else {
+    LLVMConsumeError(llvm::wrap(valOrErr.takeError()));
+    throw std::runtime_error(errorMsgToThrow);
+  }
+}
+
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   int m_port = -1;
   std::unique_ptr<cudaq::RestServer> m_server;
@@ -376,7 +389,9 @@ private:
     };
 
     cudaq::info("- Creating the MLIR ExecutionEngine");
-    auto uniqueJit = llvm::cantFail(ExecutionEngine::create(module, opts));
+    auto uniqueJit =
+        getValueOrThrow(ExecutionEngine::create(module, opts),
+                        "Failed to create MLIR JIT ExecutionEngine");
     cudaq::info("- MLIR ExecutionEngine created successfully.");
     return uniqueJit;
   }
@@ -391,10 +406,14 @@ private:
     sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(irString),
                                  llvm::SMLoc());
     auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
+    if (!module)
+      throw std::runtime_error("Failed to parse the input MLIR code");
     auto engine = jitMlirCode(*module, passes);
     const std::string entryPointFunc =
         std::string(cudaq::runtime::cudaqGenPrefixName) + entryPointFn;
-    auto fnPtr = llvm::cantFail(engine->lookup(entryPointFunc));
+    auto fnPtr =
+        getValueOrThrow(engine->lookup(entryPointFunc),
+                        "Failed to look up entry-point function symbol");
     if (!fnPtr)
       throw std::runtime_error("Failed to get entry function");
 
@@ -441,6 +460,9 @@ private:
       static std::size_t g_requestCounter = 0;
       auto requestJson = json::parse(reqBody);
       cudaq::RestRequest request(requestJson);
+      cudaq::info(
+          "[RemoteRestRuntimeServer] Incoming job request from client {}",
+          request.clientVersion);
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);
       if (!shouldHandle) {
@@ -454,7 +476,9 @@ private:
       m_codeTransform[reqId] =
           CodeTransformInfo(request.format, request.passes);
       std::vector<char> decodedCodeIr;
-      if (llvm::decodeBase64(request.code, decodedCodeIr)) {
+      auto errorCode = llvm::decodeBase64(request.code, decodedCodeIr);
+      if (errorCode) {
+        LLVMConsumeError(llvm::wrap(std::move(errorCode)));
         throw std::runtime_error("Failed to decode input IR");
       }
       std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
