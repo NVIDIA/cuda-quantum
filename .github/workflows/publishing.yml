@@ -739,7 +739,8 @@ jobs:
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
           dpkg -i cuda-keyring_1.1-1_all.deb
-          apt-get update && apt-get install -y --no-install-recommends libcublas-11-8
+          apt-get update && apt-get install -y --no-install-recommends \
+            libcublas-11-8 cuda-cudart-11-8
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
@@ -761,13 +762,25 @@ jobs:
           eval "$(~/.miniconda3/bin/conda shell.bash hook)"
           conda install -y -c conda-forge openmpi
 
+          if [ -x "$(command -v mpiexec)" ]; then 
+            echo "mpiexec at $(which mpiexec)"
+          fi
+
           echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
+          echo 'export PATH="$PATH:$CONDA_PREFIX/bin"' >> ~/.bashrc
           echo 'export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/lib"' >> ~/.bashrc
           echo "export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'" >> ~/.bashrc
 
       - name: Install and run sanity checks
         shell: bash
         run: |
+          if [ -f ~/.bashrc ]; then 
+            cat ~/.bashrc
+            echo "CONDA PREFIX: $CONDA_PREFIX"
+            echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+            . ~/.bashrc
+          fi
+
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
