@@ -10,14 +10,14 @@
 // [Begin Documentation]
 #include <cudaq.h>
 
-__qpu__ void kernel() { 
-  cudaq::qubit qubit; 
-  h(qubit); 
-  mz(qubit); 
-} 
+__qpu__ void kernel() {
+  cudaq::qubit qubit;
+  h(qubit);
+  mz(qubit);
+}
 
-int main() { 
-  auto result = cudaq::sample(kernel); 
-  result.dump();  // { 1:500 0:500 }
-} 
+int main() {
+  auto result = cudaq::sample(kernel);
+  result.dump(); // { 1:500 0:500 }
+}
 // [End Documentation]
