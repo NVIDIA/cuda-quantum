@@ -538,7 +538,7 @@ class PyASTBridge(ast.NodeVisitor):
             arguments = node.args.args
             if len(arguments):
                 self.emitFatalError(
-                    "inner function defintions cannot have arguments.", node)
+                    "inner function definitions cannot have arguments.", node)
 
             ty = cc.CallableType.get(self.ctx, [])
             createLambda = cc.CreateLambdaOp(ty)
