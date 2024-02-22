@@ -104,6 +104,11 @@ if [ -z "${llvm_projects##*clang;*}" ]; then
   llvm_components+="clang;clang-format;clang-cmake-exports;clang-headers;clang-libraries;clang-resource-headers;"
   projects=("${projects[@]/clang}")
 fi
+if [ -z "${llvm_projects##*flang;*}" ]; then
+  echo "- including Flang components"
+  llvm_components+="flang-new;flang-headers;flang-libraries;flang-cmake-exports;"
+  projects=("${projects[@]/flang}")
+fi
 if [ -z "${llvm_projects##*mlir;*}" ]; then
   echo "- including MLIR components"
   llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
@@ -130,7 +135,7 @@ llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
 llvm_components+="llvm-config;llvm-ar;llvm-as;llvm-nm;llvm-symbolizer;llc;FileCheck;count;not;"
 
 if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
-  echo "- including additional projects "$(echo "${projects[*]}" | xargs | tr ' ' ',')
+  echo "- including additional project(s) "$(echo "${projects[*]}" | xargs | tr ' ' ',')
   unset llvm_components
   install_target=install
 else 

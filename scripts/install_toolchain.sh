@@ -111,7 +111,7 @@ elif [ "$toolchain" = "llvm" ]; then
         
         if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
             # We use the clang to bootstrap the llvm build since it is faster than gcc.
-            bash "$(readlink -f "${BASH_SOURCE[0]}")" -t clang16 &> /dev/null
+            bash "$(readlink -f "${BASH_SOURCE[0]}")" -t clang16
             CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)"
         fi
 
@@ -174,7 +174,7 @@ if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then
     export CC="$CC" && export CXX="$CXX" 
     echo "Installed $toolchain toolchain."
     if [ -x "$(command -v "$FC")" ]; then export FC="$FC"
-    else unset FC && echo "Warning: No fortran compiler installed."
+    else unset FC && echo -e "\e[01;31mWarning: No fortran compiler installed.\e[0m" >&2
     fi
     
     if [ "$export_dir" != "" ]; then 
