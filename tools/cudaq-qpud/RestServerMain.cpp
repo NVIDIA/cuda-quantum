@@ -33,9 +33,12 @@ static llvm::cl::opt<std::string> serverSubType(
 
 int main(int argc, char **argv) {
   // The "fast" instruction selection compilation algorithm is actually very
-  // slow fast for large quantum circuits. Disable that here. Revisit this
+  // slow for large quantum circuits. Disable that here. Revisit this
   // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
-  // in the future.
+  // in the future. Also note that llvm::TargetMachine::setFastIsel() and
+  // setO0WantsFastISel() do not retain their values in our current version of
+  // LLVM. This use of LLVM command line parameters could be changed if the LLVM
+  // JIT ever supports the TargetMachine options in the future.
   std::vector<const char *> extraArgv(
       argc + 2); // +1 for new parameter, +1 for nullptr at end of list
   for (int i = 0; i < argc; i++)

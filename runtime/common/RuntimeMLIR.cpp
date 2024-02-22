@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -573,9 +573,12 @@ std::unique_ptr<MLIRContext> initializeMLIR() {
 ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
                                     llvm::StringRef convertTo) {
   // The "fast" instruction selection compilation algorithm is actually very
-  // slow fast for large quantum circuits. Disable that here. Revisit this
+  // slow for large quantum circuits. Disable that here. Revisit this
   // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
-  // in the future.
+  // in the future. Also note that llvm::TargetMachine::setFastIsel() and
+  // setO0WantsFastISel() do not retain their values in our current version of
+  // LLVM. This use of LLVM command line parameters could be changed if the LLVM
+  // JIT ever supports the TargetMachine options in the future.
   const char *argv[] = {"", "-fast-isel=0", nullptr};
   llvm::cl::ParseCommandLineOptions(2, argv);
 
