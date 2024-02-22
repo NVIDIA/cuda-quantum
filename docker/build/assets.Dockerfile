@@ -48,7 +48,6 @@ ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
 
 # This is a hack so that we do not need to rebuild the prerequisites 
 # whenever we pick up a new CUDA Quantum commit (which is always in CI).
-ARG install_before_build=prereqs
 RUN cd /cuda-quantum && git init && \
     git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | \
     while read path_key local_path; do \
@@ -58,8 +57,11 @@ RUN cd /cuda-quantum && git init && \
             git update-index --add --cacheinfo 160000 \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
-    done && git submodule init && git submodule && \
-    source scripts/configure_build.sh install-$install_before_build
+    done && git submodule init && git submodule
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    CUDAHOSTCXX="$CXX" \
+    LLVM_PROJECTS='clang;lld;mlir;compiler-rt' \
+    bash scripts/install_prerequisites.sh -t llvm
 
 FROM prereqs as build
 # Checking out a CUDA Quantum commit is suboptimal, since the source code
@@ -95,8 +97,8 @@ ENV CUDA_QUANTUM_VERSION=$release_version
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     # IMPORTANT:
-    # The same variables that are configured here also need to be set for 
-    # scripts/configure_build.sh install-prereqs!
+    # Make sure that the variables and arguments configured here match
+    # the ones in the install_prerequisites.sh invocation above!
     ## [>CUDAQuantumBuild]
     CUDAQ_WERROR=false \
     CUDAQ_PYTHON_SUPPORT=OFF \

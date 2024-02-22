@@ -105,12 +105,6 @@ export FC="${GCC_INSTALL_PREFIX}/root/usr/bin/gfortran"
 export CUDACXX=/usr/local/cuda/bin/nvcc
 # [<ToolchainConfiguration]
 
-if [ "$1" == "install-prereqs" ]; then
-    export LLVM_PROJECTS='clang;lld;mlir;compiler-rt'
-    this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-    bash "$this_file_dir/install_prerequisites.sh"
-fi
-
 if [ "$1" == "build-openmpi" ]; then
     source $GCC_INSTALL_PREFIX/enable
 

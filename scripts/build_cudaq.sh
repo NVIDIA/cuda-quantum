@@ -74,11 +74,6 @@ mkdir -p logs && rm -rf logs/*
 
 if [ -n "$install_prereqs" ]; then
   echo "Installing pre-requisites..."
-  if [ "$install_prereqs" = "llvm" ]; then
-    llvm_stage2_build="$LLVM_INSTALL_PREFIX"
-    llvm_stage1_build="$LLVM_INSTALL_PREFIX/stage1/"
-    LLVM_INSTALL_PREFIX="$llvm_stage1_build"
-  fi
   if $verbose; then
     source "$this_file_dir/install_prerequisites.sh" -t "$install_prereqs"
     status=$?
@@ -87,9 +82,6 @@ if [ -n "$install_prereqs" ]; then
     source "$this_file_dir/install_prerequisites.sh" -t "$install_prereqs" \
       2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
     status=$?
-  fi
-  if [ "$install_prereqs" = "llvm" ]; then
-    LLVM_INSTALL_PREFIX="$llvm_stage2_build"
   fi
 
   (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
