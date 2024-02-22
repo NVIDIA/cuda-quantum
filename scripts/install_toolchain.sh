@@ -40,34 +40,45 @@ OPTIND=$__optind__
 if [ "$(type -t temp_install_if_command_unknown)" != "function" ]; then
     function temp_install_if_command_unknown {
         if [ ! -x "$(command -v $1)" ]; then
-            apt-get install -y --no-install-recommends $2
-            APT_UNINSTALL="$APT_UNINSTALL $2"
+            if [ -x "$(command -v apt-get)" ]; then
+                if [ -z "$PKG_UNINSTALL" ]; then apt-get update; fi
+                apt-get install -y --no-install-recommends $2
+            elif [ -x "$(command -v dnf)" ]; then
+                dnf install -y --nobest --setopt=install_weak_deps=False $2
+            else
+                echo "No package manager was found to install $2." >&2
+            fi
+            PKG_UNINSTALL="$PKG_UNINSTALL $2"
         fi
     }
 fi
 
-function find_executable {
-    find / -path '*/bin*' -name $1 | head -1
-}
+if [ "$(type -t find_executable)" != "function" ]; then
+    function find_executable {
+        find / -path '*/bin*' -name $1 | head -1
+    }
+fi
 
-if [ "$toolchain" = "gcc11" ] ; then
+if [ "${toolchain#gcc}" != "$toolchain" ]; then
 
+    gcc_version=${toolchain#gcc}
     if [ -x "$(command -v apt-get)" ]; then
-        apt-get update && apt-get install -y --no-install-recommends gcc-11 g++-11 gfortran-11
-        CC="$(find_executable gcc-11)" CXX="$(find_executable g++-11)" FC="$(find_executable gfortran-11)"
-    fi
-
-elif [ "$toolchain" = "gcc12" ] ; then
-
-    if [ -x "$(command -v apt-get)" ]; then
-        apt-get update && apt-get install -y --no-install-recommends gcc-12 g++-12 gfortran-12
-        CC="$(find_executable gcc-12)" CXX="$(find_executable g++-12)" FC="$(find_executable gfortran-12)"
+        apt-get update && apt-get install -y --no-install-recommends \
+            gcc-$gcc_version g++-$gcc_version gfortran-$gcc_version
+        CC="$(find_executable gcc-$gcc_version)" 
+        CXX="$(find_executable g++-$gcc_version)" 
+        FC="$(find_executable gfortran-$gcc_version)"
+    elif [ -x "$(command -v dnf)" ]; then
+        dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-$gcc_version
+        enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"
+        CC="$(which gcc)" CXX="$(which g++)" FC="$(which gfortran)"
+    else
+      echo "No supported package manager detected." >&2
     fi
 
 elif [ "$toolchain" = "clang16" ]; then
 
     if [ -x "$(command -v apt-get)" ]; then
-        apt-get update
         temp_install_if_command_unknown wget wget
         temp_install_if_command_unknown gpg gnupg
         temp_install_if_command_unknown add-apt-repository software-properties-common
@@ -75,8 +86,15 @@ elif [ "$toolchain" = "clang16" ]; then
         wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
         add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
         apt-get update && apt-get install -y --no-install-recommends clang-16
-        CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)" FC="$(find_executable flang-new-16)"
+    elif [ -x "$(command -v dnf)" ]; then
+        dnf install -y --nobest --setopt=install_weak_deps=False clang-16.0.6
+    else
+        echo "No supported package manager detected." >&2
     fi
+
+    CC="$(find_executable clang-16)" 
+    CXX="$(find_executable clang++-16)" 
+    FC="$(find_executable flang-new-16)"
 
 elif [ "$toolchain" = "llvm" ]; then
 
@@ -91,14 +109,9 @@ elif [ "$toolchain" = "llvm" ]; then
             git clone -b main --single-branch --depth 1 https://github.com/llvm/llvm-project "$LLVM_SOURCE"
         fi
         
-        if [ -x "$(command -v apt-get)" ] && [ ! -x "$(command -v "$CC")" ] && [ ! -x "$(command -v "$CXX")" ]; then
+        if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
             # We use the clang to bootstrap the llvm build since it is faster than gcc.
-            temp_install_if_command_unknown wget wget
-            temp_install_if_command_unknown gpg gnupg
-            temp_install_if_command_unknown add-apt-repository software-properties-common
-            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-            add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
-            apt-get update && temp_install_if_command_unknown clang-16 clang-16
+            bash "$(readlink -f "${BASH_SOURCE[0]}")" -t clang16 &> /dev/null
             CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)"
         fi
 
@@ -138,20 +151,31 @@ elif [ "$toolchain" = "llvm" ]; then
 else
 
     echo "The requested toolchain cannot be installed by this script."
-    echo "Supported toolchains: llvm, clang16, clang15, gcc12, gcc11."
+    echo "Supported toolchains: llvm, clang16, gcc12, gcc11."
     if $is_sourced; then return 1; else exit 1; fi
 
 fi
 
-if [ "$APT_UNINSTALL" != "" ]; then
-    echo "Uninstalling packages used for bootstrapping: $APT_UNINSTALL"
-    apt-get remove -y $APT_UNINSTALL && apt-get autoremove -y
+if [ -n "$PKG_UNINSTALL" ]; then
+    echo "Uninstalling packages used for bootstrapping: $PKG_UNINSTALL"
+    if [ -x "$(command -v apt-get)" ]; then  
+        apt-get remove -y $PKG_UNINSTALL
+        apt-get autoremove -y --purge
+    elif [ -x "$(command -v dnf)" ]; then
+        dnf remove -y $PKG_UNINSTALL
+        dnf clean all
+    else
+        echo "No package manager configured for clean up." >&2
+    fi
+    unset PKG_UNINSTALL
 fi
 
-if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then
-    apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-    export CC="$CC" && export CXX="$CXX" && export FC="$FC"
+if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then 
+    export CC="$CC" && export CXX="$CXX" 
     echo "Installed $toolchain toolchain."
+    if [ -x "$(command -v "$FC")" ]; then export FC="$FC"
+    else unset FC && echo "Warning: No fortran compiler installed."
+    fi
     
     if [ "$export_dir" != "" ]; then 
         mkdir -p "$export_dir"

@@ -63,6 +63,7 @@ ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 RUN LLVM_SOURCE=/llvm-project \
     source scripts/install_toolchain.sh -e "$LLVM_INSTALL_PREFIX/bootstrap" -t ${toolchain} \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && rm -rf /llvm-project/build
 
 # Clone and build pybind11 (used for MLIR generated Python bindings).

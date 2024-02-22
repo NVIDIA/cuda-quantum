@@ -319,7 +319,9 @@ if [ -n "$cuda_version" ]; then
   fi
 fi
 
-echo "All prerequisites have been installed."
+if $install_all; then echo "All prerequisites have been installed."
+else echo "Prerequisites for which an *_INSTALL_PREFIX variable was defined have been installed."
+fi
 # Make sure to call prepare_exit so that we properly uninstalled all helper tools,
 # and so that we are in the correct directory also when this script is sourced.
 prepare_exit && ((return 0 2>/dev/null) && return 0 || exit 0)
