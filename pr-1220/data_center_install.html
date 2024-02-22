@@ -688,6 +688,7 @@ command to build CUDA Quantum:</p>
 bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-uv
 </pre></div>
 </div>
+<p>Note that <code class="code docutils literal notranslate"><span class="pre">lld</span></code> is primarily needed when the build or host system does not already have an existing default linker on its path; CUDA Quantum supports the same linkers as <code class="code docutils literal notranslate"><span class="pre">clang</span></code> does.</p>
 <p>To easily migrate the built binaries to the host system, we recommend creating a
 <a class="reference external" href="https://makeself.io/">self-extracting archive</a>. To do so, download the
 <a class="reference external" href="https://github.com/megastep/makeself">makeself script(s)</a> and move the necessary
