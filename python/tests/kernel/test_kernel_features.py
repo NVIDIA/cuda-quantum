@@ -527,11 +527,13 @@ def test_control_operations():
 def test_capture_simple_vars_parent_scope():
 
     qubitCount = 5 
+    constantAngle = 0.0
 
     @cudaq.kernel
     def test():
         q = cudaq.qvector(qubitCount)
         x(q)
+        ry(constantAngle, q[0])
     
     print(test)
     counts = cudaq.sample(test)

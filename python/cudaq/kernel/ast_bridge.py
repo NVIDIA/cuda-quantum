@@ -2607,6 +2607,11 @@ class PyASTBridge(ast.NodeVisitor):
                 self.symbolTable[node.id] = mlirVal 
                 self.pushValue(mlirVal)
                 return 
+            elif isinstance(value, float):
+                mlirVal = self.getConstantFloat(value)
+                self.symbolTable[node.id] = mlirVal
+                self.pushValue(mlirVal)
+                return 
             
             raise RuntimeError("invalid type for captured variable.")
         
