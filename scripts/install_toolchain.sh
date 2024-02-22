@@ -16,7 +16,7 @@
 # -or-
 #   source scripts/install_toolchain.sh -t <toolchain> -e path/to/dir
 #
-# where <toolchain> can be either llvm, clang16, clang15, gcc12, or gcc11. 
+# where <toolchain> can be either llvm, clang16, gcc12, or gcc11. 
 # The -e option creates a init_command.sh file in the given directory that 
 # can be used to reinstall the same toolchain if needed.
 
@@ -52,42 +52,33 @@ function find_executable {
 
 if [ "$toolchain" = "gcc11" ] ; then
 
-    apt-get update && apt-get install -y --no-install-recommends gcc-11 g++-11
-    CC="$(find_executable gcc-11)" CXX="$(find_executable g++-11)" \
+    if [ -x "$(command -v apt-get)" ]; then
+        apt-get update && apt-get install -y --no-install-recommends gcc-11 g++-11 gfortran-11
+        CC="$(find_executable gcc-11)" CXX="$(find_executable g++-11)" FC="$(find_executable gfortran-11)"
+    fi
 
 elif [ "$toolchain" = "gcc12" ] ; then
 
-    apt-get update && apt-get install -y --no-install-recommends gcc-12 g++-12
-    CC="$(find_executable gcc-12)" CXX="$(find_executable g++-12)" \
-
-elif [ "$toolchain" = "clang15" ]; then
-
-    apt-get update
-    temp_install_if_command_unknown wget wget
-    temp_install_if_command_unknown gpg gnupg
-    temp_install_if_command_unknown add-apt-repository software-properties-common
-
-    wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-    add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-15 main"
-    apt-get update && apt-get install -y --no-install-recommends clang-15
-    CC="$(find_executable clang-15)" CXX="$(find_executable clang++-15)"
+    if [ -x "$(command -v apt-get)" ]; then
+        apt-get update && apt-get install -y --no-install-recommends gcc-12 g++-12 gfortran-12
+        CC="$(find_executable gcc-12)" CXX="$(find_executable g++-12)" FC="$(find_executable gfortran-12)"
+    fi
 
 elif [ "$toolchain" = "clang16" ]; then
 
-    apt-get update
-    temp_install_if_command_unknown wget wget
-    temp_install_if_command_unknown gpg gnupg
-    temp_install_if_command_unknown add-apt-repository software-properties-common
+    if [ -x "$(command -v apt-get)" ]; then
+        apt-get update
+        temp_install_if_command_unknown wget wget
+        temp_install_if_command_unknown gpg gnupg
+        temp_install_if_command_unknown add-apt-repository software-properties-common
 
-    wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-    add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
-    apt-get update && apt-get install -y --no-install-recommends clang-16
-    CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)"
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+        add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
+        apt-get update && apt-get install -y --no-install-recommends clang-16
+        CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)" FC="$(find_executable flang-new-16)"
+    fi
 
 elif [ "$toolchain" = "llvm" ]; then
-
-    # We build the llvm toolchain against libstdc++ for now rather than building the runtime libraries as well.
-    apt-get update && apt-get install -y --no-install-recommends libstdc++-12-dev
 
     LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-"$HOME/.llvm"}
     if [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang++" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
@@ -96,23 +87,25 @@ elif [ "$toolchain" = "llvm" ]; then
         if [ ! -d "$LLVM_SOURCE" ]; then
             mkdir -p "$HOME/.llvm_project"
             llvm_tmp_dir=`mktemp -d -p "$HOME/.llvm_project"` && LLVM_SOURCE="$llvm_tmp_dir"
-            apt-get update && apt-get install -y --no-install-recommends git
+            temp_install_if_command_unknown git git
             git clone -b main --single-branch --depth 1 https://github.com/llvm/llvm-project "$LLVM_SOURCE"
         fi
         
-        # We use the clang to bootstrap the llvm build since it is faster than gcc.
-        temp_install_if_command_unknown wget wget
-        temp_install_if_command_unknown gpg gnupg
-        temp_install_if_command_unknown add-apt-repository software-properties-common
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-        add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
-        apt-get update && temp_install_if_command_unknown clang-16 clang-16
+        if [ -x "$(command -v apt-get)" ] && [ ! -x "$(command -v "$CC")" ] && [ ! -x "$(command -v "$CXX")" ]; then
+            # We use the clang to bootstrap the llvm build since it is faster than gcc.
+            temp_install_if_command_unknown wget wget
+            temp_install_if_command_unknown gpg gnupg
+            temp_install_if_command_unknown add-apt-repository software-properties-common
+            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+            add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
+            apt-get update && temp_install_if_command_unknown clang-16 clang-16
+            CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)"
+        fi
 
         temp_install_if_command_unknown ninja ninja-build
         temp_install_if_command_unknown cmake cmake
         LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
-        CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)" \
-        LLVM_PROJECTS='clang;lld;compiler-rt' bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v
+        LLVM_PROJECTS='clang;flang;lld;compiler-rt' bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v
         if [ -d "$llvm_tmp_dir" ]; then
             echo "The build logs have been moved to $LLVM_INSTALL_PREFIX/logs."
             mkdir -p "$LLVM_INSTALL_PREFIX/logs" && mv "$llvm_tmp_dir/build/logs"/* "$LLVM_INSTALL_PREFIX/logs/"
@@ -120,7 +113,7 @@ elif [ "$toolchain" = "llvm" ]; then
         fi
     fi
 
-    CC="$LLVM_INSTALL_PREFIX/bin/clang" && CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+    CC="$LLVM_INSTALL_PREFIX/bin/clang" && CXX="$LLVM_INSTALL_PREFIX/bin/clang++" && FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
     if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
         # Not the most up-to-date reference, but maybe a good starting point for reference:
         # https://maskray.me/blog/2020-12-19-lld-and-gnu-linker-incompatibilities
@@ -157,7 +150,7 @@ fi
 
 if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
-    export CC="$CC" && export CXX="$CXX"
+    export CC="$CC" && export CXX="$CXX" && export FC="$FC"
     echo "Installed $toolchain toolchain."
     
     if [ "$export_dir" != "" ]; then 

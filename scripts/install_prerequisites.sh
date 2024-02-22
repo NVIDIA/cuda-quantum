@@ -108,6 +108,7 @@ working_dir=`pwd`
 read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
 function prepare_exit {
   cd "$working_dir" && remove_temp_installs
+  rm -rf "$llvm_stage1_tmpdir"
   if [ -z "$__errexit__" ]; then set +e; fi
 }
 
@@ -118,8 +119,11 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all; then
   if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-    LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX/bootstrap" \
-    source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12} -v
+    if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
+      llvm_stage1_tmpdir="$(mktemp -d)" && LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir"
+    fi
+    LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" \
+    source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
   fi
   if [ ! -x "$(command -v cmake)" ]; then
     echo "Installing CMake..."
@@ -139,35 +143,6 @@ if $install_all; then
     cmake -B build && cmake --build build
     mv build/ninja /usr/local/bin/
     rm -rf v1.11.1.tar.gz ninja-1.11.1
-  fi
-  echo "Configured C compiler: $CC"
-  echo "Configured C++ compiler: $CXX"
-fi
-
-# [Blas] Needed for certain optimizers
-if [ -n "$BLAS_INSTALL_PREFIX" ]; then
-  if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
-    echo "Installing BLAS..."
-    temp_install_if_command_unknown wget wget
-    temp_install_if_command_unknown make make
-    if [ ! -x "$(command -v "$FC")" ]; then
-      temp_install_if_command_unknown gcc gcc
-      temp_install_if_command_unknown g++ g++
-      temp_install_if_command_unknown gfortran gfortran
-    elif [ ! -x "gfortran" ]; then
-      ln -s "$FC" /usr/bin/gfortran
-    fi
-
-    # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
-    wget http://www.netlib.org/blas/blas-3.11.0.tgz
-    tar -xzvf blas-3.11.0.tgz 
-    cd BLAS-3.11.0 && make 
-    mkdir -p "$BLAS_INSTALL_PREFIX"
-    mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
-    cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
-    remove_temp_installs
-  else
-    echo "BLAS already installed in $BLAS_INSTALL_PREFIX."
   fi
 fi
 
@@ -194,6 +169,50 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ]; then
     remove_temp_installs
   else
     echo "libz already installed in $ZLIB_INSTALL_PREFIX."
+  fi
+fi
+
+# [LLVM/MLIR] Needed to build the CUDA Quantum toolchain
+if [ -n "$LLVM_INSTALL_PREFIX" ]; then
+  if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
+    echo "Installing LLVM libraries..."
+    bash "$this_file_dir/build_llvm.sh" -v
+  else 
+    echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
+  fi
+
+  if [ "$toolchain" = "llvm" ]; then
+    export CC="$LLVM_INSTALL_PREFIX/bin/clang" 
+    export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+    echo "Configured C compiler: $CC"
+    echo "Configured C++ compiler: $CXX"
+  fi
+fi
+
+# [Blas] Needed for certain optimizers
+if [ -n "$BLAS_INSTALL_PREFIX" ]; then
+  if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
+    echo "Installing BLAS..."
+    temp_install_if_command_unknown wget wget
+    temp_install_if_command_unknown make make
+    if [ ! -x "$(command -v "$FC")" ]; then
+      temp_install_if_command_unknown gcc gcc
+      temp_install_if_command_unknown g++ g++
+      temp_install_if_command_unknown gfortran gfortran
+    elif [ ! -x "gfortran" ]; then
+      ln -s "$FC" /usr/bin/gfortran
+    fi
+
+    # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
+    wget http://www.netlib.org/blas/blas-3.11.0.tgz
+    tar -xzvf blas-3.11.0.tgz 
+    cd BLAS-3.11.0 && make 
+    mkdir -p "$BLAS_INSTALL_PREFIX"
+    mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
+    cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
+    remove_temp_installs
+  else
+    echo "BLAS already installed in $BLAS_INSTALL_PREFIX."
   fi
 fi
 
@@ -276,16 +295,6 @@ if [ -n "$CURL_INSTALL_PREFIX" ]; then
     remove_temp_installs
   else
     echo "Curl already installed in $CURL_INSTALL_PREFIX."
-  fi
-fi
-
-# [LLVM/MLIR] Needed to build the CUDA Quantum toolchain
-if [ -n "$LLVM_INSTALL_PREFIX" ]; then
-  if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
-    echo "Installing LLVM libraries..."
-    bash "$this_file_dir/build_llvm.sh" -v
-  else 
-    echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
 fi
 

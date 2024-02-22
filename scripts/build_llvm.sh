@@ -205,7 +205,8 @@ cmake_args="-G Ninja ../llvm \
   -DZLIB_ROOT=${ZLIB_INSTALL_PREFIX} \
   -DZLIB_USE_STATIC_LIBS=TRUE \
   -DLLVM_ENABLE_ZSTD=OFF \
-  -DLLVM_INSTALL_UTILS=ON"
+  -DLLVM_INSTALL_UTILS=ON \
+  -DCMAKE_CXX_FLAGS='-w'"
 if $verbose; then
   cmake $cmake_args
 else

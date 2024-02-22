@@ -203,9 +203,9 @@ environment variables to point to the respective compilers on your build system:
     :end-before: [<ToolchainConfiguration]
 
 - The variables `CC` and `CXX` *must* be set for the CUDA Quantum build.
-- A Fortran compiler is needed (only) to build the OpenSSL dependency; 
+- A Fortran compiler is needed (only) to build the Blas dependency; 
   if you have an existing OpenSSL installation that you set the
-  `OPENSSL_INSTALL_PREFIX` variable to, you can omit setting the `FC` 
+  `BLAS_INSTALL_PREFIX` variable to, you can omit setting the `FC` 
   environment variable.
 - To use GPU-acceleration in CUDA Quantum, make sure to set `CUDACXX` to 
   your CUDA compiler. If the CUDA compiler is not found when building
