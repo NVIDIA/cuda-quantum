@@ -60,6 +60,7 @@ class PyKernelDecorator(object):
         self.location = (inspect.getfile(self.kernelFunction),
                          inspect.getsourcelines(self.kernelFunction)[1]
                         ) if self.kernelFunction is not None else ('', 0)
+        self.globalScopedVars = dict(inspect.getmembers(inspect.stack()[2][0]))['f_locals']
 
         # check if the user requested JIT be used exclusively
         if self.globalJIT:
@@ -136,7 +137,8 @@ class PyKernelDecorator(object):
                 self.astModule,
                 verbose=self.verbose,
                 returnType=self.returnType,
-                location=self.location)
+                location=self.location,
+                parentVariables=self.globalScopedVars)
             if self.metadata['conditionalOnMeasure']:
                 SymbolTable(
                     self.module.operation)[nvqppPrefix +

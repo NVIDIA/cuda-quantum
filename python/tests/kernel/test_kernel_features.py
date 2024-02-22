@@ -512,15 +512,25 @@ def test_control_operations():
     counts = cudaq.sample(test)
 
 
-def test_control_operations():
-
     @cudaq.kernel
-    def test(angle: float):
+    def test2(angle: float):
         q = cudaq.qvector(4)
         x.ctrl(q[0], q[1])
         cx(q[0], q[1])
         rx.ctrl(angle, q[0], q[1])
         crx(angle, q[0], q[1])
 
+    print(test2)
+    counts = cudaq.sample(test2, 0.785398)
+
+
+def test_capture_simple_vars_parent_scope():
+
+    qubitCount = 5 
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(qubitCount)
+        x(q)
+    
     print(test)
-    counts = cudaq.sample(test, 0.785398)
