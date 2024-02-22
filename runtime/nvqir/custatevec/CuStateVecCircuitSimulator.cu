@@ -1,5 +1,5 @@
 /*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -105,7 +105,7 @@ protected:
   void *deviceStateVector = nullptr;
 
   /// @brief The cuStateVec handle
-  custatevecHandle_t handle;
+  custatevecHandle_t handle = nullptr;
 
   /// @brief Pointer to potentially needed extra memory
   void *extraWorkspace = nullptr;
@@ -219,7 +219,7 @@ protected:
           reinterpret_cast<CudaDataType *>(newDeviceStateVector),
           reinterpret_cast<CudaDataType *>(deviceStateVector),
           previousStateDimension);
-      cudaFree(deviceStateVector);
+      HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
       deviceStateVector = newDeviceStateVector;
     }
   }
@@ -248,7 +248,7 @@ protected:
           reinterpret_cast<CudaDataType *>(newDeviceStateVector),
           reinterpret_cast<CudaDataType *>(deviceStateVector),
           previousStateDimension);
-      cudaFree(deviceStateVector);
+      HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
       deviceStateVector = newDeviceStateVector;
     }
   }
@@ -316,7 +316,7 @@ public:
       cuStateVecCudaDataType = CUDA_C_32F;
     }
 
-    cudaFree(0);
+    HANDLE_CUDA_ERROR(cudaFree(0));
     randomEngine = std::mt19937(randomDevice());
   }
 
