@@ -154,8 +154,8 @@ class PyASTBridge(ast.NodeVisitor):
         msg = codeFile + ":" + str(
             lineNumber
         ) + ": " + Color.RED + "error: " + Color.END + Color.BOLD + msg + (
-            "\n\t (offending source -> " + ast.unparse(astNode) +
-            ")" if astNode is not None else '') + Color.END
+            "\n\t (offending source -> " + ast.unparse(astNode) + ")" if
+            hasattr(ast, 'unparse') and astNode is not None else '') + Color.END
         raise CompilerError(msg)
 
     def validateArgumentAnnotations(self, astModule):

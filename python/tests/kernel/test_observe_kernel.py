@@ -6,13 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os
+import os, sys
 
 import pytest
 import numpy as np
+from typing import List 
 
 import cudaq
 from cudaq import spin
+
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
 
 
 @pytest.fixture(autouse=True)
@@ -136,6 +142,29 @@ def test_broadcast():
     assert len(energies) == 50
 
     @cudaq.kernel
+    def kernel(thetas: List[float]):
+        qubits = cudaq.qvector(3)
+        x(qubits[0])
+        ry(thetas[0], qubits[1])
+        ry(thetas[1], qubits[2])
+        x.ctrl(qubits[2], qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+        ry(thetas[0] * -1., qubits[1])
+        x.ctrl(qubits[0], qubits[1])
+        x.ctrl(qubits[1], qubits[0])
+
+    runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
+    print(runtimeAngles)
+
+    results = cudaq.observe(kernel, hamiltonian, runtimeAngles)
+    energies = np.array([r.expectation() for r in results])
+    print(energies)
+    assert len(energies) == 50
+
+@skipIfPythonLessThan39
+def test_broadcast_py39Plus():
+
+    @cudaq.kernel
     def kernel(thetas: list[float]):
         qubits = cudaq.qvector(3)
         x(qubits[0])
@@ -146,6 +175,12 @@ def test_broadcast():
         ry(thetas[0] * -1., qubits[1])
         x.ctrl(qubits[0], qubits[1])
         x.ctrl(qubits[1], qubits[0])
+
+    
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(
+            1) + 9.625 - 9.625 * spin.z(2) - 3.913119 * spin.x(1) * spin.x(
+                2) - 3.913119 * spin.y(1) * spin.y(2)
 
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
