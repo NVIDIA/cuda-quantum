@@ -125,7 +125,8 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.locationOffset = kwargs[
             'locationOffset'] if 'locationOffset' in kwargs else ('', 0)
-        self.capturedVars = kwargs['capturedVariables'] if 'capturedVariables' in kwargs else {}
+        self.capturedVars = kwargs[
+            'capturedVariables'] if 'capturedVariables' in kwargs else {}
         self.disableEntryPointTag = kwargs[
             'disableEntryPointTag'] if 'disableEntryPointTag' in kwargs else False
         self.disableNvqppPrefix = kwargs[
@@ -2600,21 +2601,21 @@ class PyASTBridge(ast.NodeVisitor):
 
         # We may have captured this variable from parent scope
         if node.id in self.capturedVars:
-            # Only support a small subset of types here 
+            # Only support a small subset of types here
             value = self.capturedVars[node.id]
             if isinstance(value, int):
                 mlirVal = self.getConstantInt(value)
-                self.symbolTable[node.id] = mlirVal 
+                self.symbolTable[node.id] = mlirVal
                 self.pushValue(mlirVal)
-                return 
+                return
             elif isinstance(value, float):
                 mlirVal = self.getConstantFloat(value)
                 self.symbolTable[node.id] = mlirVal
                 self.pushValue(mlirVal)
-                return 
-            
+                return
+
             raise RuntimeError("invalid type for captured variable.")
-        
+
         # Throw an exception for the case that the name is not
         # in the symbol table
         self.emitFatalError(
@@ -2639,7 +2640,8 @@ def compile_to_mlir(astModule, **kwargs):
     verbose = 'verbose' in kwargs and kwargs['verbose']
     returnType = kwargs['returnType'] if 'returnType' in kwargs else None
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
-    parentVariables = kwargs['parentVariables'] if 'parentVariables' in kwargs else {}
+    parentVariables = kwargs[
+        'parentVariables'] if 'parentVariables' in kwargs else {}
 
     # Create the AST Bridge
     bridge = PyASTBridge(verbose=verbose,

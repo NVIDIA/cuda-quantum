@@ -132,7 +132,8 @@ class PyKernelDecorator(object):
 
         if not self.library_mode:
             # If not eager mode, JIT compile to MLIR
-            self.globalScopedVars = dict(inspect.getmembers(inspect.stack()[2][0]))['f_locals']
+            self.globalScopedVars = dict(
+                inspect.getmembers(inspect.stack()[2][0]))['f_locals']
             self.module, self.argTypes = compile_to_mlir(
                 self.astModule,
                 verbose=self.verbose,
