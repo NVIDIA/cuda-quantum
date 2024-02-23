@@ -9,6 +9,10 @@ on:
         type: string
         description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
+      github_commit:
+        type: string
+        description: Optional argument to set the GitHub commit to use for the final build and validation. 
+        required: false
       nvidia_mgpu_commit:
         type: string
         description: Optional argument to set the GitLab commit to use for the nvidia-mgpu target.
@@ -299,7 +303,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -483,7 +487,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load build assets
         uses: actions/download-artifact@v4
@@ -588,7 +592,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load wheel assets
         uses: actions/download-artifact@v4
@@ -722,7 +726,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load installer
         uses: actions/download-artifact@v4
@@ -751,7 +755,7 @@ jobs:
           . "$enable_script"
           . scripts/configure_build.sh install-cudart
 
-          # We need to install and MPI implementation, otherwise nothing
+          # We need to install an MPI implementation, otherwise nothing
           # will be able to run on the nvidia-mgpu backend.
           # The easiest is to just install it via conda.
           dnf install -y --nobest --setopt=install_weak_deps=False wget
@@ -809,7 +813,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
           path: github-repo
           sparse-checkout: |
             scripts
@@ -869,7 +873,7 @@ jobs:
   create_release:
     name: CUDA Quantum Release
     needs: [assets, cudaq_hpc, cudaq_wheels, image_validation]
-    if: needs.assets.outputs.release_title
+    if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.assets_from_run == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
     environment:
