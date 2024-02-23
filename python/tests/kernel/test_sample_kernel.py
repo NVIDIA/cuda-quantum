@@ -6,13 +6,18 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os
+import os, sys
 
 import pytest
 import numpy as np
-from typing import Callable
+from typing import Callable, List
 
 import cudaq
+
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
 
 
 @pytest.fixture(autouse=True)
@@ -127,7 +132,30 @@ def test_broadcast():
         assert '0' * testNpArray[i] in c and '1' * testNpArray[i] in c
 
     @cudaq.kernel
-    def circuit(angles: list):
+    def circuit(angles: List[float]):
+        q = cudaq.qvector(2)
+        rx(angles[0], q[0])
+        ry(angles[1], q[0])
+        x.ctrl(q[0], q[1])
+
+    runtimeAngles = np.array([[1.41075134, 1.16822118], [1.4269374, 1.61847813],
+                              [2.67020804,
+                               2.05479927], [2.09230621, 1.11112451],
+                              [1.57397959, 2.27463287], [1.38422446, 2.4457557],
+                              [2.44441489,
+                               2.51129809], [1.98279822, 2.38289909],
+                              [2.48570709, 2.27008174], [3.05499814,
+                                                         1.4933275]])
+    allCounts = cudaq.sample(circuit, runtimeAngles)
+    for i, c in enumerate(allCounts):
+        print(runtimeAngles[i, :], c)
+        assert len(c) == 2
+
+@skipIfPythonLessThan39
+def test_broadcastPy39Plus():
+
+    @cudaq.kernel
+    def circuit(angles: list[float]):
         q = cudaq.qvector(2)
         rx(angles[0], q[0])
         ry(angles[1], q[0])

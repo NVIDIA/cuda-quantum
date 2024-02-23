@@ -42,6 +42,9 @@ class PyKernelDecorator(object):
         self.verbose = verbose
         self.name = kernelName if kernelName != None else self.kernelFunction.__name__
         self.argTypes = None
+        self.location = (inspect.getfile(self.kernelFunction),
+                         inspect.getsourcelines(self.kernelFunction)[1]
+                        ) if self.kernelFunction is not None else ('', 0)
 
         if self.kernelFunction is None:
             if self.module is not None:
@@ -106,7 +109,8 @@ class PyKernelDecorator(object):
         # JIT compile to MLIR
         self.module, self.argTypes = compile_to_mlir(self.astModule,
                                                      verbose=self.verbose,
-                                                     returnType=self.returnType)
+                                                     returnType=self.returnType,
+                                                     location=self.location)
         if self.metadata['conditionalOnMeasure']:
             SymbolTable(
                 self.module.operation)[nvqppPrefix +

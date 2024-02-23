@@ -339,11 +339,23 @@ def test_decrementing_range():
     def test(q: int, p: int):
         qubits = cudaq.qvector(5)
         for k in range(q, p, -1):
+            cudaq.dbg.ast.print_i64(k)
             x(qubits[k])
 
     counts = cudaq.sample(test, 2, 0)
     counts.dump()
     assert '01100' in counts and len(counts) == 1
+
+    @cudaq.kernel
+    def test2(myList:List[int]):
+        q = cudaq.qvector(len(myList))
+        for i in range(0, len(myList), 2):
+            cudaq.dbg.ast.print_i64(i)
+            x(q[i])
+    
+    counts = cudaq.sample(test2, [0,1,2,3])
+    assert len(counts) == 1
+    assert '1010' in counts 
 
 
 def test_no_dynamic_Lists():

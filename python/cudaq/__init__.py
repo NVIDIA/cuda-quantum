@@ -92,6 +92,7 @@ def __clearKernelRegistries():
 # Expose chemistry domain functions
 from .domains import chemistry
 from .kernels import uccsd
+from .dbg import ast
 
 if not "CUDAQ_DYNLIBS" in os.environ:
     try:
@@ -116,5 +117,7 @@ if '--target' in sys.argv:
     initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
 if '--emulate' in sys.argv:
     initKwargs['emulate'] = True
+if not '--cudaq-full-stack-trace' in sys.argv:
+    sys.tracebacklimit = 0
 
 cudaq_runtime.initialize_cudaq(**initKwargs)
