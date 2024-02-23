@@ -222,8 +222,8 @@ do
         fi
 
         echo "Testing on $t target..."
-        nvq++ $ex $target_flag && status=$?
-        if [ ! $status -eq 0 ]; then
+        nvq++ $ex $target_flag 
+        if [ ! $? -eq 0 ]; then
             let "failed+=1"
             echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
             continue
