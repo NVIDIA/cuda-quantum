@@ -2137,17 +2137,39 @@ class PyASTBridge(ast.NodeVisitor):
         the Arith Dialect.
         """
         self.currentNode = node
-        [self.visit(v) for v in node.values]
-        numValues = len(self.valueStack)
-        values = [self.popValue() for _ in range(numValues)]
-        # FIXME make this an emit fatal error
-        assert len(values) > 1, "boolean operation must have more than 1 value."
+        shortCircuitWhenTrue = isinstance(node.op, ast.Or)
+        if isinstance(node.op, ast.And) or isinstance(node.op, ast.Or):
+            # Visit the LHS and pop the value
+            self.visit(node.values[0])
+            lhs = self.popValue()
+            zero = self.getConstantInt(0, IntegerType(lhs.type).width)
 
-        if isinstance(node.op, ast.And):
-            res = arith.AndIOp(values[0], values[1]).result
-            for v in values[2:]:
-                res = arith.AndIOp(res, v).result
-            self.pushValue(res)
+            cond = arith.CmpIOp(
+                self.getIntegerAttr(self.getIntegerType(),
+                                    1 if shortCircuitWhenTrue else 0), lhs,
+                zero).result
+
+            ifOp = cc.IfOp([cond.type], cond)
+            thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+            with InsertionPoint(thenBlock):
+                if isinstance(node.op, ast.And):
+                    constantFalse = arith.ConstantOp(cond.type,
+                                                     BoolAttr.get(False))
+                    cc.ContinueOp([constantFalse])
+                else:
+                    cc.ContinueOp([cond])
+
+            elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+            with InsertionPoint(elseBlock):
+                self.symbolTable.pushScope()
+                self.pushIfStmtBlockStack()
+                self.visit(node.values[1])
+                rhs = self.popValue()
+                cc.ContinueOp([rhs])
+                self.popIfStmtBlockStack()
+                self.symbolTable.popScope()
+
+            self.pushValue(ifOp.result)
             return
 
     def visit_Compare(self, node):
