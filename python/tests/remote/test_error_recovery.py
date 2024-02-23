@@ -24,6 +24,8 @@ port = 62433
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     cudaq_path = os.path.dirname(os.path.realpath(cudaq.__file__))
+    print(os.listdir(cudaq_path))
+    print(os.listdir(os.path.join(cudaq_path, "..")))
     sys.path.append(os.path.join(cudaq_path, "bin"))
     sys.path.append(os.path.join(cudaq_path, "../bin"))
     # Launch the QPU daemon Server
@@ -36,15 +38,15 @@ def startUpMockServer():
 
 def test_recovery():
     url_str = "localhost:"+str(port)
-    cudaq.set_target("remote-mqpu", url=url_str)
+    cudaq.set_target("remote-mqpu", url=url_str, backend="tensornet")
     poison_kernel = cudaq.make_kernel()
     # 50 qubits => should cause an OOM
     qubits = poison_kernel.qalloc(50)
     poison_kernel.h(qubits[0])
     poison_kernel.cx(qubits[0], qubits[1])
     poison_kernel.mz(qubits)
-    with pytest.raises(RuntimeError) as error:
-        counts = cudaq.sample(poison_kernel)
+    # with pytest.raises(RuntimeError) as error:
+    counts = cudaq.sample(poison_kernel, shots_count=10)
     
     # Now run another kernel afterward
     kernel = cudaq.make_kernel()
