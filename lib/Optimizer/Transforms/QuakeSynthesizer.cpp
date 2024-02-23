@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -154,6 +154,7 @@ public:
           module.getLoc(),
           "Quake Synthesis requires runtime arguments and the kernel name.\n");
       signalPassFailure();
+      return;
     }
 
     for (auto &op : *module.getBody()) {
