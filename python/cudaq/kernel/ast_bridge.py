@@ -370,7 +370,7 @@ class PyASTBridge(ast.NodeVisitor):
             printFunc = currentST['printf']
             printStr += '%.12lf\n'
         else:
-            raise self.emitFatalError(
+            self.emitFatalError(
                 f"Invalid cudaq.dbg.ast statement - {dbgStmt}")
 
         strLitTy = cc.PointerType.get(
@@ -2460,13 +2460,13 @@ class PyASTBridge(ast.NodeVisitor):
 
         if not IntegerType.isinstance(left.type) and not F64Type.isinstance(
                 left.type) and not ComplexType.isinstance(left.type):
-            raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
-                type(node.op), left, right))
+            self.emitFatalError("Invalid type for Binary Op {} ({}, {})".format(
+                type(node.op), left, right), node)
 
         if not IntegerType.isinstance(right.type) and not F64Type.isinstance(
                 right.type) and not ComplexType.isinstance(right.type):
-            raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
-                type(node.op), right, right))
+            self.emitFatalError("Invalid type for Binary Op {} ({}, {})".format(
+                type(node.op), right, right), node)
 
         # Basedon the op type and the leaf types, create the MLIR operator
         if isinstance(node.op, ast.Add):
@@ -2614,7 +2614,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(mlirVal)
                 return
 
-            raise RuntimeError("invalid type for captured variable.")
+            self.emitFatalError("invalid type for captured variable.", node)
 
         # Throw an exception for the case that the name is not
         # in the symbol table
