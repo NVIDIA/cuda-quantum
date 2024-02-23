@@ -810,10 +810,6 @@ jobs:
         TERM: xterm
 
     steps:
-      - run: |
-          pwd && ls
-          find examples -name '*.cpp'
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -821,6 +817,7 @@ jobs:
           path: github-repo
           sparse-checkout: |
             scripts
+            docs
 
       - name: Basic validation (GPU backends)
         shell: bash
@@ -834,6 +831,8 @@ jobs:
                     echo remote-mqpu; \
                   fi; \
               done`
+
+          rm -rf examples && mv github-repo/docs/sphinx/examples examples
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
           bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
 

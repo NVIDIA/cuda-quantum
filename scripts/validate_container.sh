@@ -152,9 +152,6 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
-pwd && ls
-find examples -name '*.cpp'
-
 tmpFile=$(mktemp)
 for ex in `find examples -name '*.cpp'`;
 do
