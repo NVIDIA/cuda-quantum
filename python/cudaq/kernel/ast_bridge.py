@@ -961,22 +961,24 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id in ["ch", "cx", "cy", "cz", "cs", "ct"]:
-                # These are single target controlled quantum operation
+                # These are single target controlled quantum operations
+                MAX_ARGS = 2
+                numValues = len(self.valueStack)
+                if numValues != MAX_ARGS:
+                    raise RuntimeError(
+                        "invalid number of arguments passed to callable {} ({} vs required {})"
+                        .format(node.func.id, len(node.args), MAX_ARGS))
                 target = self.popValue()
-                # Should be number of arguments minus one for the controls
-                controls = [self.popValue() for i in range(len(node.args) - 1)]
+                control = self.popValue()
                 negatedControlQubits = None
                 if len(self.controlNegations):
-                    negCtrlBools = [None] * len(controls)
-                    for i, c in enumerate(controls):
-                        negCtrlBools[i] = c in self.controlNegations
-                    negatedControlQubits = DenseBoolArrayAttr.get(negCtrlBools)
+                    negCtrlBool = control in self.controlNegations
+                    negatedControlQubits = DenseBoolArrayAttr.get(negCtrlBool)
                     self.controlNegations.clear()
                 # Map `cx` to `XOp`...
                 opCtor = getattr(
                     quake, '{}Op'.format(node.func.id.title()[1:].upper()))
-                opCtor([], [],
-                       controls, [target],
+                opCtor([], [], [control], [target],
                        negated_qubit_controls=negatedControlQubits)
                 return
 
@@ -993,17 +995,21 @@ class PyASTBridge(ast.NodeVisitor):
 
             if node.func.id in ["crx", "cry", "crz", "cr1"]:
                 ## These are single target, one parameter, controlled quantum operations
+                MAX_ARGS = 3
+                numValues = len(self.valueStack)
+                if numValues != MAX_ARGS:
+                    raise RuntimeError(
+                        "invalid number of arguments passed to callable {} ({} vs required {})"
+                        .format(node.func.id, len(node.args), MAX_ARGS))
                 target = self.popValue()
-                controls = [
-                    self.popValue() for i in range(len(self.valueStack))
-                ]
-                param = controls[-1]
+                control = self.popValue()
+                param = self.popValue()
                 if IntegerType.isinstance(param.type):
                     param = arith.SIToFPOp(self.getFloatType(), param).result
                 # Map `crx` to `RxOp`...
                 opCtor = getattr(
                     quake, '{}Op'.format(node.func.id.title()[1:].capitalize()))
-                opCtor([], [param], controls[:-1], [target])
+                opCtor([], [param], [control], [target])
                 return
 
             if node.func.id in ['mx', 'my', 'mz']:
