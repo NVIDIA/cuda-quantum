@@ -254,6 +254,9 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                         moduleNames.append(value.id)
                         break
 
+                if all(x in moduleNames for x in ['cudaq', 'dbg', 'ast']):
+                    return
+
                 if len(moduleNames):
                     moduleNames.reverse()
                     # This will throw if the function / module is invalid
