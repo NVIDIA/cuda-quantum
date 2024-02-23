@@ -62,6 +62,8 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto &platform = cudaq::get_platform();
   auto *argData = toOpaqueArgs(args);
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
 
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto numKernelArgs = getNumArguments(kernelMod, kernelName);

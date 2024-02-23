@@ -77,6 +77,8 @@ testing = cudaq_runtime.testing
 
 
 def synthesize(kernel, *args):
+    # Compile if necessary, no-op if already compiled
+    kernel.compile()
     return PyKernelDecorator(None,
                              module=cudaq_runtime.synthesize(kernel, *args),
                              kernelName=kernel.name)

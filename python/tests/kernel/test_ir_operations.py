@@ -27,7 +27,6 @@ def do_something():
 
 
 def test_synthesize():
-
     @cudaq.kernel
     def ghz(numQubits: int):
         qubits = cudaq.qvector(numQubits)

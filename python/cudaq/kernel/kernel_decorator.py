@@ -104,26 +104,37 @@ class PyKernelDecorator(object):
         analyzer.visit(self.astModule)
         self.metadata = {'conditionalOnMeasure': analyzer.hasMidCircuitMeasures}
 
-        # JIT compile to MLIR
-        self.module, self.argTypes = compile_to_mlir(self.astModule,
-                                                     verbose=self.verbose,
-                                                     returnType=self.returnType,
-                                                     location=self.location)
-        if self.metadata['conditionalOnMeasure']:
-            SymbolTable(
-                self.module.operation)[nvqppPrefix +
-                                       self.name].attributes.__setitem__(
-                                           'qubitMeasurementFeedback',
-                                           BoolAttr.get(
-                                               True,
-                                               context=self.module.context))
+        # Store the AST for this kernel, it is needed for 
+        # building up call graphs
+        globalAstRegistry[self.name] = self.astModule
+        
 
+    def compile(self):
+        """
+        Compile the Python function AST to MLIR. This is a no-op 
+        if the kernel is already compiled. 
+        """
+        if self.module != None:
+            return 
+        
+        self.module, self.argTypes = compile_to_mlir(
+                self.astModule, self.metadata,
+                verbose=self.verbose,
+                returnType=self.returnType,
+                location=self.location)
+        
     def __str__(self):
-        if not self.module == None:
-            return str(self.module)
-        return "{cannot print this kernel}"
+        """
+        Return the MLIR Module string representation for this kernel.
+        """
+        self.compile()
+        return str(self.module)
 
     def __call__(self, *args):
+        """
+        Invoke the CUDA Quantum kernel. JIT compilation of the 
+        kernel AST to MLIR will occur here if it has not already occurred. 
+        """
 
         if self.kernelFunction is None:
             if self.module is None:
@@ -135,6 +146,9 @@ class PyKernelDecorator(object):
                     "this kernel is not callable (no function and no MLIR argument types found)"
                 )
 
+        if self.module == None:
+            self.compile()
+            
         if len(args) != len(self.argTypes):
             raise RuntimeError(
                 "Incorrect number of runtime arguments provided to kernel {} ({} required, {} provided)"
@@ -144,6 +158,9 @@ class PyKernelDecorator(object):
         processedArgs = []
         callableNames = []
         for i, arg in enumerate(args):
+            if isinstance(arg, PyKernelDecorator):
+                arg.compile()
+
             mlirType = mlirTypeFromPyType(type(arg),
                                           self.module.context,
                                           argInstance=arg,

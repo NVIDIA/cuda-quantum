@@ -37,6 +37,9 @@ void extractStateData(py::buffer_info &info, complex *data) {
 
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 state pyGetState(py::object kernel, py::args args) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
   auto kernelName = kernel.attr("name").cast<std::string>();
   args = simplifiedValidateInputArguments(args);
 
@@ -220,6 +223,8 @@ for more information on this programming pattern.)#")
   mod.def(
       "get_state_async",
       [](py::object kernel, py::args args, std::size_t qpu_id) {
+        if (py::hasattr(kernel, "compile"))
+          kernel.attr("compile")();
         auto &platform = cudaq::get_platform();
         auto kernelName = kernel.attr("name").cast<std::string>();
         args = simplifiedValidateInputArguments(args);

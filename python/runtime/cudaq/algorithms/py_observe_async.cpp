@@ -70,6 +70,9 @@ void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
 async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
                                     py::args &args, std::size_t qpu_id,
                                     int shots) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
   auto kernelBlockArgs = kernel.attr("arguments");
   if (py::len(kernelBlockArgs) != args.size())
     throw std::runtime_error(
@@ -100,6 +103,9 @@ observe_result pyObservePar(const PyParType &type, py::object &kernel,
                             spin_op &spin_operator, py::args args = {},
                             int shots = defaultShotsValue,
                             std::optional<noise_model> noise = std::nullopt) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
   // Ensure the user input is correct.
   // auto validatedArgs = validateInputArguments(kernel, args);
   auto &platform = cudaq::get_platform();

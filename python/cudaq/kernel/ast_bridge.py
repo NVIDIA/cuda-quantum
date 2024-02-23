@@ -2626,7 +2626,7 @@ class PyASTBridge(ast.NodeVisitor):
             node)
 
 
-def compile_to_mlir(astModule, **kwargs):
+def compile_to_mlir(astModule, metadata, **kwargs):
     """
     Compile the given Python AST Module for the CUDA Quantum 
     kernel FunctionDef to an MLIR `ModuleOp`. 
@@ -2713,4 +2713,12 @@ def compile_to_mlir(astModule, **kwargs):
 
     globalAstRegistry[bridge.name] = astModule
 
+    if metadata['conditionalOnMeasure']:
+        SymbolTable(
+            bridge.module.operation)[nvqppPrefix +
+                                    bridge.name].attributes.__setitem__(
+                                        'qubitMeasurementFeedback',
+                                        BoolAttr.get(
+                                            True,
+                                            context=bridge.ctx))
     return bridge.module, bridge.argTypes
