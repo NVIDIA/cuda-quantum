@@ -131,7 +131,7 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"nvqc"* ]];
+    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"oqc"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"nvqc"* ]];
     then
         let "skipped+=1"
         echo "Skipped.";
@@ -170,65 +170,77 @@ do
 
     for t in $requested_backends
     do
+        if [ "$t" == "default" ]; then target_flag=""
+        else target_flag="--target $t"
+        fi
+    
         if [ -n "$intended_target" ] && [ "$intended_target" != "$t" ];
         then
             let "skipped+=1"
             echo "Skipping $t target.";
-            echo ":white_flag: Not intended for this target. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
+            echo ":white_flag: $filename: Not intended for this target. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
 
-        elif [[ "$ex" != *"nois"* ]] && [ "$t" == "density-matrix-cpu" ];
+        elif [ "$t" == "density-matrix-cpu" ] && [[ "$ex" != *"nois"* ]];
         then
             let "skipped+=1"
             echo "Skipping $t target."
-            echo ":white_flag: Not executed for performance reasons. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
+            echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
 
-        elif [[ " ${mps_skipped_tests[*]} " =~ " $ex " ]] && [ "$t" == "tensornet-mps" ]; then
+        elif [ "$t" == "tensornet-mps" ] && [[ " ${mps_skipped_tests[*]} " =~ " $ex " ]]; then
             let "skipped+=1"
             echo "Skipping $t target."
-            echo ":white_flag: Issue: https://github.com/NVIDIA/cuda-quantum/issues/884. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
+            echo ":white_flag: $filename: Issue https://github.com/NVIDIA/cuda-quantum/issues/884. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
 
-        # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
-        # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
-        # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
-        elif [[ "$t" == "remote-mqpu" ]] && [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* ]];
-        then
-            let "skipped+=1"
-            echo "Skipping $ex for $t target.";
-            echo ":white_flag: Not executed for performance reasons. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
+        elif [ "$t" == "remote-mqpu" ]; then
 
-        elif [[ "$t" == "remote-mqpu" && "$mpi_available" == true && "$ssh_available" == false ]];
-        then
-            # Don't run remote-mqpu if the MPI installation is incomplete (e.g., missing an ssh-client).
-            let "skipped+=1"
-            echo "Skipping $t target due to incomplete MPI installation.";
-            echo ":white_flag: Incomplete MPI installation. Test skipped." >> "$tmpFile_$(echo $t | tr - _)"
-
-        else
-            echo "Testing on $t target..."
-            if [ "$t" == "default" ]; then 
-                nvq++ $ex && status=$?
-            else
-                nvq++ $ex --target $t && status=$?
-            fi
-            if [ ! $status -eq 0 ]; then
-                let "failed+=1"
-                echo ":x: Compilation failed for $filename." >> "$tmpFile_$(echo $t | tr - _)"
+            # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
+            # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
+            # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
+            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* ]];
+            then
+                let "skipped+=1"
+                echo "Skipping $t target.";
+                echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
                 continue
-            fi
 
-            ./a.out &> /tmp/cudaq_validation.out
-            status=$?
-            echo "Exited with code $status"
-            if [ "$status" -eq "0" ]; then 
-                let "passed+=1"
-                echo ":white_check_mark: Successfully ran $filename." >> "$tmpFile_$(echo $t | tr - _)"
+            # Don't run remote-mqpu if the MPI installation is incomplete (e.g., missing an ssh-client).            
+            elif [[ "$mpi_available" == true && "$ssh_available" == false ]];
+            then
+                let "skipped+=1"
+                echo "Skipping $t target due to incomplete MPI installation.";
+                echo ":white_flag: $filename: Incomplete MPI installation. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+                continue
+
             else
-                cat /tmp/cudaq_validation.out
-                let "failed+=1"
-                echo ":x: Failed to execute $filename." >> "$tmpFile_$(echo $t | tr - _)"
-            fi 
-            rm a.out /tmp/cudaq_validation.out &> /dev/null
+                # TODO: remove this once the nvqc backend is part of the validation
+                # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
+                target_flag+=" --enable-mlir"
+            fi
         fi
+
+        echo "Testing on $t target..."
+        nvq++ $ex $target_flag 
+        if [ ! $? -eq 0 ]; then
+            let "failed+=1"
+            echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
+        fi
+
+        ./a.out &> /tmp/cudaq_validation.out
+        status=$?
+        echo "Exited with code $status"
+        if [ "$status" -eq "0" ]; then 
+            let "passed+=1"
+            echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+        else
+            cat /tmp/cudaq_validation.out
+            let "failed+=1"
+            echo ":x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+        fi 
+        rm a.out /tmp/cudaq_validation.out &> /dev/null
     done
     echo "============================="
 done
@@ -236,10 +248,13 @@ done
 if [ -f "$GITHUB_STEP_SUMMARY" ]; 
 then
     for t in $requested_backends
-    do
-        echo "## Execution on $t target" >> $GITHUB_STEP_SUMMARY
-        cat "$tmpFile_$(echo $t | tr - _)" >> $GITHUB_STEP_SUMMARY
-        rm -rf "$tmpFile_$(echo $t | tr - _)"
+    do  
+        file="${tmpFile}_$(echo $t | tr - _)"
+        if [ -f "$file" ]; then
+            echo "## Execution on $t target" >> $GITHUB_STEP_SUMMARY
+            cat "$file" >> $GITHUB_STEP_SUMMARY
+            rm -rf "$file"
+        fi
     done
 fi
 rm -rf "$tmpFile"
@@ -250,4 +265,4 @@ echo "Total passed: $passed"
 echo "Total failed: $failed"
 echo "Skipped: $skipped"
 echo "============================="
-if [ "$failed" -eq "0" ]; then exit 0; else exit 10; fi
+if [ "$failed" -eq "0" ] && [ "$samples" != "0" ]; then exit 0; else exit 10; fi
