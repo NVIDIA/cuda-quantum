@@ -291,7 +291,7 @@ public:
   std::pair<Value, Value> insertVectorSizeAndIncrementExtraBytes(
       Location loc, OpBuilder &builder, Value arg,
       cudaq::cc::PointerType ptrInTy, cudaq::cc::StdvecType stdvecTy,
-      Value stVal, std::int64_t idx, Value extraBytes) {
+      Value stVal, std::int32_t idx, Value extraBytes) {
     auto [extentSize, recursiveSize] =
         computeRecursiveVectorSize(loc, builder, arg, ptrInTy, stdvecTy);
     stVal = builder.create<cudaq::cc::InsertValueOp>(loc, stVal.getType(),
@@ -355,7 +355,7 @@ public:
     // kernel's arguments.
     bool hasTrailingData = false;
     for (auto kaIter : llvm::enumerate(kernelArgTypes)) {
-      std::int64_t idx = kaIter.index();
+      std::int32_t idx = kaIter.index();
 
       // The current cudaq kernel arg and message buffer element type.
       Type currArgTy = kaIter.value();
@@ -372,8 +372,7 @@ public:
       // which are the variadic args.
       Value argPtrPtr = builder.create<cudaq::cc::ComputePtrOp>(
           loc, ptrPtrType, variadicArgs,
-          SmallVector<cudaq::cc::ComputePtrArg>{
-              static_cast<std::int32_t>(idx)});
+          SmallVector<cudaq::cc::ComputePtrArg>{idx});
       Value argPtr = builder.create<cudaq::cc::LoadOp>(loc, ptrI8Ty, argPtrPtr);
 
       if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(currArgTy)) {
@@ -1079,7 +1078,7 @@ public:
              rewriteEntryBlock->getArguments(), funcTy, addThisPtr))) {
       Value arg = inp.value();
       Type inTy = arg.getType();
-      std::int64_t idx = inp.index();
+      std::int32_t idx = inp.index();
       Type quakeTy = funcTy.getInput(idx);
       // If the argument is a callable, skip it.
       if (isa<cudaq::cc::CallableType>(quakeTy))
@@ -1164,7 +1163,7 @@ public:
                rewriteEntryBlock->getArguments(), funcTy, addThisPtr))) {
         Value arg = inp.value();
         Type inTy = arg.getType();
-        std::int64_t idx = inp.index();
+        std::int32_t idx = inp.index();
         Type quakeTy = funcTy.getInput(idx);
         if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(quakeTy)) {
           auto bytes = builder.create<cudaq::cc::ExtractValueOp>(
