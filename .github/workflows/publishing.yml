@@ -746,7 +746,7 @@ jobs:
         if: startsWith(matrix.os_image, 'redhat')
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
-            'dnf-command(config-manager)' gcc-toolset-12
+            'dnf-command(config-manager)' gcc-toolset-12 openssh-clients
           enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
           . "$enable_script"
           . scripts/configure_build.sh install-cudart
@@ -774,16 +774,8 @@ jobs:
           /tmp/install/install_cuda_quantum.* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
 
-          install_path=`bash -lc "echo $CUDA_QUANTUM_PATH"`
-          backends_to_test=`\
-            for file in $(ls $install_path/targets/*.config); do \
-              if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then \
-                basename $file | cut -d "." -f 1; \
-              fi; \
-            done`
-
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-          bash -l scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
+          bash -l scripts/validate_container.sh | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
@@ -817,6 +809,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.assets.outputs.github_commit }}
+          path: github-repo
+          sparse-checkout: |
+            scripts
 
       - name: Basic validation (GPU backends)
         shell: bash
@@ -829,7 +824,7 @@ jobs:
                   fi; \
               done`
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-          bash scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
+          bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
