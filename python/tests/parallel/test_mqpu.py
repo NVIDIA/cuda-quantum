@@ -87,8 +87,6 @@ def testLargeProblem():
     assert assert_close(s.expectation(), p.expectation())
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(reason="Bug in the 'for' loop with step size = 2")
 @skipIfNoMQPU
 def testLargeProblem_kernel():
 

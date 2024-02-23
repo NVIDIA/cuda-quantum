@@ -47,11 +47,10 @@ class PyKernelDecorator(object):
 
         if self.kernelFunction is None:
             if self.module is not None:
-                ## ASKME: Is the following still needed?
                 # Could be that we don't have a function
                 # but someone has provided an external Module.
-                # But if we want this new decorator to be callable
-                # we'll need to turn library_mode off and set the `argTypes`
+                # If we want this new decorator to be callable
+                # we'll need to set the `argTypes`
                 symbols = SymbolTable(self.module.operation)
                 if nvqppPrefix + self.name in symbols:
                     function = symbols[nvqppPrefix + self.name]
