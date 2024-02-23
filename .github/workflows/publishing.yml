@@ -822,6 +822,8 @@ jobs:
               do
                   if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then \
                     basename $file | cut -d "." -f 1; \
+                  elif [ -n "$(basename $file | grep mqpu)" ]; then \
+                    echo remote-mqpu; \
                   fi; \
               done`
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
