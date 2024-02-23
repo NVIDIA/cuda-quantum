@@ -179,19 +179,23 @@ do
             let "skipped+=1"
             echo "Skipping $t target.";
             echo ":white_flag: $filename: Not intended for this target. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
 
         elif [ "$t" == "density-matrix-cpu" ] && [[ "$ex" != *"nois"* ]];
         then
             let "skipped+=1"
             echo "Skipping $t target."
             echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
 
         elif [ "$t" == "tensornet-mps" ] && [[ " ${mps_skipped_tests[*]} " =~ " $ex " ]]; then
             let "skipped+=1"
             echo "Skipping $t target."
             echo ":white_flag: $filename: Issue https://github.com/NVIDIA/cuda-quantum/issues/884. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
 
         elif [ "$t" == "remote-mqpu" ]; then
+
             # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
             # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
             # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
@@ -200,39 +204,43 @@ do
                 let "skipped+=1"
                 echo "Skipping $t target.";
                 echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+                continue
+
             # Don't run remote-mqpu if the MPI installation is incomplete (e.g., missing an ssh-client).            
             elif [[ "$mpi_available" == true && "$ssh_available" == false ]];
             then
                 let "skipped+=1"
                 echo "Skipping $t target due to incomplete MPI installation.";
                 echo ":white_flag: $filename: Incomplete MPI installation. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+                continue
+
             else
-                # Test with MLIR compilation enabled by default.
+                # TODO: remove this once the nvqc backend is part of the validation
+                # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
                 target_flag+=" --enable-mlir"
             fi
-
-        else
-            echo "Testing on $t target..."
-            nvq++ $ex $target_flag && status=$?
-            if [ ! $status -eq 0 ]; then
-                let "failed+=1"
-                echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-                continue
-            fi
-
-            ./a.out &> /tmp/cudaq_validation.out
-            status=$?
-            echo "Exited with code $status"
-            if [ "$status" -eq "0" ]; then 
-                let "passed+=1"
-                echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-            else
-                cat /tmp/cudaq_validation.out
-                let "failed+=1"
-                echo ":x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
-            fi 
-            rm a.out /tmp/cudaq_validation.out &> /dev/null
         fi
+
+        echo "Testing on $t target..."
+        nvq++ $ex $target_flag && status=$?
+        if [ ! $status -eq 0 ]; then
+            let "failed+=1"
+            echo ":x: Compilation failed for $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
+        fi
+
+        ./a.out &> /tmp/cudaq_validation.out
+        status=$?
+        echo "Exited with code $status"
+        if [ "$status" -eq "0" ]; then 
+            let "passed+=1"
+            echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+        else
+            cat /tmp/cudaq_validation.out
+            let "failed+=1"
+            echo ":x: Failed to execute $filename." >> "${tmpFile}_$(echo $t | tr - _)"
+        fi 
+        rm a.out /tmp/cudaq_validation.out &> /dev/null
     done
     echo "============================="
 done
