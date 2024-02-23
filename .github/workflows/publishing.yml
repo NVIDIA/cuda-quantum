@@ -810,6 +810,10 @@ jobs:
         TERM: xterm
 
     steps:
+      - run: |
+          pwd && ls
+          find examples -name '*.cpp'
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
