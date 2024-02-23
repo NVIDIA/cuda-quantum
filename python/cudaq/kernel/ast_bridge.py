@@ -2292,10 +2292,10 @@ class PyASTBridge(ast.NodeVisitor):
                 return
             elif F64Type.isinstance(loaded.type):
                 if IntegerType.isinstance(value.type):
-                    value = arith.SIToFPOp(self.getFloatType(), value).result 
-                res = arith.MulFOp(loaded, value).result 
+                    value = arith.SIToFPOp(self.getFloatType(), value).result
+                res = arith.MulFOp(loaded, value).result
                 cc.StoreOp(res, target)
-                return 
+                return
             else:
                 self.emitFatalError("unhandled AugAssign.Mult types.", node)
 
