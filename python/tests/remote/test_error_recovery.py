@@ -24,10 +24,7 @@ port = 62433
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     cudaq_path = os.path.dirname(os.path.realpath(cudaq.__file__))
-    print(os.listdir(cudaq_path))
-    print(os.listdir(os.path.join(cudaq_path, "..")))
-    sys.path.append(os.path.join(cudaq_path, "bin"))
-    sys.path.append(os.path.join(cudaq_path, "../bin"))
+    os.environ["PATH"] += os.pathsep + os.path.join(cudaq_path, "../bin")
     # Launch the QPU daemon Server
     proc = subprocess.Popen(['cudaq-qpud', '--port', str(port)], shell=False)
     time.sleep(3) 
