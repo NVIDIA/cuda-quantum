@@ -19,8 +19,6 @@ namespace cudaq {
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
-static std::vector<py::object> eagerAsyncSampleArgs;
-
 void bindSampleAsync(py::module &mod) {
   py::class_<async_sample_result>(
       mod, "AsyncSampleResult",

@@ -25,19 +25,6 @@ enum class PyParType { thread, mpi };
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
 
-struct wrappedEagerModeKernel {
-  py::object &kernel;
-  py::args args;
-  void operator()() {
-    py::gil_scoped_acquire gil;
-    kernel(*args);
-  }
-
-  ~wrappedEagerModeKernel() { py::gil_scoped_acquire gil; }
-};
-
-static std::vector<py::object> eagerAsyncObserveArgs;
-
 async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
                                     py::args &args, std::size_t qpu_id,
                                     int shots) {

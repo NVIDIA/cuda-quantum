@@ -16,7 +16,6 @@
 #include "cudaq/algorithms/state.h"
 
 namespace cudaq {
-static std::vector<py::object> eagerAsyncStateArgs;
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);

@@ -11,7 +11,6 @@ from ._packages import *
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
-from .kernel.qubit_qis import h, x, y, z, s, t, rx, ry, rz, r1, swap, exp_pauli, mx, my, mz, adjoint, control, compute_action
 from .runtime.sample import sample
 from .runtime.observe import observe
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
