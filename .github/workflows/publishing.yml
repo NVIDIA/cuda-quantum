@@ -768,7 +768,7 @@ jobs:
 
       - name: Install and run sanity checks
         shell: bash
-        env: |
+        env:
           BASH_ENV: ~/.bashrc
         run: |
           chmod +x /tmp/install/install_cuda_quantum.*
