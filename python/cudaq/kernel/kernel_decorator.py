@@ -104,7 +104,7 @@ class PyKernelDecorator(object):
         analyzer.visit(self.astModule)
         self.metadata = {'conditionalOnMeasure': analyzer.hasMidCircuitMeasures}
 
-        # Store the AST for this kernel, it is needed for 
+        # Store the AST for this kernel, it is needed for
         # building up call graphs
         globalAstRegistry[self.name] = self.astModule
         
@@ -115,14 +115,14 @@ class PyKernelDecorator(object):
         if the kernel is already compiled. 
         """
         if self.module != None:
-            return 
-        
-        self.module, self.argTypes = compile_to_mlir(
-                self.astModule, self.metadata,
-                verbose=self.verbose,
-                returnType=self.returnType,
-                location=self.location)
-        
+            return
+
+        self.module, self.argTypes = compile_to_mlir(self.astModule,
+                                                     self.metadata,
+                                                     verbose=self.verbose,
+                                                     returnType=self.returnType,
+                                                     location=self.location)
+
     def __str__(self):
         """
         Return the MLIR Module string representation for this kernel.
@@ -148,7 +148,7 @@ class PyKernelDecorator(object):
 
         if self.module == None:
             self.compile()
-            
+
         if len(args) != len(self.argTypes):
             raise RuntimeError(
                 "Incorrect number of runtime arguments provided to kernel {} ({} required, {} provided)"

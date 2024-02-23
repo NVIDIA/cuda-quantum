@@ -2716,9 +2716,7 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     if metadata['conditionalOnMeasure']:
         SymbolTable(
             bridge.module.operation)[nvqppPrefix +
-                                    bridge.name].attributes.__setitem__(
-                                        'qubitMeasurementFeedback',
-                                        BoolAttr.get(
-                                            True,
-                                            context=bridge.ctx))
+                                     bridge.name].attributes.__setitem__(
+                                         'qubitMeasurementFeedback',
+                                         BoolAttr.get(True, context=bridge.ctx))
     return bridge.module, bridge.argTypes
