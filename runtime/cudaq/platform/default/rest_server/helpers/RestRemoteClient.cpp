@@ -287,6 +287,11 @@ private:
   std::string m_functionId;
   // NVCF version Id of that function to use
   std::string m_functionVersionId;
+  // Available functions: function Id to number of GPUs mapping
+  using DeploymentInfo = std::unordered_map<std::string, std::size_t>;
+  DeploymentInfo m_availableFuncs;
+  static constexpr const char *CUDAQ_NCA_ID =
+      "mZraB3k06kOd8aPhD6MVXJwBVZ67aXDLsfmDo4MYXDs";
   // Base URL for NVCF APIs
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
   // Return the URL to invoke the function specified in this client
@@ -315,14 +320,38 @@ private:
   // function Id.
   std::vector<cudaq::NvcfFunctionVersionInfo> getFunctionVersions() {
     auto headers = getHeaders();
-    auto versionDataJs =
-        m_restClient.get(fmt::format("https://{}/nvcf/functions/{}", m_baseUrl,
-                                     m_functionId, /*enableSsl=*/true),
-                         "/versions", headers);
+    auto versionDataJs = m_restClient.get(
+        fmt::format("https://{}/nvcf/functions/{}", m_baseUrl, m_functionId),
+        "/versions", headers, /*enableSsl=*/true);
     cudaq::info("Version data: {}", versionDataJs.dump());
     std::vector<cudaq::NvcfFunctionVersionInfo> versions;
     versionDataJs["functions"].get_to(versions);
     return versions;
+  }
+  DeploymentInfo getAllAvailableDeployments() {
+    DeploymentInfo info;
+    auto headers = getHeaders();
+    auto allVisibleFunctions =
+        m_restClient.get(fmt::format("https://{}/nvcf/functions", m_baseUrl),
+                         "", headers, /*enableSsl=*/true);
+    for (auto funcInfo : allVisibleFunctions["functions"]) {
+      if (funcInfo["ncaId"].get<std::string>() == CUDAQ_NCA_ID &&
+          funcInfo["status"].get<std::string>() == "ACTIVE" &&
+          funcInfo["name"].get<std::string>().starts_with("cuda_quantum")) {
+        const std::size_t numGpus = [&]() {
+          if (funcInfo.contains("containerEnvironment")) {
+            for (auto it : funcInfo["containerEnvironment"]) {
+              if (it["key"].get<std::string>() == "NUM_GPUS")
+                return std::stoi(it["value"].get<std::string>());
+            }
+          }
+          return 1;
+        }();
+
+        info[funcInfo["id"].get<std::string>()] = numGpus;
+      }
+    }
+    return info;
   }
 
 public:
@@ -333,14 +362,41 @@ public:
       if (apiKeyIter != configs.end())
         m_apiKey = apiKeyIter->second;
       if (m_apiKey.empty())
-        throw std::runtime_error("No NVCF API key is provided.");
+        throw std::runtime_error("No NVQC API key is provided.");
     }
+
+    m_availableFuncs = getAllAvailableDeployments();
+    for (const auto &[funcId, numGpus] : m_availableFuncs)
+      cudaq::info("Function Id {} has {} GPUs.", funcId, numGpus);
     {
       const auto funcIdIter = configs.find("function-id");
-      if (funcIdIter != configs.end())
+      if (funcIdIter != configs.end()) {
         m_functionId = funcIdIter->second;
-      if (m_functionId.empty())
-        throw std::runtime_error("No NVCF function Id is provided.");
+      } else {
+        // Determine the function Id based on the number of GPUs
+        const auto nGpusIter = configs.find("ngpus");
+        // Default is 1 GPU if none specified
+        const std::size_t numGpusRequested =
+            (nGpusIter != configs.end()) ? std::stoi(nGpusIter->second) : 1;
+        cudaq::info("Looking for an NVQC deployment that has {} GPUs.",
+                    numGpusRequested);
+        for (const auto &[funcId, numGpus] : m_availableFuncs) {
+          if (numGpus == numGpusRequested) {
+            m_functionId = funcId;
+            break;
+          }
+        }
+        if (m_functionId.empty()) {
+          std::stringstream ss;
+          ss << "Unable to find NVQC deployment with " << numGpusRequested
+             << " GPUs. Available deployments are:\n";
+          for (const auto &[funcId, numGpus] : m_availableFuncs) {
+            ss << "   - Function Id " << funcId << ": " << numGpus
+               << ((numGpus > 1) ? " GPUs." : " GPU.") << "\n";
+          }
+          throw std::runtime_error(ss.str());
+        }
+      }
     }
     {
       auto versions = getFunctionVersions();
@@ -357,14 +413,14 @@ public:
         // Invalid version Id.
         if (versionInfoIter == versions.end())
           throw std::runtime_error(
-              fmt::format("Version Id '{}' is not valid for NVCF function Id "
-                          "'{}'. Please check your NVCF configurations.",
+              fmt::format("Version Id '{}' is not valid for NVQC function Id "
+                          "'{}'. Please check your NVQC configurations.",
                           m_functionVersionId, m_functionId));
         // The version is not active/deployed.
         if (versionInfoIter->status != cudaq::FunctionStatus::ACTIVE)
           throw std::runtime_error(
-              fmt::format("Version Id '{}' of NVCF function Id "
-                          "'{}' is not ACTIVE. Please check your NVCF "
+              fmt::format("Version Id '{}' of NVQC function Id "
+                          "'{}' is not ACTIVE. Please check your NVQC "
                           "configurations or contact support.",
                           m_functionVersionId, m_functionId));
       } else {
@@ -389,7 +445,7 @@ public:
 
         if (activeVersions.empty())
           throw std::runtime_error(
-              fmt::format("No active version available for NVCF function Id "
+              fmt::format("No active version available for NVQC function Id "
                           "'{}'. Please check your function Id.",
                           m_functionId));
 
@@ -404,6 +460,28 @@ public:
               const std::string &backendSimName, const std::string &kernelName,
               void (*kernelFunc)(void *), void *kernelArgs,
               std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    static const std::vector<std::string> MULTI_GPU_BACKENDS = {"tensornet",
+                                                                "nvidia-mgpu"};
+    {
+      // Print out a message if users request a multi-GPU deployment while
+      // setting the backend to a single-GPU one. Only print once in case this
+      // is a execution loop.
+      static bool printOnce = false;
+      if (m_availableFuncs[m_functionId] > 1 &&
+          std::find(MULTI_GPU_BACKENDS.begin(), MULTI_GPU_BACKENDS.end(),
+                    backendSimName) == MULTI_GPU_BACKENDS.end() &&
+          !printOnce) {
+        std::cout << "The requested simulator (" << backendSimName
+                  << ") is not capable of using all "
+                  << m_availableFuncs[m_functionId]
+                  << " GPUs available for NVQC function " << m_functionId
+                  << ".\n";
+        std::cout << "Only one GPU will be used for simulation.\n";
+        std::cout << "Please refer to CUDA Quantum documentation for a list of "
+                     "multi-GPU capable simulator backends.\n";
+        printOnce = true;
+      }
+    }
     // Construct the base `cudaq-qpud` request payload.
     cudaq::RestRequest request =
         constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
@@ -434,7 +512,7 @@ public:
     // `sendRequest` function exits (success or not).
     ScopeExit deleteAssetOnExit([&]() {
       if (assetId.has_value()) {
-        cudaq::info("Deleting NVCF Asset Id {}", assetId.value());
+        cudaq::info("Deleting NVQC Asset Id {}", assetId.value());
         auto headers = getHeaders();
         m_restClient.del(nvcfAssetUrl(), std::string("/") + assetId.value(),
                          headers, /*enableLogging=*/false, /*enableSsl=*/true);
@@ -446,7 +524,7 @@ public:
       assetId = uploadRequest(request);
       if (!assetId.has_value()) {
         if (optionalErrorMsg)
-          *optionalErrorMsg = "Failed to upload request as NVCF assets";
+          *optionalErrorMsg = "Failed to upload request to NVQC as NVCF assets";
         return false;
       }
       json requestBody;
@@ -462,7 +540,7 @@ public:
 
     try {
       // Making the request
-      cudaq::debug("Sending NVCF request to {}", nvcfInvocationUrl());
+      cudaq::debug("Sending NVQC request to {}", nvcfInvocationUrl());
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
@@ -536,14 +614,22 @@ public:
 
       if (!resultJs.contains("response")) {
         if (optionalErrorMsg)
-          *optionalErrorMsg = "Unexpected response from the NVCF invocation. "
+          *optionalErrorMsg = "Unexpected response from the NVQC invocation. "
                               "Missing the 'response' field.";
         return false;
       }
       if (!resultJs["response"].contains("executionContext")) {
-        if (optionalErrorMsg)
-          *optionalErrorMsg = "Unexpected response from the NVCF response. "
-                              "Missing the required field 'executionContext'.";
+        if (optionalErrorMsg) {
+          if (resultJs["response"].contains("errorMessage")) {
+            *optionalErrorMsg = fmt::format(
+                "NVQC failed to handle request. Server error: {}",
+                resultJs["response"]["errorMessage"].get<std::string>());
+          } else {
+            *optionalErrorMsg =
+                "Unexpected response from the NVQC response. "
+                "Missing the required field 'executionContext'.";
+          }
+        }
         return false;
       }
       resultJs["response"]["executionContext"].get_to(io_context);
@@ -561,7 +647,7 @@ public:
   uploadRequest(const cudaq::RestRequest &jobRequest) {
     json requestJson;
     requestJson["contentType"] = "application/json";
-    requestJson["description"] = "cudaq-nvcf-job";
+    requestJson["description"] = "cudaq-nvqc-job";
     try {
       auto headers = getHeaders();
       auto resultJs =
@@ -569,11 +655,12 @@ public:
                             /*enableLogging=*/false, /*enableSsl=*/true);
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
-      cudaq::info("Upload NVCF Asset Id {} to {}", assetId, uploadUrl);
+      cudaq::info("Upload NVQC job request as NVCF Asset Id {} to {}", assetId,
+                  uploadUrl);
       std::map<std::string, std::string> uploadHeader;
       // This must match the request to create the upload link
       uploadHeader["Content-Type"] = "application/json";
-      uploadHeader["x-amz-meta-nvcf-asset-description"] = "cudaq-nvcf-job";
+      uploadHeader["x-amz-meta-nvcf-asset-description"] = "cudaq-nvqc-job";
       json jobRequestJs = jobRequest;
       m_restClient.put(uploadUrl, "", jobRequestJs, uploadHeader,
                        /*enableLogging=*/false, /*enableSsl=*/true);

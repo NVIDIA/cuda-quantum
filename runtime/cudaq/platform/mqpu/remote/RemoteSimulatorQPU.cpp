@@ -126,7 +126,7 @@ public:
     if (parts.size() % 2 != 0)
       throw std::invalid_argument("Unexpected backend configuration string. "
                                   "Expecting a ';'-separated key-value pairs.");
-    std::string apiKey, functionId, versionId;
+    std::string apiKey, functionId, versionId, ngpus;
 
     for (std::size_t i = 0; i < parts.size(); i += 2) {
       if (parts[i] == "simulator")
@@ -138,6 +138,8 @@ public:
         apiKey = parts[i + 1];
       if (parts[i] == "version_id")
         versionId = parts[i + 1];
+      if (parts[i] == "ngpus")
+        ngpus = parts[i + 1];
     }
     // If none provided, look for them in environment variables or the config
     // file.
@@ -152,46 +154,48 @@ public:
     // API key and function Id are required.
     if (apiKey.empty())
       throw std::runtime_error(
-          "Cannot find NVCF API key. Please provide a valid API key.");
+          "Cannot find NVQC API key. Please refer to the documentation for "
+          "information about obtaining and using your NVQC API key.");
 
     if (!apiKey.starts_with("nvapi-"))
       std::runtime_error(
-          "An invalid NVCF API key is provided. Please check your settings.");
-    if (functionId.empty())
-      throw std::runtime_error(
-          "Cannot find NVCF Function ID. Please provide a valid Function ID.");
-
+          "An invalid NVQC API key is provided. Please check your settings.");
     std::unordered_map<std::string, std::string> clientConfigs{
-        {"api-key", apiKey}, {"function-id", functionId}};
+        {"api-key", apiKey}};
+    if (!functionId.empty())
+      clientConfigs.emplace("function-id", functionId);
     if (!versionId.empty())
       clientConfigs.emplace("version-id", versionId);
+    if (!ngpus.empty())
+      clientConfigs.emplace("ngpus", ngpus);
+
     m_client->setConfig(clientConfigs);
   }
 
 private:
-  // Helper to search NVCF config from environment variable or config file.
+  // Helper to search NVQC config from environment variable or config file.
   NvcfConfig searchNvcfConfig() {
     NvcfConfig config;
     // Search from environment variable
-    if (auto apiKey = std::getenv("NVCF_API_KEY")) {
+    if (auto apiKey = std::getenv("NVQC_API_KEY")) {
       const auto key = std::string(apiKey);
       config.apiKey = key;
     }
 
-    if (auto funcIdEnv = std::getenv("NVCF_FUNCTION_ID"))
+    if (auto funcIdEnv = std::getenv("NVQC_FUNCTION_ID"))
       config.functionId = std::string(funcIdEnv);
 
-    if (auto versionIdEnv = std::getenv("NVCF_FUNCTION_VERSION_ID"))
+    if (auto versionIdEnv = std::getenv("NVQC_FUNCTION_VERSION_ID"))
       config.versionId = std::string(versionIdEnv);
 
-    std::string nvcfConfig;
+    std::string nvqcConfig;
     // Allow someone to tweak this with an environment variable
-    if (auto creds = std::getenv("CUDAQ_NVCF_CREDENTIALS"))
-      nvcfConfig = std::string(creds);
+    if (auto creds = std::getenv("CUDAQ_NVQC_CREDENTIALS"))
+      nvqcConfig = std::string(creds);
     else
-      nvcfConfig = std::string(getenv("HOME")) + std::string("/.nvcf_config");
-    if (cudaq::fileExists(nvcfConfig)) {
-      std::ifstream stream(nvcfConfig);
+      nvqcConfig = std::string(getenv("HOME")) + std::string("/.nvqc_config");
+    if (cudaq::fileExists(nvqcConfig)) {
+      std::ifstream stream(nvqcConfig);
       std::string contents((std::istreambuf_iterator<char>(stream)),
                            std::istreambuf_iterator<char>());
       std::vector<std::string> lines;
@@ -200,7 +204,7 @@ private:
         std::vector<std::string> keyAndValue = cudaq::split(l, ':');
         if (keyAndValue.size() != 2)
           throw std::runtime_error("Ill-formed configuration file (" +
-                                   nvcfConfig +
+                                   nvqcConfig +
                                    "). Key-value pairs must be in `<key> : "
                                    "<value>` format. (One per line)");
         cudaq::trim(keyAndValue[0]);
