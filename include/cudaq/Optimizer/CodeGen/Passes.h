@@ -33,8 +33,10 @@ void registerConvertToQIRPass();
 /// cudaq-translate command line `--convert-to` parameter)
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
-/// @brief Verify that all `CallOp` targets are QIR- or NVQIR-defined functions.
-std::unique_ptr<mlir::Pass> createVerifyNVQIRCallOpsPass();
+/// @brief Verify that all `CallOp` targets are QIR- or NVQIR-defined functions
+/// or in the provided allowed list.
+std::unique_ptr<mlir::Pass>
+createVerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &allowedFuncs);
 
 // Use the addQIRProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass>
