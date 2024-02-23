@@ -972,7 +972,7 @@ class PyASTBridge(ast.NodeVisitor):
                         negCtrlBools[i] = c in self.controlNegations
                     negatedControlQubits = DenseBoolArrayAttr.get(negCtrlBools)
                     self.controlNegations.clear()
-                # Map "cx" to "XOp"
+                # Map `cx` to `XOp`...
                 opCtor = getattr(
                     quake, '{}Op'.format(node.func.id.title()[1:].upper()))
                 opCtor([], [],
@@ -1000,7 +1000,7 @@ class PyASTBridge(ast.NodeVisitor):
                 param = controls[-1]
                 if IntegerType.isinstance(param.type):
                     param = arith.SIToFPOp(self.getFloatType(), param).result
-                # Map "crx" to "RxOp"
+                # Map `crx` to `RxOp`...
                 opCtor = getattr(
                     quake, '{}Op'.format(node.func.id.title()[1:].capitalize()))
                 opCtor([], [param], controls[:-1], [target])
