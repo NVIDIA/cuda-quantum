@@ -142,6 +142,7 @@ public:
 
 /// Get the default execution manager instance.
 ExecutionManager *getExecutionManager();
+void resetExecutionManager();
 } // namespace cudaq
 
 // The following macro is to be used by ExecutionManager subclass developers. It
@@ -150,9 +151,11 @@ ExecutionManager *getExecutionManager();
 // manager.
 #define CUDAQ_REGISTER_EXECUTION_MANAGER(Manager)                              \
   namespace cudaq {                                                            \
+  thread_local static std::unique_ptr<ExecutionManager> g_qis_manager;         \
   ExecutionManager *getExecutionManager() {                                    \
-    thread_local static std::unique_ptr<ExecutionManager> qis_manager =        \
-        std::make_unique<Manager>();                                           \
-    return qis_manager.get();                                                  \
+    if (!g_qis_manager)                                                        \
+      g_qis_manager = std::make_unique<Manager>();                             \
+    return g_qis_manager.get();                                                \
   }                                                                            \
+  void resetExecutionManager() { g_qis_manager.reset(); }                      \
   }

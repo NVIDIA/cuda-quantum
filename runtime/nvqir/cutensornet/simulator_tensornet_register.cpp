@@ -52,20 +52,24 @@ private:
 } // namespace nvqir
 
 /// Register this Simulator class with NVQIR under name "tensornet"
+namespace {
+thread_local static std::unique_ptr<nvqir::SimulatorTensorNet> g_simulatorTn;
+}
 extern "C" {
 nvqir::CircuitSimulator *getCircuitSimulator_tensornet() {
-  thread_local static auto simulator =
-      std::make_unique<nvqir::SimulatorTensorNet>();
+  if (!g_simulatorTn)
+    g_simulatorTn = std::make_unique<nvqir::SimulatorTensorNet>();
   // Handle multiple runtime __nvqir__setCircuitSimulator calls before/after MPI
   // initialization. If the static simulator instance was created before MPI
   // initialization, it needs to be reset to support MPI if needed.
-  if (cudaq::mpi::is_initialized() && !simulator->m_cutnMpiInitialized) {
+  if (cudaq::mpi::is_initialized() && !g_simulatorTn->m_cutnMpiInitialized) {
     // Reset the static instance to pick up MPI.
-    simulator.reset(new nvqir::SimulatorTensorNet());
+    g_simulatorTn.reset(new nvqir::SimulatorTensorNet());
   }
-  return simulator.get();
+  return g_simulatorTn.get();
 }
 nvqir::CircuitSimulator *getCircuitSimulator() {
   return getCircuitSimulator_tensornet();
 }
+void resetCircuitSimulator() { g_simulatorTn.reset(); }
 }

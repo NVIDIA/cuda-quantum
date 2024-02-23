@@ -233,14 +233,15 @@ public:
                              void *kernelArgs, std::uint64_t argsSize,
                              std::size_t seed) override {
 
-    // If we're changing the backend, load the new simulator library from file.
-    if (m_simHandle.name != backendSimName) {
-      if (m_simHandle.libHandle)
-        dlclose(m_simHandle.libHandle);
-
-      m_simHandle =
-          SimulatorHandle(backendSimName, loadNvqirSimLib(backendSimName));
-    }
+    // Make sure the we clear the execution manager between requests.
+    // Note: a failed execution, e.g., allocating too many qubits, might leave
+    // remnants in the execution manager due to exception exits.
+    cudaq::resetExecutionManager();
+    // Load a fresh instance of the simulator.
+    if (m_simHandle.libHandle)
+      dlclose(m_simHandle.libHandle);
+    m_simHandle =
+        SimulatorHandle(backendSimName, loadNvqirSimLib(backendSimName));
     if (seed != 0)
       cudaq::set_random_seed(seed);
     auto &platform = cudaq::get_platform();
@@ -446,6 +447,14 @@ private:
           "Failed to open simulator backend library: {}.",
           error_msg ? std::string(error_msg) : std::string("Unknown error")));
     }
+
+    using ResetSimFuncTy = void *(*)();
+    ResetSimFuncTy resetFunc =
+        (ResetSimFuncTy)(intptr_t)dlsym(simLibHandle, "resetCircuitSimulator");
+    if (!resetFunc)
+      throw std::runtime_error(fmt::format(
+          "Failed to load symbol from simulator library. \n{}\n", dlerror()));
+    resetFunc();
     auto *sim = cudaq::getUniquePluginInstance<nvqir::CircuitSimulator>(
         std::string("getCircuitSimulator"), simLibPath.c_str());
     __nvqir__setCircuitSimulator(sim);
