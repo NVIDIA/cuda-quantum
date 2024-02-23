@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "clang/AST/ParentMapContext.h"
+#include "clang/Basic/TargetInfo.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
@@ -23,6 +24,9 @@
 #define DEBUG_TYPE "lower-ast"
 
 using namespace mlir;
+
+constexpr const char targetTripleAttrName[] = "llvm.triple";
+constexpr const char targetDataLayoutAttrName[] = "llvm.data_layout";
 
 // This flag is useful when debugging and the lower-ast debug output crashes.
 // The MLIR printer will, for various reasons, spontaneously crash when printing
@@ -394,6 +398,12 @@ ASTBridgeAction::ASTBridgeConsumer::ASTBridgeConsumer(
   mangler =
       clang::ItaniumMangleContext::create(astContext, ci.getDiagnostics());
   assert(mangler && "mangler creation failed");
+  auto triple = astContext.getTargetInfo().getTriple().str();
+  (*module)->setAttr(targetTripleAttrName,
+                     StringAttr::get(module->getContext(), triple));
+  std::string dataLayout{astContext.getTargetInfo().getDataLayoutString()};
+  (*module)->setAttr(targetDataLayoutAttrName,
+                     StringAttr::get(module->getContext(), dataLayout));
 }
 
 void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
