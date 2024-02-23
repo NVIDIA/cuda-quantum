@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -18,7 +18,7 @@ import cudaq
 
 
 def test_env_var_update():
-    """Tests that if the environment variable does not take effect on-the-fly"""
+    """Tests that if the environment variable does not take effect on-the-fly : Builder mode"""
 
     os.environ["CUDAQ_DEFAULT_SIMULATOR"] = "qpp-cpu"
     assert ("qpp-cpu" != cudaq.get_target().name)
@@ -33,6 +33,31 @@ def test_env_var_update():
     kernel.mz(qubits)
 
     result = cudaq.sample(kernel)
+    result.dump()
+    assert '00' in result
+    assert '11' in result
+
+    cudaq.reset_target()
+    assert ("density-matrix-cpu" == cudaq.get_target().name)
+
+
+def test_env_var_update_kernel():
+    """Tests that if the environment variable does not take effect on-the-fly : MLIR mode"""
+
+    @cudaq.kernel
+    def simple():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+        mz(qubits)
+
+    os.environ["CUDAQ_DEFAULT_SIMULATOR"] = "qpp-cpu"
+    assert ("qpp-cpu" != cudaq.get_target().name)
+
+    cudaq.set_target("qpp-cpu")
+    assert ("qpp-cpu" == cudaq.get_target().name)
+
+    result = cudaq.sample(simple)
     result.dump()
     assert '00' in result
     assert '11' in result

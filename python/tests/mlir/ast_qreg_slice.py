@@ -20,7 +20,7 @@ def test_slice():
 
     # slice upper bound should be exclusive
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def slice():
         q = cudaq.qvector(4)
         slice = q[2:]

@@ -21,11 +21,6 @@ def startUpMockServer():
     cudaq.reset_target()
 
 
-skipRemoteBackendForEagerMode = pytest.mark.skipif(
-    os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON',
-    reason="remote qpu supported only for MLIR mode of execution")
-
-
 @pytest.fixture(autouse=True)
 def do_something():
     yield
@@ -65,7 +60,6 @@ def test_sample():
     check_sample(kernel)
 
 
-@skipRemoteBackendForEagerMode
 def test_sample_kernel():
 
     @cudaq.kernel
@@ -105,7 +99,6 @@ def test_observe():
     check_observe(kernel)
 
 
-@skipRemoteBackendForEagerMode
 def test_observe_kernel():
 
     @cudaq.kernel
@@ -165,7 +158,6 @@ def test_multi_qpus():
     check_multi_qpus(kernel)
 
 
-@skipRemoteBackendForEagerMode
 def test_multi_qpus_kernel():
 
     @cudaq.kernel

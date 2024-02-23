@@ -10,7 +10,7 @@
 
 import cudaq
 
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def kernel(n_iter:int):
     q0 = cudaq.qubit()
     for i in range(n_iter):

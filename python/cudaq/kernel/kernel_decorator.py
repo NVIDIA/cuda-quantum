@@ -14,7 +14,6 @@ from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry
-from .qubit_qis import h, x, y, z, s, t, rx, ry, rz, r1, swap, exp_pauli, mx, my, mz, adjoint, control, compute_action
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -24,34 +23,19 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 # which maps the AST representation to an MLIR representation and ultimately
 # executable code.
 
-globalImportedKernels = {}
-
 
 class PyKernelDecorator(object):
     """
-    The `PyKernelDecorator` serves as a standard Python decorator that 
-    takes the decorated function as input and optionally lowers its 
-    AST representation to executable code via MLIR. This decorator enables 
-    both library-mode execution (no JIT, just library calls to affect local simulation 
-    of the quantum code) and full JIT compilation mode, where the function is lowered
-    to an MLIR representation. 
+    The `PyKernelDecorator` serves as a standard Python decorator that takes 
+    the decorated function as input and optionally lowers its  AST 
+    representation to executable code via MLIR. This decorator enables full JIT
+    compilation mode, where the function is lowered to an MLIR representation.
 
     This decorator exposes a call overload that executes the code via the 
-    MLIR `ExecutionEngine` if not in library mode. 
+    MLIR `ExecutionEngine` for the MLIR mode. 
     """
 
-    # Enable one to use JIT exclusively and not have to specify it every time
-    # Default to MLIR mode
-    globalJIT = True
-
-    def __init__(self,
-                 function,
-                 verbose=False,
-                 library_mode=True,
-                 jit=False,
-                 module=None,
-                 kernelName=None):
-        global globalImportedKernels
+    def __init__(self, function, verbose=False, module=None, kernelName=None):
         self.kernelFunction = function
         self.module = None if module == None else module
         self.verbose = verbose
@@ -61,22 +45,12 @@ class PyKernelDecorator(object):
                          inspect.getsourcelines(self.kernelFunction)[1]
                         ) if self.kernelFunction is not None else ('', 0)
 
-        # check if the user requested JIT be used exclusively
-        if self.globalJIT:
-            jit = True
-            library_mode = False
-
-        # Library Mode
-        self.library_mode = library_mode
-        if jit == True:
-            self.library_mode = False
-
         if self.kernelFunction is None:
             if self.module is not None:
                 # Could be that we don't have a function
                 # but someone has provided an external Module.
-                # But if we want this new decorator to be callable
-                # we'll need to turn library_mode off and set the `argTypes`
+                # If we want this new decorator to be callable
+                # we'll need to set the `argTypes`
                 symbols = SymbolTable(self.module.operation)
                 if nvqppPrefix + self.name in symbols:
                     function = symbols[nvqppPrefix + self.name]
@@ -130,56 +104,19 @@ class PyKernelDecorator(object):
         analyzer.visit(self.astModule)
         self.metadata = {'conditionalOnMeasure': analyzer.hasMidCircuitMeasures}
 
-        if not self.library_mode:
-            # If not eager mode, JIT compile to MLIR
-            self.module, self.argTypes = compile_to_mlir(
-                self.astModule,
-                verbose=self.verbose,
-                returnType=self.returnType,
-                location=self.location)
-            if self.metadata['conditionalOnMeasure']:
-                SymbolTable(
-                    self.module.operation)[nvqppPrefix +
-                                           self.name].attributes.__setitem__(
-                                               'qubitMeasurementFeedback',
-                                               BoolAttr.get(
-                                                   True,
-                                                   context=self.module.context))
-        else:
-            # If eager mode, implicitly load the quantum operations
-            self.kernelFunction.__globals__['h'] = h()
-            self.kernelFunction.__globals__['x'] = x()
-            self.kernelFunction.__globals__['y'] = y()
-            self.kernelFunction.__globals__['z'] = z()
-            self.kernelFunction.__globals__['s'] = s()
-            self.kernelFunction.__globals__['t'] = t()
-            self.kernelFunction.__globals__['rx'] = rx()
-            self.kernelFunction.__globals__['ry'] = ry()
-            self.kernelFunction.__globals__['rz'] = rz()
-            self.kernelFunction.__globals__['r1'] = r1()
-            self.kernelFunction.__globals__['mx'] = mx
-            self.kernelFunction.__globals__['my'] = my
-            self.kernelFunction.__globals__['mz'] = mz
-            self.kernelFunction.__globals__['swap'] = swap()
-            self.kernelFunction.__globals__['exp_pauli'] = exp_pauli
-            # We need to make imported quantum kernel functions
-            # available to this kernel function
-            for name, function in globalImportedKernels.items():
-                if not name in self.kernelFunction.__globals__:
-                    self.kernelFunction.__globals__[name] = function
-            # Register this function too for future kernel invocations
-            globalImportedKernels[self.name] = self.kernelFunction
-
-            # Rewrite the function if necessary to convert
-            # `r = mz(q)` to `r = mz(q, register_name='r')`
-            vis = RewriteMeasures()
-            res = self.kernelFunction.__globals__
-            exec(
-                compile(ast.fix_missing_locations(vis.visit(self.astModule)),
-                        filename='<ast>',
-                        mode='exec'), res)
-            self.kernelFunction = res[self.name]
-            return
+        # JIT compile to MLIR
+        self.module, self.argTypes = compile_to_mlir(self.astModule,
+                                                     verbose=self.verbose,
+                                                     returnType=self.returnType,
+                                                     location=self.location)
+        if self.metadata['conditionalOnMeasure']:
+            SymbolTable(
+                self.module.operation)[nvqppPrefix +
+                                       self.name].attributes.__setitem__(
+                                           'qubitMeasurementFeedback',
+                                           BoolAttr.get(
+                                               True,
+                                               context=self.module.context))
 
     def __str__(self):
         if not self.module == None:
@@ -197,12 +134,6 @@ class PyKernelDecorator(object):
                 raise RuntimeError(
                     "this kernel is not callable (no function and no MLIR argument types found)"
                 )
-            # if here, we can execute, but not in library mode
-            self.library_mode = False
-
-        # Library Mode, don't need Quake, just call the function
-        if self.library_mode:
-            return self.kernelFunction(*args)
 
         if len(args) != len(self.argTypes):
             raise RuntimeError(
@@ -265,8 +196,7 @@ def kernel(function=None, **kwargs):
     is a CUDA Quantum kernel and should be compile and executed on 
     an available quantum coprocessor.
 
-    One can indicate JIT compilation to MLIR via the `jit=True` flag. Verbose 
-    logging can also be enabled via verbose=True. 
+    Verbose logging can be enabled via `verbose=True`. 
     """
     if function:
         return PyKernelDecorator(function)

@@ -11,7 +11,7 @@
 
 import cudaq
 
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def kernel():
     q = cudaq.qvector(3)
     x(q[0])

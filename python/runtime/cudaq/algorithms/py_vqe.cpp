@@ -63,14 +63,6 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
   auto &platform = cudaq::get_platform();
   auto *argData = toOpaqueArgs(args);
 
-  if (py::hasattr(kernel, "library_mode") &&
-      kernel.attr("library_mode").cast<py::bool_>()) {
-    args = simplifiedValidateInputArguments(args);
-    return details::runObservation([&]() mutable { kernel(*args); },
-                                   spin_operator, platform, shots, kernelName)
-        .value();
-  }
-
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto numKernelArgs = getNumArguments(kernelMod, kernelName);
   if (numKernelArgs == 0)
