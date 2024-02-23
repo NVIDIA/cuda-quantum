@@ -23,12 +23,8 @@ skipIfPythonLessThan39 = pytest.mark.skipif(
 
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON':
-        cudaq.disable_jit()
     yield
-    if cudaq.is_jit_enabled():
-        cudaq.__clearKernelRegistries()
-    cudaq.enable_jit()
+    cudaq.__clearKernelRegistries()
 
 
 def test_adjoint():
@@ -365,13 +361,13 @@ def test_decrementing_range():
 def test_no_dynamic_Lists():
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel(params: List[float]):
             params.append(1.0)
 
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel():
             l = [i for i in range(10)]
             l.append(11)
@@ -380,7 +376,7 @@ def test_no_dynamic_Lists():
 
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel():
             l = [[i, i, i] for i in range(10)]
             l.append([11, 12, 13])
@@ -392,7 +388,7 @@ def test_no_dynamic_Lists():
 def test_no_dynamic_lists():
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel(params: list[float]):
             params.append(1.0)
 

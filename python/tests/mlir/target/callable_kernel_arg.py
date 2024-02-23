@@ -13,15 +13,15 @@ import cudaq
 from typing import Callable
 
 
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def bar(q:cudaq.qubit):
     x(q)
 
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def baz(q:cudaq.qubit):
     x(q)
 
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def foo(func:Callable[[cudaq.qubit], None], size:int):
     q = cudaq.qvector(size)
     func(q[0])

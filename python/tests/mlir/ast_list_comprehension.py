@@ -18,7 +18,7 @@ import cudaq
 
 def test_list_comprehension():
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def kernel():
         q = cudaq.qvector(6)
         [h(r) for r in q]

@@ -18,7 +18,7 @@ import cudaq
 
 def test_qreg_iter():
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def foo(N: int):
         q = cudaq.qvector(N)
         for r in q:
