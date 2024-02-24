@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -19,6 +19,6 @@ if (CMAKE_EXE_LINKER_FLAGS)
     string(REPLACE ";" " " CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS_LIST}") 
 endif()
 
-target_link_libraries(${TOOL_NAME} PRIVATE cudaq rest-remote-platform-server LLVMSupport)
+target_link_libraries(${TOOL_NAME} PRIVATE cudaq rest-remote-platform-server cudaq-mlir-runtime)
 target_compile_options(${TOOL_NAME} PRIVATE -fno-rtti)
 install(TARGETS ${TOOL_NAME} DESTINATION bin)

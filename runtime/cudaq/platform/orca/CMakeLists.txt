@@ -7,12 +7,14 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME cudaq-orca-qpu)
+message(STATUS "Building ORCA REST QPU.")
+
 add_library(${LIBRARY_NAME} SHARED OrcaQPU.cpp)
+
 target_include_directories(${LIBRARY_NAME} PRIVATE .
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-       $<INSTALL_INTERFACE:include>
-    )
+       $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC 
@@ -20,6 +22,7 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-common 
   PRIVATE
     pthread
+    cudaq-mlir-runtime 
     fmt::fmt-header-only
     cudaq 
     cudaq-platform-default)
