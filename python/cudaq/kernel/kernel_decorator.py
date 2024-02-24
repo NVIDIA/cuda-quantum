@@ -107,7 +107,6 @@ class PyKernelDecorator(object):
         # Store the AST for this kernel, it is needed for
         # building up call graphs
         globalAstRegistry[self.name] = self.astModule
-        
 
     def compile(self):
         """
@@ -135,16 +134,6 @@ class PyKernelDecorator(object):
         Invoke the CUDA Quantum kernel. JIT compilation of the 
         kernel AST to MLIR will occur here if it has not already occurred. 
         """
-
-        if self.kernelFunction is None:
-            if self.module is None:
-                raise RuntimeError(
-                    "this kernel is not callable (no function or MLIR Module found)"
-                )
-            if self.argTypes is None:
-                raise RuntimeError(
-                    "this kernel is not callable (no function and no MLIR argument types found)"
-                )
 
         if self.module == None:
             self.compile()
