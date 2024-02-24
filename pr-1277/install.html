@@ -417,8 +417,11 @@
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#preparing-the-installation">Preparing the Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#c-support">C++ Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#python-support">Python Support</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#mpi">MPI</a></li>
@@ -472,7 +475,8 @@ guidance for application development on a remote host where CUDA Quantum is inst
 </ul>
 <p>If you would like to build CUDA Quantum from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.
 If, on the other hand, you want to contribute to the development of CUDA Quantum itself and hence want to
-build a custom version of CUDA Quantum from source, follow the instructions on the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a> instead.</p>
+build a custom version of CUDA Quantum from source, follow the instructions on the
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a> instead.</p>
 <p>If you are unsure which option suits you best, we recommend using our <a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker image</span></a> to develop your applications in a controlled environment that does not depend on, or interfere with, other software
 that is installed on your system.</p>
 <section id="docker">
@@ -600,15 +604,24 @@ please take a look at the section on <a class="reference internal" href="#singul
 Installation instructions can be found in the <a class="reference external" href="https://pypi.org/project/cuda-quantum/#description">project description</a>.
 For more information about available versions and documentation,
 see <a class="reference internal" href="versions.html"><span class="doc">CUDA Quantum Versions</span></a>.</p>
-<p>At this time, wheels are distributed for Linux operating systems only.</p>
-<p>There are currently no source distributions available on PyPI, but you can download the source code for the latest version of the CUDA Quantum Python wheels from our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>. The source code for previous versions can be downloaded from the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub Release</a>.</p>
-<p>To build the CUDA Quantum Python API from source using pip, run the following commands:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">git clone https://github.com/NVIDIA/cuda-quantum.git</span>
-<span class="go">cd cuda-quantum &amp;&amp; bash scripts/install_prerequisites.sh</span>
+<p>There are currently no source distributions available on PyPI, but you can download the
+source code for the latest version of the CUDA Quantum Python wheels from our
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
+The source code for previous versions can be downloaded from the respective
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub Release</a>.</p>
+<p>At this time, wheels are distributed for Linux operating systems only.
+If your platform is not <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">officially supported</span></a> and
+<code class="code docutils literal notranslate"><span class="pre">pip</span></code> does not find a compatible wheel to install, you can build your own
+wheel from source following the instructions here: <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.</p>
+<p>To build the CUDA Quantum Python API for the purpose of contributing to
+our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>,
+follow the instructions for
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Dev_Setup.md">Setting up your Environment</a>,
+and then run the following commands in the repository root:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">bash scripts/install_prerequisites.sh</span>
 <span class="go">pip install . --user</span>
 </pre></div>
 </div>
-<p>For more information about building the entire C++ and Python API from source, we refer to the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
 </section>
 <section id="pre-built-binaries">
 <span id="install-prebuilt-binaries"></span><h3>Pre-built binaries<a class="headerlink" href="#pre-built-binaries" title="Permalink to this heading">¶</a></h3>
@@ -637,7 +650,7 @@ hence requires admin privileges on the system. We may revise that in the future;
 upvote the corresponding <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/1075">GitHub issue</a>.</p>
 <p>To install CUDA Quantum, execute the command</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MPI_PATH</span><span class="o">=</span>/usr/local/openmpi<span class="w"> </span><span class="se">\</span>
-sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.*<span class="w"> </span>--accept<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>/etc/profile
+sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>/etc/profile
 </pre></div>
 </div>
 <div class="admonition note">
