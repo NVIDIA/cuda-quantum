@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -46,6 +46,19 @@ void debug(const std::string_view msg) {
 #ifdef CUDAQ_DEBUG
   spdlog::debug(msg);
 #endif
+}
+// These asserts are needed for should_log
+static_assert(static_cast<int>(LogLevel::debug) ==
+                  static_cast<int>(spdlog::level::debug),
+              "log level enum mismatch");
+static_assert(static_cast<int>(LogLevel::trace) ==
+                  static_cast<int>(spdlog::level::trace),
+              "log level enum mismatch");
+static_assert(static_cast<int>(LogLevel::info) ==
+                  static_cast<int>(spdlog::level::info),
+              "log level enum mismatch");
+bool should_log(const LogLevel logLevel) {
+  return spdlog::should_log(static_cast<spdlog::level::level_enum>(logLevel));
 }
 std::string pathToFileName(const std::string_view fullFilePath) {
   const std::filesystem::path file(fullFilePath);
