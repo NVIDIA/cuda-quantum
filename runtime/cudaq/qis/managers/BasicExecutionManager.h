@@ -67,7 +67,7 @@ protected:
   virtual void allocateQudits(const std::vector<QuditInfo> &qudits) = 0;
 
   /// @brief Subtype specific qudit deallocation method
-  virtual void deallocateQudit(const QuditInfo &q) = 0;
+  virtual void doDeallocateQudit(const QuditInfo &q) = 0;
 
   /// @brief Subtype specific qudit deallocation, deallocate
   /// all qudits in the vector.
@@ -131,7 +131,7 @@ public:
     return new_id;
   }
 
-  void returnQudit(const QuditInfo &qid) override {
+  void deallocateQudit(const QuditInfo &qid) override {
     if (!executionContext) {
       deallocateQudit(qid);
       returnIndex(qid.id);

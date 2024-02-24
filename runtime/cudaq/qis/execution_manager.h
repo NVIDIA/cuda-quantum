@@ -98,9 +98,8 @@ public:
   /// Allocates a qudit and returns its unique identifier.
   virtual std::size_t allocateQudit(std::size_t quditLevels = 2) = 0;
 
-  /// QuditInfo has been deallocated, return the qudit / id to the pool of
-  /// qudits.
-  virtual void returnQudit(const QuditInfo &q) = 0;
+  /// Deallocates a qudit.
+  virtual void deallocateQudit(const QuditInfo &q) = 0;
 
   /// Checker for qudits that were not deallocated
   bool memoryLeaked() { return !tracker.allDeallocated(); }

@@ -193,11 +193,11 @@ public:
   /// @brief Allocate `count` qubits.
   virtual std::vector<std::size_t> allocateQudits(const std::size_t count) = 0;
 
-  /// @brief Deallocate the qubit with give unique index
-  virtual void deallocate(const std::size_t qubitIdx) = 0;
+  /// @brief Deallocate qudit with give unique identifier.
+  virtual void deallocateQudit(const std::size_t uid) = 0;
 
-  /// @brief Deallocate all the provided qubits.
-  virtual void deallocateQubits(const std::vector<std::size_t> &qubits) = 0;
+  /// @brief Deallocate all the provided qudits.
+  virtual void deallocateQudits(const std::vector<std::size_t> &uids) = 0;
 
   /// @brief Reset the current execution context.
   virtual void resetExecutionContext() = 0;
@@ -842,20 +842,20 @@ public:
   }
 
   /// @brief Deallocate the qubit with give index
-  void deallocate(const std::size_t qubitIdx) override {
+  void deallocateQudit(const std::size_t uid) override {
     if (executionContext) {
-      cudaq::info("Deferring qubit {} deallocation", qubitIdx);
-      deferredDeallocation.push_back(qubitIdx);
+      cudaq::info("Deferring qubit {} deallocation", uid);
+      deferredDeallocation.push_back(uid);
       return;
     }
 
-    cudaq::info("Deallocating qubit {}", qubitIdx);
+    cudaq::info("Deallocating qubit {}", uid);
 
     // Reset the qubit
-    resetQubit(qubitIdx);
+    resetQubit(uid);
 
     // Return the index to the tracker
-    tracker.returnIndex(qubitIdx);
+    tracker.returnIndex(uid);
     --nQubitsAllocated;
 
     // Reset the state if we've deallocated all qubits.
@@ -868,32 +868,32 @@ public:
     }
   }
 
-  /// @brief Deallocate all requested qubits. If the number of qubits
-  /// is equal to the number of allocated qubits, then clear the entire
+  /// @brief Deallocate all requested qudits. If the number of qudits
+  /// is equal to the number of allocated qudits, then clear the entire
   /// state at once.
-  void deallocateQubits(const std::vector<std::size_t> &qubits) override {
+  void deallocateQudits(const std::vector<std::size_t> &uids) override {
     // Do nothing if there are no allocated qubits.
     if (nQubitsAllocated == 0)
       return;
 
     if (executionContext) {
-      for (auto &qubitIdx : qubits) {
+      for (auto &qubitIdx : uids) {
         cudaq::info("Deferring qubit {} deallocation", qubitIdx);
         deferredDeallocation.push_back(qubitIdx);
       }
       return;
     }
 
-    if (qubits.size() == tracker.numAllocated()) {
+    if (uids.size() == tracker.numAllocated()) {
       cudaq::info("Deallocate all qubits.");
       deallocateState();
-      for (auto &q : qubits)
+      for (auto &q : uids)
         tracker.returnIndex(q);
       return;
     }
 
-    for (auto &q : qubits)
-      deallocate(q);
+    for (auto &q : uids)
+      deallocateQudit(q);
   }
 
   /// @brief Reset the current execution context.
