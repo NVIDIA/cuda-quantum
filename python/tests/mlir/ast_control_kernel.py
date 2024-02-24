@@ -18,11 +18,11 @@ import cudaq
 
 def test_control_kernel():
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def applyX(q: cudaq.qubit):
         x(q)
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def bell():
         q = cudaq.qvector(2)
         h(q[0])

@@ -18,7 +18,7 @@ import cudaq
 
 def test_list_init():
 
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def kernel():
         q = cudaq.qvector(6)
         params = [1., 2., 3., 4.]

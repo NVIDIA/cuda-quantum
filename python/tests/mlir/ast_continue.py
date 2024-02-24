@@ -18,7 +18,7 @@ import cudaq
 
 def test_continue():
 
-    @cudaq.kernel(jit=True, verbose=True)
+    @cudaq.kernel(verbose=True)
     def kernel(x: float):
         q = cudaq.qvector(4)
         for i in range(10):
