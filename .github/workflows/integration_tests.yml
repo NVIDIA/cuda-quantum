@@ -32,7 +32,7 @@ on:
       cudaq_test_image:
         type: string
         required: false
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' # If changed, update env defaults, too
         description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image'
       commit_sha:
         type: string
@@ -41,7 +41,7 @@ on:
       cudaq_nvqc_deploy_image:
         type: string
         required: false
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' # If changed, update env defaults, too
         description: 'CUDA Quantum image to use for NVQC deployment to NVCF. Default to the latest CUDA Quantum nightly image'
       workflow_id:
         type: string
@@ -50,7 +50,7 @@ on:
       python_version:
         type: choice
         required: true
-        default: '3.10'
+        default: '3.10' # If changed, update env defaults, too
         description: 'Python version to run wheel test'
         options:
         - '3.8'
@@ -68,6 +68,11 @@ env:
   NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
   NGC_NVQC_DEPLOYMENT_SPEC: NVCFInternal:A100:Standard_ND96amsr_A100_v4_1x:1:1
+  # If vars below are changed, it is recommended to also update the
+  # workflow_dispatch defaults above so they stay in sync.
+  cudaq_test_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
+  cudaq_nvqc_deploy_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
+  python_version: 3.10
 
 jobs:
   metadata:
@@ -75,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: backend-validation
     container:
-      image: ${{ inputs.cudaq_test_image }}
+      image: ${{ inputs.cudaq_test_image || env.cudaq_test_image }}
       options: --user root
     outputs:
       cudaq_commit: ${{ steps.commit-sha.outputs.sha }}
@@ -125,7 +130,7 @@ jobs:
           context: .
           file: ./docker/release/cudaq.nvqc.Dockerfile
           build-args: |
-            base_image=${{ inputs.cudaq_nvqc_deploy_image }}
+            base_image=${{ inputs.cudaq_nvqc_deploy_image || env.cudaq_nvqc_deploy_image }}
           tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
@@ -192,7 +197,7 @@ jobs:
     needs: [metadata]
     environment: backend-validation
     container:
-      image: ${{ inputs.cudaq_test_image }}
+      image: ${{ inputs.cudaq_test_image || env.cudaq_test_image }}
       options: --user root
 
     steps:
@@ -416,7 +421,7 @@ jobs:
     needs: [metadata, build_nvqc_image, deploy_nvqc_test_function]
     environment: ghcr-deployment
     container:
-      image: ${{ inputs.cudaq_test_image }}
+      image: ${{ inputs.cudaq_test_image || env.cudaq_test_image }}
       options: --user root
 
     steps:
@@ -577,7 +582,7 @@ jobs:
       - name: Install wheel
         id: install_wheel
         run: |
-          python_version=${{ inputs.python_version }}
+          python_version=${{ inputs.python_version || env.python_version }}
           workflow_id=${{ inputs.workflow_id }}
           # Helper to get the *valid* Publishing run Id for a commit hash
           # Notes: runs that have 'CUDA Quantum Python wheels' jobs skipped are not considered.
@@ -633,7 +638,7 @@ jobs:
         if: ${{ ! steps.install_wheel.skipped }}
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
-          python_version=${{ inputs.python_version }}
+          python_version=${{ inputs.python_version || env.python_version }}
           export NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVQC_FUNCTION_ID="$NVQC_FUNCTION_ID"
           export NVQC_FUNCTION_VERSION_ID="${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
