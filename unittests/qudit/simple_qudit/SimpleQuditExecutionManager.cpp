@@ -34,27 +34,25 @@ private:
 
   std::vector<cudaq::QuditInfo> sampleQudits;
 
+  std::size_t numQudits = 0;
+
 protected:
-  void doAllocateQudit(const cudaq::QuditInfo &q) override {
+  std::size_t allocateQudit(std::size_t n_levels) override {
+    numQudits += 1;
     if (state.size() == 0) {
       // qubit will give [1,0], qutrit will give [1,0,0]
-      state = qpp::ket::Zero(q.levels);
+      state = qpp::ket::Zero(n_levels);
       state(0) = 1.0;
-      return;
+      return numQudits;
     }
 
-    qpp::ket zeroState = qpp::ket::Zero(q.levels);
+    qpp::ket zeroState = qpp::ket::Zero(n_levels);
     zeroState(0) = 1.0;
     state = qpp::kron(state, zeroState);
+    return numQudits;
   }
 
-  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    for (auto &q : qudits)
-      doAllocateQudit(q);
-  }
-
-  void doDeallocateQudit(const cudaq::QuditInfo &q) override {}
-  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
+  void deallocateQudit(const cudaq::QuditInfo &q) override {}
 
   void handleExecutionContextChanged() override {}
 

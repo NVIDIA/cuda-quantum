@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "common/QuditIdTracker.h"
 #include "cudaq/spin_op.h"
 #include <deque>
 #include <string_view>
@@ -76,22 +75,6 @@ using measure_result = bool;
 /// quantum instructions.
 class ExecutionManager {
 protected:
-  /// Available qudit indices
-  std::deque<std::size_t> availableIndices;
-
-  /// Total qudits available
-  std::size_t totalQudits;
-
-  /// Utility type tracking qudit unique identifiers as they are allocated and
-  /// deallocated.
-  QuditIdTracker tracker;
-
-  /// Internal - return the next qudit index
-  std::size_t getNextIndex() { return tracker.getNextIndex(); }
-
-  /// Internal - At qudit deallocation, return the qudit index
-  void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
-
 public:
   ExecutionManager() = default;
 
@@ -100,9 +83,6 @@ public:
 
   /// Deallocates a qudit.
   virtual void deallocateQudit(const QuditInfo &q) = 0;
-
-  /// Checker for qudits that were not deallocated
-  bool memoryLeaked() { return !tracker.allDeallocated(); }
 
   /// Provide an ExecutionContext for the current cudaq kernel
   virtual void setExecutionContext(cudaq::ExecutionContext *ctx) = 0;

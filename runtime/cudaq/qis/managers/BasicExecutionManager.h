@@ -46,9 +46,6 @@ protected:
   /// @brief The current execution context, e.g. sampling or observation
   cudaq::ExecutionContext *executionContext = nullptr;
 
-  /// @brief Store qudits for delayed deletion under certain execution contexts
-  std::vector<QuditInfo> contextQuditIdsForDeletion;
-
   /// @brief The current queue of operations to execute
   InstructionQueue instructionQueue;
 
@@ -59,19 +56,6 @@ protected:
   /// @brief When we are in a control region, we need to store extra control
   /// qudit ids.
   std::vector<std::size_t> extraControlIds;
-
-  /// @brief Subtype-specific qudit allocation method
-  virtual void doAllocateQudit(const QuditInfo &q) = 0;
-
-  /// @brief Allocate a set of `qudits` with a single call.
-  virtual void allocateQudits(const std::vector<QuditInfo> &qudits) = 0;
-
-  /// @brief Subtype specific qudit deallocation method
-  virtual void doDeallocateQudit(const QuditInfo &q) = 0;
-
-  /// @brief Subtype specific qudit deallocation, deallocate
-  /// all qudits in the vector.
-  virtual void deallocateQudits(const std::vector<QuditInfo> &qudits) = 0;
 
   /// @brief Subtype-specific handler for when the execution context changes
   virtual void handleExecutionContextChanged() = 0;
@@ -114,36 +98,7 @@ public:
     // Do any final post-processing before
     // we deallocate the qudits
     handleExecutionContextEnded();
-
-    deallocateQudits(contextQuditIdsForDeletion);
-    for (auto &q : contextQuditIdsForDeletion)
-      returnIndex(q.id);
-
-    contextQuditIdsForDeletion.clear();
     executionContext = nullptr;
-  }
-
-  std::size_t allocateQudit(std::size_t quditLevels) override {
-    auto new_id = getNextIndex();
-    if (isInTracerMode())
-      return new_id;
-    doAllocateQudit({quditLevels, new_id});
-    return new_id;
-  }
-
-  void deallocateQudit(const QuditInfo &qid) override {
-    if (!executionContext) {
-      deallocateQudit(qid);
-      returnIndex(qid.id);
-      return;
-    }
-
-    if (isInTracerMode()) {
-      returnIndex(qid.id);
-      return;
-    }
-
-    contextQuditIdsForDeletion.push_back(qid);
   }
 
   void startAdjointRegion() override { adjointQueueStack.emplace_back(); }
@@ -277,4 +232,3 @@ public:
   }
 };
 
-} // namespace cudaq
