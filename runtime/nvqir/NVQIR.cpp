@@ -177,7 +177,7 @@ void __quantum__rt__resetExecutionContext() {
 Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
   cudaq::ScopedTrace trace("NVQIR::qubit_allocate_array", size);
   __quantum__rt__initialize(0, nullptr);
-  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(size);
+  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQudits(size);
   return vectorSizetToArray(qubitIdxs);
 }
 
@@ -204,7 +204,7 @@ void __quantum__rt__qubit_release_array(Array *arr) {
 Qubit *__quantum__rt__qubit_allocate() {
   cudaq::ScopedTrace trace("NVQIR::allocate_qubit");
   __quantum__rt__initialize(0, nullptr);
-  auto qubitIdx = nvqir::getCircuitSimulatorInternal()->allocateQubit();
+  auto qubitIdx = nvqir::getCircuitSimulatorInternal()->allocateQudit();
   auto qubit = std::make_unique<Qubit>(qubitIdx);
   nvqir::allocatedSingleQubits.emplace_back(std::move(qubit));
   return nvqir::allocatedSingleQubits.back().get();

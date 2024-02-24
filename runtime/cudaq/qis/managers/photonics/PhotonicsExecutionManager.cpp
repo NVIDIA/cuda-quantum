@@ -36,7 +36,7 @@ private:
 protected:
   /// @brief Qudit allocation method: a zeroState is first initialized, the
   /// following ones are added via kron operators
-  void allocateQudit(const cudaq::QuditInfo &q) override {
+  void doAllocateQudit(const cudaq::QuditInfo &q) override {
     if (state.size() == 0) {
       // qubit will give [1,0], qutrit will give [1,0,0] and so on...
       state = qpp::ket::Zero(q.levels);
@@ -52,7 +52,7 @@ protected:
   /// @brief Allocate a set of `qudits` with a single call.
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
     for (auto &q : qudits)
-      allocateQudit(q);
+      doAllocateQudit(q);
   }
 
   /// @brief Qudit deallocation method

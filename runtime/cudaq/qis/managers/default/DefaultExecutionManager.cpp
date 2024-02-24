@@ -52,12 +52,12 @@ private:
   }
 
 protected:
-  void allocateQudit(const cudaq::QuditInfo &q) override {
+  void doAllocateQudit(const cudaq::QuditInfo &q) override {
     requestedAllocations.emplace_back(2, q.id);
   }
 
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    simulator()->allocateQubits(qudits.size());
+    simulator()->allocateQudits(qudits.size());
   }
 
   void deallocateQudit(const cudaq::QuditInfo &q) override {

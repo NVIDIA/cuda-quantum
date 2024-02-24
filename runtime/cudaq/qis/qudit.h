@@ -26,8 +26,10 @@ class qudit {
   bool isNegativeControl = false;
 
 public:
-  /// Construct a qudit, will allocated a new unique index
-  qudit() : idx(getExecutionManager()->getAvailableIndex(n_levels())) {}
+  /// Construct a qudit. When constructing a qudit we request an allocation to
+  /// the exercution manager, and receive back an unique identifier for the
+  /// qudit.
+  qudit() : idx(getExecutionManager()->allocateQudit(n_levels())) {}
 
   // Qudits cannot be copied
   qudit(const qudit &q) = delete;
