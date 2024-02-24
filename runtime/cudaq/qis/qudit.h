@@ -57,8 +57,8 @@ public:
   // Syntactic sugar for negating a control
   qudit<Levels> &operator!() { return negate(); }
 
-  // Destructor, return the qudit so it can be reused
-  ~qudit() { getExecutionManager()->returnQudit({n_levels(), idx}); }
+  /// Destructs a qudit and request a deallocation to the execution manager.
+  ~qudit() { getExecutionManager()->deallocateQudit({n_levels(), idx}); }
 };
 
 // A qubit is a qudit with 2 levels.

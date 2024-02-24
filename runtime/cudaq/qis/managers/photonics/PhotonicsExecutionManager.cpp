@@ -56,7 +56,7 @@ protected:
   }
 
   /// @brief Qudit deallocation method
-  void deallocateQudit(const cudaq::QuditInfo &q) override {}
+  void doDeallocateQudit(const cudaq::QuditInfo &q) override {}
 
   /// @brief Deallocate a set of `qudits` with a single call.
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}

@@ -101,8 +101,8 @@ CUDAQ_TEST(QPPTester, checkInitialState) {
   got_bitstring = getSampledBitString(qppBackend, {0, 1});
   want_bitstring = std::string("00");
   EXPECT_EQ(want_bitstring, got_bitstring);
-  qppBackend.deallocate(q0);
-  qppBackend.deallocate(q1);
+  qppBackend.deallocateQudit(q0);
+  qppBackend.deallocateQudit(q1);
 }
 
 // Testing the accuracy of all non-parameterized single-qubit
@@ -163,8 +163,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit Y-gate.
@@ -219,8 +219,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit Z-gate.
@@ -257,8 +257,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit Hadamard-gate.
@@ -299,8 +299,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit S-gate.
@@ -337,8 +337,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit T-gate.
@@ -375,8 +375,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit SDG-gate.
@@ -413,8 +413,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit TDG-gate.
@@ -451,8 +451,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 }
 
@@ -496,7 +496,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking RY gate.
@@ -537,7 +537,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking RZ gate.
@@ -576,7 +576,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking U gate.
@@ -603,7 +603,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ(0, qppBackend.mz(q0));
 
     // Reset q0 to 0 state.
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
     q0 = qppBackend.allocateQudit();
 
     // Rotate the qubit to the 1-state, then rotate it
@@ -659,7 +659,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking U3 gate.
@@ -684,7 +684,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
     q0 = qppBackend.allocateQudit();
 
     // Reset system to all 0 state.
@@ -702,7 +702,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking CPHASE gate.
@@ -768,8 +768,8 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = std::exp(im<> * M_PI) * getOneState(2);
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 }
 
@@ -845,8 +845,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking two-qubit controlled Z-gate.
@@ -920,8 +920,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking CH gate.
@@ -976,8 +976,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(want_state, got_state);
 
     // Reset system to `|00>`.
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
     q0 = qppBackend.allocateQudit();
     q1 = qppBackend.allocateQudit();
 
@@ -989,8 +989,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
 
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking CS gate.
@@ -1055,8 +1055,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     want_state = im<> * getOneState(2);
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking SWAP gate.
@@ -1094,8 +1094,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 }
 

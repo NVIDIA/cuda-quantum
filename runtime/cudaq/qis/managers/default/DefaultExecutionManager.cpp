@@ -60,7 +60,7 @@ protected:
     simulator()->allocateQudits(qudits.size());
   }
 
-  void deallocateQudit(const cudaq::QuditInfo &q) override {
+  void doDeallocateQudit(const cudaq::QuditInfo &q) override {
 
     // Before trying to deallocate, make sure the qudit hasn't
     // been requested but not allocated.
@@ -71,7 +71,7 @@ protected:
       return;
     }
 
-    simulator()->deallocate(q.id);
+    simulator()->deallocateQudit(q.id);
   }
 
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
@@ -86,7 +86,7 @@ protected:
       }
     }
 
-    simulator()->deallocateQubits(local);
+    simulator()->deallocateQudits(local);
   }
 
   void handleExecutionContextChanged() override {

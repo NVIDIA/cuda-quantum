@@ -53,7 +53,7 @@ protected:
       doAllocateQudit(q);
   }
 
-  void deallocateQudit(const cudaq::QuditInfo &q) override {}
+  void doDeallocateQudit(const cudaq::QuditInfo &q) override {}
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
   void handleExecutionContextChanged() override {}

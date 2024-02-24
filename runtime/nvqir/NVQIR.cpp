@@ -187,7 +187,7 @@ void __quantum__rt__qubit_release_array(Array *arr) {
   for (std::size_t i = 0; i < arr->size(); i++) {
     auto arrayPtr = (*arr)[i];
     Qubit *idxVal = *reinterpret_cast<Qubit **>(arrayPtr);
-    nvqir::getCircuitSimulatorInternal()->deallocate(idxVal->idx);
+    nvqir::getCircuitSimulatorInternal()->deallocateQudit(idxVal->idx);
     delete idxVal;
   }
   auto begin = nvqir::allocatedArrays.begin();
@@ -213,7 +213,7 @@ Qubit *__quantum__rt__qubit_allocate() {
 /// @brief Once done, release that qubit
 void __quantum__rt__qubit_release(Qubit *q) {
   cudaq::ScopedTrace trace("NVQIR::release_qubit");
-  nvqir::getCircuitSimulatorInternal()->deallocate(q->idx);
+  nvqir::getCircuitSimulatorInternal()->deallocateQudit(q->idx);
   auto begin = nvqir::allocatedSingleQubits.begin();
   auto end = nvqir::allocatedSingleQubits.end();
   nvqir::allocatedSingleQubits.erase(
@@ -225,7 +225,7 @@ void __quantum__rt__qubit_release(Qubit *q) {
 void __quantum__rt__deallocate_all(const std::size_t numQubits,
                                    const std::size_t *qubitIdxs) {
   std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
-  nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
+  nvqir::getCircuitSimulatorInternal()->deallocateQudits(qubits);
 }
 
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
