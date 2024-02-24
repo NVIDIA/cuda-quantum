@@ -23,12 +23,8 @@ skipIfPythonLessThan39 = pytest.mark.skipif(
 
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON':
-        cudaq.disable_jit()
     yield
-    if cudaq.is_jit_enabled():
-        cudaq.__clearKernelRegistries()
-    cudaq.enable_jit()
+    cudaq.__clearKernelRegistries()
 
 
 def test_adjoint():
@@ -365,13 +361,13 @@ def test_decrementing_range():
 def test_no_dynamic_Lists():
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel(params: List[float]):
             params.append(1.0)
 
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel():
             l = [i for i in range(10)]
             l.append(11)
@@ -380,7 +376,7 @@ def test_no_dynamic_Lists():
 
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel():
             l = [[i, i, i] for i in range(10)]
             l.append([11, 12, 13])
@@ -392,7 +388,7 @@ def test_no_dynamic_Lists():
 def test_no_dynamic_lists():
     with pytest.raises(RuntimeError) as error:
 
-        @cudaq.kernel(jit=True)
+        @cudaq.kernel
         def kernel(params: list[float]):
             params.append(1.0)
 
@@ -483,3 +479,44 @@ def test_list_creation_with_cast():
     counts = cudaq.sample(kernel, list(range(5)))
     assert len(counts) == 1
     assert '1' * 5 in counts
+
+
+@skipIfPythonLessThan39
+def test_list_creation_with_cast():
+
+    @cudaq.kernel
+    def kernel(myList: list[int]):
+        q = cudaq.qvector(len(myList))
+        casted = list(myList)
+        for i in casted:
+            x(q[i])
+
+    print(kernel)
+    counts = cudaq.sample(kernel, list(range(5)))
+    assert len(counts) == 1
+    assert '1' * 5 in counts
+
+
+def test_control_operations():
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(4)
+        x.ctrl(q[0], q[1])
+        cx(q[0], q[1])
+
+    print(test)
+    counts = cudaq.sample(test)
+
+
+def test_control_operations():
+
+    @cudaq.kernel
+    def test(angle: float):
+        q = cudaq.qvector(4)
+        x.ctrl(q[0], q[1])
+        cx(q[0], q[1])
+        rx.ctrl(angle, q[0], q[1])
+        crx(angle, q[0], q[1])
+
+    print(test)
+    counts = cudaq.sample(test, 0.785398)

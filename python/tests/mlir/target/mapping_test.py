@@ -10,7 +10,7 @@
 
 import cudaq
 
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def foo():
     q0, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit() 
     x(q0)

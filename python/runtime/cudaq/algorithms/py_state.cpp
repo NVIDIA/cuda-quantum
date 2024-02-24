@@ -16,7 +16,6 @@
 #include "cudaq/algorithms/state.h"
 
 namespace cudaq {
-static std::vector<py::object> eagerAsyncStateArgs;
 
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
@@ -40,10 +39,6 @@ void extractStateData(py::buffer_info &info, complex *data) {
 state pyGetState(py::object kernel, py::args args) {
   auto kernelName = kernel.attr("name").cast<std::string>();
   args = simplifiedValidateInputArguments(args);
-
-  if (py::hasattr(kernel, "library_mode") &&
-      kernel.attr("library_mode").cast<py::bool_>())
-    return details::extractState([&]() mutable { kernel(*args); });
 
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto *argData = toOpaqueArgs(args);
@@ -228,22 +223,6 @@ for more information on this programming pattern.)#")
         auto &platform = cudaq::get_platform();
         auto kernelName = kernel.attr("name").cast<std::string>();
         args = simplifiedValidateInputArguments(args);
-
-        if (py::hasattr(kernel, "library_mode") &&
-            kernel.attr("library_mode").cast<py::bool_>()) {
-
-          py::gil_scoped_release release;
-          return details::runGetStateAsync(
-              [kernel, args]() mutable {
-                // Acquire the gil and call the callback
-                py::gil_scoped_acquire gil;
-                kernel(*args);
-                // Take ownership of the args so they get
-                // deleted when we have GIL ownership
-                eagerAsyncStateArgs.emplace_back(args.release(), true);
-              },
-              platform, qpu_id);
-        }
 
         // The provided kernel is a builder or MLIR kernel
         auto *argData = new cudaq::OpaqueArguments();
