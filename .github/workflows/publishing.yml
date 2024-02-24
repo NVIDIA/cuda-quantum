@@ -9,6 +9,10 @@ on:
         type: string
         description: Optional argument to take assets from a prior run of this workflow; facilitates rerunning a failed workflow without re-building the assets.
         required: false
+      github_commit:
+        type: string
+        description: Optional argument to set the GitHub commit to use for the final build and validation. 
+        required: false
       nvidia_mgpu_commit:
         type: string
         description: Optional argument to set the GitLab commit to use for the nvidia-mgpu target.
@@ -299,7 +303,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -483,7 +487,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load build assets
         uses: actions/download-artifact@v4
@@ -588,7 +592,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load wheel assets
         uses: actions/download-artifact@v4
@@ -722,7 +726,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load installer
         uses: actions/download-artifact@v4
@@ -739,18 +743,19 @@ jobs:
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
           dpkg -i cuda-keyring_1.1-1_all.deb
-          apt-get update && apt-get install -y --no-install-recommends libcublas-11-8
+          apt-get update && apt-get install -y --no-install-recommends \
+            libcublas-11-8 cuda-cudart-11-8 libcusolver-11-8
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
         run: |
           dnf install -y --nobest --setopt=install_weak_deps=False \
-            'dnf-command(config-manager)' gcc-toolset-12
+            'dnf-command(config-manager)' gcc-toolset-12 openssh-clients
           enable_script=`find / -path '*gcc*' -path '*12*' -name enable`
           . "$enable_script"
           . scripts/configure_build.sh install-cudart
 
-          # We need to install and MPI implementation, otherwise nothing
+          # We need to install an MPI implementation, otherwise nothing
           # will be able to run on the nvidia-mgpu backend.
           # The easiest is to just install it via conda.
           dnf install -y --nobest --setopt=install_weak_deps=False wget
@@ -767,21 +772,15 @@ jobs:
 
       - name: Install and run sanity checks
         shell: bash
+        env:
+          BASH_ENV: ~/.bashrc
         run: |
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
           rm -rf examples && mv docs/sphinx/examples examples && rm -rf examples/python
 
-          install_path=`bash -lc "echo $CUDA_QUANTUM_PATH"`
-          backends_to_test=`\
-            for file in $(ls $install_path/targets/*.config); do \
-              if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then \
-                basename $file | cut -d "." -f 1; \
-              fi; \
-            done`
-
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-          bash -l scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
+          bash -l scripts/validate_container.sh | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
@@ -814,7 +813,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.assets.outputs.github_commit }}
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
+          path: github-repo
+          sparse-checkout: |
+            scripts
+            docs
 
       - name: Basic validation (GPU backends)
         shell: bash
@@ -824,10 +827,14 @@ jobs:
               do
                   if [ -n "$(cat $file | grep "GPU_REQUIREMENTS")" ]; then \
                     basename $file | cut -d "." -f 1; \
+                  elif [ -n "$(basename $file | grep mqpu)" ]; then \
+                    echo remote-mqpu; \
                   fi; \
               done`
+
+          rm -rf examples && mv github-repo/docs/sphinx/examples examples
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-          bash scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
+          bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
 
           # Check that the tests included the nvidia-mgpu backend:
           relevant_line=`grep -n "Testing backends:" /tmp/validation.out | cut -d : -f1`
@@ -869,7 +876,7 @@ jobs:
   create_release:
     name: CUDA Quantum Release
     needs: [assets, cudaq_hpc, cudaq_wheels, image_validation]
-    if: needs.assets.outputs.release_title
+    if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.assets_from_run == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
     environment:

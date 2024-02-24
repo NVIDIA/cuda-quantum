@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -30,16 +30,24 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
 verbose=false
+compiler_rt=false
+llvm_runtimes=""
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:s:p:v" opt; do
+while getopts ":c:rs:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
+    ;;
+    r) compiler_rt=true
+    llvm_runtimes="compiler-rt"
     ;;
     s) llvm_source="$OPTARG"
     ;;
     v) verbose=true
+    ;;
+    :) echo "Option -$OPTARG requires an argument."
+    if $is_sourced; then return 1; else exit 1; fi
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     if $is_sourced; then return 1; else exit 1; fi
@@ -110,7 +118,7 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
 fi
 echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
-llvm_components+="llvm-config;llvm-ar;llc;FileCheck;count;not;"
+llvm_components+="llvm-config;llvm-ar;llvm-nm;llvm-symbolizer;llc;FileCheck;count;not;"
 
 if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
   echo "- including additional projects "$(echo "${projects[*]}" | xargs | tr ' ' ',')
@@ -143,6 +151,7 @@ cmake_args="-G Ninja ../llvm \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
   -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
+  -DLLVM_ENABLE_RUNTIMES="$llvm_runtimes" \
   -DLLVM_DISTRIBUTION_COMPONENTS=$llvm_components \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
@@ -181,4 +190,15 @@ if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
 else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
   cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
+fi
+
+if $compiler_rt; then
+  cd $llvm_source/build && ninja runtimes && ninja install-runtimes
+  status=$?
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo "Build failed. Please check the files in the `pwd`/logs directory."
+    cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+  else
+    cd "$working_dir" && echo "Successfully added runtime components."
+  fi
 fi
