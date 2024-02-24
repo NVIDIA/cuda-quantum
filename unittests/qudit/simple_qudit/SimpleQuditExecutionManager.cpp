@@ -35,7 +35,7 @@ private:
   std::vector<cudaq::QuditInfo> sampleQudits;
 
 protected:
-  void allocateQudit(const cudaq::QuditInfo &q) override {
+  void doAllocateQudit(const cudaq::QuditInfo &q) override {
     if (state.size() == 0) {
       // qubit will give [1,0], qutrit will give [1,0,0]
       state = qpp::ket::Zero(q.levels);
@@ -50,7 +50,7 @@ protected:
 
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
     for (auto &q : qudits)
-      allocateQudit(q);
+      doAllocateQudit(q);
   }
 
   void deallocateQudit(const cudaq::QuditInfo &q) override {}

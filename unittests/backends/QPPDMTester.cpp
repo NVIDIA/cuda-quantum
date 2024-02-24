@@ -72,7 +72,7 @@ CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
   {
     // Initialize QPP Backend 1 qubit at a time.
     QppNoiseCircuitSimulator qppBackend;
-    auto q0 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
     EXPECT_EQ(0, qppBackend.mz(q0));
 
     // Rotate to |1>
@@ -80,7 +80,7 @@ CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
     EXPECT_EQ(1, qppBackend.mz(q0));
 
     // Add another qubit. Individually, should be |0>.
-    auto q1 = qppBackend.allocateQubit();
+    auto q1 = qppBackend.allocateQudit();
     EXPECT_EQ(0, qppBackend.mz(q1));
 
     std::string got_bitstring = getSampledBitString(qppBackend, {0, 1});
@@ -92,8 +92,8 @@ CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
   {
     // Initialize QPP Backend with 2 qubits.
     QppNoiseCircuitSimulator qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
 
@@ -104,7 +104,7 @@ CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
     EXPECT_EQ(1, qppBackend.mz(q1));
 
     // Add another qubit. Individually, should be |0>.
-    auto q2 = qppBackend.allocateQubit();
+    auto q2 = qppBackend.allocateQudit();
     EXPECT_EQ(0, qppBackend.mz(q2));
 
     std::string got_bitstring = getSampledBitString(qppBackend, {0, 1, 2});
@@ -114,7 +114,7 @@ CUDAQ_TEST(QPPTester, checkDensityOrderingBug) {
     EXPECT_EQ(0, qppBackend.mz(q2));
 
     // Resize again with another new qubit.
-    auto q3 = qppBackend.allocateQubit();
+    auto q3 = qppBackend.allocateQudit();
     EXPECT_EQ(0, qppBackend.mz(q3));
 
     // // Apply more rotations to the qubits as extra checks.

@@ -188,10 +188,10 @@ public:
   virtual cudaq::observe_result observe(const cudaq::spin_op &term) = 0;
 
   /// @brief Allocate a single qubit, return the qubit as a logical index
-  virtual std::size_t allocateQubit() = 0;
+  virtual std::size_t allocateQudit() = 0;
 
   /// @brief Allocate `count` qubits.
-  virtual std::vector<std::size_t> allocateQubits(const std::size_t count) = 0;
+  virtual std::vector<std::size_t> allocateQudits(const std::size_t count) = 0;
 
   /// @brief Deallocate the qubit with give unique index
   virtual void deallocate(const std::size_t qubitIdx) = 0;
@@ -770,8 +770,8 @@ public:
                              "observe(const cudaq::spin_op &).");
   }
 
-  /// @brief Allocate a single qubit, return the qubit as a logical index
-  std::size_t allocateQubit() override {
+  /// @brief Allocate a qudit, and returns its unique identifier.
+  std::size_t allocateQudit() override {
     // Get a new qubit index
     auto newIdx = tracker.getNextIndex();
 
@@ -805,9 +805,8 @@ public:
     return newIdx;
   }
 
-  /// @brief Allocate `count` qubits.
-  std::vector<std::size_t> allocateQubits(std::size_t count) override {
-    ScopedTraceWithContext("allocateQubits", count);
+  /// @brief Allocate `count` qudits.
+  std::vector<std::size_t> allocateQudits(std::size_t count) override {
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());

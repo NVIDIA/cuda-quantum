@@ -61,7 +61,7 @@ protected:
   std::vector<std::size_t> extraControlIds;
 
   /// @brief Subtype-specific qudit allocation method
-  virtual void allocateQudit(const QuditInfo &q) = 0;
+  virtual void doAllocateQudit(const QuditInfo &q) = 0;
 
   /// @brief Allocate a set of `qudits` with a single call.
   virtual void allocateQudits(const std::vector<QuditInfo> &qudits) = 0;
@@ -123,11 +123,11 @@ public:
     executionContext = nullptr;
   }
 
-  std::size_t getAvailableIndex(std::size_t quditLevels) override {
+  std::size_t allocateQudit(std::size_t quditLevels) override {
     auto new_id = getNextIndex();
     if (isInTracerMode())
       return new_id;
-    allocateQudit({quditLevels, new_id});
+    doAllocateQudit({quditLevels, new_id});
     return new_id;
   }
 
