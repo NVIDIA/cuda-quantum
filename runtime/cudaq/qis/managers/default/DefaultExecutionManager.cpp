@@ -39,14 +39,6 @@ private:
   }
 
 protected:
-  std::size_t allocateQudit(std::size_t n_levels) override {
-    return simulator()->allocateQudit();
-  }
-
-  void deallocateQudit(const cudaq::QuditInfo &q) override {
-    simulator()->deallocateQudit(q.id);
-  }
-
   void handleExecutionContextChanged() override {
     simulator()->setExecutionContext(executionContext);
   }
@@ -105,14 +97,6 @@ protected:
         })();
   }
 
-  int measureQudit(const cudaq::QuditInfo &q) override {
-    return simulator()->mz(q.id);
-  }
-
-  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
-    return simulator()->measure(op);
-  }
-
 public:
   DefaultExecutionManager() {
     cudaq::info("[DefaultExecutionManager] Creating the {} backend.",
@@ -120,7 +104,23 @@ public:
   }
   virtual ~DefaultExecutionManager() = default;
 
-  void resetQudit(const cudaq::QuditInfo &q) override {
+  std::size_t allocateQudit(std::size_t n_levels) override {
+    return simulator()->allocateQudit();
+  }
+
+  void deallocateQudit(const cudaq::QuditInfo &q) override {
+    simulator()->deallocateQudit(q.id);
+  }
+
+  int measure(const cudaq::QuditInfo &q) override {
+    return simulator()->mz(q.id);
+  }
+
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
+    return simulator()->measure(op);
+  }
+
+  void reset(const cudaq::QuditInfo &q) override {
     simulator()->resetQubit(q.id);
   }
 };
