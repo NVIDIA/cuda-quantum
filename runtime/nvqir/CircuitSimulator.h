@@ -345,6 +345,10 @@ private:
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
 
+  bool isInTracerMode() {
+    return executionContext && executionContext->name == "tracer";
+  }
+
 protected:
   /// @brief The current Execution Context (typically this is null,
   /// sampling, or spin_op observation.
@@ -663,27 +667,11 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
-    if (executionContext && executionContext->name == "tracer") {
-      std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
-      for (auto &c : controls)
-        controlsInfo.emplace_back(2, c);
-      for (auto &t : targets)
-        targetsInfo.emplace_back(2, t);
-
-      std::vector<double> anglesProcessed;
-      if constexpr (std::is_same_v<ScalarType, double>)
-        anglesProcessed = params;
-      else {
-        for (auto &a : params)
-          anglesProcessed.push_back(static_cast<ScalarType>(a));
-      }
-
-      executionContext->kernelTrace.appendInstruction(
-          name, anglesProcessed, controlsInfo, targetsInfo);
-      return;
-    }
-
-    gateQueue.emplace(name, matrix, controls, targets, params);
+    if (isInTracerMode())
+      executionContext->kernelTrace.appendInstruction(name, params, controls,
+                                                      targets);
+    else
+      gateQueue.emplace(name, matrix, controls, targets, params);
   }
 
   /// @brief This pure virtual method is meant for subtypes
@@ -775,6 +763,9 @@ public:
     // Get a new qubit index
     auto newIdx = tracker.getNextIndex();
 
+    if (isInTracerMode())
+      return newIdx;
+
     if (isInBatchMode()) {
       batchModeCurrentNumQubits++;
       // In batch mode, we might already have an allocated state that
@@ -811,6 +802,9 @@ public:
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());
 
+    if (isInTracerMode())
+      return qubits;
+
     if (isInBatchMode()) {
       // Store the current number of qubits requested
       batchModeCurrentNumQubits += count;
@@ -843,6 +837,11 @@ public:
 
   /// @brief Deallocate the qubit with give index
   void deallocateQudit(const std::size_t uid) override {
+    if (isInTracerMode()) {
+      tracker.returnIndex(uid);
+      return;
+    }
+
     if (executionContext) {
       cudaq::info("Deferring qubit {} deallocation", uid);
       deferredDeallocation.push_back(uid);
@@ -872,6 +871,12 @@ public:
   /// is equal to the number of allocated qudits, then clear the entire
   /// state at once.
   void deallocateQudits(const std::vector<std::size_t> &uids) override {
+    if (isInTracerMode()) {
+      for (auto &q : uids)
+        tracker.returnIndex(q);
+      return;
+    }
+
     // Do nothing if there are no allocated qubits.
     if (nQubitsAllocated == 0)
       return;
@@ -899,7 +904,7 @@ public:
   /// @brief Reset the current execution context.
   void resetExecutionContext() override {
     // If null, do nothing
-    if (!executionContext)
+    if (!executionContext || isInTracerMode())
       return;
 
     // Get the ExecutionContext name
@@ -1144,6 +1149,9 @@ public:
   /// context, just measure, collapse, and return the bit.
   bool mz(const std::size_t qubitIdx,
           const std::string &registerName) override {
+    if (isInTracerMode())
+      return false;
+
     // Flush the Gate Queue
     flushGateQueue();
 

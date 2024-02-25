@@ -24,17 +24,24 @@ public:
   struct Instruction {
     std::string name;
     std::vector<double> params;
-    std::vector<QuditInfo> controls;
-    std::vector<QuditInfo> targets;
+    std::vector<std::size_t> controls;
+    std::vector<std::size_t> targets;
 
-    Instruction(std::string_view name, std::vector<double> params,
-                std::vector<QuditInfo> controls, std::vector<QuditInfo> targets)
+    Instruction(std::string_view name, const std::vector<double> &params,
+                const std::vector<std::size_t> &controls,
+                const std::vector<std::size_t> &targets)
         : name(name), params(params), controls(controls), targets(targets) {}
   };
 
-  void appendInstruction(std::string_view name, std::vector<double> params,
-                         std::vector<QuditInfo> controls,
-                         std::vector<QuditInfo> targets);
+  void appendInstruction(std::string_view name,
+                         const std::vector<double> &params,
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets);
+
+  void appendInstruction(std::string_view name,
+                         const std::vector<float> &params,
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets);
 
   auto getNumQudits() const { return numQudits; }
 

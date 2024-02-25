@@ -17,20 +17,9 @@ namespace cudaq {
 
 Resources Resources::compute(const Trace &trace) {
   Resources resources;
-
-  auto convertToID = [](std::vector<QuditInfo> qudits) {
-    std::vector<std::size_t> ids;
-    ids.reserve(qudits.size());
-    std::transform(qudits.cbegin(), qudits.cend(), std::back_inserter(ids),
-                   [](auto &q) { return q.id; });
-    return ids;
-  };
-  for (const auto &inst : trace) {
-    auto controlIDs = convertToID(inst.controls);
-    auto targetIDs = convertToID(inst.targets);
+  for (const auto &inst : trace)
     resources.appendInstruction(
-        Instruction(inst.name, controlIDs, targetIDs[0]));
-  }
+        Instruction(inst.name, inst.controls, inst.targets[0]));
   return resources;
 }
 
