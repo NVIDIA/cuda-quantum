@@ -60,13 +60,6 @@ protected:
   /// instruction.
   virtual void executeInstruction(const Instruction &inst) = 0;
 
-  /// @brief Subtype-specific method for performing qudit measurement.
-  virtual int measureQudit(const cudaq::QuditInfo &q,
-                           const std::string &registerName) = 0;
-
-  /// @brief Subtype-specific method for performing qudit reset.
-  virtual void resetQudit(const QuditInfo &q) = 0;
-
 public:
   BasicExecutionManager() = default;
   virtual ~BasicExecutionManager() = default;
@@ -159,11 +152,5 @@ public:
 
     executeInstruction({std::move(gateName), params, controls, targets, op});
   }
-
-  int measure(const cudaq::QuditInfo &target) override {
-    return measureQudit(target);
-  }
-
-  void reset(const QuditInfo &target) override { resetQudit(target); }
 };
 

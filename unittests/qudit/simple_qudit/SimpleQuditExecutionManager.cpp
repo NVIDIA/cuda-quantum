@@ -37,23 +37,6 @@ private:
   std::size_t numQudits = 0;
 
 protected:
-  std::size_t allocateQudit(std::size_t n_levels) override {
-    numQudits += 1;
-    if (state.size() == 0) {
-      // qubit will give [1,0], qutrit will give [1,0,0]
-      state = qpp::ket::Zero(n_levels);
-      state(0) = 1.0;
-      return numQudits;
-    }
-
-    qpp::ket zeroState = qpp::ket::Zero(n_levels);
-    zeroState(0) = 1.0;
-    state = qpp::kron(state, zeroState);
-    return numQudits;
-  }
-
-  void deallocateQudit(const cudaq::QuditInfo &q) override {}
-
   void handleExecutionContextChanged() override {}
 
   void handleExecutionContextEnded() override {
@@ -76,8 +59,37 @@ protected:
     operation(instruction);
   }
 
-  int measureQudit(const cudaq::QuditInfo &q,
-                   const std::string &regName) override {
+public:
+  SimpleQuditExecutionManager() {
+    instructions.emplace("plusGate", [&](const Instruction &inst) {
+      qpp::cmat u(3, 3);
+      u << 0, 0, 1, 1, 0, 0, 0, 1, 0;
+      auto &[gateName, params, controls, qudits, op] = inst;
+      auto target = qudits[0];
+      cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
+      state = qpp::apply(state, u, {target.id}, target.levels);
+    });
+  }
+  virtual ~SimpleQuditExecutionManager() = default;
+
+  std::size_t allocateQudit(std::size_t n_levels) override {
+    numQudits += 1;
+    if (state.size() == 0) {
+      // qubit will give [1,0], qutrit will give [1,0,0]
+      state = qpp::ket::Zero(n_levels);
+      state(0) = 1.0;
+      return numQudits;
+    }
+
+    qpp::ket zeroState = qpp::ket::Zero(n_levels);
+    zeroState(0) = 1.0;
+    state = qpp::kron(state, zeroState);
+    return numQudits;
+  }
+
+  void deallocateQudit(const cudaq::QuditInfo &q) override {}
+
+  int measure(const cudaq::QuditInfo &q) override {
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;
@@ -97,24 +109,11 @@ protected:
     return measurement_result;
   }
 
-public:
-  SimpleQuditExecutionManager() {
-    instructions.emplace("plusGate", [&](const Instruction &inst) {
-      qpp::cmat u(3, 3);
-      u << 0, 0, 1, 1, 0, 0, 0, 1, 0;
-      auto &[gateName, params, controls, qudits, op] = inst;
-      auto target = qudits[0];
-      cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
-      state = qpp::apply(state, u, {target.id}, target.levels);
-    });
-  }
-  virtual ~SimpleQuditExecutionManager() = default;
-
   cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     return cudaq::SpinMeasureResult();
   }
 
-  void resetQudit(const cudaq::QuditInfo &id) override {}
+  void reset(const cudaq::QuditInfo &id) override {}
 };
 
 } // namespace

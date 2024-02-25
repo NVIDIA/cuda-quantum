@@ -36,24 +36,6 @@ private:
   std::size_t numQudits = 0;
 
 protected:
-  std::size_t allocateQudit(std::size_t n_levels) override {
-    numQudits += 1;
-    if (state.size() == 0) {
-      // qubit will give [1,0], qutrit will give [1,0,0] and so on...
-      state = qpp::ket::Zero(n_levels);
-      state(0) = 1.0;
-      return numQudits;
-    }
-
-    qpp::ket zeroState = qpp::ket::Zero(n_levels);
-    zeroState(0) = 1.0;
-    state = qpp::kron(state, zeroState);
-    return numQudits;
-  }
-
-  /// @brief Qudit deallocation method
-  void deallocateQudit(const cudaq::QuditInfo &q) override {}
-
   /// @brief Handler for when the photonics execution context changes
   void handleExecutionContextChanged() override {}
 
@@ -95,31 +77,6 @@ protected:
     auto operation = instructions[std::get<0>(instruction)];
     operation(instruction);
   }
-
-  /// @brief Method for performing qudit measurement.
-  int measureQudit(const cudaq::QuditInfo &q,
-                   const std::string &registerName) override {
-    if (executionContext && executionContext->name == "sample") {
-      sampleQudits.push_back(q);
-      return 0;
-    }
-
-    // If here, then we care about the result bit, so compute it.
-    const auto measurement_tuple = qpp::measure(
-        state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
-        /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
-    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
-    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
-    const auto &collapsed_state = post_meas_states[measurement_result];
-    state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
-                                       collapsed_state.size());
-
-    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
-    return measurement_result;
-  }
-
-  /// @brief Method for performing qudit reset.
-  void resetQudit(const cudaq::QuditInfo &id) override {}
 
   /// @brief Returns a precomputed factorial for n up tp 30
   double _fast_factorial(int n) {
@@ -232,7 +189,6 @@ protected:
 
 public:
   PhotonicsExecutionManager() {
-
     instructions.emplace("plusGate", [&](const Instruction &inst) {
       auto &[gateName, params, controls, qudits, spin_op] = inst;
       auto target = qudits[0];
@@ -277,10 +233,52 @@ public:
 
   virtual ~PhotonicsExecutionManager() = default;
 
+  std::size_t allocateQudit(std::size_t n_levels) override {
+    numQudits += 1;
+    if (state.size() == 0) {
+      // qubit will give [1,0], qutrit will give [1,0,0] and so on...
+      state = qpp::ket::Zero(n_levels);
+      state(0) = 1.0;
+      return numQudits;
+    }
+
+    qpp::ket zeroState = qpp::ket::Zero(n_levels);
+    zeroState(0) = 1.0;
+    state = qpp::kron(state, zeroState);
+    return numQudits;
+  }
+
+  /// @brief Qudit deallocation method
+  void deallocateQudit(const cudaq::QuditInfo &q) override {}
+
+  /// @brief Method for performing qudit measurement.
+  int measure(const cudaq::QuditInfo &q) override {
+    if (executionContext && executionContext->name == "sample") {
+      sampleQudits.push_back(q);
+      return 0;
+    }
+
+    // If here, then we care about the result bit, so compute it.
+    const auto measurement_tuple = qpp::measure(
+        state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
+        /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
+    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
+    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+    const auto &collapsed_state = post_meas_states[measurement_result];
+    state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
+                                       collapsed_state.size());
+
+    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
+    return measurement_result;
+  }
+
   cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     throw "spin_op observation (cudaq::observe()) is not supported for this "
           "photonics simulator";
   }
+
+  /// @brief Method for performing qudit reset.
+  void reset(const cudaq::QuditInfo &id) override {}
 
 }; // PhotonicsExecutionManager
 
