@@ -85,9 +85,8 @@ public:
   /// qudits. Supports input of control qudits and rotational parameters. Can
   /// also optionally take a spin_op as input to affect a general Pauli
   /// rotation.
-  virtual void apply(const std::string_view gateName,
-                     const std::vector<double> &params,
-                     const std::vector<QuditInfo> &controls,
+  virtual void apply(std::string gateName, std::vector<double> params,
+                     std::vector<QuditInfo> controls,
                      const std::vector<QuditInfo> &targets,
                      bool isAdjoint = false, const spin_op op = spin_op()) = 0;
 
@@ -114,8 +113,6 @@ public:
   /// value <term>.
   virtual SpinMeasureResult measure(cudaq::spin_op &op) = 0;
 
-  /// Synchronize - run all queue-ed instructions
-  virtual void synchronize() = 0;
   virtual ~ExecutionManager() = default;
 };
 
