@@ -9,8 +9,6 @@
 #pragma once
 
 #include "cudaq/spin_op.h"
-#include <deque>
-#include <string_view>
 #include <vector>
 
 namespace cudaq {
@@ -111,7 +109,7 @@ public:
 
   /// Measure the current state in the given Pauli basis, return the expectation
   /// value <term>.
-  virtual SpinMeasureResult measure(cudaq::spin_op &op) = 0;
+  virtual SpinMeasureResult measure(const cudaq::spin_op &op) = 0;
 
   virtual ~ExecutionManager() = default;
 };

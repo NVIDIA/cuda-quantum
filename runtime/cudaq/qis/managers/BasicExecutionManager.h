@@ -56,9 +56,6 @@ protected:
   /// @brief Subtype-specific method for performing qudit measurement.
   virtual int measureQudit(const cudaq::QuditInfo &q) = 0;
 
-  /// @brief Measure the state in the basis described by the given `spin_op`.
-  virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
-
   /// @brief Subtype-specific method for performing qudit reset.
   virtual void resetQudit(const QuditInfo &q) = 0;
 
@@ -155,12 +152,6 @@ public:
 
   int measure(const cudaq::QuditInfo &target) override {
     return measureQudit(target);
-  }
-
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
-    measureSpinOp(op);
-    return std::make_pair(executionContext->expectationValue.value(),
-                          executionContext->result);
   }
 
   void reset(const QuditInfo &target) override { resetQudit(target); }
