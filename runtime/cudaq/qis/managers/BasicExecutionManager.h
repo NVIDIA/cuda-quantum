@@ -46,9 +46,6 @@ protected:
   /// @brief The current execution context, e.g. sampling or observation
   cudaq::ExecutionContext *executionContext = nullptr;
 
-  /// @brief The current queue of operations to execute
-  InstructionQueue instructionQueue;
-
   /// @brief When adjoint operations are requested we can store them here for
   /// delayed execution
   std::vector<InstructionQueue> adjointQueueStack;
@@ -85,13 +82,9 @@ public:
   void setExecutionContext(cudaq::ExecutionContext *_ctx) override {
     executionContext = _ctx;
     handleExecutionContextChanged();
-    instructionQueue.clear();
   }
 
   void resetExecutionContext() override {
-    ScopedTraceWithContext("BasicExecutionManager::resetExecutionContext");
-    synchronize();
-
     if (!executionContext)
       return;
 
@@ -109,14 +102,24 @@ public:
     auto adjointQueue = std::move(adjointQueueStack.back());
     adjointQueueStack.pop_back();
 
-    // Select the queue to which these instructions will be added.
-    InstructionQueue *queue = adjointQueueStack.empty()
-                                  ? &instructionQueue
-                                  : &(adjointQueueStack.back());
-
     std::reverse(adjointQueue.begin(), adjointQueue.end());
-    for (auto &instruction : adjointQueue)
-      queue->push_back(instruction);
+
+    // Select the queue to which these instructions will be added.
+    if (!adjointQueueStack.empty()) {
+      for (auto &&instruction : adjointQueue)
+        adjointQueueStack.back().push_back(instruction);
+      return;
+    }
+
+    if (isInTracerMode()) {
+      for (auto &instruction : adjointQueue)
+        executionContext->kernelTrace.appendInstruction(
+            std::get<0>(instruction), std::get<1>(instruction),
+            std::get<2>(instruction), std::get<3>(instruction));
+    } else {
+      for (auto &instruction : adjointQueue)
+        executeInstruction(instruction);
+    }
   }
 
   void startCtrlRegion(const std::vector<std::size_t> &controls) override {
@@ -130,29 +133,15 @@ public:
 
   /// The goal for apply is to create a new element of the
   /// instruction queue (a tuple).
-  void apply(const std::string_view gateName, const std::vector<double> &params,
-             const std::vector<cudaq::QuditInfo> &controls,
+  void apply(std::string gateName, std::vector<double> params,
+             std::vector<cudaq::QuditInfo> controls,
              const std::vector<cudaq::QuditInfo> &targets,
              bool isAdjoint = false, spin_op op = spin_op()) override {
 
-    // Make a copy of the name that we can mutate if necessary
-    std::string mutable_name(gateName);
-
-    // Make a copy of the parameters that we can mutate
-    std::vector<double> mutable_params = params;
-
-    // Create an array of controls, we will
-    // prepend any extra controls if in a control region
-    std::vector<cudaq::QuditInfo> mutable_controls;
+    // If there are extra controls, we are in control region and need to append
+    // these controls.
     for (auto &e : extraControlIds)
-      mutable_controls.emplace_back(2, e);
-
-    for (auto &e : controls)
-      mutable_controls.push_back(e);
-
-    std::vector<cudaq::QuditInfo> mutable_targets;
-    for (auto &t : targets)
-      mutable_targets.push_back(t);
+      controls.emplace_back(2, e);
 
     // We need to check if we need take the adjoint of the operation. To do this
     // we use a logical XOR between `isAdjoint` and whether the size of
@@ -171,37 +160,23 @@ public:
     bool evenAdjointStack = (adjointQueueStack.size() % 2) == 0;
     if (isAdjoint != !evenAdjointStack) {
       for (std::size_t i = 0; i < params.size(); i++)
-        mutable_params[i] = -1.0 * params[i];
-      if (gateName == "t")
-        mutable_name = "tdg";
-      else if (gateName == "s")
-        mutable_name = "sdg";
+        params[i] = -1.0 * params[i];
+      if (gateName == "t" || gateName == "s")
+        gateName.append("dg");
     }
 
     if (!adjointQueueStack.empty()) {
       // Add to the adjoint instruction queue
-      adjointQueueStack.back().emplace_back(
-          mutable_name, mutable_params, mutable_controls, mutable_targets, op);
+      adjointQueueStack.back().emplace_back(gateName, params, controls, targets,
+                                            op);
       return;
     }
 
-    // Add to the instruction queue
-    instructionQueue.emplace_back(std::move(mutable_name), mutable_params,
-                                  mutable_controls, mutable_targets, op);
-  }
-
-  void synchronize() override {
-    for (auto &instruction : instructionQueue) {
-      if (!isInTracerMode()) {
-        executeInstruction(instruction);
-        continue;
-      }
-
-      auto &&[name, params, controls, targets, op] = instruction;
-      executionContext->kernelTrace.appendInstruction(name, params, controls,
-                                                      targets);
-    }
-    instructionQueue.clear();
+    if (isInTracerMode())
+      executionContext->kernelTrace.appendInstruction(gateName, params,
+                                                      controls, targets);
+    else
+      executeInstruction({std::move(gateName), params, controls, targets, op});
   }
 
   int measure(const cudaq::QuditInfo &target,
@@ -209,15 +184,11 @@ public:
     if (isInTracerMode())
       return 0;
 
-    // We hit a measure, need to exec / clear instruction queue
-    synchronize();
-
     // Instruction executed, run the measure call
     return measureQudit(target, registerName);
   }
 
   cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
-    synchronize();
     measureSpinOp(op);
     return std::make_pair(executionContext->expectationValue.value(),
                           executionContext->result);
@@ -226,8 +197,6 @@ public:
   void reset(const QuditInfo &target) override {
     if (isInTracerMode())
       return;
-    // We hit a reset, need to exec / clear instruction queue
-    synchronize();
     resetQudit(target);
   }
 };
