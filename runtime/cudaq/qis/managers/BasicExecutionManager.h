@@ -38,9 +38,6 @@ protected:
   /// @brief `typedef` for a queue of instructions
   using InstructionQueue = std::vector<Instruction>;
 
-  /// @brief The current execution context, e.g. sampling or observation
-  cudaq::ExecutionContext *executionContext = nullptr;
-
   /// @brief When adjoint operations are requested we can store them here for
   /// delayed execution
   std::vector<InstructionQueue> adjointQueueStack;
@@ -49,13 +46,6 @@ protected:
   /// qudit ids.
   std::vector<std::size_t> extraControlIds;
 
-  /// @brief Subtype-specific handler for when the execution context changes
-  virtual void handleExecutionContextChanged() = 0;
-
-  /// @brief Subtype-specific handler for when the current execution context has
-  /// ended.
-  virtual void handleExecutionContextEnded() = 0;
-
   /// @brief Subtype-specific method for affecting the execution of a queued
   /// instruction.
   virtual void executeInstruction(const Instruction &inst) = 0;
@@ -63,21 +53,6 @@ protected:
 public:
   BasicExecutionManager() = default;
   virtual ~BasicExecutionManager() = default;
-
-  void setExecutionContext(cudaq::ExecutionContext *_ctx) override {
-    executionContext = _ctx;
-    handleExecutionContextChanged();
-  }
-
-  void resetExecutionContext() override {
-    if (!executionContext)
-      return;
-
-    // Do any final post-processing before
-    // we deallocate the qudits
-    handleExecutionContextEnded();
-    executionContext = nullptr;
-  }
 
   void startAdjointRegion() override { adjointQueueStack.emplace_back(); }
 
