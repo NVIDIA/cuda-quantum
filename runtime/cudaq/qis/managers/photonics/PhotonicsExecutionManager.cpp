@@ -118,9 +118,6 @@ protected:
     return measurement_result;
   }
 
-  /// @brief Measure the state in the basis described by the given `spin_op`.
-  void measureSpinOp(const cudaq::spin_op &) override {}
-
   /// @brief Method for performing qudit reset.
   void resetQudit(const cudaq::QuditInfo &id) override {}
 
@@ -280,7 +277,7 @@ public:
 
   virtual ~PhotonicsExecutionManager() = default;
 
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     throw "spin_op observation (cudaq::observe()) is not supported for this "
           "photonics simulator";
   }

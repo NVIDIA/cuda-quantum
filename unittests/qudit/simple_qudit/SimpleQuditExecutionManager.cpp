@@ -97,8 +97,6 @@ protected:
     return measurement_result;
   }
 
-  void measureSpinOp(const cudaq::spin_op &) override {}
-
 public:
   SimpleQuditExecutionManager() {
     instructions.emplace("plusGate", [&](const Instruction &inst) {
@@ -112,7 +110,7 @@ public:
   }
   virtual ~SimpleQuditExecutionManager() = default;
 
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     return cudaq::SpinMeasureResult();
   }
 
