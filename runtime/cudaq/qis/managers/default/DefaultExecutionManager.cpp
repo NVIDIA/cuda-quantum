@@ -6,20 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "llvm/ADT/StringSwitch.h"
-
 #include "common/Logger.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
-#include "cudaq/qis/qudit.h"
 #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <complex>
+#include "llvm/ADT/StringSwitch.h"
 #include <cstring>
 #include <functional>
-#include <map>
-#include <queue>
-#include <sstream>
-#include <stack>
 
 #include "nvqir/CircuitSimulator.h"
 
@@ -32,7 +25,6 @@ namespace {
 /// The DefaultExecutionManager will implement allocation, deallocation, and
 /// quantum instruction application via calls to the current CircuitSimulator
 class DefaultExecutionManager : public cudaq::BasicExecutionManager {
-
 private:
   nvqir::CircuitSimulator *simulator() {
     return nvqir::getCircuitSimulatorInternal();
