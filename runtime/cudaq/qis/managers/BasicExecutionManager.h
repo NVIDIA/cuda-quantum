@@ -20,11 +20,6 @@ namespace cudaq {
 /// measurement, allocation, and deallocation, and execution context handling
 /// (e.g. sampling)
 class BasicExecutionManager : public cudaq::ExecutionManager {
-private:
-  bool isInTracerMode() {
-    return executionContext && executionContext->name == "tracer";
-  }
-
 protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits,
@@ -101,15 +96,8 @@ public:
       return;
     }
 
-    if (isInTracerMode()) {
-      for (auto &instruction : adjointQueue)
-        executionContext->kernelTrace.appendInstruction(
-            std::get<0>(instruction), std::get<1>(instruction),
-            std::get<2>(instruction), std::get<3>(instruction));
-    } else {
-      for (auto &instruction : adjointQueue)
-        executeInstruction(instruction);
-    }
+    for (auto &instruction : adjointQueue)
+      executeInstruction(instruction);
   }
 
   void startCtrlRegion(const std::vector<std::size_t> &controls) override {
@@ -162,18 +150,10 @@ public:
       return;
     }
 
-    if (isInTracerMode())
-      executionContext->kernelTrace.appendInstruction(gateName, params,
-                                                      controls, targets);
-    else
-      executeInstruction({std::move(gateName), params, controls, targets, op});
+    executeInstruction({std::move(gateName), params, controls, targets, op});
   }
 
   int measure(const cudaq::QuditInfo &target) override {
-    if (isInTracerMode())
-      return 0;
-
-    // Instruction executed, run the measure call
     return measureQudit(target);
   }
 
@@ -183,11 +163,7 @@ public:
                           executionContext->result);
   }
 
-  void reset(const QuditInfo &target) override {
-    if (isInTracerMode())
-      return;
-    resetQudit(target);
-  }
+  void reset(const QuditInfo &target) override { resetQudit(target); }
 };
 
 } // namespace cudaq
