@@ -23,6 +23,8 @@ namespace cudaq {
 /// and quantum instruction application for the photonics execution manager.
 class PhotonicsExecutionManager : public cudaq::BasicExecutionManager {
 private:
+  ExecutionContext *executionContext;
+
   /// @brief Current state
   qpp::ket state;
 
@@ -36,42 +38,6 @@ private:
   std::size_t numQudits = 0;
 
 protected:
-  /// @brief Handler for when the photonics execution context changes
-  void handleExecutionContextChanged() override {}
-
-  /// @brief Handler for when the current execution context has ended. It
-  /// returns samples to the execution context if it is "sample".
-  void handleExecutionContextEnded() override {
-    if (executionContext && executionContext->name == "sample") {
-      std::vector<std::size_t> ids;
-      for (auto &s : sampleQudits) {
-        ids.push_back(s.id);
-      }
-      auto shots = executionContext->shots;
-      auto sampleResult =
-          qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
-
-      cudaq::ExecutionResult counts;
-      for (auto [result, count] : sampleResult) {
-        std::stringstream bitstring;
-        for (const auto &quditRes : result) {
-          bitstring << quditRes;
-        }
-        // Add to the sample result
-        // in mid-circ sampling mode this will append 1 bitstring
-        counts.appendResult(bitstring.str(), count);
-        // Reset the string.
-        bitstring.str("");
-        bitstring.clear();
-      }
-
-      executionContext->result.append(counts);
-      // Reset the state and qudits
-      state.resize(0);
-      sampleQudits.clear();
-    }
-  }
-
   /// @brief Method for executing instructions.
   void executeInstruction(const Instruction &instruction) override {
     auto operation = instructions[std::get<0>(instruction)];
@@ -232,6 +198,44 @@ public:
   }
 
   virtual ~PhotonicsExecutionManager() = default;
+
+  /// @brief Handler for when the photonics execution context changes
+  void setExecutionContext(ExecutionContext *context) override {
+    executionContext = context;
+  }
+
+  /// @brief Handler for when the current execution context has ended. It
+  /// returns samples to the execution context if it is "sample".
+  void resetExecutionContext() override {
+    if (executionContext && executionContext->name == "sample") {
+      std::vector<std::size_t> ids;
+      for (auto &s : sampleQudits) {
+        ids.push_back(s.id);
+      }
+      auto shots = executionContext->shots;
+      auto sampleResult =
+          qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
+
+      cudaq::ExecutionResult counts;
+      for (auto [result, count] : sampleResult) {
+        std::stringstream bitstring;
+        for (const auto &quditRes : result) {
+          bitstring << quditRes;
+        }
+        // Add to the sample result
+        // in mid-circ sampling mode this will append 1 bitstring
+        counts.appendResult(bitstring.str(), count);
+        // Reset the string.
+        bitstring.str("");
+        bitstring.clear();
+      }
+
+      executionContext->result.append(counts);
+      // Reset the state and qudits
+      state.resize(0);
+      sampleQudits.clear();
+    }
+  }
 
   std::size_t allocateQudit(std::size_t n_levels) override {
     numQudits += 1;

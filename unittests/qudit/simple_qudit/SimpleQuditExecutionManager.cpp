@@ -27,6 +27,8 @@ namespace {
 
 class SimpleQuditExecutionManager : public cudaq::BasicExecutionManager {
 private:
+  cudaq::ExecutionContext *executionContext;
+
   qpp::ket state;
 
   std::unordered_map<std::string, std::function<void(const Instruction &)>>
@@ -37,23 +39,6 @@ private:
   std::size_t numQudits = 0;
 
 protected:
-  void handleExecutionContextChanged() override {}
-
-  void handleExecutionContextEnded() override {
-    if (executionContext && executionContext->name == "sample") {
-      std::vector<std::size_t> ids;
-      for (auto &s : sampleQudits) {
-        ids.push_back(s.id);
-      }
-      auto sampleResult =
-          qpp::sample(1000, state, ids, sampleQudits.begin()->levels);
-
-      for (auto [result, count] : sampleResult) {
-        std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
-      }
-    }
-  }
-
   void executeInstruction(const Instruction &instruction) override {
     auto operation = instructions[std::get<0>(instruction)];
     operation(instruction);
@@ -71,6 +56,25 @@ public:
     });
   }
   virtual ~SimpleQuditExecutionManager() = default;
+
+  void setExecutionContext(cudaq::ExecutionContext *context) override {
+    executionContext = context;
+  }
+
+  void resetExecutionContext() override {
+    if (executionContext && executionContext->name == "sample") {
+      std::vector<std::size_t> ids;
+      for (auto &s : sampleQudits) {
+        ids.push_back(s.id);
+      }
+      auto sampleResult =
+          qpp::sample(1000, state, ids, sampleQudits.begin()->levels);
+
+      for (auto [result, count] : sampleResult) {
+        std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
+      }
+    }
+  }
 
   std::size_t allocateQudit(std::size_t n_levels) override {
     numQudits += 1;

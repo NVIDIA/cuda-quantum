@@ -39,14 +39,6 @@ private:
   }
 
 protected:
-  void handleExecutionContextChanged() override {
-    simulator()->setExecutionContext(executionContext);
-  }
-
-  void handleExecutionContextEnded() override {
-    simulator()->resetExecutionContext();
-  }
-
   void executeInstruction(const Instruction &instruction) override {
     // Get the data, create the Qubit* targets
     auto [gateName, parameters, controls, targets, op] = instruction;
@@ -103,6 +95,14 @@ public:
                 simulator()->name());
   }
   virtual ~DefaultExecutionManager() = default;
+
+  void setExecutionContext(cudaq::ExecutionContext *context) override {
+    simulator()->setExecutionContext(context);
+  }
+
+  void resetExecutionContext() override {
+    simulator()->resetExecutionContext();
+  }
 
   std::size_t allocateQudit(std::size_t n_levels) override {
     return simulator()->allocateQudit();
