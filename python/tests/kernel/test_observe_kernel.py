@@ -169,7 +169,7 @@ def test_broadcast():
                                                 size=(sample_count, parameter_count))
 
     @cudaq.kernel
-    def kernel(qubit_count: int, parameters: list[float]):
+    def kernel(qubit_count: int, parameters: List[float]):
         qvector = cudaq.qvector(qubit_count)
         for i in range(qubit_count-1):
             rx(parameters[i], qvector[i])
