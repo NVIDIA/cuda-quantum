@@ -24,6 +24,20 @@ def __isBroadcast(kernel, *args):
         if len(argTypes) == 0 or len(args) == 0:
             return False
 
+       # Quick check, if we have a 2d array anywhere, we know this
+        # is a broadcast
+        isDefinitelyBroadcast = True in [
+            hasattr(arg, "shape") and len(arg.shape) == 2 for arg in args
+        ]
+
+        if isDefinitelyBroadcast:
+            # Error check, did the user pass a single value for any of the other args
+            for i, arg in enumerate(args):
+                if isinstance(arg, (int, float, bool, str)):
+                    raise RuntimeError(
+                        f"2D array argument provided for an observe broadcast, but argument {i} ({type(arg)}) must be a list."
+                    )
+
         firstArg = args[0]
         firstArgTypeIsStdvec = cc.StdvecType.isinstance(argTypes[0])
         if (isinstance(firstArg, list) or
@@ -44,6 +58,21 @@ def __isBroadcast(kernel, *args):
         argTypes = kernel.signature
         if len(argTypes) == 0 or len(args) == 0:
             return False
+
+        # Quick check, if we have a 2d array anywhere, we know this
+        # is a broadcast
+        isDefinitelyBroadcast = True in [
+            hasattr(arg, "shape") and len(arg.shape) == 2 for arg in args
+        ]
+
+        if isDefinitelyBroadcast:
+            # Error check, did the user pass a single value for any of the other args
+            for i, arg in enumerate(args):
+                if isinstance(arg, (int, float, bool, str)):
+                    raise RuntimeError(
+                        f"2D array argument provided for an observe broadcast, but argument {i} ({type(arg)}) must be a list."
+                    )
+
         firstArg = args[0]
         firstArgType = next(iter(argTypes))
         checkList = [
