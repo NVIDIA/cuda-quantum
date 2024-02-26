@@ -50,6 +50,8 @@ for more information on this programming pattern.)#")
           std::size_t qpu_id) {
         auto &platform = cudaq::get_platform();
         auto kernelName = kernel.attr("name").cast<std::string>();
+        if (py::hasattr(kernel, "compile"))
+          kernel.attr("compile")();
 
         auto *argData = new cudaq::OpaqueArguments();
         cudaq::packArgs(*argData, args);

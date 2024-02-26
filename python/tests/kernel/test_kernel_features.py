@@ -365,6 +365,8 @@ def test_no_dynamic_Lists():
         def kernel(params: List[float]):
             params.append(1.0)
 
+        kernel([])
+
     with pytest.raises(RuntimeError) as error:
 
         @cudaq.kernel
@@ -391,6 +393,8 @@ def test_no_dynamic_lists():
         @cudaq.kernel
         def kernel(params: list[float]):
             params.append(1.0)
+
+        print(kernel)
 
 
 def test_simple_return_types():

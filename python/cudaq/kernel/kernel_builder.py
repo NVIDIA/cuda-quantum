@@ -10,6 +10,7 @@ from functools import partialmethod
 import random
 import string
 from .quake_value import QuakeValue
+from .kernel_decorator import PyKernelDecorator
 from .utils import mlirTypeFromPyType, nvqppPrefix
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
@@ -877,6 +878,8 @@ class PyKernel(object):
             kernel.mz(qubit))
         ```
         """
+        if isinstance(target, PyKernelDecorator):
+            target.compile()
         self.__applyControlOrAdjoint(target, False, [], *target_arguments)
 
     def c_if(self, measurement, function):
