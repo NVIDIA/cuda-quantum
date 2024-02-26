@@ -24,14 +24,13 @@ def __isBroadcast(kernel, *args):
         if len(argTypes) == 0 or len(args) == 0:
             return False
 
-       # Quick check, if we have a 2d array anywhere, we know this
-        # is a broadcast
+    # Quick check, if we have a 2d array anywhere, we know this is a broadcast
         isDefinitelyBroadcast = True in [
             hasattr(arg, "shape") and len(arg.shape) == 2 for arg in args
         ]
 
         if isDefinitelyBroadcast:
-            # Error check, did the user pass a single value for any of the other args
+            # Error check, did the user pass a single value for any of the other arguments
             for i, arg in enumerate(args):
                 if isinstance(arg, (int, float, bool, str)):
                     raise RuntimeError(
@@ -66,7 +65,7 @@ def __isBroadcast(kernel, *args):
         ]
 
         if isDefinitelyBroadcast:
-            # Error check, did the user pass a single value for any of the other args
+            # Error check, did the user pass a single value for any of the other arguments
             for i, arg in enumerate(args):
                 if isinstance(arg, (int, float, bool, str)):
                     raise RuntimeError(
