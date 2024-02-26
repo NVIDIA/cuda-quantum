@@ -1068,8 +1068,18 @@ class PyKernel(object):
                     mlirType, self.mlirArgTypes[i]))
 
             # Convert `numpy` arrays to lists
-            if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
-                processedArgs.append(arg.tolist())
+            if cc.StdvecType.isinstance(mlirType):
+                # Validate that the length of this argument is
+                # greater than or equal to the number of unique
+                # quake value extractions
+                if len(arg) < len(self.arguments[i].knownUniqueExtractions):
+                    raise RuntimeError(
+                        f"invalid runtime list argument - {len(arg)} elements in list but kernel code has at least {len(self.arguments[i].knownUniqueExtractions)} known unique extractions."
+                    )
+                if hasattr(arg, "tolist"):
+                    processedArgs.append(arg.tolist())
+                else:
+                    processedArgs.append(arg)
             else:
                 processedArgs.append(arg)
 

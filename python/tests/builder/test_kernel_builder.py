@@ -1114,6 +1114,21 @@ def test_call_kernel_expressions_list():
                       atol=1e-2)
 
 
+def test_adequate_number_params():
+
+    kernel, thetas, idx = cudaq.make_kernel(list, int)
+    qubits = kernel.qalloc(1)
+    kernel.ry(thetas[0], qubits[0])
+    kernel.rx(thetas[1], qubits[0])
+    kernel.rz(thetas[idx], qubits[0])
+    kernel.r1(thetas[0], qubits[0])
+    print(kernel)
+    with pytest.raises(RuntimeError) as e:
+        result = cudaq.observe(kernel, spin.z(0), [2.2], 0)
+
+    result = cudaq.observe(kernel, spin.z(0), [2.2, 2.2], 0)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
