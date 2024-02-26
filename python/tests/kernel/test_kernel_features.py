@@ -541,3 +541,18 @@ def test_bool_op_short_circuit():
 
     counts = cudaq.sample(kernel)
     assert len(counts) == 2 and '10' in counts and '00' in counts
+
+
+def test_sample_async_issue_args_processed():
+
+    @cudaq.kernel
+    def kernel(params: np.ndarray):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(params[0], q[1])
+        x.ctrl(q[1], q[0])
+
+    params = np.array([.59])
+    result = cudaq.sample_async(kernel, params, qpu_id=0)
+    counts = result.get()
+    assert len(counts) == 2 and '01' in counts and '10' in counts
