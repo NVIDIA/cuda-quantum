@@ -1,18 +1,18 @@
 // Compile and run with:
 // ```
-// nvq++ --target nvcf --nvcf-backend tensornet nvcf_state.cpp -o out.x
+// nvq++ --target nvqc --nvqc-backend tensornet nvqc_state.cpp -o out.x
 // ./out.x
 // ```
-// Assumes a valid NVCF API key and function ID have been stored in environment
-// variables or `~/.nvcf_config` file. Alternatively, they can be set in the
+// Assumes a valid NVQC API key has been stored in environment
+// variables or `~/.nvqc_config` file. Alternatively, they can be set in the
 // command line like below.
 // ```
-// nvq++ --target nvcf --nvcf-backend tensornet --nvcf-api-key <YOUR API KEY> \
-// --nvcf-function-id <NVCF function Id> nvcf_state.cpp -o out.x
+// nvq++ --target nvqc --nvqc-backend tensornet --nvqc-api-key <YOUR API KEY> \
+// nvqc_state.cpp -o out.x
 // ./out.x
 // ```
-// Please refer to the documentations for information about how to attain NVCF
-// information.
+// Please refer to the documentations for information about how to attain NVQC
+// API key.
 
 #include "cudaq/algorithms/state.h"
 #include <cudaq.h>
