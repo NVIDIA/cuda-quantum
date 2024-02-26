@@ -22,6 +22,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "nvqir/CircuitSimulator.h"
 #include "server_impl/RestServer.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/Base64.h"
@@ -93,6 +94,9 @@ class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   static constexpr const char *DEFAULT_NVQIR_SIMULATION_BACKEND = "qpp";
 
 protected:
+  // Server to exit after each job request.
+  // Note: this doesn't apply to ping ("/") endpoint.
+  bool exitAfterJob = false;
   // Method to filter incoming request.
   // The request is only handled iff this returns true.
   // When returning false, `outValidationMessage` can be used to report the
@@ -133,6 +137,11 @@ public:
         cudaq::RestServer::Method::POST, "/job",
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
+          auto shutdownAfterHandlingRequest = llvm::make_scope_exit([&] {
+            if (this->exitAfterJob)
+              m_server->stop();
+          });
+
           std::string mutableReq;
           for (const auto &[k, v] : headers)
             cudaq::info("Request Header: {} : {}", k, v);
@@ -220,6 +229,9 @@ public:
         cudaq::mpi::broadcast(jsonRequestBody, 0);
         // All ranks need to join, e.g., MPI-capable backends.
         processRequest(jsonRequestBody);
+        // Break the loop if the server is operating in one-shot mode.
+        if (exitAfterJob)
+          break;
       }
     }
   }
@@ -523,6 +535,9 @@ private:
 
 // Runtime server for NVCF
 class NvcfRuntimeServer : public RemoteRestRuntimeServer {
+public:
+  NvcfRuntimeServer() : RemoteRestRuntimeServer() { exitAfterJob = true; }
+
 protected:
   virtual bool filterRequest(const cudaq::RestRequest &in_request,
                              std::string &outValidationMessage) const override {
