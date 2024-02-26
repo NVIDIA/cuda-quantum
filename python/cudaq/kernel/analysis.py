@@ -13,10 +13,12 @@ from ..mlir.ir import *
 
 
 class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
-    """The `MidCircuitMeasurementAnalyzer` is a utility class searches for 
-       common measurement - conditional patterns to indicate to the runtime 
-       that we have a circuit with mid-circuit measurement and subsequent conditional 
-       quantum operation application."""
+    """
+    The `MidCircuitMeasurementAnalyzer` is a utility class searches for 
+    common measurement - conditional patterns to indicate to the runtime 
+    that we have a circuit with mid-circuit measurement and subsequent conditional 
+    quantum operation application.
+    """
 
     def __init__(self):
         self.measureResultsVars = []
@@ -252,13 +254,20 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                         moduleNames.append(value.id)
                         break
 
+                if all(x in moduleNames for x in ['cudaq', 'dbg', 'ast']):
+                    return
+
                 if len(moduleNames):
                     moduleNames.reverse()
                     # This will throw if the function / module is invalid
                     m = importlib.import_module('.'.join(moduleNames))
                     getattr(m, node.func.attr)
-                    self.depKernels[node.func.attr] = globalAstRegistry[
-                        node.func.attr]
+                    name = node.func.attr
+                    if name not in globalAstRegistry:
+                        raise RuntimeError(
+                            f"{name} is not a valid kernel to call.")
+
+                    self.depKernels[name] = globalAstRegistry[name]
 
                 elif hasattr(node.func,
                              'attr') and node.func.attr in globalAstRegistry:
@@ -269,3 +278,18 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                 ] and node.args[0].id in globalAstRegistry:
                     self.depKernels[node.args[0].id] = globalAstRegistry[
                         node.args[0].id]
+
+
+class HasReturnNodeVisitor(ast.NodeVisitor):
+    """
+    This visitor will visit the function definition and report 
+    true if that function has a return statement.
+    """
+
+    def __init__(self):
+        self.hasReturnNode = False
+
+    def visit_FunctionDef(self, node):
+        for n in node.body:
+            if isinstance(n, ast.Return) and n.value != None:
+                self.hasReturnNode = True

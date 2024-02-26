@@ -41,8 +41,10 @@
 #include "common/RestClient.h"
 #include "common/UnzipUtils.h"
 #include "cudaq.h"
+
 #include <dlfcn.h>
 #include <fstream>
+#include <iostream>
 #include <streambuf>
 
 namespace {
@@ -80,6 +82,7 @@ protected:
       "inline",
       "canonicalize",
       "apply-op-specialization",
+      "func.func(apply-control-negations)",
       "func.func(memtoreg{quantum=0})",
       "canonicalize",
       "expand-measurements",
@@ -140,11 +143,19 @@ public:
       // Create a new Module to clone the function into
       auto location = FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
       ImplicitLocOpBuilder builder(location, &mlirContext);
+      // Add cuda quantum kernel attribute if not already set.
+      if (!func->hasAttr(cudaq::kernelAttrName))
+        func->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
       // Add entry-point attribute if not already set.
       if (!func->hasAttr(cudaq::entryPointAttrName))
         func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
       auto moduleOp = builder.create<ModuleOp>();
-      moduleOp.push_back(func.clone());
+      for (auto &op : *module) {
+        auto funcOp = dyn_cast<func::FuncOp>(op);
+        // Add quantum kernels defined in the module.
+        if (funcOp && funcOp->hasAttr(cudaq::kernelAttrName))
+          moduleOp.push_back(funcOp.clone());
+      }
 
       if (args) {
         cudaq::info("Run Quake Synth.\n");
@@ -247,9 +258,20 @@ public:
           restClient.post(m_url, "job", requestJson, headers, false);
 
       if (!resultJs.contains("executionContext")) {
+        std::stringstream errorMsg;
+        if (resultJs.contains("status")) {
+          errorMsg << "Failed to execute the kernel on the remote server: "
+                   << resultJs["status"] << "\n";
+          if (resultJs.contains("errorMessage")) {
+            errorMsg << "Error message: " << resultJs["errorMessage"] << "\n";
+          }
+        } else {
+          errorMsg << "Failed to execute the kernel on the remote server.\n";
+          errorMsg << "Unexpected response from the REST server. Missing the "
+                      "required field 'executionContext'.";
+        }
         if (optionalErrorMsg)
-          *optionalErrorMsg = "Unexpected response from the REST server. "
-                              "Missing the required field 'executionContext'.";
+          *optionalErrorMsg = errorMsg.str();
         return false;
       }
       resultJs["executionContext"].get_to(io_context);

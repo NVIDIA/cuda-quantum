@@ -140,7 +140,7 @@ add_mlir_python_modules(CUDAQuantumPythonModules
     CUDAQuantumPythonCAPI
   )
 
-file (COPY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python/)
+file (COPY cudaq DESTINATION ${CMAKE_BINARY_DIR}/python)
 
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set

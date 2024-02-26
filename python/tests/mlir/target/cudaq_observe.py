@@ -13,7 +13,7 @@ import cudaq
 from cudaq import spin 
 
 
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def ansatz(angle: float):
     q = cudaq.qvector(2)
     x(q[0])

@@ -1,32 +1,37 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os
+import os, sys
 
 import pytest
 import numpy as np
+from typing import List 
 
 import cudaq
 from cudaq import spin
 
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
+
+
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
-        cudaq.enable_jit()
     yield
-    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
-    cudaq.disable_jit()
+    cudaq.__clearKernelRegistries()
+
 
 def test_simple_observe():
     """Test that we can create parameterized kernels and call observe."""
 
     @cudaq.kernel
-    def ansatz(angle:float):
+    def ansatz(angle: float):
         q = cudaq.qvector(2)
         x(q[0])
         ry(angle, q[1])
@@ -44,7 +49,7 @@ def test_optimization():
     """Test that we can optimize over a parameterized kernel."""
 
     @cudaq.kernel
-    def ansatz(angle:float):
+    def ansatz(angle: float):
         q = cudaq.qvector(2)
         x(q[0])
         ry(angle, q[1])
@@ -133,7 +138,7 @@ def test_broadcast():
     assert len(energies) == 50
 
     @cudaq.kernel
-    def kernel(thetas: list):
+    def kernel(thetas: List[float]):
         qubits = cudaq.qvector(3)
         x(qubits[0])
         ry(thetas[0], qubits[1])
@@ -143,6 +148,35 @@ def test_broadcast():
         ry(thetas[0] * -1., qubits[1])
         x.ctrl(qubits[0], qubits[1])
         x.ctrl(qubits[1], qubits[0])
+
+    runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
+    print(runtimeAngles)
+
+    results = cudaq.observe(kernel, hamiltonian, runtimeAngles)
+    energies = np.array([r.expectation() for r in results])
+    print(energies)
+    assert len(energies) == 50
+
+@skipIfPythonLessThan39
+def test_broadcast_py39Plus():
+
+    @cudaq.kernel
+    def kernel(thetas: list[float]):
+        qubits = cudaq.qvector(3)
+        x(qubits[0])
+        ry(thetas[0], qubits[1])
+        ry(thetas[1], qubits[2])
+        x.ctrl(qubits[2], qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+        ry(thetas[0] * -1., qubits[1])
+        x.ctrl(qubits[0], qubits[1])
+        x.ctrl(qubits[1], qubits[0])
+
+    
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(
+            1) + 9.625 - 9.625 * spin.z(2) - 3.913119 * spin.x(1) * spin.x(
+                2) - 3.913119 * spin.y(1) * spin.y(2)
 
     runtimeAngles = np.random.uniform(low=-np.pi, high=np.pi, size=(50, 2))
     print(runtimeAngles)
@@ -178,8 +212,9 @@ def test_observe_list():
 
 
 def test_observe_async():
+
     @cudaq.kernel()
-    def kernel0(i:int):
+    def kernel0(i: int):
         q = cudaq.qubit()
         x(q)
 
@@ -187,9 +222,7 @@ def test_observe_async():
     hamiltonian = spin.z(0)
 
     # Call `cudaq.observe()` at the specified number of shots.
-    future = cudaq.observe_async(kernel0,
-                                 hamiltonian, 5,
-                                 qpu_id=0)
+    future = cudaq.observe_async(kernel0, hamiltonian, 5, qpu_id=0)
     observe_result = future.get()
     got_expectation = observe_result.expectation()
     assert np.isclose(-1., got_expectation, atol=1e-12)
@@ -200,4 +233,27 @@ def test_observe_async():
     with pytest.raises(Exception) as error:
         future = cudaq.observe_async(kernel0, hamiltonian, qpu_id=12)
 
-# TODO observe_async spin_op list
+
+def test_spec_adherence():
+    
+    @cudaq.kernel
+    def circuit(theta: float):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(theta, q[1])
+        x.ctrl(q[1], q[0]) 
+        mz(q[0])
+    
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.observe(circuit, hamiltonian, .59)
+
+    @cudaq.kernel
+    def returnsSomethign() -> int :
+        return 0
+    
+    with pytest.raises(RuntimeError) as e:
+        cudaq.observe(returnsSomethign, hamiltonian, .59)
+    

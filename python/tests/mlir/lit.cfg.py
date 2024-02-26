@@ -53,8 +53,7 @@ config.excludes = [
 config.test_source_root = os.path.dirname(__file__)
 
 # test_exec_root: The root path where tests should be run.
-config.test_exec_root = os.path.join(config.cudaq_obj_root,
-                                     'python/tests/mlir')
+config.test_exec_root = os.path.join(config.cudaq_obj_root, 'python/tests/mlir')
 
 # Tweak the PATH to include the tools dir.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)

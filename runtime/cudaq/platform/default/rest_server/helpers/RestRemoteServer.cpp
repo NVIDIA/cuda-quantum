@@ -62,6 +62,19 @@ struct SimulatorHandle {
   void *libHandle;
 };
 
+// Implementation of llvm::cantFail which throws a C++ exception rather than
+// emits a signal/asserts.
+template <typename T>
+T getValueOrThrow(llvm::Expected<T> valOrErr,
+                  const std::string &errorMsgToThrow) {
+  if (valOrErr)
+    return std::move(*valOrErr);
+  else {
+    LLVMConsumeError(llvm::wrap(valOrErr.takeError()));
+    throw std::runtime_error(errorMsgToThrow);
+  }
+}
+
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   int m_port = -1;
   std::unique_ptr<cudaq::RestServer> m_server;
@@ -78,6 +91,17 @@ class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   // Note: we always need to preload a default backend on the server runtime
   // since cudaq runtime relies on that.
   static constexpr const char *DEFAULT_NVQIR_SIMULATION_BACKEND = "qpp";
+
+protected:
+  // Method to filter incoming request.
+  // The request is only handled iff this returns true.
+  // When returning false, `outValidationMessage` can be used to report the
+  // error message.
+  virtual bool filterRequest(const cudaq::RestRequest &in_request,
+                             std::string &outValidationMessage) const {
+    // Default is no filter.
+    return true;
+  }
 
 public:
   RemoteRestRuntimeServer()
@@ -316,24 +340,63 @@ private:
     opts.sharedLibPaths = sharedLibs;
 
     auto ctx = module.getContext();
-    PassManager pm(ctx);
-    std::string errMsg;
-    llvm::raw_string_ostream os(errMsg);
-    const std::string pipeline =
-        std::accumulate(passes.begin(), passes.end(), std::string(),
-                        [](const auto &ss, const auto &s) {
-                          return ss.empty() ? s : ss + "," + s;
-                        });
-    if (failed(parsePassPipeline(pipeline, pm, os)))
-      throw std::runtime_error(
-          "Remote rest platform failed to add passes to pipeline (" + errMsg +
-          ").");
+    {
+      PassManager pm(ctx);
+      std::string errMsg;
+      llvm::raw_string_ostream os(errMsg);
+      const std::string pipeline =
+          std::accumulate(passes.begin(), passes.end(), std::string(),
+                          [](const auto &ss, const auto &s) {
+                            return ss.empty() ? s : ss + "," + s;
+                          });
+      if (failed(parsePassPipeline(pipeline, pm, os)))
+        throw std::runtime_error(
+            "Remote rest platform failed to add passes to pipeline (" + errMsg +
+            ").");
 
-    if (failed(pm.run(module)))
-      throw std::runtime_error(
-          "Remote rest platform: applying IR passes failed.");
+      if (failed(pm.run(module)))
+        throw std::runtime_error(
+            "Remote rest platform: applying IR passes failed.");
 
-    cudaq::info("- Pass manager was applied.");
+      cudaq::info("- Pass manager was applied.");
+    }
+    // Verify MLIR conforming to the NVQIR-spec (known runtime functions and/or
+    // QIR functions)
+    {
+      // Collect all functions that are defined in this module Ops.
+      const std::vector<llvm::StringRef> allFunctionNames = [&]() {
+        std::vector<llvm::StringRef> allFuncs;
+        for (auto &op : *module.getBody()) {
+          auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op);
+          if (!funcOp)
+            continue;
+          if (!funcOp.getName().startswith(
+                  cudaq::runtime::cudaqGenPrefixName)) {
+            // Looks like this is not something from the nvq++ frontend.
+            cudaq::info("Unexpected MLIR function name encountered: '{}'.",
+                        funcOp.getName().str());
+            continue;
+          }
+
+          allFuncs.emplace_back(funcOp.getName());
+        }
+        return allFuncs;
+      }();
+      // Note: run this verification as a standalone step to decouple IR
+      // conversion and verfication.
+      // Verification condition: all function definitions can only make function
+      // calls to:
+      //  (1) NVQIR-compliance functions, or
+      //  (2) other functions defined in this module.
+      PassManager pm(ctx);
+      pm.addNestedPass<LLVM::LLVMFuncOp>(
+          cudaq::opt::createVerifyNVQIRCallOpsPass(allFunctionNames));
+      if (failed(pm.run(module)))
+        throw std::runtime_error(
+            "Failed to IR compliance verification against NVQIR runtime.");
+
+      cudaq::info("- Finish IR input verification.");
+    }
 
     opts.llvmModuleBuilder =
         [](Operation *module,
@@ -349,7 +412,9 @@ private:
     };
 
     cudaq::info("- Creating the MLIR ExecutionEngine");
-    auto uniqueJit = llvm::cantFail(ExecutionEngine::create(module, opts));
+    auto uniqueJit =
+        getValueOrThrow(ExecutionEngine::create(module, opts),
+                        "Failed to create MLIR JIT ExecutionEngine");
     cudaq::info("- MLIR ExecutionEngine created successfully.");
     return uniqueJit;
   }
@@ -364,10 +429,14 @@ private:
     sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(irString),
                                  llvm::SMLoc());
     auto module = parseSourceFile<ModuleOp>(sourceMgr, contextPtr.get());
+    if (!module)
+      throw std::runtime_error("Failed to parse the input MLIR code");
     auto engine = jitMlirCode(*module, passes);
     const std::string entryPointFunc =
         std::string(cudaq::runtime::cudaqGenPrefixName) + entryPointFn;
-    auto fnPtr = llvm::cantFail(engine->lookup(entryPointFunc));
+    auto fnPtr =
+        getValueOrThrow(engine->lookup(entryPointFunc),
+                        "Failed to look up entry-point function symbol");
     if (!fnPtr)
       throw std::runtime_error("Failed to get entry function");
 
@@ -414,11 +483,25 @@ private:
       static std::size_t g_requestCounter = 0;
       auto requestJson = json::parse(reqBody);
       cudaq::RestRequest request(requestJson);
+      cudaq::info(
+          "[RemoteRestRuntimeServer] Incoming job request from client {}",
+          request.clientVersion);
+      std::string validationMsg;
+      const bool shouldHandle = filterRequest(request, validationMsg);
+      if (!shouldHandle) {
+        json resultJson;
+        resultJson["status"] = "Invalid Request";
+        resultJson["errorMessage"] = validationMsg;
+        return resultJson;
+      }
+
       const auto reqId = g_requestCounter++;
       m_codeTransform[reqId] =
           CodeTransformInfo(request.format, request.passes);
       std::vector<char> decodedCodeIr;
-      if (llvm::decodeBase64(request.code, decodedCodeIr)) {
+      auto errorCode = llvm::decodeBase64(request.code, decodedCodeIr);
+      if (errorCode) {
+        LLVMConsumeError(llvm::wrap(std::move(errorCode)));
         throw std::runtime_error("Failed to decode input IR");
       }
       std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
@@ -437,6 +520,23 @@ private:
     }
   }
 };
+
+// Runtime server for NVCF
+class NvcfRuntimeServer : public RemoteRestRuntimeServer {
+protected:
+  virtual bool filterRequest(const cudaq::RestRequest &in_request,
+                             std::string &outValidationMessage) const override {
+    // We only support MLIR payload on the NVCF server.
+    if (in_request.format != cudaq::CodeFormat::MLIR) {
+      outValidationMessage =
+          "Unsupported input format: only CUDA Quantum MLIR data is allowed.";
+      return false;
+    }
+
+    return true;
+  }
+};
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, RemoteRestRuntimeServer, rest)
+CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, NvcfRuntimeServer, nvcf)

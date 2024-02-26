@@ -1,43 +1,33 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 import os
-
 import pytest
 import numpy as np
+import sys
+from typing import List
 
 import cudaq
 from cudaq import spin
 
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
 
-skipIROperationsForEagerMode = pytest.mark.skipif(
-    os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'ON',
-    reason="test_ir_operations only tests MLIR mode of execution")
 
 @pytest.fixture(autouse=True)
 def do_something():
-    cudaq.enable_jit()
     yield
-    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
-    cudaq.disable_jit()
+    cudaq.__clearKernelRegistries()
 
-@skipIROperationsForEagerMode
+
 def test_synthesize():
-    ## NOTE: Explicitly disable JIT for the next test
-    cudaq.disable_jit()
-    @cudaq.kernel
-    def wontWork(numQubits: int):
-        q = cudaq.qvector(numQubits)
-        h(q)
 
-    with pytest.raises(RuntimeError) as error:
-        cudaq.synthesize(wontWork, 4)
-
-    cudaq.enable_jit()
     @cudaq.kernel
     def ghz(numQubits: int):
         qubits = cudaq.qvector(numQubits)
@@ -68,6 +58,10 @@ def test_synthesize():
     print(result.expectation())
     assert np.isclose(result.expectation(), -1.74, atol=1e-2)
 
+
+@skipIfPythonLessThan39
+def test_synthesize_param_list():
+
     @cudaq.kernel
     def ansatzVec(angle: list[float]):
         q = cudaq.qvector(2)
@@ -75,6 +69,25 @@ def test_synthesize():
         ry(angle[0], q[1])
         x.ctrl(q[1], q[0])
 
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    ansatzVec_synth = cudaq.synthesize(ansatzVec, [.59])
+    result = cudaq.observe(ansatzVec_synth, hamiltonian)
+    print(result.expectation())
+    assert np.isclose(result.expectation(), -1.74, atol=1e-2)
+
+
+def test_synthesize_param_List():
+
+    @cudaq.kernel
+    def ansatzVec(angle: List[float]):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(angle[0], q[1])
+        x.ctrl(q[1], q[0])
+
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
     ansatzVec_synth = cudaq.synthesize(ansatzVec, [.59])
     result = cudaq.observe(ansatzVec_synth, hamiltonian)
     print(result.expectation())

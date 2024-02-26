@@ -112,6 +112,7 @@ def test_amplitude_damping_simple():
     assert (got_counts == want_counts)
     cudaq.reset_target()
 
+
 def test_phase_flip_simple():
     """Tests the phase flip channel in the case of `probability = 1.0`"""
     cudaq.set_random_seed(13)

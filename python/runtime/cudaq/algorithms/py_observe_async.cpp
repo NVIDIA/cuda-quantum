@@ -10,7 +10,11 @@
 #include "cudaq/Todo.h"
 #include "cudaq/algorithms/observe.h"
 #include "utils/OpaqueArguments.h"
+
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/CAPI/IR.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 
 #include <fmt/core.h>
 #include <pybind11/stl.h>
@@ -22,25 +26,55 @@ inline constexpr int defaultShotsValue = -1;
 inline constexpr int defaultQpuIdValue = 0;
 enum class PyParType { thread, mpi };
 
+/// @brief Analyze the MLIR Module for the kernel and check for
+/// CUDA Quantum specification adherence. Check that the kernel
+/// returns void and does not contain measurements.
+std::tuple<bool, std::string> isValidObserveKernel(py::object &kernel) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+
+  using namespace mlir;
+
+  ModuleOp mod = unwrap(kernelMod);
+  func::FuncOp kernelFunc;
+  mod.walk([&](func::FuncOp function) {
+    if (function.getName().equals("__nvqpp__mlirgen__" + kernelName)) {
+      kernelFunc = function;
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+
+  // Do we have a return type?
+  if (kernelFunc.getNumResults())
+    return std::make_tuple(
+        false, "kernels passed to observe must have void return type.");
+
+  // Are measurements specified?
+  bool hasMeasures = false;
+  kernelFunc.walk([&](quake::MeasurementInterface measure) {
+    hasMeasures = true;
+    return WalkResult::interrupt();
+  });
+  if (hasMeasures)
+    return std::make_tuple(
+        false, "kernels passed to observe cannot have measurements specified.");
+
+  // Valid kernel...
+  return std::make_tuple(true, "");
+}
+
 void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
                        const std::vector<std::string> &);
-
-struct wrappedEagerModeKernel {
-  py::object &kernel;
-  py::args args;
-  void operator()() {
-    py::gil_scoped_acquire gil;
-    kernel(*args);
-  }
-
-  ~wrappedEagerModeKernel() { py::gil_scoped_acquire gil; }
-};
-
-static std::vector<py::object> eagerAsyncObserveArgs;
 
 async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
                                     py::args &args, std::size_t qpu_id,
                                     int shots) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
   auto kernelBlockArgs = kernel.attr("arguments");
   if (py::len(kernelBlockArgs) != args.size())
     throw std::runtime_error(
@@ -48,38 +82,6 @@ async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
 
   auto &platform = cudaq::get_platform();
   auto kernelName = kernel.attr("name").cast<std::string>();
-
-  if (py::hasattr(kernel, "library_mode") &&
-      kernel.attr("library_mode").cast<py::bool_>()) {
-
-    // Here we know we are in eager mode. We do not have a
-    // MLIR Module, we just have the python kernel as a callback.
-    // Great care must be taken here with regards to the
-    // GIL and when pythonic data types (PyObject*) gets
-    // destructed. First, we release the GIL since we are
-    // about to launch a new C++ thread. Within the kernel
-    // functor, we must first acquire the GIL so that we can
-    // invoke the Python callback with the Python *args...
-    // The args were captured by value, so they will be destructed
-    // when the lambda implicit type gets destructed, and the
-    // GIL will not be acquired at that point, leading to issues
-    // in destructing the args. So instead we release ownership
-    // of the py::args, and borrow it to a py::object, which
-    // we store globally. Then it should have ref_count = 1
-    // and when the static vector gets destroyed, the ref_count
-    // will drop to 0 and the PyObject will be deallocated.
-    py::gil_scoped_release release;
-    return details::runObservationAsync(
-        [kernelName, kernel, args]() mutable {
-          // Acquire the gil and call the callback
-          py::gil_scoped_acquire gil;
-          kernel(*args);
-          // Take ownership of the args so they get
-          // deleted when we have GIL ownership
-          eagerAsyncObserveArgs.emplace_back(args.release(), true);
-        },
-        spin_operator, platform, shots, kernelName, qpu_id);
-  }
 
   // The provided kernel is a builder or MLIR kernel
   auto *argData = new cudaq::OpaqueArguments();
@@ -103,6 +105,9 @@ observe_result pyObservePar(const PyParType &type, py::object &kernel,
                             spin_op &spin_operator, py::args args = {},
                             int shots = defaultShotsValue,
                             std::optional<noise_model> noise = std::nullopt) {
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
   // Ensure the user input is correct.
   // auto validatedArgs = validateInputArguments(kernel, args);
   auto &platform = cudaq::get_platform();
@@ -199,6 +204,8 @@ Args:
 Returns:
   :class:`AsyncObserveResult`: 
   A future containing the result of the call to observe.)#");
+
+  mod.def("isValidObserveKernel", &isValidObserveKernel);
 
   mod.def(
       "observe_parallel",

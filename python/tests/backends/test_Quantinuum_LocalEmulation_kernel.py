@@ -37,7 +37,7 @@ def test_quantinuum_sample():
     cudaq.set_random_seed(13)
 
     # Create the kernel we'd like to execute on Quantinuum
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def simple():
         qubits = cudaq.qvector(2)
         h(qubits[0])
@@ -69,7 +69,7 @@ def test_quantinuum_observe():
     cudaq.set_random_seed(13)
 
     # Create the parameterized ansatz
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def ansatz(theta: float):
         qreg = cudaq.qvector(2)
         x(qreg[0])
@@ -95,7 +95,7 @@ def test_quantinuum_exp_pauli():
     cudaq.set_random_seed(13)
 
     # Create the parameterized ansatz
-    @cudaq.kernel(jit=True)
+    @cudaq.kernel
     def ansatz(theta: float):
         qreg = cudaq.qvector(2)
         x(qreg[0])

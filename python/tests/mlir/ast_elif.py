@@ -18,7 +18,7 @@ import cudaq
 
 def test_elif():
 
-    @cudaq.kernel(jit=True, verbose=True)
+    @cudaq.kernel(verbose=True)
     def cost(thetas: np.ndarray):  # can pass 1D ndarray or list
         q = cudaq.qvector(4)
         for i, theta in enumerate(thetas):

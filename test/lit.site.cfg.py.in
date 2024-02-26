@@ -10,6 +10,10 @@
 
 import sys
 
+# Helper function to convert cmake variable boolean definitions to True/False.
+def cmake_boolvar_to_bool(s):
+  return s == "1"
+
 config.llvm_tools_dir = lit_config.substitute("@LLVM_TOOLS_BINARY_DIR@")
 config.llvm_shlib_dir = lit_config.substitute(path(r"@SHLIBDIR@"))
 config.llvm_plugin_ext = "@LLVM_PLUGIN_EXT@"
@@ -31,8 +35,12 @@ config.pipefail = False
 
 # Is the nvcc compiler available?
 config.cuda_found = "@CUDA_FOUND@"
-if config.cuda_found == "TRUE":
+if cmake_boolvar_to_bool(config.cuda_found):
   config.available_features.add('nvcc')
+
+config.test_remote_sim = "@CUDAQ_TEST_REMOTE_SIM@"
+if cmake_boolvar_to_bool(config.test_remote_sim):
+  config.available_features.add('remote-sim')
 
 import lit.llvm
 lit.llvm.initialize(lit_config, config)

@@ -79,6 +79,20 @@ if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
   set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 endif()
 
+# Enable the REST code by default.
+if (NOT DEFINED CUDAQ_ENABLE_REST)
+  set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
+endif()
+
+# Enable the remote simulator by default.
+if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
+  set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building cudaq-qpud.")
+  # Optionally enable the tests that use cudaq-qpud.
+  if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
+    set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
+  endif()
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -405,6 +419,27 @@ configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
 install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
   DESTINATION include/nvqpp)
 
+# Version
+# ==============================================================================
+if (DEFINED ENV{CUDA_QUANTUM_VERSION})
+  # The version was defined by the user (likely a bot performing the build), so
+  # use the value provided as is.
+  set(CUDA_QUANTUM_VERSION "$ENV{CUDA_QUANTUM_VERSION}")
+else()
+  # Otherwise, create a version based on the nearest tag in the git repo.
+  execute_process(COMMAND git describe --tags --abbrev=0 --dirty=-developer
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE CUDA_QUANTUM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+
+# Retrieve the commit SHA for full revision description
+execute_process(COMMAND git rev-parse --verify HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE CUDA_QUANTUM_COMMIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in" 
+               "${CUDAQ_BINARY_DIR}/include/cudaq/Support/Version.h" @ONLY)
+
 # Check optional dependencies
 # ==============================================================================
 find_package(OpenMP)
@@ -504,12 +539,7 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-if (NOT CUDAQ_DISABLE_TOOLS)
-  add_subdirectory(tools)
-endif()
-# Always add cudaq-qpud executable/tool (including Python wheels)
-add_subdirectory(tools/cudaq-qpud)
-
+add_subdirectory(tools)
 add_subdirectory(utils)
 
 if (CUDAQ_ENABLE_PYTHON)
@@ -521,6 +551,7 @@ if (CUDAQ_ENABLE_PYTHON)
 endif()
 
 if(CUDAQ_BUILD_TESTS)
+  umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
   # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
@@ -535,11 +566,13 @@ if(CUDAQ_BUILD_TESTS)
   endif()
   include(GoogleTest)
   include(CTest)
+  add_subdirectory(test)
   if (NOT CUDAQ_DISABLE_RUNTIME)
+    add_subdirectory(targettests)
     add_subdirectory(unittests)
     add_subdirectory(docs)
   endif()
-  add_subdirectory(test)
+  umbrella_lit_testsuite_end(check-all)
 endif()
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND) 

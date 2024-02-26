@@ -44,6 +44,10 @@ Executor::execute(std::vector<KernelExecution> &codesToExecute) {
     cudaq::info("Task ID is {}", task_id);
     ids.emplace_back(task_id, codesToExecute[i].name);
     config["output_names." + task_id] = codesToExecute[i].output_names.dump();
+
+    nlohmann::json jReorder = codesToExecute[i].mapping_reorder_idx;
+    config["reorderIdx." + task_id] = jReorder.dump();
+
     i++;
   }
 

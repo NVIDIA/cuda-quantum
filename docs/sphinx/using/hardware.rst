@@ -312,7 +312,8 @@ To see a complete example for using IQM server backends, take a look at our :ref
 OQC
 ==================================
 
-`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA quantum integration for our 8 qubit ring topology Lucy device.
+`Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA quantum integration for multiple Quantum Processing Unit types.
+The 8 qubit ring topology Lucy device and the 32 qubit Kagome lattice topology Toshiko device are both supported via machine options described below.
 
 Setting Credentials
 `````````````````````````
@@ -356,7 +357,9 @@ This will emit any target specific compiler warnings and diagnostics, before run
 
 .. note::
 
-    There is currently no requirement to specify the machine in use. This is configured via the URL which points to the relevant system.
+    The oqc target supports a ``--oqc-machine`` option.
+    The default is the 8 qubit Lucy device.
+    You can set this to be either ``toshiko`` or ``lucy`` via this flag.
 
 .. note::
 
@@ -367,6 +370,7 @@ Submission from Python
 
 To set which OQC URL, set the :code:`url` parameter.
 To set which OQC email, set the :code:`email` parameter.
+To set which OQC machine, set the :code:`machine` parameter.
 
 .. code:: python
 
@@ -374,7 +378,7 @@ To set which OQC email, set the :code:`email` parameter.
     import cudaq
     # ...
     os.environ['OQC_PASSWORD'] = password
-    cudaq.set_target(target="oqc", url="")
+    cudaq.set_target("oqc", url=url, machine="lucy")
 
 You can then execute a kernel against the platform using the OQC Lucy device
 

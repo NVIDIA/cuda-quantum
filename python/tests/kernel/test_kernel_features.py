@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,20 +10,21 @@ import os
 
 import pytest
 import numpy as np
-from typing import Callable
+from typing import Callable, List
+import sys
 
 import cudaq
+
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
 
 
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
-        cudaq.enable_jit()
     yield
-
-    if cudaq.is_jit_enabled():
-        cudaq.__clearKernelRegistries()
-    cudaq.disable_jit()
+    cudaq.__clearKernelRegistries()
 
 
 def test_adjoint():
@@ -114,15 +115,13 @@ def test_control():
 def test_grover():
     """Test that compute_action works in tandem with kernel composability."""
 
-    @cudaq.kernel  #(verbose=True)
+    @cudaq.kernel
     def reflect(qubits: cudaq.qview):
         ctrls = qubits.front(qubits.size() - 1)
         last = qubits.back()
         cudaq.compute_action(lambda: (h(qubits), x(qubits)),
                              lambda: z.ctrl(ctrls, last))
 
-    # FIXME This currently has to be defined before the
-    # kernel that uses it as input
     @cudaq.kernel
     def oracle(q: cudaq.qview):
         z.ctrl(q[0], q[2])
@@ -283,7 +282,7 @@ def test_teleport():
 def test_transitive_dependencies():
 
     @cudaq.kernel()
-    def func0(q : cudaq.qubit):
+    def func0(q: cudaq.qubit):
         x(q)
 
     @cudaq.kernel()
@@ -304,28 +303,27 @@ def test_transitive_dependencies():
     counts = cudaq.sample(callMe)
     assert len(counts) == 1 and '1' in counts
 
-    # This test is for a bug where by 
-    # vqe_kernel thought kernel was a 
-    # dependency because cudaq.kernel 
+    # This test is for a bug where by
+    # vqe_kernel thought kernel was a
+    # dependency because cudaq.kernel
     # is a Call node in the AST.
     @cudaq.kernel
     def kernel():
-        qubit=cudaq.qvector(2)
+        qubit = cudaq.qvector(2)
         h(qubit[0])
-        x.ctrl(qubit[0],qubit[1])
+        x.ctrl(qubit[0], qubit[1])
         mz(qubit)
 
     result = cudaq.sample(kernel)
     print(result)
     assert len(result) == 2 and '00' in result and '11' in result
 
-
     @cudaq.kernel
-    def vqe_kernel(nn:int):
-        qubit=cudaq.qvector(nn)
+    def vqe_kernel(nn: int):
+        qubit = cudaq.qvector(nn)
 
         h(qubit[0])
-        x.ctrl(qubit[0],qubit[1])
+        x.ctrl(qubit[0], qubit[1])
 
         mz(qubit)
 
@@ -335,3 +333,226 @@ def test_transitive_dependencies():
     assert len(result) == 2 and '00' in result and '11' in result
 
 
+def test_decrementing_range():
+
+    @cudaq.kernel
+    def test(q: int, p: int):
+        qubits = cudaq.qvector(5)
+        for k in range(q, p, -1):
+            cudaq.dbg.ast.print_i64(k)
+            x(qubits[k])
+
+    counts = cudaq.sample(test, 2, 0)
+    counts.dump()
+    assert '01100' in counts and len(counts) == 1
+
+    @cudaq.kernel
+    def test2(myList: List[int]):
+        q = cudaq.qvector(len(myList))
+        for i in range(0, len(myList), 2):
+            cudaq.dbg.ast.print_i64(i)
+            x(q[i])
+
+    counts = cudaq.sample(test2, [0, 1, 2, 3])
+    assert len(counts) == 1
+    assert '1010' in counts
+
+
+def test_no_dynamic_Lists():
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel(params: List[float]):
+            params.append(1.0)
+
+        kernel([])
+
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel():
+            l = [i for i in range(10)]
+            l.append(11)
+
+        print(kernel)
+
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel():
+            l = [[i, i, i] for i in range(10)]
+            l.append([11, 12, 13])
+
+        print(kernel)
+
+
+@skipIfPythonLessThan39
+def test_no_dynamic_lists():
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel(params: list[float]):
+            params.append(1.0)
+
+        print(kernel)
+
+
+def test_simple_return_types():
+
+    @cudaq.kernel
+    def kernel(a: int, b: int) -> int:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert ret == 8
+
+    @cudaq.kernel
+    def qernel(a: float, b: float) -> float:
+        return a * b
+
+    ret = kernel(2, 4)
+    assert np.isclose(ret, 8., atol=1e-12)
+
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel(a: int, b: int):  # No return type
+            return a * b
+
+
+def test_list_creation():
+
+    N = 10
+
+    @cudaq.kernel
+    def kernel(N: int, idx: int) -> int:
+        myList = [i + 1 for i in range(N - 1)]
+        return myList[idx]
+
+    for i in range(N - 1):
+        assert kernel(N, i) == i + 1
+
+    @cudaq.kernel
+    def kernel2(N: int, i: int, j: int) -> int:
+        myList = [[k, k] for k in range(N)]
+        l = myList[i]
+        return l[j]
+
+    print(kernel2(5, 0, 0))
+    for i in range(N):
+        for j in range(2):
+            print(i, j, kernel2(N, i, j))
+            assert kernel2(N, i, j) == i
+
+    @cudaq.kernel
+    def kernel3(N: int):
+        myList = list(range(N))
+        q = cudaq.qvector(N)
+        for i in myList:
+            x(q[i])
+
+    print(kernel3)
+    counts = cudaq.sample(kernel3, 5)
+    assert len(counts) == 1
+    assert '1' * 5 in counts
+
+    @cudaq.kernel
+    def kernel4(myList: List[int]):
+        q = cudaq.qvector(len(myList))
+        casted = list(myList)
+        for i in casted:
+            x(q[i])
+
+    print(kernel4)
+    counts = cudaq.sample(kernel4, list(range(5)))
+    assert len(counts) == 1
+    assert '1' * 5 in counts
+
+
+@skipIfPythonLessThan39
+def test_list_creation_with_cast():
+
+    @cudaq.kernel
+    def kernel(myList: list[int]):
+        q = cudaq.qvector(len(myList))
+        casted = list(myList)
+        for i in casted:
+            x(q[i])
+
+    print(kernel)
+    counts = cudaq.sample(kernel, list(range(5)))
+    assert len(counts) == 1
+    assert '1' * 5 in counts
+
+
+@skipIfPythonLessThan39
+def test_list_creation_with_cast():
+
+    @cudaq.kernel
+    def kernel(myList: list[int]):
+        q = cudaq.qvector(len(myList))
+        casted = list(myList)
+        for i in casted:
+            x(q[i])
+
+    print(kernel)
+    counts = cudaq.sample(kernel, list(range(5)))
+    assert len(counts) == 1
+    assert '1' * 5 in counts
+
+
+def test_control_operations():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(4)
+        x.ctrl(q[0], q[1])
+        cx(q[0], q[1])
+
+    print(test)
+    counts = cudaq.sample(test)
+
+
+def test_control_operations():
+
+    @cudaq.kernel
+    def test(angle: float):
+        q = cudaq.qvector(4)
+        x.ctrl(q[0], q[1])
+        cx(q[0], q[1])
+        rx.ctrl(angle, q[0], q[1])
+        crx(angle, q[0], q[1])
+
+    print(test)
+    counts = cudaq.sample(test, 0.785398)
+
+
+def test_bool_op_short_circuit():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        if mz(qubits[0]) and mz(qubits[1]):
+            x(qubits[1])
+        mz(qubits[1])
+
+    print(kernel)
+
+    counts = cudaq.sample(kernel)
+    assert len(counts) == 2 and '10' in counts and '00' in counts
+
+
+def test_sample_async_issue_args_processed():
+
+    @cudaq.kernel
+    def kernel(params: np.ndarray):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(params[0], q[1])
+        x.ctrl(q[1], q[0])
+
+    params = np.array([.59])
+    result = cudaq.sample_async(kernel, params, qpu_id=0)
+    counts = result.get()
+    assert len(counts) == 2 and '01' in counts and '10' in counts

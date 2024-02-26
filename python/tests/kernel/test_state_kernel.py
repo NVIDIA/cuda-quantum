@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,20 +7,24 @@
 # ============================================================================ #
 
 import os
-
 import pytest
 import numpy as np
+import sys
+from typing import List
 
 import cudaq
 
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason="built-in collection types such as `list` not supported")
+
+
 @pytest.fixture(autouse=True)
 def do_something():
-    if os.getenv("CUDAQ_PYTEST_EAGER_MODE") == 'OFF':
-        cudaq.enable_jit()
     yield
+    cudaq.__clearKernelRegistries()
 
-    if cudaq.is_jit_enabled(): cudaq.__clearKernelRegistries()
-    cudaq.disable_jit()
 
 def test_state_vector_simple():
     """
@@ -58,30 +62,12 @@ def test_state_vector_simple():
     assert np.allclose(want_state, np.array(got_state))
 
 
-def test_state_vector_integration():
-    """
-    An integration test on the state vector class. Uses a CUDA Quantum
-    optimizer to find the correct kernel parameters for a Bell state.
-    """
-    # Make a general 2 qubit SO4 rotation.
-    @cudaq.kernel
-    def kernel(parameters:list[float]):
-        qubits = cudaq.qvector(2)
-        ry(parameters[0], qubits[0])
-        ry(parameters[1], qubits[1])
-        z.ctrl(qubits[0], qubits[1])
-        ry(parameters[2], qubits[0])
-        ry(parameters[3], qubits[1])
-        z.ctrl(qubits[0], qubits[1])
-        ry(parameters[4], qubits[0])
-        ry(parameters[5], qubits[1])
-        z.ctrl(qubits[0], qubits[1])
-
+def check_state_vector_integration(entity):
     want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
                           dtype=np.complex128)
 
     def objective(x):
-        got_state = cudaq.get_state(kernel, x)
+        got_state = cudaq.get_state(entity, x)
         return 1. - np.real(np.dot(want_state.transpose(), got_state))
 
     # Compute the parameters that make this kernel produce the
@@ -94,9 +80,54 @@ def test_state_vector_integration():
     assert np.isclose(optimal_infidelity, 0.0, atol=1e-3)
 
     # Check the state from the kernel at the fixed parameters.
-    bell_state = cudaq.get_state(kernel, optimal_parameters)
+    bell_state = cudaq.get_state(entity, optimal_parameters)
     print(bell_state)
     assert np.allclose(want_state, bell_state, atol=1e-3)
+
+
+@skipIfPythonLessThan39
+def test_state_vector_integration():
+    """
+    An integration test on the state vector class. Uses a CUDA Quantum
+    optimizer to find the correct kernel parameters for a Bell state.
+    """
+    # Make a general 2 qubit SO4 rotation.
+    @cudaq.kernel
+    def kernel(parameters: list[float]):
+        qubits = cudaq.qvector(2)
+        ry(parameters[0], qubits[0])
+        ry(parameters[1], qubits[1])
+        z.ctrl(qubits[0], qubits[1])
+        ry(parameters[2], qubits[0])
+        ry(parameters[3], qubits[1])
+        z.ctrl(qubits[0], qubits[1])
+        ry(parameters[4], qubits[0])
+        ry(parameters[5], qubits[1])
+        z.ctrl(qubits[0], qubits[1])
+
+    check_state_vector_integration(kernel)
+
+
+def test_state_vector_integration_with_List():
+    """
+    An integration test on the state vector class. Uses a CUDA Quantum
+    optimizer to find the correct kernel parameters for a Bell state.
+    """
+    # Make a general 2 qubit SO4 rotation.
+    @cudaq.kernel
+    def kernel_with_List(parameters: List[float]):
+        qubits = cudaq.qvector(2)
+        ry(parameters[0], qubits[0])
+        ry(parameters[1], qubits[1])
+        z.ctrl(qubits[0], qubits[1])
+        ry(parameters[2], qubits[0])
+        ry(parameters[3], qubits[1])
+        z.ctrl(qubits[0], qubits[1])
+        ry(parameters[4], qubits[0])
+        ry(parameters[5], qubits[1])
+        z.ctrl(qubits[0], qubits[1])
+
+    check_state_vector_integration(kernel_with_List)
 
 
 def test_state_density_matrix_simple():
@@ -138,7 +169,7 @@ def test_state_vector_async():
     """Tests `cudaq.get_state_async` on a simple kernel."""
 
     @cudaq.kernel
-    def kernel(theta:float, phi:float):
+    def kernel(theta: float, phi: float):
         qubits = cudaq.qvector(2)
         ry(phi, qubits[0])
         rx(theta, qubits[0])

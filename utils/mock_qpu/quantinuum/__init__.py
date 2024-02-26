@@ -132,7 +132,10 @@ async def getJob(jobId: str):
     for bits, count in counts.items():
         retData += [bits] * count
 
-    res = {"status": "completed", "results": {"mz0": retData}}
+    # The simulators don't implement result recording features yet, so we have
+    # to mark these results specially (MOCK_SERVER_RESULTS) in order to allow
+    # downstream code to recognize that this isn't from a true Quantinuum QPU.
+    res = {"status": "completed", "results": {"MOCK_SERVER_RESULTS": retData}}
     return res
 
 

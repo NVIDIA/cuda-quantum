@@ -55,7 +55,7 @@ jobs:
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -222,7 +222,7 @@ jobs:
           shell: bash
           run: |
             python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
-              --ignore python/tests/backends
+              --ignore /tmp/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
               echo "::error file=python_wheel.yml::Python tests failed with status $pytest_status."

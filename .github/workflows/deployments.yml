@@ -277,7 +277,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         with:
           # We want this dispatch to trigger additional workflows.
           github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
@@ -308,7 +308,7 @@ jobs:
       devdeps_toolchain: gcc12
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -350,7 +350,7 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
         id: read_json
         with:
           matrix-step-name: dev_environment

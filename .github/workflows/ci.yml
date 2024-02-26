@@ -100,8 +100,7 @@ jobs:
     needs: metadata
     strategy:
       matrix:
-        ## [SKIP_TEST] : Temporarily skipping stage to build Python wheel on arm64/aarch64
-        platform: [amd64]
+        platform: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -156,7 +155,7 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -206,9 +205,8 @@ jobs:
     needs: config
     strategy:
       matrix:
-        ## [SKIP_TEST] : Temporarily skipping stage to build Python wheel on arm64/aarch64
-        platform: [amd64]
-        python_version: ['3.9', '3.11']
+        platform: [amd64, arm64]
+        python_version: ['3.8', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:

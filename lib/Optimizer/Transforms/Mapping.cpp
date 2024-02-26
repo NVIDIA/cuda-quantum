@@ -519,6 +519,15 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     return success();
   }
 
+  /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
+  /// nullptr.
+  void addOpAndUsersToList(Operation *op,
+                           SmallVectorImpl<Operation *> &opsToMoveToEnd) {
+    opsToMoveToEnd.push_back(op);
+    for (auto user : op->getUsers())
+      addOpAndUsersToList(user, opsToMoveToEnd);
+  }
+
   void runOnOperation() override {
 
     // Allow enabling debug via pass option `debug`
@@ -551,21 +560,13 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
     SmallVector<quake::NullWireOp> sources;
     SmallVector<Operation *> sinksToRemove;
     DenseMap<Value, Placement::VirtualQ> wireToVirtualQ;
+    SmallVector<std::size_t> userQubitsMeasured;
+    DenseMap<std::size_t, Value> finalQubitWire;
     for (Operation &op : block.getOperations()) {
-      // If it's a measurement, make sure it has a name. Otherwise we will have
-      // no hope of reassembling all the measurements for the user.
-      if (auto measure = dyn_cast<quake::MeasurementInterface>(op)) {
-        if (measure.getOptionalRegisterName() == std::nullopt) {
-          op.emitError("Measurements must have names in the mapping pass. Try "
-                       "saving the measurement to a variable.");
-          signalPassFailure();
-          return;
-        }
-      }
-
       if (auto qop = dyn_cast<quake::NullWireOp>(op)) {
-        // Assing a new virtual qubit to the resulting wire.
+        // Assign a new virtual qubit to the resulting wire.
         wireToVirtualQ[qop.getResult()] = Placement::VirtualQ(sources.size());
+        finalQubitWire[sources.size()] = qop.getResult();
         sources.push_back(qop);
       } else if (quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
@@ -598,6 +599,11 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
           return;
         }
 
+        // Save which qubits are measured
+        if (isa<quake::MeasurementInterface>(op))
+          for (const auto &wire : wireOperands)
+            userQubitsMeasured.push_back(wireToVirtualQ[wire].index);
+
         // Map the result wires to the appropriate virtual qubits.
         for (auto &&[wire, newWire] :
              llvm::zip_equal(wireOperands, quake::getQuantumResults(&op))) {
@@ -605,6 +611,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
           // *most* of the time but cause memory corruption other times because
           // DenseMap references can be invalidated upon insertion of new pairs.
           wireToVirtualQ.insert({newWire, wireToVirtualQ[wire]});
+          finalQubitWire[wireToVirtualQ[wire].index] = newWire;
         }
       }
     }
@@ -662,6 +669,36 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
       sink->erase();
     sinksToRemove.clear();
 
+    // Add implicit measurements if necessary
+    if (userQubitsMeasured.empty()) {
+      OpBuilder builder(&block, block.begin());
+      builder.setInsertionPoint(block.getTerminator());
+      auto measTy = quake::MeasureType::get(builder.getContext());
+      auto wireTy = quake::WireType::get(builder.getContext());
+      Type resTy = builder.getI1Type();
+      for (unsigned i = 0; i < sources.size(); i++) {
+        auto measureOp = builder.create<quake::MzOp>(finalQubitWire[i].getLoc(),
+                                                     TypeRange{measTy, wireTy},
+                                                     finalQubitWire[i]);
+        builder.create<quake::DiscriminateOp>(finalQubitWire[i].getLoc(), resTy,
+                                              measureOp.getMeasOut());
+
+        wireToVirtualQ.insert(
+            {measureOp.getWires()[0], wireToVirtualQ[finalQubitWire[i]]});
+
+        userQubitsMeasured.push_back(i);
+      }
+    }
+
+    // Save the order of the measurements. They are not allowed to change.
+    SmallVector<mlir::Operation *> measureOrder;
+    func.walk([&](quake::MeasurementInterface measure) {
+      measureOrder.push_back(measure);
+      for (auto user : measure->getUsers())
+        measureOrder.push_back(user);
+      return WalkResult::advance();
+    });
+
     // Create auxillary qubits if needed. Place them after the last allocated
     // qubit
     unsigned numOrigQubits = sources.size();
@@ -684,6 +721,17 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
                        extendedLayerWeight, decayDelta, roundsDecayReset);
     router.route(*blocks.begin(), sources);
     sortTopologically(&block);
+
+    // Ensure that the original measurement ordering is still honored by moving
+    // the measurements to the end (in their original order). Note that we must
+    // move the users of those measurements to the end as well.
+    for (Operation *measure : measureOrder) {
+      SmallVector<Operation *> opsToMoveToEnd;
+      addOpAndUsersToList(measure, opsToMoveToEnd);
+      for (Operation *op : opsToMoveToEnd)
+        block.getOperations().splice(std::prev(block.end()),
+                                     block.getOperations(), op->getIterator());
+    }
 
     // Remove any auxillary qubits that did not get used. Remove from the end
     // and stop once you hit a used one. If you removed from the middle, you
@@ -717,6 +765,44 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
                            placement.getPhy(Placement::VirtualQ(v)).index);
 
     func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
+
+    // Now populate mapping_reorder_idx attribute. This attribute will be used
+    // by downstream processing to reconstruct a global register as if mapping
+    // had not occurred. This is important because the global register is
+    // required to be sorted by qubit allocation order, and mapping can change
+    // that apparent order AND introduce ancilla qubits that we don't want to
+    // appear in the final global register.
+
+    // pair is <first=virtual, second=physical>
+    using VirtPhyPairType = std::pair<std::size_t, std::size_t>;
+    llvm::SmallVector<VirtPhyPairType> measuredQubits;
+    measuredQubits.reserve(userQubitsMeasured.size());
+    for (auto mq : userQubitsMeasured) {
+      measuredQubits.emplace_back(
+          mq, placement.getPhy(Placement::VirtualQ(mq)).index);
+    }
+    // First sort the pairs according to the physical qubits.
+    llvm::sort(measuredQubits,
+               [&](const VirtPhyPairType &a, const VirtPhyPairType &b) {
+                 return a.second < b.second;
+               });
+    // Now find out how to reorder `measuredQubits` such that the elements are
+    // ordered based on the *virtual* qubits (i.e. measuredQubits[].first).
+    llvm::SmallVector<std::size_t> reorder_idx(measuredQubits.size());
+    for (std::size_t ix = 0; auto &element : reorder_idx)
+      element = ix++;
+    llvm::sort(reorder_idx, [&](const std::size_t &i1, const std::size_t &i2) {
+      return measuredQubits[i1].first < measuredQubits[i2].first;
+    });
+    // After kernel execution is complete, you can pass reorder_idx[] into
+    // sample_result::reorder() in order to undo the ordering change to the
+    // global register that the mapping pass induced.
+    llvm::SmallVector<Attribute> mapping_reorder_idx(reorder_idx.size());
+    for (std::size_t ix = 0; auto &element : mapping_reorder_idx)
+      element = IntegerAttr::get(builder.getIntegerType(64), reorder_idx[ix++]);
+
+    func->setAttr("mapping_reorder_idx",
+                  builder.getArrayAttr(mapping_reorder_idx));
   }
 };
 

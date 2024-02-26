@@ -10,6 +10,7 @@ from functools import partialmethod
 import random
 import string
 from .quake_value import QuakeValue
+from .kernel_decorator import PyKernelDecorator
 from .utils import mlirTypeFromPyType, nvqppPrefix
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
@@ -20,6 +21,16 @@ from ..mlir.execution_engine import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+
+
+## [PYTHON_VERSION_FIX]
+## Refer: https://peps.python.org/pep-0616/
+def remove_prefix(inputStr: str, prefix: str) -> str:
+    if inputStr.startswith(prefix):
+        return inputStr[len(prefix):]
+    else:
+        return inputStr[:]
+
 
 qvector = cudaq_runtime.qvector
 
@@ -191,7 +202,7 @@ class PyKernel(object):
             nvqppPrefix, ''.join(
                 random.choice(string.ascii_uppercase + string.digits)
                 for _ in range(10)))
-        self.name = self.funcName.removeprefix(nvqppPrefix)
+        self.name = remove_prefix(self.funcName, nvqppPrefix)
         self.funcNameEntryPoint = self.funcName + '_entryPointRewrite'
         attr = DictAttr.get(
             {
@@ -239,6 +250,74 @@ class PyKernel(object):
         """
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
+
+    def getConstantFloat(self, value):
+        """
+        Create a constant float operation and return its MLIR result Value.
+        Takes as input the concrete float value. 
+        """
+        ty = F64Type.get()
+        return arith.ConstantOp(ty, FloatAttr.get(ty, value)).result
+
+    def __getMLIRValueFromPythonArg(self, arg, argTy):
+        """
+        Given a python runtime argument, create and return an equivalent constant MLIR Value.
+        """
+        pyType = type(arg)
+        mlirType = mlirTypeFromPyType(pyType,
+                                      self.ctx,
+                                      argInstance=arg,
+                                      argTypeToCompareTo=argTy)
+
+        if IntegerType.isinstance(mlirType):
+            return self.getConstantInt(arg, mlirType.width)
+
+        if F64Type.isinstance(mlirType):
+            return self.getConstantFloat(arg)
+
+        if ComplexType.isinstance(mlirType):
+            return complex.CreateOp(mlirType, self.getConstantFloat(arg.real),
+                                    self.getConstantFloat(arg.imag)).result
+
+        if cc.StdvecType.isinstance(mlirType):
+            size = self.getConstantInt(len(arg))
+            eleTy = cc.StdvecType.getElementType(mlirType)
+            arrTy = cc.ArrayType.get(self.ctx, eleTy)
+            alloca = cc.AllocaOp(cc.PointerType.get(self.ctx, arrTy),
+                                 TypeAttr.get(eleTy),
+                                 seqSize=size).result
+
+            def body(idx):
+                eleAddr = cc.ComputePtrOp(
+                    cc.PointerType.get(self.ctx, eleTy), alloca, [idx],
+                    DenseI32ArrayAttr.get([-2147483648],
+                                          context=self.ctx)).result
+                element = arg[body.counter]
+                elementVal = None
+                if IntegerType.isinstance(eleTy):
+                    elementVal = self.getConstantInt(element)
+                elif F64Type.isinstance(eleTy):
+                    elementVal = self.getConstantFloat(element)
+                elif cc.StdvecType.isinstance(eleTy):
+                    elementVal = self.__getMLIRValueFromPythonArg(
+                        element, eleTy)
+                else:
+                    raise RuntimeError(
+                        "CUDA Quantum builder could not process runtime list-like element type ({})."
+                        .format(eleTy))
+
+                cc.StoreOp(elementVal, eleAddr)
+                # Python is weird, but interesting.
+                body.counter += 1
+
+            body.counter = 0
+            self.createInvariantForLoop(size, body)
+            return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, eleTy), alloca,
+                                   size).result
+
+        raise RuntimeError(
+            "CUDA Quantum kernel builder could not translate runtime argument of type {} to MLIR Value."
+            .format(mlirType))
 
     def createInvariantForLoop(self,
                                endVal,
@@ -297,7 +376,8 @@ class PyKernel(object):
         if name in otherSymbolTable:
             cloned = otherSymbolTable[name].operation.clone()
             currentModule.body.append(cloned)
-            cloned.operation.attributes.__delitem__('cudaq-entrypoint')
+            if 'cudaq-entrypoint' in cloned.operation.attributes:
+                cloned.operation.attributes.__delitem__('cudaq-entrypoint')
             return cloned
 
         raise RuntimeError("could not find function with name {}".format(name))
@@ -313,8 +393,8 @@ class PyKernel(object):
         """
 
         def walk(topLevel, functor):
-            if isinstance(topLevel, func.FuncOp):
-                for block in topLevel.body:
+            for region in topLevel.regions:
+                for block in region:
                     for op in block:
                         functor(op)
                         walk(op, functor)
@@ -323,7 +403,7 @@ class PyKernel(object):
 
             def functor(op):
                 calleeName = ''
-                if isinstance(op, func.CallOp or isinstance(op, quake.ApplyOp)):
+                if isinstance(op, func.CallOp) or isinstance(op, quake.ApplyOp):
                     calleeName = FlatSymbolRefAttr(
                         op.attributes['callee']).value
 
@@ -360,6 +440,7 @@ class PyKernel(object):
         """
         with self.insertPoint, self.loc:
             otherModule = Module.parse(str(target.module), self.ctx)
+
             otherFuncCloned = self.__cloneOrGetFunction(
                 nvqppPrefix + target.name, self.module, otherModule)
             self.__addAllCalledFunctionsRecursively(otherFuncCloned,
@@ -368,7 +449,13 @@ class PyKernel(object):
             mlirValues = []
             for i, v in enumerate(args):
                 argTy = otherFTy[i].type
-                value = v.mlirValue
+                if not isinstance(v, QuakeValue):
+                    # here we have to map constant Python data
+                    # to an MLIR Value
+                    value = self.__getMLIRValueFromPythonArg(v, argTy)
+
+                else:
+                    value = v.mlirValue
                 inTy = value.type
 
                 if (quake.VeqType.isinstance(inTy) and
@@ -791,6 +878,8 @@ class PyKernel(object):
             kernel.mz(qubit))
         ```
         """
+        if isinstance(target, PyKernelDecorator):
+            target.compile()
         self.__applyControlOrAdjoint(target, False, [], *target_arguments)
 
     def c_if(self, measurement, function):
@@ -982,8 +1071,18 @@ class PyKernel(object):
                     mlirType, self.mlirArgTypes[i]))
 
             # Convert `numpy` arrays to lists
-            if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
-                processedArgs.append(arg.tolist())
+            if cc.StdvecType.isinstance(mlirType):
+                # Validate that the length of this argument is
+                # greater than or equal to the number of unique
+                # quake value extractions
+                if len(arg) < len(self.arguments[i].knownUniqueExtractions):
+                    raise RuntimeError(
+                        f"invalid runtime list argument - {len(arg)} elements in list but kernel code has at least {len(self.arguments[i].knownUniqueExtractions)} known unique extractions."
+                    )
+                if hasattr(arg, "tolist"):
+                    processedArgs.append(arg.tolist())
+                else:
+                    processedArgs.append(arg)
             else:
                 processedArgs.append(arg)
 

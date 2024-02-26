@@ -15,6 +15,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -37,7 +38,7 @@ static std::unique_ptr<JITExecutionCache> jitCache;
 std::tuple<ExecutionEngine *, void *, std::size_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
-                 const std::vector<std::string> &names) {
+                 const std::vector<std::string> &names, Type returnType) {
   auto mod = unwrap(module);
   auto cloned = mod.clone();
   auto context = cloned.getContext();
@@ -65,6 +66,16 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
       throw std::runtime_error(
           "cudaq::builder failed to JIT compile the Quake representation.");
 
+    // The "fast" instruction selection compilation algorithm is actually very
+    // slow for large quantum circuits. Disable that here. Revisit this
+    // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
+    // in the future. Also note that llvm::TargetMachine::setFastIsel() and
+    // setO0WantsFastISel() do not retain their values in our current version of
+    // LLVM. This use of LLVM command line parameters could be changed if the
+    // LLVM JIT ever supports the TargetMachine options in the future.
+    const char *argv[] = {"", "-fast-isel=0", nullptr};
+    llvm::cl::ParseCommandLineOptions(2, argv);
+
     ExecutionEngineOptions opts;
     opts.enableGDBNotificationListener = false;
     opts.enablePerfNotificationListener = false;
@@ -86,9 +97,28 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
 
     auto jitOrError = ExecutionEngine::create(cloned, opts);
     assert(!!jitOrError);
+
     auto uniqueJit = std::move(jitOrError.get());
     jit = uniqueJit.release();
     jitCache->cache(hashKey, jit);
+  }
+
+  // We need to append the return type to the OpaqueArguments here
+  // so that we get a spot in the `rawArgs` memory for the
+  // altLaunchKernel function to dump the result
+  if (!isa<NoneType>(returnType)) {
+    if (returnType.isInteger(64)) {
+      py::args returnVal = py::make_tuple(py::int_(0));
+      packArgs(runtimeArgs, returnVal);
+    } else {
+      std::string msg;
+      {
+        llvm::raw_string_ostream os(msg);
+        returnType.print(os);
+      }
+      throw std::runtime_error(
+          "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
+    }
   }
 
   void *rawArgs = nullptr;
@@ -107,11 +137,12 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   return std::make_tuple(jit, rawArgs, size);
 }
 
-void pyAltLaunchKernel(const std::string &name, MlirModule module,
-                       cudaq::OpaqueArguments &runtimeArgs,
-                       const std::vector<std::string> &names) {
+std::tuple<void *, std::size_t>
+pyAltLaunchKernelBase(const std::string &name, MlirModule module,
+                      Type returnType, cudaq::OpaqueArguments &runtimeArgs,
+                      const std::vector<std::string> &names) {
   auto [jit, rawArgs, size] =
-      jitAndCreateArgs(name, module, runtimeArgs, names);
+      jitAndCreateArgs(name, module, runtimeArgs, names, returnType);
 
   auto mod = unwrap(module);
   auto thunkName = name + ".thunk";
@@ -157,12 +188,51 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
   } else
     cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size, 0);
 
+  return std::make_tuple(rawArgs, size);
+}
+
+void pyAltLaunchKernel(const std::string &name, MlirModule module,
+                       cudaq::OpaqueArguments &runtimeArgs,
+                       const std::vector<std::string> &names) {
+  auto noneType = mlir::NoneType::get(unwrap(module).getContext());
+  auto [rawArgs, size] =
+      pyAltLaunchKernelBase(name, module, noneType, runtimeArgs, names);
   std::free(rawArgs);
+}
+
+py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
+                              MlirType returnType,
+                              cudaq::OpaqueArguments &runtimeArgs,
+                              const std::vector<std::string> &names) {
+  auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
+                                               runtimeArgs, names);
+  auto unwrapped = unwrap(returnType);
+  if (unwrapped.isInteger(64)) {
+    std::size_t concrete;
+    // Here we know the return type should be at
+    // the last 8 bytes of memory
+    // FIXME revisit this calculation when we support returning vectors
+    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
+    std::free(rawArgs);
+    return py::int_(concrete);
+  } else if (isa<FloatType>(unwrapped)) {
+    double concrete;
+    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
+    std::free(rawArgs);
+    return py::float_(concrete);
+  }
+
+  std::free(rawArgs);
+  unwrapped.dump();
+  throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
 }
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
                             cudaq::OpaqueArguments &runtimeArgs) {
-  auto [jit, rawArgs, size] = jitAndCreateArgs(name, module, runtimeArgs, {});
+  auto noneType = mlir::NoneType::get(unwrap(module).getContext());
+
+  auto [jit, rawArgs, size] =
+      jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
   registerLLVMDialectTranslation(*context);
@@ -186,7 +256,10 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
 std::string getQIRLL(const std::string &name, MlirModule module,
                      cudaq::OpaqueArguments &runtimeArgs,
                      std::string &profile) {
-  auto [jit, rawArgs, size] = jitAndCreateArgs(name, module, runtimeArgs, {});
+  auto noneType = mlir::NoneType::get(unwrap(module).getContext());
+
+  auto [jit, rawArgs, size] =
+      jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
 
@@ -245,6 +318,18 @@ void bindAltLaunchKernel(py::module &mod) {
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
       py::arg("callable_names") = std::vector<std::string>{}, "DOC STRING");
+  mod.def(
+      "pyAltLaunchKernelR",
+      [&](const std::string &kernelName, MlirModule module, MlirType returnType,
+          py::args runtimeArgs, std::vector<std::string> callable_names) {
+        cudaq::OpaqueArguments args;
+        cudaq::packArgs(args, runtimeArgs, callableArgHandler);
+        return pyAltLaunchKernelR(kernelName, module, returnType, args,
+                                  callable_names);
+      },
+      py::arg("kernelName"), py::arg("module"), py::arg("returnType"),
+      py::kw_only(), py::arg("callable_names") = std::vector<std::string>{},
+      "DOC STRING");
 
   mod.def("synthesize", [](py::object kernel, py::args runtimeArgs) {
     MlirModule module = kernel.attr("module").cast<MlirModule>();
@@ -257,6 +342,8 @@ void bindAltLaunchKernel(py::module &mod) {
   mod.def(
       "get_qir",
       [](py::object kernel, py::args runtimeArgs, std::string profile) {
+        if (py::hasattr(kernel, "compile"))
+          kernel.attr("compile")();
         MlirModule module = kernel.attr("module").cast<MlirModule>();
         auto name = kernel.attr("name").cast<std::string>();
         cudaq::OpaqueArguments args;

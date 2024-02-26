@@ -184,7 +184,7 @@ jobs:
 
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ steps.build_info.outputs.tar_archive }}
           key: ${{ steps.build_info.outputs.tar_cache }}
@@ -236,7 +236,7 @@ jobs:
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -330,7 +330,7 @@ jobs:
 
       - name: Cache cuda-quantum-dev image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
@@ -391,7 +391,7 @@ jobs:
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore_devdeps
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -400,7 +400,7 @@ jobs:
       - name: Restore Open MPI dependencies
         id: restore_openmpi
         if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ needs.ompi_image.outputs.tar_archive }}
           key: ${{ needs.ompi_image.outputs.tar_cache }}
@@ -575,7 +575,7 @@ jobs:
 
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
@@ -587,6 +587,13 @@ jobs:
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
+      - name: Install NGC CLI
+        if: inputs.environment && needs.metadata.outputs.push_to_ngc == 'true'
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.31.0
+          checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
+
       - name: Sign image with NGC CLI
         if: inputs.environment && needs.metadata.outputs.push_to_ngc == 'true'
         env:
@@ -595,13 +602,6 @@ jobs:
           NGC_CLI_ORG: ${{ github.repository_owner }}
           NGC_CLI_TEAM: 'nightly'
         run: |
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends wget
-          wget -O ngccli_linux.zip --content-disposition \
-            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.31.0/files/ngccli_linux.zip
-          if [ -z "$(sha256sum ngccli_linux.zip | grep -o 'b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138 ')" ]; then
-            echo "::error::NGC CLI was corrupted during download." && exit 1
-          fi
-          unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
           echo "Signing ${TAGS}"
           ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
 
@@ -638,7 +638,7 @@ jobs:
       - name: Restore CUDA Quantum build
         id: restore_cudaqdev
         if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
           key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
@@ -647,7 +647,7 @@ jobs:
       - name: Restore CUDA Quantum image
         id: restore_cudaq
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
           key: ${{ needs.cudaq_image.outputs.tar_cache }}
@@ -751,7 +751,7 @@ jobs:
       - name: Load cuda-quantum image
         id: restore
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
           key: ${{ needs.cudaq_image.outputs.tar_cache }}

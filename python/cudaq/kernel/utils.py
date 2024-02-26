@@ -5,12 +5,14 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+from __future__ import annotations
+
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..mlir.dialects import quake, cc
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 import numpy as np
-from typing import Callable
+from typing import Callable, List
 import ast
 
 qvector = cudaq_runtime.qvector
@@ -39,7 +41,7 @@ def mlirTypeFromAnnotation(annotation, ctx):
 
     if hasattr(annotation, 'attr'):
         if annotation.value.id == 'cudaq':
-            if annotation.attr in ['qlist', 'qview', 'qvector']:
+            if annotation.attr in ['qview', 'qvector']:
                 return quake.VeqType.get(ctx)
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
@@ -53,13 +55,19 @@ def mlirTypeFromAnnotation(annotation, ctx):
         if not hasattr(annotation, 'slice'):
             raise RuntimeError('Callable type must have signature specified.')
 
-        argTypes = [
-            mlirTypeFromAnnotation(a, ctx)
-            for a in annotation.slice.elts[0].elts
-        ]
+        if hasattr(annotation.slice, 'elts'):
+            firstElement = annotation.slice.elts[0]
+        elif hasattr(annotation.slice, 'value') and hasattr(
+                annotation.slice.value, 'elts'):
+            firstElement = annotation.slice.value.elts[0]
+        else:
+            raise RuntimeError('Unable to get list elements')
+        argTypes = [mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts]
         return cc.CallableType.get(ctx, argTypes)
 
-    if isinstance(annotation, ast.Subscript) and annotation.value.id == 'list':
+    if isinstance(annotation,
+                  ast.Subscript) and (annotation.value.id == 'list' or
+                                      annotation.value.id == 'List'):
         if not hasattr(annotation, 'slice'):
             raise RuntimeError('list subscript missing slice node.')
 
@@ -67,19 +75,29 @@ def mlirTypeFromAnnotation(annotation, ctx):
         listEleTy = mlirTypeFromAnnotation(annotation.slice, ctx)
         return cc.StdvecType.get(ctx, listEleTy)
 
-    if annotation.id == 'int':
+    if hasattr(annotation, 'id'):
+        id = annotation.id
+    elif hasattr(annotation, 'value'):
+        if hasattr(annotation.value, 'id'):
+            id = annotation.value.id
+        elif hasattr(annotation.value, 'value') and hasattr(
+                annotation.value.value, 'id'):
+            id = annotation.value.value.id
+    else:
+        raise RuntimeError('{} is not a supported type yet.'.format(annotation))
+
+    if id == 'int':
         return IntegerType.get_signless(64)
-    elif annotation.id == 'float':
+    elif id == 'float':
         return F64Type.get()
-    elif annotation.id == 'list':
+    elif id == 'list' or id == 'List':
         return cc.StdvecType.get(ctx, F64Type.get())
-    elif annotation.id == 'bool':
+    elif id == 'bool':
         return IntegerType.get_signless(1)
-    elif annotation.id == 'complex':
+    elif id == 'complex':
         return ComplexType.get(F64Type.get())
     else:
-        raise RuntimeError('{} is not a supported type yet.'.format(
-            annotation.id))
+        raise RuntimeError('{} is not a supported type yet.'.format(id))
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
@@ -93,7 +111,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType == complex:
         return ComplexType.get(mlirTypeFromPyType(float, ctx))
 
-    if argType in [list, np.ndarray]:
+    if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
 
@@ -112,6 +130,20 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
         if isinstance(argInstance[0], complex):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
+
+        if isinstance(argInstance[0], list):
+            return cc.StdvecType.get(
+                ctx,
+                mlirTypeFromPyType(
+                    type(argInstance[0]),
+                    ctx,
+                    argInstance=argInstance[0],
+                    argTypeToCompareTo=cc.StdvecType.getElementType(
+                        argTypeToCompareTo)))
+
+        raise RuntimeError(
+            '[mlirTypeFromPyType] invalid list element type ({})'.format(
+                argType))
 
     if argType == qvector or argType == qreg:
         return quake.VeqType.get(ctx)
@@ -145,11 +177,11 @@ def mlirTypeToPyType(argType):
         eleTy = cc.StdvecType.getElementType(argType)
         if IntegerType.isinstance(argType):
             if IntegerType(argType).width == 1:
-                return list[bool]
-            return list[int]
+                return List[bool]
+            return List[int]
         if F64Type.isinstance(argType):
-            return list[float]
+            return List[float]
         if ComplexType.isinstance(argType):
-            return list[complex]
+            return List[complex]
 
     raise RuntimeError("unhandled mlir-to-pytype {}".format(argType))
