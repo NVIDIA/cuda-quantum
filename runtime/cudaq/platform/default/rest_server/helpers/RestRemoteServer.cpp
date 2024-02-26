@@ -97,6 +97,14 @@ protected:
   // Server to exit after each job request.
   // Note: this doesn't apply to ping ("/") endpoint.
   bool exitAfterJob = false;
+  // Time-point data
+  std::optional<std::chrono::time_point<std::chrono::system_clock>>
+      requestStart;
+  std::optional<std::chrono::time_point<std::chrono::system_clock>>
+      simulationStart;
+  std::optional<std::chrono::time_point<std::chrono::system_clock>>
+      simulationEnd;
+
   // Method to filter incoming request.
   // The request is only handled iff this returns true.
   // When returning false, `outValidationMessage` can be used to report the
@@ -137,6 +145,7 @@ public:
         cudaq::RestServer::Method::POST, "/job",
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
+          requestStart = std::chrono::system_clock::now();
           auto shutdownAfterHandlingRequest = llvm::make_scope_exit([&] {
             if (this->exitAfterJob)
               m_server->stop();
@@ -332,9 +341,10 @@ public:
       }
     }
     platform.reset_exec_ctx();
+    simulationEnd = std::chrono::system_clock::now();
   }
 
-private:
+protected:
   std::unique_ptr<ExecutionEngine>
   jitMlirCode(ModuleOp currentModule, const std::vector<std::string> &passes,
               const std::vector<std::string> &extraLibPaths = {}) {
@@ -447,6 +457,7 @@ private:
       throw std::runtime_error("Failed to get entry function");
 
     auto fn = reinterpret_cast<void (*)()>(fnPtr);
+    simulationStart = std::chrono::system_clock::now();
     for (std::size_t i = 0; i < numTimes; ++i) {
       // Invoke the kernel
       fn();
@@ -482,7 +493,7 @@ private:
     return simLibHandle;
   }
 
-  json processRequest(const std::string &reqBody) {
+  virtual json processRequest(const std::string &reqBody) {
     try {
       // IMPORTANT: This assumes the REST server handles incoming requests
       // sequentially.
@@ -543,6 +554,32 @@ protected:
     }
 
     return true;
+  }
+protected: 
+  virtual json processRequest(const std::string &reqBody) override {
+    auto executionResult = RemoteRestRuntimeServer::processRequest(reqBody);
+    // Amend execution information
+    executionResult["executionInfo"] = constructExecutionInfo();
+    return executionResult;
+  }
+private:
+  cudaq::NvcfExecutionInfo constructExecutionInfo() {
+    cudaq::NvcfExecutionInfo info;
+    const auto optionalTimePointToInt =
+        [](const auto &optionalTimePoint) -> std::size_t {
+      return optionalTimePoint.has_value()
+                 ? std::chrono::duration_cast<std::chrono::milliseconds>(
+                       optionalTimePoint.value().time_since_epoch())
+                       .count()
+                 : 0;
+    };
+    info.requestStart = optionalTimePointToInt(requestStart);
+    info.simulationStart = optionalTimePointToInt(simulationStart);
+    info.simulationEnd = optionalTimePointToInt(simulationEnd);
+    const auto deviceProps = cudaq::getCudaProperties();
+    if (deviceProps.has_value())
+      info.deviceProps = deviceProps.value();
+    return info;
   }
 };
 } // namespace

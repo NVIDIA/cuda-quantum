@@ -279,6 +279,9 @@ public:
 /// REST client submitting jobs to NVCF-hosted `cudaq-qpud` service.
 class NvcfRuntimeClient : public RemoteRestRuntimeClient {
 private:
+  // Should this log high-level NVCF info?
+  // Enabled by default (can be turned off by an environment variable)
+  bool m_shouldLogNvcfInfo = true; 
   // API key for authentication
   std::string m_apiKey;
   // Rest client to send HTTP request
@@ -358,6 +361,16 @@ public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
     {
+      // Check if user disabled logging (explicitly)
+      if (auto logConfigEnv = std::getenv("NVQC_LOG")) {
+        auto logConfig = std::string(logConfigEnv);
+        std::transform(logConfig.begin(), logConfig.end(), logConfig.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+        if (logConfig == "0" || logConfig == "off" || logConfig == "false" || logConfig == "no")
+          m_shouldLogNvcfInfo = false;
+      }
+    }
+    {
       const auto apiKeyIter = configs.find("api-key");
       if (apiKeyIter != configs.end())
         m_apiKey = apiKeyIter->second;
@@ -371,7 +384,15 @@ public:
     {
       const auto funcIdIter = configs.find("function-id");
       if (funcIdIter != configs.end()) {
+        // User overrides a specific function Id.
         m_functionId = funcIdIter->second;
+        if (m_shouldLogNvcfInfo) {
+          // Print out the configuration
+          printf("%s\n",
+                 fmt::format("Submitting jobs to NVQC using function Id {}.",
+                             m_functionId)
+                     .c_str());
+        }
       } else {
         // Determine the function Id based on the number of GPUs
         const auto nGpusIter = configs.find("ngpus");
@@ -383,17 +404,28 @@ public:
         for (const auto &[funcId, numGpus] : m_availableFuncs) {
           if (numGpus == numGpusRequested) {
             m_functionId = funcId;
+            if (m_shouldLogNvcfInfo) {
+              // Print out the configuration
+              printf(
+                  "%s\n",
+                  fmt::format("Submitting jobs to NVQC service with {} GPU(s).",
+                              numGpus)
+                      .c_str());
+            }
             break;
           }
         }
         if (m_functionId.empty()) {
+          // Make sure that we sort the GPU count list
+          std::set<std::size_t> gpuCounts;
+          for (const auto &[funcId, numGpus] : m_availableFuncs) {
+            gpuCounts.emplace(numGpus);
+          }
           std::stringstream ss;
           ss << "Unable to find NVQC deployment with " << numGpusRequested
-             << " GPUs. Available deployments are:\n";
-          for (const auto &[funcId, numGpus] : m_availableFuncs) {
-            ss << "   - Function Id " << funcId << ": " << numGpus
-               << ((numGpus > 1) ? " GPUs." : " GPU.") << "\n";
-          }
+             << " GPUs.\nAvailable deployments have ";
+          ss << fmt::format("{}", gpuCounts) << " GPUs.\n";
+          ss << "Please check your 'ngpus' configuration.\n";
           throw std::runtime_error(ss.str());
         }
       }
@@ -631,6 +663,33 @@ public:
           }
         }
         return false;
+      }
+      if (m_shouldLogNvcfInfo && resultJs["response"]["executionInfo"]) {
+        try {
+          cudaq::NvcfExecutionInfo info;
+          resultJs["response"]["executionInfo"].get_to(info);
+          printf("\n===== NVQC Execution Summary ===== \n");
+          printf("GPU Device Name: \"%s\"\n",
+                 info.deviceProps.deviceName.c_str());
+          printf("CUDA Driver Version / Runtime Version: %d.%d / %d.%d\n",
+                 info.deviceProps.driverVersion / 1000,
+                 (info.deviceProps.driverVersion % 100) / 10,
+                 info.deviceProps.runtimeVersion / 1000,
+                 (info.deviceProps.runtimeVersion % 100) / 10);
+          printf("Total global memory (GB): %.1f\n",
+                 (float)(info.deviceProps.totalGlobalMemMbytes) / 1024.0);
+          printf("Memory Clock Rate (MHz): %.3f\n",
+                 info.deviceProps.memoryClockRateMhz);
+          printf("GPU Clock Rate (MHz): %.3f\n", info.deviceProps.clockRateMhz);
+          printf("Execution timing: \n");
+          printf(" - Pre-processing: %ld milliseconds \n",
+                 info.simulationStart - info.requestStart);
+          printf(" - Execution: %ld milliseconds \n",
+                 info.simulationEnd - info.simulationStart);
+          printf("\n================================== \n");
+        } catch (...) {
+          printf("Unable to parse NVQC execution info metadata.\n");
+        }
       }
       resultJs["response"]["executionContext"].get_to(io_context);
       return true;

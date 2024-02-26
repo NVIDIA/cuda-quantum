@@ -11,7 +11,7 @@
 #include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
 #include "nlohmann/json.hpp"
-
+#include "GPUInfo.h"
 /*! \file
     \brief Utility to support JSON serialization between the client and server.
 */
@@ -242,4 +242,12 @@ struct NvcfFunctionVersionInfo {
                                  name, status, createdAt);
 };
 
+struct NvcfExecutionInfo {
+  std::size_t requestStart;
+  std::size_t simulationStart;
+  std::size_t simulationEnd;
+  CudaDeviceProperties deviceProps;
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(NvcfExecutionInfo, requestStart,
+                                 simulationStart, simulationEnd, deviceProps);
+};
 } // namespace cudaq
