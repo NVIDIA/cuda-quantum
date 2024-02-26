@@ -173,11 +173,12 @@ cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 # - LD_LIBRARY_PATH to find the built libc++ binaries
 # - LIBRARY_PATH to find the built libc++ binaries
 # - CUDAHOSTCXX="$CXX", since otherwise CUDA check was unhappy
+# FIXME: make CLANG_RESOURCE_DIR the relative path ../
 cmake_args="-G Ninja ../llvm \
   -DLLVM_TARGETS_TO_BUILD="host" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
-  -DCLANG_RESOURCE_DIR='..' \
+  -DCLANG_RESOURCE_DIR="$LLVM_INSTALL_PREFIX" \
   -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
   -DLLVM_ENABLE_RUNTIMES="$llvm_runtimes" \
   -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
@@ -203,6 +204,7 @@ cmake_args="-G Ninja ../llvm \
   -DLLVM_ENABLE_ASSERTIONS=ON \
   -DLLVM_OPTIMIZED_TABLEGEN=ON \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  -DCMAKE_INSTALL_RPATH='$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib' \
   -DLLVM_BUILD_EXAMPLES=OFF \
   -DLLVM_BUILD_TESTS=OFF \
   -DLLVM_INCLUDE_TESTS=OFF \

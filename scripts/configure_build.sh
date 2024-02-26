@@ -91,9 +91,7 @@ fi
 
 if [ "$1" == "install-gcc" ]; then
 # [>gccInstall]
-    GCC_VERSION=11
-    dnf install -y --nobest --setopt=install_weak_deps=False \
-        gcc-toolset-${GCC_VERSION}
+    dnf install -y --nobest --setopt=install_weak_deps=False gcc gcc-c++
 # [<gccInstall]
 fi
 

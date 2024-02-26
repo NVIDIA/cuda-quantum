@@ -32,6 +32,7 @@
 # exist, compatibility or versions won't be validated.
 
 # Process command line arguments
+toolchain=''
 install_all=true
 __optind__=$OPTIND
 OPTIND=1
@@ -221,6 +222,13 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ]; then
     cd .. && rm -rf perl-5.38.2.tar.gz perl-5.38.2
     # Additional perl modules can be installed with cpan, e.g.
     # PERL_MM_USE_DEFAULT=1 ~/.perl5/bin/cpan App::cpanminus
+
+    if [ ! -x "$(command -v ar)" ]; then
+      cc_exe_dir=`dirname "$CC"`
+      if [ -x "$(command -v "$cc_exe_dir/ar")" ]; then AR="$cc_exe_dir/ar"
+      else AR=`find "$cc_exe_dir" -maxdepth 1 -name 'llvm-ar'`
+      fi
+    fi
 
     wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
     tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1

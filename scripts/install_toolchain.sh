@@ -65,16 +65,20 @@ if [ "${toolchain#gcc}" != "$toolchain" ]; then
     if [ -x "$(command -v apt-get)" ]; then
         apt-get update && apt-get install -y --no-install-recommends \
             gcc-$gcc_version g++-$gcc_version gfortran-$gcc_version
+
         CC="$(find_executable gcc-$gcc_version)" 
         CXX="$(find_executable g++-$gcc_version)" 
         FC="$(find_executable gfortran-$gcc_version)"
+
     elif [ -x "$(command -v dnf)" ]; then
         dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-$gcc_version
         enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"
         gcc_root=`dirname "$enable_script"`
+
         CC="$(find_executable gcc "$gcc_root")"
         CXX="$(find_executable g++ "$gcc_root")"
         FC="$(find_executable gfortran "$gcc_root")"
+
     else
       echo "No supported package manager detected." >&2
     fi
@@ -139,9 +143,6 @@ elif [ "$toolchain" = "llvm" ]; then
     CC="$LLVM_INSTALL_PREFIX/bin/clang"
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
-    if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
-        AR="$LLVM_INSTALL_PREFIX/bin/llvm-ar"
-    fi
 
 else
 
@@ -170,10 +171,6 @@ if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then
     echo "Installed $toolchain toolchain."
     if [ -x "$(command -v "$FC")" ]; then export FC="$FC"
     else unset FC && echo -e "\e[01;31mWarning: No fortran compiler installed.\e[0m" >&2
-    fi
-    if [ -x "$(command -v "$AR")" ]; then export AR="$AR"
-    elif [ ! -x "$(command -v ar)" ]; then unset AR && echo -e "\e[01;31mWarning: No archiver installed.\e[0m" >&2
-    else unset AR
     fi
 
     if [ "$export_dir" != "" ]; then 

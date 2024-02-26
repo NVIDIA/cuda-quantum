@@ -99,7 +99,7 @@ ENV CUDA_QUANTUM_VERSION=$release_version
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     # IMPORTANT:
     # Make sure that the variables and arguments configured here match
-    # the ones in the install_prerequisites.sh invocation above!
+    # the ones in the install_prerequisites.sh invocation in the prereqs stage!
     ## [>CUDAQuantumBuild]
     CUDAQ_WERROR=false \
     CUDAQ_PYTHON_SUPPORT=OFF \
@@ -133,9 +133,12 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
     ${PYTHON} -m pip install numpy build auditwheel patchelf
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    # IMPORTANT:
+    # Make sure that the invocation of the install_prerequisites.sh script here matches
+    # the ones in the install_prerequisites.sh invocation in the prereqs stage!
     LLVM_INSTALL_PREFIX="$(mktemp -d)" && \
     ## [>CUDAQuantumPythonBuild]
-    bash scripts/install_prerequisites.sh && \
+    bash scripts/install_prerequisites.sh -t llvm && \
     CUDAHOSTCXX="$CXX" \
     python3 -m build --wheel
     ## [<CUDAQuantumPythonBuild]
