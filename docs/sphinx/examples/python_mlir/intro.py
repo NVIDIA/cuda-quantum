@@ -1,5 +1,5 @@
 import cudaq
-
+from cudaq.ops import *
 
 # We begin by defining the `Kernel` that we will construct our
 # program with.
