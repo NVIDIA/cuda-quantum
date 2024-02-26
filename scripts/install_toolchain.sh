@@ -112,6 +112,18 @@ elif [ "$toolchain" = "llvm" ]; then
             git clone -b main --single-branch --depth 1 https://github.com/llvm/llvm-project "$LLVM_SOURCE"
         fi
 
+        if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+            if [ -x "$(command -v apt-get)" ]; then
+                temp_install_if_command_unknown gcc gcc
+                temp_install_if_command_unknown g++ g++
+            elif [ -x "$(command -v dnf)" ]; then
+                temp_install_if_command_unknown gcc gcc
+                temp_install_if_command_unknown g++ gcc-c++
+            else
+                echo -e "\e[01;31mError: Please define the environment variables CC and CXX.\e[0m" >&2
+            fi
+        fi
+
         temp_install_if_command_unknown ninja ninja-build
         temp_install_if_command_unknown cmake cmake
         LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
@@ -160,9 +172,10 @@ if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then
     else unset FC && echo -e "\e[01;31mWarning: No fortran compiler installed.\e[0m" >&2
     fi
     if [ -x "$(command -v "$AR")" ]; then export AR="$AR"
-    else unset AR && echo -e "\e[01;31mWarning: No archiver installed.\e[0m" >&2
+    elif [ ! -x "$(command -v ar)" ]; then unset AR && echo -e "\e[01;31mWarning: No archiver installed.\e[0m" >&2
+    else unset AR
     fi
-   
+
     if [ "$export_dir" != "" ]; then 
         mkdir -p "$export_dir"
         this_file=`readlink -f "${BASH_SOURCE[0]}"`
