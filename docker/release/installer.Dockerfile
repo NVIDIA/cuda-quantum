@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -57,3 +57,4 @@ RUN bash /makeself/makeself.sh --gzip --sha256 --license /cuda-quantum/LICENSE \
 
 FROM scratch
 COPY --from=assets install_cuda_quantum.* . 
+COPY --from=assets /cuda_quantum/wheelhouse/* . 

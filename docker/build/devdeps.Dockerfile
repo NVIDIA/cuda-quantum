@@ -60,9 +60,8 @@ RUN bash /scripts/install_prerequisites.sh -m \
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
-ENV LLVM_INSTALL_PREFIX=/opt/llvm
-RUN LLVM_SOURCE=/llvm-project \
-    source scripts/install_toolchain.sh -e "$LLVM_INSTALL_PREFIX/bootstrap" -t ${toolchain} \
+RUN LLVM_INSTALL_PREFIX=/opt/llvm_stage1 LLVM_SOURCE=/llvm-project \
+    source scripts/install_toolchain.sh -e /opt/llvm_stage1/bootstrap -t ${toolchain} \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && rm -rf /llvm-project/build
 
@@ -70,7 +69,7 @@ RUN LLVM_SOURCE=/llvm-project \
 RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
-    && source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" \
+    && source "/opt/llvm_stage1/bootstrap/init_command.sh" \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
     && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     && cmake --build . --target install --config Release \
@@ -89,9 +88,13 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
 # - https://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html
 # - https://gcc.gnu.org/onlinedocs/gcc/Code-Gen-Options.html#Code%20Gen%20Options
 # - https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html#C_002b_002b-Dialect-Options
-RUN source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" && \
-    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v \
-    && rm -rf /llvm-project 
+ENV LLVM_INSTALL_PREFIX=/opt/llvm
+RUN source "/opt/llvm_stage1/bootstrap/init_command.sh" && \
+    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v && \
+    mv /opt/llvm_stage1/bootstrap "$LLVM_INSTALL_PREFIX/bootstrap" && \
+    for file in `ls "$LLVM_INSTALL_PREFIX/bootstrap"`; do \
+        sed -i "s|/opt/llvm_stage1|/opt/llvm|" "$file"; \
+    done && rm -rf /llvm-project /opt/llvm_stage1
 
 FROM llvmbuild as prereqs
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas

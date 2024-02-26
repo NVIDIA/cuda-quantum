@@ -592,13 +592,15 @@ namespace {
 /// not possibly defined in the QIR standard or NVQIR runtime.
 struct VerifyNVQIRCallOpsPass
     : public cudaq::opt::VerifyNVQIRCallOpsBase<VerifyNVQIRCallOpsPass> {
-  explicit VerifyNVQIRCallOpsPass() : VerifyNVQIRCallOpsBase() {}
+  explicit VerifyNVQIRCallOpsPass(
+      const std::vector<llvm::StringRef> &allowedFuncs)
+      : VerifyNVQIRCallOpsBase(), m_allowedFuncs(allowedFuncs) {}
 
   void runOnOperation() override {
     LLVM::LLVMFuncOp func = getOperation();
     bool passFailed = false;
     // Check that a function name is either QIR or NVQIR registered.
-    const auto isKnownFunctionName = [](llvm::StringRef functionName) -> bool {
+    const auto isKnownFunctionName = [&](llvm::StringRef functionName) -> bool {
       if (functionName.startswith("__quantum_"))
         return true;
       static const std::vector<llvm::StringRef> NVQIR_FUNCS = {
@@ -607,8 +609,11 @@ struct VerifyNVQIRCallOpsPass
           cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
           cudaq::opt::NVQIRPackSingleQubitInArray,
           cudaq::opt::NVQIRReleasePackedQubitArray};
+      // It must be either NVQIR extension functions or in the allowed list.
       return std::find(NVQIR_FUNCS.begin(), NVQIR_FUNCS.end(), functionName) !=
-             NVQIR_FUNCS.end();
+                 NVQIR_FUNCS.end() ||
+             std::find(m_allowedFuncs.begin(), m_allowedFuncs.end(),
+                       functionName) != m_allowedFuncs.end();
     };
 
     func.walk([&](Operation *op) {
@@ -629,10 +634,14 @@ struct VerifyNVQIRCallOpsPass
       signalPassFailure();
     }
   }
+
+private:
+  std::vector<llvm::StringRef> m_allowedFuncs;
 };
 } // namespace
-std::unique_ptr<mlir::Pass> cudaq::opt::createVerifyNVQIRCallOpsPass() {
-  return std::make_unique<VerifyNVQIRCallOpsPass>();
+std::unique_ptr<mlir::Pass> cudaq::opt::createVerifyNVQIRCallOpsPass(
+    const std::vector<llvm::StringRef> &allowedFuncs) {
+  return std::make_unique<VerifyNVQIRCallOpsPass>(allowedFuncs);
 }
 
 // The various passes defined here should be added as a pass pipeline.
