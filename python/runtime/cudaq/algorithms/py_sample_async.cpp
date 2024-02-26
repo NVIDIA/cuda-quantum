@@ -52,7 +52,8 @@ for more information on this programming pattern.)#")
         auto kernelName = kernel.attr("name").cast<std::string>();
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
-
+        
+        args = simplifiedValidateInputArguments(args);
         auto *argData = new cudaq::OpaqueArguments();
         cudaq::packArgs(*argData, args);
         auto kernelMod = kernel.attr("module").cast<MlirModule>();

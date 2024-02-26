@@ -61,6 +61,7 @@ observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
                          bool argMapperProvided = false) {
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto &platform = cudaq::get_platform();
+  args = simplifiedValidateInputArguments(args);
   auto *argData = toOpaqueArgs(args);
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
