@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   std::string line;
   std::vector<std::string> funcs;
   {
-    std::regex mapRegex{"quake\\.mangled_name_map[^\"]*"};
+    std::regex mapRegex{"quake\\.mangled_name_map = [{]"};
     std::regex stringRegex{"\"(.*?)\""};
     while (std::getline(modFile, line) && funcs.empty()) {
       auto funcsBegin =
