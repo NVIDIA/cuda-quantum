@@ -89,9 +89,7 @@ ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
-RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-    && bash /scripts/install_prerequisites.sh \
-    && rm -rf /scripts/install_prerequisites.sh
+RUN bash /scripts/install_prerequisites.sh
 
 # Install CUDA 11.8.
 
