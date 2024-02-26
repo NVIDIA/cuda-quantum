@@ -31,6 +31,7 @@ class QuakeValue(object):
         self.ctx = self.pyKernel.ctx
         self.floatType = mlirTypeFromPyType(float, self.ctx)
         self.intType = mlirTypeFromPyType(int, self.ctx)
+        self.knownUniqueExtractions = set()
 
     def __str__(self):
         return str(self.mlirValue)
@@ -191,6 +192,7 @@ class QuakeValue(object):
                         elePtrTy, vecPtr, [idx.mlirValue],
                         DenseI32ArrayAttr.get([-2147483648], context=self.ctx))
                 elif isinstance(idx, int):
+                    self.knownUniqueExtractions.add(idx)
                     eleAddr = cc.ComputePtrOp(
                         elePtrTy, vecPtr, [],
                         DenseI32ArrayAttr.get([idx], context=self.ctx))
