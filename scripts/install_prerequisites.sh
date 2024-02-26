@@ -62,17 +62,6 @@ if $install_all; then
   CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
 fi
 
-function create_llvm_symlinks {
-  if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
-    ln -s "$LLVM_INSTALL_PREFIX/bin/ld.lld" /usr/bin/ld
-    echo "Setting lld linker as the default linker."
-  fi
-  if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
-    ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
-    echo "Setting llvm-ar as the default ar."
-  fi
-}
-
 function temp_install_if_command_unknown {
   if [ ! -x "$(command -v $1)" ]; then
     if [ -x "$(command -v apt-get)" ]; then
@@ -100,7 +89,6 @@ function remove_temp_installs {
       echo "No package manager configured for clean up." >&2
     fi
     unset PKG_UNINSTALL
-    create_llvm_symlinks # uninstalling other compiler tools may have removed the symlinks
   fi
 }
 
@@ -118,7 +106,8 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all; then
-  if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+  if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+    echo "Installing toolchain ${toolchain}..."
     if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
       llvm_stage1_tmpdir="$(mktemp -d)" && LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir"
     fi
@@ -235,7 +224,7 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ]; then
 
     wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
     tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
-    CC="$CC" CFLAGS="-fPIC" CXX="$CXX" CXXFLAGS="-fPIC" \
+    CC="$CC" CFLAGS="-fPIC" CXX="$CXX" CXXFLAGS="-fPIC" AR="${AR:-ar}" \
     ~/.perl5/bin/perl Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
     make CC="$CC" CXX="$CXX" && make install
     cd .. && rm -rf openssl-3.1.1.tar.gz openssl-3.1.1 ~/.perl5
@@ -298,7 +287,8 @@ if [ -n "$CURL_INSTALL_PREFIX" ]; then
 fi
 
 # [cuQuantum and cuTensor] Needed for GPU-accelerated components
-cuda_version=`"${CUDACXX:-nvcc}" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
+cuda_driver=${CUDA_HOME:-/usr/local/cuda}/bin/nvcc
+cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 if [ -n "$cuda_version" ]; then
   if [ -n "$CUQUANTUM_INSTALL_PREFIX" ]; then
     if [ ! -d "$CUQUANTUM_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUQUANTUM_INSTALL_PREFIX"/* 2> /dev/null)" ]; then

@@ -111,12 +111,6 @@ elif [ "$toolchain" = "llvm" ]; then
             temp_install_if_command_unknown git git
             git clone -b main --single-branch --depth 1 https://github.com/llvm/llvm-project "$LLVM_SOURCE"
         fi
-        
-        if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-            # We use the clang to bootstrap the llvm build since it is faster than gcc.
-            bash "$(readlink -f "${BASH_SOURCE[0]}")" -t clang16
-            CC="$(find_executable clang-16)" CXX="$(find_executable clang++-16)"
-        fi
 
         temp_install_if_command_unknown ninja ninja-build
         temp_install_if_command_unknown cmake cmake
@@ -130,26 +124,11 @@ elif [ "$toolchain" = "llvm" ]; then
         fi
     fi
 
-    CC="$LLVM_INSTALL_PREFIX/bin/clang" && CXX="$LLVM_INSTALL_PREFIX/bin/clang++" && FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
-    if [ ! -x "$(command -v ld)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
-        # Not the most up-to-date reference, but maybe a good starting point for reference:
-        # https://maskray.me/blog/2020-12-19-lld-and-gnu-linker-incompatibilities
-        ln -s "$LLVM_INSTALL_PREFIX/bin/ld.lld" /usr/bin/ld
-        created_ld_sym_link=$?
-        if [ "$created_ld_sym_link" = "" ] || [ ! "$created_ld_sym_link" -eq "0" ]; then
-            echo "Failed to configure a linker. The lld linker can be used by adding the linker flag --ld-path=\"$LLVM_INSTALL_PREFIX/bin/ld.lld\"."
-        else 
-            echo "Setting lld linker as the default linker."
-        fi
-    fi
-    if [ ! -x "$(command -v ar)" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
-        ln -s "$LLVM_INSTALL_PREFIX/bin/llvm-ar" /usr/bin/ar
-        created_ld_sym_link=$?
-        if [ "$created_ld_sym_link" = "" ] || [ ! "$created_ld_sym_link" -eq "0" ]; then
-            echo "Failed to find ar or llvm-ar. Toolchain may be incomplete."
-        else 
-            echo "Setting llvm-ar as the default ar."
-        fi
+    CC="$LLVM_INSTALL_PREFIX/bin/clang"
+    CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+    FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
+    if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/llvm-ar")" ]; then
+        AR="$LLVM_INSTALL_PREFIX/bin/llvm-ar"
     fi
 
 else
@@ -180,7 +159,10 @@ if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then
     if [ -x "$(command -v "$FC")" ]; then export FC="$FC"
     else unset FC && echo -e "\e[01;31mWarning: No fortran compiler installed.\e[0m" >&2
     fi
-    
+    if [ -x "$(command -v "$AR")" ]; then export AR="$AR"
+    else unset AR && echo -e "\e[01;31mWarning: No archiver installed.\e[0m" >&2
+    fi
+   
     if [ "$export_dir" != "" ]; then 
         mkdir -p "$export_dir"
         this_file=`readlink -f "${BASH_SOURCE[0]}"`

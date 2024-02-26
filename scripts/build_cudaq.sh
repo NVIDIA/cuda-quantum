@@ -92,7 +92,8 @@ if [ -n "$install_prereqs" ]; then
 fi
 
 # Check if a suitable CUDA version is installed
-cuda_version=`"${CUDACXX:-nvcc}" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
+cuda_driver=${CUDA_HOME:-/usr/local/cuda}/bin/nvcc
+cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 cuda_major=`echo $cuda_version | cut -d '.' -f 1`
 cuda_minor=`echo $cuda_version | cut -d '.' -f 2`
 if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -lt "8" ] && [ "$cuda_major" -eq "11" ]); then
