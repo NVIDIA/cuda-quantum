@@ -1,5 +1,6 @@
 import cudaq
 
+
 # We begin by defining the `Kernel` that we will construct our
 # program with.
 @cudaq.kernel
@@ -33,4 +34,4 @@ def kernel():
 result = cudaq.sample(kernel)
 
 # Now let's take a look at the `SampleResult` we've gotten back!
-print(result)  # or result.dump()
+print(result)

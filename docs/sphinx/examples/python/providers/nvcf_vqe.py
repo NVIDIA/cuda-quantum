@@ -25,7 +25,7 @@ print("Number of QPUs:", cudaq.get_target().num_qpus())
 # concurrent job submissions across multiple QPUs, the speedup would be
 # determined by the number of NVCF worker instances.
 # Create the parameterized ansatz
-@cudaq.kernel(jit=True)
+@cudaq.kernel
 def ansatz(theta: float):
     qvector = cudaq.qvector(2)
     x(qvector[0])
