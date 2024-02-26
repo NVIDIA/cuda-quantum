@@ -382,15 +382,9 @@ private:
           auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op);
           if (!funcOp)
             continue;
-          if (!funcOp.getName().startswith(
-                  cudaq::runtime::cudaqGenPrefixName)) {
-            // Looks like this is not something from the nvq++ frontend.
-            cudaq::info("Unexpected MLIR function name encountered: '{}'.",
-                        funcOp.getName().str());
-            continue;
+          if (funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName)) {
+            allFuncs.emplace_back(funcOp.getName());
           }
-
-          allFuncs.emplace_back(funcOp.getName());
         }
         return allFuncs;
       }();
