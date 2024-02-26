@@ -26,28 +26,26 @@ layer_count: int = 2
 parameter_count: int = 2 * layer_count
 
 
-def kernel_qaoa() -> cudaq.Kernel:
+@cudaq.kernel
+def kernel_qaoa(qubit_count: int, layer_count: int, thetas: list):
     """QAOA ansatz for Max-Cut"""
-    kernel, thetas = cudaq.make_kernel(list)
-    qvec = kernel.qalloc(qubit_count)
+    qvector = cudaq.qvector(qubit_count)
 
     # Create superposition
-    kernel.h(qvec)
+    h(qvector)
 
     # Loop over the layers
-    for i in range(layer_count):
+    for layer in range(layer_count):
         # Loop over the qubits
         # Problem unitary
-        for j in range(qubit_count):
-            kernel.cx(qvec[j], qvec[(j + 1) % qubit_count])
-            kernel.rz(2.0 * thetas[i], qvec[(j + 1) % qubit_count])
-            kernel.cx(qvec[j], qvec[(j + 1) % qubit_count])
+        for qubit in range(qubit_count):
+            x.ctrl(qvector[qubit], qvector[(qubit + 1) % qubit_count])
+            rz(2.0 * thetas[layer], qvector[(qubit + 1) % qubit_count])
+            x.ctrl(qvector[qubit], qvector[(qubit + 1) % qubit_count])
 
         # Mixer unitary
-        for j in range(qubit_count):
-            kernel.rx(2.0 * thetas[i + layer_count], qvec[j])
-
-    return kernel
+        for qubit in range(qubit_count):
+            rx(2.0 * thetas[layer + layer_count], qvector[qubit])
 
 
 # Specify the optimizer and its initial parameters. Make it repeatable.
@@ -58,17 +56,21 @@ optimizer.initial_parameters = np.random.uniform(-np.pi / 8.0, np.pi / 8.0,
                                                  parameter_count)
 print("Initial parameters = ", optimizer.initial_parameters)
 
-# Pass the kernel, spin operator, and optimizer to `cudaq.vqe`.
-optimal_expectation, optimal_parameters = cudaq.vqe(
-    kernel=kernel_qaoa(),
-    spin_operator=hamiltonian,
-    optimizer=optimizer,
-    parameter_count=parameter_count)
+
+# Define the objective, return `<state(params) | H | state(params)>`
+def objective(parameters):
+    return cudaq.observe(kernel_qaoa, hamiltonian, qubit_count, layer_count,
+                         parameters).expectation()
+
+
+# Optimize!
+optimal_expectation, optimal_parameters = optimizer.optimize(
+    dimensions=parameter_count, function=objective)
 
 # Print the optimized value and its parameters
 print("Optimal value = ", optimal_expectation)
 print("Optimal parameters = ", optimal_parameters)
 
 # Sample the circuit using the optimized parameters
-counts = cudaq.sample(kernel_qaoa(), optimal_parameters)
-counts.dump()
+counts = cudaq.sample(kernel_qaoa, qubit_count, layer_count, optimal_parameters)
+print(counts)
