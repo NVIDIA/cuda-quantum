@@ -347,15 +347,15 @@ def test_decrementing_range():
     assert '01100' in counts and len(counts) == 1
 
     @cudaq.kernel
-    def test2(myList:List[int]):
+    def test2(myList: List[int]):
         q = cudaq.qvector(len(myList))
         for i in range(0, len(myList), 2):
             cudaq.dbg.ast.print_i64(i)
             x(q[i])
-    
-    counts = cudaq.sample(test2, [0,1,2,3])
+
+    counts = cudaq.sample(test2, [0, 1, 2, 3])
     assert len(counts) == 1
-    assert '1010' in counts 
+    assert '1010' in counts
 
 
 def test_no_dynamic_Lists():
@@ -498,6 +498,7 @@ def test_list_creation_with_cast():
 
 
 def test_control_operations():
+
     @cudaq.kernel
     def test():
         q = cudaq.qvector(4)
@@ -520,3 +521,19 @@ def test_control_operations():
 
     print(test)
     counts = cudaq.sample(test, 0.785398)
+
+
+def test_bool_op_short_circuit():
+
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        if mz(qubits[0]) and mz(qubits[1]):
+            x(qubits[1])
+        mz(qubits[1])
+
+    print(kernel)
+
+    counts = cudaq.sample(kernel)
+    assert len(counts) == 2 and '10' in counts and '00' in counts

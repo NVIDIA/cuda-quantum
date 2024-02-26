@@ -11,8 +11,8 @@
 // RUN: cudaq-quake %cpp_std --emit-llvm-file %s | FileCheck %s
 
 // We should only have 2 kernels created even though we instantiate ghz<5> twice. 
-// CHECK-LABEL: module attributes {quake.mangled_name_map = {
-// CHECK-SAME: __nvqpp__mlirgen__ghzILm10EE = "_ZN3ghzILm10EEclEv", __nvqpp__mlirgen__ghzILm5EE = "_ZN3ghzILm5EEclEv"
+// CHECK-LABEL: module attributes {
+// CHECK-SAME:  quake.mangled_name_map = {__nvqpp__mlirgen__ghzILm10EE = "_ZN3ghzILm10EEclEv", __nvqpp__mlirgen__ghzILm5EE = "_ZN3ghzILm5EEclEv"}
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__ghzILm5EE
 // CHECK: quake.h
