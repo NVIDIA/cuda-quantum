@@ -417,8 +417,11 @@
 <li class="toctree-l3"><a class="reference internal" href="#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#building-cuda-quantum">Building CUDA Quantum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#preparing-the-installation">Preparing the Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-cuda-quantum">Building CUDA Quantum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#c-support">C++ Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python-support">Python Support</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#mpi">MPI</a></li>
@@ -473,18 +476,13 @@ for using CUDA Quantum with C++. These binaries are built following the instruct
 in this guide and should work for you as long as your system meets the compatibility
 requirements listed under <a class="reference internal" href="#compatibility-prebuilt-binaries"><span class="std std-ref">Prerequisites</span></a>.
 To install them, please follow the instructions <a class="reference internal" href="install.html#install-prebuilt-binaries"><span class="std std-ref">here</span></a>.</p>
-<p>If you still want to build and install CUDA Quantum from source, you will need
-to ensure that all dependencies installed in the build and host system are
-compatible with your CUDA Quantum installation. The rest of this guide outlines
-specific compatibility requirements during the build and after installation, and
-walks through the installation steps.</p>
+<p>If our pre-built packages are not a good option for you, e.g. because you would
+like to use CUDA Quantum on an operating system that is not officially supported,
+please follow this guide carefully without skipping any steps to build and install
+CUDA Quantum from source. The rest of this guide details system requirements
+during the build and after installation, and walks through the installation steps.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The build described in this guide does not include building the Python
-support for CUDA Quantum. For more information about
-using CUDA Quantum from Python, please take a look at
-<a class="reference internal" href="install.html#install-python-wheels"><span class="std std-ref">this page</span></a>.</p>
-</div>
 <p>CUDA Quantum contains some components that are only included as
 pre-built binaries and not part of our open source repository. We are working on
 either open-sourcing these components or making them available as separate downloads
@@ -493,6 +491,7 @@ Quantum will be enabled in a source build, though some pieces may be less
 performant.
 At this time, the <a class="reference internal" href="using/simulators.html#nvidia-mgpu-backend"><span class="std std-ref">multi-GPU state vector simulator</span></a>
 backend will not be included if you build CUDA Quantum from source.</p>
+</div>
 <section id="prerequisites">
 <span id="compatibility-prebuilt-binaries"></span><h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading">¶</a></h2>
 <p>The following pre-requisites need to be satisfied both on the build system and
@@ -533,17 +532,12 @@ the correct libraries and versions.</p>
 following prerequisites in your build environment prior to proceeding with
 the build as described in the subsequent sections:</p>
 <ul class="simple">
-<li><p>GNU C library: We currently statically link dependencies, in some cases
-including the standard libraries. We may revise that in the future.
-To use the current build configuration, please make sure you have the
-static version of the <a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>,
-including the POSIX Threads library, installed on your system.
-The necessary package(s) can usually be obtained via package manager
-for your distribution.</p></li>
-<li><p>Python version 3.8 or newer: The Python interpreter is required
-(only) for some of the LLVM build scripts and the Python version
-used for the build does not have to match the version on the host
-system.</p></li>
+<li><p>Python version 3.8 or newer: If you intend to build CUDA Quantum with Python
+support, make sure the Python version on the build system matches the version
+on the host system. If you intend to only build the C++ support for
+CUDA Quantum, the Python interpreter is required only for some of the
+LLVM build scripts and the Python version used for the build does not have
+to match the version on the host system.</p></li>
 <li><p>Common tools: <code class="code docutils literal notranslate"><span class="pre">wget</span></code>, <code class="code docutils literal notranslate"><span class="pre">git</span></code>, <code class="code docutils literal notranslate"><span class="pre">unzip</span></code>. The commands in the rest of this guide assume
 that these tools are present on the build system, but they can be replaced by
 other alternatives (such as, for example, manually going to a web page and
@@ -667,18 +661,10 @@ Clone the CUDA Quantum <a class="reference external" href="https://github.com/NV
 checkout the appropriate branch, tag, or commit.
 Note that the build scripts assume that they are run from within a git repository,
 and merely downloading the source code as ZIP archive hence will not work.</p>
-<p>From within the folder where you cloned the CUDA Quantum repository, run the following
-command to build CUDA Quantum:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_WERROR</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
-<span class="nv">CUDAHOSTCXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$CXX</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">CUDAQ_ENABLE_STATIC_LINKING</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">LDFLAGS</span><span class="o">=</span><span class="s1">&#39;-static-libgcc -static-libstdc++&#39;</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;lld;mlir&#39;</span><span class="w"> </span><span class="se">\</span>
-bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-uv
-</pre></div>
-</div>
-<p>Please check the build log printed to the console to confirm that all desired components have been built.
+<p>Please follow the instructions in the respective subsection(s) to build the necessary
+components for using CUDA Quantum from C++ and/or Python.
+After the build, check the build log printed to the console to confirm that all desired
+components have been built.
 In particular, look for a line “Looking for CUDA compiler” in the build output,
 and confirm that it found the installed CUDA compiler, and the correct host compiler
 is used.</p>
@@ -691,9 +677,19 @@ is not properly detected, make sure you followed the
 instructions for installing the necessary prerequisites and build dependencies,
 and have set the necessary environment variables as described in this document.</p>
 </div>
-</section>
-<section id="preparing-the-installation">
-<h2>Preparing the Installation<a class="headerlink" href="#preparing-the-installation" title="Permalink to this heading">¶</a></h2>
+<section id="c-support">
+<span id="cudaq-cpp-from-source"></span><h3>C++ Support<a class="headerlink" href="#c-support" title="Permalink to this heading">¶</a></h3>
+<p>From within the folder where you cloned the CUDA Quantum repository, run the following
+command to build CUDA Quantum:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_WERROR</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAHOSTCXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$CXX</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">LDFLAGS</span><span class="o">=</span><span class="s1">&#39;-static-libgcc -static-libstdc++&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">&#39;clang;lld;mlir&#39;</span><span class="w"> </span><span class="se">\</span>
+bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-uv
+</pre></div>
+</div>
+<p>Note that <code class="code docutils literal notranslate"><span class="pre">lld</span></code> is primarily needed when the build or host system does not already have an existing default linker on its path; CUDA Quantum supports the same linkers as <code class="code docutils literal notranslate"><span class="pre">clang</span></code> does.</p>
 <p>To easily migrate the built binaries to the host system, we recommend creating a
 <a class="reference external" href="https://makeself.io/">self-extracting archive</a>. To do so, download the
 <a class="reference external" href="https://github.com/megastep/makeself">makeself script(s)</a> and move the necessary
@@ -718,13 +714,98 @@ mv<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</spa
 </pre></div>
 </div>
 </section>
+<section id="python-support">
+<span id="cudaq-python-from-source"></span><h3>Python Support<a class="headerlink" href="#python-support" title="Permalink to this heading">¶</a></h3>
+<p>The most convenient way to enable Python support within CUDA Quantum is to build
+a <a class="reference external" href="https://pythonwheels.com/">wheel</a> that can then easily be installed
+using <code class="code docutils literal notranslate"><span class="pre">pip</span></code>. To ensure the wheel can be installed on the host system, make sure to
+use the same Python version for the build as the one that is installed on the host system.
+To build the CUDA Quantum Python wheel, you will need to install the following additional
+Python-specific tools:</p>
+<ul class="simple">
+<li><p>Python development headers: The development headers for your Python version are installed
+in the way as you installed Python itself. If you installed Python via the package manager
+for your system, you may need to install an additional package to get the development headers.
+The package name is usually your python version followed by either a <code class="code docutils literal notranslate"><span class="pre">-dev</span></code> or <code class="code docutils literal notranslate"><span class="pre">-devel</span></code> suffix.
+If you are using a <a class="reference external" href="https://conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-python">Conda environment</a>,
+the necessary headers should already be installed.</p></li>
+<li><p>Pip package manager: Make sure the <code class="code docutils literal notranslate"><span class="pre">pip</span></code> module is enable for your Python version.
+We refer to the Python <a class="reference external" href="https://pip.pypa.io/en/stable/installation/">documentation</a> for
+more information about installing/enabling <code class="code docutils literal notranslate"><span class="pre">pip</span></code>.</p></li>
+<li><p>Python modules: Install the additional modules <code class="code docutils literal notranslate"><span class="pre">numpy</span></code>, <code class="code docutils literal notranslate"><span class="pre">build</span></code>, <code class="code docutils literal notranslate"><span class="pre">auditwheel</span></code>, and <code class="code docutils literal notranslate"><span class="pre">patchelf</span></code> for your
+Python version, e.g. <code class="code docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">numpy</span> <span class="pre">build</span> <span class="pre">auditwheel</span> <span class="pre">patchelf</span></code>.</p></li>
+</ul>
+<p>From within the folder where you cloned the CUDA Quantum repository, run the following
+command to build the CUDA Quantum Python wheel:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span>scripts/install_prerequisites.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAHOSTCXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$CXX</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+python3<span class="w"> </span>-m<span class="w"> </span>build<span class="w"> </span>--wheel
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A version identifier will be automatically assigned to the wheel based on the commit
+history. You can manually override this detection to give a more descriptive identifier
+by setting the environment variable <code class="code docutils literal notranslate"><span class="pre">SETUPTOOLS_SCM_PRETEND_VERSION</span></code> to the desired
+value before building the wheel.</p>
+</div>
+<p>After the initial build, <a class="reference external" href="https://github.com/pypa/auditwheel">auditwheel</a> is used to
+include dependencies in the wheel, if necessary, and correctly label the wheel.
+We recommend not including the CUDA runtime libraries and instead install them separately
+on the host system following the instructions in the next section. The following
+command builds the final wheel, not including CUDA dependencies:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_WHEEL</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>find<span class="w"> </span>.<span class="w"> </span>-name<span class="w"> </span><span class="s1">&#39;cuda_quantum*.whl&#39;</span><span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">MANYLINUX_PLATFORM</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDAQ_WHEEL</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-o<span class="w"> </span><span class="s1">&#39;manylinux_[^\.]*&#39;</span><span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">LD_LIBRARY_PATH</span><span class="si">}</span><span class="s2">:</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/_skbuild/lib&quot;</span><span class="w"> </span><span class="se">\ </span>
+python3<span class="w"> </span>-m<span class="w"> </span>auditwheel<span class="w"> </span>-v<span class="w"> </span>repair<span class="w"> </span><span class="si">${</span><span class="nv">CUDAQ_WHEEL</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--plat<span class="w"> </span><span class="si">${</span><span class="nv">MANYLINUX_PLATFORM</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcublas.so.11<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcublasLt.so.11<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcusolver.so.11<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcutensor.so.1<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcutensornet.so.2<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcustatevec.so.1<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--exclude<span class="w"> </span>libcudart.so.11.0<span class="w"> </span>
+</pre></div>
+</div>
+<p>The command above will create a new wheel in the <code class="code docutils literal notranslate"><span class="pre">wheelhouse</span></code> folder. This wheel can be
+installed on any <a class="reference external" href="https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/">compatible platform</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You can confirm that the wheel is indeed compatible with your host platform by
+checking that the wheel tag (i.e. the file name ending of the <code class="code docutils literal notranslate"><span class="pre">.whl</span></code> file) is listed under
+“Compatible Tags” when running the command <code class="code docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">pip</span> <span class="pre">debug</span> <span class="pre">--verbose</span></code> on the host.</p>
+</div>
+</section>
+</section>
 <section id="installation-on-the-host">
 <h2>Installation on the Host<a class="headerlink" href="#installation-on-the-host" title="Permalink to this heading">¶</a></h2>
-<p>Make sure your host system satisfies the <a class="reference internal" href="#prerequisites">Prerequisites</a> listed above.
-Copy the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file that you created following the instructions
-in the <a class="reference internal" href="#preparing-the-installation">Preparing the Installation</a> section onto the host system, and then
-run the commands</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.*<span class="w"> </span>--accept
+<p>Make sure your host system satisfies the <a class="reference internal" href="#prerequisites">Prerequisites</a> listed above.</p>
+<ul class="simple">
+<li><p>To use CUDA Quantum with C++, you should also make sure that the
+<a class="reference external" href="https://en.cppreference.com/w/cpp/standard_library">C++ standard library</a>
+is installed and discoverable on your host system.
+CUDA Quantum supports the GNU C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code>),
+version 11 or newer. Other libraries may work but can cause issues in certain cases.</p></li>
+<li><p>To use CUDA Quantum with Python, you should have a working
+Python installation on the host system, including the <code class="code docutils literal notranslate"><span class="pre">pip</span></code> package manager.</p></li>
+</ul>
+<p>If you followed the instructions for building the
+<a class="reference internal" href="#cudaq-python-from-source"><span class="std std-ref">CUDA Quantum Python wheel</span></a>,
+copy the built <code class="code docutils literal notranslate"><span class="pre">.whl</span></code> file to the host system, and install it using <code class="code docutils literal notranslate"><span class="pre">pip</span></code>; e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>cuda_quantum*.whl
+</pre></div>
+</div>
+<p>To install the necessary CUDA and MPI dependencies for some of the components,
+you can either follow the instructions on <a class="reference external" href="https://pypi.org/project/cuda-quantum/">PyPI.org</a>,
+replacing <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cuda-quantum</span></code> with the command above, or you can follow the
+instructions in the remaining sections of this document to customize and better
+optimize them for your host system.</p>
+<p>If you followed the instructions for building the
+<a class="reference internal" href="#cudaq-cpp-from-source"><span class="std std-ref">CUDA Quantum C++ tools</span></a>,
+copy the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file that you created to the host system,
+and install it by running the commands</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept
 .<span class="w"> </span>/opt/nvidia/cudaq/set_env.sh
 </pre></div>
 </div>
@@ -740,18 +821,10 @@ the <code class="code docutils literal notranslate"><span class="pre">/etc/profi
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>CUDA Quantum is configured to use its own linker, meaning the
-<a class="reference external" href="https://lld.llvm.org/">LLD</a> linker, by default. While this linker should be
-a drop-in replacement for system linkers, in rare cases it may be necessary to use
-your own linker instead. You can configure CUDA Quantum to use an external linker
-setting the <code class="code docutils literal notranslate"><span class="pre">NVQPP_LD_PATH</span></code> environment variable to point to it; for example
-<code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">NVQPP_LD_PATH=ld</span></code>.</p>
+<p>CUDA Quantum includes its own linker, specifically the <a class="reference external" href="https://lld.llvm.org/">LLD</a>
+linker. You can customize which linker the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler uses by setting the
+<code class="code docutils literal notranslate"><span class="pre">NVQPP_LD_PATH</span></code> environment variable; for example <code class="code docutils literal notranslate"><span class="pre">export</span> <span class="pre">NVQPP_LD_PATH=ld</span></code>.</p>
 </div>
-<p>To enable C++ development in general, you should also make sure that the
-<a class="reference external" href="https://en.cppreference.com/w/cpp/standard_library">C++ standard library</a>
-is installed and discoverable on your host system.
-CUDA Quantum supports the GNU C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code>),
-version 11 or newer. Other libraries may work but can cause issues in certain cases.</p>
 <p>The remaining sections in this document list additional runtime dependencies
 that are not included in the migrated assets and are needed to use some of the
 CUDA Quantum features and components.</p>
@@ -855,6 +928,12 @@ setting the environment variable <code class="code docutils literal notranslate"
 and then running the command</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_QUANTUM_PATH</span><span class="si">}</span><span class="s2">/distributed_interfaces/activate_custom_mpi.sh&quot;</span>
 </pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To activate the MPI plugin for the Python support, replace <code class="code docutils literal notranslate"><span class="pre">${CUDA_QUANTUM_PATH}</span></code>
+with the path that is listed under “Location” when you run the command
+<code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">show</span> <span class="pre">cuda-quantum</span></code>.</p>
 </div>
 <p>If you use a different MPI implementation than OpenMPI or MPICH, you will need to
 implement the necessary plugin interface yourself prior to activating the plugin
