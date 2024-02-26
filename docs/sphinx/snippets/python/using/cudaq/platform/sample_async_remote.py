@@ -27,27 +27,17 @@ if __name__ == '__main__':
     servers = args.servers
 
     # Define a kernel to be sampled.
-    kernel, nr_controls = cudaq.make_kernel(int)
-    controls = kernel.qalloc(nr_controls)
-    targets = kernel.qalloc(2)
-    kernel.h(controls)
-    for tidx in range(2):
-        kernel.cx(controls, targets[tidx])
-    kernel.mz(controls)
-    kernel.mz(targets)
-    
-    # FIXME::
-    # @cudaq.kernel
-    # def kernel(controls_count: int):
-    #     controls = cudaq.qvector(controls_count)
-    #     targets = cudaq.qvector(2)
-    #     # Place controls in superposition state.
-    #     h(controls)
-    #     for target in range(2):
-    #         x.ctrl(controls, targets[target])
-    #     # Measure.
-    #     mz(controls)
-    #     mz(targets)
+    @cudaq.kernel
+    def kernel(controls_count: int):
+        controls = cudaq.qvector(controls_count)
+        targets = cudaq.qvector(2)
+        # Place controls in superposition state.
+        h(controls)
+        for target in range(2):
+            x.ctrl(controls, targets[target])
+        # Measure.
+        mz(controls)
+        mz(targets)
 
     # Set the target to execute on and query the number of QPUs in the system;
     # The number of QPUs is equal to the number of (auto-)launched server instances.

@@ -13,19 +13,12 @@ cudaq.mpi.initialize()
 cudaq.set_target("nvidia-mqpu")
 
 # Define spin ansatz.
-kernel, theta = cudaq.make_kernel(float)
-qvec = kernel.qalloc(2)
-kernel.x(qvec[0])
-kernel.ry(theta, qvec[1])
-kernel.cx(qvec[1], qvec[0])
-
-# FIXME:: Hangs
-# @cudaq.kernel
-# def kernel(angle: float):
-#     qvector = cudaq.qvector(2)
-#     x(qvector[0])
-#     ry(angle, qvector[1])
-#     x.ctrl(qvector[1], qvector[0])
+@cudaq.kernel
+def kernel(angle: float):
+    qvector = cudaq.qvector(2)
+    x(qvector[0])
+    ry(angle, qvector[1])
+    x.ctrl(qvector[1], qvector[0])
 
 
 # Define spin Hamiltonian.

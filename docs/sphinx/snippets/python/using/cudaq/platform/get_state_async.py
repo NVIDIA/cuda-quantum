@@ -10,8 +10,8 @@ import cudaq
 
 cudaq.set_target("nvidia-mqpu")
 target = cudaq.get_target()
-num_qpus = target.num_qpus()
-print("Number of QPUs:", num_qpus)
+qpu_count = target.num_qpus()
+print("Number of QPUs:", qpu_count)
 
 @cudaq.kernel
 def kernel():
@@ -22,7 +22,7 @@ def kernel():
         x.ctrl(qvector[qubit], qvector[qubit+1])
 
 state_futures = []
-for qpu in range(num_qpus):
+for qpu in range(qpu_count):
     state_futures.append(cudaq.get_state_async(kernel, qpu_id=qpu))
 
 for state in state_futures:
