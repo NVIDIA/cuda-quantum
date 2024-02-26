@@ -75,12 +75,26 @@ env:
   python_version: 3.10
 
 jobs:
+  # We need this job purely to choose the container image values because the
+  # `env` context is unavailable outside of "steps" contexts.
+  setup:
+    name: Set variables
+    runs-on: ubuntu-latest
+    outputs:
+      cudaq_test_image: ${{ steps.vars.outputs.cudaq_test_image }}
+    steps:
+      - name: Set variables
+        id: vars
+        run: |
+          echo "cudaq_test_image=${{ inputs.cudaq_test_image || env.cudaq_test_image }}" >> $GITHUB_OUTPUT
+
   metadata:
     name: Retrieve commit info
     runs-on: ubuntu-latest
+    needs: setup
     environment: backend-validation
     container:
-      image: ${{ inputs.cudaq_test_image || env.cudaq_test_image }}
+      image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
     outputs:
       cudaq_commit: ${{ steps.commit-sha.outputs.sha }}
@@ -121,7 +135,7 @@ jobs:
         with:
           registry: nvcr.io
           username: '$oauthtoken'
-          password: ${{ secrets.NGC_CREDENTIALS  }}
+          password: ${{ secrets.NGC_CREDENTIALS }}
 
       - name: Build NVQC image
         id: docker_build
@@ -161,7 +175,7 @@ jobs:
       - name: Deploy NVQC Function
         id: deploy
         env:
-          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS  }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
@@ -194,10 +208,10 @@ jobs:
   hardware_providers_integration_test:
     name: Integration test with hardware providers
     runs-on: ubuntu-latest
-    needs: [metadata]
+    needs: [setup, metadata]
     environment: backend-validation
     container:
-      image: ${{ inputs.cudaq_test_image || env.cudaq_test_image }}
+      image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
 
     steps:
@@ -418,10 +432,10 @@ jobs:
     name: NVQC integration test using Docker image
     runs-on: ubuntu-latest
     if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
-    needs: [metadata, build_nvqc_image, deploy_nvqc_test_function]
+    needs: [setup, metadata, build_nvqc_image, deploy_nvqc_test_function]
     environment: ghcr-deployment
     container:
-      image: ${{ inputs.cudaq_test_image || env.cudaq_test_image }}
+      image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
 
     steps:
@@ -683,7 +697,7 @@ jobs:
 
       - name: Cleanup
         env:
-          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS  }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
