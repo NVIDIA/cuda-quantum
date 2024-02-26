@@ -157,14 +157,14 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ]; then
 
     wget https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
     tar -xzvf zlib-1.3.tar.gz && cd zlib-1.3
-    CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+    CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
-    make && make install
+    make CC="$CC" && make install
     cd contrib/minizip 
     autoreconf --install 
-    CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+    CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
-    make && make install
+    make CC="$CC" && make install
     cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
     remove_temp_installs
   else
@@ -184,8 +184,10 @@ if [ -n "$LLVM_INSTALL_PREFIX" ]; then
   if [ "$toolchain" = "llvm" ]; then
     export CC="$LLVM_INSTALL_PREFIX/bin/clang" 
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+    export FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
     echo "Configured C compiler: $CC"
     echo "Configured C++ compiler: $CXX"
+    echo "Configured Fortran compiler: $FC"
   fi
 fi
 
@@ -196,17 +198,14 @@ if [ -n "$BLAS_INSTALL_PREFIX" ]; then
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
     if [ ! -x "$(command -v "$FC")" ]; then
-      temp_install_if_command_unknown gcc gcc
-      temp_install_if_command_unknown g++ g++
+      unset FC
       temp_install_if_command_unknown gfortran gfortran
-    elif [ ! -x "gfortran" ]; then
-      ln -s "$FC" /usr/bin/gfortran
     fi
 
     # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
     wget http://www.netlib.org/blas/blas-3.11.0.tgz
     tar -xzvf blas-3.11.0.tgz 
-    cd BLAS-3.11.0 && make 
+    cd BLAS-3.11.0 && make FC="${FC:-gfortran}"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
     cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
@@ -229,16 +228,16 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ]; then
     wget https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
     tar -xzf perl-5.38.2.tar.gz && cd perl-5.38.2
     ./Configure -des -Dcc="$CC" -Dprefix=~/.perl5
-    make && make install
+    make CC="$CC" && make install
     cd .. && rm -rf perl-5.38.2.tar.gz perl-5.38.2
     # Additional perl modules can be installed with cpan, e.g.
     # PERL_MM_USE_DEFAULT=1 ~/.perl5/bin/cpan App::cpanminus
 
     wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
     tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
-    CFLAGS="-fPIC" CXXFLAGS="-fPIC" \
+    CC="$CC" CFLAGS="-fPIC" CXX="$CXX" CXXFLAGS="-fPIC" \
     ~/.perl5/bin/perl Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
-    make && make install
+    make CC="$CC" CXX="$CXX" && make install
     cd .. && rm -rf openssl-3.1.1.tar.gz openssl-3.1.1 ~/.perl5
     remove_temp_installs
   else
@@ -280,7 +279,7 @@ if [ -n "$CURL_INSTALL_PREFIX" ]; then
     # determine and pass a suitable path.
     wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
     tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
-    CFLAGS="-fPIC" CXXFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
+    CC="$CC" CFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
     ./configure --prefix="$CURL_INSTALL_PREFIX" \
       --enable-shared=no --enable-static=yes \
       --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
@@ -290,7 +289,7 @@ if [ -n "$CURL_INSTALL_PREFIX" ]; then
       --disable-smb --disable-gopher --disable-telnet --disable-rtsp \
       --disable-pop3 --disable-imap --disable-file  --disable-dict \
       --disable-versioned-symbols --disable-manual
-    make && make install
+    make CC="$CC" && make install
     cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0
     remove_temp_installs
   else
