@@ -14,14 +14,17 @@ import cudaq
 # ```
 cudaq.set_target("nvcf")
 
-num_qubits = 20
-kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(num_qubits)
-# Place qubits in GHZ state.
-kernel.h(qubits[0])
-for i in range(num_qubits - 1):
-    kernel.cx(qubits[i], qubits[i + 1])
 
-state = cudaq.get_state(kernel)
+@cudaq.kernel
+def ghz(qubit_count: int):
+    qvector = cudaq.qvector(qubit_count)
+    # Place qubits in GHZ state.
+    h(qvector[0])
+    for qubit in range(qubit_count - 1):
+        x.ctrl(qvector[qubit], qvector[qubit + 1])
+
+
+qubit_count = 20
+state = cudaq.get_state(ghz, qubit_count)
 print("Amplitude(00..00) =", state[0])
-print("Amplitude(11..11) =", state[2**num_qubits - 1])
+print("Amplitude(11..11) =", state[2**qubit_count - 1])

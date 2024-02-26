@@ -15,15 +15,18 @@ import cudaq
 # ```
 cudaq.set_target("nvcf", backend="tensornet")
 
-num_qubits = 50
-kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(num_qubits)
-# Place qubits in superposition state.
-kernel.h(qubits[0])
-for i in range(num_qubits - 1):
-    kernel.cx(qubits[i], qubits[i + 1])
-# Measure.
-kernel.mz(qubits)
 
-counts = cudaq.sample(kernel, shots_count=100)
+@cudaq.kernel
+def ghz(qubit_count: int):
+    qvector = cudaq.qvector(qubit_count)
+    # Place qubits in GHZ state.
+    h(qvector[0])
+    for qubit in range(qubit_count - 1):
+        x.ctrl(qvector[qubit], qvector[qubit + 1])
+    # Measure.
+    mz(qvector)
+
+
+qubit_count = 50
+counts = cudaq.sample(ghz, qubit_count, shots_count=100)
 print(counts)
