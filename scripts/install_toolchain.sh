@@ -71,7 +71,7 @@ if [ "${toolchain#gcc}" != "$toolchain" ]; then
     elif [ -x "$(command -v dnf)" ]; then
         dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-$gcc_version
         enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"
-        gcc_root=`dirname "$enable_script"
+        gcc_root=`dirname "$enable_script"`
         CC="$(find_executable gcc "$gcc_root")"
         CXX="$(find_executable g++ "$gcc_root")"
         FC="$(find_executable gfortran "$gcc_root")"
