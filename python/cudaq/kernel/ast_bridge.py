@@ -117,6 +117,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.knownResultType = mlirTypeFromPyType(self.knownResultType,
                                                       self.ctx)
 
+        self.capturedVars = kwargs[
+            'capturedVariables'] if 'capturedVariables' in kwargs else {}
         self.locationOffset = kwargs[
             'locationOffset'] if 'locationOffset' in kwargs else ('', 0)
         self.disableEntryPointTag = kwargs[
@@ -2619,6 +2621,13 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(self.symbolTable[node.id])
             return
 
+        # Throw a specific error if the user tries to use
+        # a variable from parent scope.
+        if node.id in self.capturedVars:
+            self.emitFatalError(
+                f"Invalid variable requested - `{node.id}` was defined in the kernel's parent scope. CUDA Quantum does not support capturing variables from parent scope (variables must be defined as input arguments or within the kernel function body)."
+            )
+
         # Throw an exception for the case that the name is not
         # in the symbol table
         self.emitFatalError(
@@ -2643,12 +2652,15 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     verbose = 'verbose' in kwargs and kwargs['verbose']
     returnType = kwargs['returnType'] if 'returnType' in kwargs else None
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
+    parentVariables = kwargs[
+        'parentVariables'] if 'parentVariables' in kwargs else {}
 
     # Create the AST Bridge
     bridge = PyASTBridge(verbose=verbose,
                          knownResultType=returnType,
                          returnTypeIsFromPython=True,
-                         locationOffset=lineNumberOffset)
+                         locationOffset=lineNumberOffset,
+                         capturedVariables=parentVariables)
 
     # First validate the arguments, make sure they are annotated
     bridge.validateArgumentAnnotations(astModule)

@@ -45,6 +45,10 @@ class PyKernelDecorator(object):
                          inspect.getsourcelines(self.kernelFunction)[1]
                         ) if self.kernelFunction is not None else ('', 0)
 
+        # Get any global variables from parent scope.
+        self.globalScopedVars = dict(inspect.getmembers(
+            inspect.stack()[2][0]))['f_locals']
+
         if self.kernelFunction is None:
             if self.module is not None:
                 # Could be that we don't have a function
@@ -116,11 +120,13 @@ class PyKernelDecorator(object):
         if self.module != None:
             return
 
-        self.module, self.argTypes = compile_to_mlir(self.astModule,
-                                                     self.metadata,
-                                                     verbose=self.verbose,
-                                                     returnType=self.returnType,
-                                                     location=self.location)
+        self.module, self.argTypes = compile_to_mlir(
+            self.astModule,
+            self.metadata,
+            verbose=self.verbose,
+            returnType=self.returnType,
+            location=self.location,
+            parentVariables=self.globalScopedVars)
 
     def __str__(self):
         """
