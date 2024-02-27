@@ -82,6 +82,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    runtime/cudaq/algorithms/py_optimizer.cpp 
    runtime/cudaq/algorithms/py_vqe.cpp
    runtime/cudaq/algorithms/py_state.cpp
+   runtime/cudaq/algorithms/py_draw.cpp
    ../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
    ../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
 
