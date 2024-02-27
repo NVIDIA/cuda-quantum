@@ -13,7 +13,7 @@ import time
 
 # This reverse proxy application is needed to span the small gaps when
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
-# allows the NVCF port (3030) to remain up while allowing the main cudaq-qpud
+# allows the NVCF port (3030) to remain up while allowing the main `cudaq-qpud`
 # application to restart if necessary.
 
 # Queue for storing requests
@@ -22,7 +22,7 @@ request_queue = queue.Queue()
 # NVCF max payload is ~250KB. Round up to 1MB.
 MAX_SIZE_BYTES = 1000000
 NVCF_PORT = 3030
-CUDAQ_QPUD_PORT = 3031  # see cudaq.nvqc.Dockerfile
+CUDAQ_QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
 
 
 # Handle incoming client connections and queue their requests
@@ -31,14 +31,13 @@ def handle_client(client_socket):
     request_queue.put((client_socket, request))
 
 
-# Forward requests from the queue to cudaq-qpud
+# Forward requests from the queue to `cudaq-qpud`
 def forward_requests_to_application():
     retry_count = 0
     while True:
         if not request_queue.empty():
             client_socket, request = request_queue.get(block=True, timeout=None)
             try:
-                # Assuming your application listens on localhost
                 with socket.create_connection(
                     ("localhost", CUDAQ_QPUD_PORT)) as app_socket:
                     app_socket.sendall(request)
@@ -69,7 +68,6 @@ def start_proxy_server():
 
         while True:
             client_socket, addr = server_socket.accept()
-            #print(f"Accepted connection from {addr}")
             Thread(target=handle_client, args=(client_socket,)).start()
 
 
