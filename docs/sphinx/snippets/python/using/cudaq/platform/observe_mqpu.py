@@ -14,6 +14,7 @@ target = cudaq.get_target()
 num_qpus = target.num_qpus()
 print("Number of QPUs:", num_qpus)
 
+
 # Define spin ansatz.
 @cudaq.kernel
 def kernel(angle: float):
@@ -21,6 +22,7 @@ def kernel(angle: float):
     x(qvector[0])
     ry(angle, qvector[1])
     x.ctrl(qvector[1], qvector[0])
+
 
 # Define spin Hamiltonian.
 hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(

@@ -13,13 +13,15 @@ target = cudaq.get_target()
 qpu_count = target.num_qpus()
 print("Number of QPUs:", qpu_count)
 
+
 @cudaq.kernel
 def kernel():
     qvector = cudaq.qvector(5)
     # Place qubits in GHZ State
     h(qvector[0])
     for qubit in range(4):
-        x.ctrl(qvector[qubit], qvector[qubit+1])
+        x.ctrl(qvector[qubit], qvector[qubit + 1])
+
 
 state_futures = []
 for qpu in range(qpu_count):

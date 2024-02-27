@@ -13,6 +13,7 @@ target = cudaq.get_target()
 qpu_count = target.num_qpus()
 print("Number of QPUs:", qpu_count)
 
+
 @cudaq.kernel
 def kernel(qubit_count: int):
     qvector = cudaq.qvector(qubit_count)
@@ -20,6 +21,7 @@ def kernel(qubit_count: int):
     h(qvector)
     # Measure.
     mz(qvector)
+
 
 count_futures = []
 for qpu in range(qpu_count):

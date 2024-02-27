@@ -12,6 +12,7 @@ from cudaq import spin
 cudaq.mpi.initialize()
 cudaq.set_target("nvidia-mqpu")
 
+
 # Define spin ansatz.
 @cudaq.kernel
 def kernel(angle: float):
