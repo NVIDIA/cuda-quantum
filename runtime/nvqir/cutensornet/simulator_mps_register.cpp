@@ -23,6 +23,7 @@ class SimulatorMPS : public SimulatorTensorNetBase {
   std::vector<MPSTensor> m_mpsTensors_d;
 
 public:
+
   SimulatorMPS() : SimulatorTensorNetBase() {
     if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
       const std::string maxBondStr(maxBondEnvVar);
@@ -101,6 +102,7 @@ public:
   }
 
   virtual std::string name() const override { return "tensornet-mps"; }
+
   CircuitSimulator *clone() override {
     thread_local static auto simulator = std::make_unique<SimulatorMPS>();
     return simulator.get();
@@ -108,8 +110,8 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
-    return std::make_unique<MPSSimulationState>(m_state.release(), m_maxBond,
-                                                m_absCutoff, m_relCutoff);
+    std::vector<MPSTensor> tensors = m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+    return std::make_unique<MPSSimulationState>(m_state.release(), tensors);
   }
 
   virtual ~SimulatorMPS() noexcept {
@@ -119,6 +121,7 @@ public:
     m_mpsTensors_d.clear();
   }
 };
+
 } // end namespace nvqir
 
 NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS, tensornet_mps)

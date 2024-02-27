@@ -19,7 +19,7 @@ namespace nvqir {
 
 /// @brief An MPSTensor is a representation
 /// of a MPS tensor and encapsulates the
-/// tensor devide data and the tensor extents.
+/// tensor device data and the tensor extents.
 struct MPSTensor {
   void *deviceData = nullptr;
   std::vector<int64_t> extents;

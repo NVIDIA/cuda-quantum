@@ -20,16 +20,25 @@ namespace nvqir {
 
 class MPSSimulationState : public TensorNetSimulationState {
 
-protected:
-  int64_t maxBond = 0;
-  double absCutoff = 1e-6;
-  double relCutoff = 1e-6;
-
 public:
-  MPSSimulationState(TensorNetState *inState, int64_t inMaxBond,
-                     double inAbsCutoff, double inRelCutoff);
+
+  MPSSimulationState(TensorNetState *inState,
+                     const std::vector<MPSTensor> & mpsTensors);
+
+  MPSSimulationState(const MPSSimulationState &) = delete;
+  MPSSimulationState & operator=(const MPSSimulationState &) = delete;
+  MPSSimulationState(MPSSimulationState &&) noexcept = default;
+  MPSSimulationState & operator=(MPSSimulationState && ) noexcept = default;
+
+  virtual ~MPSSimulationState();
 
   double overlap(const cudaq::SimulationState &other) override;
+
+protected:
+
+  void deallocate();
+
+  std::vector<MPSTensor> m_mpsTensors;
 };
 
 } // namespace nvqir
