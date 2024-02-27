@@ -507,11 +507,9 @@ public:
           std::find(MULTI_GPU_BACKENDS.begin(), MULTI_GPU_BACKENDS.end(),
                     backendSimName) == MULTI_GPU_BACKENDS.end() &&
           !printOnce) {
-        std::cout << "The requested simulator (" << backendSimName
+        std::cout << "The requested backend simulator (" << backendSimName
                   << ") is not capable of using all "
-                  << m_availableFuncs[m_functionId]
-                  << " GPUs available for NVQC function " << m_functionId
-                  << ".\n";
+                  << m_availableFuncs[m_functionId] << " GPUs requested.\n";
         std::cout << "Only one GPU will be used for simulation.\n";
         std::cout << "Please refer to CUDA Quantum documentation for a list of "
                      "multi-GPU capable simulator backends.\n";
