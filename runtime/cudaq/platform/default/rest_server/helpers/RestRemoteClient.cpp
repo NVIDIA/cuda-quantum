@@ -280,7 +280,7 @@ public:
 class NvcfRuntimeClient : public RemoteRestRuntimeClient {
 private:
   // None: Don't log; Info: basic info; Trace: Timing data per invocation.
-  enum LogLevel : int { None = 0, Info, Trace };
+  enum class LogLevel : int { None = 0, Info, Trace };
   // NVQC logging level
   // Enabled high-level info log by default (can be set by an environment
   // variable)
