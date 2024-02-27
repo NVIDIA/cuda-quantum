@@ -14,7 +14,7 @@ hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
 
 
 @cudaq.kernel
-def kernel(angles: list[float]):
+def kernel(angles: List[float]):
     qvector = cudaq.qvector(2)
     x(qvector[0])
     ry(angles[0], qvector[1])
