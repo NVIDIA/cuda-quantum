@@ -6,14 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && CUDAQ_DUMP_JIT_IR=1 %t &> %basename_t.ir && cat %basename_t.ir | FileCheck %s && rm -f %basename_t.ir
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>
 
-// A pure device quantum kernel defined as a free function
-// (cannot be called from host code).
+// A pure device quantum kernel defined as a free function (cannot be called
+// from host code).
 __qpu__ void iqft(cudaq::qview<> q) {
   int N = q.size();
   // Swap qubits
@@ -34,10 +36,9 @@ __qpu__ void iqft(cudaq::qview<> q) {
   h(q[N - 1]);
 }
 
-// CUDA Quantum kernel call operators can be templated on
-// input CUDA Quantum kernel expressions. Here we define a general
-// Phase Estimation algorithm that is generic on the eigenstate
-// preparation and unitary evolution steps.
+// CUDA Quantum kernel call operators can be templated on input CUDA Quantum
+// kernel expressions. Here we define a general Phase Estimation algorithm that
+// is generic on the eigenstate preparation and unitary evolution steps.
 struct qpe {
 
   // Define the CUDA Quantum call expression to take user-specified eigenstate
@@ -49,8 +50,8 @@ struct qpe {
     // Allocate a register of qubits
     cudaq::qvector q(nCountingQubits + 1);
 
-    // Extract sub-registers, one for the counting qubits
-    // another for the eigenstate register
+    // Extract sub-registers, one for the counting qubits another for the
+    // eigenstate register
     auto counting_qubits = q.front(nCountingQubits);
     auto &state_register = q.back();
 
