@@ -701,7 +701,7 @@ public:
 
           // If trace logging mode is enabled, log timing data for each request.
           if (m_logLevel == LogLevel::Trace) {
-            printf("\n===== NVQC Execution timing ===== \n");
+            printf("\n===== NVQC Execution Timing ===== \n");
             printf(" - Pre-processing: %ld milliseconds \n",
                    info.simulationStart - info.requestStart);
             printf(" - Execution: %ld milliseconds \n",
