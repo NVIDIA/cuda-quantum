@@ -174,15 +174,40 @@ cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 # - LIBRARY_PATH to find the built libc++ binaries
 # - CUDAHOSTCXX="$CXX", since otherwise CUDA check was unhappy
 # FIXME: make CLANG_RESOURCE_DIR the relative path ../
-cmake_args="-G Ninja ../llvm \
-  -DLLVM_TARGETS_TO_BUILD="host" \
+cmake_general_args=" \
+  -DLLVM_TARGETS_TO_BUILD=host \
   -DCMAKE_BUILD_TYPE=$build_configuration \
-  -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
-  -DCLANG_RESOURCE_DIR="../" \
-  -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
-  -DLLVM_ENABLE_RUNTIMES="$llvm_runtimes" \
+  -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
+  -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
+  -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
+  -DLLVM_ENABLE_BINDINGS=OFF \
+  -DLLVM_ENABLE_ASSERTIONS=ON \
+  -DLLVM_OPTIMIZED_TABLEGEN=ON \
+  -DLLVM_INSTALL_UTILS=ON \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+
+cmake_component_args=" \
+  -DLLVM_ENABLE_PROJECTS='"$llvm_projects"' \
+  -DLLVM_ENABLE_RUNTIMES='"$llvm_runtimes"' \
+  -DLLVM_DISTRIBUTION_COMPONENTS='"$llvm_components"' \
+  -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
+  -DZLIB_ROOT='"$ZLIB_INSTALL_PREFIX"' \
+  -DZLIB_USE_STATIC_LIBS=TRUE \
+  -DLLVM_ENABLE_ZSTD=OFF"
+
+cmake_defaults_args=" \
+  -DCLANG_RESOURCE_DIR='../' \
+  -DCMAKE_INSTALL_RPATH="'$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib'" \
   -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
-  -DLLVM_DISTRIBUTION_COMPONENTS="$llvm_components" \
+  -DCLANG_DEFAULT_CXX_STDLIB=libc++ \
+  -DCLANG_DEFAULT_RTLIB=compiler-rt \
+  -DCLANG_DEFAULT_UNWINDLIB=libunwind \
+  -DCLANG_DEFAULT_OPENMP_RUNTIME=libomp \
+  -DCLANG_DEFAULT_LINKER=lld \
+  -DCMAKE_CXX_FLAGS='-w'"
+
+#  -DLIBUNWIND_ENABLE_SHARED=OFF"
+cmake_rtdeps_args=" \
   -DLLVM_ENABLE_LIBCXX=ON \
   -DLIBCXX_CXX_ABI=libcxxabi \
   -DLIBCXX_USE_COMPILER_RT=ON \
@@ -192,34 +217,23 @@ cmake_args="-G Ninja ../llvm \
   -DCOMPILER_RT_USE_LIBCXX=ON \
   -DLIBCXX_HAS_GCC_LIB=FALSE \
   -DLIBCXX_HAS_GCC_S_LIB=FALSE \
-  -DLIBCXX_HAS_ATOMIC_LIB=FALSE \
-  -DLIBUNWIND_ENABLE_SHARED=OFF \
-  -DCLANG_DEFAULT_CXX_STDLIB=libc++ \
-  -DCLANG_DEFAULT_RTLIB=compiler-rt \
-  -DCLANG_DEFAULT_UNWINDLIB=libunwind \
-  -DCLANG_DEFAULT_OPENMP_RUNTIME=libomp \
-  -DCLANG_DEFAULT_LINKER=lld \
-  -DLLVM_ENABLE_BINDINGS=OFF \
-  -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
-  -DPython3_EXECUTABLE="$Python3_EXECUTABLE" \
-  -DLLVM_ENABLE_ASSERTIONS=ON \
-  -DLLVM_OPTIMIZED_TABLEGEN=ON \
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_INSTALL_RPATH='$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib' \
-  -DLLVM_BUILD_EXAMPLES=OFF \
-  -DLLVM_BUILD_TESTS=OFF \
-  -DLLVM_INCLUDE_TESTS=OFF \
-  -DLLVM_ENABLE_OCAMLDOC=OFF \
-  -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
-  -DZLIB_ROOT=${ZLIB_INSTALL_PREFIX} \
-  -DZLIB_USE_STATIC_LIBS=TRUE \
-  -DLLVM_ENABLE_ZSTD=OFF \
-  -DLLVM_INSTALL_UTILS=ON \
-  -DCMAKE_CXX_FLAGS='-w'"
+  -DLIBCXX_HAS_ATOMIC_LIB=FALSE"
+
 if $verbose; then
-  cmake $cmake_args
+  read __xtrace__ < <(echo $SHELLOPTS | egrep -o '(^|:)xtrace(:|$)' || echo)
+  set -x && cmake -G Ninja ../llvm \
+    $cmake_general_args \
+    $cmake_component_args \
+    $cmake_defaults_args \
+    $cmake_rtdeps_args
+  if [ -z "$__xtrace__" ]; then set +x; fi
 else
-  cmake $cmake_args 2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  cmake -G Ninja ../llvm \
+    $cmake_general_args \
+    $cmake_component_args \
+    $cmake_defaults_args \
+    $cmake_rtdeps_args \
+  2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
 # Build and install clang in a folder
