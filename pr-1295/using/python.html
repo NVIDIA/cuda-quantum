@@ -573,9 +573,9 @@ and define a kernel for the Bernstein-Vazirani algorithm.  Then, we simulate the
 <span class="c1"># the `cudaq.set_target(nvidia)` line.</span>
 
 <span class="c1"># Note: Without setting the target to the `nvidia` backend,</span>
-<span class="c1"># a 30 qubit simulation simply seems to hang; that is</span>
-<span class="c1"># because it takes a long time for the CPU-only backend</span>
-<span class="c1"># to handle this number of qubits!</span>
+<span class="c1"># there will be a noticeable decrease in simulation performance.</span>
+<span class="c1"># This is because the CPU-only backend has difficulty handling</span>
+<span class="c1"># 30+ qubit simulations.</span>
 
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># set to around 30 qubits for `nvidia` target</span>
 <span class="c1"># ```</span>
