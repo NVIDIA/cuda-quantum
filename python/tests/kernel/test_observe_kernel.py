@@ -157,6 +157,30 @@ def test_broadcast():
     print(energies)
     assert len(energies) == 50
 
+
+    qubit_count = 5
+    sample_count = 10
+    spin_z = spin.z(0)
+    parameter_count = qubit_count
+
+    # Below we run a circuit for 10000 different input parameters.
+    parameters = np.random.default_rng(13).uniform(low=0,
+                                                high=1,
+                                                size=(sample_count, parameter_count))
+
+    @cudaq.kernel
+    def kernel(qubit_count: int, parameters: List[float]):
+        qvector = cudaq.qvector(qubit_count)
+        for i in range(qubit_count-1):
+            rx(parameters[i], qvector[i])
+
+    # Has to fail, user passed a single `qubit_count` with a broadcast call
+    with pytest.raises(RuntimeError) as e:
+        result = cudaq.observe(kernel, spin_z, qubit_count, parameters)
+    
+    results = cudaq.observe(kernel, spin_z, [qubit_count]*sample_count, parameters)
+    print([r for r in results])
+
 @skipIfPythonLessThan39
 def test_broadcast_py39Plus():
 

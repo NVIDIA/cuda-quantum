@@ -32,6 +32,7 @@ enum class PyParType { thread, mpi };
 std::tuple<bool, std::string> isValidObserveKernel(py::object &kernel) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
+
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
 
