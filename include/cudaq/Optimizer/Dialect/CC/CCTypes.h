@@ -20,3 +20,16 @@
 
 #define GET_TYPEDEF_CLASSES
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h.inc"
+
+namespace cudaq::cc {
+
+/// Return true if and only if \p ty has dynamic extent. This is a recursive
+/// test on composable types.
+bool isDynamicType(mlir::Type ty);
+
+/// Determine the number of hidden arguments, which is 0, 1, or 2.
+inline unsigned numberOfHiddenArgs(bool thisPtr, bool sret) {
+  return (thisPtr ? 1 : 0) + (sret ? 1 : 0);
+}
+
+} // namespace cudaq::cc

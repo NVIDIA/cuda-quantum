@@ -12,18 +12,15 @@
 // RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void bar(cudaq::qubit& q) {
-  x(q);
-}
+__qpu__ void bar(cudaq::qubit &q) { x(q); }
 
 struct baz {
-  __qpu__ void operator()(cudaq::qubit& q) {
-    x(q);
-  }
+  __qpu__ void operator()(cudaq::qubit &q) { x(q); }
 };
 
 struct foo {
