@@ -25,6 +25,7 @@
 # and OpenMP support within Clang, see
 # - https://clang.llvm.org/docs/Toolchain.html
 # - https://llvm.org/docs/AdvancedBuilds.html
+# - https://github.com/llvm/llvm-project/tree/main/clang/cmake/caches
 # - https://github.com/llvm/llvm-project/blob/main/openmp/docs/SupportAndFAQ.rst#q-how-to-build-an-openmp-gpu-offload-capable-compiler
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
@@ -160,80 +161,46 @@ cat "../llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 
 # Generate CMake files; -DCLANG_RESOURCE_DIR=...
-#  -DLIBCXXABI_ENABLE_SHARED=OFF \
-#  -DLIBUNWIND_ENABLE_SHARED=OFF \
-#  -DLIBCXX_ENABLE_SHARED=OFF \
 #  -DBOOTSTRAP_LLVM_ENABLE_LLD=TRUE \
-#  -DLIBCXX_STATICALLY_LINK_ABI_IN_STATIC_LIBRARY=ON 
-#  -DLIBCXXABI_STATICALLY_LINK_UNWINDER_IN_STATIC_LIBRARY=ON
-#  -DLIBCXX_ENABLE_STATIC_ABI_LIBRARY - see https://libcxx.llvm.org/BuildingLibcxx.html
-#  -DLIBCXX_HERMETIC_STATIC_LIBRARY - see https://libcxx.llvm.org/BuildingLibcxx.html
-# see also https://github.com/llvm/llvm-project/issues/62114
 # variables set manually: 
 # - LD_LIBRARY_PATH to find the built libc++ binaries
 # - LIBRARY_PATH to find the built libc++ binaries
 # - CUDAHOSTCXX="$CXX", since otherwise CUDA check was unhappy
-# FIXME: make CLANG_RESOURCE_DIR the relative path ../
-cmake_general_args=" \
-  -DLLVM_TARGETS_TO_BUILD=host \
+cmake_args=" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
-  -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
-  -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
-  -DLLVM_ENABLE_BINDINGS=OFF \
-  -DLLVM_ENABLE_ASSERTIONS=ON \
-  -DLLVM_OPTIMIZED_TABLEGEN=ON \
-  -DLLVM_INSTALL_UTILS=ON \
-  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-
-cmake_component_args=" \
   -DLLVM_ENABLE_PROJECTS='"$llvm_projects"' \
   -DLLVM_ENABLE_RUNTIMES='"$llvm_runtimes"' \
   -DLLVM_DISTRIBUTION_COMPONENTS='"$llvm_components"' \
   -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
   -DZLIB_ROOT='"$ZLIB_INSTALL_PREFIX"' \
-  -DZLIB_USE_STATIC_LIBS=TRUE \
-  -DLLVM_ENABLE_ZSTD=OFF"
-
-cmake_defaults_args=" \
-  -DCLANG_RESOURCE_DIR='../' \
-  -DCMAKE_INSTALL_RPATH="'$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib'" \
-  -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=OFF \
-  -DCLANG_DEFAULT_CXX_STDLIB=libc++ \
-  -DCLANG_DEFAULT_RTLIB=compiler-rt \
-  -DCLANG_DEFAULT_UNWINDLIB=libunwind \
-  -DCLANG_DEFAULT_OPENMP_RUNTIME=libomp \
-  -DCLANG_DEFAULT_LINKER=lld \
+  -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
+  -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
+  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_FLAGS='-w'"
+#  -DLLVM_ENABLE_LIBCXX=ON \
 
-#  -DLIBUNWIND_ENABLE_SHARED=OFF"
-cmake_rtdeps_args=" \
-  -DLLVM_ENABLE_LIBCXX=ON \
-  -DLIBCXX_CXX_ABI=libcxxabi \
-  -DLIBCXX_USE_COMPILER_RT=ON \
-  -DLIBCXXABI_USE_COMPILER_RT=ON \
-  -DLIBUNWIND_USE_COMPILER_RT=ON \
-  -DLIBCXXABI_USE_LLVM_UNWINDER=ON \
-  -DCOMPILER_RT_USE_LIBCXX=ON \
-  -DLIBCXX_HAS_GCC_LIB=FALSE \
-  -DLIBCXX_HAS_GCC_S_LIB=FALSE \
-  -DLIBCXX_HAS_ATOMIC_LIB=FALSE"
+if [ -z "$LLVM_CMAKE_CACHE" ]; then 
+  LLVM_CMAKE_CACHE=`find ../cmake -path '*/caches/*' -name LLVM.cmake`
+fi
+if [ -f "$LLVM_CMAKE_CACHE" ]; then 
+  echo "Using CMake cache in $LLVM_CMAKE_CACHE."
+  cmake_cache='-C "'$LLVM_CMAKE_CACHE'"'
+  # Note on combining a CMake cache with command line definitions:
+  # If a set(... CACHE ...) call in the -C file does not use FORCE, 
+  # the command line define takes precedence regardless of order.
+  # If set(... CACHE ... FORCE) is used, the order of definition 
+  # matters and the last defined value is used.
+  # See https://cmake.org/cmake/help/latest/manual/cmake.1.html.
+else
+  echo "No CMake file found to populate the initial cache with. Set LLVM_CMAKE_CACHE to define one."
+fi
 
 if $verbose; then
-  read __xtrace__ < <(echo $SHELLOPTS | egrep -o '(^|:)xtrace(:|$)' || echo)
-  set -x && cmake -G Ninja ../llvm \
-    $cmake_general_args \
-    $cmake_component_args \
-    $cmake_defaults_args \
-    $cmake_rtdeps_args
-  if [ -z "$__xtrace__" ]; then set +x; fi
+  cmake -G Ninja ../llvm $cmake_args $cmake_cache
 else
-  cmake -G Ninja ../llvm \
-    $cmake_general_args \
-    $cmake_component_args \
-    $cmake_defaults_args \
-    $cmake_rtdeps_args \
-  2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  cmake -G Ninja ../llvm $cmake_args $cmake_cache \
+    2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
 # Build and install clang in a folder
