@@ -152,6 +152,21 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 
 namespace cudaq {
 
+bool cc::isDynamicType(Type ty) {
+  if (isa<cc::StdvecType>(ty))
+    return true;
+  if (auto strTy = dyn_cast<cc::StructType>(ty)) {
+    for (auto memTy : strTy.getMembers())
+      if (isDynamicType(memTy))
+        return true;
+    return false;
+  }
+  if (auto arrTy = dyn_cast<cc::ArrayType>(ty))
+    return arrTy.isUnknownSize() || isDynamicType(arrTy.getElementType());
+  // Note: this isn't considering quake, builtin, etc. types.
+  return false;
+}
+
 cc::CallableType cc::CallableType::getNoSignature(MLIRContext *ctx) {
   return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
 }

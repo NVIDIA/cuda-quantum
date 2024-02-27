@@ -25,8 +25,10 @@ struct foo {
   }
 };
 
+// clang-format off
 // CHECK-LABEL: define void @_ZN3fooclI3bazEEvOT_i
 // CHECK-SAME: (i8* nocapture readnone %{{.*}}, {}* nocapture readnone %{{.*}}, i32 %{{.*}})
+// clang-format on
 
 int main() {
   auto result = cudaq::sample(1000, foo{}, baz{}, 1);
