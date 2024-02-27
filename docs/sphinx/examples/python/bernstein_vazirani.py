@@ -3,8 +3,6 @@ import random
 
 from typing import List
 
-cudaq.enable_jit()
-
 
 def random_bitstring(length: int):
     bitstring = []
