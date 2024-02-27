@@ -45,7 +45,7 @@ def emitFatalError(msg):
     print(Color.BOLD, end='')
     try:
         # Raise the exception so we can get the
-        # stack trace to instpec
+        # stack trace to inspect
         raise RuntimeError(msg)
     except RuntimeError as e:
         # Immediately grab the exception and
