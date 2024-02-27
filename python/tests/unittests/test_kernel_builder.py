@@ -978,12 +978,13 @@ def test_fermionic_swap_op():
     assert np.isclose(val3, 0.0, atol=1e-6)
     assert np.isclose(val4, 0.0, atol=1e-6)
 
+
 def test_draw():
     print()
     bar, q = cudaq.make_kernel(cudaq.qreg)
     bar.rx(np.e, q[0])
     bar.ry(np.pi, q[1])
-    bar.rz(-np.pi, q[2]) # how to do adj in builder?
+    bar.rz(-np.pi, q[2])  # how to do adj in builder?
 
     zaz, q = cudaq.make_kernel(cudaq.qubit)
     zaz.sdg(q)
@@ -991,7 +992,8 @@ def test_draw():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(4)
 
-    kernel.h(q); # Broadcast
+    kernel.h(q)
+    # Broadcast
     kernel.cx(q[0], q[1])
     kernel.cy([q[0], q[1]], q[2])
     kernel.cy([q[2], q[0]], q[1])
@@ -1017,8 +1019,7 @@ def test_draw():
 
     circuit = cudaq.draw(kernel)
     print(circuit)
-    expected_str = '''
-     ╭───╮               ╭───╮╭───────────╮                          ╭───────╮»
+    expected_str = '''     ╭───╮               ╭───╮╭───────────╮                          ╭───────╮»
 q0 : ┤ h ├──●────●────●──┤ y ├┤ r1(3.142) ├──────╳─────╳──╳─────╳──●─┤>      ├»
      ├───┤╭─┴─╮  │  ╭─┴─╮╰─┬─╯╰──┬─────┬──╯      │     │  │     │  │ │       │»
 q1 : ┤ h ├┤ x ├──●──┤ y ├──●─────┤ tdg ├─────────┼──╳──╳──┼──╳──╳──╳─┤●      ├»
@@ -1041,8 +1042,8 @@ q3 : ┤ h ├──────────────────────
 ╰───────╯                                         
 '''
 
-    # FIXME add this later
-    # assert circuit == expected_str
+    assert circuit == expected_str
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
