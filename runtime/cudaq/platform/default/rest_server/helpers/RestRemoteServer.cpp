@@ -98,11 +98,11 @@ protected:
   // Note: this doesn't apply to ping ("/") endpoint.
   bool exitAfterJob = false;
   // Time-point data
-  std::optional<std::chrono::time_point<std::chrono::system_clock>>
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
       requestStart;
-  std::optional<std::chrono::time_point<std::chrono::system_clock>>
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
       simulationStart;
-  std::optional<std::chrono::time_point<std::chrono::system_clock>>
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
       simulationEnd;
 
   // Method to filter incoming request.
@@ -145,7 +145,7 @@ public:
         cudaq::RestServer::Method::POST, "/job",
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
-          requestStart = std::chrono::system_clock::now();
+          requestStart = std::chrono::high_resolution_clock::now();
           auto shutdownAfterHandlingRequest = llvm::make_scope_exit([&] {
             if (this->exitAfterJob)
               m_server->stop();
@@ -341,7 +341,7 @@ public:
       }
     }
     platform.reset_exec_ctx();
-    simulationEnd = std::chrono::system_clock::now();
+    simulationEnd = std::chrono::high_resolution_clock::now();
   }
 
 protected:
@@ -457,7 +457,7 @@ protected:
       throw std::runtime_error("Failed to get entry function");
 
     auto fn = reinterpret_cast<void (*)()>(fnPtr);
-    simulationStart = std::chrono::system_clock::now();
+    simulationStart = std::chrono::high_resolution_clock::now();
     for (std::size_t i = 0; i < numTimes; ++i) {
       // Invoke the kernel
       fn();

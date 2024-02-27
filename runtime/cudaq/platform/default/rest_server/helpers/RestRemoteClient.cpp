@@ -284,7 +284,7 @@ private:
   // NVQC logging level
   // Enabled high-level info log by default (can be set by an environment
   // variable)
-  LogLevel m_logLevel = Info;
+  LogLevel m_logLevel = LogLevel::Info;
   // API key for authentication
   std::string m_apiKey;
   // Rest client to send HTTP request
@@ -396,10 +396,8 @@ public:
         m_functionId = funcIdIter->second;
         if (m_logLevel > LogLevel::None) {
           // Print out the configuration
-          printf("%s\n",
-                 fmt::format("Submitting jobs to NVQC using function Id {}.",
-                             m_functionId)
-                     .c_str());
+          fmt::print("Submitting jobs to NVQC using function Id {}.\n",
+                     m_functionId);
         }
       } else {
         // Determine the function Id based on the number of GPUs
@@ -414,11 +412,8 @@ public:
             m_functionId = funcId;
             if (m_logLevel > LogLevel::None) {
               // Print out the configuration
-              printf(
-                  "%s\n",
-                  fmt::format("Submitting jobs to NVQC service with {} GPU(s).",
-                              numGpus)
-                      .c_str());
+              fmt::print("Submitting jobs to NVQC service with {} GPU(s).\n",
+                         numGpus);
             }
             break;
           }
@@ -433,7 +428,8 @@ public:
           ss << "Unable to find NVQC deployment with " << numGpusRequested
              << " GPUs.\nAvailable deployments have ";
           ss << fmt::format("{}", gpuCounts) << " GPUs.\n";
-          ss << "Please check your 'ngpus' value (Python) or `--nvqc-ngpus` value (C++).\n";
+          ss << "Please check your 'ngpus' value (Python) or `--nvqc-ngpus` "
+                "value (C++).\n";
           throw std::runtime_error(ss.str());
         }
       }
@@ -680,36 +676,36 @@ public:
           cudaq::NvcfExecutionInfo info;
           resultJs["response"]["executionInfo"].get_to(info);
           if (!printDeviceInfoOnce) {
-            printf("\n===== NVQC Device Info ===== \n");
-            printf("GPU Device Name: \"%s\"\n",
-                   info.deviceProps.deviceName.c_str());
-            printf("CUDA Driver Version / Runtime Version: %d.%d / %d.%d\n",
-                   info.deviceProps.driverVersion / 1000,
-                   (info.deviceProps.driverVersion % 100) / 10,
-                   info.deviceProps.runtimeVersion / 1000,
-                   (info.deviceProps.runtimeVersion % 100) / 10);
-            printf("Total global memory (GB): %.1f\n",
-                   (float)(info.deviceProps.totalGlobalMemMbytes) / 1024.0);
-            printf("Memory Clock Rate (MHz): %.3f\n",
-                   info.deviceProps.memoryClockRateMhz);
-            printf("GPU Clock Rate (MHz): %.3f\n",
-                   info.deviceProps.clockRateMhz);
-            printf("================================== \n");
+            fmt::print("\n===== NVQC Device Info ===== \n");
+            fmt::print("GPU Device Name: \"{}\"\n",
+                       info.deviceProps.deviceName);
+            fmt::print("CUDA Driver Version / Runtime Version: {}.{} / {}.{}\n",
+                       info.deviceProps.driverVersion / 1000,
+                       (info.deviceProps.driverVersion % 100) / 10,
+                       info.deviceProps.runtimeVersion / 1000,
+                       (info.deviceProps.runtimeVersion % 100) / 10);
+            fmt::print("Total global memory (GB): {:.1f}\n",
+                       (float)(info.deviceProps.totalGlobalMemMbytes) / 1024.0);
+            fmt::print("Memory Clock Rate (MHz): {:.3f}\n",
+                       info.deviceProps.memoryClockRateMhz);
+            fmt::print("GPU Clock Rate (MHz): {:.3f}\n",
+                       info.deviceProps.clockRateMhz);
+            fmt::print("================================== \n");
             // Only print this device info once.
             printDeviceInfoOnce = true;
           }
 
           // If trace logging mode is enabled, log timing data for each request.
           if (m_logLevel == LogLevel::Trace) {
-            printf("\n===== NVQC Execution Timing ===== \n");
-            printf(" - Pre-processing: %ld milliseconds \n",
-                   info.simulationStart - info.requestStart);
-            printf(" - Execution: %ld milliseconds \n",
-                   info.simulationEnd - info.simulationStart);
-            printf("================================== \n");
+            fmt::print("\n===== NVQC Execution Timing ===== \n");
+            fmt::print(" - Pre-processing: {} milliseconds \n",
+                       info.simulationStart - info.requestStart);
+            fmt::print(" - Execution: {} milliseconds \n",
+                       info.simulationEnd - info.simulationStart);
+            fmt::print("================================== \n");
           }
         } catch (...) {
-          printf("Unable to parse NVQC execution info metadata.\n");
+          fmt::print("Unable to parse NVQC execution info metadata.\n");
         }
       }
       resultJs["response"]["executionContext"].get_to(io_context);
