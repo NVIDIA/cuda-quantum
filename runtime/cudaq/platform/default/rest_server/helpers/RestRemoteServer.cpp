@@ -555,13 +555,15 @@ protected:
 
     return true;
   }
-protected: 
+
+protected:
   virtual json processRequest(const std::string &reqBody) override {
     auto executionResult = RemoteRestRuntimeServer::processRequest(reqBody);
     // Amend execution information
     executionResult["executionInfo"] = constructExecutionInfo();
     return executionResult;
   }
+
 private:
   cudaq::NvcfExecutionInfo constructExecutionInfo() {
     cudaq::NvcfExecutionInfo info;

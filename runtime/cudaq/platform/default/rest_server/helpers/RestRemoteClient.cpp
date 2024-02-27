@@ -281,7 +281,7 @@ class NvcfRuntimeClient : public RemoteRestRuntimeClient {
 private:
   // Should this log high-level NVCF info?
   // Enabled by default (can be turned off by an environment variable)
-  bool m_shouldLogNvcfInfo = true; 
+  bool m_shouldLogNvcfInfo = true;
   // API key for authentication
   std::string m_apiKey;
   // Rest client to send HTTP request
@@ -366,7 +366,8 @@ public:
         auto logConfig = std::string(logConfigEnv);
         std::transform(logConfig.begin(), logConfig.end(), logConfig.begin(),
                        [](unsigned char c) { return std::tolower(c); });
-        if (logConfig == "0" || logConfig == "off" || logConfig == "false" || logConfig == "no")
+        if (logConfig == "0" || logConfig == "off" || logConfig == "false" ||
+            logConfig == "no")
           m_shouldLogNvcfInfo = false;
       }
     }

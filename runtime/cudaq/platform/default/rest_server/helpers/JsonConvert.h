@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #pragma once
+#include "GPUInfo.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
 #include "nlohmann/json.hpp"
-#include "GPUInfo.h"
 /*! \file
     \brief Utility to support JSON serialization between the client and server.
 */
