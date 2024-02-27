@@ -9,6 +9,7 @@
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
 #include "runtime/common/py_SampleResult.h"
+#include "runtime/cudaq/algorithms/py_draw.h"
 #include "runtime/cudaq/algorithms/py_observe.h"
 #include "runtime/cudaq/algorithms/py_optimizer.h"
 #include "runtime/cudaq/algorithms/py_sample.h"
@@ -114,6 +115,7 @@ PYBIND11_MODULE(_pycudaq, mod) {
   cudaq::bindOptimizerWrapper(mod);
   cudaq::bindVQE(mod);
   cudaq::bindPyState(mod);
+  cudaq::bindPyDraw(mod);
   auto kernelSubmodule = mod.def_submodule("kernels");
   cudaq::bindChemistry(kernelSubmodule);
   cudaq::bindTestUtils(mod, holder);
