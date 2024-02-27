@@ -279,9 +279,12 @@ public:
 /// REST client submitting jobs to NVCF-hosted `cudaq-qpud` service.
 class NvcfRuntimeClient : public RemoteRestRuntimeClient {
 private:
-  // Should this log high-level NVCF info?
-  // Enabled by default (can be turned off by an environment variable)
-  bool m_shouldLogNvcfInfo = true;
+  // None: Don't log; Info: basic info; Trace: Timing data per invocation.
+  enum LogLevel : int { None = 0, Info, Trace };
+  // NVQC logging level
+  // Enabled high-level info log by default (can be set by an environment
+  // variable)
+  LogLevel m_logLevel = Info;
   // API key for authentication
   std::string m_apiKey;
   // Rest client to send HTTP request
@@ -361,14 +364,18 @@ public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
     {
-      // Check if user disabled logging (explicitly)
-      if (auto logConfigEnv = std::getenv("NVQC_LOG")) {
+      // Check if user set a specific log level (e.g., disable logging)
+      if (auto logConfigEnv = std::getenv("NVQC_LOG_LEVEL")) {
         auto logConfig = std::string(logConfigEnv);
         std::transform(logConfig.begin(), logConfig.end(), logConfig.begin(),
                        [](unsigned char c) { return std::tolower(c); });
         if (logConfig == "0" || logConfig == "off" || logConfig == "false" ||
-            logConfig == "no")
-          m_shouldLogNvcfInfo = false;
+            logConfig == "no" || logConfig == "none")
+          m_logLevel = LogLevel::None;
+        if (logConfig == "trace")
+          m_logLevel = LogLevel::Trace;
+        if (logConfig == "info")
+          m_logLevel = LogLevel::Info;
       }
     }
     {
@@ -387,7 +394,7 @@ public:
       if (funcIdIter != configs.end()) {
         // User overrides a specific function Id.
         m_functionId = funcIdIter->second;
-        if (m_shouldLogNvcfInfo) {
+        if (m_logLevel > LogLevel::None) {
           // Print out the configuration
           printf("%s\n",
                  fmt::format("Submitting jobs to NVQC using function Id {}.",
@@ -405,7 +412,7 @@ public:
         for (const auto &[funcId, numGpus] : m_availableFuncs) {
           if (numGpus == numGpusRequested) {
             m_functionId = funcId;
-            if (m_shouldLogNvcfInfo) {
+            if (m_logLevel > LogLevel::None) {
               // Print out the configuration
               printf(
                   "%s\n",
@@ -665,29 +672,42 @@ public:
         }
         return false;
       }
-      if (m_shouldLogNvcfInfo && resultJs["response"]["executionInfo"]) {
+      if (m_logLevel > LogLevel::None &&
+          resultJs["response"].contains("executionInfo")) {
         try {
+          // We only print GPU device info once if logging is not disabled.
+          static bool printDeviceInfoOnce = false;
           cudaq::NvcfExecutionInfo info;
           resultJs["response"]["executionInfo"].get_to(info);
-          printf("\n===== NVQC Execution Summary ===== \n");
-          printf("GPU Device Name: \"%s\"\n",
-                 info.deviceProps.deviceName.c_str());
-          printf("CUDA Driver Version / Runtime Version: %d.%d / %d.%d\n",
-                 info.deviceProps.driverVersion / 1000,
-                 (info.deviceProps.driverVersion % 100) / 10,
-                 info.deviceProps.runtimeVersion / 1000,
-                 (info.deviceProps.runtimeVersion % 100) / 10);
-          printf("Total global memory (GB): %.1f\n",
-                 (float)(info.deviceProps.totalGlobalMemMbytes) / 1024.0);
-          printf("Memory Clock Rate (MHz): %.3f\n",
-                 info.deviceProps.memoryClockRateMhz);
-          printf("GPU Clock Rate (MHz): %.3f\n", info.deviceProps.clockRateMhz);
-          printf("Execution timing: \n");
-          printf(" - Pre-processing: %ld milliseconds \n",
-                 info.simulationStart - info.requestStart);
-          printf(" - Execution: %ld milliseconds \n",
-                 info.simulationEnd - info.simulationStart);
-          printf("\n================================== \n");
+          if (!printDeviceInfoOnce) {
+            printf("\n===== NVQC Device Info ===== \n");
+            printf("GPU Device Name: \"%s\"\n",
+                   info.deviceProps.deviceName.c_str());
+            printf("CUDA Driver Version / Runtime Version: %d.%d / %d.%d\n",
+                   info.deviceProps.driverVersion / 1000,
+                   (info.deviceProps.driverVersion % 100) / 10,
+                   info.deviceProps.runtimeVersion / 1000,
+                   (info.deviceProps.runtimeVersion % 100) / 10);
+            printf("Total global memory (GB): %.1f\n",
+                   (float)(info.deviceProps.totalGlobalMemMbytes) / 1024.0);
+            printf("Memory Clock Rate (MHz): %.3f\n",
+                   info.deviceProps.memoryClockRateMhz);
+            printf("GPU Clock Rate (MHz): %.3f\n",
+                   info.deviceProps.clockRateMhz);
+            printf("================================== \n");
+            // Only print this device info once.
+            printDeviceInfoOnce = true;
+          }
+
+          // If trace logging mode is enabled, log timing data for each request.
+          if (m_logLevel == LogLevel::Trace) {
+            printf("\n===== NVQC Execution timing ===== \n");
+            printf(" - Pre-processing: %ld milliseconds \n",
+                   info.simulationStart - info.requestStart);
+            printf(" - Execution: %ld milliseconds \n",
+                   info.simulationEnd - info.simulationStart);
+            printf("================================== \n");
+          }
         } catch (...) {
           printf("Unable to parse NVQC execution info metadata.\n");
         }

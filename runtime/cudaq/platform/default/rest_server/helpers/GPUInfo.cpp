@@ -12,7 +12,7 @@
 #endif
 namespace cudaq {
 #ifdef CUDAQ_ENABLE_CUDA
-// Early return nullopt if any CUDA API failed
+// Early return nullopt if any CUDA API failed.
 #define SAFE_HANDLE_CUDA_ERROR(x)                                              \
   {                                                                            \
     const auto err = x;                                                        \

@@ -9,7 +9,9 @@
 #pragma once
 #include "nlohmann/json.hpp"
 namespace cudaq {
-// A subset of *cudaDeviceProp* to be populated by the server.
+/// Basic information about the CUDA Device on the remote server.
+// Note: this is a subset of `cudaDeviceProp` struct to be populated by the
+// server.
 struct CudaDeviceProperties {
   std::string deviceName;
   double memoryClockRateMhz;
@@ -22,5 +24,8 @@ struct CudaDeviceProperties {
                                  totalGlobalMemMbytes, driverVersion,
                                  runtimeVersion);
 };
+
+/// Helper to query CUDA device info.
+// Returns nullopt if no CUDA devices or failed to retrieve the info.
 std::optional<CudaDeviceProperties> getCudaProperties();
 } // namespace cudaq
