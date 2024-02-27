@@ -433,7 +433,7 @@ public:
           ss << "Unable to find NVQC deployment with " << numGpusRequested
              << " GPUs.\nAvailable deployments have ";
           ss << fmt::format("{}", gpuCounts) << " GPUs.\n";
-          ss << "Please check your 'ngpus' configuration.\n";
+          ss << "Please check your 'ngpus' value (Python) or `--nvqc-ngpus` value (C++).\n";
           throw std::runtime_error(ss.str());
         }
       }
