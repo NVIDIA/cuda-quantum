@@ -148,6 +148,22 @@ cc::LoopOp factory::createInvariantLoop(
   return loop;
 }
 
+// FIXME: some ABIs may return a small struct in registers rather than via an
+// sret pointer.
+//
+// On x86_64,
+//   pair of:  argument         return value    packed from msb to lsb
+//    i32   :   i64              i64             (second, first)
+//    i64   :   i64, i64         { i64, i64 }
+//    f32   :   <2 x float>      <2 x float>
+//    f64   :   double, double   { double, double }
+//
+// On aarch64,
+//   pair of:  argument         return value    packed from msb to lsb
+//    i32   :   i64              i64             (second, first)
+//    i64   :   [2 x i64]        [2 x i64]
+//    f32   :   [2 x float]      { float, float }
+//    f64   :   [2 x double]     { double, double }
 bool factory::hasHiddenSRet(FunctionType funcTy) {
   // If a function has more than 1 result, the results are promoted to a
   // structured return argument. Otherwise, if there is 1 result and it is an
@@ -188,12 +204,32 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   return funcTy.getResult(0);
 }
 
-FunctionType factory::toCpuSideFuncType(FunctionType funcTy, bool addThisPtr) {
+static Type convertToHostSideType(Type ty) {
+  if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
+    return convertToHostSideType(
+        factory::stlVectorType(memrefTy.getElementType()));
+  auto *ctx = ty.getContext();
+  if (auto structTy = dyn_cast<cc::StructType>(ty)) {
+    // cc.struct args are callable (at this point), need them as pointers for
+    // the new entry point
+    SmallVector<Type> newMembers;
+    for (auto mem : structTy.getMembers())
+      newMembers.push_back(convertToHostSideType(mem));
+    return cc::StructType::get(ctx, newMembers);
+  }
+  if (auto memrefTy = dyn_cast<quake::VeqType>(ty)) {
+    // Use pointer as these must be pass-by-reference.
+    return cc::PointerType::get(factory::stlVectorType(
+        IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64)));
+  }
+  return ty;
+}
+
+// When the kernel comes from a class, there is always a default `this` argument
+// to the kernel entry function. The CUDA Quantum spec doesn't allow the kernel
+// object to contain data members (yet), so we can ignore the `this` pointer.
+FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr) {
   auto *ctx = funcTy.getContext();
-  // When the kernel comes from a class, there is always a default "this"
-  // argument to the kernel entry function. The CUDA Quantum language spec
-  // doesn't allow the kernel object to contain data members (yet), so we can
-  // ignore the `this` pointer.
   SmallVector<Type> inputTys;
   bool hasSRet = false;
   if (factory::hasHiddenSRet(funcTy)) {
@@ -201,7 +237,7 @@ FunctionType factory::toCpuSideFuncType(FunctionType funcTy, bool addThisPtr) {
     // returned via a sret argument in the first position. When this argument
     // is added, the this pointer becomes the second argument. Both are opaque
     // pointers at this point.
-    auto eleTy = getSRetElementType(funcTy);
+    auto eleTy = convertToHostSideType(getSRetElementType(funcTy));
     inputTys.push_back(cc::PointerType::get(eleTy));
     hasSRet = true;
   }
@@ -212,19 +248,13 @@ FunctionType factory::toCpuSideFuncType(FunctionType funcTy, bool addThisPtr) {
     inputTys.push_back(ptrTy);
 
   // Add all the explicit (not hidden) arguments after the hidden ones.
-  for (auto inTy : funcTy.getInputs()) {
-    if (auto memrefTy = dyn_cast<cc::StdvecType>(inTy))
-      inputTys.push_back(
-          cc::PointerType::get(stlVectorType(memrefTy.getElementType())));
-    else if (auto structTy = dyn_cast<cc::StructType>(inTy))
-      // cc.struct args are callable (at this point), need them as pointers
-      // for the new entry point
-      inputTys.push_back(cc::PointerType::get(structTy));
-    else if (auto memrefTy = dyn_cast<quake::VeqType>(inTy))
-      inputTys.push_back(cc::PointerType::get(stlVectorType(
-          IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64))));
-    else
-      inputTys.push_back(inTy);
+  for (auto kernelTy : funcTy.getInputs()) {
+    auto hostTy = convertToHostSideType(kernelTy);
+    if (isa<cudaq::cc::StructType>(hostTy)) {
+      // Pass a struct as a byval pointer.
+      hostTy = cudaq::cc::PointerType::get(hostTy);
+    }
+    inputTys.push_back(hostTy);
   }
 
   // Handle the result type. We only add a result type when there is a result
