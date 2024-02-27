@@ -20,9 +20,9 @@ def random_bitstring(length: int):
 # the `cudaq.set_target(nvidia)` line.
 
 # Note: Without setting the target to the `nvidia` backend,
-# a 30 qubit simulation simply seems to hang; that is
-# because it takes a long time for the CPU-only backend
-# to handle this number of qubits!
+# there will be a noticeable decrease in simulation performance.
+# This is because the CPU-only backend has difficulty handling
+# 30+ qubit simulations.
 
 qubit_count = 5  # set to around 30 qubits for `nvidia` target
 # ```
