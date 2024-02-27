@@ -94,7 +94,7 @@ RUN source "/opt/llvm_stage1/bootstrap/init_command.sh" && \
     bash /scripts/build_llvm.sh -s /llvm-project -c Release -v && \
     mv /opt/llvm_stage1/bootstrap "$LLVM_INSTALL_PREFIX/bootstrap" && \
     for file in `ls "$LLVM_INSTALL_PREFIX/bootstrap"`; do \
-        sed -i "s|/opt/llvm_stage1|/opt/llvm|" "$LLVM_INSTALL_PREFIX/bootstrap/$file"; \
+        sed -i "s|/opt/llvm_stage1|/opt/llvm|g" "$LLVM_INSTALL_PREFIX/bootstrap/$file"; \
     done && rm -rf /llvm-project /opt/llvm_stage1
 
 FROM llvmbuild as prereqs
