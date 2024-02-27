@@ -601,6 +601,26 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
+    if (executionContext && executionContext->name == "tracer") {
+      std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
+      for (auto &c : controls)
+        controlsInfo.emplace_back(2, c);
+      for (auto &t : targets)
+        targetsInfo.emplace_back(2, t);
+
+      std::vector<double> anglesProcessed;
+      if constexpr (std::is_same_v<ScalarType, double>)
+        anglesProcessed = params;
+      else {
+        for (auto &a : params)
+          anglesProcessed.push_back(static_cast<ScalarType>(a));
+      }
+
+      executionContext->kernelTrace.appendInstruction(
+          name, anglesProcessed, controlsInfo, targetsInfo);
+      return;
+    }
+
     gateQueue.emplace(name, matrix, controls, targets, params);
   }
 
