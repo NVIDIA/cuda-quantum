@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import ast
+import ast, sys, traceback
 import importlib
 import inspect
 from typing import Callable
@@ -13,7 +13,7 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry
+from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -64,8 +64,8 @@ class PyKernelDecorator(object):
                         'return'] if 'return' in self.signature else None
                 return
             else:
-                raise RuntimeError(
-                    "invalid kernel decorator. module and function are both None."
+                emitFatalError(
+                    "Invalid kernel decorator. Module and function are both None."
                 )
 
         # Get the function source
@@ -95,7 +95,7 @@ class PyKernelDecorator(object):
         hasRetNodeVis = HasReturnNodeVisitor()
         hasRetNodeVis.visit(self.astModule)
         if hasRetNodeVis.hasReturnNode and 'return' not in self.signature:
-            raise RuntimeError(
+            emitFatalError(
                 'CUDA Quantum kernel has return statement but no return type annotation.'
             )
 
@@ -139,9 +139,9 @@ class PyKernelDecorator(object):
             self.compile()
 
         if len(args) != len(self.argTypes):
-            raise RuntimeError(
-                "Incorrect number of runtime arguments provided to kernel {} ({} required, {} provided)"
-                .format(self.name, len(self.argTypes), len(args)))
+            emitFatalError(
+                f"Incorrect number of runtime arguments provided to kernel `{self.name}` ({len(self.argTypes)} required, {len(args)} provided)"
+            )
 
         # validate the argument types
         processedArgs = []
@@ -156,8 +156,10 @@ class PyKernelDecorator(object):
                                           argTypeToCompareTo=self.argTypes[i])
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:
-                raise RuntimeError("invalid runtime arg type ({} vs {})".format(
-                    mlirType, self.argTypes[i]))
+                emitFatalError(
+                    f"Invalid runtime argument type. Argument of type {mlirTypeToPyType(mlirType)} was provided, but {mlirTypeToPyType(self.argTypes[i])} was expected."
+                )
+
             if cc.CallableType.isinstance(mlirType):
                 # Assume this is a PyKernelDecorator
                 callableNames.append(arg.name)
@@ -174,8 +176,8 @@ class PyKernelDecorator(object):
             # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
                 if arg.ndim != 1:
-                    raise RuntimeError(
-                        'CUDA Quantum kernels only support 1D numpy array arguments.'
+                    emitFatalError(
+                        f"CUDA Quantum kernels only support array arguments from NumPy that are one dimensional (input argument {i} has shape = {arg.shape})."
                     )
                 processedArgs.append(arg.tolist())
             else:

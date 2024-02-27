@@ -13,7 +13,7 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 import numpy as np
 from typing import Callable, List
-import ast
+import ast, sys, traceback
 
 qvector = cudaq_runtime.qvector
 qubit = cudaq_runtime.qubit
@@ -30,13 +30,44 @@ globalKernelRegistry = {}
 globalAstRegistry = {}
 
 
+class Color:
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    END = '\033[0m'
+
+
+def emitFatalError(msg):
+    """
+    Emit a fatal error diagnostic. The goal here is to 
+    retain the input message, but also provide the offending 
+    source location by inspecting the stack trace. 
+    """
+    print(Color.BOLD, end='')
+    try:
+        # Raise the exception so we can get the
+        # stack trace to instpec
+        raise RuntimeError(msg)
+    except RuntimeError as e:
+        # Immediately grab the exception and
+        # analyze the stack trace, get the source location
+        # and construct a new error diagnostic
+        cached = sys.tracebacklimit
+        sys.tracebacklimit = None
+        offendingSrc = traceback.format_stack()
+        sys.tracebacklimit = cached
+        if len(offendingSrc):
+            msg = Color.RED + "error: " + Color.END + Color.BOLD + msg + Color.END + '\n\nOffending code:\n' + offendingSrc[
+                0]
+    raise RuntimeError(msg)
+
+
 def mlirTypeFromAnnotation(annotation, ctx):
     """
         Return the MLIR Type corresponding to the given kernel function argument type annotation.
         Throws an exception if the programmer did not annotate function argument types. 
         """
     if annotation == None:
-        raise RuntimeError(
+        emitFatalError(
             'cudaq.kernel functions must have argument type annotations.')
 
     if hasattr(annotation, 'attr'):
@@ -53,7 +84,9 @@ def mlirTypeFromAnnotation(annotation, ctx):
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
         if not hasattr(annotation, 'slice'):
-            raise RuntimeError('Callable type must have signature specified.')
+            emitFatalError(
+                f'Callable type must have signature specified ({ast.unparse(annotation)}).'
+            )
 
         if hasattr(annotation.slice, 'elts'):
             firstElement = annotation.slice.elts[0]
@@ -61,7 +94,9 @@ def mlirTypeFromAnnotation(annotation, ctx):
                 annotation.slice.value, 'elts'):
             firstElement = annotation.slice.value.elts[0]
         else:
-            raise RuntimeError('Unable to get list elements')
+            emitFatalError(
+                f'Unable to get list elements when inferring type from annotation ({ast.unparse(annotation)}).'
+            )
         argTypes = [mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts]
         return cc.CallableType.get(ctx, argTypes)
 
@@ -69,7 +104,9 @@ def mlirTypeFromAnnotation(annotation, ctx):
                   ast.Subscript) and (annotation.value.id == 'list' or
                                       annotation.value.id == 'List'):
         if not hasattr(annotation, 'slice'):
-            raise RuntimeError('list subscript missing slice node.')
+            emitFatalError(
+                f'list subscript missing slice node ({ast.unparse(annotation)}).'
+            )
 
         # expected that slice is a Name node
         listEleTy = mlirTypeFromAnnotation(annotation.slice, ctx)
@@ -84,7 +121,9 @@ def mlirTypeFromAnnotation(annotation, ctx):
                 annotation.value.value, 'id'):
             id = annotation.value.value.id
     else:
-        raise RuntimeError('{} is not a supported type yet.'.format(annotation))
+        emitFatalError(
+            f'{ast.unparse(annotation)} is not a supported type yet (could not infer type name).'
+        )
 
     if id == 'int':
         return IntegerType.get_signless(64)
@@ -97,7 +136,7 @@ def mlirTypeFromAnnotation(annotation, ctx):
     elif id == 'complex':
         return ComplexType.get(F64Type.get())
     else:
-        raise RuntimeError('{} is not a supported type yet.'.format(id))
+        emitFatalError(f'{id} is not a supported type.')
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
@@ -124,8 +163,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             # check if we are comparing to a complex...
             eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
             if ComplexType.isinstance(eleTy):
-                raise RuntimeError(
-                    "invalid runtime argument to kernel. list[complex] required, but list[float] provided."
+                emitFatalError(
+                    "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
                 )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
         if isinstance(argInstance[0], complex):
@@ -141,9 +180,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                     argTypeToCompareTo=cc.StdvecType.getElementType(
                         argTypeToCompareTo)))
 
-        raise RuntimeError(
-            '[mlirTypeFromPyType] invalid list element type ({})'.format(
-                argType))
+        emitFatalError(f'Invalid list element type ({argType})')
 
     if argType == qvector or argType == qreg:
         return quake.VeqType.get(ctx)
@@ -155,9 +192,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         if isinstance(argInstance, Callable):
             return cc.CallableType.get(ctx, argInstance.argTypes)
 
-    raise RuntimeError(
-        "can not handle conversion of python type {} to mlir type.".format(
-            argType))
+    emitFatalError(
+        f"Can not handle conversion of python type {argType} to MLIR type.")
 
 
 def mlirTypeToPyType(argType):
@@ -173,15 +209,22 @@ def mlirTypeToPyType(argType):
     if ComplexType.isinstance(argType):
         return complex
 
+    def getListType(eleType: type):
+        if sys.version_info < (3, 9):
+            return List[eleType]
+        else:
+            return list[eleType]
+
     if cc.StdvecType.isinstance(argType):
         eleTy = cc.StdvecType.getElementType(argType)
-        if IntegerType.isinstance(argType):
-            if IntegerType(argType).width == 1:
-                return List[bool]
-            return List[int]
-        if F64Type.isinstance(argType):
-            return List[float]
-        if ComplexType.isinstance(argType):
-            return List[complex]
+        if IntegerType.isinstance(eleTy):
+            if IntegerType(eleTy).width == 1:
+                return getListType(bool)
+            return getListType(int)
+        if F64Type.isinstance(eleTy):
+            return getListType(float)
+        if ComplexType.isinstance(eleTy):
+            return getListType(complex)
 
-    raise RuntimeError("unhandled mlir-to-pytype {}".format(argType))
+    emitFatalError(
+        f"Cannot infer CUDA QUantum type from provided Python type ({argType})")

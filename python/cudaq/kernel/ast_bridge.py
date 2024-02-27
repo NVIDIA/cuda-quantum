@@ -12,7 +12,7 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType
+from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
@@ -68,12 +68,6 @@ class CompilerError(RuntimeError):
 
     def __init__(self, *args, **kwargs):
         RuntimeError.__init__(self, *args, **kwargs)
-
-
-class Color:
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    END = '\033[0m'
 
 
 class PyASTBridge(ast.NodeVisitor):
