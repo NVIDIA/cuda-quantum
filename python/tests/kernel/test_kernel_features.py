@@ -540,6 +540,7 @@ def test_bool_op_short_circuit():
     print(kernel)
 
     counts = cudaq.sample(kernel)
+    counts.dump()
     assert len(counts) == 2 and '10' in counts and '00' in counts
 
 
@@ -566,3 +567,90 @@ def test_capture_vars_disallowed():
     
     with pytest.raises(RuntimeError) as e:
         test()
+
+def test_error_qubit_constructor():
+    @cudaq.kernel
+    def test():
+        q = cudaq.qubit(10)
+        h(q[0])
+    
+    with pytest.raises(RuntimeError) as e:
+        test.compile()
+    
+def test_swallow_measure_value():
+
+    @cudaq.kernel
+    def test():
+        data = cudaq.qvector(2)
+        ancilla  = cudaq.qvector(2)
+        mz(ancilla)
+        x(data[1])
+    
+    # The test here is that this compiles. 
+    test.compile()
+    print(test)
+
+def test_compare_with_true():
+
+    @cudaq.kernel
+    def test():
+        data = cudaq.qvector(2)
+        ancilla  = cudaq.qvector(2)
+        results = mz(ancilla)
+        if results[0] == True:
+            x(data[0])
+
+    # The test here is that this compiles. 
+    test()
+
+def test_with_docstring():
+
+    @cudaq.kernel
+    def oracle(register: cudaq.qvector,
+            auxillary_qubit: cudaq.qubit, hidden_bitstring: list[int]):
+        """
+        The inner-product oracle for the Bernstein-Vazirani algorithm.
+        """
+        for index, bit in enumerate(hidden_bitstring):
+            if bit == 0:
+                # Apply identity operation to the qubit if it's
+                # in the 0-state.
+                # In this case, we do nothing.
+                pass
+            else:
+                # Otherwise, apply a `cx` gate with the current qubit as
+                # the control and the auxillary qubit as the target.
+                cx(register[index], auxillary_qubit)
+
+
+    @cudaq.kernel(verbose=True)
+    def bernstein_vazirani(qubit_count: int, hidden_bitstring: list[int]):
+        """
+        Returns a kernel implementing the Bernstein-Vazirani algorithm
+        for a random, hidden bitstring.
+        """
+        # Allocate the specified number of qubits - this
+        # corresponds to the length of the hidden bitstring.
+        qubits = cudaq.qvector(qubit_count)
+        # Allocate an extra auxillary qubit.
+        auxillary_qubit = cudaq.qubit()
+
+        # Prepare the auxillary qubit.
+        h(auxillary_qubit)
+        z(auxillary_qubit)
+
+        # Place the rest of the register in a superposition state.
+        h(qubits)
+
+        # Query the oracle.
+        oracle(qubits, auxillary_qubit, hidden_bitstring)
+
+        # Apply another set of Hadamards to the register.
+        h(qubits)
+
+        # Apply measurement gates to just the `qubits`
+        # (excludes the auxillary qubit).
+        mz(qubits)
+        
+    # Test here is that it compiles
+    bernstein_vazirani.compile()

@@ -604,7 +604,16 @@ class PyASTBridge(ast.NodeVisitor):
                         self.symbolTable[argNames[i]] = b
 
                 # Visit the function
-                [self.visit(n) for n in node.body]
+                startIdx = 0
+                # Search for the potential documentation string, and 
+                # if found, start the body visitation after it.
+                if len(node.body) and isinstance(node.body[0], ast.Expr):
+                    expr = node.body[0]
+                    if hasattr(expr, 'value') and isinstance(expr.value, ast.Constant):
+                        constant = expr.value 
+                        if isinstance(constant.value, str):
+                            startIdx = 1
+                [self.visit(n) for n in node.body[startIdx:]]
                 # Add the return operation
                 if not self.hasTerminator(self.entry):
                     ret = func.ReturnOp([])
@@ -1160,6 +1169,11 @@ class PyASTBridge(ast.NodeVisitor):
 
             if node.func.id in ['mx', 'my', 'mz']:
                 registerName = self.currentAssignVariableName
+                # If registerName is None, then we know that we 
+                # are not assigning this measure result to anything
+                # so we therefore should not push it on the stack
+                pushResultToStack = registerName != None
+
                 # By default we set the `register_name` for the measurement
                 # to the assigned variable name (if there is one). But
                 # the use could have manually specified `register_name='something'`
@@ -1184,8 +1198,9 @@ class PyASTBridge(ast.NodeVisitor):
                             self.ctx, quake.MeasureType.get(self.ctx))
                 measureResult = opCtor(measTy, [], [qubit],
                                        registerName=registerName).result
-                self.pushValue(
-                    quake.DiscriminateOp(resTy, measureResult).result)
+                if pushResultToStack:
+                    self.pushValue(
+                        quake.DiscriminateOp(resTy, measureResult).result)
                 return
 
             if node.func.id == 'swap':
@@ -1344,6 +1359,8 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
                 if node.func.attr == "qubit":
+                    if len(self.valueStack) == 1 and IntegerType.isinstance(self.valueStack[0].type):
+                        self.emitFatalError('cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.')
                     self.pushValue(quake.AllocaOp(self.getRefType()).result)
                     return
 
@@ -1797,13 +1814,19 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentNode = node
         if self.verbose:
             print("[Visit Constant {}]".format(node.value))
+        if isinstance(node.value, bool):
+            self.pushValue(self.getConstantInt(node.value, 1))
+            return 
+        
         if isinstance(node.value, int):
             self.pushValue(self.getConstantInt(node.value))
             return
-        elif isinstance(node.value, float):
+        
+        if isinstance(node.value, float):
             self.pushValue(self.getConstantFloat(node.value))
             return
-        elif isinstance(node.value, str):
+        
+        if isinstance(node.value, str):
             # Do not process the function doc string
             if self.docstring != None:
                 if node.value.strip() == self.docstring.strip():
@@ -1817,14 +1840,15 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.CreateStringLiteralOp(strLitTy,
                                          StringAttr.get(node.value)).result)
             return
-        elif isinstance(node.value, type(1j)):
+        
+        if isinstance(node.value, type(1j)):
             self.pushValue(
                 complex.CreateOp(ComplexType.get(self.getFloatType()),
                                  self.getConstantFloat(node.value.real),
                                  self.getConstantFloat(node.value.imag)).result)
             return
-        else:
-            self.emitFatalError("unhandled constant value", node)
+        
+        self.emitFatalError("unhandled constant value", node)
 
     def visit_Subscript(self, node):
         """
@@ -2136,6 +2160,8 @@ class PyASTBridge(ast.NodeVisitor):
         shortCircuitWhenTrue = isinstance(node.op, ast.Or)
         if isinstance(node.op, ast.And) or isinstance(node.op, ast.Or):
             # Visit the LHS and pop the value
+            import random, string
+            self.currentAssignVariableName = ''
             self.visit(node.values[0])
             lhs = self.popValue()
             zero = self.getConstantInt(0, IntegerType(lhs.type).width)
@@ -2159,11 +2185,14 @@ class PyASTBridge(ast.NodeVisitor):
             with InsertionPoint(elseBlock):
                 self.symbolTable.pushScope()
                 self.pushIfStmtBlockStack()
+                self.currentAssignVariableName = ''
                 self.visit(node.values[1])
                 rhs = self.popValue()
                 cc.ContinueOp([rhs])
                 self.popIfStmtBlockStack()
                 self.symbolTable.popScope()
+
+            self.currentAssignVariableName = None
 
             self.pushValue(ifOp.result)
             return
@@ -2238,6 +2267,8 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if isinstance(op, ast.Eq):
+            if F64Type.isinstance(left.type) and IntegerType.isinstance(comparator.type):
+                left = arith.FPToSIOp(comparator.type, left).result 
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                              comparator).result)
