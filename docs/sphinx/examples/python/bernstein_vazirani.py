@@ -1,6 +1,8 @@
 import cudaq
 import random
 
+from typing import List
+
 cudaq.enable_jit()
 
 
@@ -37,7 +39,7 @@ hidden_bitstring = random_bitstring(qubit_count)
 
 @cudaq.kernel
 def oracle(register: cudaq.qview, auxillary_qubit: cudaq.qubit,
-           hidden_bitstring: list[int]):
+           hidden_bitstring: List[int]):
     for index, bit in enumerate(hidden_bitstring):
         if bit == 1:
             # apply a `cx` gate with the current qubit as
@@ -46,7 +48,7 @@ def oracle(register: cudaq.qview, auxillary_qubit: cudaq.qubit,
 
 
 @cudaq.kernel
-def bernstein_vazirani(hidden_bitstring: list[int]):
+def bernstein_vazirani(hidden_bitstring: List[int]):
     # Allocate the specified number of qubits - this
     # corresponds to the length of the hidden bitstring.
     qubits = cudaq.qvector(len(hidden_bitstring))

@@ -1,6 +1,8 @@
 import cudaq
 from cudaq import spin
 
+from typing import List, Tuple
+
 # We will be optimizing over a custom objective function that takes a vector
 # of parameters as input and returns either the cost as a single float,
 # or a tuple of (cost, gradient_vector) depending on the optimizer used.
@@ -30,10 +32,10 @@ optimizer = cudaq.optimizers.Adam()
 gradient = cudaq.gradients.CentralDifference()
 
 
-def objective_function(parameter_vector: list[float],
+def objective_function(parameter_vector: List[float],
                        hamiltonian=hamiltonian,
                        gradient_strategy=gradient,
-                       kernel=kernel) -> tuple[float, list[float]]:
+                       kernel=kernel) -> Tuple[float, List[float]]:
     """
     Note: the objective function may also take extra arguments, provided they
     are passed into the function as default arguments in python.

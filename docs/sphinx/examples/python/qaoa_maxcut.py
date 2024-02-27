@@ -1,6 +1,8 @@
 import cudaq
 from cudaq import spin
 
+from typing import List
+
 import numpy as np
 
 # Here we build up a kernel for QAOA with `p` layers, with each layer
@@ -27,7 +29,7 @@ parameter_count: int = 2 * layer_count
 
 
 @cudaq.kernel
-def kernel_qaoa(qubit_count: int, layer_count: int, thetas: list):
+def kernel_qaoa(qubit_count: int, layer_count: int, thetas: List):
     """QAOA ansatz for Max-Cut"""
     qvector = cudaq.qvector(qubit_count)
 

@@ -1,6 +1,8 @@
 import cudaq
 from cudaq import spin
 
+from typing import List
+
 # We begin by defining the spin Hamiltonian for the system that we are working
 # with. This is achieved through the use of `cudaq.SpinOperator`'s, which allow
 # for the convenient creation of complex Hamiltonians out of Pauli spin operators.
@@ -12,7 +14,7 @@ hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
 # that we'd like to use as an ansatz.
 # Create a kernel that takes a list of floats as a function argument.
 @cudaq.kernel
-def kernel(angles: list[float]):
+def kernel(angles: List[float]):
     # Allocate 2 qubits.
     qubits = cudaq.qvector(2)
     x(qubits[0])
