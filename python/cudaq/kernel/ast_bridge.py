@@ -417,10 +417,14 @@ class PyASTBridge(ast.NodeVisitor):
         Return the MLIR Type corresponding to the given kernel function argument type annotation.
         Throws an exception if the programmer did not annotate function argument types. 
         """
+        msg = None
         try:
-            return mlirTypeFromAnnotation(annotation, self.ctx)
+            return mlirTypeFromAnnotation(annotation, self.ctx, raiseError=True)
         except RuntimeError as e:
-            self.emitFatalError(str(e), annotation)
+            msg = str(e)
+
+        if msg is not None:
+            self.emitFatalError(msg, annotation)
 
     def argumentsValidForFunction(self, values, functionTy):
         return False not in [
@@ -605,12 +609,13 @@ class PyASTBridge(ast.NodeVisitor):
 
                 # Visit the function
                 startIdx = 0
-                # Search for the potential documentation string, and 
+                # Search for the potential documentation string, and
                 # if found, start the body visitation after it.
                 if len(node.body) and isinstance(node.body[0], ast.Expr):
                     expr = node.body[0]
-                    if hasattr(expr, 'value') and isinstance(expr.value, ast.Constant):
-                        constant = expr.value 
+                    if hasattr(expr, 'value') and isinstance(
+                            expr.value, ast.Constant):
+                        constant = expr.value
                         if isinstance(constant.value, str):
                             startIdx = 1
                 [self.visit(n) for n in node.body[startIdx:]]
@@ -1169,7 +1174,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             if node.func.id in ['mx', 'my', 'mz']:
                 registerName = self.currentAssignVariableName
-                # If registerName is None, then we know that we 
+                # If registerName is None, then we know that we
                 # are not assigning this measure result to anything
                 # so we therefore should not push it on the stack
                 pushResultToStack = registerName != None
@@ -1359,8 +1364,11 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
                 if node.func.attr == "qubit":
-                    if len(self.valueStack) == 1 and IntegerType.isinstance(self.valueStack[0].type):
-                        self.emitFatalError('cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.')
+                    if len(self.valueStack) == 1 and IntegerType.isinstance(
+                            self.valueStack[0].type):
+                        self.emitFatalError(
+                            'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
+                        )
                     self.pushValue(quake.AllocaOp(self.getRefType()).result)
                     return
 
@@ -1462,6 +1470,10 @@ class PyASTBridge(ast.NodeVisitor):
 
                     quake.ComputeActionOp(compute, action)
                     return
+
+                self.emitFatalError(
+                    f'Invalid function or class type requested from the cudaq module ({node.func.attr})',
+                    node)
 
             if node.func.value.id in self.symbolTable:
                 # Method call on one of our variables
@@ -1816,16 +1828,16 @@ class PyASTBridge(ast.NodeVisitor):
             print("[Visit Constant {}]".format(node.value))
         if isinstance(node.value, bool):
             self.pushValue(self.getConstantInt(node.value, 1))
-            return 
-        
+            return
+
         if isinstance(node.value, int):
             self.pushValue(self.getConstantInt(node.value))
             return
-        
+
         if isinstance(node.value, float):
             self.pushValue(self.getConstantFloat(node.value))
             return
-        
+
         if isinstance(node.value, str):
             # Do not process the function doc string
             if self.docstring != None:
@@ -1840,14 +1852,14 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.CreateStringLiteralOp(strLitTy,
                                          StringAttr.get(node.value)).result)
             return
-        
+
         if isinstance(node.value, type(1j)):
             self.pushValue(
                 complex.CreateOp(ComplexType.get(self.getFloatType()),
                                  self.getConstantFloat(node.value.real),
                                  self.getConstantFloat(node.value.imag)).result)
             return
-        
+
         self.emitFatalError("unhandled constant value", node)
 
     def visit_Subscript(self, node):
@@ -2267,8 +2279,9 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if isinstance(op, ast.Eq):
-            if F64Type.isinstance(left.type) and IntegerType.isinstance(comparator.type):
-                left = arith.FPToSIOp(comparator.type, left).result 
+            if F64Type.isinstance(left.type) and IntegerType.isinstance(
+                    comparator.type):
+                left = arith.FPToSIOp(comparator.type, left).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                              comparator).result)
@@ -2656,7 +2669,7 @@ class PyASTBridge(ast.NodeVisitor):
         # a variable from parent scope.
         if node.id in self.capturedVars:
             self.emitFatalError(
-                f"Invalid variable requested - `{node.id}` was defined in the kernel's parent scope. CUDA Quantum does not support capturing variables from parent scope (variables must be defined as input arguments or within the kernel function body)."
+                f"Invalid variable requested - `{node.id}` is not defined within the quantum kernel it is used in."
             )
 
         # Throw an exception for the case that the name is not
@@ -2715,7 +2728,7 @@ def compile_to_mlir(astModule, metadata, **kwargs):
         # has further dependencies
         for depKernelName, depKernelAst in transitiveDeps.items():
             localVis = FindDepKernelsVisitor(bridge.ctx)
-            localVis.visit(depKernelAst)
+            localVis.visit(depKernelAst[0])
             # Append the found dependencies to our running tally
             depKernels = {**depKernels, **localVis.depKernels}
             # Reset for the next go around
@@ -2735,8 +2748,11 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     # ignore kernels that have the same name as this one.
     for funcName in sortedOrder:
         if funcName != vis.kernelName and funcName in depKernels:
-            PyASTBridge(existingModule=bridge.module).visit(
-                depKernels[funcName])
+            # Build an AST Bridge and visit the dependent kernel
+            # function. Provide the dependent kernel source location as well.
+            PyASTBridge(existingModule=bridge.module,
+                        locationOffset=depKernels[funcName][1]).visit(
+                            depKernels[funcName][0])
 
     # Build the MLIR Module for this kernel
     bridge.visit(astModule)
@@ -2753,8 +2769,6 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     except:
         raise RuntimeError("could not compile code for '{}'.".format(
             bridge.name))
-
-    globalAstRegistry[bridge.name] = astModule
 
     if metadata['conditionalOnMeasure']:
         SymbolTable(

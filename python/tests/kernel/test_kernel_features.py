@@ -654,3 +654,35 @@ def test_with_docstring():
         
     # Test here is that it compiles
     bernstein_vazirani.compile()
+
+def test_disallow_list_no_element_type():
+
+    @cudaq.kernel
+    def test(listVar : List):
+        pass 
+
+    with pytest.raises(RuntimeError) as e:
+        print(test)
+
+def test_invalid_cudaq_type():
+
+    @cudaq.kernel(verbose=True)
+    def test():
+        q = cudaq.qreg(5)
+        h(q)
+
+    with pytest.raises(RuntimeError) as e:
+        print(test)
+
+def test_list_float_pass_list_int():
+    @cudaq.kernel
+    def test(var : List[float]):
+        q = cudaq.qvector(2)
+        cudaq.dbg.ast.print_f64(var[0])
+        x(q[int(var[0])])
+        x(q[int(var[1])])
+    
+    var = [0, 1]
+    counts = cudaq.sample(test, var)
+    assert len(counts) == 1 and '11' in counts
+    counts.dump()
