@@ -12,7 +12,7 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType
+from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
@@ -70,12 +70,6 @@ class CompilerError(RuntimeError):
         RuntimeError.__init__(self, *args, **kwargs)
 
 
-class Color:
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    END = '\033[0m'
-
-
 class PyASTBridge(ast.NodeVisitor):
     """
     The `PyASTBridge` class implements the `ast.NodeVisitor` type to convert a 
@@ -123,6 +117,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.knownResultType = mlirTypeFromPyType(self.knownResultType,
                                                       self.ctx)
 
+        self.capturedVars = kwargs[
+            'capturedVariables'] if 'capturedVariables' in kwargs else {}
         self.locationOffset = kwargs[
             'locationOffset'] if 'locationOffset' in kwargs else ('', 0)
         self.disableEntryPointTag = kwargs[
@@ -340,14 +336,14 @@ class PyASTBridge(ast.NodeVisitor):
             argsTy += [self.getIntegerType()]
             # If `printf` is not in the module, or if it is but the last argument type is not an integer
             # then we have to add it
-            if not 'printf' in currentST or not IntegerType.isinstance(
-                    currentST['printf'].type.inputs[-1]):
+            if not 'print_i64' in currentST or not IntegerType.isinstance(
+                    currentST['print_i64'].type.inputs[-1]):
                 with InsertionPoint(self.module.body):
-                    printOp = func.FuncOp('printf', (argsTy, []))
+                    printOp = func.FuncOp('print_i64', (argsTy, []))
                     printOp.sym_visibility = StringAttr.get("private")
             currentST = SymbolTable(self.module.operation)
-            printFunc = currentST['printf']
-            printStr = '%ld\n'
+            printFunc = currentST['print_i64']
+            printStr += '%ld\n'
 
         elif dbgStmt == 'print_f64':
             if not F64Type.isinstance(value.type):
@@ -359,13 +355,13 @@ class PyASTBridge(ast.NodeVisitor):
             argsTy += [self.getFloatType()]
             # If `printf` is not in the module, or if it is but the last argument type is not an float
             # then we have to add it
-            if not 'printf' in currentST or not F64Type.isinstance(
-                    currentST['printf'].type.inputs[-1]):
+            if not 'print_f64' in currentST or not F64Type.isinstance(
+                    currentST['print_f64'].type.inputs[-1]):
                 with InsertionPoint(self.module.body):
-                    printOp = func.FuncOp('printf', (argsTy, []))
+                    printOp = func.FuncOp('print_f64', (argsTy, []))
                     printOp.sym_visibility = StringAttr.get("private")
             currentST = SymbolTable(self.module.operation)
-            printFunc = currentST['printf']
+            printFunc = currentST['print_f64']
             printStr += '%.12lf\n'
         else:
             raise self.emitFatalError(
@@ -2290,6 +2286,12 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.MulIOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
+            elif F64Type.isinstance(loaded.type):
+                if IntegerType.isinstance(value.type):
+                    value = arith.SIToFPOp(self.getFloatType(), value).result
+                res = arith.MulFOp(loaded, value).result
+                cc.StoreOp(res, target)
+                return
             else:
                 self.emitFatalError("unhandled AugAssign.Mult types.", node)
 
@@ -2619,6 +2621,13 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(self.symbolTable[node.id])
             return
 
+        # Throw a specific error if the user tries to use
+        # a variable from parent scope.
+        if node.id in self.capturedVars:
+            self.emitFatalError(
+                f"Invalid variable requested - `{node.id}` was defined in the kernel's parent scope. CUDA Quantum does not support capturing variables from parent scope (variables must be defined as input arguments or within the kernel function body)."
+            )
+
         # Throw an exception for the case that the name is not
         # in the symbol table
         self.emitFatalError(
@@ -2643,12 +2652,15 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     verbose = 'verbose' in kwargs and kwargs['verbose']
     returnType = kwargs['returnType'] if 'returnType' in kwargs else None
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
+    parentVariables = kwargs[
+        'parentVariables'] if 'parentVariables' in kwargs else {}
 
     # Create the AST Bridge
     bridge = PyASTBridge(verbose=verbose,
                          knownResultType=returnType,
                          returnTypeIsFromPython=True,
-                         locationOffset=lineNumberOffset)
+                         locationOffset=lineNumberOffset,
+                         capturedVariables=parentVariables)
 
     # First validate the arguments, make sure they are annotated
     bridge.validateArgumentAnnotations(astModule)

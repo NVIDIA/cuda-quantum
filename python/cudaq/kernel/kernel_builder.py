@@ -11,7 +11,7 @@ import random
 import string
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix
+from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
 
@@ -103,7 +103,7 @@ def __singleTargetControlOperation(self, opName, control, target, isAdj=False):
                     control.mlirValue.type):
             fwdControls = [control.mlirValue]
         else:
-            raise RuntimeError("invalid control type for {}.", opName)
+            emitFatalError(f"invalid control type for {opName}.")
 
         __generalOperation(self,
                            opName, [],
@@ -155,7 +155,7 @@ def __singleTargetSingleParameterControlOperation(self,
                     controls.mlirValue.type):
             fwdControls = [controls.mlirValue]
         else:
-            raise RuntimeError("invalid controls type for {}.", opName)
+            emitFatalError(f"invalid controls type for {opName}.")
 
         paramVal = parameter
         if isinstance(parameter, float):
@@ -302,9 +302,9 @@ class PyKernel(object):
                     elementVal = self.__getMLIRValueFromPythonArg(
                         element, eleTy)
                 else:
-                    raise RuntimeError(
-                        "CUDA Quantum builder could not process runtime list-like element type ({})."
-                        .format(eleTy))
+                    emitFatalError(
+                        f"CUDA Quantum kernel builder could not process runtime list-like element type ({pyType})."
+                    )
 
                 cc.StoreOp(elementVal, eleAddr)
                 # Python is weird, but interesting.
@@ -315,9 +315,9 @@ class PyKernel(object):
             return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, eleTy), alloca,
                                    size).result
 
-        raise RuntimeError(
-            "CUDA Quantum kernel builder could not translate runtime argument of type {} to MLIR Value."
-            .format(mlirType))
+        emitFatalError(
+            "CUDA Quantum kernel builder could not translate runtime argument of type {pyType} to internal IR value."
+        )
 
     def createInvariantForLoop(self,
                                endVal,
@@ -380,7 +380,7 @@ class PyKernel(object):
                 cloned.operation.attributes.__delitem__('cudaq-entrypoint')
             return cloned
 
-        raise RuntimeError("could not find function with name {}".format(name))
+        emitFatalError(f"Could not find function with name {name}")
 
     def __addAllCalledFunctionsRecursively(self, otherFunc, currentModule,
                                            otherModule):
@@ -416,9 +416,9 @@ class PyKernel(object):
 
                 otherST = SymbolTable(otherModule.operation)
                 if calleeName not in otherST:
-                    raise RuntimeError(
-                        "invalid called function, cannot find in ModuleOp {}".
-                        format(calleeName))
+                    emitFatalError(
+                        f"Invalid called function `{calleeName}`- cannot find the function in the symbol table"
+                    )
 
                 cloned = otherST[calleeName].operation.clone()
                 if 'cudaq-entrypoint' in cloned.operation.attributes:
@@ -531,8 +531,8 @@ class PyKernel(object):
             for arg in args:
                 if isinstance(arg, cudaq_runtime.SpinOperator):
                     if arg.get_term_count() > 1:
-                        raise RuntimeError(
-                            'exp_pauli requires a SpinOperator composed of a single term.'
+                        emitFatalError(
+                            'exp_pauli operation requires a SpinOperator composed of a single term.'
                         )
                     arg = arg.to_string(False)
 
@@ -578,8 +578,7 @@ class PyKernel(object):
         fermionic_swap_builder(self, angle, qubitA, qubitB)
 
     def from_state(self, qubits, state):
-
-        raise RuntimeError("from_state not yet implemented.")
+        emitFatalError("from_state not implemented.")
 
     def cswap(self, controls, qubitA, qubitB):
         """
@@ -605,7 +604,8 @@ class PyKernel(object):
                     controls.mlirValue.type):
             fwdControls = [controls.mlirValue]
         else:
-            raise RuntimeError("invalid control type for cswap.")
+            emitFatalError(
+                f"Invalid control type for cswap ({type(controls)}).")
 
         with self.insertPoint, self.loc:
             quake.SwapOp([], [], fwdControls,
@@ -647,8 +647,9 @@ class PyKernel(object):
                     quake.ResetOp([], extracted)
                 return
             else:
-                raise RuntimeError(
-                    'reset operation broadcasting on veq<?> not supported yet.')
+                emitFatalError(
+                    'reset operation broadcasting on qvector not supported yet.'
+                )
 
     def mz(self, target, regName=None):
         """
@@ -916,7 +917,7 @@ class PyKernel(object):
         with self.insertPoint, self.loc:
             conditional = measurement.mlirValue
             if not IntegerType.isinstance(conditional.type):
-                raise RuntimeError("c_if conditional must be an i1 type.")
+                emitFatalError("c_if conditional must be of type `bool`.")
 
             # [RFC]:
             # The register names in the conditional tests need to be double checked;
@@ -994,8 +995,8 @@ class PyKernel(object):
             elif isinstance(start, QuakeValue):
                 startVal = start.mlirValue
             else:
-                raise RuntimeError("invalid start value passed to for_loop: ",
-                                   start)
+                emitFatalError(
+                    f"invalid start value passed to for_loop: {start}")
 
             if isinstance(stop, int):
                 endVal = arith.ConstantOp(iTy, IntegerAttr.get(iTy,
@@ -1003,8 +1004,7 @@ class PyKernel(object):
             elif isinstance(stop, QuakeValue):
                 endVal = stop.mlirValue
             else:
-                raise RuntimeError("invalid stop value passed to for_loop: ",
-                                   stop)
+                emitFatalError(f"invalid stop value passed to for_loop: {stop}")
 
             stepVal = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1)).result
             inputs = [startVal]
@@ -1031,7 +1031,6 @@ class PyKernel(object):
             with InsertionPoint(stepBlock):
                 incr = arith.AddIOp(stepBlock.arguments[0], stepVal).result
                 cc.ContinueOp([incr])
-            print(self.module)
             loop.attributes.__setitem__('invariant', UnitAttr.get())
 
     def __call__(self, *args):
@@ -1058,17 +1057,18 @@ class PyKernel(object):
         ```
         """
         if len(args) != len(self.mlirArgTypes):
-            raise RuntimeError(
-                "invalid number of arguments passed to kernel {} (passed {} but requires {})"
-                .format(self.funcName, len(args), len(self.mlirArgTypes)))
+            emitFatalError(
+                f"Invalid number of arguments passed to kernel `{self.funcName}` ({len(args)} provided, {len(self.mlirArgTypes)} required"
+            )
 
         # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
             mlirType = mlirTypeFromPyType(type(arg), self.ctx)
             if mlirType != self.mlirArgTypes[i]:
-                raise RuntimeError("invalid runtime arg type ({} vs {})".format(
-                    mlirType, self.mlirArgTypes[i]))
+                emitFatalError(
+                    f"Invalid runtime argument type ({type(arg)} provided, {mlirTypeToPyType(self.mlirArgTypes[i])} required)"
+                )
 
             # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType):
@@ -1076,8 +1076,8 @@ class PyKernel(object):
                 # greater than or equal to the number of unique
                 # quake value extractions
                 if len(arg) < len(self.arguments[i].knownUniqueExtractions):
-                    raise RuntimeError(
-                        f"invalid runtime list argument - {len(arg)} elements in list but kernel code has at least {len(self.arguments[i].knownUniqueExtractions)} known unique extractions."
+                    emitFatalError(
+                        f"Invalid runtime list argument - {len(arg)} elements in list but kernel code has at least {len(self.arguments[i].knownUniqueExtractions)} known unique extractions."
                     )
                 if hasattr(arg, "tolist"):
                     processedArgs.append(arg.tolist())

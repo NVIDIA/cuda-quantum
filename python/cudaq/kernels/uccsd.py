@@ -171,14 +171,14 @@ def double_excitation_opt(qubits: cudaq.qview, p_occ: int, q_occ: int,
         a_virt = s_virt
         b_virt = r_virt
         # theta *= -1.0 FIXME
-        theta = theta * -1.
+        theta *= -1.
 
     elif (p_occ > q_occ) and (r_virt < s_virt):
         i_occ = q_occ
         j_occ = p_occ
         a_virt = r_virt
         b_virt = s_virt
-        theta = theta * -1.0
+        theta *= -1.0
     #Block I: x_i x_j x_a y_b + x_i x_j y_a x_b + x_i y_i y_a y_b - x_i y_j x_a x_b
     #Block II: - y_i x_j x_a x_b +y_i x_j y_a y_b - y_i x_j x_a x_b - y_i y_j y_a x_b
 

@@ -556,3 +556,13 @@ def test_sample_async_issue_args_processed():
     result = cudaq.sample_async(kernel, params, qpu_id=0)
     counts = result.get()
     assert len(counts) == 2 and '01' in counts and '10' in counts
+
+def test_capture_vars_disallowed():
+
+    n = 5 
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(n)
+    
+    with pytest.raises(RuntimeError) as e:
+        test()
