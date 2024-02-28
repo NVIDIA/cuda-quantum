@@ -72,7 +72,7 @@ env:
   # workflow_dispatch defaults above so they stay in sync.
   cudaq_test_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
   cudaq_nvqc_deploy_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
-  python_version: 3.10
+  python_version: '3.10'
 
 jobs:
   # We need this job purely to choose the container image values because the
