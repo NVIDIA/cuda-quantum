@@ -1174,7 +1174,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             if node.func.id in ['mx', 'my', 'mz']:
                 registerName = self.currentAssignVariableName
-                # If registerName is None, then we know that we
+                # If `registerName` is None, then we know that we
                 # are not assigning this measure result to anything
                 # so we therefore should not push it on the stack
                 pushResultToStack = registerName != None
@@ -2172,7 +2172,6 @@ class PyASTBridge(ast.NodeVisitor):
         shortCircuitWhenTrue = isinstance(node.op, ast.Or)
         if isinstance(node.op, ast.And) or isinstance(node.op, ast.Or):
             # Visit the LHS and pop the value
-            import random, string
             self.currentAssignVariableName = ''
             self.visit(node.values[0])
             lhs = self.popValue()

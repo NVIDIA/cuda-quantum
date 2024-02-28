@@ -161,13 +161,14 @@ class PyKernelDecorator(object):
                                           self.module.context,
                                           argInstance=arg,
                                           argTypeToCompareTo=self.argTypes[i])
-            
-            # Support passing list[int] to a list[float] arg
+
+            # Support passing `list[int]` to a `list[float]` argument
             if cc.StdvecType.isinstance(mlirType):
                 if cc.StdvecType.isinstance(self.argTypes[i]):
                     argEleTy = cc.StdvecType.getElementType(mlirType)
                     eleTy = cc.StdvecType.getElementType(self.argTypes[i])
-                    if F64Type.isinstance(eleTy) and IntegerType.isinstance(argEleTy):
+                    if F64Type.isinstance(eleTy) and IntegerType.isinstance(
+                            argEleTy):
                         processedArgs.append([float(i) for i in arg])
                         mlirType = self.argTypes[i]
 
@@ -199,8 +200,6 @@ class PyKernelDecorator(object):
                 processedArgs.append(arg.tolist())
             else:
                 processedArgs.append(arg)
-
-           
 
         if self.returnType == None:
             cudaq_runtime.pyAltLaunchKernel(self.name,
