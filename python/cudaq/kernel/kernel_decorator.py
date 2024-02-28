@@ -128,6 +128,27 @@ class PyKernelDecorator(object):
         Compile the Python function AST to MLIR. This is a no-op 
         if the kernel is already compiled. 
         """
+
+        # Before we can execute, we need to make sure
+        # variables from the parent frame that we captured
+        # have not changed. If they have changed, we need to
+        # recompile with the new values.
+        for i, s in enumerate(inspect.stack()):
+            if s.frame == self.parentFrame:
+                # We found the parent frame, now
+                # see if any of the variables we depend
+                # on have changed.
+                self.globalScopedVars = {
+                    k: v for k, v in dict(inspect.getmembers(s.frame))
+                    ['f_locals'].items()
+                }
+                if self.dependentCaptures != None:
+                    for k, v in self.dependentCaptures.items():
+                        if self.globalScopedVars[k] != v:
+                            # Need to recompile
+                            self.module = None
+                            break
+
         if self.module != None:
             return
 
@@ -155,26 +176,6 @@ class PyKernelDecorator(object):
         Invoke the CUDA Quantum kernel. JIT compilation of the 
         kernel AST to MLIR will occur here if it has not already occurred. 
         """
-
-        # Before we can execute, we need to make sure
-        # variables from the parent frame that we captured
-        # have not changed. If they have changed, we need to
-        # recompile with the new values.
-        for i, s in enumerate(inspect.stack()):
-            if s.frame == self.parentFrame:
-                # We found the parent frame, now
-                # see if any of the variables we depend
-                # on have changed.
-                self.globalScopedVars = {
-                    k: v for k, v in dict(inspect.getmembers(s.frame))
-                    ['f_locals'].items()
-                }
-                if self.dependentCaptures != None:
-                    for k, v in self.dependentCaptures.items():
-                        if self.globalScopedVars[k] != v:
-                            # Need to recompile
-                            self.module = None
-                            break
 
         # Compile, no-op if the module is not None
         self.compile()
