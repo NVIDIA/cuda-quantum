@@ -2762,9 +2762,8 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(mlirVal)
                     return
 
-            print(type(value))
             self.emitFatalError(
-                "Invalid type for variable captured from parent scope (only int, bool, float, and list[int|bool|float] accepted).",
+                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, and list[int|bool|float] accepted, type was {type(value)}).",
                 node)
 
         # Throw an exception for the case that the name is not
