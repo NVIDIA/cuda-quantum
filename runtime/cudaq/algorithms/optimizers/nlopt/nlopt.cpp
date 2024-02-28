@@ -93,5 +93,6 @@ double nlopt_wrapper_call(const std::vector<double> &x,
 
 CUDAQ_NLOPT_ALGORITHM_IMPL(cobyla, LN_COBYLA)
 CUDAQ_NLOPT_ALGORITHM_IMPL(neldermead, LN_NELDERMEAD)
+CUDAQ_NLOPT_ALGORITHM_IMPL(slsqp, LD_SLSQP)
 
 } // namespace cudaq::optimizers

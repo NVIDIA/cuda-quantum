@@ -160,6 +160,7 @@ def test_ackley_no_gradients(optimizer):
 @pytest.mark.parametrize("optimizer", [
     cudaq.optimizers.COBYLA(),
     cudaq.optimizers.NelderMead(),
+    cudaq.optimizers.SLSQP(),
     cudaq.optimizers.SPSA(),
     cudaq.optimizers.LBFGS(),
     cudaq.optimizers.GradientDescent(),
@@ -212,6 +213,7 @@ def test_schwefel_no_gradients(optimizer, dimension):
 @pytest.mark.parametrize("optimizer", [
     cudaq.optimizers.COBYLA(),
     cudaq.optimizers.NelderMead(),
+    cudaq.optimizers.SLSQP(),
     cudaq.optimizers.SPSA(),
     cudaq.optimizers.LBFGS(),
     cudaq.optimizers.GradientDescent(),

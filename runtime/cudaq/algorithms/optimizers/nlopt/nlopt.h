@@ -35,5 +35,6 @@ public:
 
 CUDAQ_NLOPT_ALGORITHM_TYPE(cobyla, false)
 CUDAQ_NLOPT_ALGORITHM_TYPE(neldermead, false)
+CUDAQ_NLOPT_ALGORITHM_TYPE(slsqp, true)
 
 } // namespace cudaq::optimizers
