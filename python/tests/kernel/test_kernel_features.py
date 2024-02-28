@@ -14,6 +14,7 @@ from typing import Callable, List
 import sys
 
 import cudaq
+from cudaq import spin
 
 ## [PYTHON_VERSION_FIX]
 skipIfPythonLessThan39 = pytest.mark.skipif(
@@ -419,6 +420,12 @@ def test_simple_return_types():
         def kernel(a: int, b: int):  # No return type
             return a * b
 
+    @cudaq.kernel
+    def boolKernel() -> bool:
+        return True
+
+    assert boolKernel()
+
 
 def test_list_creation():
 
@@ -559,16 +566,84 @@ def test_sample_async_issue_args_processed():
     assert len(counts) == 2 and '01' in counts and '10' in counts
 
 
-def test_capture_vars_disallowed():
+def test_capture_vars():
 
     n = 5
+    f = 0.0
+    m = 5
+    hello = str()
 
     @cudaq.kernel
-    def test():
+    def kernel():
         q = cudaq.qvector(n)
+        x(q)
+        cudaq.dbg.ast.print_f64(f)
+        ry(f, q[0])
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '1' * n in counts
+
+    f = 2 * np.pi
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '1' * n in counts
+
+    n = 7
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '1' * n in counts
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '1' * n in counts
+
+    n = 3
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '1' * n in counts
+
+    @cudaq.kernel
+    def testCanOnlyCaptureIntAndFloat():
+        i = hello
 
     with pytest.raises(RuntimeError) as e:
-        test()
+        testCanOnlyCaptureIntAndFloat()
+
+    b = True
+
+    @cudaq.kernel
+    def canCaptureBool():
+        q = cudaq.qubit()
+        if b:
+            x(q)
+
+    counts = cudaq.sample(canCaptureBool)
+    counts.dump()
+    assert len(counts) == 1 and '1' in counts
+
+    b = False
+    counts = cudaq.sample(canCaptureBool)
+    counts.dump()
+    assert len(counts) == 1 and '0' in counts
+
+    l = [.59]
+    li = [0, 1]
+
+    @cudaq.kernel
+    def canCaptureList():
+        q = cudaq.qvector(2)
+        firstIdx = li[0]
+        secondIdx = li[1]
+        x(q[firstIdx])
+        ry(l[firstIdx], q[secondIdx])
+        x.ctrl(q[secondIdx], q[firstIdx])
+
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    assert np.isclose(-1.748,
+                      cudaq.observe(canCaptureList, hamiltonian).expectation(),
+                      atol=1e-3)
 
 
 def test_error_qubit_constructor():
@@ -719,7 +794,7 @@ def test_aug_assign_add():
         f = 5.
         f += 5.
         return f
-
+    
     assert test() == 10.
 
     @cudaq.kernel

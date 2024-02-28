@@ -119,6 +119,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.capturedVars = kwargs[
             'capturedVariables'] if 'capturedVariables' in kwargs else {}
+        self.dependentCaptureVars = {}
         self.locationOffset = kwargs[
             'locationOffset'] if 'locationOffset' in kwargs else ('', 0)
         self.disableEntryPointTag = kwargs[
@@ -317,6 +318,28 @@ class PyASTBridge(ast.NodeVisitor):
         """
         return IntegerType.isinstance(type) or F64Type.isinstance(
             type) or ComplexType.isinstance(type)
+
+    def __createStdvecWithKnownValues(self, size, listElementValues):
+        # Turn this List into a StdVec<T>
+        arrSize = self.getConstantInt(size)
+        arrTy = cc.ArrayType.get(self.ctx, listElementValues[0].type)
+        alloca = cc.AllocaOp(cc.PointerType.get(self.ctx, arrTy),
+                             TypeAttr.get(listElementValues[0].type),
+                             seqSize=arrSize).result
+
+        for i, v in enumerate(listElementValues):
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, listElementValues[0].type), alloca,
+                [self.getConstantInt(i)],
+                DenseI32ArrayAttr.get([-2147483648], context=self.ctx)).result
+            cc.StoreOp(v, eleAddr)
+
+        vecTy = listElementValues[0].type
+        if cc.PointerType.isinstance(vecTy):
+            vecTy = cc.PointerType.getElementType(vecTy)
+
+        return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
+                               arrSize).result
 
     def __insertDbgStmt(self, value, dbgStmt):
         """
@@ -1825,26 +1848,9 @@ class PyASTBridge(ast.NodeVisitor):
                 format([v.type for v in listElementValues]), node)
 
         # Turn this List into a StdVec<T>
-        arrSize = self.getConstantInt(len(node.elts))
-        arrTy = cc.ArrayType.get(self.ctx, listElementValues[0].type)
-        alloca = cc.AllocaOp(cc.PointerType.get(self.ctx, arrTy),
-                             TypeAttr.get(listElementValues[0].type),
-                             seqSize=arrSize).result
-
-        for i, v in enumerate(listElementValues):
-            eleAddr = cc.ComputePtrOp(
-                cc.PointerType.get(self.ctx, listElementValues[0].type), alloca,
-                [self.getConstantInt(i)],
-                DenseI32ArrayAttr.get([-2147483648], context=self.ctx)).result
-            cc.StoreOp(v, eleAddr)
-
-        vecTy = listElementValues[0].type
-        if cc.PointerType.isinstance(vecTy):
-            vecTy = cc.PointerType.getElementType(vecTy)
-
         self.pushValue(
-            cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
-                            arrSize).result)
+            self.__createStdvecWithKnownValues(len(node.elts),
+                                               listElementValues))
 
     def visit_Constant(self, node):
         """
@@ -2714,11 +2720,51 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(self.symbolTable[node.id])
             return
 
-        # Throw a specific error if the user tries to use
-        # a variable from parent scope.
         if node.id in self.capturedVars:
+            # Only support a small subset of types here
+            value = self.capturedVars[node.id]
+            if isinstance(value, int):
+                self.dependentCaptureVars[node.id] = value
+                mlirVal = self.getConstantInt(value)
+                self.symbolTable[node.id] = mlirVal
+                self.pushValue(mlirVal)
+                return
+
+            if isinstance(value, bool):
+                self.dependentCaptureVars[node.id] = value
+                mlirVal = self.getConstantInt(value, 1)
+                self.symbolTable[node.id] = mlirVal
+                self.pushValue(mlirVal)
+                return
+
+            if isinstance(value, float):
+                self.dependentCaptureVars[node.id] = value
+                mlirVal = self.getConstantFloat(value)
+                self.symbolTable[node.id] = mlirVal
+                self.pushValue(mlirVal)
+                return
+
+            if isinstance(value, list) and isinstance(value[0],
+                                                      (int, bool, float)):
+                elementValues = None
+                if isinstance(value[0], float):
+                    elementValues = [self.getConstantFloat(el) for el in value]
+                elif isinstance(value[0], int):
+                    elementValues = [self.getConstantInt(el) for el in value]
+                elif isinstance(value[0], bool):
+                    elementValues = [self.getConstantInt(el, 1) for el in value]
+
+                if elementValues != None:
+                    self.dependentCaptureVars[node.id] = value
+                    mlirVal = self.__createStdvecWithKnownValues(
+                        len(value), elementValues)
+                    self.symbolTable[node.id] = mlirVal
+                    self.pushValue(mlirVal)
+                    return
+
+            print(type(value))
             self.emitFatalError(
-                f"Invalid variable requested - `{node.id}` was defined in the kernel's parent scope. CUDA Quantum does not support capturing variables from parent scope (variables must be defined as input arguments or within the kernel function body).",
+                "Invalid type for variable captured from parent scope (only int, bool, float, and list[int|bool|float] accepted).",
                 node)
 
         # Throw an exception for the case that the name is not
@@ -2825,4 +2871,8 @@ def compile_to_mlir(astModule, metadata, **kwargs):
                                      bridge.name].attributes.__setitem__(
                                          'qubitMeasurementFeedback',
                                          BoolAttr.get(True, context=bridge.ctx))
-    return bridge.module, bridge.argTypes
+    extraMetaData = {}
+    if len(bridge.dependentCaptureVars):
+        extraMetaData['dependent_captures'] = bridge.dependentCaptureVars
+
+    return bridge.module, bridge.argTypes, extraMetaData
