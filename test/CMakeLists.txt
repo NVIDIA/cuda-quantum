@@ -39,6 +39,7 @@ if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   set(NVQPP_TEST_DEPENDS ${NVQPP_TEST_DEPENDS}
     cudaq-quake
     fixup-linkage
+    nvq++
     ${test_cudaq_libraries}
   )
 endif()

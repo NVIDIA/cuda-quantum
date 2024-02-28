@@ -117,6 +117,11 @@ def cc_StructType : CCType<"Struct", "struct",
                    isPacked, size, align);
     }]>
   ];
+
+  let extraClassDeclaration = [{
+    bool isEmpty() const { return getMembers().empty(); }
+    Type getMember(unsigned position) { return getMembers()[position]; }
+  }];
 }
 
 //===----------------------------------------------------------------------===//
