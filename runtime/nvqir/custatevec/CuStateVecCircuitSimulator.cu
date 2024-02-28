@@ -567,6 +567,33 @@ public:
     }
   }
 
+  void setStateData(const std::vector<std::complex<double>> &inputState) override {
+    cudaq::info("Setting the internal state vector of CuStateVec.\n");
+    // Input state vector should be of size `2^(n_total_qubits_allocated)`.
+    auto inputSize = inputState.size();
+    if (inputSize != stateDimension) {
+      throw std::runtime_error(fmt::format("Input state vector of length: {} does span "
+                "the size of the entire system state vector (expected length = {})", 
+                inputSize, stateDimension));
+    }
+
+    // Needs to be a complex float before running Memcpy.
+    // In the future, we should consider supporting a complex<float> overload
+    // across the `CircuitSimulator` API.
+    std::vector<std::complex<float>> in_state(inputSize);
+    void *newDeviceStateVector{nullptr};
+    std::transform(inputState.begin(), inputState.end(), in_state.begin(),
+                   [](std::complex<double> val) {
+                     return static_cast<std::complex<float>>(val);
+                   });
+    HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
+                                 stateDimension * sizeof(CudaDataType)));
+    cudaMemcpy(newDeviceStateVector, in_state.data(),
+               in_state.size() * sizeof(std::complex<float>),
+               cudaMemcpyHostToDevice);
+    deviceStateVector = newDeviceStateVector;
+  }
+
   std::string name() const override;
   NVQIR_SIMULATOR_CLONE_IMPL(CuStateVecCircuitSimulator<ScalarType>)
 };
