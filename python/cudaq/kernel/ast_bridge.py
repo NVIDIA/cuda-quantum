@@ -2281,6 +2281,9 @@ class PyASTBridge(ast.NodeVisitor):
             if F64Type.isinstance(left.type) and IntegerType.isinstance(
                     comparator.type):
                 left = arith.FPToSIOp(comparator.type, left).result
+            if IntegerType(left.type).width < IntegerType(
+                    comparator.type).width:
+                left = arith.ExtSIOp(comparator.type, left).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                              comparator).result)

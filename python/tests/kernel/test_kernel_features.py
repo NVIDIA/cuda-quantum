@@ -686,3 +686,15 @@ def test_list_float_pass_list_int():
     counts = cudaq.sample(test, var)
     assert len(counts) == 1 and '11' in counts
     counts.dump()
+
+def test_cmpi_error_ints_different_widths():
+    @cudaq.kernel 
+    def test():
+        q = cudaq.qubit()
+        i = mz(q)
+        if i == 1:
+            x(q)
+    
+    test()
+    counts = cudaq.sample(test)
+    assert '0' in counts and len(counts) == 1
