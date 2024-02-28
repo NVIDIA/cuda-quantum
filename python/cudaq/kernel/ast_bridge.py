@@ -2671,13 +2671,13 @@ class PyASTBridge(ast.NodeVisitor):
         # a variable from parent scope.
         if node.id in self.capturedVars:
             self.emitFatalError(
-                f"Invalid variable requested - `{node.id}` is not defined within the quantum kernel it is used in."
-            )
+                f"Invalid variable requested - `{node.id}` was defined in the kernel's parent scope. CUDA Quantum does not support capturing variables from parent scope (variables must be defined as input arguments or within the kernel function body).",
+                node)
 
         # Throw an exception for the case that the name is not
         # in the symbol table
         self.emitFatalError(
-            f"Invalid variable name requested - '{node.id}' not in the symbol table.",
+            f"Invalid variable name requested - '{node.id}' is not defined within the quantum kernel it is used in.",
             node)
 
 
