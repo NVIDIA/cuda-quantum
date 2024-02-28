@@ -129,16 +129,16 @@ public:
   virtual cudaq::ExecutionResult observe(const cudaq::spin_op &term) = 0;
 
   /// @brief Allocate a single qubit, return the qubit as a logical index
-  virtual std::size_t allocateQubit() = 0;
+  virtual std::size_t allocateQudit() = 0;
 
   /// @brief Allocate `count` qubits.
-  virtual std::vector<std::size_t> allocateQubits(const std::size_t count) = 0;
+  virtual std::vector<std::size_t> allocateQudits(const std::size_t count) = 0;
 
-  /// @brief Deallocate the qubit with give unique index
-  virtual void deallocate(const std::size_t qubitIdx) = 0;
+  /// @brief Deallocate qudit with give unique identifier.
+  virtual void deallocateQudit(const std::size_t uid) = 0;
 
-  /// @brief Deallocate all the provided qubits.
-  virtual void deallocateQubits(const std::vector<std::size_t> &qubits) = 0;
+  /// @brief Deallocate all the provided qudits.
+  virtual void deallocateQudits(const std::vector<std::size_t> &uids) = 0;
 
   /// @brief Reset the current execution context.
   virtual void resetExecutionContext() = 0;
@@ -258,6 +258,8 @@ public:
   virtual bool mz(const std::size_t qubitIdx,
                   const std::string &registerName) = 0;
 
+  virtual cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) = 0;
+
   /// @brief Reset the qubit to the |0> state
   virtual void resetQubit(const std::size_t qubitIdx) = 0;
 
@@ -282,6 +284,10 @@ class CircuitSimulatorBase : public CircuitSimulator {
 private:
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
+
+  bool isInTracerMode() {
+    return executionContext && executionContext->name == "tracer";
+  }
 
 protected:
   /// @brief The current Execution Context (typically this is null,
@@ -601,27 +607,11 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
-    if (executionContext && executionContext->name == "tracer") {
-      std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
-      for (auto &c : controls)
-        controlsInfo.emplace_back(2, c);
-      for (auto &t : targets)
-        targetsInfo.emplace_back(2, t);
-
-      std::vector<double> anglesProcessed;
-      if constexpr (std::is_same_v<ScalarType, double>)
-        anglesProcessed = params;
-      else {
-        for (auto &a : params)
-          anglesProcessed.push_back(static_cast<ScalarType>(a));
-      }
-
-      executionContext->kernelTrace.appendInstruction(
-          name, anglesProcessed, controlsInfo, targetsInfo);
-      return;
-    }
-
-    gateQueue.emplace(name, matrix, controls, targets, params);
+    if (isInTracerMode())
+      executionContext->kernelTrace.appendInstruction(name, params, controls,
+                                                      targets);
+    else
+      gateQueue.emplace(name, matrix, controls, targets, params);
   }
 
   /// @brief This pure virtual method is meant for subtypes
@@ -695,10 +685,13 @@ public:
                              "observe(const cudaq::spin_op &).");
   }
 
-  /// @brief Allocate a single qubit, return the qubit as a logical index
-  std::size_t allocateQubit() override {
+  /// @brief Allocate a qudit, and returns its unique identifier.
+  std::size_t allocateQudit() override {
     // Get a new qubit index
     auto newIdx = tracker.getNextIndex();
+
+    if (isInTracerMode())
+      return newIdx;
 
     if (isInBatchMode()) {
       batchModeCurrentNumQubits++;
@@ -730,11 +723,14 @@ public:
     return newIdx;
   }
 
-  /// @brief Allocate `count` qubits.
-  std::vector<std::size_t> allocateQubits(std::size_t count) override {
+  /// @brief Allocate `count` qudits.
+  std::vector<std::size_t> allocateQudits(std::size_t count) override {
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());
+
+    if (isInTracerMode())
+      return qubits;
 
     if (isInBatchMode()) {
       // Store the current number of qubits requested
@@ -767,20 +763,25 @@ public:
   }
 
   /// @brief Deallocate the qubit with give index
-  void deallocate(const std::size_t qubitIdx) override {
-    if (executionContext) {
-      cudaq::info("Deferring qubit {} deallocation", qubitIdx);
-      deferredDeallocation.push_back(qubitIdx);
+  void deallocateQudit(const std::size_t uid) override {
+    if (isInTracerMode()) {
+      tracker.returnIndex(uid);
       return;
     }
 
-    cudaq::info("Deallocating qubit {}", qubitIdx);
+    if (executionContext) {
+      cudaq::info("Deferring qubit {} deallocation", uid);
+      deferredDeallocation.push_back(uid);
+      return;
+    }
+
+    cudaq::info("Deallocating qubit {}", uid);
 
     // Reset the qubit
-    resetQubit(qubitIdx);
+    resetQubit(uid);
 
     // Return the index to the tracker
-    tracker.returnIndex(qubitIdx);
+    tracker.returnIndex(uid);
     --nQubitsAllocated;
 
     // Reset the state if we've deallocated all qubits.
@@ -793,38 +794,44 @@ public:
     }
   }
 
-  /// @brief Deallocate all requested qubits. If the number of qubits
-  /// is equal to the number of allocated qubits, then clear the entire
+  /// @brief Deallocate all requested qudits. If the number of qudits
+  /// is equal to the number of allocated qudits, then clear the entire
   /// state at once.
-  void deallocateQubits(const std::vector<std::size_t> &qubits) override {
+  void deallocateQudits(const std::vector<std::size_t> &uids) override {
+    if (isInTracerMode()) {
+      for (auto &q : uids)
+        tracker.returnIndex(q);
+      return;
+    }
+
     // Do nothing if there are no allocated qubits.
     if (nQubitsAllocated == 0)
       return;
 
     if (executionContext) {
-      for (auto &qubitIdx : qubits) {
+      for (auto &qubitIdx : uids) {
         cudaq::info("Deferring qubit {} deallocation", qubitIdx);
         deferredDeallocation.push_back(qubitIdx);
       }
       return;
     }
 
-    if (qubits.size() == tracker.numAllocated()) {
+    if (uids.size() == tracker.numAllocated()) {
       cudaq::info("Deallocate all qubits.");
       deallocateState();
-      for (auto &q : qubits)
+      for (auto &q : uids)
         tracker.returnIndex(q);
       return;
     }
 
-    for (auto &q : qubits)
-      deallocate(q);
+    for (auto &q : uids)
+      deallocateQudit(q);
   }
 
   /// @brief Reset the current execution context.
   void resetExecutionContext() override {
     // If null, do nothing
-    if (!executionContext)
+    if (!executionContext || isInTracerMode())
       return;
 
     // Get the ExecutionContext name
@@ -1068,6 +1075,9 @@ public:
   /// context, just measure, collapse, and return the bit.
   bool mz(const std::size_t qubitIdx,
           const std::string &registerName) override {
+    if (isInTracerMode())
+      return false;
+
     // Flush the Gate Queue
     flushGateQueue();
 
@@ -1085,6 +1095,57 @@ public:
 
     // Return the result
     return measureResult;
+  }
+
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
+    flushGateQueue();
+
+    if (executionContext->canHandleObserve) {
+      auto result = observe(*executionContext->spin.value());
+      return {*result.expectationValue, cudaq::sample_result(result)};
+    }
+
+    assert(op.num_terms() == 1 && "Number of terms is not 1.");
+
+    cudaq::info("Measure {}", op.to_string(false));
+    std::vector<std::size_t> qubitsToMeasure;
+    std::vector<std::function<void(bool)>> basisChange;
+    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
+      if (type != cudaq::pauli::I)
+        qubitsToMeasure.push_back(qubitIdx);
+
+      if (type == cudaq::pauli::Y)
+        basisChange.emplace_back([&, qubitIdx](bool reverse) {
+          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIdx);
+        });
+      else if (type == cudaq::pauli::X)
+        basisChange.emplace_back([&, qubitIdx](bool) { h(qubitIdx); });
+    });
+
+    // Change basis, flush the queue
+    if (!basisChange.empty()) {
+      for (auto &basis : basisChange)
+        basis(false);
+      flushGateQueue();
+    }
+
+    // Get whether this is shots-based
+    int shots = 0;
+    if (executionContext->shots > 0)
+      shots = executionContext->shots;
+
+    // Sample and give the data to the context
+    cudaq::ExecutionResult result = sample(qubitsToMeasure, shots);
+
+    // Restore the state.
+    if (!basisChange.empty()) {
+      std::reverse(basisChange.begin(), basisChange.end());
+      for (auto &basis : basisChange)
+        basis(true);
+
+      flushGateQueue();
+    }
+    return {*result.expectationValue, cudaq::sample_result(result)};
   }
 }; // namespace nvqir
 } // namespace nvqir

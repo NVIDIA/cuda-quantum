@@ -6,20 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "llvm/ADT/StringSwitch.h"
-
 #include "common/Logger.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
-#include "cudaq/qis/qudit.h"
 #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <complex>
+#include "llvm/ADT/StringSwitch.h"
 #include <cstring>
 #include <functional>
-#include <map>
-#include <queue>
-#include <sstream>
-#include <stack>
 
 #include "nvqir/CircuitSimulator.h"
 
@@ -32,75 +25,13 @@ namespace {
 /// The DefaultExecutionManager will implement allocation, deallocation, and
 /// quantum instruction application via calls to the current CircuitSimulator
 class DefaultExecutionManager : public cudaq::BasicExecutionManager {
-
 private:
   nvqir::CircuitSimulator *simulator() {
     return nvqir::getCircuitSimulatorInternal();
   }
-  /// @brief To improve `qudit` allocation, we defer
-  /// single `qudit` allocation requests until the first
-  /// encountered `apply` call.
-  std::vector<cudaq::QuditInfo> requestedAllocations;
-
-  /// @brief Allocate all requested `qudits`.
-  void flushRequestedAllocations() {
-    if (requestedAllocations.empty())
-      return;
-
-    allocateQudits(requestedAllocations);
-    requestedAllocations.clear();
-  }
 
 protected:
-  void allocateQudit(const cudaq::QuditInfo &q) override {
-    requestedAllocations.emplace_back(2, q.id);
-  }
-
-  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    simulator()->allocateQubits(qudits.size());
-  }
-
-  void deallocateQudit(const cudaq::QuditInfo &q) override {
-
-    // Before trying to deallocate, make sure the qudit hasn't
-    // been requested but not allocated.
-    auto iter =
-        std::find(requestedAllocations.begin(), requestedAllocations.end(), q);
-    if (iter != requestedAllocations.end()) {
-      requestedAllocations.erase(iter);
-      return;
-    }
-
-    simulator()->deallocate(q.id);
-  }
-
-  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    std::vector<std::size_t> local;
-    for (auto &q : qudits) {
-      auto iter = std::find(requestedAllocations.begin(),
-                            requestedAllocations.end(), q);
-      if (iter != requestedAllocations.end()) {
-        requestedAllocations.erase(iter);
-      } else {
-        local.push_back(q.id);
-      }
-    }
-
-    simulator()->deallocateQubits(local);
-  }
-
-  void handleExecutionContextChanged() override {
-    requestedAllocations.clear();
-    simulator()->setExecutionContext(executionContext);
-  }
-
-  void handleExecutionContextEnded() override {
-    simulator()->resetExecutionContext();
-  }
-
   void executeInstruction(const Instruction &instruction) override {
-    flushRequestedAllocations();
-
     // Get the data, create the Qubit* targets
     auto [gateName, parameters, controls, targets, op] = instruction;
 
@@ -150,68 +81,6 @@ protected:
         })();
   }
 
-  int measureQudit(const cudaq::QuditInfo &q) override {
-    flushRequestedAllocations();
-    return simulator()->mz(q.id);
-  }
-
-  void measureSpinOp(const cudaq::spin_op &op) override {
-    flushRequestedAllocations();
-    simulator()->flushGateQueue();
-
-    if (executionContext->canHandleObserve) {
-      auto result = simulator()->observe(*executionContext->spin.value());
-      executionContext->expectationValue = result.expectationValue;
-      executionContext->result = cudaq::sample_result(result);
-      return;
-    }
-
-    assert(op.num_terms() == 1 && "Number of terms is not 1.");
-
-    cudaq::info("Measure {}", op.to_string(false));
-    std::vector<std::size_t> qubitsToMeasure;
-    std::vector<std::function<void(bool)>> basisChange;
-    op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
-      if (type != cudaq::pauli::I)
-        qubitsToMeasure.push_back(qubitIdx);
-
-      if (type == cudaq::pauli::Y)
-        basisChange.emplace_back([&, qubitIdx](bool reverse) {
-          simulator()->rx(!reverse ? M_PI_2 : -M_PI_2, qubitIdx);
-        });
-      else if (type == cudaq::pauli::X)
-        basisChange.emplace_back(
-            [&, qubitIdx](bool) { simulator()->h(qubitIdx); });
-    });
-
-    // Change basis, flush the queue
-    if (!basisChange.empty()) {
-      for (auto &basis : basisChange)
-        basis(false);
-
-      simulator()->flushGateQueue();
-    }
-
-    // Get whether this is shots-based
-    int shots = 0;
-    if (executionContext->shots > 0)
-      shots = executionContext->shots;
-
-    // Sample and give the data to the context
-    cudaq::ExecutionResult result = simulator()->sample(qubitsToMeasure, shots);
-    executionContext->expectationValue = result.expectationValue;
-    executionContext->result = cudaq::sample_result(result);
-
-    // Restore the state.
-    if (!basisChange.empty()) {
-      std::reverse(basisChange.begin(), basisChange.end());
-      for (auto &basis : basisChange)
-        basis(true);
-
-      simulator()->flushGateQueue();
-    }
-  }
-
 public:
   DefaultExecutionManager() {
     cudaq::info("[DefaultExecutionManager] Creating the {} backend.",
@@ -219,8 +88,31 @@ public:
   }
   virtual ~DefaultExecutionManager() = default;
 
-  void resetQudit(const cudaq::QuditInfo &q) override {
-    flushRequestedAllocations();
+  void setExecutionContext(cudaq::ExecutionContext *context) override {
+    simulator()->setExecutionContext(context);
+  }
+
+  void resetExecutionContext() override {
+    simulator()->resetExecutionContext();
+  }
+
+  std::size_t allocateQudit(std::size_t n_levels) override {
+    return simulator()->allocateQudit();
+  }
+
+  void deallocateQudit(const cudaq::QuditInfo &q) override {
+    simulator()->deallocateQudit(q.id);
+  }
+
+  int measure(const cudaq::QuditInfo &q) override {
+    return simulator()->mz(q.id);
+  }
+
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
+    return simulator()->measure(op);
+  }
+
+  void reset(const cudaq::QuditInfo &q) override {
     simulator()->resetQubit(q.id);
   }
 };

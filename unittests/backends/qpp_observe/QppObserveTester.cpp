@@ -14,8 +14,8 @@
 CUDAQ_TEST(QPPBackendTester, checkBackendObserve) {
 
   cudaq::QppObserveTester qpp;
-  auto q0 = qpp.allocateQubit();
-  auto q1 = qpp.allocateQubit();
+  auto q0 = qpp.allocateQudit();
+  auto q1 = qpp.allocateQudit();
 
   qpp.x(q0);
   qpp.ry(.59, q1);

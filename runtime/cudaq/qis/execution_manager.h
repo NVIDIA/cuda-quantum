@@ -8,10 +8,7 @@
 
 #pragma once
 
-#include "common/QuditIdTracker.h"
 #include "cudaq/spin_op.h"
-#include <deque>
-#include <string_view>
 #include <vector>
 
 namespace cudaq {
@@ -67,34 +64,14 @@ using measure_result = bool;
 /// quantum instructions.
 class ExecutionManager {
 protected:
-  /// Available qudit indices
-  std::deque<std::size_t> availableIndices;
-
-  /// Total qudits available
-  std::size_t totalQudits;
-
-  /// Utility type tracking qudit unique identifiers as they are allocated and
-  /// deallocated.
-  QuditIdTracker tracker;
-
-  /// Internal - return the next qudit index
-  std::size_t getNextIndex() { return tracker.getNextIndex(); }
-
-  /// Internal - At qudit deallocation, return the qudit index
-  void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
-
 public:
   ExecutionManager() = default;
 
-  /// Return the next available qudit index
-  virtual std::size_t getAvailableIndex(std::size_t quditLevels = 2) = 0;
+  /// Allocates a qudit and returns its unique identifier.
+  virtual std::size_t allocateQudit(std::size_t quditLevels = 2) = 0;
 
-  /// QuditInfo has been deallocated, return the qudit / id to the pool of
-  /// qudits.
-  virtual void returnQudit(const QuditInfo &q) = 0;
-
-  /// Checker for qudits that were not deallocated
-  bool memoryLeaked() { return !tracker.allDeallocated(); }
+  /// Deallocates a qudit.
+  virtual void deallocateQudit(const QuditInfo &q) = 0;
 
   /// Provide an ExecutionContext for the current cudaq kernel
   virtual void setExecutionContext(cudaq::ExecutionContext *ctx) = 0;
@@ -106,9 +83,8 @@ public:
   /// qudits. Supports input of control qudits and rotational parameters. Can
   /// also optionally take a spin_op as input to affect a general Pauli
   /// rotation.
-  virtual void apply(const std::string_view gateName,
-                     const std::vector<double> &params,
-                     const std::vector<QuditInfo> &controls,
+  virtual void apply(std::string gateName, std::vector<double> params,
+                     std::vector<QuditInfo> controls,
                      const std::vector<QuditInfo> &targets,
                      bool isAdjoint = false, const spin_op op = spin_op()) = 0;
 
@@ -133,10 +109,8 @@ public:
 
   /// Measure the current state in the given Pauli basis, return the expectation
   /// value <term>.
-  virtual SpinMeasureResult measure(cudaq::spin_op &op) = 0;
+  virtual SpinMeasureResult measure(const cudaq::spin_op &op) = 0;
 
-  /// Synchronize - run all queue-ed instructions
-  virtual void synchronize() = 0;
   virtual ~ExecutionManager() = default;
 };
 

@@ -23,6 +23,8 @@ namespace cudaq {
 /// and quantum instruction application for the photonics execution manager.
 class PhotonicsExecutionManager : public cudaq::BasicExecutionManager {
 private:
+  ExecutionContext *executionContext;
+
   /// @brief Current state
   qpp::ket state;
 
@@ -33,102 +35,14 @@ private:
   /// @brief Qudits to be sampled
   std::vector<cudaq::QuditInfo> sampleQudits;
 
+  std::size_t numQudits = 0;
+
 protected:
-  /// @brief Qudit allocation method: a zeroState is first initialized, the
-  /// following ones are added via kron operators
-  void allocateQudit(const cudaq::QuditInfo &q) override {
-    if (state.size() == 0) {
-      // qubit will give [1,0], qutrit will give [1,0,0] and so on...
-      state = qpp::ket::Zero(q.levels);
-      state(0) = 1.0;
-      return;
-    }
-
-    qpp::ket zeroState = qpp::ket::Zero(q.levels);
-    zeroState(0) = 1.0;
-    state = qpp::kron(state, zeroState);
-  }
-
-  /// @brief Allocate a set of `qudits` with a single call.
-  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    for (auto &q : qudits)
-      allocateQudit(q);
-  }
-
-  /// @brief Qudit deallocation method
-  void deallocateQudit(const cudaq::QuditInfo &q) override {}
-
-  /// @brief Deallocate a set of `qudits` with a single call.
-  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
-
-  /// @brief Handler for when the photonics execution context changes
-  void handleExecutionContextChanged() override {}
-
-  /// @brief Handler for when the current execution context has ended. It
-  /// returns samples to the execution context if it is "sample".
-  void handleExecutionContextEnded() override {
-    if (executionContext && executionContext->name == "sample") {
-      std::vector<std::size_t> ids;
-      for (auto &s : sampleQudits) {
-        ids.push_back(s.id);
-      }
-      auto shots = executionContext->shots;
-      auto sampleResult =
-          qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
-
-      cudaq::ExecutionResult counts;
-      for (auto [result, count] : sampleResult) {
-        std::stringstream bitstring;
-        for (const auto &quditRes : result) {
-          bitstring << quditRes;
-        }
-        // Add to the sample result
-        // in mid-circ sampling mode this will append 1 bitstring
-        counts.appendResult(bitstring.str(), count);
-        // Reset the string.
-        bitstring.str("");
-        bitstring.clear();
-      }
-
-      executionContext->result.append(counts);
-      // Reset the state and qudits
-      state.resize(0);
-      sampleQudits.clear();
-    }
-  }
-
   /// @brief Method for executing instructions.
   void executeInstruction(const Instruction &instruction) override {
     auto operation = instructions[std::get<0>(instruction)];
     operation(instruction);
   }
-
-  /// @brief Method for performing qudit measurement.
-  int measureQudit(const cudaq::QuditInfo &q) override {
-    if (executionContext && executionContext->name == "sample") {
-      sampleQudits.push_back(q);
-      return 0;
-    }
-
-    // If here, then we care about the result bit, so compute it.
-    const auto measurement_tuple = qpp::measure(
-        state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
-        /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
-    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
-    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
-    const auto &collapsed_state = post_meas_states[measurement_result];
-    state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
-                                       collapsed_state.size());
-
-    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
-    return measurement_result;
-  }
-
-  /// @brief Measure the state in the basis described by the given `spin_op`.
-  void measureSpinOp(const cudaq::spin_op &) override {}
-
-  /// @brief Method for performing qudit reset.
-  void resetQudit(const cudaq::QuditInfo &id) override {}
 
   /// @brief Returns a precomputed factorial for n up tp 30
   double _fast_factorial(int n) {
@@ -241,7 +155,6 @@ protected:
 
 public:
   PhotonicsExecutionManager() {
-
     instructions.emplace("plusGate", [&](const Instruction &inst) {
       auto &[gateName, params, controls, qudits, spin_op] = inst;
       auto target = qudits[0];
@@ -286,10 +199,90 @@ public:
 
   virtual ~PhotonicsExecutionManager() = default;
 
-  cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {
+  /// @brief Handler for when the photonics execution context changes
+  void setExecutionContext(ExecutionContext *context) override {
+    executionContext = context;
+  }
+
+  /// @brief Handler for when the current execution context has ended. It
+  /// returns samples to the execution context if it is "sample".
+  void resetExecutionContext() override {
+    if (executionContext && executionContext->name == "sample") {
+      std::vector<std::size_t> ids;
+      for (auto &s : sampleQudits) {
+        ids.push_back(s.id);
+      }
+      auto shots = executionContext->shots;
+      auto sampleResult =
+          qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
+
+      cudaq::ExecutionResult counts;
+      for (auto [result, count] : sampleResult) {
+        std::stringstream bitstring;
+        for (const auto &quditRes : result) {
+          bitstring << quditRes;
+        }
+        // Add to the sample result
+        // in mid-circ sampling mode this will append 1 bitstring
+        counts.appendResult(bitstring.str(), count);
+        // Reset the string.
+        bitstring.str("");
+        bitstring.clear();
+      }
+
+      executionContext->result.append(counts);
+      // Reset the state and qudits
+      state.resize(0);
+      sampleQudits.clear();
+    }
+  }
+
+  std::size_t allocateQudit(std::size_t n_levels) override {
+    numQudits += 1;
+    if (state.size() == 0) {
+      // qubit will give [1,0], qutrit will give [1,0,0] and so on...
+      state = qpp::ket::Zero(n_levels);
+      state(0) = 1.0;
+      return numQudits;
+    }
+
+    qpp::ket zeroState = qpp::ket::Zero(n_levels);
+    zeroState(0) = 1.0;
+    state = qpp::kron(state, zeroState);
+    return numQudits;
+  }
+
+  /// @brief Qudit deallocation method
+  void deallocateQudit(const cudaq::QuditInfo &q) override {}
+
+  /// @brief Method for performing qudit measurement.
+  int measure(const cudaq::QuditInfo &q) override {
+    if (executionContext && executionContext->name == "sample") {
+      sampleQudits.push_back(q);
+      return 0;
+    }
+
+    // If here, then we care about the result bit, so compute it.
+    const auto measurement_tuple = qpp::measure(
+        state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
+        /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
+    const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
+    const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+    const auto &collapsed_state = post_meas_states[measurement_result];
+    state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
+                                       collapsed_state.size());
+
+    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
+    return measurement_result;
+  }
+
+  cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     throw "spin_op observation (cudaq::observe()) is not supported for this "
           "photonics simulator";
   }
+
+  /// @brief Method for performing qudit reset.
+  void reset(const cudaq::QuditInfo &id) override {}
 
 }; // PhotonicsExecutionManager
 

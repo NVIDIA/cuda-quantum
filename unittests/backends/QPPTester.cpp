@@ -83,8 +83,8 @@ CUDAQ_TEST(QPPTester, checkInitialState) {
   // Initialize QPP Backend with 2 qubits
   const int num_qubits = 2;
   QppCircuitSimulator<qpp::ket> qppBackend;
-  auto q0 = qppBackend.allocateQubit();
-  auto q1 = qppBackend.allocateQubit();
+  auto q0 = qppBackend.allocateQudit();
+  auto q1 = qppBackend.allocateQudit();
 
   // Assert that we're starting in the 0-state.
   got_state = qppBackend.getStateVector();
@@ -101,8 +101,8 @@ CUDAQ_TEST(QPPTester, checkInitialState) {
   got_bitstring = getSampledBitString(qppBackend, {0, 1});
   want_bitstring = std::string("00");
   EXPECT_EQ(want_bitstring, got_bitstring);
-  qppBackend.deallocate(q0);
-  qppBackend.deallocate(q1);
+  qppBackend.deallocateQudit(q0);
+  qppBackend.deallocateQudit(q1);
 }
 
 // Testing the accuracy of all non-parameterized single-qubit
@@ -119,8 +119,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Place just q0 in the 1-state with X-gate.
     qppBackend.x(q0);
@@ -163,8 +163,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit Y-gate.
@@ -177,8 +177,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Rotate just q0 with a Y-gate.
     qppBackend.y(q0);
@@ -219,8 +219,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit Z-gate.
@@ -233,8 +233,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Rotate just q0 with a Z-gate.
     qppBackend.z(q0);
@@ -257,8 +257,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit Hadamard-gate.
@@ -269,8 +269,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Rotate just q0 with an H-gate.
     qppBackend.h(q0);
@@ -299,8 +299,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit S-gate.
@@ -313,8 +313,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Rotate just q0 with a S-gate.
     qppBackend.s(q0);
@@ -337,8 +337,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit T-gate.
@@ -351,8 +351,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Rotate just q0 with a T-gate.
     qppBackend.t(q0);
@@ -375,8 +375,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit SDG-gate.
@@ -389,8 +389,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Rotate just q0 with a SDG-gate.
     qppBackend.sdg(q0);
@@ -413,8 +413,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking the single qubit TDG-gate.
@@ -427,8 +427,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Rotate just q0 with a TDG-gate.
     qppBackend.tdg(q0);
@@ -451,8 +451,8 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 }
 
@@ -468,7 +468,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     // Initialize QPP Backend with 1 qubit
     QppCircuitSimulator<qpp::ket> qppBackend;
     const int num_qubits = 1;
-    auto q0 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
 
     // Rotate q0 by pi with an RX-gate.
     // Note: `RX(pi) = ((0,-i),(-i,0))`
@@ -496,7 +496,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking RY gate.
@@ -509,7 +509,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     // Initialize QPP Backend with 1 qubit
     QppCircuitSimulator<qpp::ket> qppBackend;
     const int num_qubits = 1;
-    auto q0 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
 
     // Rotate q0 by pi with an RY-gate.
     // Note: `RY(pi) = ((0,1),(1,0))` which is equivalent to the
@@ -537,7 +537,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking RZ gate.
@@ -550,7 +550,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     // Initialize QPP Backend with 1 qubit
     QppCircuitSimulator<qpp::ket> qppBackend;
     const int num_qubits = 1;
-    auto q0 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
 
     // Rotate q0 by 0.0 with an RZ-gate.
     // Should be identity.
@@ -576,7 +576,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking U gate.
@@ -588,7 +588,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
 
     // Rotate q0 with U gate at (theta,phi,lam)=(2pi, 0,0).
     // Note: `U(pi,0,0) = ((-1,0),(0,-1))`
@@ -603,8 +603,8 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ(0, qppBackend.mz(q0));
 
     // Reset q0 to 0 state.
-    qppBackend.deallocate(q0);
-    q0 = qppBackend.allocateQubit();
+    qppBackend.deallocateQudit(q0);
+    q0 = qppBackend.allocateQudit();
 
     // Rotate the qubit to the 1-state, then rotate it
     // again with another u gate at the same params.
@@ -630,7 +630,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
 
     // Rotate q0 about Z with u1 gate.
     // Note: `U1(pi) = ((1,0),(0,exp(i*pi)))`
@@ -659,7 +659,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking U3 gate.
@@ -671,7 +671,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
 
     // Rotate q0 with U3 gate at (theta,phi,lam)=(2pi, 0,0).
     // Note: `U3(pi,0,0) = ((-1,0),(0,-1))`
@@ -684,8 +684,8 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
-    q0 = qppBackend.allocateQubit();
+    qppBackend.deallocateQudit(q0);
+    q0 = qppBackend.allocateQudit();
 
     // Reset system to all 0 state.
     // qppBackend.reset();
@@ -702,7 +702,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
-    qppBackend.deallocate(q0);
+    qppBackend.deallocateQudit(q0);
   }
 
   // Checking CPHASE gate.
@@ -714,8 +714,8 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Starting in state = `|0><0| = |00> = (1 0 0 0)`
     // Apply CPHASE between q0 and q1 at `theta=pi`
@@ -768,8 +768,8 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = std::exp(im<> * M_PI) * getOneState(2);
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 }
 
@@ -786,8 +786,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Starting in state = `|0><0| = |00> = (1 0 0 0)`
     // Apply controlled-X between q0 and q1
@@ -845,8 +845,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking two-qubit controlled Z-gate.
@@ -859,8 +859,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Starting in state = `|0><0| = |00> = (1 0 0 0)`
     // Apply controlled-Z between q0 and q1
@@ -920,8 +920,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking CH gate.
@@ -934,8 +934,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Starting in state = `|0><0| = |00> = (1 0 0 0)`
     // Apply CH between q0 and q1
@@ -976,10 +976,10 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(want_state, got_state);
 
     // Reset system to `|00>`.
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
-    q0 = qppBackend.allocateQubit();
-    q1 = qppBackend.allocateQubit();
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
+    q0 = qppBackend.allocateQudit();
+    q1 = qppBackend.allocateQudit();
 
     // Flip q0 to the 1 state. Total system state is now `|10>`.
     qppBackend.x(q0);
@@ -989,8 +989,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
 
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking CS gate.
@@ -1003,8 +1003,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Starting in state = `|0><0| = |00> = (1 0 0 0)`
     // Apply CS between q0 and q1
@@ -1055,8 +1055,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     want_state = im<> * getOneState(2);
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 
   // Checking SWAP gate.
@@ -1068,8 +1068,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Flip q0 to the 1 state.
     qppBackend.x(q0);
@@ -1094,8 +1094,8 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
-    qppBackend.deallocate(q0);
-    qppBackend.deallocate(q1);
+    qppBackend.deallocateQudit(q0);
+    qppBackend.deallocateQudit(q1);
   }
 }
 
@@ -1109,7 +1109,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
 
     // Place q0 in the 1 state
     qppBackend.x(q0);
@@ -1140,8 +1140,8 @@ CUDAQ_TEST(QPPTester, checkReset) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Place q0 in the 1 state
     qppBackend.x(q0);
@@ -1176,7 +1176,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
 
     // Place q0 in the 1 state
     qppBackend.x(q0);
@@ -1207,8 +1207,8 @@ CUDAQ_TEST(QPPTester, checkReset) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     QppCircuitSimulator<qpp::ket> qppBackend;
-    auto q0 = qppBackend.allocateQubit();
-    auto q1 = qppBackend.allocateQubit();
+    auto q0 = qppBackend.allocateQudit();
+    auto q1 = qppBackend.allocateQudit();
 
     // Place q0 in the 1 state
     qppBackend.x(q0);
