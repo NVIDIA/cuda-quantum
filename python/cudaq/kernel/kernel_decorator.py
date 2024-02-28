@@ -109,8 +109,9 @@ class PyKernelDecorator(object):
         self.metadata = {'conditionalOnMeasure': analyzer.hasMidCircuitMeasures}
 
         # Store the AST for this kernel, it is needed for
-        # building up call graphs
-        globalAstRegistry[self.name] = self.astModule
+        # building up call graphs. We also must retain
+        # the source code location for error diagnostics
+        globalAstRegistry[self.name] = (self.astModule, self.location)
 
     def compile(self):
         """
@@ -160,6 +161,17 @@ class PyKernelDecorator(object):
                                           self.module.context,
                                           argInstance=arg,
                                           argTypeToCompareTo=self.argTypes[i])
+
+            # Support passing `list[int]` to a `list[float]` argument
+            if cc.StdvecType.isinstance(mlirType):
+                if cc.StdvecType.isinstance(self.argTypes[i]):
+                    argEleTy = cc.StdvecType.getElementType(mlirType)
+                    eleTy = cc.StdvecType.getElementType(self.argTypes[i])
+                    if F64Type.isinstance(eleTy) and IntegerType.isinstance(
+                            argEleTy):
+                        processedArgs.append([float(i) for i in arg])
+                        mlirType = self.argTypes[i]
+
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:
                 emitFatalError(
@@ -177,7 +189,7 @@ class PyKernelDecorator(object):
                 if nvqppPrefix + arg.name not in symbols:
                     tmpBridge = PyASTBridge(existingModule=self.module,
                                             disableEntryPointTag=True)
-                    tmpBridge.visit(globalAstRegistry[arg.name])
+                    tmpBridge.visit(globalAstRegistry[arg.name][0])
 
             # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):

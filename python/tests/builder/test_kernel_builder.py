@@ -1059,7 +1059,7 @@ def test_call_kernel_expressions_List():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
-    @cudaq.kernel()
+    @cudaq.kernel
     def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
                                            val: List[List[float]]):
         ry(val[0][0], qubits[qbit])

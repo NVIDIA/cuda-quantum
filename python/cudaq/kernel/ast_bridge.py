@@ -12,7 +12,7 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color
+from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
@@ -417,10 +417,14 @@ class PyASTBridge(ast.NodeVisitor):
         Return the MLIR Type corresponding to the given kernel function argument type annotation.
         Throws an exception if the programmer did not annotate function argument types. 
         """
+        msg = None
         try:
-            return mlirTypeFromAnnotation(annotation, self.ctx)
+            return mlirTypeFromAnnotation(annotation, self.ctx, raiseError=True)
         except RuntimeError as e:
-            self.emitFatalError(str(e), annotation)
+            msg = str(e)
+
+        if msg is not None:
+            self.emitFatalError(msg, annotation)
 
     def argumentsValidForFunction(self, values, functionTy):
         return False not in [
@@ -604,7 +608,17 @@ class PyASTBridge(ast.NodeVisitor):
                         self.symbolTable[argNames[i]] = b
 
                 # Visit the function
-                [self.visit(n) for n in node.body]
+                startIdx = 0
+                # Search for the potential documentation string, and
+                # if found, start the body visitation after it.
+                if len(node.body) and isinstance(node.body[0], ast.Expr):
+                    expr = node.body[0]
+                    if hasattr(expr, 'value') and isinstance(
+                            expr.value, ast.Constant):
+                        constant = expr.value
+                        if isinstance(constant.value, str):
+                            startIdx = 1
+                [self.visit(n) for n in node.body[startIdx:]]
                 # Add the return operation
                 if not self.hasTerminator(self.entry):
                     ret = func.ReturnOp([])
@@ -1161,6 +1175,11 @@ class PyASTBridge(ast.NodeVisitor):
 
             if node.func.id in ['mx', 'my', 'mz']:
                 registerName = self.currentAssignVariableName
+                # If `registerName` is None, then we know that we
+                # are not assigning this measure result to anything
+                # so we therefore should not push it on the stack
+                pushResultToStack = registerName != None
+
                 # By default we set the `register_name` for the measurement
                 # to the assigned variable name (if there is one). But
                 # the use could have manually specified `register_name='something'`
@@ -1185,8 +1204,9 @@ class PyASTBridge(ast.NodeVisitor):
                             self.ctx, quake.MeasureType.get(self.ctx))
                 measureResult = opCtor(measTy, [], [qubit],
                                        registerName=registerName).result
-                self.pushValue(
-                    quake.DiscriminateOp(resTy, measureResult).result)
+                if pushResultToStack:
+                    self.pushValue(
+                        quake.DiscriminateOp(resTy, measureResult).result)
                 return
 
             if node.func.id == 'swap':
@@ -1345,6 +1365,11 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
                 if node.func.attr == "qubit":
+                    if len(self.valueStack) == 1 and IntegerType.isinstance(
+                            self.valueStack[0].type):
+                        self.emitFatalError(
+                            'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
+                        )
                     self.pushValue(quake.AllocaOp(self.getRefType()).result)
                     return
 
@@ -1446,6 +1471,10 @@ class PyASTBridge(ast.NodeVisitor):
 
                     quake.ComputeActionOp(compute, action)
                     return
+
+                self.emitFatalError(
+                    f'Invalid function or class type requested from the cudaq module ({node.func.attr})',
+                    node)
 
             if node.func.value.id in self.symbolTable:
                 # Method call on one of our variables
@@ -1798,13 +1827,19 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentNode = node
         if self.verbose:
             print("[Visit Constant {}]".format(node.value))
+        if isinstance(node.value, bool):
+            self.pushValue(self.getConstantInt(node.value, 1))
+            return
+
         if isinstance(node.value, int):
             self.pushValue(self.getConstantInt(node.value))
             return
-        elif isinstance(node.value, float):
+
+        if isinstance(node.value, float):
             self.pushValue(self.getConstantFloat(node.value))
             return
-        elif isinstance(node.value, str):
+
+        if isinstance(node.value, str):
             # Do not process the function doc string
             if self.docstring != None:
                 if node.value.strip() == self.docstring.strip():
@@ -1818,14 +1853,15 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.CreateStringLiteralOp(strLitTy,
                                          StringAttr.get(node.value)).result)
             return
-        elif isinstance(node.value, type(1j)):
+
+        if isinstance(node.value, type(1j)):
             self.pushValue(
                 complex.CreateOp(ComplexType.get(self.getFloatType()),
                                  self.getConstantFloat(node.value.real),
                                  self.getConstantFloat(node.value.imag)).result)
             return
-        else:
-            self.emitFatalError("unhandled constant value", node)
+
+        self.emitFatalError("unhandled constant value", node)
 
     def visit_Subscript(self, node):
         """
@@ -2137,6 +2173,10 @@ class PyASTBridge(ast.NodeVisitor):
         shortCircuitWhenTrue = isinstance(node.op, ast.Or)
         if isinstance(node.op, ast.And) or isinstance(node.op, ast.Or):
             # Visit the LHS and pop the value
+            # Note we want any `mz(q)` calls to push their
+            # result value to the stack, so we set a non-None
+            # variable name here.
+            self.currentAssignVariableName = ''
             self.visit(node.values[0])
             lhs = self.popValue()
             zero = self.getConstantInt(0, IntegerType(lhs.type).width)
@@ -2165,6 +2205,9 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.ContinueOp([rhs])
                 self.popIfStmtBlockStack()
                 self.symbolTable.popScope()
+
+            # Reset the assign variable name
+            self.currentAssignVariableName = None
 
             self.pushValue(ifOp.result)
             return
@@ -2239,6 +2282,12 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if isinstance(op, ast.Eq):
+            if F64Type.isinstance(left.type) and IntegerType.isinstance(
+                    comparator.type):
+                left = arith.FPToSIOp(comparator.type, left).result
+            if IntegerType(left.type).width < IntegerType(
+                    comparator.type).width:
+                left = arith.ExtSIOp(comparator.type, left).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                              comparator).result)
@@ -2269,8 +2318,8 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.SubIOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
-            else:
-                self.emitFatalError("unhandled AugAssign.Sub types.", node)
+
+            self.emitFatalError("unhandled AugAssign.Sub types.", node)
 
         if isinstance(node.op, ast.Add):
             # i += 1 -> i = i + 1
@@ -2278,8 +2327,14 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.AddIOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
-            else:
-                self.emitFatalError("unhandled AugAssign.Add types.", node)
+            if F64Type.isinstance(loaded.type):
+                if IntegerType.isinstance(value.type):
+                    value = arith.SIToFPOp(loaded.type, value).result
+                res = arith.AddFOp(loaded, value).result
+                cc.StoreOp(res, target)
+                return
+
+            self.emitFatalError("unhandled AugAssign.Add types.", node)
 
         if isinstance(node.op, ast.Mult):
             # i *= 3 -> i = i * 3
@@ -2293,8 +2348,8 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.MulFOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
-            else:
-                self.emitFatalError("unhandled AugAssign.Mult types.", node)
+
+            self.emitFatalError("unhandled AugAssign.Mult types.", node)
 
         self.emitFatalError("unhandled aug-assign operation.", node)
 
@@ -2307,7 +2362,12 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.currentNode = node
 
+        # Visit the conditional node, retain
+        # measurement results by assigning a dummy variable name
+        self.currentAssignVariableName = ''
         self.visit(node.test)
+        self.currentAssignVariableName = None
+
         condition = self.popValue()
 
         if self.getIntegerType(1) != condition.type:
@@ -2370,6 +2430,12 @@ class PyASTBridge(ast.NodeVisitor):
         if result.owner.parent != self.kernelFuncOp:
             cc.UnwindReturnOp([result])
             return
+
+        if result.type != self.knownResultType:
+            # FIXME consider auto-casting where possible
+            self.emitFatalError(
+                f"Invalid return type, function was defined to return a {mlirTypeToPyType(self.knownResultType)} but the value being returned is of type {mlirTypeToPyType(result.type)}",
+                node)
 
         func.ReturnOp([result])
 
@@ -2626,13 +2692,13 @@ class PyASTBridge(ast.NodeVisitor):
         # a variable from parent scope.
         if node.id in self.capturedVars:
             self.emitFatalError(
-                f"Invalid variable requested - `{node.id}` was defined in the kernel's parent scope. CUDA Quantum does not support capturing variables from parent scope (variables must be defined as input arguments or within the kernel function body)."
-            )
+                f"Invalid variable requested - `{node.id}` was defined in the kernel's parent scope. CUDA Quantum does not support capturing variables from parent scope (variables must be defined as input arguments or within the kernel function body).",
+                node)
 
         # Throw an exception for the case that the name is not
         # in the symbol table
         self.emitFatalError(
-            f"Invalid variable name requested - '{node.id}' not in the symbol table.",
+            f"Invalid variable name requested - '{node.id}' is not defined within the quantum kernel it is used in.",
             node)
 
 
@@ -2685,7 +2751,7 @@ def compile_to_mlir(astModule, metadata, **kwargs):
         # has further dependencies
         for depKernelName, depKernelAst in transitiveDeps.items():
             localVis = FindDepKernelsVisitor(bridge.ctx)
-            localVis.visit(depKernelAst)
+            localVis.visit(depKernelAst[0])
             # Append the found dependencies to our running tally
             depKernels = {**depKernels, **localVis.depKernels}
             # Reset for the next go around
@@ -2705,8 +2771,11 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     # ignore kernels that have the same name as this one.
     for funcName in sortedOrder:
         if funcName != vis.kernelName and funcName in depKernels:
-            PyASTBridge(existingModule=bridge.module).visit(
-                depKernels[funcName])
+            # Build an AST Bridge and visit the dependent kernel
+            # function. Provide the dependent kernel source location as well.
+            PyASTBridge(existingModule=bridge.module,
+                        locationOffset=depKernels[funcName][1]).visit(
+                            depKernels[funcName][0])
 
     # Build the MLIR Module for this kernel
     bridge.visit(astModule)
@@ -2723,8 +2792,6 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     except:
         raise RuntimeError("could not compile code for '{}'.".format(
             bridge.name))
-
-    globalAstRegistry[bridge.name] = astModule
 
     if metadata['conditionalOnMeasure']:
         SymbolTable(
