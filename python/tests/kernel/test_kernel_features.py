@@ -629,7 +629,7 @@ def test_with_docstring():
                 # the control and the auxillary qubit as the target.
                 cx(register[index], auxillary_qubit)
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def bernstein_vazirani(qubit_count: int, hidden_bitstring: List[int]):
         """
         Returns a kernel implementing the Bernstein-Vazirani algorithm
