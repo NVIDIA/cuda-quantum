@@ -2361,7 +2361,12 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.currentNode = node
 
+        # Visit the conditional node, retain
+        # measurement results by assigning a dummy variable name
+        self.currentAssignVariableName = ''
         self.visit(node.test)
+        self.currentAssignVariableName = None
+
         condition = self.popValue()
 
         if self.getIntegerType(1) != condition.type:
