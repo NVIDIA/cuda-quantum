@@ -119,8 +119,13 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 f'list subscript missing slice node ({ast.unparse(annotation)}).'
             )
 
+        # The tree differs here between Python 3.8 and 3.9+
+        eleTypeNode = annotation.slice
+        if sys.version_info < (3, 9):
+            eleTypeNode = eleTypeNode.value
+
         # expected that slice is a Name node
-        listEleTy = mlirTypeFromAnnotation(annotation.slice, ctx)
+        listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
         return cc.StdvecType.get(ctx, listEleTy)
 
     if hasattr(annotation, 'id'):

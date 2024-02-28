@@ -558,56 +558,63 @@ def test_sample_async_issue_args_processed():
     counts = result.get()
     assert len(counts) == 2 and '01' in counts and '10' in counts
 
+
 def test_capture_vars_disallowed():
 
-    n = 5 
+    n = 5
+
     @cudaq.kernel
     def test():
         q = cudaq.qvector(n)
-    
+
     with pytest.raises(RuntimeError) as e:
         test()
 
+
 def test_error_qubit_constructor():
+
     @cudaq.kernel
     def test():
         q = cudaq.qubit(10)
         h(q[0])
-    
+
     with pytest.raises(RuntimeError) as e:
         test.compile()
-    
+
+
 def test_swallow_measure_value():
 
     @cudaq.kernel
     def test():
         data = cudaq.qvector(2)
-        ancilla  = cudaq.qvector(2)
+        ancilla = cudaq.qvector(2)
         mz(ancilla)
         x(data[1])
-    
-    # The test here is that this compiles. 
+
+    # The test here is that this compiles.
     test.compile()
     print(test)
+
 
 def test_compare_with_true():
 
     @cudaq.kernel
     def test():
         data = cudaq.qvector(2)
-        ancilla  = cudaq.qvector(2)
+        ancilla = cudaq.qvector(2)
         results = mz(ancilla)
         if results[0] == True:
             x(data[0])
 
-    # The test here is that this compiles. 
+    # The test here is that this compiles.
     test()
+
 
 def test_with_docstring():
 
     @cudaq.kernel
-    def oracle(register: cudaq.qvector,
-            auxillary_qubit: cudaq.qubit, hidden_bitstring: list[int]):
+    def oracle(register: cudaq.qvector, auxillary_qubit: cudaq.qubit,
+               hidden_bitstring: List[int]):
         """
         The inner-product oracle for the Bernstein-Vazirani algorithm.
         """
@@ -622,9 +629,8 @@ def test_with_docstring():
                 # the control and the auxillary qubit as the target.
                 cx(register[index], auxillary_qubit)
 
-
     @cudaq.kernel(verbose=True)
-    def bernstein_vazirani(qubit_count: int, hidden_bitstring: list[int]):
+    def bernstein_vazirani(qubit_count: int, hidden_bitstring: List[int]):
         """
         Returns a kernel implementing the Bernstein-Vazirani algorithm
         for a random, hidden bitstring.
@@ -651,22 +657,24 @@ def test_with_docstring():
         # Apply measurement gates to just the `qubits`
         # (excludes the auxillary qubit).
         mz(qubits)
-        
+
     # Test here is that it compiles
     bernstein_vazirani.compile()
+
 
 def test_disallow_list_no_element_type():
 
     @cudaq.kernel
-    def test(listVar : List):
-        pass 
+    def test(listVar: List):
+        pass
 
     with pytest.raises(RuntimeError) as e:
         print(test)
 
+
 def test_invalid_cudaq_type():
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def test():
         q = cudaq.qreg(5)
         h(q)
@@ -674,38 +682,44 @@ def test_invalid_cudaq_type():
     with pytest.raises(RuntimeError) as e:
         print(test)
 
+
 def test_list_float_pass_list_int():
+
     @cudaq.kernel
-    def test(var : List[float]):
+    def test(var: List[float]):
         q = cudaq.qvector(2)
         cudaq.dbg.ast.print_f64(var[0])
         x(q[int(var[0])])
         x(q[int(var[1])])
-    
+
     var = [0, 1]
     counts = cudaq.sample(test, var)
     assert len(counts) == 1 and '11' in counts
     counts.dump()
 
+
 def test_cmpi_error_ints_different_widths():
-    @cudaq.kernel 
+
+    @cudaq.kernel
     def test():
         q = cudaq.qubit()
         i = mz(q)
         if i == 1:
             x(q)
-    
+
     test()
     counts = cudaq.sample(test)
     assert '0' in counts and len(counts) == 1
 
+
 def test_aug_assign_add():
+
     @cudaq.kernel
     def test() -> float:
         f = 5.
         f += 5.
         return f
-    
+
     assert test() == 10.
 
     @cudaq.kernel
@@ -713,5 +727,5 @@ def test_aug_assign_add():
         i = 5
         i += 5
         return i
-    
+
     assert test2() == 10
