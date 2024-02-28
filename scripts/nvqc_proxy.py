@@ -6,70 +6,86 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import socket
-from threading import Thread
-import queue
+from http import HTTPStatus
+import http.server
+import json
+import requests
+import socketserver
+import sys
 import time
 
 # This reverse proxy application is needed to span the small gaps when
 # `cudaq-qpud` is shutting down and starting up again. This small reverse proxy
 # allows the NVCF port (3030) to remain up while allowing the main `cudaq-qpud`
 # application to restart if necessary.
-
-# Queue for storing requests
-request_queue = queue.Queue()
-
-# NVCF max payload is ~250KB. Round up to 1MB.
-MAX_SIZE_BYTES = 1000000
-NVCF_PORT = 3030
-CUDAQ_QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
+PROXY_PORT = 3030
+QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
 
 
-# Handle incoming client connections and queue their requests
-def handle_client(client_socket):
-    request = client_socket.recv(MAX_SIZE_BYTES)
-    request_queue.put((client_socket, request))
+class Server(http.server.SimpleHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+    default_request_version = 'HTTP/1.1'
+
+    def do_GET(self):
+        # Allow the proxy to automatically handle the health endpoint. The proxy
+        # will exit if the application's /job endpoint is down.
+        if self.path == '/':
+            self.send_response(HTTPStatus.OK)
+            self.send_header('Content-Type', 'application/json')
+            message = json.dumps({"status": "OK"}).encode('utf-8')
+            self.send_header("Content-Length", str(len(message)))
+            self.end_headers()
+            self.wfile.write(message)
+        else:
+            self.send_response(HTTPStatus.NOT_FOUND)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+    def do_POST(self):
+        if self.path == '/job':
+            qpud_up = False
+            retries = 0
+            qpud_url = 'http://localhost:' + str(QPUD_PORT)
+            while (not qpud_up):
+                try:
+                    ping_response = requests.get(qpud_url)
+                    qpud_up = (ping_response.status_code == HTTPStatus.OK)
+                except:
+                    qpud_up = False
+                if not qpud_up:
+                    retries += 1
+                    if retries > 100:
+                        print("PROXY EXIT: TOO MANY RETRIES!")
+                        sys.exit()
+                    print(
+                        "Main application is down, retrying (retry_count = {})..."
+                        .format(retries))
+                    time.sleep(0.1)
+
+            content_length = int(self.headers['Content-Length'])
+            if content_length:
+                res = requests.request(method=self.command,
+                                       url=qpud_url + self.path,
+                                       headers=self.headers,
+                                       data=self.rfile.read(content_length))
+                self.send_response(HTTPStatus.OK)
+                self.send_header('Content-Type', 'application/json')
+                message = json.dumps(res.json()).encode('utf-8')
+                self.send_header("Content-Length", str(len(message)))
+                self.end_headers()
+                self.wfile.write(message)
+            else:
+                self.send_response(HTTPStatus.BAD_REQUEST)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+        else:
+            self.send_response(HTTPStatus.NOT_FOUND)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
 
 
-# Forward requests from the queue to `cudaq-qpud`
-def forward_requests_to_application():
-    retry_count = 0
-    while True:
-        if not request_queue.empty():
-            client_socket, request = request_queue.get(block=True, timeout=None)
-            try:
-                with socket.create_connection(
-                    ("localhost", CUDAQ_QPUD_PORT)) as app_socket:
-                    app_socket.sendall(request)
-                    response = app_socket.recv(MAX_SIZE_BYTES)
-                    client_socket.sendall(response)
-                    client_socket.close()
-                    retry_count = 0
-            except ConnectionRefusedError:
-                print(
-                    "Main application is down, retrying (retry_count = {})...".
-                    format(retry_count))
-                retry_count += 1
-                request_queue.put(
-                    (client_socket,
-                     request))  # Put back the request in the queue
-        time.sleep(0.1)  # Throttle the retries
-
-
-# Listen for incoming connections
-def start_proxy_server():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-        server_socket.bind(("0.0.0.0", NVCF_PORT))
-        server_socket.listen(5)  # max backlog
-        print("Proxy server listening on port {}...".format(NVCF_PORT))
-
-        # Start a thread to forward requests from the queue to the application
-        Thread(target=forward_requests_to_application, daemon=True).start()
-
-        while True:
-            client_socket, addr = server_socket.accept()
-            Thread(target=handle_client, args=(client_socket,)).start()
-
-
-if __name__ == "__main__":
-    start_proxy_server()
+Handler = Server
+with socketserver.TCPServer(("", PROXY_PORT), Handler) as httpd:
+    print("Serving at port", PROXY_PORT)
+    print("Forward to port", QPUD_PORT)
+    httpd.serve_forever()
