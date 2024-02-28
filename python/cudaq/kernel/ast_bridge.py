@@ -12,7 +12,7 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color
+from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
@@ -2172,6 +2172,9 @@ class PyASTBridge(ast.NodeVisitor):
         shortCircuitWhenTrue = isinstance(node.op, ast.Or)
         if isinstance(node.op, ast.And) or isinstance(node.op, ast.Or):
             # Visit the LHS and pop the value
+            # Note we want any `mz(q)` calls to push their
+            # result value to the stack, so we set a non-None
+            # variable name here.
             self.currentAssignVariableName = ''
             self.visit(node.values[0])
             lhs = self.popValue()
@@ -2196,13 +2199,13 @@ class PyASTBridge(ast.NodeVisitor):
             with InsertionPoint(elseBlock):
                 self.symbolTable.pushScope()
                 self.pushIfStmtBlockStack()
-                self.currentAssignVariableName = ''
                 self.visit(node.values[1])
                 rhs = self.popValue()
                 cc.ContinueOp([rhs])
                 self.popIfStmtBlockStack()
                 self.symbolTable.popScope()
 
+            # Reset the assign variable name
             self.currentAssignVariableName = None
 
             self.pushValue(ifOp.result)
@@ -2314,8 +2317,8 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.SubIOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
-            else:
-                self.emitFatalError("unhandled AugAssign.Sub types.", node)
+
+            self.emitFatalError("unhandled AugAssign.Sub types.", node)
 
         if isinstance(node.op, ast.Add):
             # i += 1 -> i = i + 1
@@ -2323,8 +2326,14 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.AddIOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
-            else:
-                self.emitFatalError("unhandled AugAssign.Add types.", node)
+            if F64Type.isinstance(loaded.type):
+                if IntegerType.isinstance(value.type):
+                    value = arith.SIToFPOp(loaded.type, value).result
+                res = arith.AddFOp(loaded, value).result
+                cc.StoreOp(res, target)
+                return
+
+            self.emitFatalError("unhandled AugAssign.Add types.", node)
 
         if isinstance(node.op, ast.Mult):
             # i *= 3 -> i = i * 3
@@ -2338,8 +2347,8 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.MulFOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
-            else:
-                self.emitFatalError("unhandled AugAssign.Mult types.", node)
+
+            self.emitFatalError("unhandled AugAssign.Mult types.", node)
 
         self.emitFatalError("unhandled aug-assign operation.", node)
 
@@ -2415,6 +2424,12 @@ class PyASTBridge(ast.NodeVisitor):
         if result.owner.parent != self.kernelFuncOp:
             cc.UnwindReturnOp([result])
             return
+
+        if result.type != self.knownResultType:
+            # FIXME consider auto-casting where possible
+            self.emitFatalError(
+                f"Invalid return type, function was defined to return a {mlirTypeToPyType(self.knownResultType)} but the value being returned is of type {mlirTypeToPyType(result.type)}",
+                node)
 
         func.ReturnOp([result])
 

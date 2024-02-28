@@ -698,3 +698,20 @@ def test_cmpi_error_ints_different_widths():
     test()
     counts = cudaq.sample(test)
     assert '0' in counts and len(counts) == 1
+
+def test_aug_assign_add():
+    @cudaq.kernel
+    def test() -> float:
+        f = 5.
+        f += 5.
+        return f
+    
+    assert test() == 10.
+
+    @cudaq.kernel
+    def test2() -> int:
+        i = 5
+        i += 5
+        return i
+    
+    assert test2() == 10
