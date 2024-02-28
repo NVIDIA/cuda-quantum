@@ -2,7 +2,7 @@ name: Nightly integration tests
 
 concurrency:
   # only one integration tests workflow to be run at a time, since it involves pushing/cleaning up a test image (same tag).
-  group: ${{ github.workflow }}${{ github.event.workflow_run.name }} 
+  group: ${{ github.workflow }}${{ github.event.workflow_run.name }}
   cancel-in-progress: false
 
 # Run on request and every day at 3 AM UTC
@@ -107,7 +107,7 @@ jobs:
           else
             echo "sha=$(cat $CUDA_QUANTUM_PATH/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
           fi
-  
+
   build_nvqc_image:
     name: Build NVQC deployment image
     runs-on: ubuntu-latest
@@ -145,11 +145,11 @@ jobs:
           file: ./docker/release/cudaq.nvqc.Dockerfile
           build-args: |
             base_image=${{ inputs.cudaq_nvqc_deploy_image || env.cudaq_nvqc_deploy_image }}
-          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly
+          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
           push: true
-  
+
   deploy_nvqc_test_function:
     name: Deploy NVQC function
     runs-on: ubuntu-latest
@@ -158,7 +158,7 @@ jobs:
     environment: ghcr-deployment
     outputs:
       nvqc_function_version_id: ${{ steps.deploy.outputs.nvqc_function_version_id }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -180,7 +180,7 @@ jobs:
           NGC_CLI_TEAM: cuda-quantum
         run: |
           create_function_result=$(ngc-cli/ngc cloud-function function create \
-            --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly \
+            --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly \
             --container-environment-variable NUM_GPUS:1 \
             --api-body-format CUSTOM \
             --inference-port 3030 \
@@ -188,19 +188,19 @@ jobs:
             --inference-url /job \
             --name cudaq-nightly-integration-test \
             $NVQC_FUNCTION_ID)
-          version_id=$(echo "$create_function_result" | grep 'Version: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
+          version_id=$(echo "$create_function_result" | grep 'Version: \S*' | head -1 | cut -d ':' -f 2 | tr -d ' ')
           echo "Create version Id: $version_id"
           echo "nvqc_function_version_id=$version_id" >> $GITHUB_OUTPUT
           # Deploy it
           ngc-cli/ngc cloud-function function deploy create --deployment-specification $NGC_NVQC_DEPLOYMENT_SPEC $NVQC_FUNCTION_ID:$version_id
           function_status=DEPLOYING
-          while [ "$function_status" =  "DEPLOYING" ]; do 
-            echo "Waiting for deploying NVQC function version $version_id ..." 
-            sleep 120 
+          while [ "$function_status" = "DEPLOYING" ]; do
+            echo "Waiting for deploying NVQC function version $version_id ..."
+            sleep 120
             function_info=$(ngc-cli/ngc cloud-function function info $NVQC_FUNCTION_ID:$version_id)
-            function_status=$(echo "$function_info" | grep 'Status: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
+            function_status=$(echo "$function_info" | grep 'Status: \S*' | head -1 | cut -d ':' -f 2 | tr -d ' ')
           done
-          if [ "$function_status" !=  "ACTIVE" ]; then
+          if [ "$function_status" != "ACTIVE" ]; then
             echo "::error:: Failed to deploy NVQC Test Function"
             exit 1
           fi
@@ -445,7 +445,7 @@ jobs:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
           fetch-depth: 1
 
-      - name: Submit to NVQC 
+      - name: Submit to NVQC
         run: |
           echo "### Submit to NVQC" >> $GITHUB_STEP_SUMMARY
           export NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
@@ -457,7 +457,7 @@ jobs:
           for filename in `find targettests/execution/ -name '*.cpp'`; do
             echo "$filename"
             # Only run tests that require execution (not a syntax-only check)
-            if grep -q "ifndef SYNTAX_CHECK" "$filename"; then 
+            if grep -q "ifndef SYNTAX_CHECK" "$filename"; then
               nvq++ -v $filename --target nvqc
               test_status=$?
               if [ $test_status -eq 0 ]; then
@@ -476,7 +476,7 @@ jobs:
             fi
           done
 
-          # Test all remote-sim tests 
+          # Test all remote-sim tests
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
             # unsupport_args is a compile error test
             if [[ "$filename" != *"unsupport_args"* ]]; then
@@ -540,9 +540,9 @@ jobs:
               fi
             fi
           done
-          
+
           # Test NVQC Python examples
-          for ex in `find examples/python -name '*.py'`; do 
+          for ex in `find examples/python -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -558,7 +558,7 @@ jobs:
               fi
             else
               # Only run examples that are not target-specific (e.g., ionq, iqm)
-              if ! grep -q "set_target" "$ex"; then 
+              if ! grep -q "set_target" "$ex"; then
                 # Use --target command line option to run these examples with
                 python3 $ex --target nvqc 1> /dev/null
                 test_status=$?
@@ -571,7 +571,7 @@ jobs:
               fi
             fi
           done
-          
+
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
@@ -608,7 +608,7 @@ jobs:
               publishing_run_ids=$(gh run list --commit $1 --workflow Publishing --json databaseId --jq .[].databaseId)
             fi
             for run_id in $publishing_run_ids ; do
-                # Look into its jobs: if "CUDA Quantum Python wheels" matrix build was performed, 
+                # Look into its jobs: if "CUDA Quantum Python wheels" matrix build was performed,
                 # then we have multiple jobs, like "CUDA Quantum Python wheels (python_arm64....")
                 cuda_wheel_build_jobs=$(gh run view $run_id --jq '.jobs.[] | select(.name | startswith("CUDA Quantum Python wheels (python_")).name' --json jobs)
                 if [ ! -z "$cuda_wheel_build_jobs" ]; then
@@ -617,8 +617,8 @@ jobs:
                   break
                 fi
             done
-          } 
-          
+          }
+
           if [ -z "${workflow_id}" ]; then
             workflow_id=$(get_publishing_run_id ${{ needs.metadata.outputs.cudaq_commit }})
           fi
@@ -626,7 +626,7 @@ jobs:
             echo "Using artifacts from workflow id $workflow_id"
             # Allow error when trying to download wheel artifacts since they might be expired.
             set +e
-            gh run download $workflow_id --name "x86_64-py$python_version-wheels" 
+            gh run download $workflow_id --name "x86_64-py$python_version-wheels"
             retVal=$?
             set -e
             if [ $retVal -ne 0 ]; then
@@ -639,7 +639,7 @@ jobs:
             # Install Python and the wheel
             apt-get update && apt-get install -y --no-install-recommends python$python_version python3-pip
             wheelfile=$(find . -name "cuda_quantum*cp$python_version_filename*x86_64.whl")
-            python$python_version -m pip install $wheelfile  
+            python$python_version -m pip install $wheelfile
             echo "skipped=false" >> $GITHUB_OUTPUT
           else
             echo "Failed to retrieve Publishing workflow run Id for commit ${{ needs.metadata.outputs.cudaq_commit }}"
@@ -648,7 +648,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Test NVQC 
+      - name: Test NVQC
         if: ${{ ! steps.install_wheel.skipped }}
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
@@ -658,7 +658,7 @@ jobs:
           export NVQC_FUNCTION_VERSION_ID="${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
           set +e # Allow script to keep going through errors
           test_err_sum=0
-          for ex in `find examples/python -name '*.py'`; do 
+          for ex in `find examples/python -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -688,7 +688,7 @@ jobs:
     steps:
       - name: Get code
         uses: actions/checkout@v4
-        
+
       - name: Install NGC CLI
         uses: ./.github/actions/install-ngc-cli
         with:
@@ -707,4 +707,4 @@ jobs:
           # Remove the function version
           ngc-cli/ngc cloud-function function remove $NVQC_FUNCTION_ID:${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}
           # Remove the docker image
-          ngc-cli/ngc registry image remove -y nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly
+          ngc-cli/ngc registry image remove -y nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly
