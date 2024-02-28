@@ -629,8 +629,9 @@ class PyASTBridge(ast.NodeVisitor):
                 attr = DictAttr.get(
                     {
                         fullName:
-                            StringAttr.get(fullName + '_entryPointRewrite',
-                                           context=self.ctx)
+                            StringAttr.get(
+                                fullName + '_PyKernelEntryPointRewrite',
+                                context=self.ctx)
                     },
                     context=self.ctx)
                 self.module.operation.attributes.__setitem__(

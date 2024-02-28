@@ -395,6 +395,14 @@ public:
     std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
     std::string instName = instOp->getName().stripDialect().str();
 
+    // Handle the case where we have and S or T gate,
+    // but the adjoint has been requested.
+    std::vector<std::string> filterNames{"s", "t"};
+    if (std::find(filterNames.begin(), filterNames.end(), instName) !=
+        filterNames.end())
+      if (instOp.isAdj())
+        instName = instName + "dg";
+
     // Convert the ctrl bits to an Array
     auto qirFunctionName = qirQisPrefix + instName + "__ctl";
 

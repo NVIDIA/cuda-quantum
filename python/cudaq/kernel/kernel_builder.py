@@ -203,7 +203,7 @@ class PyKernel(object):
                 random.choice(string.ascii_uppercase + string.digits)
                 for _ in range(10)))
         self.name = remove_prefix(self.funcName, nvqppPrefix)
-        self.funcNameEntryPoint = self.funcName + '_entryPointRewrite'
+        self.funcNameEntryPoint = self.funcName + '_PyKernelEntryPointRewrite'
         attr = DictAttr.get(
             {
                 self.funcName:
