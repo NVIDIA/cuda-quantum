@@ -1059,7 +1059,7 @@ def test_call_kernel_expressions_List():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
-    @cudaq.kernel()
+    @cudaq.kernel
     def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
                                            val: List[List[float]]):
         ry(val[0][0], qubits[qbit])
@@ -1129,8 +1129,73 @@ def test_adequate_number_params():
     result = cudaq.observe(kernel, spin.z(0), [2.2, 2.2], 0)
 
 
+def test_draw():
+    print()
+    bar, q = cudaq.make_kernel(cudaq.qreg)
+    bar.rx(np.e, q[0])
+    bar.ry(np.pi, q[1])
+    bar.rz(-np.pi, q[2])  # how to do adj in builder?
+
+    zaz, q = cudaq.make_kernel(cudaq.qubit)
+    zaz.sdg(q)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(4)
+
+    kernel.h(q)
+    # Broadcast
+    kernel.cx(q[0], q[1])
+    kernel.cy([q[0], q[1]], q[2])
+    kernel.cy([q[2], q[0]], q[1])
+    kernel.cy([q[1], q[2]], q[0])
+    kernel.z(q[2])
+
+    kernel.r1(3.14159, q[0])
+    kernel.tdg(q[1])
+    kernel.s(q[2])
+
+    kernel.swap(q[0], q[2])
+    kernel.swap(q[1], q[2])
+    kernel.swap(q[0], q[1])
+    kernel.swap(q[0], q[2])
+    kernel.swap(q[1], q[2])
+    kernel.cswap(q[3], q[0], q[1])
+    kernel.cswap([q[0], q[3]], q[1], q[2])
+    kernel.cswap(q[1], q[0], q[3])
+    kernel.cswap([q[1], q[2]], q[0], q[3])
+    kernel.apply_call(bar, q)
+    kernel.control(zaz, q[1], q[0])
+    kernel.adjoint(bar, q)
+
+    circuit = cudaq.draw(kernel)
+    print(circuit)
+    expected_str = '''     ╭───╮               ╭───╮╭───────────╮                          ╭───────╮»
+q0 : ┤ h ├──●────●────●──┤ y ├┤ r1(3.142) ├──────╳─────╳──╳─────╳──●─┤>      ├»
+     ├───┤╭─┴─╮  │  ╭─┴─╮╰─┬─╯╰──┬─────┬──╯      │     │  │     │  │ │       │»
+q1 : ┤ h ├┤ x ├──●──┤ y ├──●─────┤ tdg ├─────────┼──╳──╳──┼──╳──╳──╳─┤●      ├»
+     ├───┤╰───╯╭─┴─╮╰─┬─╯  │     ╰┬───┬╯   ╭───╮ │  │     │  │  │  │ │  swap │»
+q2 : ┤ h ├─────┤ y ├──●────●──────┤ z ├────┤ s ├─╳──╳─────╳──╳──┼──╳─│       │»
+     ├───┤     ╰───╯              ╰───╯    ╰───╯                │  │ │       │»
+q3 : ┤ h ├──────────────────────────────────────────────────────●──●─┤>      ├»
+     ╰───╯                                                           ╰───────╯»
+
+################################################################################
+
+╭───────╮╭───────────╮    ╭─────╮   ╭────────────╮
+┤>      ├┤ rx(2.718) ├────┤ sdg ├───┤ rx(-2.718) ├
+│       │├───────────┤    ╰──┬──╯   ├────────────┤
+┤●      ├┤ ry(3.142) ├───────●──────┤ ry(-3.142) ├
+│  swap │├───────────┴╮╭───────────╮╰────────────╯
+┤●      ├┤ rz(-3.142) ├┤ rz(3.142) ├──────────────
+│       │╰────────────╯╰───────────╯              
+┤>      ├─────────────────────────────────────────
+╰───────╯                                         
+'''
+
+    assert circuit == expected_str
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
-

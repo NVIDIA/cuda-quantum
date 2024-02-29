@@ -2,7 +2,7 @@ name: Nightly integration tests
 
 concurrency:
   # only one integration tests workflow to be run at a time, since it involves pushing/cleaning up a test image (same tag).
-  group: ${{ github.workflow }}${{ github.event.workflow_run.name }} 
+  group: ${{ github.workflow }}${{ github.event.workflow_run.name }}
   cancel-in-progress: false
 
 # Run on request and every day at 3 AM UTC
@@ -32,7 +32,7 @@ on:
       cudaq_test_image:
         type: string
         required: false
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' # If changed, update env defaults, too
         description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image'
       commit_sha:
         type: string
@@ -41,7 +41,7 @@ on:
       cudaq_nvqc_deploy_image:
         type: string
         required: false
-        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest'
+        default: 'nvcr.io/nvidia/nightly/cuda-quantum:latest' # If changed, update env defaults, too
         description: 'CUDA Quantum image to use for NVQC deployment to NVCF. Default to the latest CUDA Quantum nightly image'
       workflow_id:
         type: string
@@ -50,7 +50,7 @@ on:
       python_version:
         type: choice
         required: true
-        default: '3.10'
+        default: '3.10' # If changed, update env defaults, too
         description: 'Python version to run wheel test'
         options:
         - '3.8'
@@ -68,14 +68,33 @@ env:
   NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
   NGC_NVQC_DEPLOYMENT_SPEC: NVCFInternal:A100:Standard_ND96amsr_A100_v4_1x:1:1
+  # If vars below are changed, it is recommended to also update the
+  # workflow_dispatch defaults above so they stay in sync.
+  cudaq_test_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
+  cudaq_nvqc_deploy_image: nvcr.io/nvidia/nightly/cuda-quantum:latest
+  python_version: '3.10'
 
 jobs:
+  # We need this job purely to choose the container image values because the
+  # `env` context is unavailable outside of "steps" contexts.
+  setup:
+    name: Set variables
+    runs-on: ubuntu-latest
+    outputs:
+      cudaq_test_image: ${{ steps.vars.outputs.cudaq_test_image }}
+    steps:
+      - name: Set variables
+        id: vars
+        run: |
+          echo "cudaq_test_image=${{ inputs.cudaq_test_image || env.cudaq_test_image }}" >> $GITHUB_OUTPUT
+
   metadata:
     name: Retrieve commit info
     runs-on: ubuntu-latest
+    needs: setup
     environment: backend-validation
     container:
-      image: ${{ inputs.cudaq_test_image }}
+      image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
     outputs:
       cudaq_commit: ${{ steps.commit-sha.outputs.sha }}
@@ -88,7 +107,7 @@ jobs:
           else
             echo "sha=$(cat $CUDA_QUANTUM_PATH/build_info.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
           fi
-  
+
   build_nvqc_image:
     name: Build NVQC deployment image
     runs-on: ubuntu-latest
@@ -116,7 +135,7 @@ jobs:
         with:
           registry: nvcr.io
           username: '$oauthtoken'
-          password: ${{ secrets.NGC_CREDENTIALS  }}
+          password: ${{ secrets.NGC_CREDENTIALS }}
 
       - name: Build NVQC image
         id: docker_build
@@ -125,12 +144,12 @@ jobs:
           context: .
           file: ./docker/release/cudaq.nvqc.Dockerfile
           build-args: |
-            base_image=${{ inputs.cudaq_nvqc_deploy_image }}
-          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly
+            base_image=${{ inputs.cudaq_nvqc_deploy_image || env.cudaq_nvqc_deploy_image }}
+          tags: nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly
           platforms: linux/amd64
           provenance: false
           push: true
-  
+
   deploy_nvqc_test_function:
     name: Deploy NVQC function
     runs-on: ubuntu-latest
@@ -139,7 +158,7 @@ jobs:
     environment: ghcr-deployment
     outputs:
       nvqc_function_version_id: ${{ steps.deploy.outputs.nvqc_function_version_id }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -156,12 +175,12 @@ jobs:
       - name: Deploy NVQC Function
         id: deploy
         env:
-          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS  }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
           create_function_result=$(ngc-cli/ngc cloud-function function create \
-            --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly \
+            --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly \
             --container-environment-variable NUM_GPUS:1 \
             --api-body-format CUSTOM \
             --inference-port 3030 \
@@ -169,19 +188,19 @@ jobs:
             --inference-url /job \
             --name cudaq-nightly-integration-test \
             $NVQC_FUNCTION_ID)
-          version_id=$(echo "$create_function_result" | grep 'Version: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
+          version_id=$(echo "$create_function_result" | grep 'Version: \S*' | head -1 | cut -d ':' -f 2 | tr -d ' ')
           echo "Create version Id: $version_id"
           echo "nvqc_function_version_id=$version_id" >> $GITHUB_OUTPUT
           # Deploy it
           ngc-cli/ngc cloud-function function deploy create --deployment-specification $NGC_NVQC_DEPLOYMENT_SPEC $NVQC_FUNCTION_ID:$version_id
           function_status=DEPLOYING
-          while [ "$function_status" =  "DEPLOYING" ]; do 
-            echo "Waiting for deploying NVQC function version $version_id ..." 
-            sleep 120 
+          while [ "$function_status" = "DEPLOYING" ]; do
+            echo "Waiting for deploying NVQC function version $version_id ..."
+            sleep 120
             function_info=$(ngc-cli/ngc cloud-function function info $NVQC_FUNCTION_ID:$version_id)
-            function_status=$(echo "$function_info" | grep 'Status: \S*' |  head -1 | cut -d ':' -f 2 | tr -d ' ')
+            function_status=$(echo "$function_info" | grep 'Status: \S*' | head -1 | cut -d ':' -f 2 | tr -d ' ')
           done
-          if [ "$function_status" !=  "ACTIVE" ]; then
+          if [ "$function_status" != "ACTIVE" ]; then
             echo "::error:: Failed to deploy NVQC Test Function"
             exit 1
           fi
@@ -189,10 +208,10 @@ jobs:
   hardware_providers_integration_test:
     name: Integration test with hardware providers
     runs-on: ubuntu-latest
-    needs: [metadata]
+    needs: [setup, metadata]
     environment: backend-validation
     container:
-      image: ${{ inputs.cudaq_test_image }}
+      image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
 
     steps:
@@ -413,10 +432,10 @@ jobs:
     name: NVQC integration test using Docker image
     runs-on: ubuntu-latest
     if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
-    needs: [metadata, build_nvqc_image, deploy_nvqc_test_function]
+    needs: [setup, metadata, build_nvqc_image, deploy_nvqc_test_function]
     environment: ghcr-deployment
     container:
-      image: ${{ inputs.cudaq_test_image }}
+      image: ${{ needs.setup.outputs.cudaq_test_image }}
       options: --user root
 
     steps:
@@ -426,7 +445,7 @@ jobs:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
           fetch-depth: 1
 
-      - name: Submit to NVQC 
+      - name: Submit to NVQC
         run: |
           echo "### Submit to NVQC" >> $GITHUB_STEP_SUMMARY
           export NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
@@ -438,7 +457,7 @@ jobs:
           for filename in `find targettests/execution/ -name '*.cpp'`; do
             echo "$filename"
             # Only run tests that require execution (not a syntax-only check)
-            if grep -q "ifndef SYNTAX_CHECK" "$filename"; then 
+            if grep -q "ifndef SYNTAX_CHECK" "$filename"; then
               nvq++ -v $filename --target nvqc
               test_status=$?
               if [ $test_status -eq 0 ]; then
@@ -457,7 +476,7 @@ jobs:
             fi
           done
 
-          # Test all remote-sim tests 
+          # Test all remote-sim tests
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
             # unsupport_args is a compile error test
             if [[ "$filename" != *"unsupport_args"* ]]; then
@@ -521,9 +540,9 @@ jobs:
               fi
             fi
           done
-          
+
           # Test NVQC Python examples
-          for ex in `find examples/python -name '*.py'`; do 
+          for ex in `find examples/python -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -539,7 +558,7 @@ jobs:
               fi
             else
               # Only run examples that are not target-specific (e.g., ionq, iqm)
-              if ! grep -q "set_target" "$ex"; then 
+              if ! grep -q "set_target" "$ex"; then
                 # Use --target command line option to run these examples with
                 python3 $ex --target nvqc 1> /dev/null
                 test_status=$?
@@ -552,7 +571,7 @@ jobs:
               fi
             fi
           done
-          
+
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
@@ -577,7 +596,7 @@ jobs:
       - name: Install wheel
         id: install_wheel
         run: |
-          python_version=${{ inputs.python_version }}
+          python_version=${{ inputs.python_version || env.python_version }}
           workflow_id=${{ inputs.workflow_id }}
           # Helper to get the *valid* Publishing run Id for a commit hash
           # Notes: runs that have 'CUDA Quantum Python wheels' jobs skipped are not considered.
@@ -589,7 +608,7 @@ jobs:
               publishing_run_ids=$(gh run list --commit $1 --workflow Publishing --json databaseId --jq .[].databaseId)
             fi
             for run_id in $publishing_run_ids ; do
-                # Look into its jobs: if "CUDA Quantum Python wheels" matrix build was performed, 
+                # Look into its jobs: if "CUDA Quantum Python wheels" matrix build was performed,
                 # then we have multiple jobs, like "CUDA Quantum Python wheels (python_arm64....")
                 cuda_wheel_build_jobs=$(gh run view $run_id --jq '.jobs.[] | select(.name | startswith("CUDA Quantum Python wheels (python_")).name' --json jobs)
                 if [ ! -z "$cuda_wheel_build_jobs" ]; then
@@ -598,8 +617,8 @@ jobs:
                   break
                 fi
             done
-          } 
-          
+          }
+
           if [ -z "${workflow_id}" ]; then
             workflow_id=$(get_publishing_run_id ${{ needs.metadata.outputs.cudaq_commit }})
           fi
@@ -607,7 +626,7 @@ jobs:
             echo "Using artifacts from workflow id $workflow_id"
             # Allow error when trying to download wheel artifacts since they might be expired.
             set +e
-            gh run download $workflow_id --name "x86_64-py$python_version-wheels" 
+            gh run download $workflow_id --name "x86_64-py$python_version-wheels"
             retVal=$?
             set -e
             if [ $retVal -ne 0 ]; then
@@ -620,7 +639,7 @@ jobs:
             # Install Python and the wheel
             apt-get update && apt-get install -y --no-install-recommends python$python_version python3-pip
             wheelfile=$(find . -name "cuda_quantum*cp$python_version_filename*x86_64.whl")
-            python$python_version -m pip install $wheelfile  
+            python$python_version -m pip install $wheelfile
             echo "skipped=false" >> $GITHUB_OUTPUT
           else
             echo "Failed to retrieve Publishing workflow run Id for commit ${{ needs.metadata.outputs.cudaq_commit }}"
@@ -629,17 +648,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Test NVQC 
+      - name: Test NVQC
         if: ${{ ! steps.install_wheel.skipped }}
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
-          python_version=${{ inputs.python_version }}
+          python_version=${{ inputs.python_version || env.python_version }}
           export NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}"
           export NVQC_FUNCTION_ID="$NVQC_FUNCTION_ID"
           export NVQC_FUNCTION_VERSION_ID="${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
           set +e # Allow script to keep going through errors
           test_err_sum=0
-          for ex in `find examples/python -name '*.py'`; do 
+          for ex in `find examples/python -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -669,7 +688,7 @@ jobs:
     steps:
       - name: Get code
         uses: actions/checkout@v4
-        
+
       - name: Install NGC CLI
         uses: ./.github/actions/install-ngc-cli
         with:
@@ -678,7 +697,7 @@ jobs:
 
       - name: Cleanup
         env:
-          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS  }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
         run: |
@@ -688,4 +707,4 @@ jobs:
           # Remove the function version
           ngc-cli/ngc cloud-function function remove $NVQC_FUNCTION_ID:${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}
           # Remove the docker image
-          ngc-cli/ngc registry image remove -y nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM}}/cuda-quantum:nightly
+          ngc-cli/ngc registry image remove -y nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly

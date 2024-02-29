@@ -22,6 +22,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "nvqir/CircuitSimulator.h"
 #include "server_impl/RestServer.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/Base64.h"
@@ -93,6 +94,17 @@ class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   static constexpr const char *DEFAULT_NVQIR_SIMULATION_BACKEND = "qpp";
 
 protected:
+  // Server to exit after each job request.
+  // Note: this doesn't apply to ping ("/") endpoint.
+  bool exitAfterJob = false;
+  // Time-point data
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
+      requestStart;
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
+      simulationStart;
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
+      simulationEnd;
+
   // Method to filter incoming request.
   // The request is only handled iff this returns true.
   // When returning false, `outValidationMessage` can be used to report the
@@ -133,6 +145,12 @@ public:
         cudaq::RestServer::Method::POST, "/job",
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
+          requestStart = std::chrono::high_resolution_clock::now();
+          auto shutdownAfterHandlingRequest = llvm::make_scope_exit([&] {
+            if (this->exitAfterJob)
+              m_server->stop();
+          });
+
           std::string mutableReq;
           for (const auto &[k, v] : headers)
             cudaq::info("Request Header: {} : {}", k, v);
@@ -220,6 +238,9 @@ public:
         cudaq::mpi::broadcast(jsonRequestBody, 0);
         // All ranks need to join, e.g., MPI-capable backends.
         processRequest(jsonRequestBody);
+        // Break the loop if the server is operating in one-shot mode.
+        if (exitAfterJob)
+          break;
       }
     }
   }
@@ -320,9 +341,10 @@ public:
       }
     }
     platform.reset_exec_ctx();
+    simulationEnd = std::chrono::high_resolution_clock::now();
   }
 
-private:
+protected:
   std::unique_ptr<ExecutionEngine>
   jitMlirCode(ModuleOp currentModule, const std::vector<std::string> &passes,
               const std::vector<std::string> &extraLibPaths = {}) {
@@ -370,15 +392,9 @@ private:
           auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op);
           if (!funcOp)
             continue;
-          if (!funcOp.getName().startswith(
-                  cudaq::runtime::cudaqGenPrefixName)) {
-            // Looks like this is not something from the nvq++ frontend.
-            cudaq::info("Unexpected MLIR function name encountered: '{}'.",
-                        funcOp.getName().str());
-            continue;
+          if (funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName)) {
+            allFuncs.emplace_back(funcOp.getName());
           }
-
-          allFuncs.emplace_back(funcOp.getName());
         }
         return allFuncs;
       }();
@@ -441,6 +457,7 @@ private:
       throw std::runtime_error("Failed to get entry function");
 
     auto fn = reinterpret_cast<void (*)()>(fnPtr);
+    simulationStart = std::chrono::high_resolution_clock::now();
     for (std::size_t i = 0; i < numTimes; ++i) {
       // Invoke the kernel
       fn();
@@ -476,7 +493,7 @@ private:
     return simLibHandle;
   }
 
-  json processRequest(const std::string &reqBody) {
+  virtual json processRequest(const std::string &reqBody) {
     try {
       // IMPORTANT: This assumes the REST server handles incoming requests
       // sequentially.
@@ -523,6 +540,9 @@ private:
 
 // Runtime server for NVCF
 class NvcfRuntimeServer : public RemoteRestRuntimeServer {
+public:
+  NvcfRuntimeServer() : RemoteRestRuntimeServer() { exitAfterJob = true; }
+
 protected:
   virtual bool filterRequest(const cudaq::RestRequest &in_request,
                              std::string &outValidationMessage) const override {
@@ -534,6 +554,34 @@ protected:
     }
 
     return true;
+  }
+
+protected:
+  virtual json processRequest(const std::string &reqBody) override {
+    auto executionResult = RemoteRestRuntimeServer::processRequest(reqBody);
+    // Amend execution information
+    executionResult["executionInfo"] = constructExecutionInfo();
+    return executionResult;
+  }
+
+private:
+  cudaq::NvcfExecutionInfo constructExecutionInfo() {
+    cudaq::NvcfExecutionInfo info;
+    const auto optionalTimePointToInt =
+        [](const auto &optionalTimePoint) -> std::size_t {
+      return optionalTimePoint.has_value()
+                 ? std::chrono::duration_cast<std::chrono::milliseconds>(
+                       optionalTimePoint.value().time_since_epoch())
+                       .count()
+                 : 0;
+    };
+    info.requestStart = optionalTimePointToInt(requestStart);
+    info.simulationStart = optionalTimePointToInt(simulationStart);
+    info.simulationEnd = optionalTimePointToInt(simulationEnd);
+    const auto deviceProps = cudaq::getCudaProperties();
+    if (deviceProps.has_value())
+      info.deviceProps = deviceProps.value();
+    return info;
   }
 };
 } // namespace

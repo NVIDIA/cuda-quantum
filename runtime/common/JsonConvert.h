@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #pragma once
+#include "GPUInfo.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
 #include "nlohmann/json.hpp"
-
 /*! \file
     \brief Utility to support JSON serialization between the client and server.
 */
@@ -242,4 +242,17 @@ struct NvcfFunctionVersionInfo {
                                  name, status, createdAt);
 };
 
+// NVCF execution metadata.
+struct NvcfExecutionInfo {
+  // Time point (milliseconds since epoch) when the request handling starts.
+  std::size_t requestStart;
+  // Time point (milliseconds since epoch) when the execution starts (JIT
+  // completed).
+  std::size_t simulationStart;
+  // Time point (milliseconds since epoch) when the execution finishes.
+  std::size_t simulationEnd;
+  CudaDeviceProperties deviceProps;
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(NvcfExecutionInfo, requestStart,
+                                 simulationStart, simulationEnd, deviceProps);
+};
 } // namespace cudaq

@@ -8,19 +8,10 @@
 
 #pragma once
 
-#include "llvm/Support/Registry.h"
-#include "mlir/IR/Builders.h"
+#include <pybind11/pybind11.h>
 
-namespace nvqpp {
+namespace py = pybind11;
 
-class QISBuilder {
-public:
-  virtual ~QISBuilder() = default;
-  virtual mlir::Operation::result_range
-  buildInstruction(mlir::OpBuilder &builder, mlir::Location loc,
-                   mlir::ValueRange general_operands) = 0;
-};
-
-using QISBuilderRegistry = llvm::Registry<nvqpp::QISBuilder>;
-
-} // namespace nvqpp
+namespace cudaq {
+void bindPyDraw(py::module &mod);
+} // namespace cudaq

@@ -110,6 +110,9 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     if (returnType.isInteger(64)) {
       py::args returnVal = py::make_tuple(py::int_(0));
       packArgs(runtimeArgs, returnVal);
+    } else if (isa<FloatType>(returnType)) {
+      py::args returnVal = py::make_tuple(py::float_(0.0));
+      packArgs(runtimeArgs, returnVal);
     } else {
       std::string msg;
       {

@@ -59,29 +59,30 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   ADD_TO_PARENT CUDAQuantumPythonSources
   SOURCES
    CUDAQuantumExtension.cpp
+   runtime/common/py_ExecutionContext.cpp
+   runtime/common/py_NoiseModel.cpp
+   runtime/common/py_ObserveResult.cpp
+   runtime/common/py_SampleResult.cpp
+   runtime/cudaq/algorithms/py_draw.cpp
+   runtime/cudaq/algorithms/py_observe_async.cpp
+   runtime/cudaq/algorithms/py_optimizer.cpp
+   runtime/cudaq/algorithms/py_sample_async.cpp
+   runtime/cudaq/algorithms/py_state.cpp
+   runtime/cudaq/algorithms/py_vqe.cpp
+   runtime/cudaq/kernels/py_common_kernels.cpp
+   runtime/cudaq/platform/JITExecutionCache.cpp
+   runtime/cudaq/platform/py_alt_launch_kernel.cpp
+   runtime/cudaq/qis/py_execution_manager.cpp
+   runtime/cudaq/qis/py_qubit_qis.cpp
+   runtime/cudaq/spin/py_matrix.cpp
+   runtime/cudaq/spin/py_spin_op.cpp
+   runtime/cudaq/target/py_runtime_target.cpp
+   runtime/cudaq/target/py_testing_utils.cpp
    runtime/mlir/py_register_dialects.cpp
    runtime/utils/PyRemoteRESTQPU.cpp
    runtime/utils/PyRemoteSimulatorQPU.cpp
    runtime/utils/PyRestRemoteClient.cpp
-   runtime/cudaq/qis/py_qubit_qis.cpp
-   runtime/cudaq/kernels/py_common_kernels.cpp
-   runtime/cudaq/platform/py_alt_launch_kernel.cpp
-   runtime/cudaq/qis/py_execution_manager.cpp 
-   runtime/common/py_ExecutionContext.cpp
-   runtime/cudaq/algorithms/py_sample_async.cpp
-   runtime/cudaq/algorithms/py_observe_async.cpp
-   runtime/cudaq/platform/JITExecutionCache.cpp
    utils/LinkedLibraryHolder.cpp
-   runtime/cudaq/target/py_runtime_target.cpp
-   runtime/cudaq/target/py_testing_utils.cpp
-   runtime/common/py_SampleResult.cpp
-   runtime/common/py_ObserveResult.cpp
-   runtime/common/py_NoiseModel.cpp
-   runtime/cudaq/spin/py_matrix.cpp
-   runtime/cudaq/spin/py_spin_op.cpp 
-   runtime/cudaq/algorithms/py_optimizer.cpp 
-   runtime/cudaq/algorithms/py_vqe.cpp
-   runtime/cudaq/algorithms/py_state.cpp
    ../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
    ../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
 
@@ -104,6 +105,7 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq-common 
     cudaq-em-default
     fmt::fmt-header-only
+    unzip_util
 )
 
 ################################################################################
