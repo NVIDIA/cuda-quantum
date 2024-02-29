@@ -78,7 +78,7 @@ install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 add_subdirectory(helpers/server_impl)
-add_library(rest-remote-platform-server SHARED RemoteRuntimeServer.cpp helpers/RestRemoteServer.cpp)
+add_library(rest-remote-platform-server SHARED RemoteRuntimeServer.cpp helpers/RestRemoteServer.cpp helpers/GPUInfo.cpp)
 target_include_directories(rest-remote-platform-server 
   PUBLIC 
       $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
@@ -95,5 +95,13 @@ target_link_libraries(rest-remote-platform-server
     nvqir
     fmt::fmt-header-only
 )
+
+if (CUDA_FOUND AND CUSTATEVEC_ROOT)
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  target_compile_definitions(rest-remote-platform-server PRIVATE CUDAQ_ENABLE_CUDA)
+  target_link_libraries(rest-remote-platform-server PRIVATE CUDA::cudart_static)
+endif()
+
 target_link_options(rest-remote-platform-server PRIVATE -Wl,--no-as-needed)
 install(TARGETS rest-remote-platform-server DESTINATION lib)
