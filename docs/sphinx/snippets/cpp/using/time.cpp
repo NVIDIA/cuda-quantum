@@ -6,10 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Compile and run with: `nvq++ first_kernel.cpp && ./a.out`
+// Compile and run with: `nvq++ time.cpp && ./a.out`
 
-// [Begin Documentation]
+
 #include <cudaq.h>
+#include <chrono>
+#include <iostream>
 
 __qpu__ void kernel(int qubit_count) {
   // Allocate our qubits.
@@ -24,10 +26,20 @@ __qpu__ void kernel(int qubit_count) {
   // Measure the qubits.
   mz(qvector);
 }
-// [End Documentation]
 
-// Just for the CI:
+// [Begin Time]
 int main() {
-  auto test_result = cudaq::sample(kernel, 1, 1);
-  test_result.dump();
+  // 25 qubits.
+  auto qubit_count = 25;
+  // 1 million samples.
+  auto shots_count = 1000000;
+  auto start = std::chrono::high_resolution_clock::now();
+
+  // Timing just the sample execution.
+  auto result = cudaq::sample(shots_count, kernel, qubit_count);
+
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration<double>(stop - start);
+  std::cout << "It took " << duration.count() << " seconds.\n";
 }
+// [End Time]
