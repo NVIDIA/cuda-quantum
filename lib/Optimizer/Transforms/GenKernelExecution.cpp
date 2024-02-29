@@ -1036,7 +1036,8 @@ public:
   static std::pair<bool, func::FuncOp>
   lookupHostEntryPointFunc(StringRef mangledEntryPointName, ModuleOp module,
                            func::FuncOp funcOp) {
-    if (mangledEntryPointName.equals("BuilderKernel.EntryPoint")) {
+    if (mangledEntryPointName.equals("BuilderKernel.EntryPoint") ||
+        mangledEntryPointName.contains("_PyKernelEntryPointRewrite")) {
       // No host entry point needed.
       return {false, func::FuncOp{}};
     }

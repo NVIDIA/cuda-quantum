@@ -45,6 +45,12 @@ std::unique_ptr<mlir::Pass> createQuakeSynthesizer(std::string_view, void *);
 std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
 
+std::unique_ptr<mlir::Pass>
+createPySynthCallableBlockArgs(const std::vector<std::string> &);
+inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
+  return createPySynthCallableBlockArgs({});
+}
+
 // declarative passes
 #define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION

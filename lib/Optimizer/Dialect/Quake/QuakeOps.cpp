@@ -683,9 +683,9 @@ LogicalResult quake::DiscriminateOp::verify() {
 //===----------------------------------------------------------------------===//
 
 // The following methods return to the operator's unitary matrix as a
-// column-major array. For parametrizable operations, the matrix can only be
+// column-major array. For parameterizable operations, the matrix can only be
 // built if the parameter can be computed at compilation time. These methods
-// populate an empty array taken as a input. If the matrix was not successfuly
+// populate an empty array taken as a input. If the matrix was not successfully
 // computed, the array will be left empty.
 
 /// If the parameter is known at compilation-time, set the result value and

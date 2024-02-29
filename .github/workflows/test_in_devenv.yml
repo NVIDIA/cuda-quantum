@@ -221,7 +221,6 @@ jobs:
               echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-
             for backendTest in python/tests/backends/*.py; do
               python3 -m pytest -v $backendTest
               pytest_status=$?

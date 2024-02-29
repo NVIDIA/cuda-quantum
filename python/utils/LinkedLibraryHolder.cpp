@@ -66,6 +66,15 @@ std::size_t RuntimeTarget::num_qpus() {
   return platform.num_qpus();
 }
 
+bool RuntimeTarget::is_remote() {
+  auto &platform = cudaq::get_platform();
+  return platform.is_remote();
+}
+bool RuntimeTarget::is_emulated() {
+  auto &platform = cudaq::get_platform();
+  return platform.is_emulated();
+}
+
 /// @brief Search the targets folder in the install for available targets.
 void findAvailableTargets(
     const std::filesystem::path &targetPath,
@@ -180,14 +189,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   for (auto &p : libPaths)
     libHandles.emplace(p.string(),
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
-
-  // We will always load the RemoteRestQPU plugin in Python.
-  auto potentialPath =
-      cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
-  void *restQpuLibHandle =
-      dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-  if (restQpuLibHandle)
-    libHandles.emplace(potentialPath.string(), restQpuLibHandle);
 
   // Search for all simulators and create / store them
   for (const auto &library :
@@ -375,6 +376,17 @@ void LinkedLibraryHolder::setTarget(
 
   // Pack the config into the backend string name
   std::string backendConfigStr = targetName;
+  auto potentialServerHelperPath =
+      cudaqLibPath /
+      fmt::format("libcudaq-serverhelper-{}.{}", targetName, libSuffix);
+  if (std::filesystem::exists(potentialServerHelperPath) &&
+      !libHandles.count(potentialServerHelperPath.string())) {
+    void *serverHelperHandle = dlopen(
+        potentialServerHelperPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+    if (serverHelperHandle)
+      libHandles.emplace(potentialServerHelperPath.string(),
+                         serverHelperHandle);
+  }
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
 

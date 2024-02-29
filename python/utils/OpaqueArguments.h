@@ -13,6 +13,7 @@
 #include <chrono>
 #include <functional>
 #include <future>
+#include <pybind11/complex.h>
 #include <pybind11/pybind11.h>
 #include <vector>
 
@@ -122,6 +123,38 @@ inline py::args validateInputArguments(kernel_builder<> &kernel,
   return processed;
 }
 
+/// @brief FIXME. This is a simple version of the above function,
+// it will only process numpy arrays of 1D shape and make them compatible
+// with our MLIR code. Future work should make this function perform more
+// checks, we probably want to take the Kernel MLIR argument Types as input and
+// use that to validate that the passed arguments are good to go.
+inline py::args simplifiedValidateInputArguments(py::args &args) {
+  py::args processed = py::tuple(args.size());
+  for (std::size_t i = 0; i < args.size(); ++i) {
+    auto arg = args[i];
+    // Check if it has tolist, so it might be a 1d buffer (array / numpy
+    // ndarray)
+    if (py::hasattr(args[i], "tolist")) {
+      // This is a valid ndarray if it has tolist and shape
+      if (!py::hasattr(args[i], "shape"))
+        throw std::runtime_error(
+            "Invalid input argument type, could not get shape of array.");
+
+      // This is an ndarray with tolist() and shape attributes
+      // get the shape and check its size
+      auto shape = args[i].attr("shape").cast<py::tuple>();
+      if (shape.size() != 1)
+        throw std::runtime_error("Cannot pass ndarray with shape != (N,).");
+
+      arg = args[i].attr("tolist")();
+    }
+
+    processed[i] = arg;
+  }
+
+  return processed;
+}
+
 /// @brief For general function broadcasting over many argument
 /// sets, this function will create those argument sets from
 /// the input `args`.
@@ -191,14 +224,12 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
       argData.emplace_back(ourAllocatedArg, [](void *ptr) {
         delete static_cast<double *>(ptr);
       });
-    }
-    if (py::isinstance<py::int_>(arg)) {
-      int *ourAllocatedArg = new int();
+    } else if (py::isinstance<py::int_>(arg)) {
+      long *ourAllocatedArg = new long();
       *ourAllocatedArg = PyLong_AsLong(arg.ptr());
       argData.emplace_back(ourAllocatedArg,
-                           [](void *ptr) { delete static_cast<int *>(ptr); });
-    }
-    if (py::isinstance<py::list>(arg)) {
+                           [](void *ptr) { delete static_cast<long *>(ptr); });
+    } else if (py::isinstance<py::list>(arg)) {
       auto casted = py::cast<py::list>(arg);
       std::vector<double> *ourAllocatedArg =
           new std::vector<double>(casted.size());
@@ -208,7 +239,75 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
       argData.emplace_back(ourAllocatedArg, [](void *ptr) {
         delete static_cast<std::vector<double> *>(ptr);
       });
+    } else
+      throw std::runtime_error("Could not pack argument: " +
+                               py::str(args).cast<std::string>());
+  }
+}
+
+inline void
+packArgs(OpaqueArguments &argData, py::args args,
+         const std::function<bool(OpaqueArguments &argData, py::object &arg)>
+             &backupHandler) {
+  for (std::size_t i = 0; i < args.size(); i++) {
+    py::object arg = args[i];
+    if (py::isinstance<py::float_>(arg)) {
+      double *ourAllocatedArg = new double();
+      *ourAllocatedArg = PyFloat_AsDouble(arg.ptr());
+      argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+        delete static_cast<double *>(ptr);
+      });
+      continue;
+    } else if (py::isinstance<py::int_>(arg)) {
+      long *ourAllocatedArg = new long();
+      *ourAllocatedArg = PyLong_AsLong(arg.ptr());
+      argData.emplace_back(ourAllocatedArg,
+                           [](void *ptr) { delete static_cast<long *>(ptr); });
+      continue;
+    } else if (py::isinstance<py::list>(arg)) {
+      auto casted = py::cast<py::list>(arg);
+      auto firstElement = casted[0];
+      if (py::isinstance<py::int_>(firstElement)) {
+        std::vector<std::size_t> *ourAllocatedArg =
+            new std::vector<std::size_t>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          (*ourAllocatedArg)[counter++] = PyLong_AsLong(el.ptr());
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<std::size_t> *>(ptr);
+        });
+      } else if (py::hasattr(firstElement, "real") &&
+                 py::hasattr(firstElement, "imag") &&
+                 !py::isinstance<py::float_>(firstElement)) {
+        // Trying to catch elements of type complex
+        std::vector<std::complex<double>> *ourAllocatedArg =
+            new std::vector<std::complex<double>>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          (*ourAllocatedArg)[counter++] = {
+              PyFloat_AsDouble(el.attr("real").ptr()),
+              PyFloat_AsDouble(el.attr("imag").ptr())};
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<std::complex<double>> *>(ptr);
+        });
+      } else {
+        std::vector<double> *ourAllocatedArg =
+            new std::vector<double>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          (*ourAllocatedArg)[counter++] = PyFloat_AsDouble(el.ptr());
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<double> *>(ptr);
+        });
+      }
+      continue;
     }
+
+    // Unhandled, see if someone else knows how to handle it
+    auto worked = backupHandler(argData, arg);
+    if (!worked)
+      throw std::runtime_error("Could not pack argument: " +
+                               py::str(args).cast<std::string>());
   }
 }
 
@@ -239,6 +338,16 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
   }
 
   return false;
+}
+
+/// @brief Create a new OpaqueArguments pointer and pack the
+/// python arguments in it. Clients must delete the memory.
+inline OpaqueArguments *toOpaqueArgs(py::args &args) {
+  auto *argData = new cudaq::OpaqueArguments();
+  args = simplifiedValidateInputArguments(args);
+  cudaq::packArgs(*argData, args,
+                  [](OpaqueArguments &, py::object &) { return false; });
+  return argData;
 }
 
 } // namespace cudaq

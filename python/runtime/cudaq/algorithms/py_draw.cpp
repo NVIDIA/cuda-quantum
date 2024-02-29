@@ -7,6 +7,7 @@
  ******************************************************************************/
 #include "cudaq/algorithms/draw.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"
 
 #include <iostream>
 #include <pybind11/complex.h>
@@ -14,22 +15,27 @@
 
 namespace cudaq {
 
-/// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
-std::string pyDraw(kernel_builder<> &kernel, py::args args) {
-  // Ensure the user input is correct.
-  auto validatedArgs = validateInputArguments(kernel, args);
-  OpaqueArguments argData;
-  packArgs(argData, validatedArgs);
+void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
+                       const std::vector<std::string> &);
 
-  ExecutionContext context("tracer");
-  auto &platform = get_platform();
-  platform.set_exec_ctx(&context);
-  kernel.jitAndInvoke(argData.data());
-  platform.reset_exec_ctx();
-  return __internal__::draw(context.kernelTrace);
+/// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
+std::string pyDraw(py::object &kernel, py::args args) {
+
+  if (py::hasattr(kernel, "compile"))
+    kernel.attr("compile")();
+
+  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  args = simplifiedValidateInputArguments(args);
+  auto *argData = toOpaqueArgs(args);
+
+  return details::extractTrace([&]() mutable {
+    pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
+    delete argData;
+  });
 }
 
-/// @brief Bind the get_state cudaq function
+/// @brief Bind the draw cudaq function
 void bindPyDraw(py::module &mod) { mod.def("draw", &pyDraw, ""); }
 
 } // namespace cudaq

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,14 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
+#include "common/Logger.h"
 #include "cudaq/qis/execution_manager.h"
+
+#include <complex>
+#include <functional>
+#include <map>
+#include <queue>
+#include <stack>
 
 namespace cudaq {
 
@@ -78,7 +85,8 @@ protected:
   virtual void executeInstruction(const Instruction &inst) = 0;
 
   /// @brief Subtype-specific method for performing qudit measurement.
-  virtual int measureQudit(const cudaq::QuditInfo &q) = 0;
+  virtual int measureQudit(const cudaq::QuditInfo &q,
+                           const std::string &registerName) = 0;
 
   /// @brief Measure the state in the basis described by the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
@@ -248,7 +256,8 @@ public:
     instructionQueue.clear();
   }
 
-  int measure(const cudaq::QuditInfo &target) override {
+  int measure(const cudaq::QuditInfo &target,
+              const std::string registerName = "") override {
     if (isInTracerMode())
       return 0;
 
@@ -256,7 +265,7 @@ public:
     synchronize();
 
     // Instruction executed, run the measure call
-    return measureQudit(target);
+    return measureQudit(target, registerName);
   }
 
   cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {

@@ -17,6 +17,7 @@ set(COMMON_RUNTIME_SRC
   Resources.cpp
   Trace.cpp
   Future.cpp
+  Executor.cpp
 )
 
 # Create the cudaq-common library
