@@ -1176,8 +1176,7 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.id in ["sdg", "tdg"]:
                 target = self.popValue()
                 # Map `sdg` to `SOp`...
-                opCtor = getattr(quake,
-                                 '{}Op'.format(node.func.id.title()[0]))
+                opCtor = getattr(quake, '{}Op'.format(node.func.id.title()[0]))
                 if quake.VeqType.isinstance(target.type):
 
                     def bodyBuilder(iterVal):
