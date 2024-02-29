@@ -69,7 +69,7 @@ def bernstein_vazirani(qubit_count: int):
     return kernel, hidden_bitstring
 
 
-# This example demonstrated GPU-accelerated simulator backends on NVQC can easily handle.
+# This example demonstrated GPU-accelerated simulator backends on NVQC can easily handle a large number of qubits.
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         prog='python',
