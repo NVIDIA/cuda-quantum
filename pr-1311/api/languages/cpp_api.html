@@ -321,7 +321,7 @@
 <li class="toctree-l2"><a class="reference internal" href="python_api.html">Python API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#program-construction">Program Construction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 </ul>
 </li>
@@ -354,6 +354,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
@@ -1461,8 +1462,8 @@
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_resultpLER13sample_result">
-<span class="target" id="classcudaq_1_1sample__result_1afeac5f4b78e7014d866c6293b7fb9bd5"></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultpLER13sample_result" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_resultpLERK13sample_result">
+<span class="target" id="classcudaq_1_1sample__result_1a1c46b862576afe8241e79ab0fdb6b278"></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultpLERK13sample_result" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Append all the data from other to this <a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref">sample_result</span></a>. Merge when necessary. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2688,6 +2689,7 @@
 <span class="target" id="classcudaq_1_1QPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq8registryE" title="cudaq::registry"><span class="n"><span class="pre">registry</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4I0EN5cudaq8registry14RegisteredTypeE" title="cudaq::registry::RegisteredType"><span class="n"><span class="pre">RegisteredType</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq3QPUE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>A CUDA Quantum <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> is an abstraction on the quantum processing unit which executes quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> exposes certain information about the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> being targeting, such as the number of available qubits, the logical ID for this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> in a set of available QPUs, and its qubit connectivity. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> keeps track of an execution queue for enqueuing asynchronous tasks that execute quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> also tracks the client-provided execution context to enable quantum kernel related tasks such as sampling and observation.</p>
 <p>This type is meant to be subtyped by concrete <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> subtypes. </p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1BaseRemoteRESTQPU"><span class="std std-ref">cudaq::BaseRemoteRESTQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1BaseRemoteSimulatorQPU"><span class="std std-ref">cudaq::BaseRemoteSimulatorQPU</span></a></p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -2788,6 +2790,16 @@
 
 </div>
 </dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq17BaseRemoteRESTQPUE">
+<span class="target" id="classcudaq_1_1BaseRemoteRESTQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq22BaseRemoteSimulatorQPUE">
+<span class="target" id="classcudaq_1_1BaseRemoteSimulatorQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseRemoteSimulatorQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platformE">

@@ -7,7 +7,10 @@ Program Construction
 =============================
 
 .. autofunction:: cudaq::make_kernel
-.. autofunction:: cudaq::from_state
+.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'from_state'
+.. .. autofunction:: cudaq::from_state
+
+.. autoclass:: cudaq::PyKernel
 .. autoclass:: cudaq::Kernel
 
     .. automethod:: qalloc
@@ -69,7 +72,6 @@ Backend Configuration
 .. autofunction:: cudaq::reset_target
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
-
 .. automethod:: cudaq::initialize_cudaq
 .. automethod:: cudaq::num_available_gpus
 .. automethod:: cudaq::set_random_seed
@@ -97,6 +99,7 @@ Data Types
 
 .. autoclass:: cudaq::qubit
 .. autoclass:: cudaq::qreg
+.. autoclass:: cudaq::qvector
 
 .. autoclass:: cudaq::ComplexMatrix
     :members:

@@ -318,7 +318,7 @@
 <li class="toctree-l2"><a class="reference internal" href="api/languages/python_api.html">Python API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#program-construction">Program Construction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 </ul>
 </li>
@@ -351,6 +351,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
@@ -477,9 +478,6 @@
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
- | <a href="#X"><strong>X</strong></a>
- | <a href="#Y"><strong>Y</strong></a>
- | <a href="#Z"><strong>Z</strong></a>
  
 </div>
 <h2 id="_">_</h2>
@@ -491,8 +489,6 @@
         <li><a href="api/languages/python_api.html#cudaq.SpinOperator.__add__">(cudaq.SpinOperator method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.__call__">__call__() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.__eq__">__eq__() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.__getitem__">__getitem__() (cudaq.ComplexMatrix method)</a>
@@ -554,11 +550,7 @@
 </li>
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.__str__">__str__() (cudaq.ComplexMatrix method)</a>
-
-      <ul>
-        <li><a href="api/languages/python_api.html#cudaq.Kernel.__str__">(cudaq.Kernel method)</a>
 </li>
-      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.QuakeValue.__sub__">__sub__() (cudaq.QuakeValue method)</a>
 
       <ul>
@@ -573,8 +565,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.NoiseModel.add_channel">add_channel() (cudaq.NoiseModel method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.adjoint">adjoint() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.all_gather">all_gather() (in module cudaq.mpi)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.AmplitudeDampingChannel">AmplitudeDampingChannel (class in cudaq)</a>
@@ -583,11 +573,9 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.apply_call">apply_call() (cudaq.Kernel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernel.argument_count">argument_count (cudaq.PyKernel attribute)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.argument_count">argument_count (cudaq.Kernel attribute)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.arguments">arguments (cudaq.Kernel attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernel.arguments">arguments (cudaq.PyKernel attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.AsyncObserveResult">AsyncObserveResult (class in cudaq)</a>
 </li>
@@ -613,11 +601,7 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.c_if">c_if() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.CentralDifference">CentralDifference (class in cudaq.gradients)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.ch">ch() (cudaq.Kernel method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.clear">clear() (cudaq.SampleResult method)</a>
 </li>
@@ -635,25 +619,9 @@
         <li><a href="api/languages/python_api.html#cudaq.gradients.ParameterShift.compute">(cudaq.gradients.ParameterShift method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.control">control() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.count">count() (cudaq.SampleResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult.counts">counts() (cudaq.ObserveResult method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cr1">cr1() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.crx">crx() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cry">cry() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.crz">crz() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cs">cs() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cswap">cswap() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.ct">ct() (cudaq.Kernel method)</a>
 </li>
       <li>
     cudaq
@@ -669,6 +637,10 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq12async_resultE">cudaq::async_result (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq12async_result3getEv">cudaq::async_result::get (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17BaseRemoteRESTQPUE">cudaq::BaseRemoteRESTQPU (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE">cudaq::BaseRemoteSimulatorQPU (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16bit_flip_channelE">cudaq::bit_flip_channel (C++ class)</a>
 </li>
@@ -920,12 +892,12 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU10isEmulatedEv">cudaq::QPU::isEmulated (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU11isSimulatorEv">cudaq::QPU::isSimulator (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringEPFvPvEPvNSt8uint64_tENSt8uint64_tE">cudaq::QPU::launchKernel (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUENSt6size_tE">cudaq::QPU::QPU (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUERR3QPU">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUEv">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU21resetExecutionContextEv">cudaq::QPU::resetExecutionContext (C++ function)</a>
@@ -1116,7 +1088,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13most_probableEKNSt11string_viewE">cudaq::sample_result::most_probable (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultpLER13sample_result">cudaq::sample_result::operator+= (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultpLERK13sample_result">cudaq::sample_result::operator+= (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultaSER13sample_result">cudaq::sample_result::operator= (C++ function)</a>
 </li>
@@ -1218,12 +1190,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11unset_noiseEv">cudaq::unset_noise (C++ function)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cx">cx() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cy">cy() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cz">cz() (cudaq.Kernel method)</a>
-</li>
   </ul></td>
 </tr></table>
 
@@ -1254,8 +1220,6 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.exp_pauli">exp_pauli() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult.expectation">expectation() (cudaq.ObserveResult method)</a>
 
       <ul>
@@ -1280,15 +1244,11 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.for_each_pauli">for_each_pauli() (cudaq.SpinOperator method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.for_each_term">for_each_term() (cudaq.SpinOperator method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.for_loop">for_loop() (cudaq.Kernel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.for_each_term">for_each_term() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.ForwardDifference">ForwardDifference (class in cudaq.gradients)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.from_state">from_state() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.from_word">from_word() (cudaq.SpinOperator static method)</a>
 </li>
@@ -1344,10 +1304,6 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.h">h() (cudaq.Kernel method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.has_target">has_target() (in module cudaq)</a>
 </li>
   </ul></td>
@@ -1366,15 +1322,19 @@
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.initial_parameters">(cudaq.optimizers.NelderMead property)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.mpi.initialize">initialize() (in module cudaq.mpi)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.initialize_cudaq">initialize_cudaq() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Target.is_emulated">is_emulated() (cudaq.Target method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.is_identity">is_identity() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.is_initialized">is_initialized() (in module cudaq.mpi)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Target.is_remote">is_remote() (cudaq.Target method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.items">items() (cudaq.SampleResult method)</a>
 </li>
@@ -1384,7 +1344,7 @@
 <h2 id="K">K</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel">Kernel (class in cudaq)</a>
+      <li><a href="api/languages/python_api.html#cudaq.Kernel">Kernel (in module cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -1428,10 +1388,10 @@
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.max_iterations">(cudaq.optimizers.NelderMead property)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.minimal_eigenvalue">minimal_eigenvalue() (cudaq.ComplexMatrix method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.minimal_eigenvalue">minimal_eigenvalue() (cudaq.ComplexMatrix method)</a>
+</li>
       <li>
     module
 
@@ -1441,19 +1401,13 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.most_probable">most_probable() (cudaq.SampleResult method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.mx">mx() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.my">my() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.mz">mz() (cudaq.Kernel method)</a>
-</li>
   </ul></td>
 </tr></table>
 
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.name">name (cudaq.Kernel attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernel.name">name (cudaq.PyKernel attribute)</a>
 
       <ul>
         <li><a href="api/languages/python_api.html#cudaq.Target.name">(cudaq.Target property)</a>
@@ -1517,21 +1471,23 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.probability">probability() (cudaq.SampleResult method)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernel">PyKernel (class in cudaq)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="Q">Q</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.qalloc">qalloc() (cudaq.Kernel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.qreg">qreg (in module cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.qreg">qreg (class in cudaq)</a>
+      <li><a href="api/languages/python_api.html#cudaq.QuakeValue">QuakeValue (class in cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.QuakeValue">QuakeValue (class in cudaq)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.qubit">qubit (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.qvector">qvector (class in cudaq)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1539,25 +1495,17 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.r1">r1() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.random">random() (cudaq.SpinOperator static method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.rank">rank() (in module cudaq.mpi)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.SampleResult.register_names">register_names (cudaq.SampleResult attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.SampleResult.register_names">register_names (cudaq.SampleResult attribute)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.reset_target">reset_target() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.KrausOperator.row_count">row_count (cudaq.KrausOperator property)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.rx">rx() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.ry">ry() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.rz">rz() (cudaq.Kernel method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1565,15 +1513,11 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.s">s() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.sample">sample() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.sample_async">sample_async() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult">SampleResult (class in cudaq)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.sdg">sdg() (cudaq.Kernel method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.serialize">serialize() (cudaq.SpinOperator method)</a>
 </li>
@@ -1601,24 +1545,18 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.State">State (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.swap">swap() (cudaq.Kernel method)</a>
-</li>
   </ul></td>
 </tr></table>
 
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.t">t() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.Target">Target (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.tdg">tdg() (cudaq.Kernel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_matrix">to_matrix() (cudaq.SpinOperator method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_matrix">to_matrix() (cudaq.SpinOperator method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_sparse_matrix">to_sparse_matrix() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_string">to_string() (cudaq.SpinOperator method)</a>
@@ -1652,30 +1590,6 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.vqe">vqe() (in module cudaq)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="X">X</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.x">x() (cudaq.Kernel method)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="Y">Y</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.y">y() (cudaq.Kernel method)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="Z">Z</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.z">z() (cudaq.Kernel method)</a>
 </li>
   </ul></td>
 </tr></table>
