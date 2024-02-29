@@ -1173,6 +1173,32 @@ class PyASTBridge(ast.NodeVisitor):
                 opCtor([], [param], [control], [target])
                 return
 
+            if node.func.id in ["sdg", "tdg"]:
+                target = self.popValue()
+                # Map `sdg` to `SOp`...
+                opCtor = getattr(quake, '{}Op'.format(node.func.id.title()[0]))
+                if quake.VeqType.isinstance(target.type):
+
+                    def bodyBuilder(iterVal):
+                        q = quake.ExtractRefOp(self.getRefType(),
+                                               target,
+                                               -1,
+                                               index=iterVal).result
+                        opCtor([], [], [], [q], is_adj=True)
+
+                    veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                              target).result
+                    self.createInvariantForLoop(veqSize, bodyBuilder)
+                    return
+                elif quake.RefType.isinstance(target.type):
+                    opCtor([], [], [], [target], is_adj=True)
+                    return
+                else:
+                    self.emitFatalError(
+                        'adj quantum operation on incorrect type {}.'.format(
+                            target.type), node)
+                return
+
             if node.func.id in ['mx', 'my', 'mz']:
                 registerName = self.currentAssignVariableName
                 # If `registerName` is None, then we know that we
