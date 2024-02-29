@@ -578,16 +578,16 @@ def test_capture_vars():
         q = cudaq.qvector(n)
         x(q)
         cudaq.dbg.ast.print_f64(f)
-        ry(f, q[0])
+        rx(f, q[0])
 
     counts = cudaq.sample(kernel)
     counts.dump()
     assert '1' * n in counts
 
-    f = 2 * np.pi
+    f = np.pi
     counts = cudaq.sample(kernel)
     counts.dump()
-    assert '1' * n in counts
+    assert '0' * n in counts
 
     n = 7
     counts = cudaq.sample(kernel)
@@ -644,6 +644,24 @@ def test_capture_vars():
     assert np.isclose(-1.748,
                       cudaq.observe(canCaptureList, hamiltonian).expectation(),
                       atol=1e-3)
+
+
+def test_inner_function_capture():
+
+    n = 3
+
+    def innerClassical():
+
+        @cudaq.kernel()
+        def foo():
+            q = cudaq.qvector(n)
+
+        counts = cudaq.sample(foo)
+        counts.dump()
+        return counts
+
+    counts = innerClassical()
+    assert len(counts) == 1 and '0' * n in counts
 
 
 def test_error_qubit_constructor():
@@ -794,7 +812,7 @@ def test_aug_assign_add():
         f = 5.
         f += 5.
         return f
-    
+
     assert test() == 10.
 
     @cudaq.kernel
