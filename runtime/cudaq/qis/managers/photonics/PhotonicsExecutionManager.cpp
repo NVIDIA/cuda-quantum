@@ -104,7 +104,8 @@ protected:
   }
 
   /// @brief Method for performing qudit measurement.
-  int measureQudit(const cudaq::QuditInfo &q) override {
+  int measureQudit(const cudaq::QuditInfo &q,
+                   const std::string &registerName) override {
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;

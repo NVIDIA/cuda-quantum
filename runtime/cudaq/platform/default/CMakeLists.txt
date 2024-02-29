@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -27,7 +27,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     pthread cudaq-em-default cudaq-spin cudaq-common
   PRIVATE
-    fmt::fmt-header-only)
+    fmt::fmt-header-only cudaq)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${LIBRARY_NAME}

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -16,19 +16,19 @@ skipIfUnsupported = pytest.mark.skipif(
     reason="nvidia-mqpu backend not available or mpi not found")
 
 
-@skipIfUnsupported
-def testMPI():
+@pytest.fixture(autouse=True)
+def do_something():
     cudaq.set_target('nvidia-mqpu')
     cudaq.mpi.initialize()
+    yield
+    cudaq.__clearKernelRegistries()
+    cudaq.reset_target()
+    cudaq.mpi.finalize()
 
+
+def check_mpi(entity):
     target = cudaq.get_target()
     numQpus = target.num_qpus()
-
-    kernel, theta = cudaq.make_kernel(float)
-    qreg = kernel.qalloc(2)
-    kernel.x(qreg[0])
-    kernel.ry(theta, qreg[1])
-    kernel.cx(qreg[1], qreg[0])
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -37,7 +37,7 @@ def testMPI():
 
     # Get the `cudaq.ObserveResult` back from `cudaq.observe()`.
     # No shots provided.
-    result_no_shots = cudaq.observe(kernel,
+    result_no_shots = cudaq.observe(entity,
                                     hamiltonian,
                                     0.59,
                                     execution=cudaq.parallel.mpi)
@@ -50,8 +50,30 @@ def testMPI():
     globalList = cudaq.mpi.all_gather(numRanks, local)
     assert len(globalList) == numRanks
 
-    cudaq.reset_target()
-    cudaq.mpi.finalize()
+
+@skipIfUnsupported
+def testMPI():
+
+    kernel, theta = cudaq.make_kernel(float)
+    qreg = kernel.qalloc(2)
+    kernel.x(qreg[0])
+    kernel.ry(theta, qreg[1])
+    kernel.cx(qreg[1], qreg[0])
+
+    check_mpi(kernel)
+
+
+@skipIfUnsupported
+def testMPI_kernel():
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        qreg = cudaq.qvector(2)
+        x(qreg[0])
+        ry(theta, qreg[1])
+        x.ctrl(qreg[1], qreg[0])
+
+    check_mpi(kernel)
 
 
 # leave for gdb debugging

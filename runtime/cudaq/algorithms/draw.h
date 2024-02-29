@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -18,6 +18,33 @@ namespace __internal__ {
 std::string draw(const Trace &trace);
 
 }
+
+namespace details {
+
+/// @brief Execute the given kernel functor and extract the
+/// state representation.
+template <typename KernelFunctor>
+std::string extractTrace(KernelFunctor &&kernel) {
+  // Get the platform.
+  auto &platform = cudaq::get_platform();
+
+  // This can only be done in simulation
+  if (!platform.is_simulator())
+    throw std::runtime_error("Cannot use draw on a physical QPU.");
+
+  // Create an execution context, indicate this is for tracing the execution
+  // path
+  ExecutionContext context("tracer");
+
+  // Perform the usual pattern set the context, execute and then reset
+  platform.set_exec_ctx(&context);
+  kernel();
+  platform.reset_exec_ctx();
+
+  return __internal__::draw(context.kernelTrace);
+}
+
+} // namespace details
 
 /// @brief Returns a drawing of the execution path, i.e., the trace, of the
 /// kernel. The drawing is a UTF-8 encoded string.

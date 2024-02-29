@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -100,6 +100,7 @@ if (CUDAQ_ENABLE_PYTHON)
     COMMAND
       bash -c "${PARSED_ARGS_LAUNCH_COMMAND} ${Python_EXECUTABLE} ${PARSED_ARGS_SOURCE_DIR}/${SOURCE_LOCATION}"
     )
+    set_tests_properties(pycudaq_${TEST_NAME} PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
     if(PARSED_ARGS_LABELS)
       set_tests_properties(pycudaq_${TEST_NAME} PROPERTIES LABELS "${PARSED_ARGS_LABELS}")
     endif()

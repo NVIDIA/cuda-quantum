@@ -41,6 +41,7 @@ add_cudaq_library(OptTransforms
   QuakeSynthesizer.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
+  PySynthCallableBlockArgs.cpp
 
   DEPENDS
     OptTransformsPassIncGen

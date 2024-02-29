@@ -140,6 +140,9 @@ using namespace nvqir;
 
 extern "C" {
 
+void print_i64(const char *msg, std::size_t i) { printf(msg, i); }
+void print_f64(const char *msg, double f) { printf(msg, f); }
+
 /// @brief QIR Initialization function
 void __quantum__rt__initialize(int argc, int8_t **argv) {
   if (!initialized) {

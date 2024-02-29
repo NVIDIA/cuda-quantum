@@ -946,6 +946,7 @@ public:
                                                        element.imag());
                      }
                    });
+    cudaq::info(gateToString("custom_unitary", controls, {}, targets));
     enqueueGate("custom", actual, controls, targets, {});
   }
 

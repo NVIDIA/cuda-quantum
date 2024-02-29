@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -123,7 +123,7 @@ echo "============================="
 echo "==      Python Tests       =="
 echo "============================="
 
-for ex in `find examples -name '*.py'`;
+for ex in `find examples/ -name '*.py'`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -153,7 +153,7 @@ echo "==        C++ Tests        =="
 echo "============================="
 
 tmpFile=$(mktemp)
-for ex in `find examples -name '*.cpp'`;
+for ex in `find examples/ -name '*.cpp'`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"

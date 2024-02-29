@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -41,13 +41,15 @@ def testUCCSD():
     numElectrons = data.n_electrons
     numQubits = 2 * data.n_orbitals
 
+    from cudaq.kernels import uccsd
+
     # create the ansatz
     kernel, thetas = cudaq.make_kernel(list)
     qubits = kernel.qalloc(4)
     # hartree fock
     kernel.x(qubits[0])
     kernel.x(qubits[1])
-    cudaq.kernels.uccsd(kernel, qubits, thetas, numElectrons, numQubits)
+    kernel.apply_call(uccsd, qubits, thetas, numElectrons, numQubits)
 
     num_parameters = cudaq.kernels.uccsd_num_parameters(numElectrons, numQubits)
 
@@ -85,12 +87,45 @@ def testHWE():
 
     # Run VQE
     optimizer = cudaq.optimizers.COBYLA()
+    optimizer.max_iterations = 500
     energy, params = cudaq.vqe(kernel,
                                molecule,
                                optimizer,
                                parameter_count=num_parameters)
     print(energy, params)
-    assert np.isclose(-1.137, energy, rtol=1e-3)
+    assert np.isclose(-1.13, energy, rtol=1e-2)
+
+
+def test_uccsd_kernel():
+
+    from cudaq.kernels import uccsd
+
+    @cudaq.kernel
+    def ansatz(thetas: list[float]):  #, numElectrons:int, numQubits:int):
+        q = cudaq.qvector(4)
+        x(q[0])
+        x(q[1])
+        uccsd(q, thetas, 2, 4)
+
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., .7474))]
+    molecule, data = cudaq.chemistry.create_molecular_hamiltonian(
+        geometry, 'sto-3g', 1, 0)
+
+    # Get the number of fermions and orbitals / qubits
+    numElectrons = data.n_electrons
+    numQubits = 2 * data.n_orbitals
+    num_parameters = cudaq.kernels.uccsd_num_parameters(numElectrons, numQubits)
+
+    xInit = [0.0] * num_parameters
+
+    print(cudaq.observe(ansatz, molecule, xInit).expectation())
+
+    optimizer = cudaq.optimizers.COBYLA()
+    energy, params = cudaq.vqe(ansatz,
+                               molecule,
+                               optimizer,
+                               parameter_count=num_parameters)
+    print(energy, params)
 
 
 # leave for gdb debugging

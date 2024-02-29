@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,6 +15,14 @@ skipIfNoMQPU = pytest.mark.skipif(
     reason="nvidia-mqpu backend not available")
 
 
+@pytest.fixture(autouse=True)
+def do_something():
+    cudaq.set_target('nvidia-mqpu')
+    yield
+    cudaq.__clearKernelRegistries()
+    cudaq.reset_target()
+
+
 # Helper function for asserting two values are within a
 # certain tolerance. If we make numpy a dependency,
 # this may be replaced in the future with `np.allclose`.
@@ -25,7 +33,6 @@ def assert_close(want, got, tolerance=1.e-5) -> bool:
 @skipIfNoMQPU
 def testLargeProblem():
 
-    cudaq.set_target('nvidia-mqpu')
     # This is not large, but we don't want our CI testing
     # to take up too much time, if you want to see more
     # of the speedup increase the number of terms. I usually
@@ -68,34 +75,89 @@ def testLargeProblem():
 
     # Serial Execution
     start = timeit.default_timer()
-    e = cudaq.observe(kernel, H, execParams)
+    s = cudaq.observe(kernel, H, execParams)
     stop = timeit.default_timer()
     print("serial time = ", (stop - start))
 
     # Parallel Execution
     start = timeit.default_timer()
-    e = cudaq.observe(kernel, H, execParams, execution=cudaq.parallel.thread)
+    p = cudaq.observe(kernel, H, execParams, execution=cudaq.parallel.thread)
     stop = timeit.default_timer()
     print("mqpu time = ", (stop - start))
-    assert assert_close(e.expectation(), e.expectation())
-
-    # Reset for the next tests.
-    cudaq.reset_target()
+    assert assert_close(s.expectation(), p.expectation())
 
 
 @skipIfNoMQPU
-def testAccuracy():
+def testLargeProblem_kernel():
 
-    cudaq.set_target('nvidia-mqpu')
+    @cudaq.kernel(verbose=True)
+    def parameterized_kernel(n: int, layers: int, params: list[float],
+                             cnot_pairs: list[int]):
+        q = cudaq.qvector(n)
+
+        paramCounter = 0
+        for i in range(n):
+            rx(params[paramCounter], q[i])
+            rz(params[paramCounter + 1], q[i])
+            paramCounter = paramCounter + 2
+
+        for i in range(0, len(cnot_pairs), 2):
+            x.ctrl(q[cnot_pairs[i]], q[cnot_pairs[i + 1]])
+
+        for i in range(layers):
+            for j in range(n):
+                rz(params[paramCounter], q[j])
+                rz(params[paramCounter + 1], q[j])
+                rz(params[paramCounter + 2], q[j])
+                paramCounter = paramCounter + 3
+
+        for i in range(0, len(cnot_pairs), 2):
+            x.ctrl(q[cnot_pairs[i]], q[cnot_pairs[i + 1]])
+
+    # This is not large, but we don't want our CI testing
+    # to take up too much time, if you want to see more
+    # of the speedup increase the number of terms. I usually
+    # set it to 12 and 100000. Here we are just testing the
+    # mechanics.
+    nQubits = 4
+    nTerms = 1000
+    nLayers = 2
+    cnotPairs = random.sample(range(nQubits), nQubits)
+
+    H = cudaq.SpinOperator.random(nQubits, nTerms)
+
+    execParams = np.random.uniform(low=-np.pi,
+                                   high=np.pi,
+                                   size=(nQubits *
+                                         (3 * nLayers + 2),)).tolist()
+    # JIT and warm up
+    parameterized_kernel(nQubits, nLayers, execParams, cnotPairs)
+
+    # Serial Execution
+    start = timeit.default_timer()
+    s = cudaq.observe(parameterized_kernel, H, nQubits, nLayers, execParams,
+                      cnotPairs)
+    stop = timeit.default_timer()
+    print("serial time = ", (stop - start))
+
+    # Parallel Execution
+    start = timeit.default_timer()
+    p = cudaq.observe(parameterized_kernel,
+                      H,
+                      nQubits,
+                      nLayers,
+                      execParams,
+                      cnotPairs,
+                      execution=cudaq.parallel.thread)
+    stop = timeit.default_timer()
+    print("mqpu time = ", (stop - start))
+    assert assert_close(s.expectation(), p.expectation())
+
+
+def check_accuracy(entity):
     target = cudaq.get_target()
     numQpus = target.num_qpus()
     assert numQpus > 0
-
-    kernel, theta = cudaq.make_kernel(float)
-    qreg = kernel.qalloc(2)
-    kernel.x(qreg[0])
-    kernel.ry(theta, qreg[1])
-    kernel.cx(qreg[1], qreg[0])
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -104,22 +166,60 @@ def testAccuracy():
 
     # Get the `cudaq.ObserveResult` back from `cudaq.observe()`.
     # No shots provided.
-    result_no_shots = cudaq.observe(kernel,
+    result_no_shots = cudaq.observe(entity,
                                     hamiltonian,
                                     0.59,
                                     execution=cudaq.parallel.thread)
     expectation_value_no_shots = result_no_shots.expectation()
     assert assert_close(want_expectation_value, expectation_value_no_shots)
 
-    cudaq.reset_target()
+
+@skipIfNoMQPU
+def testAccuracy():
+    kernel, theta = cudaq.make_kernel(float)
+    qreg = kernel.qalloc(2)
+    kernel.x(qreg[0])
+    kernel.ry(theta, qreg[1])
+    kernel.cx(qreg[1], qreg[0])
+
+    check_accuracy(kernel)
+
+
+@skipIfNoMQPU
+def testAccuracy_kernel():
+
+    @cudaq.kernel
+    def kernel_with_param(theta: float):
+        qreg = cudaq.qvector(2)
+        x(qreg[0])
+        ry(theta, qreg[1])
+        x.ctrl(qreg[1], qreg[0])
+
+    check_accuracy(kernel_with_param)
+
+
+def check_get_state_async(entity):
+    target = cudaq.get_target()
+    num_qpus = target.num_qpus()
+    print("Number of QPUs:", num_qpus)
+    asyns_handles = []
+    trotter_iters = 1
+
+    for qpu in range(num_qpus):
+        asyns_handles.append(
+            cudaq.get_state_async(entity, trotter_iters, qpu_id=qpu))
+        trotter_iters += 1
+
+    angle = 0.0
+    for handle in asyns_handles:
+        angle += 0.2
+        expected_state = [np.cos(angle / 2), -1j * np.sin(angle / 2)]
+        state = handle.get()
+        assert np.allclose(state, expected_state, atol=1e-3)
 
 
 @skipIfNoMQPU
 def testGetStateAsync():
-    cudaq.set_target("nvidia-mqpu")
-    target = cudaq.get_target()
-    num_qpus = target.num_qpus()
-    print("Number of QPUs:", num_qpus)
 
     (kernel, iters) = cudaq.make_kernel(int)
     num_qubits = 1
@@ -132,36 +232,35 @@ def testGetStateAsync():
 
     kernel.for_loop(start=0, stop=iters, function=trotter)
 
-    asyns_handles = []
-    trotter_iters = 1
-    for qpu in range(num_qpus):
-        asyns_handles.append(
-            cudaq.get_state_async(kernel, trotter_iters, qpu_id=qpu))
-        trotter_iters += 1
-
-    angle = 0.0
-    for handle in asyns_handles:
-        angle += 0.2
-        expected_state = [np.cos(angle / 2), -1j * np.sin(angle / 2)]
-        state = handle.get()
-        assert np.allclose(state, expected_state, atol=1e-3)
-
-    # Reset for the next tests.
-    cudaq.reset_target()
+    check_get_state_async(kernel)
 
 
 @skipIfNoMQPU
-def test_race_condition_1108():
-    cudaq.set_target("nvidia-mqpu")
+def testGetStateAsync_kernel():
+
+    @cudaq.kernel
+    def trotter(qubits: cudaq.qview, num_qubits: int, theta: float):
+        for i in range(num_qubits):
+            rx(theta, qubits[i])
+
+    @cudaq.kernel
+    def kernel_with_loop(iters: int):
+        num_qubits = 1
+        theta = 0.2
+        qubits = cudaq.qvector(num_qubits)
+
+        for i in range(iters):
+            trotter(qubits, num_qubits, theta)
+
+    check_get_state_async(kernel_with_loop)
+
+
+def check_race_condition(entity):
     target = cudaq.get_target()
     num_qpus = target.num_qpus()
-    kernel, runtime_param = cudaq.make_kernel(int)
-    qubits = kernel.qalloc(runtime_param)
-    kernel.h(qubits)
-
     count_futures = []
     for qpu in range(num_qpus):
-        count_futures.append(cudaq.sample_async(kernel, 2, qpu_id=qpu))
+        count_futures.append(cudaq.sample_async(entity, 2, qpu_id=qpu))
 
     for count_future in count_futures:
         counts = count_future.get()
@@ -171,7 +270,26 @@ def test_race_condition_1108():
         assert '10' in counts
         assert '11' in counts
 
-    cudaq.reset_target()
+
+@skipIfNoMQPU
+def test_race_condition_1108():
+
+    kernel, runtime_param = cudaq.make_kernel(int)
+    qubits = kernel.qalloc(runtime_param)
+    kernel.h(qubits)
+
+    check_race_condition(kernel)
+
+
+@skipIfNoMQPU
+def test_race_condition_1108_kernel():
+
+    @cudaq.kernel
+    def kernel(runtime_param: int):
+        qubits = cudaq.qvector(runtime_param)
+        h(qubits)
+
+    check_race_condition(kernel)
 
 
 # leave for gdb debugging

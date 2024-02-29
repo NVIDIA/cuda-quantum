@@ -22,9 +22,13 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/FormatVariadic.h"
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
+#include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"
+#include "mlir/Conversion/ComplexToLibm/ComplexToLibm.h"
 #include "mlir/Conversion/ControlFlowToLLVM/ControlFlowToLLVM.h"
 #include "mlir/Conversion/FuncToLLVM/ConvertFuncToLLVM.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
@@ -32,6 +36,7 @@
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
+#include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
 
@@ -1486,6 +1491,20 @@ public:
   }
 };
 
+/// In case we still have a RelaxSizeOp, we can just remove it,
+/// since QIR works on Array * for all sized veqs.
+class RemoveRelaxSizeRewrite : public OpConversionPattern<quake::RelaxSizeOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::RelaxSizeOp relax, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOp(relax, relax.getInputVec());
+    return success();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Code generation: converts the Quake IR to QIR.
 //===----------------------------------------------------------------------===//
@@ -1507,7 +1526,11 @@ public:
     initializeTypeConversions(typeConverter);
     RewritePatternSet patterns(context);
 
+    populateComplexToLibmConversionPatterns(patterns, 1);
+    populateComplexToLLVMConversionPatterns(typeConverter, patterns);
+
     populateAffineToStdConversionPatterns(patterns);
+    arith::populateCeilFloorDivExpandOpsPatterns(patterns);
     arith::populateArithToLLVMConversionPatterns(typeConverter, patterns);
     populateMathToLLVMConversionPatterns(typeConverter, patterns);
 
@@ -1515,8 +1538,8 @@ public:
     cf::populateControlFlowToLLVMConversionPatterns(typeConverter, patterns);
     populateFuncToLLVMConversionPatterns(typeConverter, patterns);
 
-    patterns.insert<GetVeqSizeOpRewrite, MxToMz, MyToMz, ReturnBitRewrite>(
-        context);
+    patterns.insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, MxToMz, MyToMz,
+                    ReturnBitRewrite>(context);
     patterns.insert<
         AllocaOpRewrite, AllocaOpPattern, CallableClosureOpPattern,
         CallableFuncOpPattern, CallCallableOpPattern, CastOpPattern,
