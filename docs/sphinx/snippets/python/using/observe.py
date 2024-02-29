@@ -6,24 +6,42 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# FIXME: Comment this back in when we're ready to roll out
-# updated Python support.
-# import cudaq
-# @cudaq.kernel
-# def kernel():
-#     qubit = cudaq.qubit()
-#     h(qubit)
-#     mz(qubit)
+#[Begin Observe1]
 
-# [Begin Documentation]
 import cudaq
+from cudaq import spin
 
-print(f"Simulation Target = {cudaq.get_target().name}")
+cudaq.set_target('nvidia')
 
-kernel = cudaq.make_kernel()
-qubit = kernel.qalloc()
-kernel.h(qubit)
-kernel.mz(qubit)
+operator = spin.z(0)
+print(operator)
 
-result = cudaq.sample(kernel)
-print(result)  # { 1:500 0:500 }
+
+@cudaq.kernel
+def kernel():
+    qubit = cudaq.qubit()
+    h(qubit)
+
+
+# [1+0j] Z
+
+#[End Observe1]
+
+#[Begin Observe2]
+
+result = cudaq.observe(kernel, operator)
+print(result.expectation())
+
+# 0.0
+
+#[End Observe2]
+
+#[Begin Observe3]
+
+result = cudaq.observe(kernel, operator, shots_count=1000)
+
+print(result.expectation())
+
+# 0.026000000000000023
+
+#[End Observe3]

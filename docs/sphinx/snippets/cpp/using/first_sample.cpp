@@ -6,10 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Compile and run with: `nvq++ first_kernel.cpp && ./a.out`
-
-// [Begin Documentation]
+// Compile and run with: `nvq++ first_sample.cpp && ./a.out`
 #include <cudaq.h>
+#include <iostream>
 
 __qpu__ void kernel(int qubit_count) {
   // Allocate our qubits.
@@ -24,10 +23,28 @@ __qpu__ void kernel(int qubit_count) {
   // Measure the qubits.
   mz(qvector);
 }
-// [End Documentation]
 
-// Just for the CI:
+// [Begin Sample1]
 int main() {
-  auto test_result = cudaq::sample(kernel, 1, 1);
-  test_result.dump();
+  
+  int qubit_count = 2;
+  auto result_0 = cudaq::sample(kernel, /* kernel args */ qubit_count);
+  // Should see a roughly 50/50 distribution between the |00> and
+  // |11> states. Example: {00: 505  11: 495}
+  result_0.dump();
+  // [End Sample1]
+
+  // [Begin Sample2]
+  // With an increased shots count, we will still see the same 50/50 distribution,
+  // but now with 10,000 total measurements instead of the default 1000.
+  // Example: {00: 5005  11: 4995}
+  int shots_count = 10000;
+  auto result_1 = cudaq::sample(shots_count, kernel, qubit_count);
+  result_1.dump();
+  // [End Sample2]
+
+  // [Begin Sample3]
+  std::cout << result_1.most_probable() << "\n";                         // prints: `00`
+  std::cout << result_1.probability(result_1.most_probable()) << "\n";   // prints: `0.5005`
 }
+// [End Sample3]

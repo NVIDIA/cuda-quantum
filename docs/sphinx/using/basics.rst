@@ -33,10 +33,17 @@ Let’s take a closer look at how to build and execute a quantum kernel with CUD
 Building your first CUDA Quantum Program
 -----------------------------------------
 
+.. _building-your-first-kernel:
+
 .. tab:: Python
 
-  We can define our quantum kernel as we do any other function in Python, through the use of the
-  `@cudaq.kernel` decorator. Let's begin with a simple GHZ-state example, producing a state of
+  .. 
+    FIXME :: comment back in when updated python rolls out.
+    We can define our quantum kernel as we do any other function in Python, through the use of the
+   `@cudaq.kernel` decorator. 
+  
+  We can define our quantum kernel in Python through the use of the :func:`cudaq.make_kernel` function.
+  Let's begin with a simple GHZ-state example, producing a state of
   maximal entanglement amongst an allocated set of qubits. 
   
   .. literalinclude:: ../snippets/python/using/first_kernel.py
@@ -73,22 +80,192 @@ Building your first CUDA Quantum Program
 Running your first CUDA Quantum Program
 ----------------------------------------
 
-Todo
+Now that you have built your first quantum kernel, we will learn how to physically execute the program.
+
+Sample
+++++++++
+
+.. tab:: Python
+
+  The :func:`cudaq.sample` method takes a kernel and it arguments as inputs, and returns a :class:`cudaq.SampleResult`
+  to the programmer. This result dictionary contains the distribution of measured states for the system.
+  Continuing with the GHZ kernel defined in :ref:`Building Your First CUDA Quantum Program <building-your-first-kernel>`,
+  we will set the concrete value of our `qubit_count` to be two. The following will assume this code exists in
+  a file named `sample.py`.
+
+  .. literalinclude:: ../snippets/python/using/first_sample.py
+        :language: python
+        :start-after: [Begin Sample1]
+        :end-before: [End Sample1]
+
+  By default, `sample` produces an ensemble of 1000 shots. This can be changed by specifying an integer argument
+  for the `shots_count`.
+
+  .. literalinclude:: ../snippets/python/using/first_sample.py
+        :language: python
+        :start-after: [Begin Sample2]
+        :end-before: [End Sample2]
+
+  A variety of methods can be used to extract useful information from a :class:`cudaq.SampleResult`. For example,
+  to return the most probable measurement and its respective probability:
+
+  .. literalinclude:: ../snippets/python/using/first_sample.py
+        :language: python
+        :start-after: [Begin Sample3]
+        :end-before: [End Sample3]
+
+  We can execute this program as we do a typical python file.
+
+  .. code-block:: console
+
+      python3 sample.py
+
+  See the :ref:`API specification <python-api-landing-page>` for further information.
+
+.. tab:: C++
+
+  The :func:`cudaq.sample` method takes a kernel and it arguments as inputs, and returns a :class:`cudaq.SampleResult`
+  to the programmer. This result dictionary contains the distribution of measured states for the system.
+  Continuing with the GHZ kernel defined in :ref:`Building Your First CUDA Quantum Program <building-your-first-kernel>`,
+  we will set the concrete value of our `qubit_count` to be two. The following will assume this code exists in
+  a file named `sample.cpp`.
+
+  .. literalinclude:: ../snippets/cpp/using/first_sample.cpp
+        :language: cpp
+        :start-after: [Begin Sample1]
+        :end-before: [End Sample1]
+
+  By default, `sample` produces an ensemble of 1000 shots. This can be changed by specifying an integer argument
+  for the `shots_count`.
+
+  .. literalinclude:: ../snippets/cpp/using/first_sample.cpp
+        :language: cpp
+        :start-after: [Begin Sample2]
+        :end-before: [End Sample2]
+
+  A variety of methods can be used to extract useful information from a :class:`cudaq.SampleResult`. For example,
+  to return the most probable measurement and its respective probability:
+
+  .. literalinclude:: ../snippets/cpp/using/first_sample.cpp
+        :language: cpp
+        :start-after: [Begin Sample3]
+        :end-before: [End Sample3]
+
+  We can now compile this file with the `nvq++` toolchain, and run it as we do any other
+  C++ executable.
+
+  .. code-block:: console
+
+      nvq++ sample.cpp
+      ./a.out
+
+  See the :ref:`API specification <cpp-api-landing-page>` for further information.
+
+Observe
++++++++++
+
+:func:`cudaq.observe` is used to produce expectation values provided a quantum state and a spin operator. 
+
+First, an operator (i.e. a linear combination of Pauli strings) must be specified. To do so, import `spin` from cudaq. Any linear combination of the I, X, Y, and Z spin operators can be constructed with using spin.i(q), spin.x(q), spin.y(q), and spin.z(q), respectively, where q is the index of the target qubit. 
+
+Below is an example of a spin operator object consisting of a Z(0) operator, followed by construction of a kernel with a single qubit in an equal superposition. The Hamiltonian is printed to confirm it has been constructed properly.
+
+.. literalinclude:: ../snippets/python/using/observe.py
+      :language: python
+      :start-after: [Begin Observe1]
+      :end-before: [End Observe1]
+
+:code:`cudaq::observe` takes a kernel, kernel arguments (if any),  and a spin operator as inputs and produces an `ObserveResult` object. The expectation value can be printed using the `expectation` method. It is important to exclude a measurement in the kernel, otherwise the expectation value will be determined from a collapsed classical state. For this example, the expected result of 0.0 is produced.
+
+.. literalinclude:: ../snippets/python/using/observe.py
+      :language: python
+      :start-after: [Begin Observe2]
+      :end-before: [End Observe2]
+
+Unlike `sample`, the default `shots_count` for :code:`cudaq::observe` is 1. This result is deterministic and equivalent to the expectation value in the limit of infinite shots.  To produce an approximate expectation value from sampling, `shots_count` can be specified to any integer.
+
+.. literalinclude:: ../snippets/python/using/observe.py
+      :language: python
+      :start-after: [Begin Observe3]
+      :end-before: [End Observe3]
+
+Running on a GPU
+++++++++++++++++++
+
+.. tab:: Python
+
+  Using :func:`cudaq.set_target`, different targets can be specified for kernel execution.
+  
+  If a local GPU is detected, the target will default to `nvidia`. Otherwise, the CPU-based simulation
+  target, `qpp-cpu`,  will be selected.
+  
+  We will demonstrate the benefits of using a GPU by sampling our GHZ kernel with 25 qubits and a
+  `shots_count` of 1 million. Using a GPU accelerates this task by more than 35x. To learn about
+  all of the available targets and ways to accelerate kernel execution, visit the
+  :ref:`Backends <backends-landing-page>` page.
+
+  .. literalinclude:: ../snippets/python/using/time.py
+        :language: python
+        :start-after: [Begin Time]
+        :end-before: [End Time]
 
 
-Language Fundamentals
-----------------------
+.. tab:: C++
 
-CUDA Quantum kernels support a subset of native Python syntax. We will now outline the supported syntax
-and highlight important features of the CUDA Quantum kernel API.
-.. FIXME ... better copy here
+  Using the `-- target` argument to `nvq++`, different targets can be specified for kernel execution.
+  
+  If a local GPU is detected, the target will default to `nvidia`. Otherwise, the CPU-based simulation
+  target, `qpp-cpu`,  will be selected.
+  
+  We will demonstrate the benefits of using a GPU by sampling our GHZ kernel with 25 qubits and a
+  `shots_count` of 1 million. Using a GPU accelerates this task by more than 35x. To learn about
+  all of the available targets and ways to accelerate kernel execution, visit the 
+  :ref:`Backends <backends-landing-page>` page.
 
-Quantum Memory
-++++++++++++++++++++++++++++++++++
+  To compare the performance, we can create a simple timing script that isolates just the call
+  to :func:`cudaq.sample`. We are still using the same GHZ kernel as earlier, but the following
+  modification made to the main function:
 
-Todo
+  .. literalinclude:: ../snippets/cpp/using/time.cpp
+    :language: cpp
+    :start-after: [Begin Time]
+    :end-before: [End Time]
 
+  First we execute on the CPU backend:
 
+  .. code:: console
+
+    nvq++ --target=qpp-cpu sample.cpp
+    ./a.out
+  
+  seeing an output of the order:
+  ``It took 22.8337 seconds.``
+
+  Now we can execute on the GPU enabled backend:
+
+  .. code:: console
+
+    nvq++ --target=nvidia sample.cpp
+    ./a.out
+
+  seeing an output of the order:
+  ``It took 3.18988 seconds.``
+..
+  FIXME:: Decide on what to do with this for march release without updated python.
+    Spending the rest of the week writing this for the kernel builder when it will
+    just be taken out doesn't seem like a great use of time.
+
+  Language Fundamentals
+  ----------------------
+
+  CUDA Quantum kernels support a subset of native Python syntax. We will now outline the supported syntax
+  and highlight important features of the CUDA Quantum kernel API.
+  .. FIXME ... better copy here
+
+  Quantum Memory
+  ++++++++++++++++++++++++++++++++++
+
+  Todo
 
 Troubleshooting
 -----------------
