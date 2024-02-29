@@ -651,6 +651,7 @@ def test_capture_vars():
 def test_inner_function_capture():
 
     n = 3
+    m = 5
 
     def innerClassical():
 
@@ -658,12 +659,20 @@ def test_inner_function_capture():
         def foo():
             q = cudaq.qvector(n)
 
-        counts = cudaq.sample(foo)
-        counts.dump()
-        return counts
+        def innerInnerClassical():
 
-    counts = innerClassical()
-    assert len(counts) == 1 and '0' * n in counts
+            @cudaq.kernel()
+            def bar():
+                q = cudaq.qvector(m)
+                x(q)
+
+            return cudaq.sample(bar)
+
+        return cudaq.sample(foo), innerInnerClassical()
+
+    fooCounts, barCounts = innerClassical()
+    assert len(fooCounts) == 1 and '0' * n in fooCounts
+    assert len(barCounts) == 1 and '1' * m in barCounts
 
 
 def test_error_qubit_constructor():
