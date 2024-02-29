@@ -578,7 +578,8 @@ def test_capture_vars():
         q = cudaq.qvector(n)
         x(q)
         cudaq.dbg.ast.print_f64(f)
-        rx(f, q[0])
+        for qb in q:
+            rx(f, qb)
 
     counts = cudaq.sample(kernel)
     counts.dump()
@@ -590,6 +591,7 @@ def test_capture_vars():
     assert '0' * n in counts
 
     n = 7
+    f = 0.0
     counts = cudaq.sample(kernel)
     counts.dump()
     assert '1' * n in counts

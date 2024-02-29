@@ -24,6 +24,12 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic
 # to walk the Python AST for a `cudaq.kernel` annotated function and generate
 # valid MLIR code using `Quake`, `CC`, `Arith`, and `Math` dialects.
 
+# CC Dialect `ComputePtrOp` in C++ sets the
+# dynamic index as `std::numeric_limits<int32_t>::min()`
+# (see CCOps.tc line 898). We'll duplicate that
+# here by just setting it manually
+kDynamicPtrIndex: int = -2147483648
+
 
 class PyScopedSymbolTable(object):
 
@@ -331,7 +337,8 @@ class PyASTBridge(ast.NodeVisitor):
             eleAddr = cc.ComputePtrOp(
                 cc.PointerType.get(self.ctx, listElementValues[0].type), alloca,
                 [self.getConstantInt(i)],
-                DenseI32ArrayAttr.get([-2147483648], context=self.ctx)).result
+                DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                      context=self.ctx)).result
             cc.StoreOp(v, eleAddr)
 
         vecTy = listElementValues[0].type
@@ -1025,7 +1032,8 @@ class PyASTBridge(ast.NodeVisitor):
                     eleAddr = cc.ComputePtrOp(
                         cc.PointerType.get(self.ctx, iTy), iterable,
                         [loadedCounter],
-                        DenseI32ArrayAttr.get([-2147483648], context=self.ctx))
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
                     cc.StoreOp(arrElementVal, eleAddr)
                     incrementedCounter = arith.AddIOp(loadedCounter, one).result
                     cc.StoreOp(incrementedCounter, counter)
@@ -1072,7 +1080,7 @@ class PyASTBridge(ast.NodeVisitor):
                             vecPtr = cc.StdvecDataOp(elePtrTy, iterable).result
                             eleAddr = cc.ComputePtrOp(
                                 elePtrTy, vecPtr, [idxVal],
-                                DenseI32ArrayAttr.get([-2147483648],
+                                DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                                       context=self.ctx)).result
                             return cc.LoadOp(eleAddr).result
                     else:
@@ -1094,7 +1102,7 @@ class PyASTBridge(ast.NodeVisitor):
                         eleAddr = cc.ComputePtrOp(
                             cc.PointerType.get(self.ctx, iterEleTy), iterable,
                             [idxVal],
-                            DenseI32ArrayAttr.get([-2147483648],
+                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                                   context=self.ctx)).result
                         return cc.LoadOp(eleAddr).result
 
@@ -1119,7 +1127,8 @@ class PyASTBridge(ast.NodeVisitor):
                     eleAddr = cc.ComputePtrOp(
                         cc.PointerType.get(self.ctx, structTy), enumIterable,
                         [iterVar],
-                        DenseI32ArrayAttr.get([-2147483648], context=self.ctx))
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
                     # Set the index value
                     element = cc.InsertValueOp(
                         structTy, element, iterVar,
@@ -1762,15 +1771,15 @@ class PyASTBridge(ast.NodeVisitor):
             self.symbolTable.pushScope()
             eleAddr = cc.ComputePtrOp(
                 cc.PointerType.get(self.ctx, arrayEleTy), iterable, [iterVar],
-                DenseI32ArrayAttr.get([-2147483648], context=self.ctx))
+                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
             loadedEle = cc.LoadOp(eleAddr).result
             self.symbolTable[node.generators[0].target.id] = loadedEle
             self.visit(node.elt)
             result = self.popValue()
             listValueAddr = cc.ComputePtrOp(
                 cc.PointerType.get(self.ctx, listComputePtrTy), listValue,
-                [iterVar], DenseI32ArrayAttr.get([-2147483648],
-                                                 context=self.ctx))
+                [iterVar],
+                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
             cc.StoreOp(result, listValueAddr)
             self.symbolTable.popScope()
 
@@ -1952,7 +1961,7 @@ class PyASTBridge(ast.NodeVisitor):
                 vecPtr = cc.StdvecDataOp(ptrTy, var).result
                 ptr = cc.ComputePtrOp(
                     ptrTy, vecPtr, [lowerVal],
-                    DenseI32ArrayAttr.get([-2147483648],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 self.pushValue(
                     cc.StdvecInitOp(var.type, ptr, nElementsVal).result)
@@ -2008,7 +2017,8 @@ class PyASTBridge(ast.NodeVisitor):
             vecPtr = cc.StdvecDataOp(elePtrTy, var).result
             eleAddr = cc.ComputePtrOp(
                 elePtrTy, vecPtr, [idx],
-                DenseI32ArrayAttr.get([-2147483648], context=self.ctx)).result
+                DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                      context=self.ctx)).result
             if self.subscriptPushPointerValue:
                 self.pushValue(eleAddr)
                 return
@@ -2027,7 +2037,7 @@ class PyASTBridge(ast.NodeVisitor):
                 casted = cc.CastOp(ptrEleTy, var).result
                 eleAddr = cc.ComputePtrOp(
                     ptrEleTy, casted, [idx],
-                    DenseI32ArrayAttr.get([-2147483648],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 self.pushValue(cc.LoadOp(eleAddr).result)
                 return
@@ -2089,7 +2099,7 @@ class PyASTBridge(ast.NodeVisitor):
                     vecPtr = cc.StdvecDataOp(elePtrTy, iter).result
                     eleAddr = cc.ComputePtrOp(
                         elePtrTy, vecPtr, [idxVal],
-                        DenseI32ArrayAttr.get([-2147483648],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx)).result
                     return [cc.LoadOp(eleAddr).result]
 
@@ -2115,7 +2125,7 @@ class PyASTBridge(ast.NodeVisitor):
             def functor(iter, idx):
                 eleAddr = cc.ComputePtrOp(
                     cc.PointerType.get(self.ctx, elementType), iter, [idx],
-                    DenseI32ArrayAttr.get([-2147483648],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 loaded = cc.LoadOp(eleAddr).result
                 if IntegerType.isinstance(elementType):
