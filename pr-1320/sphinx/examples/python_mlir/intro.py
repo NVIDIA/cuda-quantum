@@ -1,4 +1,5 @@
 import cudaq
+from cudaq.qis import *
 
 
 # We begin by defining the `Kernel` that we will construct our
