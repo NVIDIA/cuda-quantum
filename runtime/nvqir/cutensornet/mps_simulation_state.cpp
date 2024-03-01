@@ -33,7 +33,8 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   const auto &mpsOther = dynamic_cast<const MPSSimulationState &>(other);
   const auto &mpsOtherTensors = mpsOther.m_mpsTensors;
   const int32_t mpsNumTensors = m_mpsTensors.size();
-  //auto cutnHandle = state->getInternalContext();
+  assert(mpsNumTensors > 0);
+  auto cutnHandle = state->getInternalContext();
   //auto quantumState = state->getInternalState();
 
   /*
@@ -47,22 +48,33 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   const int32_t numTensors = mpsNumTensors * 2;
   std::vector<int32_t> numModes(numTensors);
   std::vector<std::vector<int64_t>> tensExtents(numTensors);
+  std::vector<cutensornetTensorQualifiers_t> tensAttr(numTensors);
   for(int i = 0; i < mpsNumTensors; ++i) {
     numModes[i] = m_mpsTensors[i].extents.size();
     numModes[mpsNumTensors + i] = mpsOtherTensors[i].extents.size();
     tensExtents[i] = m_mpsTensors[i].extents;
     tensExtents[mpsNumTensors + i] = mpsOtherTensors[i].extents;
+    tensAttr[i] = cutensornetTensorQualifiers_t{0, 0, 0};
+    tensAttr[mpsNumTensors + i] = cutensornetTensorQualifiers_t{0, 0, 0};
   }
+  std::vector<int64_t> outExtents(mpsNumTensors);
+  std::vector<int32_t> outModes(mpsNumTensors);
   std::vector<std::vector<int32_t>> tensModes(numTensors);
   int32_t umode = 0;
   for(int i = 0; i < mpsNumTensors; ++i) {
     if(i == 0) {
+      outExtents[i] = m_mpsTensors[i].extents[0];
+      outModes[i] = umode;
       tensModes[i] = std::initializer_list<int32_t>{umode, umode+1};
       umode += 2;
     }else if(i == (mpsNumTensors - 1)) {
+      outExtents[i] = m_mpsTensors[i].extents[1];
+      outModes[i] = umode;
       tensModes[i] = std::initializer_list<int32_t>{umode-1, umode};
       umode += 1;
     }else{
+      outExtents[i] = m_mpsTensors[i].extents[1];
+      outModes[i] = umode;
       tensModes[i] = std::initializer_list<int32_t>{umode-1, umode, umode+1};
       umode += 2;
     }
@@ -83,10 +95,33 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
       lmode += 1;
     }
   }
+  cutensornetComputeType_t computeType;
+  cudaDataType_t dataType;
+  const auto prec = getPrecision();
+  if(prec == precision::fp32) {
+    dataType = CUDA_C_32F;
+    computeType = CUTENSORNET_COMPUTE_32F;
+  }else if (prec == precision::fp64){
+    dataType = CUDA_C_64F;
+    computeType = CUTENSORNET_COMPUTE_64F;
+  }
+  std::vector<const int64_t*> extentsIn(numTensors);
+  for(int i = 0; i < numTensors; ++i) {
+    extentsIn[i] = tensExtents[i].data();
+  }
+  std::vector<const int32_t*> modesIn(numTensors);
+  for(int i = 0; i < numTensors; ++i) {
+    modesIn[i] = tensModes[i].data();
+  }
+  HANDLE_CUTN_ERROR(cutensornetCreateNetworkDescriptor(cutnHandle,
+    numTensors, numModes.data(), extentsIn.data(), NULL, modesIn.data(), tensAttr.data(),
+    mpsNumTensors, outExtents.data(), NULL, outModes.data(), dataType, computeType, &m_tnDescr));
 
   // Determine the contraction path
 
   // Create the contraction plan
+
+  m_allSet = true;
 
   // Contract the overlap
 
@@ -95,9 +130,21 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
 
 void MPSSimulationState::deallocate()
 {
+  deallocateBackendStructures();
   for (auto &tensor : m_mpsTensors)
     HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
   m_mpsTensors.clear();
+}
+
+void MPSSimulationState::deallocateBackendStructures()
+{
+  if(m_allSet) {
+    HANDLE_CUTN_ERROR(cutensornetDestroyContractionPlan(m_tnPlan));
+    HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerInfo(m_tnPath));
+    HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(m_tnConfig));
+    HANDLE_CUTN_ERROR(cutensornetDestroyNetworkDescriptor(m_tnDescr));
+    m_allSet = false;
+  }
 }
 
 } // namespace nvqir

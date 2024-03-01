@@ -37,12 +37,14 @@ public:
 protected:
 
   void deallocate();
+  void deallocateBackendStructures();
 
   std::vector<MPSTensor> m_mpsTensors;
-  std::unique_ptr<cutensornetNetworkDescriptor_t> m_tnDescr;
-  std::unique_ptr<cutensornetContractionOptimizerConfig_t> m_tnConfig;
-  std::unique_ptr<cutensornetContractionOptimizerInfo_t> m_tnPath;
-  std::unique_ptr<cutensornetContractionPlan_t> m_tnPlan;
+  cutensornetNetworkDescriptor_t m_tnDescr;
+  cutensornetContractionOptimizerConfig_t m_tnConfig;
+  cutensornetContractionOptimizerInfo_t m_tnPath;
+  cutensornetContractionPlan_t m_tnPlan;
+  bool m_allSet {false};
 };
 
 } // namespace nvqir
