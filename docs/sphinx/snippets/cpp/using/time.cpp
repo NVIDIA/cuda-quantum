@@ -8,9 +8,8 @@
 
 // Compile and run with: `nvq++ time.cpp && ./a.out`
 
-
-#include <cudaq.h>
 #include <chrono>
+#include <cudaq.h>
 #include <iostream>
 
 __qpu__ void kernel(int qubit_count) {

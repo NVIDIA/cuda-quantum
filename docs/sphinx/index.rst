@@ -16,7 +16,6 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
       Examples <using/examples/examples.rst>
       Applications <using/tutorials.rst>
       Backends <using/backends/backends.rst>
-      Acceleration <using/accelerating/accelerating.rst>
       Installation <using/install/install.rst>
       Integration <using/integration/integration.rst>
       Extending <using/extending/extending.rst>
