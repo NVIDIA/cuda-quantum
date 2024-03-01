@@ -1017,6 +1017,10 @@ class PyASTBridge(ast.NodeVisitor):
                     endVal = self.popValue()
                     startVal = zero
 
+                startVal = self.ifPointerThenLoad(startVal)
+                endVal = self.ifPointerThenLoad(endVal)
+                stepVal = self.ifPointerThenLoad(stepVal)
+
                 # The total number of elements in the iterable
                 # we are generating should be `N == endVal - startVal`
                 totalSize = math.AbsIOp(arith.SubIOp(endVal,
