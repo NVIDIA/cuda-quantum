@@ -384,6 +384,9 @@ thread_local static std::size_t cudaq_random_seed = 0;
 void set_random_seed(std::size_t seed) {
   cudaq_random_seed = seed;
   nvqir::setRandomSeed(seed);
+  auto &platform = cudaq::get_platform();
+  // Notify the platform that a new random seed value is set.
+  platform.onRandomSeedSet(seed);
 }
 
 std::size_t get_random_seed() { return cudaq_random_seed; }
