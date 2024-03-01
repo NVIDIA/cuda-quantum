@@ -4,9 +4,11 @@ Quantum Kernels
 model defines the concept of a **quantum kernel**. A quantum kernel is any callable 
 in C++ annotated to indicate compilation and execution on an available quantum coprocessor. 
 
-**[2]** All quantum kernels must be annotated to indicate they are to be compiled to and executed
-on a specified quantum coprocessor. CUDA Quantum requires the :code:`__qpu__` function
-attribute for quantum kernel declarations. 
+**[2]** All quantum kernels must be annotated to indicate they are to be compiled for, and executed
+on, a specified quantum coprocessor. CUDA Quantum requires the :code:`__qpu__` function
+attribute for quantum kernel declarations. Other language bindings may opt to use other language 
+features to enable function annotation or decoration (e.g. a :code:`@cudaq.kernel()` function 
+decorator in Python). 
 
 **[3]** CUDA Quantum specifically differentiates between kernels invoked from host code and those invoked
 from within another quantum kernel. The former are denoted **entry-point**
@@ -49,42 +51,228 @@ can take quantum types as input.
     def my_first_pure_device_kernel(qubits : cudaq.qview):
        ... quantum code ... 
     
-**[4]** Quantum kernel function bodies are programmed in a subset of C++. Kernels can be composed of the following: 
+**[4]** Quantum kernel function bodies are programmed in a subset of the parent classical language. 
+Kernels can be composed of the following: 
 
   * Quantum intrinsic operations and measurements
   * In-scope kernel calls with or without any kernel modifiers (e.g. :code:`cudaq::control`)
   * Classical control flow constructs from the classical language (:code:`if`, :code:`for`, :code:`while`, etc.)
   * Stack variable declarations for supported types. 
   * Arithmetic operations on integer and floating point stack variables
-  * Coherent conditional execution ( :code:`if ( boolExprFromQubitMeasurement ) { x (another_qubit); }` ) 
+  * Coherent conditional execution - :code:`if ( boolExprFromQubitMeasurement ) { x (another_qubit); }` 
   * Syntax for common quantum programming patterns (e.g. compute-action-uncompute).
 
-**[5]** Entry-point quantum kernels expressed as structs or classes with an :code:`operator()(...)`
-overload may leverage primitive class members within the kernel body, 
-specifically any type by which :code:`std::is_arithmetic_v` evaluates to :code:`true`. 
 
-**[6]** All quantum kernels can specify a return type from the set 
-:code:`{void, T : std::is_arithmetic_v<T> == true, std::vector<T>}` as 
-well as aggregate :code:`struct` types composed of types in this set. 
+**[5]** CUDA Quantum defines a set of allowed types that can be leveraged in quantum kernel 
+function signatures (input and return types), in-function variable declaration or construction, 
+and in variable capture from parent scope. 
 
-**[7]** All quantum kernels can take as input any type in the set 
-:code:`{T : std::is_arithmetic_v<T> == true, std::vector<T>, std::span<T>}` 
-as well as aggregate :code:`struct` types composed of types in this set. Type :code:`T` 
-in :code:`std::vector<T>` can recursively contain :code:`std::vector<S>` on any type :code:`S` 
-that is a valid kernel input type (e.g. :code:`std::vector<std::vector<std::size_t>>`). 
+The allowed types are as follows: 
 
-**[8]** Pure device kernels can take :code:`cudaq::qudit<N>` specializations and containers (e.g. 
-:code:`cudaq::qview`, :code:`cudaq::qvector`) as input. 
+  * :code:`T` such that :code:`std::is_arithmetic_v<T> == true`
+  * :code:`std::vector<T>` such that :code:`std::is_arithmetic_v<T> == true`
+  * :code:`std::span<T>` such that :code:`std::is_arithmetic_v<T> == true`
+  * :code:`std::vector<V>` such that type :code:`V` is a valid :code:`std::vector<T>` (possibly recursively)
+  * :code:`struct` types composed of any valid CUDA Quantum type.
 
-**[9]** CUDA Quantum kernels expressed as lambda expressions can capture any valid 
-entry-point kernel input type by value. 
+.. tab:: C++ 
 
-**[10]** All quantum kernel invocations are synchronous calls by default. 
+  .. code-block:: cpp
 
-**[11]** CUDA Quantum kernels can serve as input to other quantum kernels and invoked by kernel function body code. 
+    struct MyCustomSimpleStruct {
+       int i = 0;
+       int j = 0;
+       std::vector<double> angles;
+    }; 
 
-**[12]** To support CUDA Quantum kernel parameterization on callable quantum kernel code, programmers can leverage 
-standard C++ template definitions or dynamic typing in language bindings such as Python:
+    // Valid CUDA Quantum Types used in Kernels
+    auto kernel = [](int N, bool flag, float angle, std::vector<std::size_t> layers,
+             std::vector<double> parameters, std::vector<std::vector<float>> recursiveVec, 
+             MyCustomSimpleStruct var) __qpu__ { ... }
+    
+    __qpu__ double kernelThatReturns() { 
+       ... 
+       return M_PI_2;
+    }
+    
+.. tab:: Python 
+
+  .. code-block:: python 
+
+    class MySimpleStruct(object):
+        def __init__(self):
+            self.i = 0 
+            self.j = 0
+
+    @cudaq.kernel
+    def kernel(N : int, flag : bool, angle : float, layers : list[int], 
+                parameters : list[float], recursiveList : list[list[float]], 
+                var : MySimpleStruct): ... 
+    
+    @cudaq.kernel 
+    def kernelThatReturns() -> float:
+        ... 
+        return np.pi / 2.0
+
+**[6]** Any variable with an allowed CUDA Quantum type can be allocated on the stack within 
+CUDA Quantum kernels. Variables of type :code:`std::vector<T>` for any allowed type 
+:code:`T` can only be constructed with known size. Vector-like variables cannot be 
+default constructed and later filled with type :code:`T` data (i.e. no dynamic memory allocation). 
+
+.. tab:: C++ 
+
+  .. code-block:: cpp
+
+    // Valid CUDA Quantum Types used in Kernels
+    auto kernel = []() __qpu__ {
+      
+      // Not Allowed. 
+      // std::vector<int> i; 
+      // i.push_back(1);
+
+      // Valid variable declarations
+
+      std::vector<int> i(5);
+      i[2] = 3; 
+
+      std::vector<float> f {1.0, 2.0, 3.0};
+
+      int k = 0;
+
+      double pi = 3.1415926
+    };
+    
+.. tab:: Python 
+
+  .. code-block:: python 
+
+    @cudaq.kernel
+    def kernel(): 
+       # Not Allowed 
+       # i = [] 
+       # i.append(1)
+
+       i = [0 for k in range(5)]
+       i[2] = 3 
+
+       f = [1., 2., 3.]
+
+       k = 0 
+
+       pi = 3.1415926
+
+**[7]** All entry-point kernel arguments adhere to pass-by-value semantics. 
+
+.. tab:: C++ 
+
+  .. code-block:: cpp 
+
+    auto kernel = [](int i, std::vector<double> v) __qpu__ {
+       // i == 2, allocate 2 qubits 
+       cudaq::qvector q(i); 
+       // v[1] == 2.0, angle here is 2.0
+       ry(v[1], q[0]);
+
+       // Change the variables, caller does not see this
+       i = 5; 
+       v[0] = 3.0;
+    };
+
+    int k = 2;
+    std::vector<double> d {1.0, 2.0};
+    
+    kernel(k, d);
+
+    // k is still 2, pass by value 
+    // d is still {1.0, 2.0}, pass by value 
+  
+.. tab:: Python 
+
+  .. code-block:: python 
+
+    @cudaq.kernel 
+    def kernel(i : int, v : list[float]): 
+        # i = 2, allocate 2 qubits 
+        q = cudaq.qvector(i)
+        # v[1] == 2.0, angle here is 2.0 
+        ry(v[1], q[0])
+
+        # Change the variables, caller does not see this 
+        i = 5 
+        v[0] = 3.0 
+
+    k, d = 2, [1., 2.]
+    kernel(i, d)
+
+    # k is still 2, pass by value 
+    # d is still {1.0, 2.0}, pass by value 
+
+
+.. FIXME Pass by value vs reference, should we mandate pass by reference for inter-kernel calls
+
+**[8]** CUDA Quantum kernel lambdas in C++ can capture variables of allowed type 
+by value. CUDA Quantum kernels defined as custom callable types can define non-reference type 
+class members of any allowed type. These member variables can be set with 
+pass-by-value semantics at kernel construction. 
+
+.. tab:: C++ 
+
+  .. code-block:: C++ 
+
+    struct kernel {
+      int i; 
+      float f; 
+
+      void operator()() __qpu__ {
+         cudaq::qvector q(i); 
+         ry(f, q[0]);
+      }
+    };
+
+    kernel{2, 2.2}();
+
+    int i = 2; 
+    double f = 2.2;
+
+    auto kernelLambda = [=]() __qpu__ {
+      // Use captured variables 
+      cudaq::qvector q(i); 
+      ry(f, q[0]);
+      i = 5; 
+      return i; 
+    };
+
+    auto k = kernelLambda(); 
+
+    // Pass by value semantics 
+    assert(k != i);
+
+.. tab:: Python 
+
+  .. code-block:: python 
+
+    i = 2 
+    f = np.pi / 2. 
+
+    @cudaq.kernel
+    def kernel() -> int:
+       # Use captured variables 
+       q = cudaq.qvector(i) 
+       ry(f, q[0])
+
+       i = 5 
+       return i 
+    
+    k = kernel() 
+
+    # Pass by value semantics 
+    assert k != i 
+
+**[9]** All quantum kernel invocations are synchronous calls by default. 
+
+**[10]** CUDA Quantum kernels can serve as input to other quantum kernels and invoked by kernel 
+function body code. To support CUDA Quantum kernel parameterization on callable quantum kernel 
+code, programmers can leverage standard C++ template definitions or dynamic typing in language bindings such as Python:
 
 .. tab:: C++ 
 
