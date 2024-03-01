@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,6 +8,9 @@
 
 add_mlir_public_c_api_library(CUDAQuantumMLIRCAPI 
   Dialects.cpp
+
+  DEPENDS
+  QuakeDialectIncGen
 
   LINK_LIBS PRIVATE 
   QuakeDialect 
