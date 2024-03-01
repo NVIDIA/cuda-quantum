@@ -458,7 +458,7 @@ jobs:
             echo "$filename"
             # Only run tests that require execution (not a syntax-only check)
             if grep -q "ifndef SYNTAX_CHECK" "$filename"; then
-              nvq++ -v $filename --target nvqc
+              nvq++ -v $filename --nvqc
               test_status=$?
               if [ $test_status -eq 0 ]; then
                 ./a.out
@@ -488,7 +488,7 @@ jobs:
                 echo "Intended to run on '$num_qpus' QPUs."
                 nvqc_config="$nvqc_config --nvqc-nqpus $num_qpus"
               fi
-              nvq++ -v $filename --target nvqc $nvqc_config
+              nvq++ -v $filename --nvqc $nvqc_config
               test_status=$?
               if [ $test_status -eq 0 ]; then
                 ./a.out
@@ -523,7 +523,7 @@ jobs:
                 echo "Intended to run on '$num_qpus' QPUs."
                 nvqc_config="$nvqc_config --nvqc-nqpus $num_qpus"
               fi
-              nvq++ -v $filename --target nvqc $nvqc_config
+              nvq++ -v $filename --nvqc $nvqc_config
               test_status=$?
               if [ $test_status -eq 0 ]; then
                 ./a.out
@@ -560,7 +560,7 @@ jobs:
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then
                 # Use --target command line option to run these examples with
-                python3 $ex --target nvqc 1> /dev/null
+                python3 $ex --nvqc 1> /dev/null
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
