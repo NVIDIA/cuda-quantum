@@ -25,6 +25,9 @@ class StructType;
 
 namespace opt::factory {
 
+constexpr const char targetTripleAttrName[] = "llvm.triple";
+constexpr const char targetDataLayoutAttrName[] = "llvm.data_layout";
+
 //===----------------------------------------------------------------------===//
 // Type builders
 //===----------------------------------------------------------------------===//
@@ -189,12 +192,19 @@ bool hasHiddenSRet(mlir::FunctionType funcTy);
 /// on the host side. This will add hidden arguments, such as the `this`
 /// pointer, convert some results to `sret` pointers, etc.
 mlir::FunctionType toHostSideFuncType(mlir::FunctionType funcTy,
-                                      bool addThisPtr);
+                                      bool addThisPtr, mlir::ModuleOp module);
 
-/// @brief Return true if the given type corresponds to a
-/// std-vector type according to our convention. The convention
-/// is a `ptr<struct<ptr<T>, ptr<T>, ptr<T>>>`.
+/// Return `true` if the given type corresponds to a standard vector type
+/// according to our convention. The convention is a `ptr<struct<ptr<T>, ptr<T>,
+/// ptr<T>>>`.
 bool isStdVecArg(mlir::Type type);
+
+bool isX86_64(mlir::ModuleOp);
+bool isAArch64(mlir::ModuleOp);
+
+/// A small structure may be passed as two arguments on the host side. (e.g., on
+/// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`.
+bool structUsesTwoArguments(mlir::Type ty);
 
 } // namespace opt::factory
 } // namespace cudaq
