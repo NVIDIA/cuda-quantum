@@ -2788,6 +2788,12 @@
 <dd><p>Launch the kernel with given name (to extract its Quake representation). The raw function pointer is also provided, as are the runtime arguments, as a struct-packed void pointer and its corresponding size. </p>
 </dd></dl>
 
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE">
+<span class="target" id="classcudaq_1_1QPU_1ab4915615be5d425122d93d59ac1a22cd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onRandomSeedSet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Notify the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that a new random seed value is set. By default do nothing, let subclasses override. </p>
+</dd></dl>
+
 </div>
 </dd></dl>
 
@@ -2948,6 +2954,12 @@
 <dd class="field-odd"><p><strong>name</strong> – </p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE">
+<span class="target" id="classcudaq_1_1quantum__platform_1af1694e06135ecdfab51f20ecc87f7ee8"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onRandomSeedSet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Called by the runtime to notify that a new random seed value is set. </p>
 </dd></dl>
 
 </div>
