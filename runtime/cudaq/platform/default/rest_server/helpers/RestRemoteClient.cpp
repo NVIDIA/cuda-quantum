@@ -415,7 +415,14 @@ public:
           cudaq::NvcfExecutionInfo info;
           resultJs["response"]["executionInfo"].get_to(info);
           if (!printDeviceInfoOnce) {
-            fmt::print("\n===== NVQC Device Info ===== \n");
+            std::size_t totalWidth = 50;
+            std::string message = "NVQC Device Info";
+            auto strLen = message.size() + 2; // Account for surrounding spaces
+            auto leftSize = (totalWidth - strLen) / 2;
+            auto rightSize = (totalWidth - strLen) - leftSize;
+            std::string leftSide(leftSize, '=');
+            std::string rightSide(rightSize, '=');
+            fmt::print("\n{} {} {}\n", leftSide, message, rightSide);
             fmt::print("GPU Device Name: \"{}\"\n",
                        info.deviceProps.deviceName);
             fmt::print("CUDA Driver Version / Runtime Version: {}.{} / {}.{}\n",
@@ -429,19 +436,19 @@ public:
                        info.deviceProps.memoryClockRateMhz);
             fmt::print("GPU Clock Rate (MHz): {:.3f}\n",
                        info.deviceProps.clockRateMhz);
-            fmt::print("================================== \n");
+            fmt::print("{}\n", std::string(totalWidth, '='));
             // Only print this device info once.
             printDeviceInfoOnce = true;
           }
 
           // If trace logging mode is enabled, log timing data for each request.
           if (m_logLevel == LogLevel::Trace) {
-            fmt::print("\n===== NVQC Execution Timing ===== \n");
+            fmt::print("\n===== NVQC Execution Timing ======\n");
             fmt::print(" - Pre-processing: {} milliseconds \n",
                        info.simulationStart - info.requestStart);
             fmt::print(" - Execution: {} milliseconds \n",
                        info.simulationEnd - info.simulationStart);
-            fmt::print("================================== \n");
+            fmt::print("==================================\n");
           }
         } catch (...) {
           fmt::print("Unable to parse NVQC execution info metadata.\n");
