@@ -3,15 +3,9 @@
 // nvq++ --target nvqc nvqc_sample.cpp -o out.x
 // ./out.x
 // ```
-// Assumes a valid NVQC API key has been stored in environment
-// variables or `~/.nvqc_config` file. Alternatively, they can be set in the
-// command line like below.
-// ```
-// nvq++ --target nvqc --nvqc-api-key <YOUR API KEY> nvqc_sample.cpp -o out.x
-// ./out.x
-// ```
-// Please refer to the documentations for information about how to attain NVQC
-// API key.
+// Assumes a valid NVQC API key has been set in the `NVQC_API_KEY` environment
+// variable. Please refer to the documentations for information about how to
+// attain NVQC API key.
 
 #include <cudaq.h>
 #include <iostream>
