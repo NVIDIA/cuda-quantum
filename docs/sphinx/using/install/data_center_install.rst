@@ -243,7 +243,7 @@ C++ Support
 From within the folder where you cloned the CUDA Quantum repository, run the following
 command to build CUDA Quantum:
 
-.. literalinclude:: ../../docker/build/assets.Dockerfile
+.. literalinclude:: ../../../../docker/build/assets.Dockerfile
     :language: bash
     :dedent:
     :start-after: [>CUDAQuantumCppBuild]
@@ -300,7 +300,7 @@ Python-specific tools:
 From within the folder where you cloned the CUDA Quantum repository, run the following
 command to build the CUDA Quantum Python wheel:
 
-.. literalinclude:: ../../docker/build/assets.Dockerfile
+.. literalinclude:: ../../../../docker/build/assets.Dockerfile
     :language: bash
     :dedent:
     :start-after: [>CUDAQuantumPythonBuild]
@@ -319,7 +319,7 @@ We recommend not including the CUDA runtime libraries and instead install them s
 on the host system following the instructions in the next section. The following 
 command builds the final wheel, not including CUDA dependencies: 
 
-.. literalinclude:: ../../docker/build/assets.Dockerfile
+.. literalinclude:: ../../../../docker/build/assets.Dockerfile
     :language: bash
     :dedent:
     :start-after: [>CUDAQuantumWheel]
