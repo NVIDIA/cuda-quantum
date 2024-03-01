@@ -41,6 +41,9 @@ public:
     return execution_queue->getExecutionThreadId();
   }
 
+  // Conditional feedback is handled by the server side.
+  virtual bool supportsConditionalFeedback() override { return true; }
+
   virtual void setTargetBackend(const std::string &backend) override {
     auto parts = cudaq::split(backend, ';');
     if (parts.size() % 2 != 0)
@@ -75,6 +78,11 @@ public:
         return nullptr;
       return iter->second;
     }();
+
+    if (executionContextPtr && executionContextPtr->name == "tracer") {
+      return;
+    }
+
     // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
     // was set before launching the kernel. Use a static variable per thread to
     // set up a single-shot execution context for this case.
@@ -100,6 +108,10 @@ public:
     cudaq::info("BaseRemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
     std::scoped_lock<std::mutex> lock(m_contextMutex);
     m_contexts.erase(std::this_thread::get_id());
+  }
+
+  void onRandomSeedSet(std::size_t seed) override {
+    m_client->resetRemoteRandomSeed(seed);
   }
 };
 } // namespace cudaq
