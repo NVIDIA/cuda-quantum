@@ -190,6 +190,8 @@ is written:
    in the :code:`__global__` bitstring corresponds with the first declared qubit
    in the kernel. For example,
 
+.. tab:: C++ 
+
    .. code-block:: cpp
 
        auto kernel = []() __qpu__ {
@@ -198,7 +200,18 @@ is written:
        };
        cudaq::sample(kernel).dump();
 
-   should produce 
+.. tab:: Python 
+
+  .. code-block:: python 
+
+    @cudaq.kernel 
+    def kernel():
+        a, b = cudaq.qubit(), cudaq.qubit() 
+        x(a) 
+    
+    cudaq.sample(kernel).dump() 
+
+should produce 
 
    .. code-block:: bash 
 
@@ -216,6 +229,8 @@ is written:
    of the kernel, and that re-measured value is the value that will appear in
    the :code:`__global__` register. For example,
 
+.. tab:: C++ 
+
    .. code-block:: cpp
 
        auto kernel = []() __qpu__ {
@@ -226,7 +241,20 @@ is written:
        };
        cudaq::sample(kernel).dump();
 
-   should produce 
+.. tab:: Python 
+
+  .. code-block:: python 
+
+    @cudaq.kernel
+    def kernel():
+        a, b = cudaq.qubit(), cudaq.qubit()
+        x(a)
+        mz(b)
+        mz(a)
+
+    cudaq.sample(kernel).dump() 
+  
+should produce 
 
    .. code-block:: bash 
 
