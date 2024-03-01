@@ -650,6 +650,14 @@ def test_capture_vars():
 
 def test_capture_change_variable():
 
+    # This tests that variables can be captured, 
+    # that those captured variables can be modified 
+    # and adhere to capture-by-value semantics, 
+    # and that captures are not defined in 
+    # an inner scope, but are defined at the 
+    # function entry block, thus usable 
+    # in other spots in the kernel. 
+    
     n = 3
 
     @cudaq.kernel(verbose=True)
