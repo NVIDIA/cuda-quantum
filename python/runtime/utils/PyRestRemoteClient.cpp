@@ -350,7 +350,7 @@ public:
       if (m_logLevel > LogLevel::None) {
         auto queueDepth = getQueueDepth(m_functionId, m_functionVersionId);
         if (queueDepth.has_value()) {
-          fmt::print("Position of your request on the NVQC queue: {}.\n",
+          cudaq::log("Position of your request on the NVQC queue: {}.",
                      queueDepth.value() + 1);
         }
       }
@@ -362,7 +362,8 @@ public:
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
         const std::string reqId = resultJs["reqId"];
-        cudaq::info("Polling result data for Request Id {}", reqId);
+        if (m_logLevel > LogLevel::None)
+          cudaq::log("Polling NVQC result data for Request Id {}", reqId);
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
         resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader,
