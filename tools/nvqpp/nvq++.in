@@ -95,6 +95,9 @@ function show_help {
 --list-targets
 	List the available targets NVQ++ can compile to.
 
+--nvqc
+	Use the NVIDIA Quantum Cloud for simulation
+
 --emit-qir | -emit-qir
 	Emit the QIR output to <input file>.qir.ll and exit.
 
@@ -283,6 +286,7 @@ ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
+NVQC=false
 EMIT_QIR=false
 PREPROCESSOR_DEFINES=
 SHOW_HELP=false
@@ -438,6 +442,9 @@ while [ $# -ne 0 ]; do
 	--enable-mlir)
 		LIBRARY_MODE=false
 		;;
+	--nvqc)
+		NVQC=true
+		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
 		;;
@@ -584,6 +591,15 @@ trap delete_temp_files EXIT
 
 COMPILER_FLAGS="${CPPSTD} -Wno-c++20-extensions ${COMPILER_FLAGS}"
 
+# If we are choosing NVQC and the target has not been specified, choose a
+# default. Note that Nvidia GPUs do not need to be installed in order to select
+# an Nvidia-powered backend when using NVQC.
+if ${NVQC}; then
+	if [ -z "${TARGET_CONFIG}" ]; then
+		TARGET_CONFIG=nvidia
+	fi
+fi
+
 # Goal here is to parse the backend config file, get the
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
@@ -593,6 +609,17 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
 		. "${TARGET_CONFIG_FILE}" "${TARGET_ARGS[@]}"
+
+		# If the user has specified --nvqc, then set key values here. The NVQC
+		# will use the backend specified by the user's --target parameters.
+		if ${NVQC}; then
+			TARGET_CONFIG="nvqc"
+			GEN_TARGET_BACKEND=true
+			PLATFORM_LIBRARY="mqpu"
+			LIBRARY_MODE=false
+			LINKLIBS="${LINKLIBS} -lcudaq-remote-simulator-qpu"
+			PLATFORM_EXTRA_ARGS="$PLATFORM_EXTRA_ARGS;backend;${NVQIR_SIMULATION_BACKEND}"
+		fi
 
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main and set the target
