@@ -45,6 +45,7 @@
 #include <dlfcn.h>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <streambuf>
 
 namespace {
@@ -98,6 +99,8 @@ protected:
       "cse",
       "quake-to-qir"};
   static inline const std::vector<std::string> serverPasses = {};
+  // Random number generator.
+  std::mt19937 randEngine{std::random_device{}()};
 
 public:
   virtual void setConfig(
@@ -225,7 +228,21 @@ public:
     request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
                                           kernelArgs, argsSize);
     request.simulator = backendSimName;
-    request.seed = cudaq::get_random_seed();
+    // Remote server seed
+    // Note: unlike local executions whereby a static instance of the simulator
+    // is seeded once when `cudaq::set_random_seed` is called, thus not being
+    // re-seeded between executions. For remote executions, we use the runtime
+    // level seed value to seed a random number generator to seed the server.
+    // i.e., consecutive remote executions on the server from the same client
+    // session (where `cudaq::set_random_seed` is called), get new random seeds
+    // for each execution. The sequence is still deterministic based on the
+    // runtime-level seed value.
+    request.seed = [&]() {
+      std::uniform_int_distribution<std::size_t> seedGen(
+          std::numeric_limits<std::size_t>::min(),
+          std::numeric_limits<std::size_t>::max());
+      return seedGen(randEngine);
+    }();
     return request;
   }
 
@@ -281,6 +298,11 @@ public:
         *optionalErrorMsg = e.what();
       return false;
     }
+  }
+
+  virtual void resetRemoteRandomSeed(std::size_t seed) override {
+    // Re-seed the generator, e.g., when `cudaq::set_random_seed` is called.
+    randEngine.seed(seed);
   }
 };
 } // namespace cudaq
