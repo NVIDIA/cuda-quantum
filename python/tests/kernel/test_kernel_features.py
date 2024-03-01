@@ -226,7 +226,7 @@ def test_dynamic_circuit():
             x(q[1])
         mz(q)
 
-    counts = cudaq.sample(simple)
+    counts = cudaq.sample(simple, shots_count=100)
     counts.dump()
     c0 = counts.get_register_counts('c0')
     assert '0' in c0 and '1' in c0
@@ -648,6 +648,20 @@ def test_capture_vars():
                       atol=1e-3)
 
 
+def test_capture_change_variable():
+
+    n = 3
+
+    @cudaq.kernel(verbose=True)
+    def kernel() -> int:
+        if True:
+            n = 4
+        return n
+
+    print(kernel)
+    assert n != kernel()
+
+
 def test_inner_function_capture():
 
     n = 3
@@ -659,6 +673,8 @@ def test_inner_function_capture():
         def foo():
             q = cudaq.qvector(n)
 
+        print(foo)
+
         def innerInnerClassical():
 
             @cudaq.kernel()
@@ -666,11 +682,15 @@ def test_inner_function_capture():
                 q = cudaq.qvector(m)
                 x(q)
 
+            print(bar)
+
             return cudaq.sample(bar)
 
         return cudaq.sample(foo), innerInnerClassical()
 
     fooCounts, barCounts = innerClassical()
+    print('foo counts ', fooCounts)
+    print('bar counts ', barCounts)
     assert len(fooCounts) == 1 and '0' * n in fooCounts
     assert len(barCounts) == 1 and '1' * m in barCounts
 
