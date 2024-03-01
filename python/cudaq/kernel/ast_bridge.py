@@ -1817,6 +1817,13 @@ class PyASTBridge(ast.NodeVisitor):
                     quake.ConcatOp(self.getVeqType(), listElementValues).result)
             return
 
+        # We do not store lists of pointers
+        listElementValues = [
+            cc.LoadOp(ele).result
+            if cc.PointerType.isinstance(ele.type) else ele
+            for ele in listElementValues
+        ]
+
         # not a list of quantum types
         # Get the first element
         firstTy = listElementValues[0].type
