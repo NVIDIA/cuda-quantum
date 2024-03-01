@@ -28,11 +28,13 @@ struct MPSTensor {
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
 /// simulator implementation.
 class TensorNetState {
-public:
+
+protected:
   std::size_t m_numQubits;
   cutensornetHandle_t m_cutnHandle;
   cutensornetState_t m_quantumState;
 
+public:
   /// @brief Constructor
   TensorNetState(std::size_t numQubits, cutensornetHandle_t handle);
 
@@ -47,6 +49,12 @@ public:
   /// @param proj_d Projector matrix (expected a 2x2 matrix in column major)
   /// @param qubitIdx Qubit operand
   void applyQubitProjector(void *proj_d, int32_t qubitIdx);
+
+  /// @brief Number of qubits that this state represents.
+  std::size_t getNumQubits() const { return m_numQubits; }
+
+  /// @brief Accessor to the cuTensorNet handle (context).
+  cutensornetHandle_t getInternalContext() { return m_cutnHandle; }
 
   /// @brief Accessor to the underlying `cutensornetState_t`
   cutensornetState_t getInternalState() { return m_quantumState; }
@@ -82,9 +90,6 @@ public:
   /// different coefficients.
   std::complex<double>
   computeExpVal(cutensornetNetworkOperator_t tensorNetworkOperator);
-
-  /// @brief Number of qubits that this state represents.
-  std::size_t getNumQubits() const { return m_numQubits; }
 
   /// @brief Destructor
   ~TensorNetState();
