@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target nvqc --nvqc-backend tensornet nvqc_state.cpp -o out.x
+// nvq++ --nvqc --target tensornet nvqc_state.cpp -o out.x
 // ./out.x
 // ```
 // Assumes a valid NVQC API key has been set in the `NVQC_API_KEY` environment

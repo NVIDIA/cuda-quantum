@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target nvqc --nvqc-nqpus 3 nvqc_vqe.cpp -o out.x
+// nvq++ --nvqc --nvqc-nqpus 3 nvqc_vqe.cpp -o out.x
 // ./out.x
 // ```
 // Note: we set `nqpus` to 3 to establish 3 concurrent NVQC job submission
