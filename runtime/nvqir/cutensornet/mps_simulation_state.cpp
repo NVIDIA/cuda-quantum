@@ -8,13 +8,14 @@
 
 #include "mps_simulation_state.h"
 
+#include <cuComplex.h>
+
 namespace nvqir {
 
 MPSSimulationState::MPSSimulationState(TensorNetState *inState,
                                        const std::vector<MPSTensor> & mpsTensors) :
   // FIXME flip this to false to use MPS-only overlap
-  TensorNetSimulationState(inState,
-                           /*auto-gen state vector stop-gap*/ true),
+  TensorNetSimulationState(inState, /*auto-gen state vector stop-gap*/ true),
   m_mpsTensors(mpsTensors)
 {
 }
@@ -29,6 +30,8 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   if (other.getDataShape() != getDataShape())
     throw std::runtime_error("[tensornet-state] overlap error - other state "
                              "dimension is not equal to this state dimension.");
+
+  if(m_allSet) deallocateBackendStructures();
 
   const auto &mpsOther = dynamic_cast<const MPSSimulationState &>(other);
   const auto &mpsOtherTensors = mpsOther.m_mpsTensors;
@@ -95,13 +98,16 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
       lmode += 1;
     }
   }
+  std::size_t overlapSize = 0;
   cutensornetComputeType_t computeType;
   cudaDataType_t dataType;
   const auto prec = getPrecision();
   if(prec == precision::fp32) {
+    overlapSize = sizeof(cuFloatComplex);
     dataType = CUDA_C_32F;
     computeType = CUTENSORNET_COMPUTE_32F;
   }else if (prec == precision::fp64){
+    overlapSize = sizeof(cuDoubleComplex);
     dataType = CUDA_C_64F;
     computeType = CUTENSORNET_COMPUTE_64F;
   }
@@ -117,15 +123,51 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
     numTensors, numModes.data(), extentsIn.data(), NULL, modesIn.data(), tensAttr.data(),
     mpsNumTensors, outExtents.data(), NULL, outModes.data(), dataType, computeType, &m_tnDescr));
 
-  // Determine the contraction path
+  // Determine the contraction path and create the contraction plan
+  HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerConfig(cutnHandle, &m_tnConfig));
+  HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(cutnHandle, m_tnDescr, &m_tnPath));
+  assert(m_scratchPad.scratchSize > 0);
+  HANDLE_CUTN_ERROR(cutensornetContractionOptimize(cutnHandle, m_tnDescr, m_tnConfig,
+    m_scratchPad.scratchSize, &m_tnPath));
+  cutensornetWorkspaceDescriptor_t workDesc;
+  HANDLE_CUTN_ERROR(cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
+  int64_t requiredWorkspaceSize = 0;
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceComputeContractionSizes(cutnHandle,
+    m_tnDescr, m_tnPath, workDesc));
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(cutnHandle,
+    workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED, CUTENSORNET_MEMSPACE_DEVICE,
+    CUTENSORNET_WORKSPACE_SCRATCH, &requiredWorkspaceSize));
+  assert(requiredWorkspaceSize > 0);
+  assert(static_cast<std::size_t>(requiredWorkspaceSize) <= m_scratchPad.scratchSize);
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(cutnHandle,
+    workDesc, CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH,
+    m_scratchPad.d_scratch, requiredWorkspaceSize));
+  HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(cutnHandle,
+    m_tnDescr, m_tnPath, workDesc, &m_tnPlan));
 
-  // Create the contraction plan
-
+  // Compute the unnormalized overlap
+  std::vector<const void*> rawDataIn(numTensors);
+  for(int i = 0; i < mpsNumTensors; ++i) {
+    rawDataIn[i] = m_mpsTensors[i].deviceData;
+    rawDataIn[mpsNumTensors + i] = mpsOtherTensors[i].deviceData;
+  }
+  HANDLE_CUDA_ERROR(cudaMalloc(&m_dOverlap, overlapSize));
   m_allSet = true;
+  HANDLE_CUTN_ERROR(cutensornetContractSlices(cutnHandle,
+    m_tnPlan, rawDataIn.data(), m_dOverlap, 0, workDesc, NULL, 0x0));
+  // Get the overlap value back to Host
+  double overlapReal = 0.0;
+  if(prec == precision::fp32) {
+    cuFloatComplex overlapValue;
+    HANDLE_CUDA_ERROR(cudaMemcpy(&overlapValue, m_dOverlap, overlapSize, cudaMemcpyDeviceToHost));
+    overlapReal = static_cast<double>(cuCrealf(overlapValue));
+  }else if(prec == precision::fp64) {
+    cuDoubleComplex overlapValue;
+    HANDLE_CUDA_ERROR(cudaMemcpy(&overlapValue, m_dOverlap, overlapSize, cudaMemcpyDeviceToHost));
+    overlapReal = cuCreal(overlapValue);
+  }
 
-  // Contract the overlap
-
-  return 0.0;
+  return overlapReal;
 }
 
 void MPSSimulationState::deallocate()
@@ -139,6 +181,7 @@ void MPSSimulationState::deallocate()
 void MPSSimulationState::deallocateBackendStructures()
 {
   if(m_allSet) {
+    HANDLE_CUDA_ERROR(cudaFree(m_dOverlap));
     HANDLE_CUTN_ERROR(cutensornetDestroyContractionPlan(m_tnPlan));
     HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerInfo(m_tnPath));
     HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(m_tnConfig));

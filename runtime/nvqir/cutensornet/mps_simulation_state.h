@@ -44,6 +44,8 @@ protected:
   cutensornetContractionOptimizerConfig_t m_tnConfig;
   cutensornetContractionOptimizerInfo_t m_tnPath;
   cutensornetContractionPlan_t m_tnPlan;
+  ScratchDeviceMem m_scratchPad;
+  void * m_dOverlap {nullptr};
   bool m_allSet {false};
 };
 
