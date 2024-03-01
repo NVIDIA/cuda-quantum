@@ -46,8 +46,18 @@ class PyKernelDecorator(object):
                         ) if self.kernelFunction is not None else ('', 0)
 
         # Get any global variables from parent scope.
-        self.globalScopedVars = dict(inspect.getmembers(
-            inspect.stack()[2][0]))['f_locals']
+        # We filter only types we accept: integers and floats.
+        # Note here we assume that the parent scope is 2 stack frames up
+        self.parentFrame = inspect.stack()[2].frame
+        self.globalScopedVars = {
+            k: v for k, v in dict(inspect.getmembers(self.parentFrame))
+            ['f_locals'].items()
+        }
+
+        # Once the kernel is compiled to MLIR, we
+        # want to know what capture variables, if any, were
+        # used in the kernel. We need to track these.
+        self.dependentCaptures = None
 
         if self.kernelFunction is None:
             if self.module is not None:
@@ -118,16 +128,41 @@ class PyKernelDecorator(object):
         Compile the Python function AST to MLIR. This is a no-op 
         if the kernel is already compiled. 
         """
+
+        # Before we can execute, we need to make sure
+        # variables from the parent frame that we captured
+        # have not changed. If they have changed, we need to
+        # recompile with the new values.
+        for i, s in enumerate(inspect.stack()):
+            if s.frame == self.parentFrame:
+                # We found the parent frame, now
+                # see if any of the variables we depend
+                # on have changed.
+                self.globalScopedVars = {
+                    k: v for k, v in dict(inspect.getmembers(s.frame))
+                    ['f_locals'].items()
+                }
+                if self.dependentCaptures != None:
+                    for k, v in self.dependentCaptures.items():
+                        if self.globalScopedVars[k] != v:
+                            # Need to recompile
+                            self.module = None
+                            break
+
         if self.module != None:
             return
 
-        self.module, self.argTypes = compile_to_mlir(
+        self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
             self.metadata,
             verbose=self.verbose,
             returnType=self.returnType,
             location=self.location,
             parentVariables=self.globalScopedVars)
+
+        # Grab the dependent capture variables, if any
+        self.dependentCaptures = extraMetadata[
+            'dependent_captures'] if 'dependent_captures' in extraMetadata else None
 
     def __str__(self):
         """
@@ -142,8 +177,8 @@ class PyKernelDecorator(object):
         kernel AST to MLIR will occur here if it has not already occurred. 
         """
 
-        if self.module == None:
-            self.compile()
+        # Compile, no-op if the module is not None
+        self.compile()
 
         if len(args) != len(self.argTypes):
             emitFatalError(

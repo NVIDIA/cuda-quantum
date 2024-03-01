@@ -2,17 +2,12 @@ import cudaq
 from cudaq import spin
 import math
 
-# This example assumes the NVQC API key has been set in the `~/.nvqc_config` file/environment variables.
+# This example assumes the NVQC API key has been set in the `NVQC_API_KEY` environment variable.
 # If not, you can set the API Key environment variable in the Python script with:
 # ```
 # os.environ["NVQC_API_KEY"] = "<YOUR NVQC API KEY>"`
 # ```
-# Alternatively, the `api_key` value can be passed to the target directly,
-# ```
-# cudaq.set_target("nvqc",
-#                 nqpus=3,
-#                 api_key="<YOUR NVQC API KEY>")
-# ```
+
 cudaq.set_target("nvqc", nqpus=3)
 
 print("Number of QPUs:", cudaq.get_target().num_qpus())
