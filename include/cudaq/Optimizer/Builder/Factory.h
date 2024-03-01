@@ -194,9 +194,9 @@ bool hasHiddenSRet(mlir::FunctionType funcTy);
 mlir::FunctionType toHostSideFuncType(mlir::FunctionType funcTy,
                                       bool addThisPtr, mlir::ModuleOp module);
 
-/// Return `true` if the given type corresponds to a standard vector type
-/// according to our convention. The convention is a `ptr<struct<ptr<T>, ptr<T>,
-/// ptr<T>>>`.
+// Return `true` if the given type corresponds to a standard vector type
+// according to our convention.
+// The convention is a `ptr<struct<ptr<T>, ptr<T>, ptr<T>>>`.
 bool isStdVecArg(mlir::Type type);
 
 bool isX86_64(mlir::ModuleOp);
