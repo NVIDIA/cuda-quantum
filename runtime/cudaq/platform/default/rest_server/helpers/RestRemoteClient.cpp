@@ -350,7 +350,7 @@ public:
                      queueDepth.value() + 1);
         }
       }
-      
+
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
