@@ -3,10 +3,11 @@ Quantum Algorithmic Primitives
 **[1]** The general philosophy of the CUDA Quantum specification is that quantum 
 device code should be encapsulated as stand-alone callable instances of generic 
 signature, and that operations or primitive algorithms targeting a quantum 
-coprocessor be implemented as adaptors on those callable instances. By adaptor, 
-we mean some generic function that takes a kernel as input with its associated 
-runtime arguments (following the signature of the kernel) and affects execution 
-of the kernel with general pre- and post-processing applied. 
+coprocessor be implemented as adaptors on those callable instances. Adaptors, by 
+definition, are generic functions that take any quantum kernel as input along with 
+the runtime arguments for that kernel. Runtime arguments passed to adaptor functions 
+flow through the adaptor to the provided kernel. This pattern allows general pre- 
+and post-processing around concrete kernel execution. 
 
 .. _cudaq-sample-spec:
 

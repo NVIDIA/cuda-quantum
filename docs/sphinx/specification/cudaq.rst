@@ -12,7 +12,7 @@ CUDA Quantum implementations are intended to be enabled via library-based langua
 extensions that define quantum code as callables in the classical language being extended. 
 These callables are meant to be compiled with standard compilers and runtimes 
 and run via quantum computer simulators or available physical quantum architectures. The 
-language callables intended for quantum coprocessing must be annotated in some way for 
+language callables intended for quantum coprocessing must be annotated for 
 compilers and runtimes to process. These annotations should directly enable quantum-specific 
 optimization and transformation for optimal execution on simulators and QPUs. 
 
