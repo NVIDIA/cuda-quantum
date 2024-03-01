@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "GPUInfo.h"
+#include "common/GPUInfo.h"
 #ifdef CUDAQ_ENABLE_CUDA
 #include "cuda_runtime_api.h"
 #endif

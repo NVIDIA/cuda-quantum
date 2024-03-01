@@ -214,6 +214,11 @@ jobs:
             cd $CUDAQ_REPO_ROOT
             pip install iqm_client --user -vvv
             pip install . --user -vvv
+            pyinstall_status=$?
+            if [ ! $pyinstall_status -eq 0 ]; then
+              echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
+              exit 1
+            fi
             python3 -m pytest -v python/tests/ \
               --ignore python/tests/backends
             pytest_status=$?
@@ -221,7 +226,6 @@ jobs:
               echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-
             for backendTest in python/tests/backends/*.py; do
               python3 -m pytest -v $backendTest
               pytest_status=$?

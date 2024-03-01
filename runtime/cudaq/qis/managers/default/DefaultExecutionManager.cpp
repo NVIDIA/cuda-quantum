@@ -150,9 +150,10 @@ protected:
         })();
   }
 
-  int measureQudit(const cudaq::QuditInfo &q) override {
+  int measureQudit(const cudaq::QuditInfo &q,
+                   const std::string &registerName) override {
     flushRequestedAllocations();
-    return simulator()->mz(q.id);
+    return simulator()->mz(q.id, registerName);
   }
 
   void measureSpinOp(const cudaq::spin_op &op) override {

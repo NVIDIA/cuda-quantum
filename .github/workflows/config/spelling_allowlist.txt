@@ -90,6 +90,7 @@ TCP
 TableGen
 Toffoli
 Toshiko
+UCCSD
 VQE
 Vazirani
 WSL
@@ -108,6 +109,7 @@ bitcode
 bitstring
 bitstrings
 boolean
+broadcasted
 buildable
 callable
 callables

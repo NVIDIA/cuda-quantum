@@ -10,8 +10,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 message(STATUS "Building REST QPU.")
 add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp 
-   ../../common/QuantumExecutionQueue.cpp
-   Executor.cpp)
+   ../../common/QuantumExecutionQueue.cpp)
 
 add_subdirectory(helpers)
 

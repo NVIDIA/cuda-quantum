@@ -21,6 +21,8 @@
 #include <string>
 #include <thread>
 
+LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
+
 namespace cudaq {
 
 // These functions are defined elsewhere, but
@@ -139,6 +141,11 @@ void quantum_platform::launchKernel(std::string kernelName,
   qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize, resultOffset);
 }
 
+void quantum_platform::onRandomSeedSet(std::size_t seed) {
+  // Send on the notification to all QPUs.
+  for (auto &qpu : platformQPUs)
+    qpu->onRandomSeedSet(seed);
+}
 } // namespace cudaq
 
 void cudaq::altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
