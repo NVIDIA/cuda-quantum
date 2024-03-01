@@ -170,6 +170,41 @@ def test_multi_qpus_kernel():
     check_multi_qpus(parameterized_ansatz)
 
 
+# Check randomness and repeatability by setting the seed value
+def test_seed():
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.h(qubit)
+    kernel.mz(qubit)
+    # Set the runtime seed
+    cudaq.set_random_seed(123)
+    # First check: different executions after setting the seed value can produce randomized results.
+    # We don't expect to run these number of tests,
+    # the first time we encounter a different distribution, it will terminate.
+    max_num_tests = 100
+    zero_counts = []
+    found_different_result = False
+    for i in range(max_num_tests):
+        count = cudaq.sample(kernel)
+        zero_counts.append(count["0"])
+        for x in zero_counts:
+            if x != zero_counts[0]:
+                found_different_result = True
+                break
+        if found_different_result:
+            # Found a different distribution.
+            # No need to run any more simulation.
+            break
+    assert (found_different_result)
+    # Now, reset the seed
+    # Check that the new sequence of distributions exactly matches the prior.
+    cudaq.set_random_seed(123)
+    for i in range(len(zero_counts)):
+        # Rerun sampling
+        count = cudaq.sample(kernel)
+        assert (count["0"] == zero_counts[i])
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

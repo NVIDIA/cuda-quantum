@@ -109,5 +109,9 @@ public:
     std::scoped_lock<std::mutex> lock(m_contextMutex);
     m_contexts.erase(std::this_thread::get_id());
   }
+
+  void onRandomSeedSet(std::size_t seed) override {
+    m_client->resetRemoteRandomSeed(seed);
+  }
 };
 } // namespace cudaq
