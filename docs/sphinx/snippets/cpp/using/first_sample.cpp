@@ -26,7 +26,7 @@ __qpu__ void kernel(int qubit_count) {
 
 // [Begin Sample1]
 int main() {
-  
+
   int qubit_count = 2;
   auto result_0 = cudaq::sample(kernel, /* kernel args */ qubit_count);
   // Should see a roughly 50/50 distribution between the |00> and
@@ -35,16 +35,17 @@ int main() {
   // [End Sample1]
 
   // [Begin Sample2]
-  // With an increased shots count, we will still see the same 50/50 distribution,
-  // but now with 10,000 total measurements instead of the default 1000.
-  // Example: {00: 5005  11: 4995}
+  // With an increased shots count, we will still see the same 50/50
+  // distribution, but now with 10,000 total measurements instead of the default
+  // 1000. Example: {00: 5005  11: 4995}
   int shots_count = 10000;
   auto result_1 = cudaq::sample(shots_count, kernel, qubit_count);
   result_1.dump();
   // [End Sample2]
 
   // [Begin Sample3]
-  std::cout << result_1.most_probable() << "\n";                         // prints: `00`
-  std::cout << result_1.probability(result_1.most_probable()) << "\n";   // prints: `0.5005`
+  std::cout << result_1.most_probable() << "\n"; // prints: `00`
+  std::cout << result_1.probability(result_1.most_probable())
+            << "\n"; // prints: `0.5005`
 }
 // [End Sample3]
