@@ -28,6 +28,7 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-spin 
     cudaq-common 
   PRIVATE 
+    cudaq
     mqpu_util
     pthread
     spdlog::spdlog 

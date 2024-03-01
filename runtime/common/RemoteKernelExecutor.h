@@ -60,6 +60,10 @@ public:
   virtual void
   setConfig(const std::unordered_map<std::string, std::string> &configs) = 0;
 
+  // Reset the random seed sequence using for remote execution.
+  // This is triggered by a random seed value being set in CUDAQ runtime.
+  virtual void resetRemoteRandomSeed(std::size_t seed) = 0;
+
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and
   // communication protocols. The `ExecutionContext` will be updated in-place as

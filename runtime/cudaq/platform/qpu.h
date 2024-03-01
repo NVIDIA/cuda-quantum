@@ -147,5 +147,9 @@ public:
   /// as a struct-packed void pointer and its corresponding size.
   virtual void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                             void *args, std::uint64_t, std::uint64_t) = 0;
+
+  /// @brief Notify the QPU that a new random seed value is set.
+  /// By default do nothing, let subclasses override.
+  virtual void onRandomSeedSet(std::size_t seed) {}
 };
 } // namespace cudaq
