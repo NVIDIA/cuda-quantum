@@ -657,7 +657,7 @@ def test_capture_change_variable():
     # an inner scope, but are defined at the 
     # function entry block, thus usable 
     # in other spots in the kernel. 
-    
+
     n = 3
 
     @cudaq.kernel(verbose=True)
@@ -666,7 +666,6 @@ def test_capture_change_variable():
             n = 4
         return n
 
-    print(kernel)
     assert n != kernel()
 
 
@@ -681,8 +680,6 @@ def test_inner_function_capture():
         def foo():
             q = cudaq.qvector(n)
 
-        print(foo)
-
         def innerInnerClassical():
 
             @cudaq.kernel()
@@ -690,15 +687,11 @@ def test_inner_function_capture():
                 q = cudaq.qvector(m)
                 x(q)
 
-            print(bar)
-
             return cudaq.sample(bar)
 
         return cudaq.sample(foo), innerInnerClassical()
 
     fooCounts, barCounts = innerClassical()
-    print('foo counts ', fooCounts)
-    print('bar counts ', barCounts)
     assert len(fooCounts) == 1 and '0' * n in fooCounts
     assert len(barCounts) == 1 and '1' * m in barCounts
 
