@@ -98,6 +98,12 @@ function show_help {
 --nvqc
 	Use the NVIDIA Quantum Cloud for simulation
 
+--nvqc-ngpus
+	The number of GPUs to use per remote QPU
+
+--nvqc-nqpus
+	The number of remote QPUs to simulate on the NVQC platform
+
 --emit-qir | -emit-qir
 	Emit the QIR output to <input file>.qir.ll and exit.
 
@@ -287,6 +293,8 @@ ENABLE_LAMBDA_LIFTING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
 NVQC=false
+NVQC_NQPUS=
+NVQC_NGPUS=
 EMIT_QIR=false
 PREPROCESSOR_DEFINES=
 SHOW_HELP=false
@@ -444,6 +452,14 @@ while [ $# -ne 0 ]; do
 		;;
 	--nvqc)
 		NVQC=true
+		;;
+	--nvqc-ngpus)
+		NVQC_NGPUS="$2"
+		shift
+		;;
+	--nvqc-nqpus)
+		NVQC_NQPUS="$2"
+		shift
 		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
@@ -619,6 +635,12 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			LIBRARY_MODE=false
 			LINKLIBS="${LINKLIBS} -lcudaq-remote-simulator-qpu"
 			PLATFORM_EXTRA_ARGS="$PLATFORM_EXTRA_ARGS;backend;${NVQIR_SIMULATION_BACKEND}"
+			if [ -n "${NVQC_NQPUS}" ]; then
+				PLATFORM_EXTRA_ARGS="$PLATFORM_EXTRA_ARGS;nqpus;${NVQC_NQPUS}"
+			fi
+			if [ -n "${NVQC_NGPUS}" ]; then
+				PLATFORM_EXTRA_ARGS="$PLATFORM_EXTRA_ARGS;ngpus;${NVQC_NGPUS}"
+			fi
 		fi
 
 		if ${GEN_TARGET_BACKEND}; then
