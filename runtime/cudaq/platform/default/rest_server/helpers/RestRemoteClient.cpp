@@ -101,6 +101,33 @@ private:
     return info;
   }
 
+  std::optional<std::size_t> getQueueDepth(const std::string &funcId,
+                                           const std::string &verId) {
+    auto headers = getHeaders();
+    try {
+      auto queueDepthInfo = m_restClient.get(
+          fmt::format("https://{}/nvcf/queues/functions/{}/versions/{}",
+                      m_baseUrl, funcId, verId),
+          "", headers, /*enableSsl=*/true);
+
+      if (queueDepthInfo.contains("functionId") &&
+          queueDepthInfo["functionId"] == funcId &&
+          queueDepthInfo.contains("queues")) {
+        for (auto queueInfo : queueDepthInfo["queues"]) {
+          if (queueInfo.contains("functionVersionId") &&
+              queueInfo["functionVersionId"] == verId &&
+              queueInfo.contains("queueDepth")) {
+            return queueInfo["queueDepth"].get<std::size_t>();
+          }
+        }
+      }
+      return std::nullopt;
+    } catch (...) {
+      // Make this non-fatal. Returns null, i.e., unknown.
+      return std::nullopt;
+    }
+  }
+
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
