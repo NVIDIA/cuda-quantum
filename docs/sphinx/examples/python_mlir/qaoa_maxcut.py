@@ -3,6 +3,10 @@ from cudaq import spin
 
 import numpy as np
 
+## [PYTHON_VERSION_FIX]
+## To support Python v3.8, using `typing.List[float]` instead of `list[float]`
+from typing import List
+
 # Here we build up a kernel for QAOA with `p` layers, with each layer
 # containing the alternating set of unitaries corresponding to the problem
 # and the mixer Hamiltonians. The algorithm leverages the VQE algorithm
@@ -27,7 +31,7 @@ parameter_count: int = 2 * layer_count
 
 
 @cudaq.kernel
-def kernel_qaoa(qubit_count: int, layer_count: int, thetas: list):
+def kernel_qaoa(qubit_count: int, layer_count: int, thetas: List[float]):
     """QAOA ansatz for Max-Cut"""
     qreg = cudaq.qvector(qubit_count)
 
