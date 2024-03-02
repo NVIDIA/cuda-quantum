@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "common/BaseRestRemoteClient.h"
-
+#include "common/NvqcConfig.h"
 using namespace mlir;
 
 namespace {
@@ -41,8 +41,7 @@ private:
   // Available functions: function Id to number of GPUs mapping
   using DeploymentInfo = std::unordered_map<std::string, std::size_t>;
   DeploymentInfo m_availableFuncs;
-  static constexpr const char *CUDAQ_NCA_ID =
-      "mZraB3k06kOd8aPhD6MVXJwBVZ67aXDLsfmDo4MYXDs";
+  const std::string CUDAQ_NCA_ID = cudaq::getNvqcNcaId();
   // Base URL for NVCF APIs
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
   // Return the URL to invoke the function specified in this client
