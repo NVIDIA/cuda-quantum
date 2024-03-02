@@ -6,13 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_mlir_public_c_api_library(CUDAQuantumMLIRCAPI 
-  Dialects.cpp
-
-  DEPENDS
-  QuakeDialectIncGen
-
-  LINK_LIBS PRIVATE 
-  QuakeDialect 
-  CCDialect
-)
+from .qis import (h, x, y, z, s, t, rx, ry, rz, r1, mx, my, mz, ch, cx, cy, cz,
+                  cs, ct, crz, cry, crz, cr1, sdg, tdg, swap, exp_pauli,
+                  adjoint, control, compute_action)

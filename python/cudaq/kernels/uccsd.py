@@ -105,9 +105,7 @@ def uccsd_num_parameters(n_electrons, n_qubits):
 
     singles = length_alpha_singles + length_beta_singles
     doubles = length_mixed_doubles + length_alpha_doubles + length_beta_doubles
-    total = singles + doubles
-
-    return sum((singles, doubles, total))
+    return singles + doubles
 
 
 @cudaq.kernel
