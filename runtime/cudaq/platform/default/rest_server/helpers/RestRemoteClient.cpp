@@ -164,7 +164,7 @@ public:
         m_functionId = funcIdIter->second;
         if (m_logLevel > LogLevel::None) {
           // Print out the configuration
-          fmt::print("Submitting jobs to NVQC using function Id {}.\n",
+          cudaq::log("Submitting jobs to NVQC using function Id {}.",
                      m_functionId);
         }
       } else {
@@ -180,7 +180,7 @@ public:
             m_functionId = funcId;
             if (m_logLevel > LogLevel::None) {
               // Print out the configuration
-              fmt::print("Submitting jobs to NVQC service with {} GPU(s).\n",
+              cudaq::log("Submitting jobs to NVQC service with {} GPU(s).",
                          numGpus);
             }
             break;
@@ -345,12 +345,14 @@ public:
       cudaq::debug("Sending NVQC request to {}", nvcfInvocationUrl());
       if (m_logLevel > LogLevel::None) {
         auto queueDepth = getQueueDepth(m_functionId, m_functionVersionId);
-        if (queueDepth.has_value()) {
-          cudaq::log("Position of your request on the NVQC queue: {}.",
-                     queueDepth.value() + 1);
+        if (queueDepth.has_value() && queueDepth.value() > 0) {
+          cudaq::log("Number of jobs ahead of yours in the NVQC queue: {}.",
+                     queueDepth.value());
         }
       }
 
+      if (m_logLevel > LogLevel::None)
+        cudaq::log("Posting NVQC request now");
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
