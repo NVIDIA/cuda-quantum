@@ -607,10 +607,11 @@ trap delete_temp_files EXIT
 
 COMPILER_FLAGS="${CPPSTD} -Wno-c++20-extensions ${COMPILER_FLAGS}"
 
-# If we are choosing NVQC and the target has not been specified, choose a
-# default. Note that Nvidia GPUs do not need to be installed in order to select
-# an Nvidia-powered backend when using NVQC.
+# If the user has requested NVQC, choose a reasonable default. Note that Nvidia
+# GPUs do not need to be installed in order to select an Nvidia-powered backend
+# when using NVQC.
 if ${NVQC}; then
+	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
 	if [ -z "${TARGET_CONFIG}" ]; then
 		TARGET_CONFIG=nvidia
 	fi
