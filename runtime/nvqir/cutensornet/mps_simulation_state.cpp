@@ -10,6 +10,8 @@
 
 #include <cuComplex.h>
 
+#include <iostream>
+
 namespace nvqir {
 
 MPSSimulationState::MPSSimulationState(TensorNetState *inState,
@@ -115,7 +117,7 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(cutnHandle, m_tnDescr, &m_tnPath));
   assert(m_scratchPad.scratchSize > 0);
   HANDLE_CUTN_ERROR(cutensornetContractionOptimize(cutnHandle, m_tnDescr, m_tnConfig,
-    m_scratchPad.scratchSize, &m_tnPath));
+    m_scratchPad.scratchSize, m_tnPath));
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_CUTN_ERROR(cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
   int64_t requiredWorkspaceSize = 0;
