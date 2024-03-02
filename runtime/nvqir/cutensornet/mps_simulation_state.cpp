@@ -31,7 +31,7 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
     throw std::runtime_error("[tensornet-state] overlap error - other state "
                              "dimension is not equal to this state dimension.");
 
-  if(m_allSet) deallocateBackendStructures();
+  if(m_allSet) deallocateBackendStructures(); // this may need to be removed if we decide to reuse those
 
   const auto &mpsOther = dynamic_cast<const MPSSimulationState &>(other);
   const auto &mpsOtherTensors = mpsOther.m_mpsTensors;
@@ -40,15 +40,8 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   auto cutnHandle = state->getInternalContext();
   //auto quantumState = state->getInternalState();
 
-  /*
-  auto getNumModes = [mpsNumTensors] (int position) {
-    const int32_t numModes = (position == 0 || position == (mpsNumTensors - 1)) ? 3 : 4;
-    return numModes;
-  };
-  */
-
   // Create a tensor network descriptor for the overlap
-  const int32_t numTensors = mpsNumTensors * 2;
+  const int32_t numTensors = mpsNumTensors * 2; // the overlap tensor network contains two MPS tensor networks
   std::vector<int32_t> numModes(numTensors);
   std::vector<std::vector<int64_t>> tensExtents(numTensors);
   std::vector<cutensornetTensorQualifiers_t> tensAttr(numTensors);
@@ -60,24 +53,16 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
     tensAttr[i] = cutensornetTensorQualifiers_t{0, 0, 0};
     tensAttr[mpsNumTensors + i] = cutensornetTensorQualifiers_t{0, 0, 0};
   }
-  std::vector<int64_t> outExtents(mpsNumTensors);
-  std::vector<int32_t> outModes(mpsNumTensors);
   std::vector<std::vector<int32_t>> tensModes(numTensors);
   int32_t umode = 0;
   for(int i = 0; i < mpsNumTensors; ++i) {
     if(i == 0) {
-      outExtents[i] = m_mpsTensors[i].extents[0];
-      outModes[i] = umode;
       tensModes[i] = std::initializer_list<int32_t>{umode, umode+1};
       umode += 2;
     }else if(i == (mpsNumTensors - 1)) {
-      outExtents[i] = m_mpsTensors[i].extents[1];
-      outModes[i] = umode;
       tensModes[i] = std::initializer_list<int32_t>{umode-1, umode};
       umode += 1;
     }else{
-      outExtents[i] = m_mpsTensors[i].extents[1];
-      outModes[i] = umode;
       tensModes[i] = std::initializer_list<int32_t>{umode-1, umode, umode+1};
       umode += 2;
     }
@@ -106,10 +91,12 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
     overlapSize = sizeof(cuFloatComplex);
     dataType = CUDA_C_32F;
     computeType = CUTENSORNET_COMPUTE_32F;
-  }else if (prec == precision::fp64){
+  } else if(prec == precision::fp64) {
     overlapSize = sizeof(cuDoubleComplex);
     dataType = CUDA_C_64F;
     computeType = CUTENSORNET_COMPUTE_64F;
+  } else{
+    throw std::runtime_error("[tensornet-state] unknown precision.");
   }
   std::vector<const int64_t*> extentsIn(numTensors);
   for(int i = 0; i < numTensors; ++i) {
@@ -121,9 +108,9 @@ double MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   }
   HANDLE_CUTN_ERROR(cutensornetCreateNetworkDescriptor(cutnHandle,
     numTensors, numModes.data(), extentsIn.data(), NULL, modesIn.data(), tensAttr.data(),
-    mpsNumTensors, outExtents.data(), NULL, outModes.data(), dataType, computeType, &m_tnDescr));
+    0, NULL, NULL, NULL, dataType, computeType, &m_tnDescr));
 
-  // Determine the contraction path and create the contraction plan
+  // Determine the tensor network contraction path and create the contraction plan
   HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerConfig(cutnHandle, &m_tnConfig));
   HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(cutnHandle, m_tnDescr, &m_tnPath));
   assert(m_scratchPad.scratchSize > 0);
