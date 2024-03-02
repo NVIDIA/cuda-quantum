@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -73,21 +73,35 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       "set_target",
       [&](const cudaq::RuntimeTarget &target, py::kwargs extraConfig) {
         std::map<std::string, std::string> config;
+        bool useNVQC = false;
         for (auto &[key, value] : extraConfig) {
           std::string strValue = "";
-          if (py::isinstance<py::bool_>(value))
-            strValue = value.cast<py::bool_>() ? "true" : "false";
-          else if (py::isinstance<py::str>(value))
-            strValue = value.cast<std::string>();
-          else if (py::isinstance<py::int_>(value))
-            strValue = std::to_string(value.cast<int>());
-          else
-            throw std::runtime_error(
-                "QPU kwargs config value must be cast-able to a string.");
+          if (key.cast<std::string>() == "nvqc" &&
+              value.cast<py::bool_>() == true) {
+            useNVQC = true;
+            auto simName = target.simulatorName;
+            // Replace '_' with '-'
+            for (auto &ch : simName)
+              ch = ch == '_' ? '-' : ch;
+            config.emplace("backend", simName);
+          } else {
+            if (py::isinstance<py::bool_>(value))
+              strValue = value.cast<py::bool_>() ? "true" : "false";
+            else if (py::isinstance<py::str>(value))
+              strValue = value.cast<std::string>();
+            else if (py::isinstance<py::int_>(value))
+              strValue = std::to_string(value.cast<int>());
+            else
+              throw std::runtime_error(
+                  "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), strValue);
+            config.emplace(key.cast<std::string>(), strValue);
+          }
         }
-        holder.setTarget(target.name, config);
+        if (useNVQC)
+          holder.setTarget("nvqc", config);
+        else
+          holder.setTarget(target.name, config);
       },
       "Set the `cudaq.Target` to be used for CUDA Quantum kernel execution. "
       "Can provide optional, target-specific configuration data via Python "
@@ -96,21 +110,35 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       "set_target",
       [&](const std::string &name, py::kwargs extraConfig) {
         std::map<std::string, std::string> config;
+        bool useNVQC = false;
         for (auto &[key, value] : extraConfig) {
           std::string strValue = "";
-          if (py::isinstance<py::bool_>(value))
-            strValue = value.cast<py::bool_>() ? "true" : "false";
-          else if (py::isinstance<py::str>(value))
-            strValue = value.cast<std::string>();
-          else if (py::isinstance<py::int_>(value))
-            strValue = std::to_string(value.cast<int>());
-          else
-            throw std::runtime_error(
-                "QPU kwargs config value must be cast-able to a string.");
+          if (key.cast<std::string>() == "nvqc" &&
+              value.cast<py::bool_>() == true) {
+            useNVQC = true;
+            auto simName = holder.getTarget(name).simulatorName;
+            // Replace '_' with '-'
+            for (auto &ch : simName)
+              ch = ch == '_' ? '-' : ch;
+            config.emplace("backend", simName);
+          } else {
+            if (py::isinstance<py::bool_>(value))
+              strValue = value.cast<py::bool_>() ? "true" : "false";
+            else if (py::isinstance<py::str>(value))
+              strValue = value.cast<std::string>();
+            else if (py::isinstance<py::int_>(value))
+              strValue = std::to_string(value.cast<int>());
+            else
+              throw std::runtime_error(
+                  "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), strValue);
+            config.emplace(key.cast<std::string>(), strValue);
+          }
         }
-        holder.setTarget(name, config);
+        if (useNVQC)
+          holder.setTarget("nvqc", config);
+        else
+          holder.setTarget(name, config);
       },
       "Set the `cudaq.Target` with given name to be used for CUDA Quantum "
       "kernel execution. Can provide optional, target-specific configuration "
