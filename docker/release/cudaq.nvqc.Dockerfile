@@ -16,8 +16,6 @@
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest
 FROM $base_image as nvcf_image
 
-ENV CUDAQ_LOG_LEVEL=info
-
 ADD scripts/nvqc_proxy.py /
 
 # Launch script: launch cudaq-qpud (nvcf mode) with MPI ranks == Number of NVIDIA GPUs
