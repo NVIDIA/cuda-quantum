@@ -72,7 +72,7 @@ available_backends=`\
         qpu=${platform#PLATFORM_QPU=}
         requirements=$(cat $file | grep "GPU_REQUIREMENTS=")
         gpus=${requirements#GPU_REQUIREMENTS=}
-        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
+        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
@@ -174,15 +174,21 @@ do
         else target_flag="--target $t"
         fi
     
-        if [ -n "$intended_target" ] && [ "$intended_target" != "$t" ];
-        then
+        if [ -n "$intended_target" ] && [ "$intended_target" != "$t" ]; then
             let "skipped+=1"
             echo "Skipping $t target.";
             echo ":white_flag: $filename: Not intended for this target. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
             continue
 
-        elif [ "$t" == "density-matrix-cpu" ] && [[ "$ex" != *"nois"* ]];
-        then
+        elif [ "$t" == "density-matrix-cpu" ] && [[ "$ex" != *"nois"* ]]; then
+            let "skipped+=1"
+            echo "Skipping $t target."
+            echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
+
+        elif [[ "$ex" == *"nvqc"* ]]; then
+            # NVQC tests are too big for CPU-based simulators, and they are
+            # tested via nightly integration tests. Skip them here.
             let "skipped+=1"
             echo "Skipping $t target."
             echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
