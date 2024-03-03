@@ -494,6 +494,38 @@ protected:
   }
 
   virtual json processRequest(const std::string &reqBody) {
+    // Create a watchdog thread to kill the process if the request is taking too
+    // long.
+    std::mutex watchdogMutex;
+    std::condition_variable watchdogCV;
+    bool processingComplete = false;
+    std::future<void> watchdogResult = std::async(std::launch::async, [&]() {
+      std::unique_lock<std::mutex> lock(watchdogMutex);
+      std::chrono::seconds timeout(60 * 60 * 24 * 30); // default to 30 days
+      if (auto timeoutStr = getenv("WATCHDOG_TIMEOUT_SEC"))
+        timeout = std::chrono::seconds(atoi(timeoutStr));
+
+      if (watchdogCV.wait_for(lock, timeout,
+                              [&]() { return processingComplete; })) {
+        // Succeeded. Gracefully return from the async.
+        return;
+      } else {
+        // Timed out. Perform abort.
+        fmt::print("Processing timed out after {} seconds! Aborting!\n",
+                   timeout.count());
+        exit(-1);
+      }
+    });
+
+    // Notify watchdog thread of graceful completion at scope exit
+    auto notifyWatchdog = llvm::make_scope_exit([&] {
+      std::unique_lock<std::mutex> lock(watchdogMutex);
+      processingComplete = true;
+      lock.unlock();
+      watchdogCV.notify_one();
+      watchdogResult.get();
+    });
+
     try {
       // IMPORTANT: This assumes the REST server handles incoming requests
       // sequentially.
