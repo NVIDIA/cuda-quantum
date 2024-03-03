@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --nvqc_sample.cpp -o out.x
+// nvq++ --nvqc nvqc_sample.cpp -o out.x
 // ./out.x
 // ```
 // Assumes a valid NVQC API key has been set in the `NVQC_API_KEY` environment
