@@ -13,7 +13,7 @@ import cudaq
 kernel = cudaq.make_kernel()
 # Allocate our qubits.
 qubit_count = 2
-qvector = cudaq.qalloc(qubit_count)
+qvector = kernel.qalloc(qubit_count)
 # Place the first qubit in the superposition state.
 kernel.h(qvector[0])
 # Loop through the allocated qubits and apply controlled-X,
@@ -24,20 +24,21 @@ for qubit in range(qubit_count - 1):
 kernel.mz(qvector)
 # [End Documentation]
 
-# FIXME: Comment this back in when we're ready to roll out
-# updated Python support.
-# @cudaq.kernel
-# def kernel(qubit_count: int):
-#     # Allocate our qubits.
-#     qvector = cudaq.qvector(qubit_count)
-#     # Place the first qubit in the superposition state.
-#     h(qvector[0])
-#     # Loop through the allocated qubits and apply controlled-X,
-#     # or CNOT, operations between them.
-#     for qubit in range(qubit_count - 1):
-#         x.ctrl(qvector[qubit], qvector[qubit + 1])
-#     # Measure the qubits.
-#     mz(qvector)
-
 # Just for CI testing:
-test_result = cudaq.sample(kernel, 10, shots_count=1)
+test_result = cudaq.sample(kernel, shots_count=1)
+
+
+# FIXME: Swap this kernel back in when we roll out new python support.
+# The spellchecker doesn't like when this snippet is commented out.
+@cudaq.kernel
+def kernel(qubit_count: int):
+    # Allocate our qubits.
+    qvector = cudaq.qvector(qubit_count)
+    # Place the first qubit in the superposition state.
+    h(qvector[0])
+    # Loop through the allocated qubits and apply controlled-X,
+    # or CNOT, operations between them.
+    for qubit in range(qubit_count - 1):
+        x.ctrl(qvector[qubit], qvector[qubit + 1])
+    # Measure the qubits.
+    mz(qvector)

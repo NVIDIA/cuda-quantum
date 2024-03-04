@@ -10,21 +10,9 @@ import cudaq
 
 cudaq.set_target('nvidia')
 
-# FIXME: Comment this back in when we're ready to roll out
-# updated Python support.
-# Certain lines below will have to be updated too, such as
-# cudaq.sample needing to take the `qubit_count` as argument.
-# @cudaq.kernel
-# def kernel(qubit_count: int):
-#     qvector = cudaq.qvector(qubit_count)
-#     h(qvector[0])
-#     for qubit in range(qubit_count - 1):
-#         x.ctrl(qvector[qubit], qvector[qubit + 1])
-#     mz(qvector)
-
 qubit_count = 2
 kernel = cudaq.make_kernel()
-qvector = cudaq.qalloc(qubit_count)
+qvector = kernel.qalloc(qubit_count)
 kernel.h(qvector[0])
 for qubit in range(qubit_count - 1):
     kernel.cx(qvector[qubit], qvector[qubit + 1])
@@ -42,7 +30,7 @@ print(results)
 # With an increased shots count, we will still see the same 50/50 distribution,
 # but now with 10,000 total measurements instead of the default 1000.
 # Example: {00: 5005  11: 4995}
-results = cudaq.sample(kernel, qubit_count, shots_count=10000)
+results = cudaq.sample(kernel, shots_count=10000)
 print(results)
 #[End Sample2]
 
@@ -50,3 +38,15 @@ print(results)
 print(results.most_probable())  # prints: `00`
 print(results.probability(results.most_probable()))  # prints: `0.5005`
 #[End Sample3]
+
+# # FIXME: Swap this kernel back in when we roll out new python support.
+# # The spellchecker doesn't like when this snippet is commented out.
+# # Certain lines below will have to be updated too, such as
+# # cudaq.sample needing to take the `qubit_count` as argument.
+# @cudaq.kernel
+# def kernel(qubit_count: int):
+#     qvector = cudaq.qvector(qubit_count)
+#     h(qvector[0])
+#     for qubit in range(qubit_count - 1):
+#         x.ctrl(qvector[qubit], qvector[qubit + 1])
+#     mz(qvector)

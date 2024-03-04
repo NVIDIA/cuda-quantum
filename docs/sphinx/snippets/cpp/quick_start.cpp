@@ -18,6 +18,6 @@ __qpu__ void kernel() {
 
 int main() {
   auto result = cudaq::sample(kernel);
-  result.dump(); // { 1:500 0:500 }
+  result.dump(); // Example: { 1:500 0:500 }
 }
 // [End Documentation]
