@@ -8,8 +8,11 @@
 
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
 
-// Test that we pass vector of struct and a struct of vector through
-// altLaunchKernel() and get the correct values in the spans in the kernel.
+// All tests should pass.
+
+// Test that we pass vector of struct, struct of struct, and a struct of vector
+// through altLaunchKernel() and get the correct values in the spans in the
+// kernel.
 
 #include <cudaq.h>
 #include <iomanip>
