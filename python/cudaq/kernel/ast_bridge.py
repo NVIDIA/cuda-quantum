@@ -820,6 +820,11 @@ class PyASTBridge(ast.NodeVisitor):
                     value.type) or cc.CallableType.isinstance(value.type):
                 self.symbolTable[varNames[i]] = value
             elif varNames[i] in self.symbolTable:
+                if varNames[i] in self.capturedVars:
+                    self.emitFatalError(
+                        f"CUDA Quantum does not allow assignment to variables captured from parent scope.",
+                        node)
+
                 cc.StoreOp(value, self.symbolTable[varNames[i]])
             elif cc.PointerType.isinstance(value.type):
                 self.symbolTable[varNames[i]] = value

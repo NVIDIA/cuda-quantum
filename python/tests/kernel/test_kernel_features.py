@@ -648,7 +648,7 @@ def test_capture_vars():
                       atol=1e-3)
 
 
-def test_capture_change_variable():
+def test_capture_disallow_change_variable():
 
     # This tests that variables can be captured,
     # that those captured variables can be modified
@@ -669,7 +669,8 @@ def test_capture_change_variable():
         # Return n
         return n
 
-    assert n == 3 and 4 == kernel()
+    with pytest.raises(RuntimeError) as e:
+        kernel()
 
 
 def test_inner_function_capture():
