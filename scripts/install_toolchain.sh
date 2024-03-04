@@ -131,6 +131,11 @@ elif [ "$toolchain" = "llvm" ]; then
         LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
         LLVM_PROJECTS='clang;flang;lld;compiler-rt' \
         CC="$CC" CXX="$CXX" bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v
+        if [ ! $? -eq 0 ]; then 
+            echo -e "\e[01;31mError: Failed to build LLVM toolchain from source.\e[0m" >&2
+            (return 0 2>/dev/null) && return 3 || exit 3
+        fi
+
         if [ -d "$llvm_tmp_dir" ]; then
             echo "The build logs have been moved to $LLVM_INSTALL_PREFIX/logs."
             mkdir -p "$LLVM_INSTALL_PREFIX/logs" && mv "$llvm_tmp_dir/build/logs"/* "$LLVM_INSTALL_PREFIX/logs/"
