@@ -10,19 +10,19 @@
 // simulated using the multi-GPU backend. The amount of resources required for
 // the simulation doubles with with each additional qubit.
 
-#include <bitset>
 #include <cudaq.h>
 #include <iostream>
 #include <random>
+#include <vector>
 
 #ifndef SIZE
 #define SIZE 5
 #endif
 
 template <int nrOfBits>
-std::bitset<nrOfBits> random_bits(int seed) {
+std::vector<bool> random_bits(int seed) {
 
-  std::bitset<nrOfBits> randomBits;
+  std::vector<bool> randomBitsi(nrOfBits);
   std::default_random_engine generator(seed);
   std::uniform_real_distribution<float> distribution(0.0, 1.0);
 
@@ -34,7 +34,7 @@ std::bitset<nrOfBits> random_bits(int seed) {
 
 template <int nrOfBits>
 struct oracle {
-  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qview<> qs,
+  auto operator()(std::vector<bool> bitvector, cudaq::qview<> qs,
                   cudaq::qubit &aux) __qpu__ {
 
     for (size_t i = 0; i < nrOfBits; i++) {
@@ -47,7 +47,7 @@ struct oracle {
 
 template <int nrOfBits>
 struct bernstein_vazirani {
-  auto operator()(std::bitset<nrOfBits> bitvector) __qpu__ {
+  auto operator()(std::vector<bool> bitvector) __qpu__ {
 
     cudaq::qarray<nrOfBits> qs;
     cudaq::qubit aux;
