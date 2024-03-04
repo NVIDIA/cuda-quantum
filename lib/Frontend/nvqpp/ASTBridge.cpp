@@ -26,9 +26,6 @@
 
 using namespace mlir;
 
-constexpr const char targetTripleAttrName[] = "llvm.triple";
-constexpr const char targetDataLayoutAttrName[] = "llvm.data_layout";
-
 // This flag is useful when debugging and the lower-ast debug output crashes.
 // The MLIR printer will, for various reasons, spontaneously crash when printing
 // the full Op. Setting this to any value except `1` or `2` will attempt to
@@ -406,10 +403,10 @@ ASTBridgeAction::ASTBridgeConsumer::ASTBridgeConsumer(
       clang::ItaniumMangleContext::create(astContext, ci.getDiagnostics());
   assert(mangler && "mangler creation failed");
   auto triple = astContext.getTargetInfo().getTriple().str();
-  (*module)->setAttr(targetTripleAttrName,
+  (*module)->setAttr(opt::factory::targetTripleAttrName,
                      StringAttr::get(module->getContext(), triple));
   std::string dataLayout{astContext.getTargetInfo().getDataLayoutString()};
-  (*module)->setAttr(targetDataLayoutAttrName,
+  (*module)->setAttr(opt::factory::targetDataLayoutAttrName,
                      StringAttr::get(module->getContext(), dataLayout));
 }
 
@@ -433,8 +430,9 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
   build.setInsertionPointToEnd(module->getBody());
   bool addThisPtr =
       isa<clang::CXXMethodDecl>(funcDecl) && !funcDecl->isStatic();
-  funcTy = cudaq::opt::factory::toHostSideFuncType(funcTy, addThisPtr);
-  auto func = build.create<func::FuncOp>(loc, funcName, funcTy,
+  FunctionType hostFuncTy =
+      opt::factory::toHostSideFuncType(funcTy, addThisPtr, *module);
+  auto func = build.create<func::FuncOp>(loc, funcName, hostFuncTy,
                                          ArrayRef<NamedAttribute>{});
   if (!addThisPtr)
     func->setAttr("no_this", build.getUnitAttr());
@@ -446,24 +444,26 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
   auto *block = func.addEntryBlock();
   build.setInsertionPointToStart(block);
   SmallVector<Value> results;
-  for (auto resTy : funcTy.getResults())
-    results.push_back(build.create<cudaq::cc::UndefOp>(loc, resTy));
+  for (auto resTy : hostFuncTy.getResults())
+    results.push_back(build.create<cc::UndefOp>(loc, resTy));
   build.create<func::ReturnOp>(loc, results);
 
   // Walk the arguments and add byval attributes where needed.
   assert(visitor.isItaniumCXXABI() && "Microsoft ABI not implemented");
-  auto hiddenSRet = cudaq::opt::factory::hasHiddenSRet(devFuncTy);
-  auto delta = cudaq::cc::numberOfHiddenArgs(addThisPtr, hiddenSRet);
+  auto hiddenSRet = opt::factory::hasHiddenSRet(devFuncTy);
+  auto delta = cc::numberOfHiddenArgs(addThisPtr, hiddenSRet);
   if (hiddenSRet) {
     // The first argument should be a pointer type if this function has a hidden
     // sret.
-    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(funcTy.getInput(0))) {
+    if (auto ptrTy = dyn_cast<cc::PointerType>(hostFuncTy.getInput(0))) {
       auto eleTy = ptrTy.getElementType();
-      assert(isa<cudaq::cc::StructType>(eleTy) && "must be a struct");
+      assert(isa<cc::StructType>(eleTy) && "must be a struct");
       func.setArgAttr(0, LLVM::LLVMDialect::getStructRetAttrName(),
                       TypeAttr::get(eleTy));
     }
   }
+
+  // Pass over the parameters and add a byval attribute where required.
   for (auto iter : llvm::enumerate(funcDecl->parameters())) {
     auto *paramDecl = iter.value();
     // See clang::CodeGen::TargetInfo::getRecordArgABI()
@@ -479,12 +479,20 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
         // copies, etc.
         // On aarch64, the convention is to omit the byval attribute.
         if (d->canPassInRegisters() && isX86_64(astContext)) {
-          auto argPos = iter.index() + delta;
-          auto strTy = cast<cudaq::cc::PointerType>(funcTy.getInput(argPos))
-                           .getElementType();
-          assert(isa<cudaq::cc::StructType>(strTy) && "must be a struct");
-          func.setArgAttr(argPos, LLVM::LLVMDialect::getByValAttrName(),
-                          TypeAttr::get(strTy));
+          auto idx = iter.index();
+          auto argPos = idx + delta;
+          if (auto ptrTy =
+                  dyn_cast<cc::PointerType>(hostFuncTy.getInput(argPos))) {
+            auto strTy = ptrTy.getElementType();
+            assert(isa<cc::StructType>(strTy) && "must be a struct");
+            func.setArgAttr(argPos, LLVM::LLVMDialect::getByValAttrName(),
+                            TypeAttr::get(strTy));
+          } else if (opt::factory::structUsesTwoArguments(
+                         funcTy.getInput(idx))) {
+            // On x86_64, we may pass the struct as 2 distinct arguments. We
+            // must adjust the offset on the fly.
+            ++delta;
+          }
         }
       }
     }
@@ -546,10 +554,10 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       // will be mapped to and execute on the QPU.
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
-      func->setAttr(cudaq::kernelAttrName, unitAttr);
+      func->setAttr(kernelAttrName, unitAttr);
       if (!hasAnyQubitTypes(func.getFunctionType())) {
         // Flag func as an entry point to a quantum kernel.
-        func->setAttr(cudaq::entryPointAttrName, unitAttr);
+        func->setAttr(entryPointAttrName, unitAttr);
         // Generate a declaration for the CPU C++ function.
         addFunctionDecl(fdPair.second, visitor, func.getFunctionType(),
                         entryName);
