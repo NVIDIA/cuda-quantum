@@ -72,7 +72,7 @@ int main() {
   for (auto bit : hidden_bitstring)
     std::cout << bit;
   std::cout << "\n";
-  // std::cout << "Measured bitstring = " << result.most_probable() << "\n";
+  std::cout << "Measured bitstring = " << result.most_probable() << "\n";
 
   return 0;
 }
