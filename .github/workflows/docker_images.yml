@@ -767,7 +767,7 @@ jobs:
             docker pull $cudaq_image
           fi
 
-          docker run --rm -dit --name cuda-quantum $cudaq_image
+          docker run --rm -dit --env NVQC_API_KEY="${{ secrets.NVQC_SERVICE_KEY }}" --name cuda-quantum $cudaq_image
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.

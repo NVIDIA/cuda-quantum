@@ -774,6 +774,7 @@ jobs:
         shell: bash
         env:
           BASH_ENV: ~/.bashrc
+          NVQC_API_KEY: ${{ secrets.NVQC_SERVICE_KEY }}
         run: |
           chmod +x /tmp/install/install_cuda_quantum.*
           /tmp/install/install_cuda_quantum.* --accept
@@ -808,6 +809,7 @@ jobs:
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
         TERM: xterm
+        NVQC_API_KEY: ${{ secrets.NVQC_SERVICE_KEY }}
 
     steps:
       - name: Checkout repository

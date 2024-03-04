@@ -72,7 +72,7 @@ available_backends=`\
         qpu=${platform#PLATFORM_QPU=}
         requirements=$(cat $file | grep "GPU_REQUIREMENTS=")
         gpus=${requirements#GPU_REQUIREMENTS=}
-        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
+        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "orca" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \
@@ -131,7 +131,7 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"oqc"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"nvqc"* ]];
+    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"oqc"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]];
     then
         let "skipped+=1"
         echo "Skipped.";
@@ -213,11 +213,22 @@ do
                 echo "Skipping $t target due to incomplete MPI installation.";
                 echo ":white_flag: $filename: Incomplete MPI installation. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
                 continue
-
+            fi
+        # TODO: fix this as NVQC is no longer a standalone target
+        elif [ "$t" == "nvqc" ]; then
+            # Skip these long-running tests which requires lots of jobs.
+            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* ]];
+            then
+                let "skipped+=1"
+                echo "Skipping $t target.";
+                echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+                continue
             else
-                # TODO: remove this once the nvqc backend is part of the validation
-                # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
-                target_flag+=" --enable-mlir"
+                # Look for a --nvqc-nqpus flag to nvq++ in the comment block
+                num_qpus=`sed -e '/^$/,$d' $ex | grep -oP -m 1 '^//\s*nvq++.+--nvqc-nqpus\s+\K\S+'`
+                if [ -n "$num_qpus" ]; then
+                    target_flag="$target_flag --nvqc-nqpus $num_qpus"
+                fi
             fi
         fi
 
