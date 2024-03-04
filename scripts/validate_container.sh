@@ -47,17 +47,6 @@ then echo "MPI detected."
 else echo "No MPI detected."
 fi 
 
-# We shouldn't run python validation on images that don't contain Python (i.e.
-# the Installer validation images).
-if [ -x "$(command -v python3)" ]; 
-then python_available=true
-else python_available=false
-fi
-if $python_available; 
-then echo "Python detected."
-else echo "No Python detected."
-fi 
-
 export UCX_LOG_LEVEL=warning
 requested_backends=`\
     for target in $@; \
@@ -142,7 +131,7 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    if (! $python_available) || [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"oqc"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"nvqc"* ]];
+    if [[ "$ex" == *"iqm"* ]] || [[ "$ex" == *"oqc"* ]] || [[ "$ex" == *"ionq"* ]] || [[ "$ex" == *"quantinuum"* ]] || [[ "$ex" == *"nvqc"* ]];
     then
         let "skipped+=1"
         echo "Skipped.";
