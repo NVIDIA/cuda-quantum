@@ -61,7 +61,7 @@ RUN LLVM_SOURCE=/llvm-project \
 
 # Build the libz prerequisite we also use for CUDA Quantum;
 # this is a C-library and hence will not need to be re-built depending on the C++ standard library.
-#ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 #RUN source "/opt/llvm_stage1/bootstrap/init_command.sh" \
 #    && bash /scripts/install_prerequisites.sh -m \
