@@ -226,7 +226,7 @@ def test_dynamic_circuit():
             x(q[1])
         mz(q)
 
-    counts = cudaq.sample(simple)
+    counts = cudaq.sample(simple, shots_count=100)
     counts.dump()
     c0 = counts.get_register_counts('c0')
     assert '0' in c0 and '1' in c0
@@ -646,6 +646,30 @@ def test_capture_vars():
     assert np.isclose(-1.748,
                       cudaq.observe(canCaptureList, hamiltonian).expectation(),
                       atol=1e-3)
+
+
+def test_capture_change_variable():
+
+    # This tests that variables can be captured,
+    # that those captured variables can be modified
+    # and adhere to capture-by-value semantics,
+    # and that captures are not defined in
+    # an inner scope, but are defined at the
+    # function entry block, thus usable
+    # in other spots in the kernel.
+
+    n = 3
+
+    @cudaq.kernel
+    def kernel() -> int:
+        if True:
+            cudaq.dbg.ast.print_i64(n)
+            # Change n
+            n = 4
+        # Return n
+        return n
+
+    assert n == 3 and 4 == kernel()
 
 
 def test_inner_function_capture():

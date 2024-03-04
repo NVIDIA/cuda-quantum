@@ -101,6 +101,33 @@ private:
     return info;
   }
 
+  std::optional<std::size_t> getQueueDepth(const std::string &funcId,
+                                           const std::string &verId) {
+    auto headers = getHeaders();
+    try {
+      auto queueDepthInfo = m_restClient.get(
+          fmt::format("https://{}/nvcf/queues/functions/{}/versions/{}",
+                      m_baseUrl, funcId, verId),
+          "", headers, /*enableSsl=*/true);
+
+      if (queueDepthInfo.contains("functionId") &&
+          queueDepthInfo["functionId"] == funcId &&
+          queueDepthInfo.contains("queues")) {
+        for (auto queueInfo : queueDepthInfo["queues"]) {
+          if (queueInfo.contains("functionVersionId") &&
+              queueInfo["functionVersionId"] == verId &&
+              queueInfo.contains("queueDepth")) {
+            return queueInfo["queueDepth"].get<std::size_t>();
+          }
+        }
+      }
+      return std::nullopt;
+    } catch (...) {
+      // Make this non-fatal. Returns null, i.e., unknown.
+      return std::nullopt;
+    }
+  }
+
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
@@ -137,7 +164,7 @@ public:
         m_functionId = funcIdIter->second;
         if (m_logLevel > LogLevel::None) {
           // Print out the configuration
-          fmt::print("Submitting jobs to NVQC using function Id {}.\n",
+          cudaq::log("Submitting jobs to NVQC using function Id {}.",
                      m_functionId);
         }
       } else {
@@ -153,7 +180,7 @@ public:
             m_functionId = funcId;
             if (m_logLevel > LogLevel::None) {
               // Print out the configuration
-              fmt::print("Submitting jobs to NVQC service with {} GPU(s).\n",
+              cudaq::log("Submitting jobs to NVQC service with {} GPU(s).",
                          numGpus);
             }
             break;
@@ -316,6 +343,16 @@ public:
     try {
       // Making the request
       cudaq::debug("Sending NVQC request to {}", nvcfInvocationUrl());
+      if (m_logLevel > LogLevel::None) {
+        auto queueDepth = getQueueDepth(m_functionId, m_functionVersionId);
+        if (queueDepth.has_value() && queueDepth.value() > 0) {
+          cudaq::log("Number of jobs ahead of yours in the NVQC queue: {}.",
+                     queueDepth.value());
+        }
+      }
+
+      if (m_logLevel > LogLevel::None)
+        cudaq::log("Posting NVQC request now");
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
@@ -323,7 +360,8 @@ public:
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
         const std::string reqId = resultJs["reqId"];
-        cudaq::info("Polling result data for Request Id {}", reqId);
+        if (m_logLevel > LogLevel::None)
+          cudaq::log("Polling NVQC result data for Request Id {}", reqId);
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
         resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader,
@@ -415,7 +453,14 @@ public:
           cudaq::NvcfExecutionInfo info;
           resultJs["response"]["executionInfo"].get_to(info);
           if (!printDeviceInfoOnce) {
-            fmt::print("\n===== NVQC Device Info ===== \n");
+            std::size_t totalWidth = 50;
+            std::string message = "NVQC Device Info";
+            auto strLen = message.size() + 2; // Account for surrounding spaces
+            auto leftSize = (totalWidth - strLen) / 2;
+            auto rightSize = (totalWidth - strLen) - leftSize;
+            std::string leftSide(leftSize, '=');
+            std::string rightSide(rightSize, '=');
+            fmt::print("\n{} {} {}\n", leftSide, message, rightSide);
             fmt::print("GPU Device Name: \"{}\"\n",
                        info.deviceProps.deviceName);
             fmt::print("CUDA Driver Version / Runtime Version: {}.{} / {}.{}\n",
@@ -429,19 +474,19 @@ public:
                        info.deviceProps.memoryClockRateMhz);
             fmt::print("GPU Clock Rate (MHz): {:.3f}\n",
                        info.deviceProps.clockRateMhz);
-            fmt::print("================================== \n");
+            fmt::print("{}\n", std::string(totalWidth, '='));
             // Only print this device info once.
             printDeviceInfoOnce = true;
           }
 
           // If trace logging mode is enabled, log timing data for each request.
           if (m_logLevel == LogLevel::Trace) {
-            fmt::print("\n===== NVQC Execution Timing ===== \n");
+            fmt::print("\n===== NVQC Execution Timing ======\n");
             fmt::print(" - Pre-processing: {} milliseconds \n",
                        info.simulationStart - info.requestStart);
             fmt::print(" - Execution: {} milliseconds \n",
                        info.simulationEnd - info.simulationStart);
-            fmt::print("================================== \n");
+            fmt::print("==================================\n");
           }
         } catch (...) {
           fmt::print("Unable to parse NVQC execution info metadata.\n");

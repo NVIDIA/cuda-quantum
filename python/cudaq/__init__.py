@@ -38,6 +38,7 @@ gradients = cudaq_runtime.gradients
 OptimizationResult = cudaq_runtime.OptimizationResult
 
 # Runtime Functions
+__version__ = cudaq_runtime.__version__
 initialize_cudaq = cudaq_runtime.initialize_cudaq
 set_target = cudaq_runtime.set_target
 reset_target = cudaq_runtime.reset_target

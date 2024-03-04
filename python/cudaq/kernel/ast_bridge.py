@@ -42,6 +42,12 @@ class PyScopedSymbolTable(object):
     def popScope(self):
         self.symbolTable.pop()
 
+    def add(self, symbol, value, level=-1):
+        """
+        Add a symbol to the scoped symbol table at any scope level.
+        """
+        self.symbolTable[level][symbol] = value
+
     def __contains__(self, symbol):
         for st in reversed(self.symbolTable):
             if symbol in st:
@@ -50,7 +56,8 @@ class PyScopedSymbolTable(object):
         return False
 
     def __setitem__(self, symbol, value):
-        self.symbolTable[-1][symbol] = value
+        # default to nearest surrounding scope
+        self.add(symbol, value)
         return
 
     def __getitem__(self, symbol):
@@ -325,6 +332,15 @@ class PyASTBridge(ast.NodeVisitor):
         return IntegerType.isinstance(type) or F64Type.isinstance(
             type) or ComplexType.isinstance(type)
 
+    def ifPointerThenLoad(self, value):
+        """
+        If the given value is of pointer type, load the pointer 
+        and return that new value.
+        """
+        if cc.PointerType.isinstance(value.type):
+            return cc.LoadOp(value).result
+        return value
+
     def __createStdvecWithKnownValues(self, size, listElementValues):
         # Turn this List into a StdVec<T>
         arrSize = self.getConstantInt(size)
@@ -353,6 +369,7 @@ class PyASTBridge(ast.NodeVisitor):
         Insert a debug print out statement if the programmer requested. Handles 
         statements like `cudaq.dbg.ast.print_i64(i)`.
         """
+        value = self.ifPointerThenLoad(value)
         printFunc = None
         printStr = '[cudaq-ast-dbg] '
         argsTy = [cc.PointerType.get(self.ctx, self.getIntegerType(8))]
@@ -378,7 +395,7 @@ class PyASTBridge(ast.NodeVisitor):
         elif dbgStmt == 'print_f64':
             if not F64Type.isinstance(value.type):
                 self.emitFatalError(
-                    f"print_f64 requested, but value is not of integer type (type was {value.type})."
+                    f"print_f64 requested, but value is not of float type (type was {value.type})."
                 )
 
             currentST = SymbolTable(self.module.operation)
@@ -1000,6 +1017,10 @@ class PyASTBridge(ast.NodeVisitor):
                     endVal = self.popValue()
                     startVal = zero
 
+                startVal = self.ifPointerThenLoad(startVal)
+                endVal = self.ifPointerThenLoad(endVal)
+                stepVal = self.ifPointerThenLoad(stepVal)
+
                 # The total number of elements in the iterable
                 # we are generating should be `N == endVal - startVal`
                 totalSize = math.AbsIOp(arith.SubIOp(endVal,
@@ -1418,6 +1439,7 @@ class PyASTBridge(ast.NodeVisitor):
                         qubits = quake.AllocaOp(ty)
                     else:
                         ty = self.getVeqType()
+                        size = self.ifPointerThenLoad(size)
                         qubits = quake.AllocaOp(ty, size=size)
                     self.pushValue(qubits.results[0])
                     return
@@ -2418,6 +2440,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentAssignVariableName = None
 
         condition = self.popValue()
+        condition = self.ifPointerThenLoad(condition)
 
         if self.getIntegerType(1) != condition.type:
             # not equal to 0, then compare with 1
@@ -2479,6 +2502,8 @@ class PyASTBridge(ast.NodeVisitor):
         if result.owner.parent != self.kernelFuncOp:
             cc.UnwindReturnOp([result])
             return
+
+        result = self.ifPointerThenLoad(result)
 
         if result.type != self.knownResultType:
             # FIXME consider auto-casting where possible
@@ -2740,27 +2765,6 @@ class PyASTBridge(ast.NodeVisitor):
         if node.id in self.capturedVars:
             # Only support a small subset of types here
             value = self.capturedVars[node.id]
-            if isinstance(value, int):
-                self.dependentCaptureVars[node.id] = value
-                mlirVal = self.getConstantInt(value)
-                self.symbolTable[node.id] = mlirVal
-                self.pushValue(mlirVal)
-                return
-
-            if isinstance(value, bool):
-                self.dependentCaptureVars[node.id] = value
-                mlirVal = self.getConstantInt(value, 1)
-                self.symbolTable[node.id] = mlirVal
-                self.pushValue(mlirVal)
-                return
-
-            if isinstance(value, float):
-                self.dependentCaptureVars[node.id] = value
-                mlirVal = self.getConstantFloat(value)
-                self.symbolTable[node.id] = mlirVal
-                self.pushValue(mlirVal)
-                return
-
             if isinstance(value, list) and isinstance(value[0],
                                                       (int, bool, float)):
                 elementValues = None
@@ -2775,8 +2779,29 @@ class PyASTBridge(ast.NodeVisitor):
                     self.dependentCaptureVars[node.id] = value
                     mlirVal = self.__createStdvecWithKnownValues(
                         len(value), elementValues)
-                    self.symbolTable[node.id] = mlirVal
+                    self.symbolTable.add(node.id, mlirVal, 0)
                     self.pushValue(mlirVal)
+                    return
+
+            mlirValCreator = None
+            self.dependentCaptureVars[node.id] = value
+            if isinstance(value, int):
+                mlirValCreator = lambda: self.getConstantInt(value)
+            elif isinstance(value, bool):
+                mlirValCreator = lambda: self.getConstantInt(value, 1)
+            elif isinstance(value, float):
+                mlirValCreator = lambda: self.getConstantFloat(value)
+
+            if mlirValCreator != None:
+                with InsertionPoint.at_block_begin(self.entry):
+                    mlirVal = mlirValCreator()
+                    stackSlot = cc.AllocaOp(
+                        cc.PointerType.get(self.ctx, mlirVal.type),
+                        TypeAttr.get(mlirVal.type)).result
+                    cc.StoreOp(mlirVal, stackSlot)
+                    # Store at the top-level
+                    self.symbolTable.add(node.id, stackSlot, 0)
+                    self.pushValue(stackSlot)
                     return
 
             self.emitFatalError(
