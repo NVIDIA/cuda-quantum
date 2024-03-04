@@ -39,14 +39,14 @@ print(results.most_probable())  # prints: `00`
 print(results.probability(results.most_probable()))  # prints: `0.5005`
 #[End Sample3]
 
-# # FIXME: Swap this kernel back in when we roll out new python support.
-# # The spellchecker doesn't like when this snippet is commented out.
-# # Certain lines below will have to be updated too, such as
-# # cudaq.sample needing to take the `qubit_count` as argument.
-# @cudaq.kernel
-# def kernel(qubit_count: int):
-#     qvector = cudaq.qvector(qubit_count)
-#     h(qvector[0])
-#     for qubit in range(qubit_count - 1):
-#         x.ctrl(qvector[qubit], qvector[qubit + 1])
-#     mz(qvector)
+# FIXME: Swap this kernel back in when we roll out new python support.
+# The spellchecker doesn't like when this snippet is commented out.
+# Certain lines below will have to be updated too, such as
+# cudaq.sample needing to take the `qubit_count` as argument.
+@cudaq.kernel
+def kernel(qubit_count: int):
+    qvector = cudaq.qvector(qubit_count)
+    h(qvector[0])
+    for qubit in range(qubit_count - 1):
+        x.ctrl(qvector[qubit], qvector[qubit + 1])
+    mz(qvector)
