@@ -29,11 +29,11 @@ qubit_count = 25
 
 # Execute on CPU backend.
 cudaq.set_target('qpp-cpu')
-print('CPU time')  # 27.57462 s.
+print('CPU time')  # Example: 27.57462 s.
 print(timeit.timeit(stmt=code_to_time, globals=globals(), number=1))
 
 # Execute on GPU backend.
 cudaq.set_target('nvidia')
-print('GPU time')  # 0.773286 s.
+print('GPU time')  # Example: 0.773286 s.
 print(timeit.timeit(stmt=code_to_time, globals=globals(), number=1))
 #[End Time]

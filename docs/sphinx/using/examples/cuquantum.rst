@@ -1,6 +1,8 @@
 Simulations with cuQuantum
 -----------------------------------
 
+.. _cuquantum-cpp-example-page:
+
 CUDA Quantum provides native support for cuQuantum-accelerated state vector and tensor network 
 simulations. Let's take a look at an example that is too large for a standard CPU-only simulator, but 
 can be trivially simulated via a NVIDIA GPU-accelerated backend:
