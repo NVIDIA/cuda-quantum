@@ -203,11 +203,6 @@ else
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
-echo "CMakeFiles/CMakeOutput.log: "
-cat CMakeFiles/CMakeOutput.log
-echo "CMakeFiles/CMakeError.log: "
-cat CMakeFiles/CMakeError.log
-
 # Build and install clang in a folder
 echo "Building LLVM with configuration $build_configuration..."
 if $verbose; then
