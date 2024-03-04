@@ -126,8 +126,6 @@ def test_uccsd_kernel():
                                optimizer,
                                parameter_count=num_parameters)
     print(energy, params)
-<<<<<<< HEAD
-=======
 
 
 def test_doubles_alpha_bug():
@@ -173,7 +171,6 @@ def test_doubles_alpha_bug():
 
     # Test is that this compiles and runs successfully
     assert test()
->>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
 
 
 # leave for gdb debugging

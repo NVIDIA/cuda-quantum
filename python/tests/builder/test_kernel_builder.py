@@ -1199,4 +1199,3 @@ q3 : ┤ h ├──────────────────────
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
-

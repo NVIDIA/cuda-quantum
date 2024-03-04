@@ -34,11 +34,7 @@ def __isBroadcast(kernel, *args):
             for i, arg in enumerate(args):
                 if isinstance(arg, (int, float, bool, str)):
                     raise RuntimeError(
-<<<<<<< HEAD
-                        f"2D array argument provided for an observe broadcast, but argument {i} ({type(arg)}) must be a list."
-=======
                         f"2D array argument provided for an sample or observe broadcast, but argument {i} ({type(arg)}) must be a list."
->>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
                     )
 
         firstArg = args[0]

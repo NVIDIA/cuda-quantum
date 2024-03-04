@@ -14,10 +14,7 @@ from typing import Callable, List
 import sys
 
 import cudaq
-<<<<<<< HEAD
-=======
 from cudaq import spin
->>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
 
 ## [PYTHON_VERSION_FIX]
 skipIfPythonLessThan39 = pytest.mark.skipif(
@@ -229,11 +226,7 @@ def test_dynamic_circuit():
             x(q[1])
         mz(q)
 
-<<<<<<< HEAD
-    counts = cudaq.sample(simple)
-=======
     counts = cudaq.sample(simple, shots_count=100)
->>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
     counts.dump()
     c0 = counts.get_register_counts('c0')
     assert '0' in c0 and '1' in c0
@@ -427,15 +420,12 @@ def test_simple_return_types():
         def kernel(a: int, b: int):  # No return type
             return a * b
 
-<<<<<<< HEAD
-=======
     @cudaq.kernel
     def boolKernel() -> bool:
         return True
 
     assert boolKernel()
 
->>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
 
 def test_list_creation():
 
@@ -557,10 +547,7 @@ def test_bool_op_short_circuit():
     print(kernel)
 
     counts = cudaq.sample(kernel)
-<<<<<<< HEAD
-=======
     counts.dump()
->>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
     assert len(counts) == 2 and '10' in counts and '00' in counts
 
 
@@ -578,17 +565,6 @@ def test_sample_async_issue_args_processed():
     counts = result.get()
     assert len(counts) == 2 and '01' in counts and '10' in counts
 
-<<<<<<< HEAD
-def test_capture_vars_disallowed():
-
-    n = 5 
-    @cudaq.kernel
-    def test():
-        q = cudaq.qvector(n)
-    
-    with pytest.raises(RuntimeError) as e:
-        test()
-=======
 
 def test_capture_vars():
 
@@ -920,4 +896,3 @@ q3 : ┤ h ├──────────────────────
 '''
 
     assert circuit == expected_str
->>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e

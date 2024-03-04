@@ -9,11 +9,8 @@
 #include "cudaq/algorithms/sample.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
-<<<<<<< HEAD
-=======
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
->>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
 
 #include <fmt/core.h>
 #include <pybind11/stl.h>
@@ -63,15 +60,6 @@ for more information on this programming pattern.)#")
         cudaq::packArgs(*argData, args);
         auto kernelMod = kernel.attr("module").cast<MlirModule>();
 
-<<<<<<< HEAD
-        // Should only have C++ going on here, safe to release the GIL
-        py::gil_scoped_release release;
-        return cudaq::details::runSamplingAsync(
-            [argData, kernelName, kernelMod]() mutable {
-              pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
-              // delete the raw arg data pointer.
-              delete argData;
-=======
         // The function below will be executed multiple times
         // if the kernel has conditional feedback. In that case,
         // we have to be careful about deleting the `argData` and
@@ -97,7 +85,6 @@ for more information on this programming pattern.)#")
                   delete argData;
                 localShots++;
               }
->>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
             },
             platform, kernelName, shots, qpu_id);
       },
