@@ -22,12 +22,12 @@ cudaq.set_target('nvidia')
 #         x.ctrl(qvector[qubit], qvector[qubit + 1])
 #     mz(qvector)
 
-qubit_count = 2 
+qubit_count = 2
 kernel = cudaq.make_kernel()
 qvector = cudaq.qalloc(qubit_count)
 kernel.h(qvector[0])
-for qubit in range(qubit_count-1):
-    kernel.cx(qvector[qubit], qvector[qubit+1])
+for qubit in range(qubit_count - 1):
+    kernel.cx(qvector[qubit], qvector[qubit + 1])
 kernel.mz(qvector)
 
 #[Begin Sample1]
@@ -47,6 +47,6 @@ print(results)
 #[End Sample2]
 
 #[Begin Sample3]
-print(results.most_probable())                       # prints: `00`
+print(results.most_probable())  # prints: `00`
 print(results.probability(results.most_probable()))  # prints: `0.5005`
 #[End Sample3]

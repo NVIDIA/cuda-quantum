@@ -12,14 +12,14 @@ import cudaq
 # Define our kernel.
 kernel = cudaq.make_kernel()
 # Allocate our qubits.
-qubit_count = 2 
+qubit_count = 2
 qvector = cudaq.qalloc(qubit_count)
 # Place the first qubit in the superposition state.
 kernel.h(qvector[0])
 # Loop through the allocated qubits and apply controlled-X,
 # or CNOT, operations between them.
-for qubit in range(qubit_count-1):
-    kernel.cx(qvector[qubit], qvector[qubit+1])
+for qubit in range(qubit_count - 1):
+    kernel.cx(qvector[qubit], qvector[qubit + 1])
 # Measure the qubits.
 kernel.mz(qvector)
 # [End Documentation]
@@ -38,7 +38,6 @@ kernel.mz(qvector)
 #         x.ctrl(qvector[qubit], qvector[qubit + 1])
 #     # Measure the qubits.
 #     mz(qvector)
-
 
 # Just for CI testing:
 test_result = cudaq.sample(kernel, 10, shots_count=1)
