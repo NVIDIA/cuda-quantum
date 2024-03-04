@@ -185,7 +185,8 @@ if [ -z "$LLVM_CMAKE_CACHE" ]; then
 fi
 if [ -f "$LLVM_CMAKE_CACHE" ]; then 
   echo "Using CMake cache in $LLVM_CMAKE_CACHE."
-  cmake_cache='-C "'$LLVM_CMAKE_CACHE'"'
+  cp "$LLVM_CMAKE_CACHE" custom_toolchain.cmake
+  cmake_cache='-C custom_toolchain.cmake'
   # Note on combining a CMake cache with command line definitions:
   # If a set(... CACHE ...) call in the -C file does not use FORCE, 
   # the command line define takes precedence regardless of order.
