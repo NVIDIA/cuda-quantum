@@ -82,9 +82,9 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
-ADD ./cmake/caches/LLVM.cmake /llvm-project/cmake/caches/cudaq_toolchain.cmake
+ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 RUN LLVM_PROJECTS='clang;mlir' \
-    LLVM_CMAKE_CACHE=../cmake/caches/cudaq_toolchain.cmake \
+    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     bash /scripts/build_llvm.sh -s /llvm-project -c Release -v
     # No clean up of the build or source directory,
     # since we need to re-build llvm for each python version to get the bindings.

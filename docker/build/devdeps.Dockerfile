@@ -51,11 +51,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 # Install the compiler toolchain used to build CUDA Quantum.
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
-ADD ./cmake/caches/LLVM.cmake /llvm-project/cmake/caches/cudaq_toolchain.cmake
+ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
 RUN LLVM_SOURCE=/llvm-project \
     LLVM_INSTALL_PREFIX=/opt/llvm_stage1 \
-    LLVM_CMAKE_CACHE=../cmake/caches/cudaq_toolchain.cmake \
+    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     source scripts/install_toolchain.sh -e /opt/llvm_stage1/bootstrap -t ${toolchain} \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && rm -rf /llvm-project/build
@@ -94,7 +94,7 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 RUN source "/opt/llvm_stage1/bootstrap/init_command.sh" && \
     LLVM_PROJECTS='clang;mlir;python-bindings' \
-    LLVM_CMAKE_CACHE=../cmake/caches/cudaq_toolchain.cmake \
+    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     bash /scripts/build_llvm.sh -s /llvm-project -c Release -v && \
     mv /opt/llvm_stage1/bootstrap "$LLVM_INSTALL_PREFIX/bootstrap" && \
     for file in `ls "$LLVM_INSTALL_PREFIX/bootstrap"`; do \
