@@ -8,8 +8,11 @@
 
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
 
-// Test that we pass vector of vector of ... through altLaunchKernel() and get
-// the correct values in the spans in the kernel.
+// All tests should pass.
+
+// Tests that arguments of vector, vector of vector, and vector of vector of
+// vector can be passed through altLaunchKernel() and get the correct values in
+// the span structures in the kernel.
 
 #include <cudaq.h>
 #include <iomanip>
