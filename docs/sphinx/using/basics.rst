@@ -87,7 +87,7 @@ Sample
 
 .. tab:: Python
 
-  The :func:`cudaq.sample` method takes a kernel and it arguments as inputs, and returns a :class:`cudaq.SampleResult`
+  The :func:`cudaq.sample` method takes a kernel and its arguments as inputs, and returns a :class:`cudaq.SampleResult`
   to the programmer. This result dictionary contains the distribution of measured states for the system.
   Continuing with the GHZ kernel defined in :ref:`Building Your First CUDA Quantum Program <building-your-first-kernel>`,
   we will set the concrete value of our `qubit_count` to be two. The following will assume this code exists in
@@ -124,7 +124,7 @@ Sample
 
 .. tab:: C++
 
-  The :func:`cudaq.sample` method takes a kernel and it arguments as inputs, and returns a :class:`cudaq.SampleResult`
+  The :func:`cudaq.sample` method takes a kernel and its arguments as inputs, and returns a :class:`cudaq.SampleResult`
   to the programmer. This result dictionary contains the distribution of measured states for the system.
   Continuing with the GHZ kernel defined in :ref:`Building Your First CUDA Quantum Program <building-your-first-kernel>`,
   we will set the concrete value of our `qubit_count` to be two. The following will assume this code exists in
@@ -164,30 +164,85 @@ Sample
 Observe
 +++++++++
 
-:func:`cudaq.observe` is used to produce expectation values provided a quantum state and a spin operator. 
+.. tab:: Python
 
-First, an operator (i.e. a linear combination of Pauli strings) must be specified. To do so, import `spin` from cudaq. Any linear combination of the I, X, Y, and Z spin operators can be constructed with using spin.i(q), spin.x(q), spin.y(q), and spin.z(q), respectively, where q is the index of the target qubit. 
+  The :func:`cudaq.observe` method takes a kernel and its arguments as inputs, along with a :class:`cudaq.SpinOperator`.
+  As opposed to :func:`cudaq.sample`, `observe` is primarily used to produce expectation values of a kernel with respect
+  to a provider operator.
 
-Below is an example of a spin operator object consisting of a Z(0) operator, followed by construction of a kernel with a single qubit in an equal superposition. The Hamiltonian is printed to confirm it has been constructed properly.
+  Using the `cudaq.spin` module, operators may be defined as a linear combination of Pauli strings. Functions, such
+  as :func:`cudaq.spin.i`, :func:`cudaq.spin.x`, :func:`cudaq.spin.y`, :func:`cudaq.spin.z` may be used to construct more
+  complex spin Hamiltonians on multiple qubits.
+  
+  Below is an example of a spin operator object consisting of a `Z(0)` operator, or a Pauli Z-operator on the 0-th qubit. 
+  This is followed by the construction of a kernel with a single qubit in an equal superposition. 
+  The Hamiltonian is printed to confirm it has been constructed properly.
 
-.. literalinclude:: ../snippets/python/using/observe.py
-      :language: python
-      :start-after: [Begin Observe1]
-      :end-before: [End Observe1]
+  .. literalinclude:: ../snippets/python/using/first_observe.py
+        :language: python
+        :start-after: [Begin Observe1]
+        :end-before: [End Observe1]
 
-:code:`cudaq::observe` takes a kernel, kernel arguments (if any),  and a spin operator as inputs and produces an `ObserveResult` object. The expectation value can be printed using the `expectation` method. It is important to exclude a measurement in the kernel, otherwise the expectation value will be determined from a collapsed classical state. For this example, the expected result of 0.0 is produced.
+  :code:`cudaq::observe` takes a kernel, any kernel arguments, and a spin operator as inputs and produces an `ObserveResult` object.
+  The expectation value can be printed using the `expectation` method. 
+  
+  .. note:: 
+    It is important to exclude a measurement in the kernel, otherwise the expectation value will be determined from a collapsed 
+    classical state. For this example, the expected result of 0.0 is produced.
 
-.. literalinclude:: ../snippets/python/using/observe.py
-      :language: python
-      :start-after: [Begin Observe2]
-      :end-before: [End Observe2]
+  .. literalinclude:: ../snippets/python/using/first_observe.py
+        :language: python
+        :start-after: [Begin Observe2]
+        :end-before: [End Observe2]
 
-Unlike `sample`, the default `shots_count` for :code:`cudaq::observe` is 1. This result is deterministic and equivalent to the expectation value in the limit of infinite shots.  To produce an approximate expectation value from sampling, `shots_count` can be specified to any integer.
+  Unlike `sample`, the default `shots_count` for :code:`cudaq::observe` is 1. This result is deterministic and equivalent to the
+  expectation value in the limit of infinite shots.  To produce an approximate expectation value from sampling, `shots_count` can
+  be specified to any integer.
 
-.. literalinclude:: ../snippets/python/using/observe.py
-      :language: python
-      :start-after: [Begin Observe3]
-      :end-before: [End Observe3]
+  .. literalinclude:: ../snippets/python/using/first_observe.py
+        :language: python
+        :start-after: [Begin Observe3]
+        :end-before: [End Observe3]
+
+.. tab:: C++
+
+  The :func:`cudaq.observe` method takes a kernel and its arguments as inputs, along with a `cudaq::spin_op`.
+  As opposed to :func:`cudaq.sample`, `observe` is primarily used to produce expectation values of a kernel with respect
+  to a provider operator.
+
+  Within the `cudaq::spin` namespace, operators may be defined as a linear combination of Pauli strings. Functions, such
+  as `cudaq::spin::i`, `cudaq::spin::x`, `cudaq::spin::y`, `cudaq::spin::z` may be used to construct more
+  complex spin Hamiltonians on multiple qubits.
+  
+  Below is an example of a spin operator object consisting of a `Z(0)` operator, or a Pauli Z-operator on the 0-th qubit. 
+  This is followed by the construction of a kernel with a single qubit in an equal superposition. 
+  The Hamiltonian is printed to confirm it has been constructed properly.
+
+  .. literalinclude:: ../snippets/cpp/using/first_observe.cpp
+        :language: cpp
+        :start-after: [Begin Observe1]
+        :end-before: [End Observe1]
+
+  :code:`cudaq::observe` takes a kernel, any kernel arguments, and a spin operator as inputs and produces an `ObserveResult` object.
+  The expectation value can be printed using the `expectation` method. 
+  
+  .. note:: 
+    It is important to exclude a measurement in the kernel, otherwise the expectation value will be determined from a collapsed 
+    classical state. For this example, the expected result of 0.0 is produced.
+
+  .. literalinclude:: ../snippets/cpp/using/first_observe.cpp
+        :language: cpp
+        :start-after: [Begin Observe2]
+        :end-before: [End Observe2]
+
+  Unlike `sample`, the default `shots_count` for :code:`cudaq::observe` is 1. This result is deterministic and equivalent to the
+  expectation value in the limit of infinite shots.  To produce an approximate expectation value from sampling, `shots_count` can
+  be specified to any integer.
+
+  .. literalinclude:: ../snippets/cpp/using/first_observe.cpp
+        :language: cpp
+        :start-after: [Begin Observe3]
+        :end-before: [End Observe3]
 
 Running on a GPU
 ++++++++++++++++++
