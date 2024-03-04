@@ -6,14 +6,17 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# FIXME: Comment this back in when we're ready to roll out
-# updated Python support.
-# import cudaq
-# @cudaq.kernel
-# def kernel():
-#     qubit = cudaq.qubit()
-#     h(qubit)
-#     mz(qubit)
+# FIXME: Swap this kernel back in when we roll out new python support.
+# The spellchecker doesn't like when this snippet is commented out.
+import cudaq
+
+
+@cudaq.kernel
+def kernel():
+    qubit = cudaq.qubit()
+    h(qubit)
+    mz(qubit)
+
 
 # [Begin Documentation]
 import cudaq
@@ -26,4 +29,4 @@ kernel.h(qubit)
 kernel.mz(qubit)
 
 result = cudaq.sample(kernel)
-print(result)  # { 1:500 0:500 }
+print(result)  # Example: { 1:500 0:500 }
