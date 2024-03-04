@@ -221,6 +221,8 @@ scalability
 sexualized
 struct
 structs
+subcircuit
+subcircuits
 subclass
 subclassed
 subclasses

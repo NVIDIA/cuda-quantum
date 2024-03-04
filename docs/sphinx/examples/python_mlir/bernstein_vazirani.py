@@ -68,6 +68,7 @@ def bernstein_vazirani(hidden_bitstring: list[int]):
     # (excludes the auxillary qubit).
     mz(qubits)
 
+
 result = cudaq.sample(bernstein_vazirani, hidden_bitstring)
 
 print(f"encoded bitstring = {hidden_bitstring}")

@@ -38,7 +38,7 @@ Building your first CUDA Quantum Program
 .. tab:: Python
 
   .. 
-    FIXME :: comment back in when updated python rolls out.
+    Fix me :: comment back in when updated python rolls out.
     We can define our quantum kernel as we do any other function in Python, through the use of the
    `@cudaq.kernel` decorator. 
   
@@ -214,7 +214,7 @@ Observe
   as `cudaq::spin::i`, `cudaq::spin::x`, `cudaq::spin::y`, `cudaq::spin::z` may be used to construct more
   complex spin Hamiltonians on multiple qubits.
   
-  Below is an example of a spin operator object consisting of a `Z(0)` operator, or a Pauli Z-operator on the 0-th qubit. 
+  Below is an example of a spin operator object consisting of a `Z(0)` operator, or a Pauli Z-operator on the zeroth qubit. 
   This is followed by the construction of a kernel with a single qubit in an equal superposition. 
   The Hamiltonian is printed to confirm it has been constructed properly.
 
@@ -315,7 +315,7 @@ Running on a GPU
 
   CUDA Quantum kernels support a subset of native Python syntax. We will now outline the supported syntax
   and highlight important features of the CUDA Quantum kernel API.
-  .. FIXME ... better copy here
+  .. Fix me ... better copy here
 
   Quantum Memory
   ++++++++++++++++++++++++++++++++++
