@@ -493,16 +493,25 @@ protected:
     return simLibHandle;
   }
 
-  virtual json processRequest(const std::string &reqBody) {
+  virtual json processRequest(const std::string &reqBody,
+                              bool forceLog = false) {
     try {
       // IMPORTANT: This assumes the REST server handles incoming requests
       // sequentially.
       static std::size_t g_requestCounter = 0;
       auto requestJson = json::parse(reqBody);
       cudaq::RestRequest request(requestJson);
-      cudaq::info(
-          "[RemoteRestRuntimeServer] Incoming job request from client {}",
-          request.clientVersion);
+
+      std::ostringstream os;
+      os << "[RemoteRestRuntimeServer] Incoming job request from client "
+         << request.clientVersion;
+      if (forceLog) {
+        // Force the request to appear in the logs regardless of server log
+        // level.
+        cudaq::log(os.str());
+      } else {
+        cudaq::info(os.str());
+      }
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);
       if (!shouldHandle) {
@@ -557,8 +566,13 @@ protected:
   }
 
 protected:
-  virtual json processRequest(const std::string &reqBody) override {
-    auto executionResult = RemoteRestRuntimeServer::processRequest(reqBody);
+  virtual json processRequest(const std::string &reqBody,
+                              bool forceLog = false) override {
+    // When calling RemoteRestRuntimeServer::processRequest, set forceLog=true
+    // so that incoming requests are always logged, regardless of what log level
+    // we're running the server at.
+    auto executionResult =
+        RemoteRestRuntimeServer::processRequest(reqBody, /*forceLog=*/true);
     // Amend execution information
     executionResult["executionInfo"] = constructExecutionInfo();
     return executionResult;
