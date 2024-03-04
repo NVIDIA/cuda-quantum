@@ -12,21 +12,22 @@ CUDA Quantum Backends
 
 **The following is a comprehensive list of the available targets in CUDA Quantum:**
 
-.. TODO: Add links to all of the following
+.. 
+   Fix Me: Add links to all of the following
 
-* density-matrix-cpu
-* ionq
-* iqm
-* nvcf
-* nvidia
-* nvidia-fp64
-* nvidia-mqpu
-* nvidia-mqpu-fp64
-* oqc
-* orca
-* photonics
-* qpp-cpu
-* quantinuum
-* remote-mqpu
-* tensornet
-* tensornet-mps
+* :code:`density-matrix-cpu`
+* :code:`ionq`
+* :code:`iqm`
+* :code:`nvcf`
+* :code:`nvidia`
+* :code:`nvidia-fp64`
+* :code:`nvidia-mqpu`
+* :code:`nvidia-mqpu-fp64`
+* :code:`oqc`
+* :code:`orca`
+* :code:`photonics`
+* :code:`qpp-cpu`
+* :code:`quantinuum`
+* :code:`remote-mqpu`
+* :code:`tensornet`
+* :code:`tensornet-mps`

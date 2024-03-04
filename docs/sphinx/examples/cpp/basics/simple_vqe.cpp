@@ -1,11 +1,9 @@
 #include <cudaq.h>
-#include <cudaq/optimizers.h>
 #include <cudaq/algorithm.h>
 #include <cudaq/algorithms/gradients/central_difference.h>
-
+#include <cudaq/optimizers.h>
 
 using namespace cudaq::spin;
-
 
 // We define the variational quantum kernel that we'd like
 // to use as an ansatz.
@@ -21,11 +19,13 @@ void __qpu__ kernel(double theta) {
 }
 
 int main() {
-  // We begin by defining the spin Hamiltonian for the system that we are working
-  // with. This is achieved through the use of `cudaq::spin_op`'s, which allow
-  // for the convenient creation of complex Hamiltonians out of Pauli spin operators.
-  cudaq::spin_op hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                      .21829 * z(0) - 6.125 * z(1);
+  // We begin by defining the spin Hamiltonian for the system that we are
+  // working with. This is achieved through the use of `cudaq::spin_op`'s, which
+  // allow for the convenient creation of complex Hamiltonians out of Pauli spin
+  // operators.
+  cudaq::spin_op hamiltonian = 5.907 - 2.1433 * x(0) * x(1) -
+                               2.1433 * y(0) * y(1) + .21829 * z(0) -
+                               6.125 * z(1);
 
   // // Next, we define the variational quantum kernel that we'd like
   // // to use as an ansatz.
@@ -43,9 +43,10 @@ int main() {
   // parameters belong to which gates.
   // auto argument_mapper = [](double value) { return value; };
 
-  // The last thing we need is to pick an optimizer from the suite of `cudaq.optimizers`.
-  // We can optionally tune this optimizer through its initial parameters, iterations,
-  // optimization bounds, etc. before passing it to `cudaq.vqe`.
+  // The last thing we need is to pick an optimizer from the suite of
+  // `cudaq.optimizers`. We can optionally tune this optimizer through its
+  // initial parameters, iterations, optimization bounds, etc. before passing it
+  // to `cudaq.vqe`.
 
   cudaq::optimizers::cobyla optimizer;
 
