@@ -43,6 +43,11 @@ namespace py = pybind11;
 
 static std::unique_ptr<cudaq::LinkedLibraryHolder> holder;
 
+namespace cudaq {
+const char *getVersion();
+const char *getFullRepositoryVersion();
+} // namespace cudaq
+
 PYBIND11_MODULE(_quakeDialects, m) {
   holder = std::make_unique<cudaq::LinkedLibraryHolder>();
 
@@ -106,6 +111,11 @@ PYBIND11_MODULE(_quakeDialects, m) {
                    "Provide the seed for backend quantum kernel simulation.");
   cudaqRuntime.def("num_available_gpus", &cudaq::num_available_gpus,
                    "The number of available GPUs detected on the system.");
+
+  std::stringstream ss;
+  ss << "CUDA Quantum Version " << cudaq::getVersion() << " ("
+     << cudaq::getFullRepositoryVersion() << ")";
+  cudaqRuntime.attr("__version__") = ss.str();
 
   auto mpiSubmodule = cudaqRuntime.def_submodule("mpi");
   mpiSubmodule.def(
