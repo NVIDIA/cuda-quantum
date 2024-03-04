@@ -52,7 +52,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 ADD ./scripts/install_toolchain.sh /scripts/install_toolchain.sh
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
-ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
 RUN LLVM_SOURCE=/llvm-project \
     LLVM_INSTALL_PREFIX=/opt/llvm_stage1 \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
@@ -70,6 +69,7 @@ ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 #    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Clone and build pybind11 (used for MLIR generated Python bindings).
+ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
 RUN mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
