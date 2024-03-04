@@ -12,7 +12,7 @@ from typing import Callable
 from collections import deque
 import numpy as np
 from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color
+from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
@@ -23,6 +23,12 @@ from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic
 # It provides a `PyASTBridge` class that implements the `ast.NodeVisitor` type
 # to walk the Python AST for a `cudaq.kernel` annotated function and generate
 # valid MLIR code using `Quake`, `CC`, `Arith`, and `Math` dialects.
+
+# CC Dialect `ComputePtrOp` in C++ sets the
+# dynamic index as `std::numeric_limits<int32_t>::min()`
+# (see CCOps.tc line 898). We'll duplicate that
+# here by just setting it manually
+kDynamicPtrIndex: int = -2147483648
 
 
 class PyScopedSymbolTable(object):
@@ -36,6 +42,12 @@ class PyScopedSymbolTable(object):
     def popScope(self):
         self.symbolTable.pop()
 
+    def add(self, symbol, value, level=-1):
+        """
+        Add a symbol to the scoped symbol table at any scope level.
+        """
+        self.symbolTable[level][symbol] = value
+
     def __contains__(self, symbol):
         for st in reversed(self.symbolTable):
             if symbol in st:
@@ -44,7 +56,8 @@ class PyScopedSymbolTable(object):
         return False
 
     def __setitem__(self, symbol, value):
-        self.symbolTable[-1][symbol] = value
+        # default to nearest surrounding scope
+        self.add(symbol, value)
         return
 
     def __getitem__(self, symbol):
@@ -119,6 +132,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.capturedVars = kwargs[
             'capturedVariables'] if 'capturedVariables' in kwargs else {}
+        self.dependentCaptureVars = {}
         self.locationOffset = kwargs[
             'locationOffset'] if 'locationOffset' in kwargs else ('', 0)
         self.disableEntryPointTag = kwargs[
@@ -318,11 +332,44 @@ class PyASTBridge(ast.NodeVisitor):
         return IntegerType.isinstance(type) or F64Type.isinstance(
             type) or ComplexType.isinstance(type)
 
+    def ifPointerThenLoad(self, value):
+        """
+        If the given value is of pointer type, load the pointer 
+        and return that new value.
+        """
+        if cc.PointerType.isinstance(value.type):
+            return cc.LoadOp(value).result
+        return value
+
+    def __createStdvecWithKnownValues(self, size, listElementValues):
+        # Turn this List into a StdVec<T>
+        arrSize = self.getConstantInt(size)
+        arrTy = cc.ArrayType.get(self.ctx, listElementValues[0].type)
+        alloca = cc.AllocaOp(cc.PointerType.get(self.ctx, arrTy),
+                             TypeAttr.get(listElementValues[0].type),
+                             seqSize=arrSize).result
+
+        for i, v in enumerate(listElementValues):
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(self.ctx, listElementValues[0].type), alloca,
+                [self.getConstantInt(i)],
+                DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                      context=self.ctx)).result
+            cc.StoreOp(v, eleAddr)
+
+        vecTy = listElementValues[0].type
+        if cc.PointerType.isinstance(vecTy):
+            vecTy = cc.PointerType.getElementType(vecTy)
+
+        return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
+                               arrSize).result
+
     def __insertDbgStmt(self, value, dbgStmt):
         """
         Insert a debug print out statement if the programmer requested. Handles 
         statements like `cudaq.dbg.ast.print_i64(i)`.
         """
+        value = self.ifPointerThenLoad(value)
         printFunc = None
         printStr = '[cudaq-ast-dbg] '
         argsTy = [cc.PointerType.get(self.ctx, self.getIntegerType(8))]
@@ -348,7 +395,7 @@ class PyASTBridge(ast.NodeVisitor):
         elif dbgStmt == 'print_f64':
             if not F64Type.isinstance(value.type):
                 self.emitFatalError(
-                    f"print_f64 requested, but value is not of integer type (type was {value.type})."
+                    f"print_f64 requested, but value is not of float type (type was {value.type})."
                 )
 
             currentST = SymbolTable(self.module.operation)
@@ -417,10 +464,14 @@ class PyASTBridge(ast.NodeVisitor):
         Return the MLIR Type corresponding to the given kernel function argument type annotation.
         Throws an exception if the programmer did not annotate function argument types. 
         """
+        msg = None
         try:
-            return mlirTypeFromAnnotation(annotation, self.ctx)
+            return mlirTypeFromAnnotation(annotation, self.ctx, raiseError=True)
         except RuntimeError as e:
-            self.emitFatalError(str(e), annotation)
+            msg = str(e)
+
+        if msg is not None:
+            self.emitFatalError(msg, annotation)
 
     def argumentsValidForFunction(self, values, functionTy):
         return False not in [
@@ -604,7 +655,17 @@ class PyASTBridge(ast.NodeVisitor):
                         self.symbolTable[argNames[i]] = b
 
                 # Visit the function
-                [self.visit(n) for n in node.body]
+                startIdx = 0
+                # Search for the potential documentation string, and
+                # if found, start the body visitation after it.
+                if len(node.body) and isinstance(node.body[0], ast.Expr):
+                    expr = node.body[0]
+                    if hasattr(expr, 'value') and isinstance(
+                            expr.value, ast.Constant):
+                        constant = expr.value
+                        if isinstance(constant.value, str):
+                            startIdx = 1
+                [self.visit(n) for n in node.body[startIdx:]]
                 # Add the return operation
                 if not self.hasTerminator(self.entry):
                     ret = func.ReturnOp([])
@@ -615,8 +676,9 @@ class PyASTBridge(ast.NodeVisitor):
                 attr = DictAttr.get(
                     {
                         fullName:
-                            StringAttr.get(fullName + '_entryPointRewrite',
-                                           context=self.ctx)
+                            StringAttr.get(
+                                fullName + '_PyKernelEntryPointRewrite',
+                                context=self.ctx)
                     },
                     context=self.ctx)
                 self.module.operation.attributes.__setitem__(
@@ -955,6 +1017,10 @@ class PyASTBridge(ast.NodeVisitor):
                     endVal = self.popValue()
                     startVal = zero
 
+                startVal = self.ifPointerThenLoad(startVal)
+                endVal = self.ifPointerThenLoad(endVal)
+                stepVal = self.ifPointerThenLoad(stepVal)
+
                 # The total number of elements in the iterable
                 # we are generating should be `N == endVal - startVal`
                 totalSize = math.AbsIOp(arith.SubIOp(endVal,
@@ -987,7 +1053,8 @@ class PyASTBridge(ast.NodeVisitor):
                     eleAddr = cc.ComputePtrOp(
                         cc.PointerType.get(self.ctx, iTy), iterable,
                         [loadedCounter],
-                        DenseI32ArrayAttr.get([-2147483648], context=self.ctx))
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
                     cc.StoreOp(arrElementVal, eleAddr)
                     incrementedCounter = arith.AddIOp(loadedCounter, one).result
                     cc.StoreOp(incrementedCounter, counter)
@@ -1034,7 +1101,7 @@ class PyASTBridge(ast.NodeVisitor):
                             vecPtr = cc.StdvecDataOp(elePtrTy, iterable).result
                             eleAddr = cc.ComputePtrOp(
                                 elePtrTy, vecPtr, [idxVal],
-                                DenseI32ArrayAttr.get([-2147483648],
+                                DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                                       context=self.ctx)).result
                             return cc.LoadOp(eleAddr).result
                     else:
@@ -1056,7 +1123,7 @@ class PyASTBridge(ast.NodeVisitor):
                         eleAddr = cc.ComputePtrOp(
                             cc.PointerType.get(self.ctx, iterEleTy), iterable,
                             [idxVal],
-                            DenseI32ArrayAttr.get([-2147483648],
+                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                                   context=self.ctx)).result
                         return cc.LoadOp(eleAddr).result
 
@@ -1081,7 +1148,8 @@ class PyASTBridge(ast.NodeVisitor):
                     eleAddr = cc.ComputePtrOp(
                         cc.PointerType.get(self.ctx, structTy), enumIterable,
                         [iterVar],
-                        DenseI32ArrayAttr.get([-2147483648], context=self.ctx))
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
                     # Set the index value
                     element = cc.InsertValueOp(
                         structTy, element, iterVar,
@@ -1158,8 +1226,39 @@ class PyASTBridge(ast.NodeVisitor):
                 opCtor([], [param], [control], [target])
                 return
 
+            if node.func.id in ["sdg", "tdg"]:
+                target = self.popValue()
+                # Map `sdg` to `SOp`...
+                opCtor = getattr(quake, '{}Op'.format(node.func.id.title()[0]))
+                if quake.VeqType.isinstance(target.type):
+
+                    def bodyBuilder(iterVal):
+                        q = quake.ExtractRefOp(self.getRefType(),
+                                               target,
+                                               -1,
+                                               index=iterVal).result
+                        opCtor([], [], [], [q], is_adj=True)
+
+                    veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                              target).result
+                    self.createInvariantForLoop(veqSize, bodyBuilder)
+                    return
+                elif quake.RefType.isinstance(target.type):
+                    opCtor([], [], [], [target], is_adj=True)
+                    return
+                else:
+                    self.emitFatalError(
+                        'adj quantum operation on incorrect type {}.'.format(
+                            target.type), node)
+                return
+
             if node.func.id in ['mx', 'my', 'mz']:
                 registerName = self.currentAssignVariableName
+                # If `registerName` is None, then we know that we
+                # are not assigning this measure result to anything
+                # so we therefore should not push it on the stack
+                pushResultToStack = registerName != None
+
                 # By default we set the `register_name` for the measurement
                 # to the assigned variable name (if there is one). But
                 # the use could have manually specified `register_name='something'`
@@ -1184,8 +1283,9 @@ class PyASTBridge(ast.NodeVisitor):
                             self.ctx, quake.MeasureType.get(self.ctx))
                 measureResult = opCtor(measTy, [], [qubit],
                                        registerName=registerName).result
-                self.pushValue(
-                    quake.DiscriminateOp(resTy, measureResult).result)
+                if pushResultToStack:
+                    self.pushValue(
+                        quake.DiscriminateOp(resTy, measureResult).result)
                 return
 
             if node.func.id == 'swap':
@@ -1339,11 +1439,17 @@ class PyASTBridge(ast.NodeVisitor):
                         qubits = quake.AllocaOp(ty)
                     else:
                         ty = self.getVeqType()
+                        size = self.ifPointerThenLoad(size)
                         qubits = quake.AllocaOp(ty, size=size)
                     self.pushValue(qubits.results[0])
                     return
 
                 if node.func.attr == "qubit":
+                    if len(self.valueStack) == 1 and IntegerType.isinstance(
+                            self.valueStack[0].type):
+                        self.emitFatalError(
+                            'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
+                        )
                     self.pushValue(quake.AllocaOp(self.getRefType()).result)
                     return
 
@@ -1445,6 +1551,10 @@ class PyASTBridge(ast.NodeVisitor):
 
                     quake.ComputeActionOp(compute, action)
                     return
+
+                self.emitFatalError(
+                    f'Invalid function or class type requested from the cudaq module ({node.func.attr})',
+                    node)
 
             if node.func.value.id in self.symbolTable:
                 # Method call on one of our variables
@@ -1683,15 +1793,15 @@ class PyASTBridge(ast.NodeVisitor):
             self.symbolTable.pushScope()
             eleAddr = cc.ComputePtrOp(
                 cc.PointerType.get(self.ctx, arrayEleTy), iterable, [iterVar],
-                DenseI32ArrayAttr.get([-2147483648], context=self.ctx))
+                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
             loadedEle = cc.LoadOp(eleAddr).result
             self.symbolTable[node.generators[0].target.id] = loadedEle
             self.visit(node.elt)
             result = self.popValue()
             listValueAddr = cc.ComputePtrOp(
                 cc.PointerType.get(self.ctx, listComputePtrTy), listValue,
-                [iterVar], DenseI32ArrayAttr.get([-2147483648],
-                                                 context=self.ctx))
+                [iterVar],
+                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
             cc.StoreOp(result, listValueAddr)
             self.symbolTable.popScope()
 
@@ -1728,6 +1838,13 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(
                     quake.ConcatOp(self.getVeqType(), listElementValues).result)
             return
+
+        # We do not store lists of pointers
+        listElementValues = [
+            cc.LoadOp(ele).result
+            if cc.PointerType.isinstance(ele.type) else ele
+            for ele in listElementValues
+        ]
 
         # not a list of quantum types
         # Get the first element
@@ -1769,26 +1886,9 @@ class PyASTBridge(ast.NodeVisitor):
                 format([v.type for v in listElementValues]), node)
 
         # Turn this List into a StdVec<T>
-        arrSize = self.getConstantInt(len(node.elts))
-        arrTy = cc.ArrayType.get(self.ctx, listElementValues[0].type)
-        alloca = cc.AllocaOp(cc.PointerType.get(self.ctx, arrTy),
-                             TypeAttr.get(listElementValues[0].type),
-                             seqSize=arrSize).result
-
-        for i, v in enumerate(listElementValues):
-            eleAddr = cc.ComputePtrOp(
-                cc.PointerType.get(self.ctx, listElementValues[0].type), alloca,
-                [self.getConstantInt(i)],
-                DenseI32ArrayAttr.get([-2147483648], context=self.ctx)).result
-            cc.StoreOp(v, eleAddr)
-
-        vecTy = listElementValues[0].type
-        if cc.PointerType.isinstance(vecTy):
-            vecTy = cc.PointerType.getElementType(vecTy)
-
         self.pushValue(
-            cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
-                            arrSize).result)
+            self.__createStdvecWithKnownValues(len(node.elts),
+                                               listElementValues))
 
     def visit_Constant(self, node):
         """
@@ -1797,13 +1897,19 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentNode = node
         if self.verbose:
             print("[Visit Constant {}]".format(node.value))
+        if isinstance(node.value, bool):
+            self.pushValue(self.getConstantInt(node.value, 1))
+            return
+
         if isinstance(node.value, int):
             self.pushValue(self.getConstantInt(node.value))
             return
-        elif isinstance(node.value, float):
+
+        if isinstance(node.value, float):
             self.pushValue(self.getConstantFloat(node.value))
             return
-        elif isinstance(node.value, str):
+
+        if isinstance(node.value, str):
             # Do not process the function doc string
             if self.docstring != None:
                 if node.value.strip() == self.docstring.strip():
@@ -1817,14 +1923,15 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.CreateStringLiteralOp(strLitTy,
                                          StringAttr.get(node.value)).result)
             return
-        elif isinstance(node.value, type(1j)):
+
+        if isinstance(node.value, type(1j)):
             self.pushValue(
                 complex.CreateOp(ComplexType.get(self.getFloatType()),
                                  self.getConstantFloat(node.value.real),
                                  self.getConstantFloat(node.value.imag)).result)
             return
-        else:
-            self.emitFatalError("unhandled constant value", node)
+
+        self.emitFatalError("unhandled constant value", node)
 
     def visit_Subscript(self, node):
         """
@@ -1883,7 +1990,7 @@ class PyASTBridge(ast.NodeVisitor):
                 vecPtr = cc.StdvecDataOp(ptrTy, var).result
                 ptr = cc.ComputePtrOp(
                     ptrTy, vecPtr, [lowerVal],
-                    DenseI32ArrayAttr.get([-2147483648],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 self.pushValue(
                     cc.StdvecInitOp(var.type, ptr, nElementsVal).result)
@@ -1939,7 +2046,8 @@ class PyASTBridge(ast.NodeVisitor):
             vecPtr = cc.StdvecDataOp(elePtrTy, var).result
             eleAddr = cc.ComputePtrOp(
                 elePtrTy, vecPtr, [idx],
-                DenseI32ArrayAttr.get([-2147483648], context=self.ctx)).result
+                DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                      context=self.ctx)).result
             if self.subscriptPushPointerValue:
                 self.pushValue(eleAddr)
                 return
@@ -1958,7 +2066,7 @@ class PyASTBridge(ast.NodeVisitor):
                 casted = cc.CastOp(ptrEleTy, var).result
                 eleAddr = cc.ComputePtrOp(
                     ptrEleTy, casted, [idx],
-                    DenseI32ArrayAttr.get([-2147483648],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 self.pushValue(cc.LoadOp(eleAddr).result)
                 return
@@ -2020,7 +2128,7 @@ class PyASTBridge(ast.NodeVisitor):
                     vecPtr = cc.StdvecDataOp(elePtrTy, iter).result
                     eleAddr = cc.ComputePtrOp(
                         elePtrTy, vecPtr, [idxVal],
-                        DenseI32ArrayAttr.get([-2147483648],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx)).result
                     return [cc.LoadOp(eleAddr).result]
 
@@ -2046,7 +2154,7 @@ class PyASTBridge(ast.NodeVisitor):
             def functor(iter, idx):
                 eleAddr = cc.ComputePtrOp(
                     cc.PointerType.get(self.ctx, elementType), iter, [idx],
-                    DenseI32ArrayAttr.get([-2147483648],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 loaded = cc.LoadOp(eleAddr).result
                 if IntegerType.isinstance(elementType):
@@ -2136,6 +2244,10 @@ class PyASTBridge(ast.NodeVisitor):
         shortCircuitWhenTrue = isinstance(node.op, ast.Or)
         if isinstance(node.op, ast.And) or isinstance(node.op, ast.Or):
             # Visit the LHS and pop the value
+            # Note we want any `mz(q)` calls to push their
+            # result value to the stack, so we set a non-None
+            # variable name here.
+            self.currentAssignVariableName = ''
             self.visit(node.values[0])
             lhs = self.popValue()
             zero = self.getConstantInt(0, IntegerType(lhs.type).width)
@@ -2164,6 +2276,9 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.ContinueOp([rhs])
                 self.popIfStmtBlockStack()
                 self.symbolTable.popScope()
+
+            # Reset the assign variable name
+            self.currentAssignVariableName = None
 
             self.pushValue(ifOp.result)
             return
@@ -2238,6 +2353,12 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if isinstance(op, ast.Eq):
+            if F64Type.isinstance(left.type) and IntegerType.isinstance(
+                    comparator.type):
+                left = arith.FPToSIOp(comparator.type, left).result
+            if IntegerType(left.type).width < IntegerType(
+                    comparator.type).width:
+                left = arith.ExtSIOp(comparator.type, left).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                              comparator).result)
@@ -2268,8 +2389,8 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.SubIOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
-            else:
-                self.emitFatalError("unhandled AugAssign.Sub types.", node)
+
+            self.emitFatalError("unhandled AugAssign.Sub types.", node)
 
         if isinstance(node.op, ast.Add):
             # i += 1 -> i = i + 1
@@ -2277,8 +2398,14 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.AddIOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
-            else:
-                self.emitFatalError("unhandled AugAssign.Add types.", node)
+            if F64Type.isinstance(loaded.type):
+                if IntegerType.isinstance(value.type):
+                    value = arith.SIToFPOp(loaded.type, value).result
+                res = arith.AddFOp(loaded, value).result
+                cc.StoreOp(res, target)
+                return
+
+            self.emitFatalError("unhandled AugAssign.Add types.", node)
 
         if isinstance(node.op, ast.Mult):
             # i *= 3 -> i = i * 3
@@ -2292,8 +2419,8 @@ class PyASTBridge(ast.NodeVisitor):
                 res = arith.MulFOp(loaded, value).result
                 cc.StoreOp(res, target)
                 return
-            else:
-                self.emitFatalError("unhandled AugAssign.Mult types.", node)
+
+            self.emitFatalError("unhandled AugAssign.Mult types.", node)
 
         self.emitFatalError("unhandled aug-assign operation.", node)
 
@@ -2306,8 +2433,14 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.currentNode = node
 
+        # Visit the conditional node, retain
+        # measurement results by assigning a dummy variable name
+        self.currentAssignVariableName = ''
         self.visit(node.test)
+        self.currentAssignVariableName = None
+
         condition = self.popValue()
+        condition = self.ifPointerThenLoad(condition)
 
         if self.getIntegerType(1) != condition.type:
             # not equal to 0, then compare with 1
@@ -2369,6 +2502,14 @@ class PyASTBridge(ast.NodeVisitor):
         if result.owner.parent != self.kernelFuncOp:
             cc.UnwindReturnOp([result])
             return
+
+        result = self.ifPointerThenLoad(result)
+
+        if result.type != self.knownResultType:
+            # FIXME consider auto-casting where possible
+            self.emitFatalError(
+                f"Invalid return type, function was defined to return a {mlirTypeToPyType(self.knownResultType)} but the value being returned is of type {mlirTypeToPyType(result.type)}",
+                node)
 
         func.ReturnOp([result])
 
@@ -2621,17 +2762,56 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(self.symbolTable[node.id])
             return
 
-        # Throw a specific error if the user tries to use
-        # a variable from parent scope.
         if node.id in self.capturedVars:
+            # Only support a small subset of types here
+            value = self.capturedVars[node.id]
+            if isinstance(value, list) and isinstance(value[0],
+                                                      (int, bool, float)):
+                elementValues = None
+                if isinstance(value[0], float):
+                    elementValues = [self.getConstantFloat(el) for el in value]
+                elif isinstance(value[0], int):
+                    elementValues = [self.getConstantInt(el) for el in value]
+                elif isinstance(value[0], bool):
+                    elementValues = [self.getConstantInt(el, 1) for el in value]
+
+                if elementValues != None:
+                    self.dependentCaptureVars[node.id] = value
+                    mlirVal = self.__createStdvecWithKnownValues(
+                        len(value), elementValues)
+                    self.symbolTable.add(node.id, mlirVal, 0)
+                    self.pushValue(mlirVal)
+                    return
+
+            mlirValCreator = None
+            self.dependentCaptureVars[node.id] = value
+            if isinstance(value, int):
+                mlirValCreator = lambda: self.getConstantInt(value)
+            elif isinstance(value, bool):
+                mlirValCreator = lambda: self.getConstantInt(value, 1)
+            elif isinstance(value, float):
+                mlirValCreator = lambda: self.getConstantFloat(value)
+
+            if mlirValCreator != None:
+                with InsertionPoint.at_block_begin(self.entry):
+                    mlirVal = mlirValCreator()
+                    stackSlot = cc.AllocaOp(
+                        cc.PointerType.get(self.ctx, mlirVal.type),
+                        TypeAttr.get(mlirVal.type)).result
+                    cc.StoreOp(mlirVal, stackSlot)
+                    # Store at the top-level
+                    self.symbolTable.add(node.id, stackSlot, 0)
+                    self.pushValue(stackSlot)
+                    return
+
             self.emitFatalError(
-                f"Invalid variable requested - `{node.id}` was defined in the kernel's parent scope. CUDA Quantum does not support capturing variables from parent scope (variables must be defined as input arguments or within the kernel function body)."
-            )
+                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, and list[int|bool|float] accepted, type was {type(value)}).",
+                node)
 
         # Throw an exception for the case that the name is not
         # in the symbol table
         self.emitFatalError(
-            f"Invalid variable name requested - '{node.id}' not in the symbol table.",
+            f"Invalid variable name requested - '{node.id}' is not defined within the quantum kernel it is used in.",
             node)
 
 
@@ -2684,7 +2864,7 @@ def compile_to_mlir(astModule, metadata, **kwargs):
         # has further dependencies
         for depKernelName, depKernelAst in transitiveDeps.items():
             localVis = FindDepKernelsVisitor(bridge.ctx)
-            localVis.visit(depKernelAst)
+            localVis.visit(depKernelAst[0])
             # Append the found dependencies to our running tally
             depKernels = {**depKernels, **localVis.depKernels}
             # Reset for the next go around
@@ -2704,8 +2884,11 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     # ignore kernels that have the same name as this one.
     for funcName in sortedOrder:
         if funcName != vis.kernelName and funcName in depKernels:
-            PyASTBridge(existingModule=bridge.module).visit(
-                depKernels[funcName])
+            # Build an AST Bridge and visit the dependent kernel
+            # function. Provide the dependent kernel source location as well.
+            PyASTBridge(existingModule=bridge.module,
+                        locationOffset=depKernels[funcName][1]).visit(
+                            depKernels[funcName][0])
 
     # Build the MLIR Module for this kernel
     bridge.visit(astModule)
@@ -2723,12 +2906,14 @@ def compile_to_mlir(astModule, metadata, **kwargs):
         raise RuntimeError("could not compile code for '{}'.".format(
             bridge.name))
 
-    globalAstRegistry[bridge.name] = astModule
-
     if metadata['conditionalOnMeasure']:
         SymbolTable(
             bridge.module.operation)[nvqppPrefix +
                                      bridge.name].attributes.__setitem__(
                                          'qubitMeasurementFeedback',
                                          BoolAttr.get(True, context=bridge.ctx))
-    return bridge.module, bridge.argTypes
+    extraMetaData = {}
+    if len(bridge.dependentCaptureVars):
+        extraMetaData['dependent_captures'] = bridge.dependentCaptureVars
+
+    return bridge.module, bridge.argTypes, extraMetaData

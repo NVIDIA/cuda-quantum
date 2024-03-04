@@ -126,6 +126,54 @@ def test_uccsd_kernel():
                                optimizer,
                                parameter_count=num_parameters)
     print(energy, params)
+<<<<<<< HEAD
+=======
+
+
+def test_doubles_alpha_bug():
+    # AST Bridge was not loading pointers
+    # when building lists, hence the following would
+    # break at runtime
+
+    n_occupied = 2
+    n_virtual = 4
+    occupied_alpha_indices = [i * 2 for i in range(n_occupied)]
+    virtual_alpha_indices = [i * 2 + 4 for i in range(n_virtual)]
+    lenOccA = 2
+    lenVirtA = 4
+    nEle = 6
+
+    @cudaq.kernel
+    def test() -> bool:
+        counter = 0
+        doubles_a = [[0, 0, 0, 0] for k in range(nEle)]
+        for p in range(lenOccA - 1):
+            for q in range(p + 1, lenOccA):
+                for r in range(lenVirtA - 1):
+                    for s in range(r + 1, lenVirtA):
+                        cudaq.dbg.ast.print_i64(p)
+                        cudaq.dbg.ast.print_i64(q)
+                        cudaq.dbg.ast.print_i64(r)
+                        cudaq.dbg.ast.print_i64(s)
+                        cudaq.dbg.ast.print_i64(occupied_alpha_indices[p])
+                        cudaq.dbg.ast.print_i64(occupied_alpha_indices[q])
+                        cudaq.dbg.ast.print_i64(virtual_alpha_indices[r])
+                        cudaq.dbg.ast.print_i64(virtual_alpha_indices[s])
+                        t = occupied_alpha_indices[p]
+                        u = occupied_alpha_indices[q]
+                        v = virtual_alpha_indices[r]
+                        w = virtual_alpha_indices[s]
+                        doubles_a[counter] = [
+                            occupied_alpha_indices[p], u, v, w
+                        ]
+                        for i in range(4):
+                            cudaq.dbg.ast.print_i64(doubles_a[counter][i])
+                        counter = counter + 1
+        return True
+
+    # Test is that this compiles and runs successfully
+    assert test()
+>>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
 
 
 # leave for gdb debugging

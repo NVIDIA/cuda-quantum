@@ -26,7 +26,9 @@ nvqppPrefix = '__nvqpp__mlirgen__'
 globalKernelRegistry = {}
 
 # Keep a global registry of all kernel Python AST modules
-# keyed on their name (without `__nvqpp__mlirgen__` prefix)
+# keyed on their name (without `__nvqpp__mlirgen__` prefix).
+# The values in this dictionary are a tuple of the AST module
+# and the source code location for the kernel.
 globalAstRegistry = {}
 
 
@@ -61,13 +63,22 @@ def emitFatalError(msg):
     raise RuntimeError(msg)
 
 
-def mlirTypeFromAnnotation(annotation, ctx):
+def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     """
-        Return the MLIR Type corresponding to the given kernel function argument type annotation.
-        Throws an exception if the programmer did not annotate function argument types. 
-        """
+    Return the MLIR Type corresponding to the given kernel function argument type annotation.
+    Throws an exception if the programmer did not annotate function argument types. 
+    """
+
+    localEmitFatalError = emitFatalError
+    if raiseError:
+        # Client calling this will handle errors
+        def emitFatalErrorOverride(msg):
+            raise RuntimeError(msg)
+
+        localEmitFatalError = emitFatalErrorOverride
+
     if annotation == None:
-        emitFatalError(
+        localEmitFatalError(
             'cudaq.kernel functions must have argument type annotations.')
 
     if hasattr(annotation, 'attr'):
@@ -84,7 +95,7 @@ def mlirTypeFromAnnotation(annotation, ctx):
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
         if not hasattr(annotation, 'slice'):
-            emitFatalError(
+            localEmitFatalError(
                 f'Callable type must have signature specified ({ast.unparse(annotation)}).'
             )
 
@@ -94,7 +105,7 @@ def mlirTypeFromAnnotation(annotation, ctx):
                 annotation.slice.value, 'elts'):
             firstElement = annotation.slice.value.elts[0]
         else:
-            emitFatalError(
+            localEmitFatalError(
                 f'Unable to get list elements when inferring type from annotation ({ast.unparse(annotation)}).'
             )
         argTypes = [mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts]
@@ -104,12 +115,17 @@ def mlirTypeFromAnnotation(annotation, ctx):
                   ast.Subscript) and (annotation.value.id == 'list' or
                                       annotation.value.id == 'List'):
         if not hasattr(annotation, 'slice'):
-            emitFatalError(
+            localEmitFatalError(
                 f'list subscript missing slice node ({ast.unparse(annotation)}).'
             )
 
+        # The tree differs here between Python 3.8 and 3.9+
+        eleTypeNode = annotation.slice
+        if sys.version_info < (3, 9):
+            eleTypeNode = eleTypeNode.value
+
         # expected that slice is a Name node
-        listEleTy = mlirTypeFromAnnotation(annotation.slice, ctx)
+        listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
         return cc.StdvecType.get(ctx, listEleTy)
 
     if hasattr(annotation, 'id'):
@@ -121,22 +137,28 @@ def mlirTypeFromAnnotation(annotation, ctx):
                 annotation.value.value, 'id'):
             id = annotation.value.value.id
     else:
-        emitFatalError(
+        localEmitFatalError(
             f'{ast.unparse(annotation)} is not a supported type yet (could not infer type name).'
+        )
+
+    if id == 'list' or id == 'List':
+        localEmitFatalError(
+            'list argument annotation must provide element type, e.g. list[float] instead of list.'
         )
 
     if id == 'int':
         return IntegerType.get_signless(64)
-    elif id == 'float':
+
+    if id == 'float':
         return F64Type.get()
-    elif id == 'list' or id == 'List':
-        return cc.StdvecType.get(ctx, F64Type.get())
-    elif id == 'bool':
+
+    if id == 'bool':
         return IntegerType.get_signless(1)
-    elif id == 'complex':
+
+    if id == 'complex':
         return ComplexType.get(F64Type.get())
-    else:
-        emitFatalError(f'{id} is not a supported type.')
+
+    localEmitFatalError(f'{id} is not a supported type.')
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):

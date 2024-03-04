@@ -14,6 +14,10 @@ from typing import Callable, List
 import sys
 
 import cudaq
+<<<<<<< HEAD
+=======
+from cudaq import spin
+>>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
 
 ## [PYTHON_VERSION_FIX]
 skipIfPythonLessThan39 = pytest.mark.skipif(
@@ -225,7 +229,11 @@ def test_dynamic_circuit():
             x(q[1])
         mz(q)
 
+<<<<<<< HEAD
     counts = cudaq.sample(simple)
+=======
+    counts = cudaq.sample(simple, shots_count=100)
+>>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
     counts.dump()
     c0 = counts.get_register_counts('c0')
     assert '0' in c0 and '1' in c0
@@ -419,6 +427,15 @@ def test_simple_return_types():
         def kernel(a: int, b: int):  # No return type
             return a * b
 
+<<<<<<< HEAD
+=======
+    @cudaq.kernel
+    def boolKernel() -> bool:
+        return True
+
+    assert boolKernel()
+
+>>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
 
 def test_list_creation():
 
@@ -540,6 +557,10 @@ def test_bool_op_short_circuit():
     print(kernel)
 
     counts = cudaq.sample(kernel)
+<<<<<<< HEAD
+=======
+    counts.dump()
+>>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e
     assert len(counts) == 2 and '10' in counts and '00' in counts
 
 
@@ -557,6 +578,7 @@ def test_sample_async_issue_args_processed():
     counts = result.get()
     assert len(counts) == 2 and '01' in counts and '10' in counts
 
+<<<<<<< HEAD
 def test_capture_vars_disallowed():
 
     n = 5 
@@ -566,3 +588,336 @@ def test_capture_vars_disallowed():
     
     with pytest.raises(RuntimeError) as e:
         test()
+=======
+
+def test_capture_vars():
+
+    n = 5
+    f = 0.0
+    m = 5
+    hello = str()
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(n)
+        x(q)
+        cudaq.dbg.ast.print_f64(f)
+        for qb in q:
+            rx(f, qb)
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '1' * n in counts
+
+    f = np.pi
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '0' * n in counts
+
+    n = 7
+    f = 0.0
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '1' * n in counts
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '1' * n in counts
+
+    n = 3
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '1' * n in counts
+
+    @cudaq.kernel
+    def testCanOnlyCaptureIntAndFloat():
+        i = hello
+
+    with pytest.raises(RuntimeError) as e:
+        testCanOnlyCaptureIntAndFloat()
+
+    b = True
+
+    @cudaq.kernel
+    def canCaptureBool():
+        q = cudaq.qubit()
+        if b:
+            x(q)
+
+    counts = cudaq.sample(canCaptureBool)
+    counts.dump()
+    assert len(counts) == 1 and '1' in counts
+
+    b = False
+    counts = cudaq.sample(canCaptureBool)
+    counts.dump()
+    assert len(counts) == 1 and '0' in counts
+
+    l = [.59]
+    li = [0, 1]
+
+    @cudaq.kernel
+    def canCaptureList():
+        q = cudaq.qvector(2)
+        firstIdx = li[0]
+        secondIdx = li[1]
+        x(q[firstIdx])
+        ry(l[firstIdx], q[secondIdx])
+        x.ctrl(q[secondIdx], q[firstIdx])
+
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    assert np.isclose(-1.748,
+                      cudaq.observe(canCaptureList, hamiltonian).expectation(),
+                      atol=1e-3)
+
+
+def test_capture_change_variable():
+
+    # This tests that variables can be captured,
+    # that those captured variables can be modified
+    # and adhere to capture-by-value semantics,
+    # and that captures are not defined in
+    # an inner scope, but are defined at the
+    # function entry block, thus usable
+    # in other spots in the kernel.
+
+    n = 3
+
+    @cudaq.kernel
+    def kernel() -> int:
+        if True:
+            cudaq.dbg.ast.print_i64(n)
+            # Change n
+            n = 4
+        # Return n
+        return n
+
+    assert n == 3 and 4 == kernel()
+
+
+def test_inner_function_capture():
+
+    n = 3
+    m = 5
+
+    def innerClassical():
+
+        @cudaq.kernel()
+        def foo():
+            q = cudaq.qvector(n)
+
+        def innerInnerClassical():
+
+            @cudaq.kernel()
+            def bar():
+                q = cudaq.qvector(m)
+                x(q)
+
+            return cudaq.sample(bar)
+
+        return cudaq.sample(foo), innerInnerClassical()
+
+    fooCounts, barCounts = innerClassical()
+    assert len(fooCounts) == 1 and '0' * n in fooCounts
+    assert len(barCounts) == 1 and '1' * m in barCounts
+
+
+def test_error_qubit_constructor():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qubit(10)
+        h(q[0])
+
+    with pytest.raises(RuntimeError) as e:
+        test.compile()
+
+
+def test_swallow_measure_value():
+
+    @cudaq.kernel
+    def test():
+        data = cudaq.qvector(2)
+        ancilla = cudaq.qvector(2)
+        mz(ancilla)
+        x(data[1])
+
+    # The test here is that this compiles.
+    test.compile()
+    print(test)
+
+
+def test_compare_with_true():
+
+    @cudaq.kernel
+    def test():
+        data = cudaq.qvector(2)
+        ancilla = cudaq.qvector(2)
+        results = mz(ancilla)
+        if results[0] == True:
+            x(data[0])
+
+    # The test here is that this compiles.
+    test()
+
+
+def test_with_docstring():
+
+    @cudaq.kernel
+    def oracle(register: cudaq.qvector, auxillary_qubit: cudaq.qubit,
+               hidden_bitstring: List[int]):
+        """
+        The inner-product oracle for the Bernstein-Vazirani algorithm.
+        """
+        for index, bit in enumerate(hidden_bitstring):
+            if bit == 0:
+                # Apply identity operation to the qubit if it's
+                # in the 0-state.
+                # In this case, we do nothing.
+                pass
+            else:
+                # Otherwise, apply a `cx` gate with the current qubit as
+                # the control and the auxillary qubit as the target.
+                cx(register[index], auxillary_qubit)
+
+    @cudaq.kernel
+    def bernstein_vazirani(qubit_count: int, hidden_bitstring: List[int]):
+        """
+        Returns a kernel implementing the Bernstein-Vazirani algorithm
+        for a random, hidden bitstring.
+        """
+        # Allocate the specified number of qubits - this
+        # corresponds to the length of the hidden bitstring.
+        qubits = cudaq.qvector(qubit_count)
+        # Allocate an extra auxillary qubit.
+        auxillary_qubit = cudaq.qubit()
+
+        # Prepare the auxillary qubit.
+        h(auxillary_qubit)
+        z(auxillary_qubit)
+
+        # Place the rest of the register in a superposition state.
+        h(qubits)
+
+        # Query the oracle.
+        oracle(qubits, auxillary_qubit, hidden_bitstring)
+
+        # Apply another set of Hadamards to the register.
+        h(qubits)
+
+        # Apply measurement gates to just the `qubits`
+        # (excludes the auxillary qubit).
+        mz(qubits)
+
+    # Test here is that it compiles
+    bernstein_vazirani.compile()
+
+
+def test_disallow_list_no_element_type():
+
+    @cudaq.kernel
+    def test(listVar: List):
+        pass
+
+    with pytest.raises(RuntimeError) as e:
+        print(test)
+
+
+def test_invalid_cudaq_type():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qreg(5)
+        h(q)
+
+    with pytest.raises(RuntimeError) as e:
+        print(test)
+
+
+def test_list_float_pass_list_int():
+
+    @cudaq.kernel
+    def test(var: List[float]):
+        q = cudaq.qvector(2)
+        cudaq.dbg.ast.print_f64(var[0])
+        x(q[int(var[0])])
+        x(q[int(var[1])])
+
+    var = [0, 1]
+    counts = cudaq.sample(test, var)
+    assert len(counts) == 1 and '11' in counts
+    counts.dump()
+
+
+def test_cmpi_error_ints_different_widths():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qubit()
+        i = mz(q)
+        if i == 1:
+            x(q)
+
+    test()
+    counts = cudaq.sample(test)
+    assert '0' in counts and len(counts) == 1
+
+
+def test_aug_assign_add():
+
+    @cudaq.kernel
+    def test() -> float:
+        f = 5.
+        f += 5.
+        return f
+
+    assert test() == 10.
+
+    @cudaq.kernel
+    def test2() -> int:
+        i = 5
+        i += 5
+        return i
+
+    assert test2() == 10
+
+
+def test_draw():
+
+    @cudaq.kernel
+    def kernel_to_draw():
+        q = cudaq.qvector(4)
+        h(q)
+        # Broadcast
+        cx(q[0], q[1])
+        cy([q[0], q[1]], q[2])
+        cy([q[2], q[0]], q[1])
+        cy([q[1], q[2]], q[0])
+        z(q[2])
+
+        swap(q[0], q[2])
+        swap(q[1], q[2])
+        swap(q[0], q[1])
+        swap(q[0], q[2])
+        swap(q[1], q[2])
+
+        r1(3.14159, q[0])
+        tdg(q[1])
+        s(q[2])
+
+    circuit = cudaq.draw(kernel_to_draw)
+    print(circuit)
+    expected_str = '''     ╭───╮               ╭───╮                 ╭───────────╮       
+q0 : ┤ h ├──●────●────●──┤ y ├──────╳─────╳──╳─┤ r1(3.142) ├───────
+     ├───┤╭─┴─╮  │  ╭─┴─╮╰─┬─╯      │     │  │ ╰───────────╯╭─────╮
+q1 : ┤ h ├┤ x ├──●──┤ y ├──●────────┼──╳──╳──┼───────╳──────┤ tdg ├
+     ├───┤╰───╯╭─┴─╮╰─┬─╯  │  ╭───╮ │  │     │       │      ╰┬───┬╯
+q2 : ┤ h ├─────┤ y ├──●────●──┤ z ├─╳──╳─────╳───────╳───────┤ s ├─
+     ├───┤     ╰───╯          ╰───╯                          ╰───╯ 
+q3 : ┤ h ├─────────────────────────────────────────────────────────
+     ╰───╯                                                         
+'''
+
+    assert circuit == expected_str
+>>>>>>> c451b979a67c93d42533538997b25c9034cc3e7e

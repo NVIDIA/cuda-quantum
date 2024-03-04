@@ -20,6 +20,12 @@ public:
 /// REST client submitting jobs to NVCF-hosted `cudaq-qpud` service.
 class NvcfRuntimeClient : public RemoteRestRuntimeClient {
 private:
+  // None: Don't log; Info: basic info; Trace: Timing data per invocation.
+  enum class LogLevel : int { None = 0, Info, Trace };
+  // NVQC logging level
+  // Enabled high-level info log by default (can be set by an environment
+  // variable)
+  LogLevel m_logLevel = LogLevel::Info;
   // API key for authentication
   std::string m_apiKey;
   // Rest client to send HTTP request
@@ -95,9 +101,51 @@ private:
     return info;
   }
 
+  std::optional<std::size_t> getQueueDepth(const std::string &funcId,
+                                           const std::string &verId) {
+    auto headers = getHeaders();
+    try {
+      auto queueDepthInfo = m_restClient.get(
+          fmt::format("https://{}/nvcf/queues/functions/{}/versions/{}",
+                      m_baseUrl, funcId, verId),
+          "", headers, /*enableSsl=*/true);
+
+      if (queueDepthInfo.contains("functionId") &&
+          queueDepthInfo["functionId"] == funcId &&
+          queueDepthInfo.contains("queues")) {
+        for (auto queueInfo : queueDepthInfo["queues"]) {
+          if (queueInfo.contains("functionVersionId") &&
+              queueInfo["functionVersionId"] == verId &&
+              queueInfo.contains("queueDepth")) {
+            return queueInfo["queueDepth"].get<std::size_t>();
+          }
+        }
+      }
+      return std::nullopt;
+    } catch (...) {
+      // Make this non-fatal. Returns null, i.e., unknown.
+      return std::nullopt;
+    }
+  }
+
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
+    {
+      // Check if user set a specific log level (e.g., disable logging)
+      if (auto logConfigEnv = std::getenv("NVQC_LOG_LEVEL")) {
+        auto logConfig = std::string(logConfigEnv);
+        std::transform(logConfig.begin(), logConfig.end(), logConfig.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+        if (logConfig == "0" || logConfig == "off" || logConfig == "false" ||
+            logConfig == "no" || logConfig == "none")
+          m_logLevel = LogLevel::None;
+        if (logConfig == "trace")
+          m_logLevel = LogLevel::Trace;
+        if (logConfig == "info")
+          m_logLevel = LogLevel::Info;
+      }
+    }
     {
       const auto apiKeyIter = configs.find("api-key");
       if (apiKeyIter != configs.end())
@@ -112,7 +160,13 @@ public:
     {
       const auto funcIdIter = configs.find("function-id");
       if (funcIdIter != configs.end()) {
+        // User overrides a specific function Id.
         m_functionId = funcIdIter->second;
+        if (m_logLevel > LogLevel::None) {
+          // Print out the configuration
+          cudaq::log("Submitting jobs to NVQC using function Id {}.",
+                     m_functionId);
+        }
       } else {
         // Determine the function Id based on the number of GPUs
         const auto nGpusIter = configs.find("ngpus");
@@ -124,17 +178,26 @@ public:
         for (const auto &[funcId, numGpus] : m_availableFuncs) {
           if (numGpus == numGpusRequested) {
             m_functionId = funcId;
+            if (m_logLevel > LogLevel::None) {
+              // Print out the configuration
+              cudaq::log("Submitting jobs to NVQC service with {} GPU(s).",
+                         numGpus);
+            }
             break;
           }
         }
         if (m_functionId.empty()) {
+          // Make sure that we sort the GPU count list
+          std::set<std::size_t> gpuCounts;
+          for (const auto &[funcId, numGpus] : m_availableFuncs) {
+            gpuCounts.emplace(numGpus);
+          }
           std::stringstream ss;
           ss << "Unable to find NVQC deployment with " << numGpusRequested
-             << " GPUs. Available deployments are:\n";
-          for (const auto &[funcId, numGpus] : m_availableFuncs) {
-            ss << "   - Function Id " << funcId << ": " << numGpus
-               << ((numGpus > 1) ? " GPUs." : " GPU.") << "\n";
-          }
+             << " GPUs.\nAvailable deployments have ";
+          ss << fmt::format("{}", gpuCounts) << " GPUs.\n";
+          ss << "Please check your 'ngpus' value (Python) or `--nvqc-ngpus` "
+                "value (C++).\n";
           throw std::runtime_error(ss.str());
         }
       }
@@ -212,11 +275,9 @@ public:
           std::find(MULTI_GPU_BACKENDS.begin(), MULTI_GPU_BACKENDS.end(),
                     backendSimName) == MULTI_GPU_BACKENDS.end() &&
           !printOnce) {
-        std::cout << "The requested simulator (" << backendSimName
+        std::cout << "The requested backend simulator (" << backendSimName
                   << ") is not capable of using all "
-                  << m_availableFuncs[m_functionId]
-                  << " GPUs available for NVQC function " << m_functionId
-                  << ".\n";
+                  << m_availableFuncs[m_functionId] << " GPUs requested.\n";
         std::cout << "Only one GPU will be used for simulation.\n";
         std::cout << "Please refer to CUDA Quantum documentation for a list of "
                      "multi-GPU capable simulator backends.\n";
@@ -282,6 +343,16 @@ public:
     try {
       // Making the request
       cudaq::debug("Sending NVQC request to {}", nvcfInvocationUrl());
+      if (m_logLevel > LogLevel::None) {
+        auto queueDepth = getQueueDepth(m_functionId, m_functionVersionId);
+        if (queueDepth.has_value() && queueDepth.value() > 0) {
+          cudaq::log("Number of jobs ahead of yours in the NVQC queue: {}.",
+                     queueDepth.value());
+        }
+      }
+
+      if (m_logLevel > LogLevel::None)
+        cudaq::log("Posting NVQC request now");
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
@@ -289,7 +360,8 @@ public:
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
         const std::string reqId = resultJs["reqId"];
-        cudaq::info("Polling result data for Request Id {}", reqId);
+        if (m_logLevel > LogLevel::None)
+          cudaq::log("Polling NVQC result data for Request Id {}", reqId);
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
         resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader,
@@ -372,6 +444,53 @@ public:
           }
         }
         return false;
+      }
+      if (m_logLevel > LogLevel::None &&
+          resultJs["response"].contains("executionInfo")) {
+        try {
+          // We only print GPU device info once if logging is not disabled.
+          static bool printDeviceInfoOnce = false;
+          cudaq::NvcfExecutionInfo info;
+          resultJs["response"]["executionInfo"].get_to(info);
+          if (!printDeviceInfoOnce) {
+            std::size_t totalWidth = 50;
+            std::string message = "NVQC Device Info";
+            auto strLen = message.size() + 2; // Account for surrounding spaces
+            auto leftSize = (totalWidth - strLen) / 2;
+            auto rightSize = (totalWidth - strLen) - leftSize;
+            std::string leftSide(leftSize, '=');
+            std::string rightSide(rightSize, '=');
+            fmt::print("\n{} {} {}\n", leftSide, message, rightSide);
+            fmt::print("GPU Device Name: \"{}\"\n",
+                       info.deviceProps.deviceName);
+            fmt::print("CUDA Driver Version / Runtime Version: {}.{} / {}.{}\n",
+                       info.deviceProps.driverVersion / 1000,
+                       (info.deviceProps.driverVersion % 100) / 10,
+                       info.deviceProps.runtimeVersion / 1000,
+                       (info.deviceProps.runtimeVersion % 100) / 10);
+            fmt::print("Total global memory (GB): {:.1f}\n",
+                       (float)(info.deviceProps.totalGlobalMemMbytes) / 1024.0);
+            fmt::print("Memory Clock Rate (MHz): {:.3f}\n",
+                       info.deviceProps.memoryClockRateMhz);
+            fmt::print("GPU Clock Rate (MHz): {:.3f}\n",
+                       info.deviceProps.clockRateMhz);
+            fmt::print("{}\n", std::string(totalWidth, '='));
+            // Only print this device info once.
+            printDeviceInfoOnce = true;
+          }
+
+          // If trace logging mode is enabled, log timing data for each request.
+          if (m_logLevel == LogLevel::Trace) {
+            fmt::print("\n===== NVQC Execution Timing ======\n");
+            fmt::print(" - Pre-processing: {} milliseconds \n",
+                       info.simulationStart - info.requestStart);
+            fmt::print(" - Execution: {} milliseconds \n",
+                       info.simulationEnd - info.simulationStart);
+            fmt::print("==================================\n");
+          }
+        } catch (...) {
+          fmt::print("Unable to parse NVQC execution info metadata.\n");
+        }
       }
       resultJs["response"]["executionContext"].get_to(io_context);
       return true;

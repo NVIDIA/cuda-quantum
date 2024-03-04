@@ -10,10 +10,23 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/TargetParser/Triple.h"
 
 using namespace mlir;
 
 namespace cudaq::opt {
+
+bool factory::isX86_64(ModuleOp module) {
+  auto ta = module->getAttr(targetTripleAttrName);
+  llvm::Triple tr(cast<StringAttr>(ta).str());
+  return tr.getArch() == llvm::Triple::x86_64;
+}
+
+bool factory::isAArch64(ModuleOp module) {
+  auto ta = module->getAttr(targetTripleAttrName);
+  llvm::Triple tr(cast<StringAttr>(ta).str());
+  return tr.getArch() == llvm::Triple::aarch64;
+}
 
 /// Return an i64 array where the kth element is N if the kth
 /// operand is veq<N> and 0 otherwise (e.g. is a ref).
@@ -148,6 +161,22 @@ cc::LoopOp factory::createInvariantLoop(
   return loop;
 }
 
+// FIXME: some ABIs may return a small struct in registers rather than via an
+// sret pointer.
+//
+// On x86_64,
+//   pair of:  argument         return value    packed from msb to lsb
+//    i32   :   i64              i64             (second, first)
+//    i64   :   i64, i64         { i64, i64 }
+//    f32   :   <2 x float>      <2 x float>
+//    f64   :   double, double   { double, double }
+//
+// On aarch64,
+//   pair of:  argument         return value    packed from msb to lsb
+//    i32   :   i64              i64             (second, first)
+//    i64   :   [2 x i64]        [2 x i64]
+//    f32   :   [2 x float]      { float, float }
+//    f64   :   [2 x double]     { double, double }
 bool factory::hasHiddenSRet(FunctionType funcTy) {
   // If a function has more than 1 result, the results are promoted to a
   // structured return argument. Otherwise, if there is 1 result and it is an
@@ -188,12 +217,115 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   return funcTy.getResult(0);
 }
 
-FunctionType factory::toCpuSideFuncType(FunctionType funcTy, bool addThisPtr) {
+static Type convertToHostSideType(Type ty) {
+  if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
+    return convertToHostSideType(
+        factory::stlVectorType(memrefTy.getElementType()));
+  auto *ctx = ty.getContext();
+  if (auto structTy = dyn_cast<cc::StructType>(ty)) {
+    SmallVector<Type> newMembers;
+    for (auto mem : structTy.getMembers())
+      newMembers.push_back(convertToHostSideType(mem));
+    if (structTy.getName())
+      return cc::StructType::get(ctx, structTy.getName(), newMembers,
+                                 structTy.getBitSize(), structTy.getAlignment(),
+                                 structTy.getPacked());
+    return cc::StructType::get(ctx, newMembers, structTy.getBitSize(),
+                               structTy.getAlignment(), structTy.getPacked());
+  }
+  if (auto memrefTy = dyn_cast<quake::VeqType>(ty)) {
+    // Use pointer as these must be pass-by-reference.
+    return cc::PointerType::get(factory::stlVectorType(
+        IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64)));
+  }
+  return ty;
+}
+
+// This code intends to simulate the X86_64ABIInfo::classify() function. That
+// function tries to simulate GCC argument passing conventions. classify() also
+// has a number of FIXME comments, where it diverges from the referenced ABI.
+// Empirical evidence show that on x86_64, integers and floats are packed in
+// integers of size 32 or 64 together, unless the float member fits by itself.
+static bool shouldExpand(SmallVectorImpl<Type> &packedTys,
+                         cc::StructType structTy) {
+  if (structTy.isEmpty())
+    return false;
+  auto *ctx = structTy.getContext();
+  unsigned bits = 0;
+
+  // First split the members into a "lo" set and a "hi" set.
+  SmallVector<Type> set1;
+  SmallVector<Type> set2;
+  for (auto ty : structTy.getMembers()) {
+    if (auto intTy = dyn_cast<IntegerType>(ty)) {
+      bits += intTy.getWidth();
+      if (bits <= 64)
+        set1.push_back(ty);
+      else
+        set2.push_back(ty);
+    } else if (auto fltTy = dyn_cast<FloatType>(ty)) {
+      bits += fltTy.getWidth();
+      if (bits <= 64)
+        set1.push_back(ty);
+      else
+        set2.push_back(ty);
+    } else {
+      return false;
+    }
+  }
+
+  // Process the sets. If the set has anything integral, use integer. If the set
+  // has one float or double, use it. Otherwise the set has 2 floats, and we use
+  // <2 x f32>.
+  auto useInt = [&](auto theSet) {
+    for (auto ty : theSet)
+      if (isa<IntegerType>(ty))
+        return true;
+    return false;
+  };
+  auto processMembers = [&](auto theSet, unsigned packIdx) {
+    if (useInt(theSet)) {
+      packedTys[packIdx] = IntegerType::get(ctx, bits > 32 ? 64 : 32);
+    } else if (theSet.size() == 1) {
+      packedTys[packIdx] = theSet[0];
+    } else {
+      packedTys[packIdx] =
+          VectorType::get(ArrayRef<std::int64_t>{2}, theSet[0]);
+    }
+  };
+  assert(!set1.empty() && "struct must have members");
+  packedTys.resize(set2.empty() ? 1 : 2);
+  processMembers(set1, 0);
+  if (!set2.empty())
+    processMembers(set2, 1);
+  return true;
+}
+
+bool factory::structUsesTwoArguments(mlir::Type ty) {
+  // Unchecked! This is only valid if target is X86-64.
+  auto structTy = dyn_cast<cc::StructType>(ty);
+  if (!structTy || structTy.getBitSize() == 0 || structTy.getBitSize() > 128)
+    return false;
+  SmallVector<Type> unused;
+  return shouldExpand(unused, structTy);
+}
+
+static bool onlyArithmeticMembers(cc::StructType structTy) {
+  for (auto t : structTy.getMembers()) {
+    // FIXME: check complex type
+    if (isa<IntegerType, FloatType, IndexType>(t))
+      continue;
+    return false;
+  }
+  return true;
+}
+
+// When the kernel comes from a class, there is always a default `this` argument
+// to the kernel entry function. The CUDA Quantum spec doesn't allow the kernel
+// object to contain data members (yet), so we can ignore the `this` pointer.
+FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
+                                         ModuleOp module) {
   auto *ctx = funcTy.getContext();
-  // When the kernel comes from a class, there is always a default "this"
-  // argument to the kernel entry function. The CUDA Quantum language spec
-  // doesn't allow the kernel object to contain data members (yet), so we can
-  // ignore the `this` pointer.
   SmallVector<Type> inputTys;
   bool hasSRet = false;
   if (factory::hasHiddenSRet(funcTy)) {
@@ -201,30 +333,51 @@ FunctionType factory::toCpuSideFuncType(FunctionType funcTy, bool addThisPtr) {
     // returned via a sret argument in the first position. When this argument
     // is added, the this pointer becomes the second argument. Both are opaque
     // pointers at this point.
-    auto eleTy = getSRetElementType(funcTy);
+    auto eleTy = convertToHostSideType(getSRetElementType(funcTy));
     inputTys.push_back(cc::PointerType::get(eleTy));
     hasSRet = true;
   }
   // If this kernel is a plain old function or a static member function, we
   // don't want to add a hidden `this` argument.
+  auto i64Ty = IntegerType::get(ctx, 64);
   auto ptrTy = cc::PointerType::get(IntegerType::get(ctx, 8));
   if (addThisPtr)
     inputTys.push_back(ptrTy);
 
   // Add all the explicit (not hidden) arguments after the hidden ones.
-  for (auto inTy : funcTy.getInputs()) {
-    if (auto memrefTy = dyn_cast<cc::StdvecType>(inTy))
-      inputTys.push_back(
-          cc::PointerType::get(stlVectorType(memrefTy.getElementType())));
-    else if (auto structTy = dyn_cast<cc::StructType>(inTy))
-      // cc.struct args are callable (at this point), need them as pointers
-      // for the new entry point
-      inputTys.push_back(cc::PointerType::get(structTy));
-    else if (auto memrefTy = dyn_cast<quake::VeqType>(inTy))
-      inputTys.push_back(cc::PointerType::get(stlVectorType(
-          IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64))));
-    else
-      inputTys.push_back(inTy);
+  for (auto kernelTy : funcTy.getInputs()) {
+    auto hostTy = convertToHostSideType(kernelTy);
+    if (auto strTy = dyn_cast<cc::StructType>(hostTy)) {
+      // On x86_64 and aarch64, a struct that is smaller than 128 bits may be
+      // passed in registers as separate arguments. See classifyArgumentType()
+      // in CodeGen/TargetInfo.cpp.
+      if (strTy.getBitSize() != 0 && strTy.getBitSize() <= 128) {
+        if (isX86_64(module)) {
+          SmallVector<Type, 2> packedTys;
+          if (shouldExpand(packedTys, strTy)) {
+            for (auto ty : packedTys)
+              inputTys.push_back(ty);
+            continue;
+          }
+        } else {
+          assert(isAArch64(module) && "aarch64 expected");
+          if (onlyArithmeticMembers(strTy)) {
+            // Empirical evidence shows that on aarch64, arguments are packed
+            // into a single i64 or a [2 x i64] typed value based on the size of
+            // the struct. This is regardless of whether the value(s) are
+            // floating-point or not.
+            if (strTy.getBitSize() > 64)
+              inputTys.push_back(cc::ArrayType::get(ctx, i64Ty, 2));
+            else
+              inputTys.push_back(i64Ty);
+            continue;
+          }
+        }
+      }
+      // Pass a struct as a byval pointer.
+      hostTy = cc::PointerType::get(hostTy);
+    }
+    inputTys.push_back(hostTy);
   }
 
   // Handle the result type. We only add a result type when there is a result

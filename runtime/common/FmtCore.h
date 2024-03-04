@@ -11,6 +11,7 @@
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #pragma GCC diagnostic ignored "-Wrestrict"
 #endif
+#include <fmt/chrono.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))

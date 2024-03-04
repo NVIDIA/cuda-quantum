@@ -110,6 +110,12 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     if (returnType.isInteger(64)) {
       py::args returnVal = py::make_tuple(py::int_(0));
       packArgs(runtimeArgs, returnVal);
+    } else if (returnType.isInteger(1)) {
+      py::args returnVal = py::make_tuple(py::bool_(0));
+      packArgs(runtimeArgs, returnVal);
+    } else if (isa<FloatType>(returnType)) {
+      py::args returnVal = py::make_tuple(py::float_(0.0));
+      packArgs(runtimeArgs, returnVal);
     } else {
       std::string msg;
       {
@@ -215,6 +221,10 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
     std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
     std::free(rawArgs);
     return py::int_(concrete);
+  } else if (unwrapped.isInteger(1)) {
+    bool concrete = false;
+    std::memcpy(&concrete, ((char *)rawArgs) + size - 1, 1);
+    return py::bool_(concrete);
   } else if (isa<FloatType>(unwrapped)) {
     double concrete;
     std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
