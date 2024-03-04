@@ -649,24 +649,15 @@ def test_capture_vars():
 
 
 def test_capture_disallow_change_variable():
-
-    # This tests that variables can be captured,
-    # that those captured variables can be modified
-    # and adhere to capture-by-value semantics,
-    # and that captures are not defined in
-    # an inner scope, but are defined at the
-    # function entry block, thus usable
-    # in other spots in the kernel.
-
+    
     n = 3
 
     @cudaq.kernel
     def kernel() -> int:
         if True:
             cudaq.dbg.ast.print_i64(n)
-            # Change n
+            # Change n, emits an error
             n = 4
-        # Return n
         return n
 
     with pytest.raises(RuntimeError) as e:
