@@ -22,12 +22,12 @@
 template <int nrOfBits>
 std::vector<bool> random_bits(int seed) {
 
-  std::vector<bool> randomBitsi(nrOfBits);
+  std::vector<bool> randomBits(nrOfBits);
   std::default_random_engine generator(seed);
   std::uniform_real_distribution<float> distribution(0.0, 1.0);
 
   for (size_t i = 0; i < nrOfBits; i++) {
-    randomBits.set(i, distribution(generator) < 0.5 ? 0 : 1);
+    randomBits[i] = distribution(generator) >= 0.5;
   }
   return randomBits;
 }
