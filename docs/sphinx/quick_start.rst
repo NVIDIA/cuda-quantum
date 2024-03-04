@@ -83,7 +83,7 @@ C++
     Fix Me: Condense this section better.
 
 To install CUDA Quantum for C++, we provide a set of pre-built binaries. 
-Support for using CUDA Quantum with Python can be installed  side-by-side with
+Support for using CUDA Quantum with Python can be installed side-by-side with
 the pre-built binaries for C++ by following the instructions on 
 `PyPI.org <https://pypi.org/project/cuda-quantum>`__. The pre-built binaries
 work across a range of Linux operating systems listed  under :ref:`dependencies-and-compatibility`. 
