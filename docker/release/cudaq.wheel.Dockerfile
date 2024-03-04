@@ -29,7 +29,7 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
     rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" && \
     Python3_EXECUTABLE="$(which python${python_version})" \
     LLVM_PROJECTS='clang;mlir;python-bindings' \
-    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
+    LLVM_CMAKE_CACHE=../cmake/caches/cudaq_toolchain.cmake \
     bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
 
 # Build the wheel
