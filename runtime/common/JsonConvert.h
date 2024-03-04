@@ -147,10 +147,6 @@ private:
   std::unique_ptr<ExecutionContext> m_deserializedContext;
   /// Holder of the reconstructed `spin_op`.
   std::unique_ptr<spin_op> m_deserializedSpinOp;
-  // Version number of this payload.
-  // This needs to be bumped whenever a breaking change is introduced.
-  // e.g., adding/removing non-optional fields, changing field names, etc.
-  static constexpr std::size_t SCHEMA_VERSION = 1;
   // Version string identifying the client version.
   static inline const std::string CUDA_QUANTUM_VERSION = []() {
     std::stringstream ss;
@@ -160,8 +156,23 @@ private:
   }();
 
 public:
+  // Version number of this payload.
+  // This needs to be bumped whenever a breaking change is introduced, which
+  // causes incompatibility.
+  //
+  // For example,
+  //
+  // (1) Breaking Json schema changes,
+  // e.g., adding/removing non-optional fields, changing field names, etc.,
+  //     which introduce parsing incompatibility.
+  // (2) Breaking changes in the runtime, which make JIT execution incompatible,
+  //     e.g., changing the simulator names (.so files), changing signatures of
+  //     QIR functions, etc.
+  // IMPORTANT: When a new version is defined, a new NVQC deployment will be
+  // needed.
+  static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
   RestRequest(ExecutionContext &context)
-      : executionContext(context), version(SCHEMA_VERSION),
+      : executionContext(context), version(REST_PAYLOAD_VERSION),
         clientVersion(CUDA_QUANTUM_VERSION) {}
   RestRequest(const json &j)
       : m_deserializedContext(
@@ -175,11 +186,11 @@ public:
     // compiled with, throw an error. Note: we don't support automatically
     // versioning the payload (converting payload between different versions) at
     // the moment.
-    if (version != SCHEMA_VERSION)
-      throw std::runtime_error(
-          fmt::format("Incompatible JSON schema detected: expected version {}, "
-                      "got version {}",
-                      SCHEMA_VERSION, version));
+    if (version != REST_PAYLOAD_VERSION)
+      throw std::runtime_error(fmt::format(
+          "Incompatible REST payload version detected: supported version {}, "
+          "got version {}.",
+          REST_PAYLOAD_VERSION, version));
   }
 
   // Underlying code (IR) payload as a Base64 string.

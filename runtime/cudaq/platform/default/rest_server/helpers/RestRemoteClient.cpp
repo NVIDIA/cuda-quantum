@@ -76,29 +76,49 @@ private:
     return versions;
   }
   DeploymentInfo getAllAvailableDeployments() {
-    DeploymentInfo info;
     auto headers = getHeaders();
     auto allVisibleFunctions =
         m_restClient.get(fmt::format("https://{}/nvcf/functions", m_baseUrl),
                          "", headers, /*enableSsl=*/true);
-    for (auto funcInfo : allVisibleFunctions["functions"]) {
-      if (funcInfo["ncaId"].get<std::string>() == CUDAQ_NCA_ID &&
-          funcInfo["status"].get<std::string>() == "ACTIVE" &&
-          funcInfo["name"].get<std::string>().starts_with("cuda_quantum")) {
-        const std::size_t numGpus = [&]() {
-          if (funcInfo.contains("containerEnvironment")) {
-            for (auto it : funcInfo["containerEnvironment"]) {
-              if (it["key"].get<std::string>() == "NUM_GPUS")
-                return std::stoi(it["value"].get<std::string>());
+    const auto queryDeploymentInfo =
+        [&](const std::string &functionNamePrefix) -> DeploymentInfo {
+      DeploymentInfo info;
+      for (auto funcInfo : allVisibleFunctions["functions"]) {
+        if (funcInfo["ncaId"].get<std::string>() == CUDAQ_NCA_ID &&
+            funcInfo["status"].get<std::string>() == "ACTIVE" &&
+            funcInfo["name"].get<std::string>().starts_with(
+                functionNamePrefix)) {
+          const std::size_t numGpus = [&]() {
+            if (funcInfo.contains("containerEnvironment")) {
+              for (auto it : funcInfo["containerEnvironment"]) {
+                if (it["key"].get<std::string>() == "NUM_GPUS")
+                  return std::stoi(it["value"].get<std::string>());
+              }
             }
-          }
-          return 1;
-        }();
+            return 1;
+          }();
 
-        info[funcInfo["id"].get<std::string>()] = numGpus;
+          info[funcInfo["id"].get<std::string>()] = numGpus;
+        }
       }
-    }
-    return info;
+      return info;
+    };
+
+    const std::string baseCudaqNvcfFuncNamePrefix = "cuda_quantum";
+    const std::string versionedCudaqNvcfFuncNamePrefix =
+        baseCudaqNvcfFuncNamePrefix + "_" +
+        std::to_string(cudaq::RestRequest::REST_PAYLOAD_VERSION);
+
+    // First, query the functions that have an exact version match
+    DeploymentInfo info = queryDeploymentInfo(versionedCudaqNvcfFuncNamePrefix);
+    if (!info.empty())
+      return info;
+
+    cudaq::info("Unable to find any active NVQC deployments for REST request "
+                "version '{}' under NVIDIA Cloud Account Id {}.",
+                cudaq::RestRequest::REST_PAYLOAD_VERSION, CUDAQ_NCA_ID);
+    cudaq::info("Try to find generic deployments under the same NCA Id.");
+    return queryDeploymentInfo(baseCudaqNvcfFuncNamePrefix);
   }
 
   std::optional<std::size_t> getQueueDepth(const std::string &funcId,
