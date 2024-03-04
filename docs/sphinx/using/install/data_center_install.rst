@@ -1,6 +1,8 @@
 Data Center Installation
 =========================
 
+.. _data-center-install:
+
 Installation from Source
 +++++++++++++++++++++++++
 

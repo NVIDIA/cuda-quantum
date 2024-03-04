@@ -174,7 +174,7 @@ Observe
   as :func:`cudaq.spin.i`, :func:`cudaq.spin.x`, :func:`cudaq.spin.y`, :func:`cudaq.spin.z` may be used to construct more
   complex spin Hamiltonians on multiple qubits.
   
-  Below is an example of a spin operator object consisting of a `Z(0)` operator, or a Pauli Z-operator on the 0-th qubit. 
+  Below is an example of a spin operator object consisting of a `Z(0)` operator, or a Pauli Z-operator on the zeroth qubit. 
   This is followed by the construction of a kernel with a single qubit in an equal superposition. 
   The Hamiltonian is printed to confirm it has been constructed properly.
 
@@ -306,7 +306,7 @@ Running on a GPU
   seeing an output of the order:
   ``It took 3.18988 seconds.``
 ..
-  FIXME:: Decide on what to do with this for march release without updated python.
+  Fix me: Decide on what to do with this for march release without updated python.
     Spending the rest of the week writing this for the kernel builder when it will
     just be taken out doesn't seem like a great use of time.
 
@@ -320,7 +320,7 @@ Running on a GPU
   Quantum Memory
   ++++++++++++++++++++++++++++++++++
 
-  Todo
+  To do
 
 Troubleshooting
 -----------------
