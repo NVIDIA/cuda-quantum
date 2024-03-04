@@ -34,7 +34,6 @@
 # files are compatible or functional after moving them.
 
 # Process command line arguments
-(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":c:s:t:" opt; do
@@ -46,7 +45,7 @@ while getopts ":c:s:t:" opt; do
     t) target="$OPTARG"
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
-    if $is_sourced; then return 1; else exit 1; fi
+    (return 0 2>/dev/null) && return 1 || exit 1
     ;;
   esac
 done

@@ -34,7 +34,6 @@ PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
 # Process command line arguments
-(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
 verbose=false
 
@@ -49,10 +48,10 @@ while getopts ":c:s:v" opt; do
     v) verbose=true
     ;;
     :) echo "Option -$OPTARG requires an argument."
-    if $is_sourced; then return 1; else exit 1; fi
+    (return 0 2>/dev/null) && return 1 || exit 1
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
-    if $is_sourced; then return 1; else exit 1; fi
+    (return 0 2>/dev/null) && return 1 || exit 1
     ;;
   esac
 done
@@ -150,7 +149,7 @@ else
       echo "Cherry-pick failed."
       if $(git rev-parse --is-shallow-repository); then
         echo "Unshallow the repository and try again."
-        if $is_sourced; then return 1; else exit 1; fi
+        (return 0 2>/dev/null) && return 1 || exit 1
       fi
     fi
   fi
@@ -221,20 +220,20 @@ else
 fi
 
 if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
-  echo "Build failed. Please check the files in the `pwd`/logs directory."
-  cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+  echo "Failed to build compiler components. Please check the files in the `pwd`/logs directory."
+  cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
-  cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
-fi
-
-if [ -n "$llvm_runtimes" ]; then
-  cd $llvm_source/build && ninja runtimes && ninja install-runtimes
-  status=$?
-  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
-    echo "Build failed. Please check the files in the `pwd`/logs directory."
-    cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
-  else
-    cd "$working_dir" && echo "Successfully added runtime components."
+  if [ -n "$llvm_runtimes" ]; then
+    ninja runtimes
+    ninja install-runtimes
+    status=$?
+    if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+      echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
+      cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+    else
+      echo "Successfully added runtime components $(echo $llvm_runtimes | sed 's/;/, /g')."
+    fi
   fi
+  cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
 fi

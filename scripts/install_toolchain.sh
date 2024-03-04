@@ -20,7 +20,6 @@
 # The -e option creates a init_command.sh file in the given directory that 
 # can be used to reinstall the same toolchain if needed.
 
-(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 __optind__=$OPTIND
 OPTIND=1
 toolchain=gcc12
@@ -31,7 +30,7 @@ while getopts ":t:e:" opt; do
     e) export_dir="$OPTARG"
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
-    if $is_sourced; then return 1; else exit 1; fi
+    (return 0 2>/dev/null) && return 1 || exit 1
     ;;
   esac
 done
@@ -117,14 +116,13 @@ elif [ "$toolchain" = "llvm" ]; then
         fi
 
         if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-            if [ -x "$(command -v apt-get)" ]; then
-                temp_install_if_command_unknown gcc gcc
-                temp_install_if_command_unknown g++ g++
-            elif [ -x "$(command -v dnf)" ]; then
-                temp_install_if_command_unknown gcc gcc
-                temp_install_if_command_unknown g++ gcc-c++
-            else
-                echo -e "\e[01;31mError: Please define the environment variables CC and CXX.\e[0m" >&2
+            # Using clang to build the toolchain is both more efficient and also necessary,
+            # since using a different compiler tends to cause issues with a customized llvm build.
+            source "$(readlink -f "${BASH_SOURCE[0]}")" -t clang16 || \
+            echo -e "\e[01;31mError: Failed to install clang compiler for bootstrapping.\e[0m" >&2
+            if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+                echo -e "\e[01;31mError: No clang compiler set for bootstrapping. Please define the environment variables CC and CXX.\e[0m" >&2
+                (return 0 2>/dev/null) && return 2 || exit 2
             fi
         fi
 
@@ -148,7 +146,7 @@ else
 
     echo "The requested toolchain cannot be installed by this script."
     echo "Supported toolchains: llvm, clang16, gcc12, gcc11."
-    if $is_sourced; then return 1; else exit 1; fi
+    (return 0 2>/dev/null) && return 1 || exit 1
 
 fi
 
@@ -183,5 +181,5 @@ if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then
 else
     echo "Failed to install $toolchain toolchain."
     unset CC && unset CXX
-    if $is_sourced; then return 10; else exit 10; fi
+    (return 0 2>/dev/null) && return 10 || exit 10
 fi

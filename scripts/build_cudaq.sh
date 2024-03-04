@@ -40,7 +40,6 @@ CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 
 # Process command line arguments
-(return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
 install_prereqs=""
@@ -56,7 +55,7 @@ while getopts ":c:t:v" opt; do
     v) verbose=true
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
-    if $is_sourced; then return 1; else exit 1; fi
+    (return 0 2>/dev/null) && return 1 || exit 1
     ;;
   esac
 done
@@ -84,10 +83,9 @@ if [ -n "$install_prereqs" ]; then
     status=$?
   fi
 
-  (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo "Failed to install prerequisites."
-    cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
   fi
 fi
 
@@ -151,7 +149,7 @@ echo "Building CUDA Quantum with configuration $build_configuration..."
 logs_dir=`pwd`/logs
 function fail_gracefully {
   echo "Build failed. Please check the console output or the files in the $logs_dir directory."
-  cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+  cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 }
 
 if $verbose; then 

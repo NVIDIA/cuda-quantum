@@ -33,11 +33,14 @@
 
 # Process command line arguments
 toolchain=''
+exclude_prereq=''
 install_all=true
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":t:m" opt; do
+while getopts ":e:t:m" opt; do
   case $opt in
+    e) exclude_prereq="${OPTARG,,}"
+    ;;
     t) toolchain="$OPTARG"
     ;;
     m) install_all=false
@@ -106,7 +109,7 @@ trap 'prepare_exit && ((return 0 2>/dev/null) && return 1 || exit 1)' EXIT
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 
 # [Toolchain] CMake, ninja and C/C++ compiler
-if $install_all; then
+if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
   if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
     echo "Installing toolchain ${toolchain}..."
     if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
@@ -137,7 +140,7 @@ if $install_all; then
 fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
-if [ -n "$ZLIB_INSTALL_PREFIX" ]; then
+if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
   if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
     echo "Installing libz..."
     temp_install_if_command_unknown wget wget
@@ -163,7 +166,7 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ]; then
 fi
 
 # [LLVM/MLIR] Needed to build the CUDA Quantum toolchain
-if [ -n "$LLVM_INSTALL_PREFIX" ]; then
+if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]; then
   if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
     echo "Installing LLVM libraries..."
     bash "$this_file_dir/build_llvm.sh" -v
@@ -182,7 +185,7 @@ if [ -n "$LLVM_INSTALL_PREFIX" ]; then
 fi
 
 # [Blas] Needed for certain optimizers
-if [ -n "$BLAS_INSTALL_PREFIX" ]; then
+if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]; then
   if [ ! -f "$BLAS_INSTALL_PREFIX/libblas.a" ] && [ ! -f "$BLAS_INSTALL_PREFIX/lib/libblas.a" ]; then
     echo "Installing BLAS..."
     temp_install_if_command_unknown wget wget
@@ -206,7 +209,7 @@ if [ -n "$BLAS_INSTALL_PREFIX" ]; then
 fi
 
 # [OpenSSL] Needed for communication with external services
-if [ -n "$OPENSSL_INSTALL_PREFIX" ]; then
+if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)" ]; then
   if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(find "$OPENSSL_INSTALL_PREFIX" -name libssl.a)" ]; then
     echo "Installing OpenSSL..."
     temp_install_if_command_unknown wget wget
@@ -243,7 +246,7 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ]; then
 fi
 
 # [CURL] Needed for communication with external services
-if [ -n "$CURL_INSTALL_PREFIX" ]; then
+if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]; then
   if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
     echo "Installing Curl..."
     temp_install_if_command_unknown wget wget
@@ -298,7 +301,7 @@ fi
 cuda_driver=${CUDA_HOME:-/usr/local/cuda}/bin/nvcc
 cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 if [ -n "$cuda_version" ]; then
-  if [ -n "$CUQUANTUM_INSTALL_PREFIX" ]; then
+  if [ -n "$CUQUANTUM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep cuquantum)" ]; then
     if [ ! -d "$CUQUANTUM_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUQUANTUM_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
       echo "Installing cuQuantum..."
       bash "$this_file_dir/configure_build.sh" install-cuquantum
@@ -306,7 +309,7 @@ if [ -n "$cuda_version" ]; then
       echo "cuQuantum already installed in $CUQUANTUM_INSTALL_PREFIX."
     fi
   fi
-  if [ -n "$CUTENSOR_INSTALL_PREFIX" ]; then
+  if [ -n "$CUTENSOR_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep cutensor)" ]; then
     if [ ! -d "$CUTENSOR_INSTALL_PREFIX" ] || [ -z "$(ls -A "$CUTENSOR_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
       echo "Installing cuTensor..."
       bash "$this_file_dir/configure_build.sh" install-cutensor
@@ -316,8 +319,9 @@ if [ -n "$cuda_version" ]; then
   fi
 fi
 
-if $install_all; then echo "All prerequisites have been installed."
-else echo "Prerequisites for which an *_INSTALL_PREFIX variable was defined have been installed."
+exclude_prereq="$(echo $exclude_prereq | tr ';' ' ' | sed 's/  */, /g')"
+if $install_all; then echo "All prerequisites have been installed (excluded: ${exclude_prereq:-none})."
+else echo "Prerequisites for which an *_INSTALL_PREFIX variable was defined have been installed (excluded: ${exclude_prereq:-none})."
 fi
 # Make sure to call prepare_exit so that we properly uninstalled all helper tools,
 # and so that we are in the correct directory also when this script is sourced.
