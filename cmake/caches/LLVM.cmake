@@ -10,7 +10,7 @@ set(ZLIB_USE_STATIC_LIBS ON CACHE BOOL "")
 # Path configurations
 set(CLANG_RESOURCE_DIR "../" CACHE STRING "")
 set(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib" CACHE STRING "")
-set(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR "../" CACHE STRING "") # see https://github.com/llvm/llvm-project/issues/62114
+set(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR OFF CACHE BOOL "") # see https://github.com/llvm/llvm-project/issues/62114
 
 # Default configurations for the built toolchain
 set(CLANG_DEFAULT_CXX_STDLIB libc++ CACHE STRING "")
