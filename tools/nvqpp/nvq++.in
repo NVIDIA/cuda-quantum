@@ -589,6 +589,13 @@ COMPILER_FLAGS="${CPPSTD} -Wno-c++20-extensions ${COMPILER_FLAGS}"
 # the resultant binary to target that specified backend.
 OBJS_TO_MERGE=""
 if [ -n "${TARGET_CONFIG}" ]; then
+	if [ "${TARGET_CONFIG}" == "nvqc" ]; then
+		LLVM_CONFIG="${LLVMBIN}llvm-config"
+		HOST_TARGET=$(${LLVM_CONFIG} --host-target)
+		if [ ${HOST_TARGET:0:6} != "x86_64" ]; then
+			error_exit "Cannot use nvqc target from non-x86_64 host at this time"
+		fi
+	fi
 	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
