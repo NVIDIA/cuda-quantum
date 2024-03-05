@@ -61,7 +61,7 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && git submodule
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAHOSTCXX="$CXX" \
-    LLVM_PROJECTS='clang;lld;mlir;compiler-rt' \
+    LLVM_PROJECTS='clang;lld;mlir;openmp' \
     bash scripts/install_prerequisites.sh -t llvm
 
 # Checking out a CUDA Quantum commit is suboptimal, since the source code
@@ -105,7 +105,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_WERROR=false \
     CUDAQ_PYTHON_SUPPORT=OFF \
     CUDAHOSTCXX="$CXX" \
-    LLVM_PROJECTS='clang;lld;mlir;compiler-rt' \
+    LLVM_PROJECTS='clang;lld;mlir;openmp' \
     bash scripts/build_cudaq.sh -t llvm -v
     ## [<CUDAQuantumBuild]
 

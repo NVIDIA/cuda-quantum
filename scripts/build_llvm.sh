@@ -29,7 +29,7 @@
 # - https://github.com/llvm/llvm-project/blob/main/openmp/docs/SupportAndFAQ.rst#q-how-to-build-an-openmp-gpu-offload-capable-compiler
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
-LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;compiler-rt;mlir;python-bindings'}
+LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;openmp;mlir;python-bindings'}
 PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
@@ -126,7 +126,7 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
 fi
 if [ -z "${llvm_projects##*compiler-rt;*}" ]; then
   echo "- including runtime components"
-  llvm_runtimes="libcxx;libcxxabi;libunwind;openmp"
+  llvm_runtimes="libcxx;libcxxabi;libunwind"
   llvm_components+="compiler-rt;compiler-rt-headers;"
   projects=("${projects[@]/compiler-rt}")
 fi

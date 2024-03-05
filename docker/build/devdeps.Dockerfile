@@ -94,7 +94,6 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
 # - https://gcc.gnu.org/onlinedocs/gcc/C_002b_002b-Dialect-Options.html#C_002b_002b-Dialect-Options
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 RUN source "/opt/llvm_stage1/bootstrap/init_command.sh" && \
-    LLVM_PROJECTS='clang;mlir;python-bindings' \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     bash /scripts/build_llvm.sh -s /llvm-project -c Release -v && \
     mv /opt/llvm_stage1/bootstrap "$LLVM_INSTALL_PREFIX/bootstrap" && \
