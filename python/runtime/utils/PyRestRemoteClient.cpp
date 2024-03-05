@@ -110,7 +110,7 @@ private:
     const std::string baseCudaqNvcfFuncNamePrefix = "cuda_quantum";
     const std::string versionedCudaqNvcfFuncNamePrefix =
         baseCudaqNvcfFuncNamePrefix + "_" +
-        std::to_string(cudaq::RestRequest::REST_PAYLOAD_VERSION);
+        std::to_string(cudaq::RestRequest::REST_PAYLOAD_VERSION) + "_";
 
     // First, query the functions that have an exact version match
     DeploymentInfo info = queryDeploymentInfo(versionedCudaqNvcfFuncNamePrefix);
