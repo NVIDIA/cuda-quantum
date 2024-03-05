@@ -42,9 +42,19 @@ class QuakeValue(object):
         self.knownUniqueExtractions = set()
 
     def __str__(self):
+        """
+        Return a string representation of the value of `self` (:class:`QuakeValue`).
+        """
         return str(self.mlirValue)
 
     def size(self):
+        """
+        Return the size of `self` (:class:`QuakeValue`), if it is of the type `stdvec` or `veq`.
+
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not `stdvec` or `veq`.
+
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             # assert this is a `stdvec` type or a `veq` type
             # See if we know the size of the `veq`
@@ -116,8 +126,10 @@ class QuakeValue(object):
     def slice(self, startIdx, count):
         """
         Return a slice of the given :class:`QuakeValue` as a new :class:`QuakeValue`.
+
         Note:
             The underlying :class:`QuakeValue` must be a `list` or `veq`.
+
         Args:
             start (int): The index to begin the slice from.
             count (int): The number of elements to extract after the `start` index.
@@ -130,6 +142,7 @@ class QuakeValue(object):
     def __neg__(self):
         """
         Return the negation of `self` (:class:`QuakeValue`).
+
         Raises:
             RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
 
@@ -148,8 +161,9 @@ class QuakeValue(object):
     def __mul__(self, other):
         """
         Return the product of `self` (:class:`QuakeValue`) with `other` (float).
+        
         Raises:
-            RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
 
         .. code-block:: python
 
@@ -166,8 +180,9 @@ class QuakeValue(object):
     def __rmul__(self, other):
         """
         Return the product of `other` (float) with `self` (:class:`QuakeValue`).
+
         Raises:
-            RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
         
         .. code-block:: python
 
@@ -184,6 +199,7 @@ class QuakeValue(object):
     def __truediv__(self, other):
         """
         Return the division of `self` (:class:`QuakeValue`) with `other` (float).
+
         Raises:
 	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
 
@@ -205,8 +221,9 @@ class QuakeValue(object):
     def __rtruediv__(self, other):
         """
         Return the division of `other` (float) with `self` (:class:`QuakeValue`).
+
         Raises:
-            RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
         
         .. code-block:: python
 
@@ -226,8 +243,9 @@ class QuakeValue(object):
     def __add__(self, other):
         """
         Return the sum of `self` (:class:`QuakeValue`) and `other` (float).
+
         Raises:
-            RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
         
         .. code-block:: python
 
@@ -244,8 +262,9 @@ class QuakeValue(object):
     def __radd__(self, other):
         """
         Return the sum of `other` (float) and `self` (:class:`QuakeValue`).
+
         Raises:
-            RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
         
         .. code-block:: python
 
@@ -262,8 +281,9 @@ class QuakeValue(object):
     def __sub__(self, other):
         """
         Return the difference of `self` (:class:`QuakeValue`) and `other` (float).
+
         Raises:
-            RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
         
         .. code-block:: python
 
@@ -280,8 +300,9 @@ class QuakeValue(object):
     def __rsub__(self, other):
         """
         Return the difference of `other` (float) and `self` (:class:`QuakeValue`).
+
         Raises:
-            RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
 
         .. code-block:: python
 
@@ -298,8 +319,10 @@ class QuakeValue(object):
     def __getitem__(self, idx):
         """
         Return the element of `self` at the provided `index`.
+
         Note:
 	        Only `list` or :class:`qvector` type :class:`QuakeValue`'s may be indexed.
+
         Args:
 	        index (int): The element of `self` that you'd like to return.
         Returns:
