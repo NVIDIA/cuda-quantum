@@ -214,12 +214,25 @@ else
   status=$?
 fi
 
+# A bit hacky:
+# A way to make sure clang finds and uses both the built resources *and*
+# the built runtime(s) is to install/move them to the same location and 
+# configure that location as the resource directory.
+resources_build_dir=`echo "$LLVM_INSTALL_PREFIX/lib/clang"/*`
+for subdir in `find "$resources_build_dir"/* -maxdepth 0 -type d`; do
+  mv "$resources_build_dir/$subdir"/* "$LLVM_INSTALL_PREFIX/$subdir/" 
+  rmdir "$resources_build_dir/$subdir"
+done
+rmdir -p "$resources_build_dir" 2> /dev/null || true
+
+# Build and install runtimes using the newly built toolchain
 if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
   echo "Failed to build compiler components. Please check the files in the `pwd`/logs directory."
   cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
   if [ -n "$llvm_runtimes" ]; then
+    echo "Building runtime components..."
     ninja runtimes
     ninja install-runtimes
     status=$?
