@@ -101,7 +101,7 @@ public:
             if (includedNeededFuncs.contains(neededFunc.getName()))
               return WalkResult::skip();
             neededFunc.print(strOut, opf);
-            includedNeededFuncs.emplace(neededFunc.getName());
+            includedNeededFuncs.insert(neededFunc.getName());
             strOut << '\n';
             return WalkResult::advance();
           }
