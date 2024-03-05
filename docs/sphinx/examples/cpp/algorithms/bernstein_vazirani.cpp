@@ -63,7 +63,7 @@ struct bernstein_vazirani {
 
 // Construct the bit vector such that the last bit has highest significance.
 std::string asString(const std::vector<bool> &bitvector) {
-  char *buffer = static_cast<char*>(alloca(bitvector.size() + 1));
+  char *buffer = static_cast<char *>(alloca(bitvector.size() + 1));
   std::size_t N = bitvector.size();
   buffer[N] = '\0';
   for (std::size_t i = 0; i < N; ++i)
