@@ -220,7 +220,7 @@ fi
 # configure that location as the resource directory.
 resources_build_dir=`echo "$LLVM_INSTALL_PREFIX/lib/clang"/*`
 cd "$resources_build_dir"
-for dir in `find ./* -maxdepth 0 -type d`; do
+for subdir in `find ./* -maxdepth 0 -type d`; do
   mv "$subdir"/* "$LLVM_INSTALL_PREFIX/$subdir/" 
   rmdir "$subdir"
 done
