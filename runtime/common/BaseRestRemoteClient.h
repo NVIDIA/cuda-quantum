@@ -165,7 +165,8 @@ public:
       for (auto &op : *module) {
         auto funcOp = dyn_cast<func::FuncOp>(op);
         // Add quantum kernels defined in the module.
-        if (funcOp && funcOp->hasAttr(cudaq::kernelAttrName))
+        if (funcOp && (funcOp->hasAttr(cudaq::kernelAttrName) ||
+                       funcOp.getName().startswith("__nvqpp__mlirgen__")))
           moduleOp.push_back(funcOp.clone());
       }
 
