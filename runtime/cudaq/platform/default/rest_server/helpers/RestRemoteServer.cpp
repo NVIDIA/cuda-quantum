@@ -120,6 +120,10 @@ public:
       : cudaq::RemoteRuntimeServer(),
         m_simHandle(DEFAULT_NVQIR_SIMULATION_BACKEND,
                     loadNvqirSimLib(DEFAULT_NVQIR_SIMULATION_BACKEND)) {}
+
+  virtual int version() const override {
+    return cudaq::RestRequest::REST_PAYLOAD_VERSION;
+  }
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) override {
     const auto portIter = configs.find("port");
