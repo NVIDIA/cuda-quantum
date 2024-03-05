@@ -21,6 +21,9 @@ void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 std::string pyDraw(py::object &kernel, py::args args) {
 
+  if (py::len(kernel.attr("arguments")) != args.size())
+    throw std::runtime_error("Invalid number of arguments passed to draw.");
+
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
