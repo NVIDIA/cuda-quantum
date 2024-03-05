@@ -61,6 +61,17 @@ struct bernstein_vazirani {
   }
 };
 
+// Construct the bitvector such that the last bit has highest significance.
+std::string asString(const std::vector<bool> &bitvector) {
+  std::string result;
+  char *buffer = static_cast<char*>(alloca(bitvector.size() + 1));
+  std::size_t N = bitvector.size();
+  buffer[N] = '\0';
+  for (std::size_t i = 0; i < N; ++i)
+    buffer[N - 1 - i] = '0' + bitvector[i];
+  return result;
+}
+
 int main(int argc, char *argv[]) {
   auto seed = 1 < argc ? atoi(argv[1]) : time(NULL);
 
@@ -72,7 +83,7 @@ int main(int argc, char *argv[]) {
   auto counts = cudaq::sample(nr_shots, kernel, bitvector);
 
   if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
-    printf("Encoded bitstring:  %s\n", bitvector.to_string().c_str());
+    printf("Encoded bitstring:  %s\n", asString(bitvector).c_str());
     printf("Measured bitstring: %s\n\n", counts.most_probable().c_str());
 
     for (auto &[bits, count] : counts) {
