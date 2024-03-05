@@ -219,10 +219,12 @@ fi
 # the built runtime(s) is to install/move them to the same location and 
 # configure that location as the resource directory.
 resources_build_dir=`echo "$LLVM_INSTALL_PREFIX/lib/clang"/*`
-for subdir in `find "$resources_build_dir"/* -maxdepth 0 -type d`; do
-  mv "$resources_build_dir/$subdir"/* "$LLVM_INSTALL_PREFIX/$subdir/" 
-  rmdir "$resources_build_dir/$subdir"
+cd "$resources_build_dir"
+for dir in `find ./* -maxdepth 0 -type d`; do
+  mv "$subdir"/* "$LLVM_INSTALL_PREFIX/$subdir/" 
+  rmdir "$subdir"
 done
+cd "$llvm_source/build"
 rmdir -p "$resources_build_dir" 2> /dev/null || true
 
 # Build and install runtimes using the newly built toolchain
