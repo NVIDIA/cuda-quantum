@@ -90,7 +90,7 @@ public:
         // We'll also need any non-inlined functions that are
         // called by our cudaq kernel
         // Set of dependent kernels that we've included.
-        std::set<llvm::StringRef> includedNeededFuncs;
+        DenseSet<llvm::StringRef> includedNeededFuncs;
         funcOp.walk([&](func::CallOp callOp) {
           if (auto neededFunc =
                   module.lookupSymbol<func::FuncOp>(callOp.getCallee())) {
