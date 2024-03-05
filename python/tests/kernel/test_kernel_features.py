@@ -649,7 +649,7 @@ def test_capture_vars():
 
 
 def test_capture_disallow_change_variable():
-    
+
     n = 3
 
     @cudaq.kernel
@@ -888,3 +888,15 @@ q3 : ┤ h ├──────────────────────
 '''
 
     assert circuit == expected_str
+
+
+def test_draw_fail():
+
+    @cudaq.kernel
+    def kernel(argument: float):
+        q = cudaq.qvector(2)
+        h(q[0])
+        ry(argument, q[1])
+
+    with pytest.raises(RuntimeError) as error:
+        print(cudaq.draw(kernel))
