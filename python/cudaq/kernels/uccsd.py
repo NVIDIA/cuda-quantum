@@ -92,6 +92,10 @@ def uccsd_get_excitation_list(n_electrons, n_qubits):
 
 
 def uccsd_num_parameters(n_electrons, n_qubits):
+    """
+    For the given number of electrons and qubits, return the required number
+    of UCCSD parameters."
+    """
     # Compute the size of theta parameters for all UCCSD excitation.
 
     singles_alpha,singles_beta,doubles_mixed,doubles_alpha,doubles_beta=\
@@ -561,6 +565,15 @@ def uccsd_even_electrons(qubits: cudaq.qview, thetas: List[float],
 @cudaq.kernel
 def uccsd(qubits: cudaq.qview, thetas: List[float], n_electrons: int,
           n_qubits: int):
+    """
+    Generate the unitary coupled cluster singlet doublet CUDA Quantum kernel.
+
+    Args:
+        qubits (cudaq.qview): Pre-allocated qubits
+        thetas (List[float]): List of parameters
+        n_electrons (int): Number of electrons
+        n_qubits (int): Number of qubits
+    """
 
     if n_electrons % 2 == 0:
         uccsd_even_electrons(qubits, thetas, n_electrons, n_qubits)
