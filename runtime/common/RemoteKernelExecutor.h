@@ -62,6 +62,11 @@ public:
   virtual void
   setConfig(const std::unordered_map<std::string, std::string> &configs) = 0;
 
+  // Return the API version of the client implementation.
+  // It defines the version number of the constructed payload and server
+  // compatibility check/lookup.
+  virtual int version() const = 0;
+
   // Reset the random seed sequence using for remote execution.
   // This is triggered by a random seed value being set in CUDAQ runtime.
   virtual void resetRemoteRandomSeed(std::size_t seed) = 0;

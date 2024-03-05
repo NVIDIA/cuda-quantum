@@ -103,7 +103,7 @@ private:
         }();
 
         // Only add functions that match client version.
-        if (payLoadVersion == cudaq::RestRequest::REST_PAYLOAD_VERSION)
+        if (payLoadVersion == version())
           info[funcInfo["id"].get<std::string>()] = numGpus;
       }
     }
@@ -178,6 +178,11 @@ public:
                      m_functionId);
         }
       } else {
+        // Output an error message if no deployments can be found.
+        if (m_availableFuncs.empty())
+          throw std::runtime_error("Unable to find any ACTIVE NVQC "
+                                   "deployments. Please contact NVQC support.");
+
         // Determine the function Id based on the number of GPUs
         const auto nGpusIter = configs.find("ngpus");
         // Default is 1 GPU if none specified

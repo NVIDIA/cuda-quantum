@@ -171,8 +171,8 @@ public:
   // IMPORTANT: When a new version is defined, a new NVQC deployment will be
   // needed.
   static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
-  RestRequest(ExecutionContext &context)
-      : executionContext(context), version(REST_PAYLOAD_VERSION),
+  RestRequest(ExecutionContext &context, int versionNumber)
+      : executionContext(context), version(versionNumber),
         clientVersion(CUDA_QUANTUM_VERSION) {}
   RestRequest(const json &j)
       : m_deserializedContext(
@@ -182,15 +182,6 @@ public:
     // Take the ownership of the spin_op pointer for proper cleanup.
     if (executionContext.spin.has_value() && executionContext.spin.value())
       m_deserializedSpinOp.reset(executionContext.spin.value());
-    // If the incoming JSON payload has a different version than the one this is
-    // compiled with, throw an error. Note: we don't support automatically
-    // versioning the payload (converting payload between different versions) at
-    // the moment.
-    if (version != REST_PAYLOAD_VERSION)
-      throw std::runtime_error(fmt::format(
-          "Incompatible REST payload version detected: supported version {}, "
-          "got version {}.",
-          REST_PAYLOAD_VERSION, version));
   }
 
   // Underlying code (IR) payload as a Base64 string.
