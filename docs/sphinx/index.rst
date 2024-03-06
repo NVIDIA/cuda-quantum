@@ -9,7 +9,7 @@ in quantum algorithm research. It offers a unified programming model designed fo
 setting |---| that is, CPUs, GPUs, and QPUs working together. Further enabling application
 acceleration, CUDA Quantum includes language extensions for Python and C++ and a system-level toolchain.
 
-You are browsing the documentation for |version| version of CUDA Quantum. You can find documentation for all released versions :doc:`here <versions>`.
+You are browsing the documentation for |version| version of CUDA Quantum. You can find documentation for all released versions :doc:`here <releases>`.
 
 **CUDA Quantum** is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.
 
@@ -27,7 +27,7 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
       Extending <using/extending/extending.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
-      Other Versions <versions.rst>
+      Other Versions <releases.rst>
 
 .. |---|   unicode:: U+2014 .. EM DASH
    :trim:
