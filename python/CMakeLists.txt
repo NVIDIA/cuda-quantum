@@ -169,11 +169,11 @@ if (NOT SKBUILD)
 endif()
 
 # Do we have pytest and numpy? 
-execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version
+execute_process(COMMAND ${Python3_EXECUTABLE} -m pytest --version
   OUTPUT_VARIABLE PYTEST_output
   ERROR_VARIABLE  PYTEST_error
   RESULT_VARIABLE PYTEST_result)
-execute_process(COMMAND ${Python_EXECUTABLE} -c "import numpy"
+execute_process(COMMAND ${Python3_EXECUTABLE} -c "import numpy"
   OUTPUT_VARIABLE NUMPY_output
   ERROR_VARIABLE NUMPY_error
   RESULT_VARIABLE NUMPY_result)
