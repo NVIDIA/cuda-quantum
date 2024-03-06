@@ -388,21 +388,30 @@ public:
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
         const std::string reqId = resultJs["reqId"];
-        const int elapsedTimeSecs =
-            std::chrono::duration_cast<std::chrono::seconds>(
-                std::chrono::system_clock::now() - requestStartTime)
-                .count();
-        if (m_logLevel > LogLevel::None)
-          cudaq::log("Polling NVQC result data for Request Id {}", reqId);
-        // Warns if the remaining time is less than this threshold.
-        constexpr int TIMEOUT_WARNING_SECS = 5 * 60; // 5 minutes.
-        const int remainingSecs = std::max(
-            m_availableFuncs[m_functionId].timeoutSecs - elapsedTimeSecs, 0);
-        if (remainingSecs < TIMEOUT_WARNING_SECS)
-          cudaq::log("Request Id {}: Approaching the wall time limit ({} "
-                     "seconds). Remaining time: {} seconds.",
-                     reqId, m_availableFuncs[m_functionId].timeoutSecs,
-                     remainingSecs);
+        if (m_logLevel > LogLevel::None) {
+          const int elapsedTimeSecs =
+              std::chrono::duration_cast<std::chrono::seconds>(
+                  std::chrono::system_clock::now() - requestStartTime)
+                  .count();
+          // Warns if the remaining time is less than this threshold.
+          constexpr int TIMEOUT_WARNING_SECS = 5 * 60; // 5 minutes.
+          const int remainingSecs =
+              m_availableFuncs[m_functionId].timeoutSecs - elapsedTimeSecs;
+          std::string additionalInfo;
+          if (remainingSecs < 0)
+            fmt::format_to(std::back_inserter(additionalInfo),
+                           ". Exceeded wall time limit ({} seconds), but time "
+                           "spent waiting in queue is not counted. Proceeding.",
+                           m_availableFuncs[m_functionId].timeoutSecs);
+          else if (remainingSecs < TIMEOUT_WARNING_SECS)
+            fmt::format_to(std::back_inserter(additionalInfo),
+                           ". Approaching the wall time limit ({} seconds). "
+                           "Remaining time: {} seconds.",
+                           m_availableFuncs[m_functionId].timeoutSecs,
+                           remainingSecs);
+          cudaq::log("Polling NVQC result data for Request Id {}{}", reqId,
+                     additionalInfo);
+        }
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
         resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader,
