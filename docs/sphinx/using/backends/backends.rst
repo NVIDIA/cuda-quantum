@@ -9,6 +9,7 @@ CUDA Quantum Backends
 
       Simulation <simulators.rst>
       Hardware <hardware.rst>
+      Multi-Processor Platforms <platform.rst>
 
 **The following is a comprehensive list of the available targets in CUDA Quantum:**
 

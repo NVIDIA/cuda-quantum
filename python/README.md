@@ -29,7 +29,7 @@ To install the latest stable version of CUDA Quantum, run
 python3 -m pip install cuda-quantum
 ```
 
-## Configuring CUDA Quantum for GPU Simulation
+## Enabling GPU Acceleration
 
 CUDA Quantum can be used to compile and run quantum programs on a CPU-only
 system, but a GPU is highly recommended and necessary to use the some of the
