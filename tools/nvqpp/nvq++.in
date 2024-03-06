@@ -321,6 +321,7 @@ CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
 CMAKE_FALLBACK_HOST_CXX=${CXX}
 TARGET_ARGS=()
+HOST_TARGET=$(${LLVMBIN}llc${llvm_suffix} --version | grep "Default target" | head -1 | cut -d':' -f2 | tr -d ' ')
 
 if [[ $# -eq 0 ]]; then
     SHOW_HELP=true
@@ -592,9 +593,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	# Disable compilation on non-x86 machines when targetting NVQC.
 	# See https://github.com/NVIDIA/cuda-quantum/issues/1345 for current status.
 	if [ "${TARGET_CONFIG}" == "nvqc" ]; then
-		LLVM_CONFIG="${LLVMBIN}llvm-config"
-		HOST_TARGET=$(${LLVM_CONFIG} --host-target)
-		if [ ${HOST_TARGET:0:6} != "x86_64" ]; then
+		if [ "${HOST_TARGET:0:6}" != "x86_64" ]; then
 			error_exit "Cannot use nvqc target from non-x86_64 client at this time"
 		fi
 	fi
