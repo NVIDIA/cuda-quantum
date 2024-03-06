@@ -23,7 +23,6 @@
 #include "runtime/cudaq/algorithms/py_sample_async.h"
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_vqe.h"
-#include "runtime/cudaq/kernels/py_common_kernels.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_qubit_qis.h"
@@ -95,7 +94,6 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindSpinWrapper(cudaqRuntime);
   cudaq::bindQIS(cudaqRuntime);
   cudaq::bindOptimizerWrapper(cudaqRuntime);
-  cudaq::bindCommonKernels(cudaqRuntime);
   cudaq::bindNoise(cudaqRuntime);
   cudaq::bindExecutionContext(cudaqRuntime);
   cudaq::bindExecutionManager(cudaqRuntime);
