@@ -186,7 +186,7 @@ Python wheels
 CUDA Quantum Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. 
 Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
 For more information about available versions and documentation,
-see :doc:`../../versions`.
+see :doc:`../../releases`.
 
 There are currently no source distributions available on PyPI, but you can download the 
 source code for the latest version of the CUDA Quantum Python wheels from our 
