@@ -190,8 +190,10 @@ public:
       } else {
         // Output an error message if no deployments can be found.
         if (m_availableFuncs.empty())
-          throw std::runtime_error("Unable to find any ACTIVE NVQC "
-                                   "deployments. Please contact NVQC support.");
+          throw std::runtime_error(
+              "Unable to find any ACTIVE NVQC deployments. Please ensure that "
+              "the provided NVQC API key is authorized to invoke NVQC "
+              "functions; otherwise, please contact NVQC support.");
 
         // Determine the function Id based on the number of GPUs
         const auto nGpusIter = configs.find("ngpus");
