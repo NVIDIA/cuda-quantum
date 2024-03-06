@@ -41,9 +41,9 @@ private:
   // Information about function deployment from environment variable info.
   struct FunctionEnvironments {
     // These configs should be positive numbers.
-    int version;
-    int numGpus;
-    int timeoutSecs;
+    int version{-1};
+    int numGpus{-1};
+    int timeoutSecs{-1};
   };
   // Available functions: function Id to info mapping
   using DeploymentInfo = std::unordered_map<std::string, FunctionEnvironments>;
