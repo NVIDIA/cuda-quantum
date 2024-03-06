@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "common/BaseRestRemoteClient.h"
+#include "common/NvqcConfig.h"
 
 using namespace mlir;
 
@@ -37,8 +38,7 @@ private:
   // Available functions: function Id to number of GPUs mapping
   using DeploymentInfo = std::unordered_map<std::string, std::size_t>;
   DeploymentInfo m_availableFuncs;
-  static constexpr const char *CUDAQ_NCA_ID =
-      "mZraB3k06kOd8aPhD6MVXJwBVZ67aXDLsfmDo4MYXDs";
+  const std::string CUDAQ_NCA_ID = cudaq::getNvqcNcaId();
   // Base URL for NVCF APIs
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
   // Return the URL to invoke the function specified in this client
@@ -76,28 +76,38 @@ private:
     return versions;
   }
   DeploymentInfo getAllAvailableDeployments() {
-    DeploymentInfo info;
     auto headers = getHeaders();
     auto allVisibleFunctions =
         m_restClient.get(fmt::format("https://{}/nvcf/functions", m_baseUrl),
                          "", headers, /*enableSsl=*/true);
+    const std::string cudaqNvcfFuncNamePrefix = "cuda_quantum";
+    DeploymentInfo info;
     for (auto funcInfo : allVisibleFunctions["functions"]) {
       if (funcInfo["ncaId"].get<std::string>() == CUDAQ_NCA_ID &&
           funcInfo["status"].get<std::string>() == "ACTIVE" &&
-          funcInfo["name"].get<std::string>().starts_with("cuda_quantum")) {
-        const std::size_t numGpus = [&]() {
+          funcInfo["name"].get<std::string>().starts_with(
+              cudaqNvcfFuncNamePrefix)) {
+        const auto [numGpus, payLoadVersion] = [&]() -> std::pair<int, int> {
+          int version = -1; // Invalid
+          int gpuCounts = 1;
           if (funcInfo.contains("containerEnvironment")) {
             for (auto it : funcInfo["containerEnvironment"]) {
               if (it["key"].get<std::string>() == "NUM_GPUS")
-                return std::stoi(it["value"].get<std::string>());
+                gpuCounts = std::stoi(it["value"].get<std::string>());
+              if (it["key"].get<std::string>() == "NVQC_REST_PAYLOAD_VERSION")
+                version = std::stoi(it["value"].get<std::string>());
             }
           }
-          return 1;
+
+          return std::make_pair(gpuCounts, version);
         }();
 
-        info[funcInfo["id"].get<std::string>()] = numGpus;
+        // Only add functions that match client version.
+        if (payLoadVersion == version())
+          info[funcInfo["id"].get<std::string>()] = numGpus;
       }
     }
+
     return info;
   }
 
@@ -168,6 +178,11 @@ public:
                      m_functionId);
         }
       } else {
+        // Output an error message if no deployments can be found.
+        if (m_availableFuncs.empty())
+          throw std::runtime_error("Unable to find any ACTIVE NVQC "
+                                   "deployments. Please contact NVQC support.");
+
         // Determine the function Id based on the number of GPUs
         const auto nGpusIter = configs.find("ngpus");
         // Default is 1 GPU if none specified

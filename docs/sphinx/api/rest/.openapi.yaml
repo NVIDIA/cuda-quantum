@@ -46,7 +46,7 @@ definitions:
       version:
         type: integer
         format: int64
-        description: Version number of this RestRequest schema.
+        description: Version number of the payload. Each REST server version only supports a specific payload version. 
         example: 1
       clientVersion:
         type: string
