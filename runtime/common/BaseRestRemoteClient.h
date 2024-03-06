@@ -110,6 +110,15 @@ public:
       m_url = urlIter->second;
   }
 
+  virtual int version() const override {
+    // Check if we have an environment variable override
+    if (auto *envVal = std::getenv("CUDAQ_REST_CLIENT_VERSION"))
+      return std::stoi(envVal);
+
+    // Otherwise, just use the version defined in the code.
+    return cudaq::RestRequest::REST_PAYLOAD_VERSION;
+  }
+
   std::string constructKernelPayload(MLIRContext &mlirContext,
                                      const std::string &name,
                                      void (*kernelFunc)(void *), void *args,
@@ -156,7 +165,8 @@ public:
       for (auto &op : *module) {
         auto funcOp = dyn_cast<func::FuncOp>(op);
         // Add quantum kernels defined in the module.
-        if (funcOp && funcOp->hasAttr(cudaq::kernelAttrName))
+        if (funcOp && (funcOp->hasAttr(cudaq::kernelAttrName) ||
+                       funcOp.getName().startswith("__nvqpp__mlirgen__")))
           moduleOp.push_back(funcOp.clone());
       }
 
@@ -202,7 +212,7 @@ public:
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
-    cudaq::RestRequest request(io_context);
+    cudaq::RestRequest request(io_context, version());
     request.entryPoint = kernelName;
     if (cudaq::__internal__::isLibraryMode(kernelName)) {
       request.format = cudaq::CodeFormat::LLVM;

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,10 +11,25 @@ import cudaq
 
 
 def num_hwe_parameters(numQubits, numLayers):
+    """
+    For the given number of qubits and layers, return the required number of `hwe` parameters.
+    """
     return 2 * numQubits * (1 + numLayers)
 
 
 def hwe(kernel, qubits, numQubits, numLayers, parameters, cnotCoupling=None):
+    """
+    Generate the hardware-efficient CUDA Quantum kernel.
+
+    Args:
+        kernel (:class:`Kernel`): The existing `cudaq.Kernel` to append to
+        qubits (:class:`qview`): Pre-allocated qubits
+        `numQubits` (int): Number of qubits
+        `numLayers` (int): Number of layers
+        parameters (List[float]): The list of parameters
+        `cnotCoupling` (Optional[List[tuple(int, int)]]): The `CNOT` couplers
+        
+    """
     if cnotCoupling == None:
         cnotCoupling = [(i, i + 1) for i in range(numQubits - 1)]
 

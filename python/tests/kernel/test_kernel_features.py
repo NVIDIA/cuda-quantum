@@ -648,15 +648,7 @@ def test_capture_vars():
                       atol=1e-3)
 
 
-def test_capture_change_variable():
-
-    # This tests that variables can be captured,
-    # that those captured variables can be modified
-    # and adhere to capture-by-value semantics,
-    # and that captures are not defined in
-    # an inner scope, but are defined at the
-    # function entry block, thus usable
-    # in other spots in the kernel.
+def test_capture_disallow_change_variable():
 
     n = 3
 
@@ -664,12 +656,12 @@ def test_capture_change_variable():
     def kernel() -> int:
         if True:
             cudaq.dbg.ast.print_i64(n)
-            # Change n
+            # Change n, emits an error
             n = 4
-        # Return n
         return n
 
-    assert n == 3 and 4 == kernel()
+    with pytest.raises(RuntimeError) as e:
+        kernel()
 
 
 def test_inner_function_capture():
@@ -896,3 +888,15 @@ q3 : ┤ h ├──────────────────────
 '''
 
     assert circuit == expected_str
+
+
+def test_draw_fail():
+
+    @cudaq.kernel
+    def kernel(argument: float):
+        q = cudaq.qvector(2)
+        h(q[0])
+        ry(argument, q[1])
+
+    with pytest.raises(RuntimeError) as error:
+        print(cudaq.draw(kernel))
