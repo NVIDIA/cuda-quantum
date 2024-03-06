@@ -20,4 +20,3 @@ Examples that illustrate how to use CUDA Quantum for application development are
       Simulations with cuQuantum <cuquantum.rst>
       Noisy Simulation <noisy_simulation.rst>
       Using Quantum Hardware Providers <hardware_providers.rst>
-      Multi-QPU Platform <platform.rst>
