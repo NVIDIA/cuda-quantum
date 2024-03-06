@@ -39,6 +39,10 @@ cudaq::RestServer::RestServer(int port, const std::string &name) {
   m_impl->app.port(port);
   m_impl->app.server_name(name);
   m_impl->app.loglevel(crow::LogLevel::Warning);
+  // Set a small stream threshold to enforce synchronous TCP buffer write.
+  // Asynchronous buffer write (`asio::async_write`) is susceptible to
+  // corruption if the app is shut down right after handling a request.
+  m_impl->app.stream_threshold(16 * 1024);
   // Note: don't enable multi-threading (`m_impl->app.multithreaded()`) since
   // we're handling requests sequentially.
 }
