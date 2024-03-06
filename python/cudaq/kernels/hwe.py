@@ -22,12 +22,12 @@ def hwe(kernel, qubits, numQubits, numLayers, parameters, cnotCoupling=None):
     Generate the hardware-efficient CUDA Quantum kernel.
 
     Args:
-        kernel (cudaq.Kernel): The existing `cudaq.Kernel` to append to
-        qubits (cudaq.qview): Pre-allocated qubits
-        numQubits (int): Number of qubits
-        numLayers (int): Number of layers
+        kernel (:class:`Kernel`): The existing `cudaq.Kernel` to append to
+        qubits (:class:`qview`): Pre-allocated qubits
+        `numQubits` (int): Number of qubits
+        `numLayers` (int): Number of layers
         parameters (List[float]): The list of parameters
-        cnotCoupling (List[tuple(int, int)]): (Optional) The CNOT couplers
+        `cnotCoupling` (Optional[List[tuple(int, int)]]): The `CNOT` couplers
         
     """
     if cnotCoupling == None:
