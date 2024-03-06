@@ -10,7 +10,7 @@ latest stable release of the CUDA Quantum Python API:
 
 For further information, see the `CUDA Quantum project <https://pypi.org/project/cuda-quantum/>`_ on PyPI.
 
-We also offer a fully featured CUDA Quantum installation, including all C++ and Python tools, via our
+We also offer a fully featured CUDA Quantum installation, including all Python and C++ tools, via our
 `Docker container <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`_. For further
 installation methods and resources, see our :ref:`Installation Guide <install-cuda-quantum>`.
 

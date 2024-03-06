@@ -10,9 +10,9 @@
 // `--target=nvidia` from the command line.
 
 // Note: Without setting the target to the `nvidia` backend,
-// a 30 qubit simulation simply seems to hang; that is
-// because it takes a long time for the CPU-only backend
-// to handle this number of qubits!
+// there will be a noticeable decrease in simulation performance.
+// This is because the CPU-only backend has difficulty handling
+// 30+ qubit simulations.
 
 std::vector<int> random_bitstring(int qubit_count) {
   std::vector<int> vector_of_bits;
