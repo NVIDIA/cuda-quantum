@@ -35,8 +35,15 @@ private:
   std::string m_functionId;
   // NVCF version Id of that function to use
   std::string m_functionVersionId;
-  // Available functions: function Id to number of GPUs mapping
-  using DeploymentInfo = std::unordered_map<std::string, std::size_t>;
+  // Information about function deployment from environment variable info.
+  struct FunctionEnvironments {
+    // These configs should be positive numbers.
+    int version;
+    int numGpus;
+    int timeoutSecs;
+  };
+  // Available functions: function Id to info mapping
+  using DeploymentInfo = std::unordered_map<std::string, FunctionEnvironments>;
   DeploymentInfo m_availableFuncs;
   const std::string CUDAQ_NCA_ID = cudaq::getNvqcNcaId();
   // Base URL for NVCF APIs
@@ -87,24 +94,27 @@ private:
           funcInfo["status"].get<std::string>() == "ACTIVE" &&
           funcInfo["name"].get<std::string>().starts_with(
               cudaqNvcfFuncNamePrefix)) {
-        const auto [numGpus, payLoadVersion] = [&]() -> std::pair<int, int> {
-          int version = -1; // Invalid
-          int gpuCounts = 1;
+        const auto containerEnvs = [&]() -> FunctionEnvironments {
+          FunctionEnvironments envs;
           if (funcInfo.contains("containerEnvironment")) {
             for (auto it : funcInfo["containerEnvironment"]) {
-              if (it["key"].get<std::string>() == "NUM_GPUS")
-                gpuCounts = std::stoi(it["value"].get<std::string>());
-              if (it["key"].get<std::string>() == "NVQC_REST_PAYLOAD_VERSION")
-                version = std::stoi(it["value"].get<std::string>());
+              const auto getEnvValueIfMatch =
+                  [](json &js, const std::string &envKey, int &varToSet) {
+                    if (js["key"].get<std::string>() == envKey)
+                      varToSet = std::stoi(js["value"].get<std::string>());
+                  };
+              getEnvValueIfMatch(it, "NUM_GPUS", envs.numGpus);
+              getEnvValueIfMatch(it, "NVQC_REST_PAYLOAD_VERSION", envs.version);
+              getEnvValueIfMatch(it, "WATCHDOG_TIMEOUT_SEC", envs.timeoutSecs);
             }
           }
 
-          return std::make_pair(gpuCounts, version);
+          return envs;
         }();
 
         // Only add functions that match client version.
-        if (payLoadVersion == version())
-          info[funcInfo["id"].get<std::string>()] = numGpus;
+        if (containerEnvs.version == version())
+          info[funcInfo["id"].get<std::string>()] = containerEnvs;
       }
     }
 
@@ -165,8 +175,8 @@ public:
     }
 
     m_availableFuncs = getAllAvailableDeployments();
-    for (const auto &[funcId, numGpus] : m_availableFuncs)
-      cudaq::info("Function Id {} has {} GPUs.", funcId, numGpus);
+    for (const auto &[funcId, info] : m_availableFuncs)
+      cudaq::info("Function Id {} has {} GPUs.", funcId, info.numGpus);
     {
       const auto funcIdIter = configs.find("function-id");
       if (funcIdIter != configs.end()) {
@@ -186,17 +196,18 @@ public:
         // Determine the function Id based on the number of GPUs
         const auto nGpusIter = configs.find("ngpus");
         // Default is 1 GPU if none specified
-        const std::size_t numGpusRequested =
+        const int numGpusRequested =
             (nGpusIter != configs.end()) ? std::stoi(nGpusIter->second) : 1;
         cudaq::info("Looking for an NVQC deployment that has {} GPUs.",
                     numGpusRequested);
-        for (const auto &[funcId, numGpus] : m_availableFuncs) {
-          if (numGpus == numGpusRequested) {
+        for (const auto &[funcId, info] : m_availableFuncs) {
+          if (info.numGpus == numGpusRequested) {
             m_functionId = funcId;
             if (m_logLevel > LogLevel::None) {
               // Print out the configuration
-              cudaq::log("Submitting jobs to NVQC service with {} GPU(s).",
-                         numGpus);
+              cudaq::log("Submitting jobs to NVQC service with {} GPU(s). Max "
+                         "wall time: {} seconds.",
+                         info.numGpus, info.timeoutSecs);
             }
             break;
           }
@@ -204,8 +215,8 @@ public:
         if (m_functionId.empty()) {
           // Make sure that we sort the GPU count list
           std::set<std::size_t> gpuCounts;
-          for (const auto &[funcId, numGpus] : m_availableFuncs) {
-            gpuCounts.emplace(numGpus);
+          for (const auto &[funcId, info] : m_availableFuncs) {
+            gpuCounts.emplace(info.numGpus);
           }
           std::stringstream ss;
           ss << "Unable to find NVQC deployment with " << numGpusRequested
@@ -286,13 +297,14 @@ public:
       // setting the backend to a single-GPU one. Only print once in case this
       // is a execution loop.
       static bool printOnce = false;
-      if (m_availableFuncs[m_functionId] > 1 &&
+      if (m_availableFuncs[m_functionId].numGpus > 1 &&
           std::find(MULTI_GPU_BACKENDS.begin(), MULTI_GPU_BACKENDS.end(),
                     backendSimName) == MULTI_GPU_BACKENDS.end() &&
           !printOnce) {
         std::cout << "The requested backend simulator (" << backendSimName
                   << ") is not capable of using all "
-                  << m_availableFuncs[m_functionId] << " GPUs requested.\n";
+                  << m_availableFuncs[m_functionId].numGpus
+                  << " GPUs requested.\n";
         std::cout << "Only one GPU will be used for simulation.\n";
         std::cout << "Please refer to CUDA Quantum documentation for a list of "
                      "multi-GPU capable simulator backends.\n";
@@ -368,6 +380,7 @@ public:
 
       if (m_logLevel > LogLevel::None)
         cudaq::log("Posting NVQC request now");
+      const auto requestStartTime = std::chrono::system_clock::now();
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
@@ -375,8 +388,21 @@ public:
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
         const std::string reqId = resultJs["reqId"];
+        const int elapsedTimeSecs =
+            std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::system_clock::now() - requestStartTime)
+                .count();
         if (m_logLevel > LogLevel::None)
           cudaq::log("Polling NVQC result data for Request Id {}", reqId);
+        // Warns if the remaining time is less than this threshold.
+        constexpr int TIMEOUT_WARNING_SECS = 5 * 60; // 5 minutes.
+        const int remainingSecs = std::max(
+            m_availableFuncs[m_functionId].timeoutSecs - elapsedTimeSecs, 0);
+        if (remainingSecs < TIMEOUT_WARNING_SECS)
+          cudaq::log("Request Id {}: Approaching the wall time limit ({} "
+                     "seconds). Remaining time: {} seconds.",
+                     reqId, m_availableFuncs[m_functionId].timeoutSecs,
+                     remainingSecs);
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
         resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader,
