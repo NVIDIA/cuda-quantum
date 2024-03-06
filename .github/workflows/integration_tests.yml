@@ -544,8 +544,8 @@ jobs:
             fi
           done
 
-          # Test NVQC Python examples
-          for ex in `find examples/python -name '*.py'`; do
+          # Test NVQC Python examples + Python MLIR execution tests (not IR tests)
+          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -661,7 +661,7 @@ jobs:
           export NVQC_FUNCTION_VERSION_ID="${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
           set +e # Allow script to keep going through errors
           test_err_sum=0
-          for ex in `find examples/python -name '*.py'`; do
+          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
