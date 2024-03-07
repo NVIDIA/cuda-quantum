@@ -53,6 +53,7 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
                             OwningOpRef<mlir::ModuleOp> &module) {
   PassManager pm(module->getContext());
   pm.addPass(createCanonicalizerPass());
+  cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs));
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
@@ -322,6 +323,43 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
   // Sample this new kernel processed with quake synth
   auto countz = sampleJitCode(jit.get(), kernel.name());
   EXPECT_EQ(countz.size(), 1);
+}
+
+TEST(QuakeSynthTests, checkCallable) {
+  auto [ansatz, thetas] = cudaq::make_kernel<std::vector<double>>();
+  auto q = ansatz.qalloc(2);
+  ansatz.x(q[0]);
+  ansatz.ry(thetas[0], q[1]);
+  ansatz.x<cudaq::ctrl>(q[1], q[0]);
+
+  auto [kernel, angles] = cudaq::make_kernel<std::vector<double>>();
+  kernel.call(ansatz, angles);
+
+  // Set the proper name for the kernel
+  auto properName = cudaq::runtime::cudaqGenPrefixName + kernel.name();
+
+  std::vector<double> argsValue = {0.0};
+  using namespace cudaq::spin;
+  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                     .21829 * z(0) - 6.125 * z(1);
+  double energy = cudaq::observe(kernel, h, argsValue);
+  std::cout << "Energy = " << energy << "\n";
+  // Map the kernel_builder to_quake output to MLIR
+  auto context = cudaq::initializeMLIR();
+  std::cout << "Quake Code:\n" << kernel.to_quake() << "\n";
+  auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
+
+  // Create a struct defining the runtime args for the kernel
+  auto [args, offset] = cudaq::mapToRawArgs(kernel.name(), argsValue);
+
+  // Run quake-synth
+  EXPECT_TRUE(succeeded(runQuakeSynth(kernel.name(), args, module)));
+
+  // Get the function, make sure that it has no arguments
+  auto func = module->lookupSymbol<func::FuncOp>(properName);
+  func.dump();
+  EXPECT_TRUE(func);
+  EXPECT_TRUE(func.getArguments().empty());
 }
 
 int main(int argc, char **argv) {
