@@ -8,6 +8,8 @@
 
 #include "common/BaseRestRemoteClient.h"
 #include "common/NvqcConfig.h"
+#include <regex>
+
 using namespace mlir;
 
 namespace {
@@ -99,7 +101,32 @@ private:
               cudaqNvcfFuncNamePrefix)) {
         const auto containerEnvs = [&]() -> FunctionEnvironments {
           FunctionEnvironments envs;
-          if (funcInfo.contains("containerEnvironment")) {
+          // Function name convention:
+          // Example: cuda_quantum_v1_t3600_8x
+          //          ------------  -  ---- -
+          //            Prefix      |    |  |
+          //              Version __|    |  |
+          //           Timeout (secs)  __|  |
+          //              Number of GPUs  __|
+          const std::regex funcNameRegex(
+              R"(^cuda_quantum_v(\d+)_t(\d+)_(\d+)x$)");
+          // The first match is the whole string.
+          constexpr std::size_t expectedNumMatches = 4;
+          std::smatch baseMatch;
+          const std::string fname = funcInfo["name"].get<std::string>();
+          // If the function name matches 'Production' naming convention,
+          // retrieve deployment information from the name.
+          if (std::regex_match(fname, baseMatch, funcNameRegex) &&
+              baseMatch.size() == expectedNumMatches) {
+            envs.version = std::stoi(baseMatch[1].str());
+            envs.timeoutSecs = std::stoi(baseMatch[2].str());
+            envs.numGpus = std::stoi(baseMatch[3].str());
+          } else if (funcInfo.contains("containerEnvironment")) {
+            // Otherwise, retrieve the info from deployment configurations.
+            // TODO: at some point, we may want to consolidate these two paths
+            // (name vs. meta-data). We keep it here since function metadata
+            // (similar to `containerEnvironment`) will be supported in the near
+            // future.
             for (auto it : funcInfo["containerEnvironment"]) {
               const auto getEnvValueIfMatch =
                   [](json &js, const std::string &envKey, int &varToSet) {
@@ -112,6 +139,9 @@ private:
             }
           }
 
+          // Note: invalid/uninitialized FunctionEnvironments will be
+          // discarded, i.e., not added to the valid deployment list, since the
+          // API version number will not match.
           return envs;
         }();
 
