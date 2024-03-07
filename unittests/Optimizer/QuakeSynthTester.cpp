@@ -53,7 +53,6 @@ LogicalResult runQuakeSynth(std::string_view kernelName, void *rawArgs,
                             OwningOpRef<mlir::ModuleOp> &module) {
   PassManager pm(module->getContext());
   pm.addPass(createCanonicalizerPass());
-  cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, rawArgs));
   pm.addPass(cudaq::opt::createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());

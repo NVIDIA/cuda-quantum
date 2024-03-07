@@ -95,56 +95,125 @@ LogicalResult synthesizeVectorArgument(OpBuilder &builder,
   auto argLoc = argument.getLoc();
   auto conArray = builder.create<cudaq::cc::ConstantArrayOp>(
       argLoc, cudaq::cc::ArrayType::get(ctx, eleTy, vec.size()), arrayAttr);
-  auto replaceLoads = [&](cudaq::cc::ComputePtrOp gepOp,
+  auto arrTy = cudaq::cc::ArrayType::get(ctx, eleTy, vec.size());
+  std::optional<Value> arrayInMemory;
+  auto ptrEleTy = cudaq::cc::PointerType::get(eleTy);
+  bool generateNewValue = false;
+
+  // Helper function that materializes the array in memory.
+  auto getArrayInMemory = [&]() -> Value {
+    if (arrayInMemory)
+      return *arrayInMemory;
+    OpBuilder::InsertionGuard guard(builder);
+    builder.setInsertionPointAfter(conArray);
+    Value buffer = builder.create<cudaq::cc::AllocaOp>(argLoc, arrTy);
+    builder.create<cudaq::cc::StoreOp>(argLoc, conArray, buffer);
+    Value res = builder.create<cudaq::cc::CastOp>(argLoc, ptrEleTy, buffer);
+    arrayInMemory = res;
+    return res;
+  };
+
+  auto replaceLoads = [&](cudaq::cc::ComputePtrOp elePtrOp,
                           Value newVal) -> LogicalResult {
-    for (auto *u : gepOp->getUsers()) {
+    for (auto *u : elePtrOp->getUsers()) {
       if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(u)) {
         loadOp.replaceAllUsesWith(newVal);
         continue;
       }
-      return gepOp.emitError("Unknown gep/load configuration for synthesis.");
+      return elePtrOp.emitError(
+          "Unknown gep/load configuration for synthesis.");
     }
     return success();
   };
+
+  // Iterate over the users of this stdvec argument.
   for (auto *argUser : argument.getUsers()) {
+    // Handle the StdvecSize use case.
+    // Replace a `vec.size()` with the length, which is a synthesized constant.
     if (auto stdvecSizeOp = dyn_cast<cudaq::cc::StdvecSizeOp>(argUser)) {
       Value length = builder.create<arith::ConstantIntOp>(
           argLoc, vec.size(), stdvecSizeOp.getType());
       stdvecSizeOp.replaceAllUsesWith(length);
       continue;
     }
+
+    // Handle the StdvecDataOp use cases.  We expect `vec.data()` to be indexed
+    // and the value loaded, `vec.data()[c]`. Handle the cases where the offset,
+    // `c`, is a constant as well as cases when it is not. Also handle the case
+    // when the `vec.data()` is used in an arbitrary pointer expression.
     if (auto stdvecDataOp = dyn_cast<cudaq::cc::StdvecDataOp>(argUser)) {
+      bool replaceOtherUses = false;
       for (auto *dataUser : stdvecDataOp->getUsers()) {
-        // could be a load, or a getelementptr.
-        // if load, the index is 0
-        // if getelementptr, then we get the index there to use
+        // dataUser could be a load, a computeptr, or something else. If it's a
+        // load, the index is 0: get the 0-th value from the array and forward
+        // it. If it's a computeptr, then we get the element from the array at
+        // the index and forward it. There are two cases: (1) the element offset
+        // is constant and (2) the element offset is some computed value. Both
+        // cases are quite similar with the variation on the offset argument
+        // being a constant or a value.
         if (auto loadOp = dyn_cast<cudaq::cc::LoadOp>(dataUser)) {
+          // Load the first (0) element.
           Value runtimeParam = makeElementValue(builder, argLoc, vec[0], eleTy);
           // Replace with the constant value
           loadOp.replaceAllUsesWith(runtimeParam);
           continue;
         }
-        if (auto gepOp = dyn_cast<cudaq::cc::ComputePtrOp>(dataUser)) {
-          auto index = gepOp.getRawConstantIndices()[0];
+        if (auto elePtrOp = dyn_cast<cudaq::cc::ComputePtrOp>(dataUser)) {
+          auto index = elePtrOp.getRawConstantIndices()[0];
           if (index == cudaq::cc::ComputePtrOp::kDynamicIndex) {
             OpBuilder::InsertionGuard guard(builder);
-            builder.setInsertionPoint(gepOp);
+            builder.setInsertionPoint(elePtrOp);
             Value getEle = builder.create<cudaq::cc::GetConstantElementOp>(
-                gepOp.getLoc(), eleTy, conArray, gepOp.getDynamicIndices()[0]);
-            if (failed(replaceLoads(gepOp, getEle)))
-              return failure();
+                elePtrOp.getLoc(), eleTy, conArray,
+                elePtrOp.getDynamicIndices()[0]);
+            if (failed(replaceLoads(elePtrOp, getEle))) {
+              Value memArr = getArrayInMemory();
+              builder.setInsertionPoint(elePtrOp);
+              Value newComputedPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                  argLoc, ptrEleTy, memArr,
+                  SmallVector<cudaq::cc::ComputePtrArg>{
+                      0, elePtrOp.getDynamicIndices()[0]});
+              elePtrOp.replaceAllUsesWith(newComputedPtr);
+            }
             continue;
           }
           Value runtimeParam =
               makeElementValue(builder, argLoc, vec[index], eleTy);
-          if (failed(replaceLoads(gepOp, runtimeParam)))
-            return failure();
-        } else {
-          return dataUser->emitError(
-              "unexpected use of std::vector<T>::data()");
+          if (failed(replaceLoads(elePtrOp, runtimeParam))) {
+            Value memArr = getArrayInMemory();
+            OpBuilder::InsertionGuard guard(builder);
+            builder.setInsertionPoint(elePtrOp);
+            Value newComputedPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                argLoc, ptrEleTy, memArr,
+                SmallVector<cudaq::cc::ComputePtrArg>{0, index});
+            elePtrOp.replaceAllUsesWith(newComputedPtr);
+          }
+          continue;
         }
+        replaceOtherUses = true;
       }
+      // Check if there were other uses of `vec.data()` and simply forward the
+      // constant array as materialized in memory.
+      if (replaceOtherUses) {
+        Value memArr = getArrayInMemory();
+        stdvecDataOp.replaceAllUsesWith(memArr);
+      }
+      continue;
     }
+
+    // In the event that the stdvec value is simply used as is, we want to
+    // construct a new, constant vector in place and replace users of the
+    // argument with it.
+    generateNewValue = true;
+  }
+  if (generateNewValue) {
+    auto memArr = getArrayInMemory();
+    OpBuilder::InsertionGuard guard(builder);
+    builder.setInsertionPointAfter(memArr.getDefiningOp());
+    Value size = builder.create<arith::ConstantIntOp>(argLoc, vec.size(), 64);
+    Value newVec =
+        builder.create<cudaq::cc::StdvecInitOp>(argLoc, strTy, memArr, size);
+    argument.replaceAllUsesWith(newVec);
   }
   return success();
 }
