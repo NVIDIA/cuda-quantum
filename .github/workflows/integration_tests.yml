@@ -563,7 +563,7 @@ jobs:
             else
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then
-                # Use --target command line option to run these examples with
+                # Use --target command line option to run these examples with nvqc
                 python3 $ex --target nvqc 1> /dev/null
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -679,7 +679,7 @@ jobs:
             else
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then
-                # Use --target command line option to run these examples with
+                # Use --target command line option to run these examples with nvqc
                 python$python_version $ex --target nvqc 1> /dev/null
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
