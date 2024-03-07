@@ -676,6 +676,19 @@ jobs:
                 echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
                 test_err_sum=$((test_err_sum+1))
               fi
+            else
+              # Only run examples that are not target-specific (e.g., ionq, iqm)
+              if ! grep -q "set_target" "$ex"; then
+                # Use --target command line option to run these examples with
+                python$python_version $ex --target nvqc 1> /dev/null
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              fi
             fi
           done
           set -e # Re-enable exit code error checking
