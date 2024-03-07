@@ -1,8 +1,6 @@
 CUDA Quantum C++ API
 ******************************
 
-.. _cpp-api-landing-page:
-
 Operators 
 =============
 

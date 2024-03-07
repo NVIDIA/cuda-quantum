@@ -1,11 +1,9 @@
-.. _python-examples-for-hardware-providers:
-.. _cpp-examples-for-hardware-providers:
-
 Using Quantum Hardware Providers
 -----------------------------------
 
-CUDA Quantum contains support for using a set of hardware providers (Quantinuum, IonQ, and IQM). 
-For more information about executing quantum kernels on different hardware backends, please take a look at :ref:`hardware <hardware-landing-page>`.
+CUDA Quantum contains support for using a set of hardware providers (IonQ, IQM, OQC, and Quantinuum). 
+For more information about executing quantum kernels on different hardware backends, please take a look
+at :doc:`hardware <../backends/hardware>`.
 
 The following code illustrates how to run kernels on Quantinuum's backends.
 
