@@ -111,6 +111,30 @@ def test_observe_kernel():
     check_observe(ansatz_with_param)
 
 
+# Check argument synthesizer with kernel calls.
+def test_callable():
+
+    @cudaq.kernel
+    def base_ansatz(qubits: cudaq.qvector, thetas: list[float]):
+        x(qubits[0])
+        ry(thetas[0], qubits[1])
+        x.ctrl(qubits[1], qubits[0])
+
+    @cudaq.kernel
+    def main_kernel(qubits_num: int, thetas: list[float]):
+        qubits = cudaq.qvector(qubits_num)
+        base_ansatz(qubits, thetas)
+
+    hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
+                   2.1433 * spin.y(0) * spin.y(1) + 0.21829 * spin.z(0) -
+                   6.125 * spin.z(1))
+    res = cudaq.observe(main_kernel, hamiltonian, 2, [0.59])
+    print("Energy =", res.expectation())
+    expected_energy = -1.748794
+    energy_tol = 0.01
+    assert abs(res.expectation() - expected_energy) < energy_tol
+
+
 def check_multi_qpus(entity):
     # Define its spin Hamiltonian.
     hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -

@@ -173,6 +173,8 @@ public:
       if (args) {
         cudaq::info("Run Quake Synth.\n");
         PassManager pm(&mlirContext);
+        // Synthesis requires that calls be inlined.
+        cudaq::opt::addAggressiveEarlyInlining(pm);
         pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
