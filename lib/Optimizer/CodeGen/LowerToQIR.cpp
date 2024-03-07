@@ -1575,7 +1575,6 @@ public:
 
       carr.erase();
     });
-    getModule().dump();
     return ok ? success() : failure();
   }
 
