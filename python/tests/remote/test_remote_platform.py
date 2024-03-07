@@ -183,13 +183,13 @@ def test_multi_qpus():
 def test_multi_qpus_kernel():
 
     @cudaq.kernel
-    def parameterized_ansatz(theta: float):
+    def ansatz(theta: float):
         qreg = cudaq.qvector(2)
         x(qreg[0])
         ry(theta, qreg[1])
         x.ctrl(qreg[1], qreg[0])
 
-    check_multi_qpus(parameterized_ansatz)
+    check_multi_qpus(ansatz)
 
 
 # Check randomness and repeatability by setting the seed value

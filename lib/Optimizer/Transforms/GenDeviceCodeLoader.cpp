@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -44,10 +44,11 @@ public:
       // Add declaration of deviceCodeHolderAdd
       builder.create<LLVM::LLVMFuncOp>(
           loc, "deviceCodeHolderAdd",
-          LLVM::LLVMFunctionType::get(
-              cudaq::opt::factory::getVoidType(ctx),
-              {cudaq::opt::factory::getPointerType(ctx),
-               cudaq::opt::factory::getPointerType(ctx)}));
+          LLVM::LLVMFunctionType::get(cudaq::opt::factory::getVoidType(ctx),
+                                      {cudaq::opt::factory::getPointerType(ctx),
+                                       cudaq::opt::factory::getPointerType(ctx),
+                                       // bool --> char type (int 8)?
+                                       cudaq::opt::factory::getCharType(ctx)}));
     }
 
     // Collect all function declarations to forward as part of each Module.
