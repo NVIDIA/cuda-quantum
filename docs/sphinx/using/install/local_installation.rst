@@ -914,5 +914,5 @@ When you execute this command, the program simply seems to hang; that is because
 a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with `Ctrl+C`.
 
 You are now all set to start developing quantum applications using CUDA Quantum!
-Please proceed to :doc:`Basics <../basics>` for an introduction
+Please proceed to :doc:`Basics <../basics/basics>` for an introduction
 to the fundamental features of CUDA Quantum.
