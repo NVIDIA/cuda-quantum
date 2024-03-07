@@ -6,12 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# FIXME: Replace with this kernel when rolling out new python docs.
-# @cudaq.kernel
-# def kernel():
-#     qubit = cudaq.qubit()
-#     h(qubit)
-
 #[Begin Observe1]
 import cudaq
 from cudaq import spin

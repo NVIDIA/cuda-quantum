@@ -1,8 +1,7 @@
-Welcome to CUDA Quantum! On this page we will illustrate CUDA Quantum with several examples. 
-
-
 Introduction
 --------------------------------
+
+Welcome to CUDA Quantum! On this page we will illustrate CUDA Quantum with several examples. 
 
 .. tab:: Python
 

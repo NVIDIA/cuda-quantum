@@ -1,8 +1,6 @@
 CUDA Quantum Hardware Backends
 *********************************
 
-.. _hardware-landing-page:
-
 CUDA Quantum supports submission to a set of hardware providers. 
 To submit to a hardware backend, you need an account with the respective provider.
 
@@ -73,7 +71,7 @@ specific compiler warnings and diagnostics, before running a noise free emulatio
 
     nvq++ --emulate --target quantinuum src.cpp
 
-To see a complete example for using Quantinuum's backends, take a look at our :ref:`C++ examples<cpp-examples-for-hardware-providers>`.
+To see a complete example for using Quantinuum's backends, take a look at our :doc:`C++ examples <../examples/examples>`.
 
 
 Submission from Python
@@ -120,7 +118,7 @@ the ``shots_count`` is set to 1000.
 
     cudaq.sample(kernel, shots_count=10000)
 
-To see a complete example for using Quantinuum's backends, take a look at our :ref:`Python examples<python-examples-for-hardware-providers>`.
+To see a complete example for using Quantinuum's backends, take a look at our :doc:`Python examples <../examples/examples>`.
 
 
 IonQ
@@ -178,7 +176,7 @@ specific compiler diagnostics, before running a noise free emulation.
 
     nvq++ --emulate --target ionq src.cpp
 
-To see a complete example for using IonQ's backends, take a look at our :ref:`C++ examples<cpp-examples-for-hardware-providers>`.
+To see a complete example for using IonQ's backends, take a look at our :doc:`C++ examples <../examples/examples>`.
 
 Submission from Python
 `````````````````````````
@@ -226,7 +224,7 @@ the ``shots_count`` is set to 1000.
 
     cudaq.sample(kernel, shots_count=10000)
 
-To see a complete example for using IonQ's backends, take a look at our :ref:`Python examples<python-examples-for-hardware-providers>`.
+To see a complete example for using IonQ's backends, take a look at our :doc:`Python examples <../examples/examples>`.
 
 
 IQM
@@ -281,7 +279,7 @@ specific compiler diagnostics, before running a noise free emulation.
 
     nvq++ --emulate --target iqm --iqm-machine Adonis src.cpp
 
-To see a complete example for using IQM server backends, take a look at our :ref:`C++ examples<cpp-examples-for-hardware-providers>`.
+To see a complete example for using IQM server backends, take a look at our :doc:`C++ examples <../examples/examples>`.
 
 Submission from Python
 `````````````````````````
@@ -309,7 +307,7 @@ the ``shots_count`` is set to 1000.
 
     cudaq.sample(kernel, shots_count=10000)
 
-To see a complete example for using IQM server backends, take a look at our :ref:`Python examples<python-examples-for-hardware-providers>`.
+To see a complete example for using IQM server backends, take a look at our :doc:`Python examples<../examples/examples>`.
 
 OQC
 ==================================

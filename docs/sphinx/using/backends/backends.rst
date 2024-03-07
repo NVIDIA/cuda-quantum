@@ -1,8 +1,6 @@
 CUDA Quantum Backends
 **********************
 
-.. _backends-landing-page:
-
 .. toctree::
    :caption: Backend Targets
    :maxdepth: 1
