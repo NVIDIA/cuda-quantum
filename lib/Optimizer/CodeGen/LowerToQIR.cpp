@@ -1519,8 +1519,77 @@ public:
 
   ModuleOp getModule() { return getOperation(); }
 
+  // This is an ad hox transformation to convert constant array values into a
+  // buffer of constants.
+  LogicalResult eraseConstantArrayOps() {
+    bool ok = true;
+    getModule().walk([&](cudaq::cc::ConstantArrayOp carr) {
+      // If there is a constant array, then we expect that it is involved in
+      // a stdvec initializer expression. So look for the pattern and expand
+      // the store into a series of scalar stores.
+      //
+      //   %100 = cc.const_array [c1, c2, ... cN] : ...
+      //   %110 = cc.alloca ...
+      //   cc.store %100, %110 : ...
+      //   __________________________
+      //
+      //   cc.store c1, %110[0]
+      //   cc.store c2, %110[1]
+      //   ...
+      //   cc.store cN, %110[N-1]
+
+      // Are all uses the value to a store?
+      if (!std::all_of(carr->getUsers().begin(), carr->getUsers().end(),
+                       [&](auto *op) {
+                         auto st = dyn_cast<cudaq::cc::StoreOp>(op);
+                         return st && st.getValue() == carr.getResult();
+                       })) {
+        ok = false;
+        return;
+      }
+
+      auto eleTy = cast<cudaq::cc::ArrayType>(carr.getType()).getElementType();
+      auto ptrTy = cudaq::cc::PointerType::get(eleTy);
+      auto loc = carr.getLoc();
+      for (auto *user : carr->getUsers()) {
+        auto origStore = cast<cudaq::cc::StoreOp>(user);
+        OpBuilder builder(origStore);
+        auto buffer = origStore.getPtrvalue();
+        for (auto iter : llvm::enumerate(carr.getConstantValues())) {
+          auto v = [&]() -> Value {
+            auto val = iter.value();
+            if (auto fTy = dyn_cast<FloatType>(eleTy))
+              return builder.create<arith::ConstantFloatOp>(
+                  loc, cast<FloatAttr>(val).getValue(), fTy);
+            auto iTy = cast<IntegerType>(eleTy);
+            return builder.create<arith::ConstantIntOp>(
+                loc, cast<IntegerAttr>(val).getInt(), iTy);
+          }();
+          std::int32_t idx = iter.index();
+          Value arrWithOffset = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+          builder.create<cudaq::cc::StoreOp>(loc, v, arrWithOffset);
+        }
+        origStore.erase();
+      }
+
+      carr.erase();
+    });
+    getModule().dump();
+    return ok ? success() : failure();
+  }
+
   void runOnOperation() override final {
     auto *context = &getContext();
+
+    // Ad hoc deal with ConstantArrayOp transformation.
+    // TODO: Merge this into the codegen dialect once that gets to main.
+    if (failed(eraseConstantArrayOps())) {
+      getModule().emitOpError("unexpected constant arrays");
+      signalPassFailure();
+      return;
+    }
+
     LLVMConversionTarget target{*context};
     LLVMTypeConverter typeConverter(&getContext());
     initializeTypeConversions(typeConverter);
