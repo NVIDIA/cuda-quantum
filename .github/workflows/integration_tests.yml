@@ -545,6 +545,7 @@ jobs:
           done
 
           # Test NVQC Python examples + Python MLIR execution tests (not IR tests)
+          python3 -m pip install pytest
           for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
