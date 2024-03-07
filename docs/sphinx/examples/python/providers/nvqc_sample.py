@@ -5,12 +5,12 @@ import cudaq
 # ```
 # os.environ["NVQC_API_KEY"] = "<YOUR NVQC API KEY>"`
 # ```
-cudaq.set_target("nvqc", backend="tensornet")
+cudaq.set_target("tensornet", nvqc=True)
 
 # Note: The `tensornet` simulator is capable of distributing tensor contraction operations across multiple GPUs.
 # User can use the `ngpus` option to target a multi-GPU NVQC endpoint.
 # For example, to use the `tensornet` simulator with 8 GPUs, we can do
-# `cudaq.set_target("nvqc", backend="tensornet", ngpus=8)`
+# `cudaq.set_target("tensornet", nvqc=True, ngpus=8)`
 # Please refer to your NVQC dashboard for the list of available multi-GPU configurations.
 num_qubits = 50
 kernel = cudaq.make_kernel()

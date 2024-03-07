@@ -101,7 +101,7 @@ if __name__ == '__main__':
     if args.seed != 0:
         random.seed(args.seed)
 
-    cudaq.set_target("nvqc", backend="nvidia-mgpu", ngpus=args.ngpus)
+    cudaq.set_target("nvidia-mgpu", nvqc=True, ngpus=args.ngpus)
 
     print(
         f"Running on NVQC using 'nvidia-mgpu' simulator backend with {args.ngpus} GPU(s) ..."

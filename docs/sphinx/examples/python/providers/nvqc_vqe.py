@@ -8,7 +8,7 @@ import math
 # os.environ["NVQC_API_KEY"] = "<YOUR NVQC API KEY>"`
 # ```
 
-cudaq.set_target("nvqc", nqpus=3)
+cudaq.set_target("nvidia", nvqc=True, nqpus=3)
 
 print("Number of QPUs:", cudaq.get_target().num_qpus())
 # Note: depending on the user's account, there might be different

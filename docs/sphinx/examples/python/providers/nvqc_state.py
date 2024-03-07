@@ -6,7 +6,7 @@ import cudaq
 # os.environ["NVQC_API_KEY"] = "<YOUR NVQC API KEY>"`
 # ```
 
-cudaq.set_target("nvqc")
+cudaq.set_target("nvidia", nvqc=True)
 
 num_qubits = 20
 kernel = cudaq.make_kernel()

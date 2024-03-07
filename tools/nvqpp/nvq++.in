@@ -95,6 +95,15 @@ function show_help {
 --list-targets
 	List the available targets NVQ++ can compile to.
 
+--nvqc
+	Use the NVIDIA Quantum Cloud for simulation
+
+--nvqc-ngpus
+	The number of GPUs to use per remote QPU
+
+--nvqc-nqpus
+	The number of remote QPUs to simulate on the NVQC platform
+
 --emit-qir | -emit-qir
 	Emit the QIR output to <input file>.qir.ll and exit.
 
@@ -283,6 +292,9 @@ ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
+NVQC=false
+NVQC_NQPUS=
+NVQC_NGPUS=
 EMIT_QIR=false
 PREPROCESSOR_DEFINES=
 SHOW_HELP=false
@@ -439,6 +451,17 @@ while [ $# -ne 0 ]; do
 	--enable-mlir)
 		LIBRARY_MODE=false
 		;;
+	--nvqc)
+		NVQC=true
+		;;
+	--nvqc-ngpus)
+		NVQC_NGPUS="$2"
+		shift
+		;;
+	--nvqc-nqpus)
+		NVQC_NQPUS="$2"
+		shift
+		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
 		;;
@@ -585,6 +608,16 @@ trap delete_temp_files EXIT
 
 COMPILER_FLAGS="${CPPSTD} -Wno-c++20-extensions ${COMPILER_FLAGS}"
 
+# If the user has requested NVQC, choose a reasonable default. Note that Nvidia
+# GPUs do not need to be installed in order to select an Nvidia-powered backend
+# when using NVQC.
+if ${NVQC}; then
+	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
+	if [ -z "${TARGET_CONFIG}" ]; then
+		TARGET_CONFIG=nvidia
+	fi
+fi
+
 # Goal here is to parse the backend config file, get the
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
@@ -601,6 +634,23 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
 		. "${TARGET_CONFIG_FILE}" "${TARGET_ARGS[@]}"
+
+		# If the user has specified --nvqc, then set key values here. The NVQC
+		# will use the backend specified by the user's --target parameters.
+		if ${NVQC}; then
+			TARGET_CONFIG="nvqc"
+			GEN_TARGET_BACKEND=true
+			PLATFORM_LIBRARY="mqpu"
+			LIBRARY_MODE=false
+			LINKLIBS="${LINKLIBS} -lcudaq-remote-simulator-qpu"
+			PLATFORM_EXTRA_ARGS="$PLATFORM_EXTRA_ARGS;backend;${NVQIR_SIMULATION_BACKEND}"
+			if [ -n "${NVQC_NQPUS}" ]; then
+				PLATFORM_EXTRA_ARGS="$PLATFORM_EXTRA_ARGS;nqpus;${NVQC_NQPUS}"
+			fi
+			if [ -n "${NVQC_NGPUS}" ]; then
+				PLATFORM_EXTRA_ARGS="$PLATFORM_EXTRA_ARGS;ngpus;${NVQC_NGPUS}"
+			fi
+		fi
 
 		if ${GEN_TARGET_BACKEND}; then
 			# Add a function that will run before main and set the target
