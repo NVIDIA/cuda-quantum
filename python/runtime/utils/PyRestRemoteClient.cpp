@@ -181,6 +181,26 @@ private:
     }
   }
 
+  // Fetch the queue position of the given request ID. If the job has already
+  // begun execution, it will return `std::nullopt`.
+  std::optional<std::size_t> getQueuePosition(const std::string &requestId) {
+    auto headers = getHeaders();
+    try {
+      auto queuePos =
+          m_restClient.get(fmt::format("https://{}/nvcf/queues/{}/position",
+                                       m_baseUrl, requestId),
+                           "", headers, /*enableSsl=*/true);
+      if (queuePos.contains("positionInQueue"))
+        return queuePos["positionInQueue"].get<std::size_t>();
+      // When the job enters execution, it returns "status": 400 and "title":
+      // "Bad Request", so translate that to `std::nullopt`.
+      return std::nullopt;
+    } catch (...) {
+      // Make this non-fatal. Returns null, i.e., unknown.
+      return std::nullopt;
+    }
+  }
+
 public:
   virtual void setConfig(
       const std::unordered_map<std::string, std::string> &configs) override {
@@ -406,55 +426,97 @@ public:
     try {
       // Making the request
       cudaq::debug("Sending NVQC request to {}", nvcfInvocationUrl());
-      if (m_logLevel > LogLevel::None) {
-        auto queueDepth = getQueueDepth(m_functionId, m_functionVersionId);
-        if (queueDepth.has_value() && queueDepth.value() > 0) {
-          cudaq::log(
-              "Number of jobs ahead of yours in the NVQC queue: {}. Your job "
-              "will start executing once it gets to the head of the queue.",
-              queueDepth.value());
-        }
-      }
+      auto lastQueuePos = std::numeric_limits<std::size_t>::max();
 
       if (m_logLevel > LogLevel::Info)
         cudaq::log("Posting NVQC request now");
-      const auto requestStartTime = std::chrono::system_clock::now();
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
       cudaq::debug("Response: {}", resultJs.dump());
+
+      // Call getQueuePosition() until we're at the front of the queue. If log
+      // level is "none", then skip all this because we don't need to show the
+      // status to the user, and we don't need to know the precise
+      // requestStartTime.
+      if (m_logLevel > LogLevel::None) {
+        if (resultJs.contains("status") &&
+            resultJs["status"] == "pending-evaluation") {
+          const std::string reqId = resultJs["reqId"];
+          auto queuePos = getQueuePosition(reqId);
+          while (queuePos.has_value() && queuePos.value() > 0) {
+            if (queuePos.value() != lastQueuePos) {
+              // Position in queue has changed.
+              if (lastQueuePos == std::numeric_limits<std::size_t>::max()) {
+                // If lastQueuePos hasn't been populated with a true value yet,
+                // it means we have not fetched the queue depth or displayed
+                // anything to the user yet.
+                cudaq::log("Number of jobs ahead of yours in the NVQC queue: "
+                           "{}. Your job will start executing once it gets to "
+                           "the head of the queue.",
+                           queuePos.value());
+              } else {
+                cudaq::log("Position in queue for request {} has changed from "
+                           "{} to {}",
+                           reqId, lastQueuePos, queuePos.value());
+              }
+              lastQueuePos = queuePos.value();
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            queuePos = getQueuePosition(reqId);
+          }
+        }
+        if (lastQueuePos != std::numeric_limits<std::size_t>::max())
+          cudaq::log("Your job is finished waiting in the queue and will now "
+                     "begin execution.");
+      }
+
+      const auto requestStartTime = std::chrono::system_clock::now();
+      bool needToPrintNewline = false;
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
         const std::string reqId = resultJs["reqId"];
-        if (m_logLevel > LogLevel::Info) {
-          const int elapsedTimeSecs =
-              std::chrono::duration_cast<std::chrono::seconds>(
-                  std::chrono::system_clock::now() - requestStartTime)
-                  .count();
-          // Warns if the remaining time is less than this threshold.
-          constexpr int TIMEOUT_WARNING_SECS = 5 * 60; // 5 minutes.
-          const int remainingSecs =
-              m_availableFuncs[m_functionId].timeoutSecs - elapsedTimeSecs;
-          std::string additionalInfo;
-          if (remainingSecs < 0)
-            fmt::format_to(std::back_inserter(additionalInfo),
-                           ". Exceeded wall time limit ({} seconds), but time "
-                           "spent waiting in queue is not counted. Proceeding.",
-                           m_availableFuncs[m_functionId].timeoutSecs);
-          else if (remainingSecs < TIMEOUT_WARNING_SECS)
-            fmt::format_to(std::back_inserter(additionalInfo),
-                           ". Approaching the wall time limit ({} seconds). "
-                           "Remaining time: {} seconds.",
-                           m_availableFuncs[m_functionId].timeoutSecs,
-                           remainingSecs);
+        const int elapsedTimeSecs =
+            std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::system_clock::now() - requestStartTime)
+                .count();
+        // Warns if the remaining time is less than this threshold.
+        constexpr int TIMEOUT_WARNING_SECS = 5 * 60; // 5 minutes.
+        const int remainingSecs =
+            m_availableFuncs[m_functionId].timeoutSecs - elapsedTimeSecs;
+        std::string additionalInfo;
+        if (remainingSecs < 0)
+          fmt::format_to(std::back_inserter(additionalInfo),
+                         ". Exceeded wall time limit ({} seconds), but time "
+                         "spent waiting in queue is not counted. Proceeding.",
+                         m_availableFuncs[m_functionId].timeoutSecs);
+        else if (remainingSecs < TIMEOUT_WARNING_SECS)
+          fmt::format_to(std::back_inserter(additionalInfo),
+                         ". Approaching the wall time limit ({} seconds). "
+                         "Remaining time: {} seconds.",
+                         m_availableFuncs[m_functionId].timeoutSecs,
+                         remainingSecs);
+        // If NVQC log level is high enough or if we have additional info to
+        // print, then print the full message; else print a simple "."
+        if (m_logLevel > LogLevel::Info || !additionalInfo.empty()) {
+          if (needToPrintNewline)
+            std::cout << "\n";
+          needToPrintNewline = false;
           cudaq::log("Polling NVQC result data for Request Id {}{}", reqId,
                      additionalInfo);
+        } else if (m_logLevel > LogLevel::None) {
+          std::cout << ".";
+          std::cout.flush();
+          needToPrintNewline = true;
         }
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
         resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader,
                                     /*enableSsl=*/true);
       }
+
+      if (needToPrintNewline)
+        std::cout << "\n";
 
       if (!resultJs.contains("status") || resultJs["status"] != "fulfilled") {
         if (optionalErrorMsg)
