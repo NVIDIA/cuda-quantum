@@ -7,11 +7,16 @@
 # ============================================================================ #
 import pytest
 import os, math
+import numpy as np
 
 import cudaq
 from cudaq import spin
 
 num_qpus = 3
+
+
+def assert_close(want, got, tolerance=1.e-5) -> bool:
+    return abs(want - got) < tolerance
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -97,6 +102,23 @@ def test_observe():
     kernel.cx(qreg[1], qreg[0])
 
     check_observe(kernel)
+
+
+# Make sure spin_op serializes and deserializes correctly
+def test_single_term_spin_op():
+    h = spin.z(0)
+    n_samples = 3
+    n_qubits = 5
+    n_parameters = n_qubits
+    parameters = np.random.default_rng(13).uniform(low=0,
+                                                   high=1,
+                                                   size=(n_samples,
+                                                         n_parameters))
+    kernel, params = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(n_qubits)
+    for i in range(n_qubits):
+        kernel.rx(params[i], qubits[i])
+    cudaq.observe(kernel, h, parameters)
 
 
 def test_observe_kernel():
@@ -203,6 +225,30 @@ def test_seed():
         # Rerun sampling
         count = cudaq.sample(kernel)
         assert (count["0"] == zero_counts[i])
+
+
+def test_additional_spin_ops():
+
+    @cudaq.kernel
+    def ansatz(qubits: cudaq.qvector, thetas: list[float]):
+        x(qubits[0])
+        x.ctrl(qubits[1], qubits[0])
+
+    @cudaq.kernel
+    def main_kernel(thetas: list[float]):
+        qubits = cudaq.qvector(3)
+        ansatz(qubits, thetas)
+
+    thetas: list[float] = [0.0, 0.0]
+    spin_ham = spin.z(0)
+    energy = cudaq.observe(main_kernel, spin_ham, thetas).expectation()
+    assert assert_close(energy, -1)
+    spin_ham = spin.z(0) - spin.z(1)
+    energy = cudaq.observe(main_kernel, spin_ham, thetas).expectation()
+    assert assert_close(energy, -2)
+    spin_ham = spin.z(0) + spin.z(1) + spin.z(2)
+    energy = cudaq.observe(main_kernel, spin_ham, thetas).expectation()
+    assert assert_close(energy, 1)
 
 
 # leave for gdb debugging

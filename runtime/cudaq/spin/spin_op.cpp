@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -554,7 +554,7 @@ void spin_op::dump() const {
 
 spin_op::spin_op(std::vector<double> &input_vec, std::size_t nQubits) {
   auto n_terms = (int)input_vec.back();
-  if (nQubits != ((input_vec.size() - 2 * n_terms) / n_terms))
+  if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
     throw std::runtime_error("Invalid data representation for construction "
                              "spin_op. Number of data elements is incorrect.");
 
@@ -652,7 +652,7 @@ spin_op binary_spin_op_reader::read(const std::string &data_filename) {
   std::vector<double> input_vec(size / sizeof(double));
   input.read((char *)&input_vec[0], size);
   auto n_terms = (int)input_vec.back();
-  auto nQubits = (input_vec.size() - 2 * n_terms) / n_terms;
+  auto nQubits = (input_vec.size() - 1 - 2 * n_terms) / n_terms;
   spin_op s(input_vec, nQubits);
   return s;
 }
