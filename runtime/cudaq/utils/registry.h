@@ -12,7 +12,7 @@
 namespace cudaq {
 namespace registry {
 extern "C" {
-void deviceCodeHolderAdd(const char *, const char *, bool);
+void deviceCodeHolderAdd(const char *, const char *); // /*, bool*/);
 void cudaqRegisterKernelName(const char *);
 void cudaqRegisterArgsCreator(const char *, char *);
 void cudaqRegisterLambdaName(const char *, const char *);

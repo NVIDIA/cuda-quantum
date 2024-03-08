@@ -44,11 +44,10 @@ public:
       // Add declaration of deviceCodeHolderAdd
       builder.create<LLVM::LLVMFuncOp>(
           loc, "deviceCodeHolderAdd",
-          LLVM::LLVMFunctionType::get(cudaq::opt::factory::getVoidType(ctx),
-                                      {cudaq::opt::factory::getPointerType(ctx),
-                                       cudaq::opt::factory::getPointerType(ctx),
-                                       // bool --> char type (int 8)?
-                                       cudaq::opt::factory::getCharType(ctx)}));
+          LLVM::LLVMFunctionType::get(
+              cudaq::opt::factory::getVoidType(ctx),
+              {cudaq::opt::factory::getPointerType(ctx),
+               cudaq::opt::factory::getPointerType(ctx)}));
     }
 
     // Collect all function declarations to forward as part of each Module.
