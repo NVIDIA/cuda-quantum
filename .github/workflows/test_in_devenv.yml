@@ -79,7 +79,7 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install iqm-client
+            python3 -m pip install iqm-client==16.1
             ctest --output-on-failure --test-dir build -E ctest-nvqpp -E ctest-targettests
             ctest_status=$?
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
@@ -212,7 +212,7 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            pip install iqm_client --user -vvv
+            pip install iqm_client==16.1 --user -vvv
             pip install . --user -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then
