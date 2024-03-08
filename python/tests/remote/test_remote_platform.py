@@ -15,6 +15,10 @@ from cudaq import spin
 num_qpus = 3
 
 
+def assert_close(want, got, tolerance=1.e-5) -> bool:
+    return abs(want - got) < tolerance
+
+
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     cudaq.set_target("remote-mqpu", auto_launch=str(num_qpus))
@@ -221,6 +225,30 @@ def test_seed():
         # Rerun sampling
         count = cudaq.sample(kernel)
         assert (count["0"] == zero_counts[i])
+
+
+def test_additional_spin_ops():
+
+    @cudaq.kernel
+    def ansatz(qubits: cudaq.qvector, thetas: list[float]):
+        x(qubits[0])
+        x.ctrl(qubits[1], qubits[0])
+
+    @cudaq.kernel
+    def main_kernel(thetas: list[float]):
+        qubits = cudaq.qvector(3)
+        ansatz(qubits, thetas)
+
+    thetas: list[float] = [0.0, 0.0]
+    spin_ham = spin.z(0)
+    energy = cudaq.observe(main_kernel, spin_ham, thetas).expectation()
+    assert assert_close(energy, -1)
+    spin_ham = spin.z(0) - spin.z(1)
+    energy = cudaq.observe(main_kernel, spin_ham, thetas).expectation()
+    assert assert_close(energy, -2)
+    spin_ham = spin.z(0) + spin.z(1) + spin.z(2)
+    energy = cudaq.observe(main_kernel, spin_ham, thetas).expectation()
+    assert assert_close(energy, 1)
 
 
 # leave for gdb debugging
