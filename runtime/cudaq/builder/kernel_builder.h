@@ -302,14 +302,15 @@ struct ArgumentValidator<std::vector<T>> {
     auto &arg = args[argCounter];
     argCounter++;
 
-    // Validate the input vector<T> if possible
-    if (auto nRequiredElements = arg.getRequiredElements();
-        arg.canValidateNumElements())
-      if (input.size() != nRequiredElements)
-        throw std::runtime_error(
-            "Invalid vector<T> input. Number of elements provided != "
-            "number of elements required (" +
-            std::to_string(nRequiredElements) + " required).\n");
+    // Validate the input vector<T> if possible. If getRequiredElements()
+    // returns 0, any size vector is ok.
+    auto nRequiredElements = arg.getRequiredElements();
+    if (nRequiredElements && arg.canValidateNumElements() &&
+        input.size() < nRequiredElements)
+      throw std::runtime_error(
+          "Invalid vector<T> input. Number of elements provided (" +
+          std::to_string(input.size()) + ") != number of elements required (" +
+          std::to_string(nRequiredElements) + ").\n");
   }
 };
 
