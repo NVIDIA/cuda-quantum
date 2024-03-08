@@ -409,12 +409,14 @@ public:
       if (m_logLevel > LogLevel::None) {
         auto queueDepth = getQueueDepth(m_functionId, m_functionVersionId);
         if (queueDepth.has_value() && queueDepth.value() > 0) {
-          cudaq::log("Number of jobs ahead of yours in the NVQC queue: {}.",
-                     queueDepth.value());
+          cudaq::log(
+              "Number of jobs ahead of yours in the NVQC queue: {}. Your job "
+              "will start executing once it gets to the head of the queue.",
+              queueDepth.value());
         }
       }
 
-      if (m_logLevel > LogLevel::None)
+      if (m_logLevel > LogLevel::Info)
         cudaq::log("Posting NVQC request now");
       const auto requestStartTime = std::chrono::system_clock::now();
       auto resultJs =
@@ -424,7 +426,7 @@ public:
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
         const std::string reqId = resultJs["reqId"];
-        if (m_logLevel > LogLevel::None) {
+        if (m_logLevel > LogLevel::Info) {
           const int elapsedTimeSecs =
               std::chrono::duration_cast<std::chrono::seconds>(
                   std::chrono::system_clock::now() - requestStartTime)
@@ -616,7 +618,6 @@ public:
     }
   }
 };
-
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeClient, PyRestRemoteClient, rest)
