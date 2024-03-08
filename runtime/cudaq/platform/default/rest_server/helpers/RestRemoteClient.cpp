@@ -419,38 +419,51 @@ public:
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
       cudaq::debug("Response: {}", resultJs.dump());
+      bool needToPrintNewline = false;
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
         const std::string reqId = resultJs["reqId"];
-        if (m_logLevel > LogLevel::Info) {
-          const int elapsedTimeSecs =
-              std::chrono::duration_cast<std::chrono::seconds>(
-                  std::chrono::system_clock::now() - requestStartTime)
-                  .count();
-          // Warns if the remaining time is less than this threshold.
-          constexpr int TIMEOUT_WARNING_SECS = 5 * 60; // 5 minutes.
-          const int remainingSecs =
-              m_availableFuncs[m_functionId].timeoutSecs - elapsedTimeSecs;
-          std::string additionalInfo;
-          if (remainingSecs < 0)
-            fmt::format_to(std::back_inserter(additionalInfo),
-                           ". Exceeded wall time limit ({} seconds), but time "
-                           "spent waiting in queue is not counted. Proceeding.",
-                           m_availableFuncs[m_functionId].timeoutSecs);
-          else if (remainingSecs < TIMEOUT_WARNING_SECS)
-            fmt::format_to(std::back_inserter(additionalInfo),
-                           ". Approaching the wall time limit ({} seconds). "
-                           "Remaining time: {} seconds.",
-                           m_availableFuncs[m_functionId].timeoutSecs,
-                           remainingSecs);
+        const int elapsedTimeSecs =
+            std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::system_clock::now() - requestStartTime)
+                .count();
+        // Warns if the remaining time is less than this threshold.
+        constexpr int TIMEOUT_WARNING_SECS = 5 * 60; // 5 minutes.
+        const int remainingSecs =
+            m_availableFuncs[m_functionId].timeoutSecs - elapsedTimeSecs;
+        std::string additionalInfo;
+        if (remainingSecs < 0)
+          fmt::format_to(std::back_inserter(additionalInfo),
+                         ". Exceeded wall time limit ({} seconds), but time "
+                         "spent waiting in queue is not counted. Proceeding.",
+                         m_availableFuncs[m_functionId].timeoutSecs);
+        else if (remainingSecs < TIMEOUT_WARNING_SECS)
+          fmt::format_to(std::back_inserter(additionalInfo),
+                         ". Approaching the wall time limit ({} seconds). "
+                         "Remaining time: {} seconds.",
+                         m_availableFuncs[m_functionId].timeoutSecs,
+                         remainingSecs);
+        // If NVQC log level is high enough or if we have additional info to
+        // print, then print the full message; else print a simple "."
+        if (m_logLevel > LogLevel::Info || !additionalInfo.empty()) {
+          if (needToPrintNewline)
+            std::cout << "\n";
+          needToPrintNewline = false;
           cudaq::log("Polling NVQC result data for Request Id {}{}", reqId,
                      additionalInfo);
+        } else if (m_logLevel > LogLevel::None) {
+          std::cout << ".";
+          std::cout.flush();
+          needToPrintNewline = true;
         }
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
         resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader,
                                     /*enableSsl=*/true);
       }
+
+      if (needToPrintNewline)
+        std::cout << "\n";
 
       if (!resultJs.contains("status") || resultJs["status"] != "fulfilled") {
         if (optionalErrorMsg)
