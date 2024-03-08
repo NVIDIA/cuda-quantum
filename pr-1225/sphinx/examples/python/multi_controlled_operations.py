@@ -1,5 +1,7 @@
 import cudaq
-from cudaq import spin
+
+# Here we demonstrate how one might apply multi-controlled
+# operations on a general CUDA Quantum kernel.
 
 # [Begin OptionA]
 # A kernel that performs an X-gate on a provided qubit.

@@ -29,7 +29,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Quick Start" href="quick_start.html" /> 
+    <link rel="next" title="Quick Start" href="using/quick_start.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -97,22 +97,18 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quick_start.html#python">Python</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quick_start.html#c">C++</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/quick_start.html">   Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/basics/basics.html">   Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="using/basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/basics.html#what-is-a-cuda-quantum-kernel">What is a CUDA Quantum kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/basics.html#building-your-first-cuda-quantum-program">Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/basics.html#running-your-first-cuda-quantum-program">Running your first CUDA Quantum Program</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/basics.html#sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/basics.html#observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/basics.html#running-on-a-gpu">Running on a GPU</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="using/basics.html#troubleshooting">Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/basics.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/troubleshooting.html">   Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 </ul>
 </li>
 </ul>
@@ -127,18 +123,6 @@
 <li class="toctree-l2"><a class="reference internal" href="using/examples/cuquantum.html">   Simulations with cuQuantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/noisy_simulation.html">   Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/examples/platform.html">   Multi-QPU Platform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/examples/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="using/examples/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/examples/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="using/examples/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="using/examples/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
-</ul>
-</li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/tutorials.html">   Applications</a><ul>
@@ -200,6 +184,18 @@
 <li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id7">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id8">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id9">Submission from Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/backends/platform.html">   Multi-Processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
 </ul>
@@ -435,7 +431,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="versions.html">   Other Versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -457,7 +453,7 @@
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="quick_start.html" class="btn btn-neutral float-right" title="Quick Start" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="using/quick_start.html" class="btn btn-neutral float-right" title="Quick Start" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -466,22 +462,22 @@
              
   <section id="cuda-quantum">
 <h1>CUDA Quantum<a class="headerlink" href="#cuda-quantum" title="Permalink to this heading">¶</a></h1>
-<p>Welcome to the CUDA Quantum documentation page!
-You are browsing the documentation for amd64-pr-1225 version of CUDA Quantum. You can find documentation for all released versions <a class="reference internal" href="versions.html"><span class="doc">here</span></a>.</p>
+<p>Welcome to the CUDA Quantum documentation page!</p>
+<p>CUDA Quantum streamlines hybrid application development and promotes productivity and scalability
+in quantum algorithm research. It offers a unified programming model designed for a hybrid
+setting—that is, CPUs, GPUs, and QPUs working together. CUDA Quantum contains support for
+programming in Python and in C++.</p>
+<p>You are browsing the documentation for amd64-pr-1225 version of CUDA Quantum. You can find documentation for all released versions <a class="reference internal" href="releases.html"><span class="doc">here</span></a>.</p>
 <p><strong>CUDA Quantum</strong> is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.</p>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quick_start.html#python">Python</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quick_start.html#c">C++</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="using/basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/basics.html#what-is-a-cuda-quantum-kernel">What is a CUDA Quantum kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/basics.html#building-your-first-cuda-quantum-program">Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/basics.html#running-your-first-cuda-quantum-program">Running your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/basics.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/quick_start.html">   Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/basics/basics.html">   Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/run_kernel.html">   Running your first CUDA Quantum Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/troubleshooting.html">   Troubleshooting</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/examples/examples.html">   Examples</a><ul>
@@ -494,7 +490,6 @@ You are browsing the documentation for amd64-pr-1225 version of CUDA Quantum. Yo
 <li class="toctree-l2"><a class="reference internal" href="using/examples/cuquantum.html">   Simulations with cuQuantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/noisy_simulation.html">   Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/examples/platform.html">   Multi-QPU Platform</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/tutorials.html">   Applications</a><ul>
@@ -509,6 +504,7 @@ You are browsing the documentation for amd64-pr-1225 version of CUDA Quantum. Yo
 <li class="toctree-l1"><a class="reference internal" href="using/backends/backends.html">   Backends</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="using/backends/simulators.html">   Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/backends/hardware.html">   Hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/backends/platform.html">   Multi-Processor Platforms</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/install/install.html">   Installation</a><ul>
@@ -538,7 +534,7 @@ You are browsing the documentation for amd64-pr-1225 version of CUDA Quantum. Yo
 <li class="toctree-l2"><a class="reference internal" href="api/default_ops.html">Quantum Operations</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="versions.html">   Other Versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">   Other Versions</a></li>
 </ul>
 </div>
 </section>
@@ -547,7 +543,7 @@ You are browsing the documentation for amd64-pr-1225 version of CUDA Quantum. Yo
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quick_start.html" class="btn btn-neutral float-right" title="Quick Start" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="using/quick_start.html" class="btn btn-neutral float-right" title="Quick Start" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

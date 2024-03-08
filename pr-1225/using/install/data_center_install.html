@@ -29,7 +29,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Integration with CUDA Quantum" href="../integration/integration.html" />
+    <link rel="next" title="Integration with other Software Tools" href="../integration/integration.html" />
     <link rel="prev" title="Local Installation" href="local_installation.html" /> 
 </head>
 
@@ -98,22 +98,18 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../quick_start.html#python">Python</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../quick_start.html#c">C++</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#what-is-a-cuda-quantum-kernel">What is a CUDA Quantum kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#building-your-first-cuda-quantum-program">Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#running-your-first-cuda-quantum-program">Running your first CUDA Quantum Program</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#running-on-a-gpu">Running on a GPU</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#troubleshooting">Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/troubleshooting.html">   Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 </ul>
 </li>
 </ul>
@@ -128,18 +124,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples/cuquantum.html">   Simulations with cuQuantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/noisy_simulation.html">   Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/hardware_providers.html">   Using Quantum Hardware Providers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/platform.html">   Multi-QPU Platform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
-</ul>
-</li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
@@ -201,6 +185,18 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id7">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id8">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id9">Submission from Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../backends/platform.html">   Multi-Processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../backends/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
 </ul>
@@ -436,7 +432,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -460,7 +456,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="local_installation.html" class="btn btn-neutral float-left" title="Local Installation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../integration/integration.html" class="btn btn-neutral float-right" title="Integration with CUDA Quantum" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../integration/integration.html" class="btn btn-neutral float-right" title="Integration with other Software Tools" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -480,7 +476,7 @@ avoiding the use of containers. Singularity, for example, can be installed
 in a user folder and its installation does not require admin permissions; see
 <a class="reference internal" href="local_installation.html#install-singularity-image"><span class="std std-ref">this section</span></a> for more detailed instructions
 on how to do that. Our installation guide also contains instructions for how to
-<a class="reference internal" href="../../quick_start.html#local-development-with-vscode"><span class="std std-ref">connect an IDE</span></a> to a running container.</p>
+<a class="reference internal" href="local_installation.html#local-development-with-vscode"><span class="std std-ref">connect an IDE</span></a> to a running container.</p>
 <p>If you do not want use a container runtime, we also provide pre-built binaries
 for using CUDA Quantum with C++. These binaries are built following the instructions
 in this guide and should work for you as long as your system meets the compatibility
@@ -701,9 +697,7 @@ command to build CUDA Quantum:</p>
 bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-uv
 </pre></div>
 </div>
-<p>Note that <code class="code docutils literal notranslate"><span class="pre">lld</span></code> is primarily needed when the build or host system does not already have an existing default linker on its path; CUDA Quantum supports the same linkers as <code class="code docutils literal notranslate"><span class="pre">clang</span></code> does.
-Preparing the Installation
-++++++++++++++++++++++++++++++++++++</p>
+<p>Note that <code class="code docutils literal notranslate"><span class="pre">lld</span></code> is primarily needed when the build or host system does not already have an existing default linker on its path; CUDA Quantum supports the same linkers as <code class="code docutils literal notranslate"><span class="pre">clang</span></code> does.</p>
 <p>To easily migrate the built binaries to the host system, we recommend creating a
 <a class="reference external" href="https://makeself.io/">self-extracting archive</a>. To do so, download the
 <a class="reference external" href="https://github.com/megastep/makeself">makeself script(s)</a> and move the necessary
@@ -960,7 +954,7 @@ with the command above.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="local_installation.html" class="btn btn-neutral float-left" title="Local Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../integration/integration.html" class="btn btn-neutral float-right" title="Integration with CUDA Quantum" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../integration/integration.html" class="btn btn-neutral float-right" title="Integration with other Software Tools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

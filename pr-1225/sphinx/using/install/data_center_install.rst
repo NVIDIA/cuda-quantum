@@ -252,8 +252,6 @@ command to build CUDA Quantum:
     :end-before: [<CUDAQuantumCppBuild]
 
 Note that `lld` is primarily needed when the build or host system does not already have an existing default linker on its path; CUDA Quantum supports the same linkers as `clang` does.
-Preparing the Installation
-++++++++++++++++++++++++++++++++++++
 
 To easily migrate the built binaries to the host system, we recommend creating a
 `self-extracting archive <https://makeself.io/>`__. To do so, download the 

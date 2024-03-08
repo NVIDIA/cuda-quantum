@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Taking Advantage of the Underlying Quantum Platform &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Multi-Processor Platforms &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -29,8 +29,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA Quantum Tutorials" href="../tutorials.html" />
-    <link rel="prev" title="Using Quantum Hardware Providers" href="hardware_providers.html" /> 
+    <link rel="next" title="Installation Guide" href="../install/install.html" />
+    <link rel="prev" title="CUDA Quantum Hardware Backends" href="hardware.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -98,48 +98,32 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../quick_start.html#python">Python</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../quick_start.html#c">C++</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#what-is-a-cuda-quantum-kernel">What is a CUDA Quantum kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#building-your-first-cuda-quantum-program">Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#running-your-first-cuda-quantum-program">Running your first CUDA Quantum Program</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#running-on-a-gpu">Running on a GPU</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#troubleshooting">Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/troubleshooting.html">   Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="reference internal" href="examples.html">   Examples</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="expectation_values.html">   Computing Expectation Values</a></li>
-<li class="toctree-l2"><a class="reference internal" href="multi_control.html">   Multi-Control Synthesis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
-<li class="toctree-l2"><a class="reference internal" href="vqe.html">   Variational Quantum Eigensolver</a></li>
-<li class="toctree-l2"><a class="reference internal" href="qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cuquantum.html">   Simulations with cuQuantum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="noisy_simulation.html">   Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="hardware_providers.html">   Using Quantum Hardware Providers</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">   Multi-QPU Platform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#parallel-distribution-mode">Parallel distribution mode</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#supported-kernel-arguments">Supported Kernel Arguments</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">   Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples/introduction.html">   Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/expectation_values.html">   Computing Expectation Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/vqe.html">   Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/cuquantum.html">   Simulations with cuQuantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/noisy_simulation.html">   Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/hardware_providers.html">   Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
@@ -162,45 +146,57 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../backends/simulators.html">   Simulation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../backends/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#single-gpu">Single-GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="backends.html">   Backends</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="simulators.html">   Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#id2">Multi-node multi-GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/simulators.html#matrix-product-state">Matrix product state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#id2">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="simulators.html#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/simulators.html#default-simulator">Default Simulator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../backends/hardware.html">   Hardware</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#quantinuum">Quantinuum</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hardware.html">   Hardware</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#submission-from-c">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id1">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id2">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id3">Submission from Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#ionq">IonQ</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#id1">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#id2">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#id3">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#iqm">IQM</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id4">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id5">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id6">Submission from Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#id4">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#id5">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#id6">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#oqc">OQC</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id7">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id8">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id9">Submission from Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#id8">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#id9">Submission from Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   Multi-Processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
 </ul>
@@ -436,7 +432,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -453,22 +449,22 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="examples.html">CUDA Quantum by Example</a></li>
-      <li class="breadcrumb-item active">Taking Advantage of the Underlying Quantum Platform</li>
+          <li class="breadcrumb-item"><a href="backends.html">CUDA Quantum Backends</a></li>
+      <li class="breadcrumb-item active">Multi-Processor Platforms</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/examples/platform.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/using/backends/platform.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="hardware_providers.html" class="btn btn-neutral float-left" title="Using Quantum Hardware Providers" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../tutorials.html" class="btn btn-neutral float-right" title="CUDA Quantum Tutorials" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="hardware.html" class="btn btn-neutral float-left" title="CUDA Quantum Hardware Backends" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../install/install.html" class="btn btn-neutral float-right" title="Installation Guide" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="taking-advantage-of-the-underlying-quantum-platform">
-<h1>Taking Advantage of the Underlying Quantum Platform<a class="headerlink" href="#taking-advantage-of-the-underlying-quantum-platform" title="Permalink to this heading">¶</a></h1>
+  <section id="multi-processor-platforms">
+<h1>Multi-Processor Platforms<a class="headerlink" href="#multi-processor-platforms" title="Permalink to this heading">¶</a></h1>
 <p>The CUDA Quantum machine model elucidates the various devices considered in the
 broader quantum-classical compute node context. Programmers will have one or many
 host CPUs, zero or many NVIDIA GPUs, a classical QPU control space, and the
@@ -716,7 +712,7 @@ e.g., <code class="code docutils literal notranslate"><span class="pre">mpiexec<
 <section id="remote-mqpu-platform">
 <span id="id1"></span><h2>Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform<a class="headerlink" href="#remote-mqpu-platform" title="Permalink to this heading">¶</a></h2>
 <p>As shown in the above examples, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform enables
-multi-QPU distribution whereby each QPU is simulated by a <a class="reference internal" href="../backends/simulators.html#cuquantum-single-gpu"><span class="std std-ref">single NVIDIA GPU</span></a>.
+multi-QPU distribution whereby each QPU is simulated by a <a class="reference internal" href="simulators.html#cuquantum-single-gpu"><span class="std std-ref">single NVIDIA GPU</span></a>.
 To run multi-QPU workloads on different simulator backends, one can use the <code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code> platform,
 which encapsulates simulated QPUs as independent HTTP REST server instances.
 The following code illustrates how to launch asynchronous sampling tasks on multiple virtual QPUs,
@@ -907,8 +903,8 @@ language constructs within quantum kernels may not yet be fully supported.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="hardware_providers.html" class="btn btn-neutral float-left" title="Using Quantum Hardware Providers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../tutorials.html" class="btn btn-neutral float-right" title="CUDA Quantum Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="hardware.html" class="btn btn-neutral float-left" title="CUDA Quantum Hardware Backends" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../install/install.html" class="btn btn-neutral float-right" title="Installation Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

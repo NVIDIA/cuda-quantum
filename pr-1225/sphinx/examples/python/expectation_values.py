@@ -1,3 +1,6 @@
+# The example here shows a simple use case for the `cudaq::observe``
+# function in computing expected values of provided spin operators.
+
 import cudaq
 from cudaq import spin
 

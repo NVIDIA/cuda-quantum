@@ -1,4 +1,4 @@
-Taking Advantage of the Underlying Quantum Platform
+Multi-Processor Platforms
 ---------------------------------------------------
 The CUDA Quantum machine model elucidates the various devices considered in the 
 broader quantum-classical compute node context. Programmers will have one or many 

@@ -1,3 +1,10 @@
+# This example is meant to demonstrate the cuQuantum
+# GPU-accelerated backends and their ability to easily handle
+# a larger number of qubits compared the CPU-only backend.
+#
+# This will take a noticeably longer time to execute on
+# CPU-only backends.
+
 import cudaq
 
 qubit_count = 28

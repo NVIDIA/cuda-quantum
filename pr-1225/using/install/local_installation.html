@@ -98,22 +98,18 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../quick_start.html#python">Python</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../quick_start.html#c">C++</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#what-is-a-cuda-quantum-kernel">What is a CUDA Quantum kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#building-your-first-cuda-quantum-program">Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#running-your-first-cuda-quantum-program">Running your first CUDA Quantum Program</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#running-on-a-gpu">Running on a GPU</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../basics.html#troubleshooting">Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../basics.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../basics/troubleshooting.html">   Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 </ul>
 </li>
 </ul>
@@ -128,18 +124,6 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples/cuquantum.html">   Simulations with cuQuantum</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/noisy_simulation.html">   Noisy Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/hardware_providers.html">   Using Quantum Hardware Providers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/platform.html">   Multi-QPU Platform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../examples/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../examples/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
-</ul>
-</li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
@@ -201,6 +185,18 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id7">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id8">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#id9">Submission from Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../backends/platform.html">   Multi-Processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../backends/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
 </ul>
 </li>
 </ul>
@@ -436,7 +432,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../releases.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -471,7 +467,7 @@
 <h1>Local Installation<a class="headerlink" href="#local-installation" title="Permalink to this heading">¶</a></h1>
 <section id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading">¶</a></h2>
-<p>This guide walks through how to <a class="reference internal" href="install.html#install-cuda-quantum"><span class="std std-ref">install CUDA Quantum</span></a> on your system, and how to set up <a class="reference internal" href="../../quick_start.html#local-development-with-vscode"><span class="std std-ref">VS Code for local development</span></a>.
+<p>This guide walks through how to <a class="reference internal" href="install.html#install-cuda-quantum"><span class="std std-ref">install CUDA Quantum</span></a> on your system, and how to set up <a class="reference internal" href="#local-development-with-vscode"><span class="std std-ref">VS Code for local development</span></a>.
 The section on <a class="reference internal" href="#connect-to-remote"><span class="std std-ref">connecting to a remote host</span></a> contains some
 guidance for application development on a remote host where CUDA Quantum is installed.</p>
 <p>The following sections contain instructions for how to install CUDA Quantum on your machine using</p>
@@ -483,7 +479,8 @@ guidance for application development on a remote host where CUDA Quantum is inst
 </ul>
 <p>If you would like to build CUDA Quantum from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for <a class="reference internal" href="data_center_install.html"><span class="doc">Data Center Installation</span></a>.
 If, on the other hand, you want to contribute to the development of CUDA Quantum itself and hence want to
-build a custom version of CUDA Quantum from source, follow the instructions on the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a> instead.</p>
+build a custom version of CUDA Quantum from source, follow the instructions on the
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a> instead.</p>
 <p>If you are unsure which option suits you best, we recommend using our <a class="reference internal" href="#install-docker-image"><span class="std std-ref">Docker image</span></a> to develop your applications in a controlled environment that does not depend on, or interfere with, other software
 that is installed on your system.</p>
 <section id="docker">
@@ -610,16 +607,25 @@ please take a look at the section on <a class="reference internal" href="#singul
 <p>CUDA Quantum Python wheels are available on <a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI.org</a>.
 Installation instructions can be found in the <a class="reference external" href="https://pypi.org/project/cuda-quantum/#description">project description</a>.
 For more information about available versions and documentation,
-see <a class="reference internal" href="../../versions.html"><span class="doc">CUDA Quantum Versions</span></a>.</p>
-<p>At this time, wheels are distributed for Linux operating systems only.</p>
-<p>There are currently no source distributions available on PyPI, but you can download the source code for the latest version of the CUDA Quantum Python wheels from our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>. The source code for previous versions can be downloaded from the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub Release</a>.</p>
-<p>To build the CUDA Quantum Python API from source using pip, run the following commands:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">git clone https://github.com/NVIDIA/cuda-quantum.git</span>
-<span class="go">cd cuda-quantum &amp;&amp; bash scripts/install_prerequisites.sh</span>
-<span class="go">pip install .</span>
+see <a class="reference internal" href="../../releases.html"><span class="doc">CUDA Quantum Releases</span></a>.</p>
+<p>There are currently no source distributions available on PyPI, but you can download the
+source code for the latest version of the CUDA Quantum Python wheels from our
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
+The source code for previous versions can be downloaded from the respective
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub Release</a>.</p>
+<p>At this time, wheels are distributed for Linux operating systems only.
+If your platform is not <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">officially supported</span></a> and
+<code class="code docutils literal notranslate"><span class="pre">pip</span></code> does not find a compatible wheel to install, you can build your own
+wheel from source following the instructions here: <a class="reference internal" href="data_center_install.html"><span class="doc">Data Center Installation</span></a>.</p>
+<p>To build the CUDA Quantum Python API for the purpose of contributing to
+our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>,
+follow the instructions for
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Dev_Setup.md">Setting up your Environment</a>,
+and then run the following commands in the repository root:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">bash scripts/install_prerequisites.sh</span>
+<span class="go">pip install . --user</span>
 </pre></div>
 </div>
-<p>For more information about building the entire C++ and Python API from source, we refer to the <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md">CUDA Quantum GitHub repository</a>.</p>
 </section>
 <section id="pre-built-binaries">
 <span id="install-prebuilt-binaries"></span><h3>Pre-built binaries<a class="headerlink" href="#pre-built-binaries" title="Permalink to this heading">¶</a></h3>
@@ -1223,7 +1229,7 @@ succeeds, please confirm that your CUDA and driver version matches the
 <p>When you execute this command, the program simply seems to hang; that is because it takes
 a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with <code class="code docutils literal notranslate"><span class="pre">Ctrl+C</span></code>.</p>
 <p>You are now all set to start developing quantum applications using CUDA Quantum!
-Please proceed to <a class="reference internal" href="../basics.html"><span class="doc">Basics</span></a> for an introduction
+Please proceed to <a class="reference internal" href="../basics/basics.html"><span class="doc">Basics</span></a> for an introduction
 to the fundamental features of CUDA Quantum.</p>
 </section>
 </section>

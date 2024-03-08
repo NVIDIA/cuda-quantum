@@ -1,14 +1,13 @@
 CUDA Quantum Backends
 **********************
 
-.. _backends-landing-page:
-
 .. toctree::
    :caption: Backend Targets
    :maxdepth: 1
 
       Simulation <simulators.rst>
       Hardware <hardware.rst>
+      Multi-Processor Platforms <platform.rst>
 
 **The following is a comprehensive list of the available targets in CUDA Quantum:**
 

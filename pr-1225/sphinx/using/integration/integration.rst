@@ -1,4 +1,4 @@
-Integration with CUDA Quantum
+Integration with other Software Tools
 **************************************
 
 .. toctree::
