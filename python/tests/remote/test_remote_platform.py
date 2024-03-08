@@ -7,6 +7,7 @@
 # ============================================================================ #
 import pytest
 import os, math
+import numpy as np
 
 import cudaq
 from cudaq import spin
@@ -97,6 +98,23 @@ def test_observe():
     kernel.cx(qreg[1], qreg[0])
 
     check_observe(kernel)
+
+
+# Make sure spin_op serializes and deserializes correctly
+def test_single_term_spin_op():
+    h = spin.z(0)
+    n_samples = 3
+    n_qubits = 5
+    n_parameters = n_qubits
+    parameters = np.random.default_rng(13).uniform(low=0,
+                                                   high=1,
+                                                   size=(n_samples,
+                                                         n_parameters))
+    kernel, params = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(n_qubits)
+    for i in range(n_qubits):
+        kernel.rx(params[i], qubits[i])
+    cudaq.observe(kernel, h, parameters)
 
 
 def test_observe_kernel():
