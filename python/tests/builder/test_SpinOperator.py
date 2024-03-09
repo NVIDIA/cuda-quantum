@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -371,6 +371,17 @@ def test_spin_op_from_word():
     want_spin_op = spin.x(0) * spin.y(1) * spin.z(2)
     got_spin_op = cudaq.SpinOperator.from_word("XYZ")
     assert got_spin_op == want_spin_op
+
+
+# Test serialization and deserialization for all term/qubit combinations up to
+# 30 qubits
+def test_spin_op_serdes():
+    for nq in range(1, 31):
+        for nt in range(1, nq + 1):
+            h1 = cudaq.SpinOperator.random(qubit_count=nq, term_count=nt)
+            h2 = h1.serialize()
+            h3 = cudaq.SpinOperator(h2, nq)
+            assert (h1 == h3)
 
 
 # leave for gdb debugging
