@@ -373,6 +373,17 @@ def test_spin_op_from_word():
     assert got_spin_op == want_spin_op
 
 
+# Test serialization and deserialization for all term/qubit combinations up to
+# 30 qubits
+def test_spin_op_serdes():
+    for nq in range(1, 31):
+        for nt in range(1, nq):
+            h1 = cudaq.SpinOperator.random(qubit_count=nq, term_count=nt)
+            h2 = h1.serialize()
+            h3 = cudaq.SpinOperator(h2, nq)
+            assert (h1 == h3)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

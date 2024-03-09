@@ -409,13 +409,23 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
     cudaq::cc::ArrayType arrTy = conArr.getType();
     if (arrTy.isUnknownSize())
       return nullptr;
+    auto eleTy = arrTy.getElementType();
     auto arrSize = arrTy.getSize();
     OpBuilder builder(getContext());
     builder.setInsertionPoint(getOperation());
     if (offset < arrSize) {
-      auto fc = cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
-      auto f64Ty = builder.getF64Type();
-      Value val = builder.create<arith::ConstantFloatOp>(getLoc(), fc, f64Ty);
+      auto loc = getLoc();
+      if (auto fltTy = dyn_cast<FloatType>(eleTy)) {
+        auto floatConstVal =
+            cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
+        Value val =
+            builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy);
+        return val;
+      }
+      auto intConstVal =
+          cast<IntegerAttr>(conArr.getConstantValues()[offset]).getInt();
+      auto intTy = cast<IntegerType>(eleTy);
+      Value val = builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy);
       return val;
     }
   }
