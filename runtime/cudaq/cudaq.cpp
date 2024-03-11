@@ -238,28 +238,16 @@ static std::shared_mutex globalRegistryMutex;
 
 static std::vector<std::pair<std::string, std::string>> quakeRegistry;
 
-void cudaq::registry::deviceCodeHolderUpdate(const char *key, const char *code,
-                                             bool replace) {
+void cudaq::registry::deviceCodeHolderAdd(const char *key, const char *code) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
-  if (replace) {
-    for (auto &pair : quakeRegistry) {
-      if (pair.first == key) {
-        cudaq::info("Replacing code for kernel {}", key);
-        pair.second = code;
-        return;
-      }
+  for (auto &pair : quakeRegistry) {
+    if (pair.first == key) {
+      cudaq::info("Replacing code for kernel {}", key);
+      pair.second = code;
+      return;
     }
   }
   quakeRegistry.emplace_back(key, code);
-}
-
-void cudaq::registry::deviceCodeHolderAdd(const char *key, const char *code) {
-  deviceCodeHolderUpdate(key, code, false);
-}
-
-void cudaq::registry::deviceCodeHolderReplace(const char *key,
-                                              const char *code) {
-  deviceCodeHolderUpdate(key, code, true);
 }
 
 //===----------------------------------------------------------------------===//

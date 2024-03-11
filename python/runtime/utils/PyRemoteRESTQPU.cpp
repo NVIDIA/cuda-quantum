@@ -17,7 +17,7 @@
 // ServerHelper, for example, was not invoked at all.
 using namespace mlir;
 
-extern "C" void deviceCodeHolderReplace(const char *, const char *);
+extern "C" void deviceCodeHolderAdd(const char *, const char *);
 
 namespace cudaq {
 
@@ -105,7 +105,7 @@ protected:
     }
     // The remote rest qpu workflow will need the module string in
     // the internal registry.
-    deviceCodeHolderReplace(kernelName.c_str(), moduleStr.c_str());
+    deviceCodeHolderAdd(kernelName.c_str(), moduleStr.c_str());
     return std::make_tuple(cloned, context, wrapper->rawArgs);
   }
 };
