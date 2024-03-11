@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -44,10 +44,10 @@ public:
       // Add declaration of deviceCodeHolderAdd
       builder.create<LLVM::LLVMFuncOp>(
           loc, "deviceCodeHolderAdd",
-          LLVM::LLVMFunctionType::get(cudaq::opt::factory::getVoidType(ctx),
-                                      {cudaq::opt::factory::getPointerType(ctx),
-                                       cudaq::opt::factory::getPointerType(ctx),
-                                       builder.getI1Type()}));
+          LLVM::LLVMFunctionType::get(
+              cudaq::opt::factory::getVoidType(ctx),
+              {cudaq::opt::factory::getPointerType(ctx),
+               cudaq::opt::factory::getPointerType(ctx)}));
     }
 
     // Collect all function declarations to forward as part of each Module.
@@ -156,15 +156,12 @@ public:
         auto codeRef = builder.create<LLVM::AddressOfOp>(
             loc, cudaq::opt::factory::getPointerType(devCode.getType()),
             devCode.getSymName());
-        auto boolFalse =
-            builder.create<LLVM::ConstantOp>(loc, builder.getI1Type(), 0);
         auto castDevRef = builder.create<LLVM::BitcastOp>(
             loc, cudaq::opt::factory::getPointerType(ctx), devRef);
         auto castCodeRef = builder.create<LLVM::BitcastOp>(
             loc, cudaq::opt::factory::getPointerType(ctx), codeRef);
-        builder.create<LLVM::CallOp>(
-            loc, std::nullopt, "deviceCodeHolderAdd",
-            ValueRange{castDevRef, castCodeRef, boolFalse});
+        builder.create<LLVM::CallOp>(loc, std::nullopt, "deviceCodeHolderAdd",
+                                     ValueRange{castDevRef, castCodeRef});
         builder.create<LLVM::ReturnOp>(loc, ValueRange{});
         builder.restoreInsertionPoint(insPt);
         cudaq::opt::factory::createGlobalCtorCall(

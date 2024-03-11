@@ -11,8 +11,11 @@
 
 namespace cudaq {
 namespace registry {
+
 extern "C" {
-void deviceCodeHolderAdd(const char *, const char *, bool);
+void deviceCodeHolderUpdate(const char *key, const char *code, bool replace);
+void deviceCodeHolderAdd(const char *, const char *);
+void deviceCodeHolderReplace(const char *, const char *);
 void cudaqRegisterKernelName(const char *);
 void cudaqRegisterArgsCreator(const char *, char *);
 void cudaqRegisterLambdaName(const char *, const char *);
