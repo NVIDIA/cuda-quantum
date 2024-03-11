@@ -61,21 +61,6 @@ Type factory::genArgumentBufferType(Type ty) {
   return genBufferType</*isOutput=*/false>(ty);
 }
 
-/// Build an LLVM struct type with all the arguments and then all the results.
-/// If the type is a std::vector, then add an i64 to the struct for the
-/// length. The actual data values will be appended to the end of the
-/// dynamically sized struct.
-///
-/// A kernel signature of
-/// ```c++
-/// i32_t operator() (i16_t, std::vector<double>, double);
-/// ```
-/// will generate the llvm struct
-/// ```llvm
-/// { i16, i64, double, i32 }
-/// ```
-/// where the values of the vector argument are pass-by-value and appended to
-/// the end of the struct as a sequence of \i n double values.
 cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy) {
   auto *ctx = funcTy.getContext();
   SmallVector<Type> eleTys;
@@ -86,8 +71,6 @@ cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy) {
   return cudaq::cc::StructType::get(ctx, eleTys /*packed=false*/);
 }
 
-/// Return an i64 array where the kth element is N if the kth
-/// operand is veq<N> and 0 otherwise (e.g. is a ref).
 Value factory::packIsArrayAndLengthArray(Location loc,
                                          ConversionPatternRewriter &rewriter,
                                          ModuleOp parentModule,
