@@ -36,6 +36,8 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 if [ -z "${CXX}" ]; then
     if [ -x "$(command -v "${this_file_dir}/../bin/nvq++")" ]; then
         CXX="${this_file_dir}/../bin/nvq++"
+    elif [ -x "$(command -v "nvq++")" ]; then
+        CXX="nvq++"
     elif [ -x "$(command -v "${MPI_PATH}/bin/mpic++")" ]; then
         CXX="${MPI_PATH}/bin/mpic++"
     else
