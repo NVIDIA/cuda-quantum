@@ -401,7 +401,7 @@ public:
     });
 
     // Upload this request as an NVCF asset if needed.
-    if (request.code.size() > MAX_SIZE_BYTES) {
+    if (json(request).dump().size() > MAX_SIZE_BYTES) {
       assetId = uploadRequest(request);
       if (!assetId.has_value()) {
         if (optionalErrorMsg)
