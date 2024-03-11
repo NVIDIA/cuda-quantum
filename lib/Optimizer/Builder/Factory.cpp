@@ -28,6 +28,64 @@ bool factory::isAArch64(ModuleOp module) {
   return tr.getArch() == llvm::Triple::aarch64;
 }
 
+template <bool isOutput>
+static Type genBufferType(Type ty) {
+  auto *ctx = ty.getContext();
+  if (isa<cudaq::cc::CallableType>(ty))
+    return cudaq::cc::PointerType::get(ctx);
+  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
+    auto i64Ty = IntegerType::get(ctx, 64);
+    if (isOutput) {
+      SmallVector<Type> mems = {
+          cudaq::cc::PointerType::get(vecTy.getElementType()), i64Ty};
+      return cudaq::cc::StructType::get(ctx, mems);
+    }
+    return i64Ty;
+  }
+  if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty)) {
+    if (strTy.isEmpty())
+      return IntegerType::get(ctx, 64);
+    SmallVector<Type> mems;
+    for (auto memTy : strTy.getMembers())
+      mems.push_back(genBufferType<isOutput>(memTy));
+    return cudaq::cc::StructType::get(ctx, mems);
+  }
+  if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
+    assert(!cudaq::cc::isDynamicType(ty) && "must be a type of static extent");
+    return ty;
+  }
+  return ty;
+}
+
+Type factory::genArgumentBufferType(Type ty) {
+  return genBufferType</*isOutput=*/false>(ty);
+}
+
+/// Build an LLVM struct type with all the arguments and then all the results.
+/// If the type is a std::vector, then add an i64 to the struct for the
+/// length. The actual data values will be appended to the end of the
+/// dynamically sized struct.
+///
+/// A kernel signature of
+/// ```c++
+/// i32_t operator() (i16_t, std::vector<double>, double);
+/// ```
+/// will generate the llvm struct
+/// ```llvm
+/// { i16, i64, double, i32 }
+/// ```
+/// where the values of the vector argument are pass-by-value and appended to
+/// the end of the struct as a sequence of \i n double values.
+cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy) {
+  auto *ctx = funcTy.getContext();
+  SmallVector<Type> eleTys;
+  for (auto inTy : funcTy.getInputs())
+    eleTys.push_back(genBufferType</*isOutput=*/false>(inTy));
+  for (auto outTy : funcTy.getResults())
+    eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
+  return cudaq::cc::StructType::get(ctx, eleTys /*packed=false*/);
+}
+
 /// Return an i64 array where the kth element is N if the kth
 /// operand is veq<N> and 0 otherwise (e.g. is a ref).
 Value factory::packIsArrayAndLengthArray(Location loc,
