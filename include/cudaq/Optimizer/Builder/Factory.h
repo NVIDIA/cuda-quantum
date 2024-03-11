@@ -75,7 +75,7 @@ mlir::Type genArgumentBufferType(mlir::Type ty);
 /// ```c++
 /// i32_t operator() (i16_t, std::vector<double>, double);
 /// ```
-/// will generate the llvm struct
+/// will generate the LLVM struct
 /// ```llvm
 /// { i16, i64, double, i32 }
 /// ```
