@@ -280,6 +280,15 @@ packArgs(OpaqueArguments &argData, py::args args,
 
     if (py::isinstance<py::list>(arg)) {
       auto casted = py::cast<py::list>(arg);
+      if (casted.empty()) {
+        std::vector<cudaq::pauli_word> *ourAllocatedArg =
+            new std::vector<cudaq::pauli_word>();
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<cudaq::pauli_word> *>(ptr);
+        });
+        continue;
+      }
+      
       auto firstElement = casted[0];
 
       // Handle `list[str]`
