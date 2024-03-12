@@ -46,8 +46,39 @@ std::string extractTrace(KernelFunctor &&kernel) {
 
 } // namespace details
 
+// clang-format off
+///
 /// @brief Returns a drawing of the execution path, i.e., the trace, of the
 /// kernel. The drawing is a UTF-8 encoded string.
+///
+/// \param kernel The quantum callable with non-trivial function signature.
+/// \param args The arguments required for evaluation of the quantum kernel.
+/// \returns The UTF-8 encoded string of the circuit, without measurement operations.
+///
+/// Usage:
+/// \code{.cpp}
+/// #include <cudaq.h>
+/// #include <cudaq/algorithms/draw.h>
+/// #include <iostream>
+///
+/// auto bell_pair = []() __qpu__ {
+///     cudaq::qvector q(2);
+///     h(q[0]);
+///     x<cudaq::ctrl>(q[0], q[1]);
+///     mz(q);
+/// };
+/// ...
+/// std::cout << cudaq::draw(bell_pair);
+/// /* Output:
+///     ╭───╮     
+///q0 : ┤ h ├──●──
+///     ╰───╯╭─┴─╮
+///q1 : ─────┤ x ├
+///          ╰───╯
+/// */
+/// \endcode
+///
+// clang-format on
 template <typename QuantumKernel, typename... Args>
 std::string draw(QuantumKernel &&kernel, Args &&...args) {
   ExecutionContext context("tracer");
