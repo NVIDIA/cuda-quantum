@@ -241,15 +241,17 @@ class PyKernel(object):
         Process input argument type. Specifically, try to infer the 
         element type for a list, e.g. list[float]. 
         """
+        if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
+            return ty, None
         if typing.get_origin(ty) == list or isinstance(ty(), list):
             if '[' in str(ty) and ']' in str(ty):
                 # Infer the slice type
-                result = re.search('ist\[(.*)\]', str(ty))
+                result = re.search(r'ist\[(.*)\]', str(ty))
                 eleTyName = result.group(1)
                 if eleTyName != None and locate(eleTyName) != None:
                     return list, [locate(eleTyName)()]
                 emitFatalError(f'Invalid type for kernel builder {ty}')
-        return ty, None, None
+        return ty, None
 
     def getIntegerAttr(self, type, value):
         """
