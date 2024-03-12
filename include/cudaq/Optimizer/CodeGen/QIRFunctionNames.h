@@ -11,6 +11,8 @@
 /// This file provides some common QIR function name string s
 /// for use throughout our MLIR lowering infrastructure.
 
+#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
+
 namespace cudaq::opt {
 
 /// QIS Function name strings
@@ -82,5 +84,7 @@ inline mlir::Type getResultType(mlir::MLIRContext *context) {
 inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
   return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
 }
+
+void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
 
 } // namespace cudaq::opt

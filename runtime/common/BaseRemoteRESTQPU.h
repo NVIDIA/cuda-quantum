@@ -378,6 +378,7 @@ public:
       func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
     auto moduleOp = builder.create<ModuleOp>();
     moduleOp.push_back(func.clone());
+    moduleOp->setAttrs(m_module->getAttrDictionary());
 
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,
