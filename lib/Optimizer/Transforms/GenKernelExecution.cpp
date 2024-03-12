@@ -50,62 +50,6 @@ class GenerateKernelExecution
 public:
   using GenerateKernelExecutionBase::GenerateKernelExecutionBase;
 
-  template <bool isOutput = false>
-  static Type genBufferType(Type ty) {
-    auto *ctx = ty.getContext();
-    if (isa<cudaq::cc::CallableType>(ty))
-      return cudaq::cc::PointerType::get(ctx);
-    if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
-      auto i64Ty = IntegerType::get(ctx, 64);
-      if (isOutput) {
-        SmallVector<Type> mems = {
-            cudaq::cc::PointerType::get(vecTy.getElementType()), i64Ty};
-        return cudaq::cc::StructType::get(ctx, mems);
-      }
-      return i64Ty;
-    }
-    if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty)) {
-      if (strTy.isEmpty())
-        return IntegerType::get(ctx, 64);
-      SmallVector<Type> mems;
-      for (auto memTy : strTy.getMembers())
-        mems.push_back(genBufferType<isOutput>(memTy));
-      return cudaq::cc::StructType::get(ctx, mems);
-    }
-    if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
-      assert(!cudaq::cc::isDynamicType(ty) &&
-             "must be a type of static extent");
-      return ty;
-    }
-    return ty;
-  }
-
-  /// Build an LLVM struct type with all the arguments and then all the results.
-  /// If the type is a std::vector, then add an i64 to the struct for the
-  /// length. The actual data values will be appended to the end of the
-  /// dynamically sized struct.
-  ///
-  /// A kernel signature of
-  /// ```c++
-  /// i32_t operator() (i16_t, std::vector<double>, double);
-  /// ```
-  /// will generate the llvm struct
-  /// ```llvm
-  /// { i16, i64, double, i32 }
-  /// ```
-  /// where the values of the vector argument are pass-by-value and appended to
-  /// the end of the struct as a sequence of \i n double values.
-  cudaq::cc::StructType buildStructType(const std::string &name,
-                                        FunctionType funcTy) {
-    auto *ctx = funcTy.getContext();
-    SmallVector<Type> eleTys;
-    for (auto inTy : funcTy.getInputs())
-      eleTys.push_back(genBufferType<>(inTy));
-    for (auto outTy : funcTy.getResults())
-      eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
-    return cudaq::cc::StructType::get(ctx, eleTys);
-  }
-
   /// Creates the function signature for a thunk function. The signature is
   /// always the same for all thunk functions.
   FunctionType getThunkType(MLIRContext *ctx) {
@@ -705,7 +649,8 @@ public:
       Value subVal =
           builder.create<cudaq::cc::ExtractValueOp>(loc, buffMemTy, val, off);
       // Convert the argument type, strTy, to a buffer type.
-      auto memberArgTy = cast<cudaq::cc::StructType>(genBufferType<>(strTy));
+      auto memberArgTy = cast<cudaq::cc::StructType>(
+          cudaq::opt::factory::genArgumentBufferType(strTy));
       for (auto iter : llvm::enumerate(strTy.getMembers())) {
         auto memValPair =
             processInputValue(loc, builder, trailingData, subVal, iter.value(),
@@ -1146,7 +1091,8 @@ public:
                                                            stVal, v, idx);
           continue;
         }
-        auto genTy = cast<cudaq::cc::StructType>(genBufferType<>(strTy));
+        auto genTy = cast<cudaq::cc::StructType>(
+            cudaq::opt::factory::genArgumentBufferType(strTy));
         Value zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
         auto [quakeVal, recursiveSize] = computeRecursiveDynamicStructSize(
             loc, builder, strTy, arg, zero, genTy);
@@ -1400,7 +1346,7 @@ public:
 
       // Create a new struct type to pass arguments and results.
       auto funcTy = funcOp.getFunctionType();
-      auto structTy = buildStructType(classNameStr, funcTy);
+      auto structTy = cudaq::opt::factory::buildInvokeStructType(funcTy);
 
       if (!mangledNameMap.contains(funcOp.getName()))
         continue;

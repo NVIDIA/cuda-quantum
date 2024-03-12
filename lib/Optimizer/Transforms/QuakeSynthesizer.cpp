@@ -8,14 +8,17 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
+#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Target/LLVMIR/TypeToLLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
 
@@ -40,7 +43,7 @@ using namespace mlir;
 /// BlockArgument with it.
 template <typename ConcreteType>
 void synthesizeRuntimeArgument(
-    OpBuilder &builder, BlockArgument argument, void *args, std::size_t &offset,
+    OpBuilder &builder, BlockArgument argument, void *args, std::size_t offset,
     std::size_t typeSize,
     std::function<Value(OpBuilder &, ConcreteType *)> &&opGenerator) {
 
@@ -48,8 +51,6 @@ void synthesizeRuntimeArgument(
   ConcreteType concrete;
   // Copy the void* struct member into that concrete instance
   std::memcpy(&concrete, ((char *)args) + offset, typeSize);
-  // Increment the offset for the next argument
-  offset += typeSize;
 
   // Generate the MLIR Value (arith constant for example)
   auto runtimeArg = opGenerator(builder, &concrete);
@@ -267,6 +268,30 @@ public:
 
   mlir::ModuleOp getModule() { return getOperation(); }
 
+  std::pair<std::size_t, std::vector<std::size_t>>
+  getTargetLayout(FunctionType funcTy) {
+    auto bufferTy = cudaq::opt::factory::buildInvokeStructType(funcTy);
+    StringRef dataLayoutSpec = "";
+    if (auto attr =
+            getModule()->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
+      dataLayoutSpec = cast<StringAttr>(attr);
+    auto dataLayout = llvm::DataLayout(dataLayoutSpec);
+    // Convert bufferTy to llvm.
+    llvm::LLVMContext context;
+    LLVMTypeConverter converter(funcTy.getContext());
+    cudaq::opt::initializeTypeConversions(converter);
+    auto llvmDialectTy = converter.convertType(bufferTy);
+    LLVM::TypeToLLVMIRTranslator translator(context);
+    auto *llvmStructTy =
+        cast<llvm::StructType>(translator.translateType(llvmDialectTy));
+    auto *layout = dataLayout.getStructLayout(llvmStructTy);
+    auto strSize = layout->getSizeInBytes();
+    std::vector<std::size_t> fieldOffsets;
+    for (std::size_t i = 0, I = bufferTy.getMembers().size(); i != I; ++i)
+      fieldOffsets.emplace_back(layout->getElementOffset(i));
+    return {strSize, fieldOffsets};
+  }
+
   void runOnOperation() override final {
     auto module = getModule();
     if (args == nullptr || kernelName.empty()) {
@@ -290,17 +315,14 @@ public:
     // We will remove these arguments and replace with constant ops
     auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
     auto arguments = funcOp.getArguments();
-
+    auto structLayout = getTargetLayout(funcOp.getFunctionType());
     // Keep track of the stdVec sizes.
     std::vector<std::tuple<std::size_t, Type, std::uint64_t>> stdVecInfo;
-
-    // For each argument, get the type and synthesize
-    // the runtime constant value.
-    std::size_t offset = 0;
 
     for (auto iter : llvm::enumerate(arguments)) {
       auto argNum = iter.index();
       auto argument = iter.value();
+      std::size_t offset = structLayout.second[argNum];
 
       // Get the argument type
       auto type = argument.getType();
@@ -332,16 +354,16 @@ public:
               });
           break;
         case 32:
-          synthesizeRuntimeArgument<int>(
-              builder, argument, args, offset, sizeof(int),
-              [=](OpBuilder &builder, int *concrete) {
+          synthesizeRuntimeArgument<std::int32_t>(
+              builder, argument, args, offset, sizeof(std::int32_t),
+              [=](OpBuilder &builder, std::int32_t *concrete) {
                 return builder.create<arith::ConstantIntOp>(loc, *concrete, 32);
               });
           break;
         case 64:
-          synthesizeRuntimeArgument<long>(
-              builder, argument, args, offset, sizeof(long),
-              [=](OpBuilder &builder, long *concrete) {
+          synthesizeRuntimeArgument<std::int64_t>(
+              builder, argument, args, offset, sizeof(std::int64_t),
+              [=](OpBuilder &builder, std::int64_t *concrete) {
                 return builder.create<arith::ConstantIntOp>(loc, *concrete, 64);
               });
           break;
@@ -388,7 +410,6 @@ public:
         auto sizeFromBuffer =
             *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
         auto vectorSize = sizeFromBuffer / (eleTy.getIntOrFloatBitWidth() / 8);
-        offset += sizeof(std::uint64_t);
         stdVecInfo.emplace_back(argNum, eleTy, vectorSize);
         continue;
       }
@@ -398,7 +419,6 @@ public:
       if (isa<cudaq::cc::StructType, cudaq::cc::CallableType>(type)) {
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto rawSize = *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        offset += sizeof(std::uint64_t);
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
         continue;
       }
@@ -410,7 +430,8 @@ public:
     // For any `std::vector` arguments, we now know the sizes so let's replace
     // the block arg with the actual vector element data. First get the pointer
     // to the start of the buffer's appendix.
-    char *bufferAppendix = static_cast<char *>(args) + offset;
+    auto structSize = structLayout.first;
+    char *bufferAppendix = static_cast<char *>(args) + structSize;
     for (auto [idx, eleTy, vecLength] : stdVecInfo) {
       if (!eleTy) {
         // FIXME: Skip struct values.

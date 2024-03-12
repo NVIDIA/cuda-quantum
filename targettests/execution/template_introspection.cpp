@@ -20,8 +20,8 @@ struct ghz {
   }
 };
 
-// CHECK: 1: module { func.func @__nvqpp__mlirgen__ghzILm3EE() attributes
-// CHECK: 2: module { func.func @__nvqpp__mlirgen__ghzILm4EE() attributes
+// CHECK: 1: module {{.*}} func.func @__nvqpp__mlirgen__ghzILm3EE() attributes
+// CHECK: 2: module {{.*}} func.func @__nvqpp__mlirgen__ghzILm4EE() attributes
 
 int main() {
   printf("1: %s", cudaq::get_quake(ghz<3>{}).c_str());
