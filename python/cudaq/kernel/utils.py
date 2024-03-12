@@ -17,6 +17,7 @@ import ast, sys, traceback
 
 qvector = cudaq_runtime.qvector
 qubit = cudaq_runtime.qubit
+pauli_word = cudaq_runtime.pauli_word 
 qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
@@ -87,6 +88,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 return quake.VeqType.get(ctx)
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
+            if annotation.attr == 'pauli_word':
+                return quake.PauliWordType.get(ctx)
 
         if annotation.value.id in ['numpy', 'np']:
             if annotation.attr == 'ndarray':
@@ -157,7 +160,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
     if id == 'complex':
         return ComplexType.get(F64Type.get())
-
+    
     localEmitFatalError(f'{id} is not a supported type.')
 
 
@@ -185,7 +188,6 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
         if isinstance(argInstance[0], bool):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
-
         if isinstance(argInstance[0], int):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
         if isinstance(argInstance[0], float):
@@ -197,9 +199,13 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                         "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
                     )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+        
         if isinstance(argInstance[0], complex):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
-
+        
+        if isinstance(argInstance[0], pauli_word):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(pauli_word, ctx))
+        
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
                 ctx,
@@ -216,6 +222,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return quake.VeqType.get(ctx)
     if argType == qubit:
         return quake.RefType.get(ctx)
+    if argType == pauli_word:
+        return quake.PauliWordType.get(ctx)
 
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
@@ -255,6 +263,8 @@ def mlirTypeToPyType(argType):
             return getListType(float)
         if ComplexType.isinstance(eleTy):
             return getListType(complex)
+        if quake.PauliWordType.isinstance(eleTy):
+            return getListType(cudaq_runtime.pauli_word)
 
     emitFatalError(
         f"Cannot infer CUDA QUantum type from provided Python type ({argType})")

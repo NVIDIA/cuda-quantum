@@ -10,6 +10,7 @@
 
 #include "common/FmtCore.h"
 #include "cudaq/builder/kernel_builder.h"
+#include "cudaq/qis/pauli_word.h"
 #include <chrono>
 #include <functional>
 #include <future>
@@ -258,15 +259,43 @@ packArgs(OpaqueArguments &argData, py::args args,
         delete static_cast<double *>(ptr);
       });
       continue;
-    } else if (py::isinstance<py::int_>(arg)) {
+    }
+
+    if (py::isinstance<py::int_>(arg)) {
       long *ourAllocatedArg = new long();
       *ourAllocatedArg = PyLong_AsLong(arg.ptr());
       argData.emplace_back(ourAllocatedArg,
                            [](void *ptr) { delete static_cast<long *>(ptr); });
       continue;
-    } else if (py::isinstance<py::list>(arg)) {
+    }
+
+    if (py::isinstance<cudaq::pauli_word>(arg)) {
+      cudaq::pauli_word *ourAllocatedArg =
+          new cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str());
+      argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+        delete static_cast<cudaq::pauli_word *>(ptr);
+      });
+      continue;
+    }
+
+    if (py::isinstance<py::list>(arg)) {
       auto casted = py::cast<py::list>(arg);
       auto firstElement = casted[0];
+
+      // Handle `list[str]`
+      if (py::isinstance<cudaq::pauli_word>(firstElement)) {
+        std::vector<cudaq::pauli_word> *ourAllocatedArg =
+            new std::vector<cudaq::pauli_word>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          (*ourAllocatedArg)[counter++] =
+              cudaq::pauli_word(el.cast<cudaq::pauli_word>().str());
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<cudaq::pauli_word> *>(ptr);
+        });
+        continue;
+      }
+
       if (py::isinstance<py::int_>(firstElement)) {
         std::vector<std::size_t> *ourAllocatedArg =
             new std::vector<std::size_t>(casted.size());

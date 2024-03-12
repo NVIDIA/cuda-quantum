@@ -189,6 +189,52 @@ def test_2grover_compute_action():
     assert '101' in counts
     assert '011' in counts
 
+def test_pauli_word_input():
+
+    h2_data = [
+        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
+        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
+        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
+        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
+        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
+        1, 3, 3, -0.0454063, -0, 15
+    ]
+    h = cudaq.SpinOperator(h2_data, 4)
+    
+    @cudaq.kernel
+    def kernel(theta : float, var : cudaq.pauli_word):
+        q = cudaq.qvector(4)
+        x(q[0])
+        x(q[1])
+        exp_pauli(theta, q, var)
+
+    print(kernel)
+    kernel(.11, 'XXXY')
+
+    want_exp = cudaq.observe(kernel, h, .11, 'XXXY').expectation()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)
+
+    want_exp = cudaq.observe(kernel, h, .11, cudaq.pauli_word('XXXY')).expectation()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)
+    
+    @cudaq.kernel
+    def test(theta : float, paulis: list[cudaq.pauli_word]):
+        q = cudaq.qvector(4)
+        x(q[0])
+        x(q[1])
+        exp_pauli(theta, q, paulis[0])
+    
+    print(test)
+    want_exp = cudaq.observe(test, h, .11, ['XXXY']).expectation()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)
+
+    words = [cudaq.pauli_word('XXXY')]
+    want_exp = cudaq.observe(test, h, .11, words).expectation()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)
+
+    with pytest.raises(RuntimeError) as e:
+        kernel(.11, 'HELLOBADTERM')
+
 
 def test_exp_pauli():
     h2_data = [

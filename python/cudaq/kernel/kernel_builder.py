@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from functools import partialmethod
+from pydoc import locate
 import random
 import re
 import string
@@ -251,7 +252,7 @@ class PyKernel(object):
                 eleTyName = result.group(1)
                 pyType = allowedTypeMap[eleTyName]
                 if eleTyName != None and eleTyName in allowedTypeMap:
-                    return list, [allowedTypeMap[eleTyName]()]
+                    return list, [pyType()]
                 emitFatalError(f'Invalid type for kernel builder {ty}')
         return ty, None
 
@@ -569,6 +570,8 @@ class PyKernel(object):
                 elif isinstance(arg, QuakeValue) and quake.VeqType.isinstance(
                         arg.mlirValue.type):
                     quantumVal = arg.mlirValue
+                elif isinstance(arg, QuakeValue) and quake.PauliWordType.isinstance(arg.mlirValue.type):
+                    pauliWordVal = arg.mlirValue
                 elif isinstance(arg, QuakeValue) and quake.RefType.isinstance(
                         arg.mlirValue.type):
                     qubitsList.append(arg.mlirValue)
@@ -1101,6 +1104,17 @@ class PyKernel(object):
             mlirType = mlirTypeFromPyType(argType, self.ctx)
             if mlirType != self.mlirArgTypes[
                     i] and listType != mlirTypeToPyType(self.mlirArgTypes[i]):
+                emitFatalError(
+                    f"Invalid runtime argument type ({type(arg)} provided, {mlirTypeToPyType(self.mlirArgTypes[i])} required)"
+                )
+            
+            if issubclass(type(arg), list) and all(isinstance(a, str) for a in arg):
+                arg = [cudaq_runtime.pauli_word(a) for a in arg]
+                processedArgs.append(arg)
+                continue
+
+            mlirType = mlirTypeFromPyType(type(arg), self.ctx)
+            if mlirType != self.mlirArgTypes[i]:
                 emitFatalError(
                     f"Invalid runtime argument type ({type(arg)} provided, {mlirTypeToPyType(self.mlirArgTypes[i])} required)"
                 )

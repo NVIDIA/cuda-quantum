@@ -192,6 +192,22 @@ class PyKernelDecorator(object):
             if isinstance(arg, PyKernelDecorator):
                 arg.compile()
 
+            def emitErrorIfInvalidPauli(pauliArg):
+                if any(c not in 'XYZI' for c in pauliArg):
+                    emitFatalError(
+                        f"Invalid pauli_word string provided as runtime argument ({arg}) - can only contain X, Y, Z, or I."
+                    )
+
+            if isinstance(arg, str):
+                # Only allow pauli words as string input
+                emitErrorIfInvalidPauli(arg)
+                arg = cudaq_runtime.pauli_word(arg)
+
+            if issubclass(type(arg), list):
+                if all(isinstance(a, str) for a in arg):
+                    [emitErrorIfInvalidPauli(a) for a in arg]
+                    arg = [cudaq_runtime.pauli_word(a) for a in arg]
+
             mlirType = mlirTypeFromPyType(type(arg),
                                           self.module.context,
                                           argInstance=arg,

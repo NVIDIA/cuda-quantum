@@ -108,5 +108,9 @@ void bindQIS(py::module &mod) {
       .def("__getitem__", &qvector<2>::operator[],
            py::return_value_policy::reference,
            "Return the qubit at the given index.");
+
+  py::class_<pauli_word>(mod, "pauli_word")
+      .def(py::init<>())
+      .def(py::init<const std::string>());
 }
 } // namespace cudaq

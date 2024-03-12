@@ -1,0 +1,26 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+#pragma once
+
+#include <string>
+
+namespace cudaq {
+/// @brief The `pauli_word` is a thin wrapper on a
+/// Pauli tensor product string, e.g. `XXYZ` on 4
+// qubits.
+class pauli_word {
+private:
+  std::string term;
+
+public:
+  pauli_word() = default;
+  pauli_word(const std::string t) : term(t) {}
+  pauli_word(const pauli_word&) = default;
+  std::string str() { return term; }
+};
+} // namespace cudaq
