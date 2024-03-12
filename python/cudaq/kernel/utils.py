@@ -17,7 +17,7 @@ import ast, sys, traceback
 
 qvector = cudaq_runtime.qvector
 qubit = cudaq_runtime.qubit
-pauli_word = cudaq_runtime.pauli_word 
+pauli_word = cudaq_runtime.pauli_word
 qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
@@ -160,7 +160,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
     if id == 'complex':
         return ComplexType.get(F64Type.get())
-    
+
     localEmitFatalError(f'{id} is not a supported type.')
 
 
@@ -199,13 +199,13 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                         "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
                     )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
-        
+
         if isinstance(argInstance[0], complex):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
-        
+
         if isinstance(argInstance[0], pauli_word):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(pauli_word, ctx))
-        
+
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
                 ctx,

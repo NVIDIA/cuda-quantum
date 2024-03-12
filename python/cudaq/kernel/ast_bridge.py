@@ -2758,10 +2758,11 @@ class PyASTBridge(ast.NodeVisitor):
                 if cc.ArrayType.isinstance(eleTy):
                     self.pushValue(value)
                     return
-                # Retain `ptr<i8>` 
-                if IntegerType.isinstance(eleTy) and IntegerType(eleTy).width == 8:
+                # Retain `ptr<i8>`
+                if IntegerType.isinstance(eleTy) and IntegerType(
+                        eleTy).width == 8:
                     self.pushValue(value)
-                    return 
+                    return
                 loaded = cc.LoadOp(value).result
                 self.pushValue(loaded)
             elif cc.CallableType.isinstance(

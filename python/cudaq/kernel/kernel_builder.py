@@ -570,7 +570,9 @@ class PyKernel(object):
                 elif isinstance(arg, QuakeValue) and quake.VeqType.isinstance(
                         arg.mlirValue.type):
                     quantumVal = arg.mlirValue
-                elif isinstance(arg, QuakeValue) and quake.PauliWordType.isinstance(arg.mlirValue.type):
+                elif isinstance(arg,
+                                QuakeValue) and quake.PauliWordType.isinstance(
+                                    arg.mlirValue.type):
                     pauliWordVal = arg.mlirValue
                 elif isinstance(arg, QuakeValue) and quake.RefType.isinstance(
                         arg.mlirValue.type):
