@@ -240,7 +240,9 @@ add_subdirectory(backends)
 add_subdirectory(Optimizer)
 
 if (CUDAQ_ENABLE_PYTHON)
-  find_package(Python COMPONENTS Interpreter)
+  if (NOT Python_FOUND)
+    message(FATAL_ERROR "find_package(Python) not run?")
+  endif()
   execute_process(COMMAND ${Python_EXECUTABLE} -c "import openfermionpyscf"
     OUTPUT_VARIABLE PYSCF_output
     ERROR_VARIABLE  PYSCF_error
