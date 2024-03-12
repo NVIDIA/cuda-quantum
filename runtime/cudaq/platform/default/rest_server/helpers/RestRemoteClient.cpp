@@ -240,9 +240,9 @@ public:
         // Output an error message if no deployments can be found.
         if (m_availableFuncs.empty())
           throw std::runtime_error(
-              "Unable to find any ACTIVE NVQC deployments. Please ensure that "
-              "the provided NVQC API key is authorized to invoke NVQC "
-              "functions; otherwise, please contact NVQC support.");
+              "Unable to find any active NVQC deployments for this key. Check "
+              "if you see any active functions on ngc.nvidia.com in the cloud "
+              "functions tab, or try to regenerate the key.");
 
         // Determine the function Id based on the number of GPUs
         const auto nGpusIter = configs.find("ngpus");
@@ -401,7 +401,12 @@ public:
     });
 
     // Upload this request as an NVCF asset if needed.
-    if (request.code.size() > MAX_SIZE_BYTES) {
+    // Note: The majority of the payload is the IR code. Hence, first checking
+    // if it exceed the size limit. Otherwise, if the code is small, make sure
+    // that the total payload doesn't exceed that limit as well by constructing
+    // a temporary JSON object of the full payload.
+    if (request.code.size() > MAX_SIZE_BYTES ||
+        json(request).dump().size() > MAX_SIZE_BYTES) {
       assetId = uploadRequest(request);
       if (!assetId.has_value()) {
         if (optionalErrorMsg)
