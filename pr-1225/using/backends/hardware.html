@@ -170,7 +170,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id1">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ionq-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id2">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#id3">Submission from Python</a></li>
 </ul>
@@ -432,7 +432,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../releases.html">   Other Versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -470,7 +470,7 @@ To submit to a hardware backend, you need an account with the respective provide
 <section id="quantinuum">
 <h2>Quantinuum<a class="headerlink" href="#quantinuum" title="Permalink to this heading">¶</a></h2>
 <section id="setting-credentials">
-<h3>Setting Credentials<a class="headerlink" href="#setting-credentials" title="Permalink to this heading">¶</a></h3>
+<span id="quantinuum-backend"></span><h3>Setting Credentials<a class="headerlink" href="#setting-credentials" title="Permalink to this heading">¶</a></h3>
 <p>Programmers of CUDA Quantum may access the Quantinuum API from either
 C++ or Python. Quantinuum requires a credential configuration file.
 The configuration file can be generated as follows, replacing
@@ -557,8 +557,8 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </section>
 <section id="ionq">
 <h2>IonQ<a class="headerlink" href="#ionq" title="Permalink to this heading">¶</a></h2>
-<section id="id1">
-<h3>Setting Credentials<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
+<section id="ionq-backend">
+<span id="id1"></span><h3>Setting Credentials<a class="headerlink" href="#ionq-backend" title="Permalink to this heading">¶</a></h3>
 <p>Programmers of CUDA Quantum may access the <a class="reference external" href="https://cloud.ionq.com/">IonQ Quantum Cloud</a> from either C++ or Python. Generate
 an API key from your <a class="reference external" href="https://cloud.ionq.com/">IonQ account</a> and export
 it as an environment variable:</p>
@@ -635,7 +635,7 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </section>
 <section id="iqm">
 <h2>IQM<a class="headerlink" href="#iqm" title="Permalink to this heading">¶</a></h2>
-<p>Support for submissions to IQM is currently under development.
+<p id="iqm-backend">Support for submissions to IQM is currently under development.
 In particular, two-qubit gates can only be performed on adjacent qubits. For more information, we refer to the respective hardware documentation.
 Support for automatically injecting the necessary operations during compilation to execute arbitrary multi-qubit gates will be added in future versions.</p>
 <section id="id4">
@@ -701,7 +701,7 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </section>
 <section id="oqc">
 <h2>OQC<a class="headerlink" href="#oqc" title="Permalink to this heading">¶</a></h2>
-<p><a class="reference external" href="https://oxfordquantumcircuits.com/">Oxford Quantum Circuits</a> (OQC) is currently providing CUDA quantum integration for multiple Quantum Processing Unit types.
+<p id="oqc-backend"><a class="reference external" href="https://oxfordquantumcircuits.com/">Oxford Quantum Circuits</a> (OQC) is currently providing CUDA quantum integration for multiple Quantum Processing Unit types.
 The 8 qubit ring topology Lucy device and the 32 qubit Kagome lattice topology Toshiko device are both supported via machine options described below.</p>
 <section id="id7">
 <h3>Setting Credentials<a class="headerlink" href="#id7" title="Permalink to this heading">¶</a></h3>

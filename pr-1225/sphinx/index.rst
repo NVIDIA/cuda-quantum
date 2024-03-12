@@ -5,7 +5,7 @@ CUDA Quantum
 Welcome to the CUDA Quantum documentation page!
 
 CUDA Quantum streamlines hybrid application development and promotes productivity and scalability
-in quantum algorithm research. It offers a unified programming model designed for a hybrid
+in quantum computing. It offers a unified programming model designed for a hybrid
 setting |---| that is, CPUs, GPUs, and QPUs working together. CUDA Quantum contains support for 
 programming in Python and in C++.
 
@@ -27,7 +27,7 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
       Extending <using/extending/extending.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
-      Other Versions <releases.rst>
+      Other Versions <versions.rst>
 
 .. |---|   unicode:: U+2014 .. EM DASH
    :trim:

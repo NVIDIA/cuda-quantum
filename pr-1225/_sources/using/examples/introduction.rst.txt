@@ -14,7 +14,7 @@ Welcome to CUDA Quantum! On this page we will illustrate CUDA Quantum with sever
 
 .. tab:: C++
 
-   We're going to take a look at how to construct quantum programs using CUDA Quantum kernel expressions.
+   We're going to take a look at how to construct quantum programs using CUDA Quantum kernels.
 
    CUDA Quantum kernels are any typed callable in the language that is annotated with the :code:`__qpu__` attribute. Let's take a look at a very 
    simple "Hello World" example, specifically a CUDA Quantum kernel that prepares a GHZ state on a programmer-specified number of qubits. 

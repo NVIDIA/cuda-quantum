@@ -170,7 +170,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="hardware.html#ionq">IonQ</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="hardware.html#id1">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="hardware.html#ionq-backend">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="hardware.html#id2">Submission from C++</a></li>
 <li class="toctree-l4"><a class="reference internal" href="hardware.html#id3">Submission from Python</a></li>
 </ul>
@@ -432,7 +432,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../releases.html">   Other Versions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../versions.html">   Other Versions</a></li>
 </ul>
 
         </div>
@@ -465,7 +465,7 @@
              
   <section id="cuda-quantum-simulation-backends">
 <h1>CUDA Quantum Simulation Backends<a class="headerlink" href="#cuda-quantum-simulation-backends" title="Permalink to this heading">¶</a></h1>
-<p>The simulation backends that are currently available in CUDA Quantum are as follows.</p>
+<p id="nvidia-backend">The simulation backends that are currently available in CUDA Quantum are as follows.</p>
 <section id="state-vector-simulators">
 <h2>State Vector Simulators<a class="headerlink" href="#state-vector-simulators" title="Permalink to this heading">¶</a></h2>
 <section id="single-gpu">
@@ -491,7 +491,7 @@ the <code class="code docutils literal notranslate"><span class="pre">cuStateVec
 </div>
 </div>
 </div>
-<p>By default, this will leverage <code class="code docutils literal notranslate"><span class="pre">FP32</span></code> floating point types for the simulation. To
+<p id="nvidia-fp64-backend">By default, this will leverage <code class="code docutils literal notranslate"><span class="pre">FP32</span></code> floating point types for the simulation. To
 switch to <code class="code docutils literal notranslate"><span class="pre">FP64</span></code>, specify the <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> target instead.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -499,8 +499,8 @@ switch to <code class="code docutils literal notranslate"><span class="pre">FP64
 </div>
 </section>
 <section id="multi-node-multi-gpu">
-<span id="nvidia-mgpu-backend"></span><h3>Multi-node multi-GPU<a class="headerlink" href="#multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
-<p>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target provides a state vector simulator accelerated with
+<h3>Multi-node multi-GPU<a class="headerlink" href="#multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
+<p id="nvidia-mgpu-backend">The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target provides a state vector simulator accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> library but with support for Multi-Node, Multi-GPU distribution of the
 state vector.</p>
 <p>The multi-node multi-GPU simulator expects to run within an MPI context.
@@ -540,7 +540,7 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 </section>
 <section id="openmp-cpu-only">
 <span id="id1"></span><h3>OpenMP CPU-only<a class="headerlink" href="#openmp-cpu-only" title="Permalink to this heading">¶</a></h3>
-<p>This target provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library.
+<p id="qpp-cpu-backend">This target provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library.
 This is the default target when running on CPU-only systems.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> target even if a GPU-accelerated backend is available,
 use the following commands:</p>
@@ -566,7 +566,7 @@ use the following commands:</p>
 </section>
 <section id="tensor-network-simulators">
 <h2>Tensor Network Simulators<a class="headerlink" href="#tensor-network-simulators" title="Permalink to this heading">¶</a></h2>
-<p>CUDA Quantum provides a couple of tensor-network simulator targets accelerated with
+<p id="tensor-backends">CUDA Quantum provides a couple of tensor-network simulator targets accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> library.
 These backends are available for use from both C++ and Python.</p>
 <p>Tensor network-based simulators are suitable for large-scale simulation of certain classes of quantum circuits involving many qubits beyond the memory limit of state vector based simulators. For example, computing the expectation value of a Hamiltonian via <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code> can be performed efficiently, thanks to <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> contraction optimization capability. On the other hand, conditional circuits, i.e., those with mid-circuit measurements or reset, despite being supported by both backends, may result in poor performance.</p>
@@ -689,8 +689,8 @@ See the section <a class="reference internal" href="../install/local_installatio
 </section>
 </section>
 <section id="default-simulator">
-<span id="id3"></span><h2>Default Simulator<a class="headerlink" href="#default-simulator" title="Permalink to this heading">¶</a></h2>
-<p>If no explicit target is set, i.e. if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA Quantum makes a default choice for the simulator.</p>
+<h2>Default Simulator<a class="headerlink" href="#default-simulator" title="Permalink to this heading">¶</a></h2>
+<p id="id3">If no explicit target is set, i.e. if the code is compiled without any <code class="code docutils literal notranslate"><span class="pre">--target</span></code> flags, then CUDA Quantum makes a default choice for the simulator.</p>
 <p>If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>. This will utilize the <a class="reference internal" href="#cuquantum-single-gpu"><span class="std std-ref">cuQuantum single-GPU state vector simulator</span></a>.
 On CPU-only systems, the default target is set to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> which uses the <a class="reference internal" href="#openmp-cpu-only"><span class="std std-ref">OpenMP CPU-only simulator</span></a>.</p>
 <p>The default simulator can be overridden by the environment variable <code class="code docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code>. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
