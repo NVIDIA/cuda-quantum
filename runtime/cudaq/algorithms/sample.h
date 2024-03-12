@@ -67,7 +67,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     auto &platform = get_platform();
     platform.set_exec_ctx(&context, qpu_id);
     wrappedKernel();
-    platform.reset_exec_ctx();
+    platform.reset_exec_ctx(qpu_id);
     // In trace mode, if we have a measure result
     // that is passed to an if statement, then
     // we'll have collected registernames
