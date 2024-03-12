@@ -10,13 +10,13 @@ programming in Python and in C++.
 
 .. 
     Fix Me: Learn more about CUDA Quantum’s key benefits here [Link to CUDA Quantum Marketing page].
-    Issue https://github.com/NVIDIA/cuda-quantum/issues/1351.
+    Issue 1351.
 
 This Quick Start page guides you through installing CUDA Quantum and running your first program.
 If you have already installed and configured CUDA Quantum, or if you are using our 
 `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`_, you can move directly to our
 :doc:`Basics Section <basics/basics>`. More information about working with containers and Docker alternatives can be 
-found in our complete :ref:`Installation Guide <install-cuda-quantum>`.
+found in our complete :doc:`Installation Guide <install/index>`.
 
 Install CUDA Quantum
 ----------------------------
@@ -109,11 +109,11 @@ compare the time to execute the program on the
 
 .. tab:: Python
 
-   python3 program.py 28 --target nvidia
+    python3 program.py 28 --target nvidia
 
 .. tab:: C++
 
-   nvq++ program.cpp -o program.x --target nvidia && ./program.x 28
+    nvq++ program.cpp -o program.x --target nvidia && ./program.x 28
 
 When you change the target to `qpp-cpu`, the program simply seems to hang; that is because it takes a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with `Ctrl+C`.
 

@@ -24,9 +24,9 @@ the Getting Started section of the linked documentation.
 ## Installation Including GPU-Acceleration
 
 CUDA Quantum does not require a GPU to use, but some components are GPU-accelerated.
-If you have access to an NVIDIA GPU, you can enable GPU-acceleration within 
+If you have access to an NVIDIA GPU, you can enable GPU-acceleration within
 CUDA Quantum by installing the CUDA as well as a CUDA-aware MPI implementation.
-We recommend using [Conda](https://docs.conda.io/en/latest/) to do so. 
+We recommend using [Conda](https://docs.conda.io/en/latest/) to do so.
 If you are not already using Conda,
 you can install a minimal version following the instructions
 [here](https://docs.conda.io/projects/miniconda/en/latest/index.html). The
