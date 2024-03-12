@@ -401,7 +401,12 @@ public:
     });
 
     // Upload this request as an NVCF asset if needed.
-    if (request.code.size() > MAX_SIZE_BYTES) {
+    // Note: The majority of the payload is the IR code. Hence, first checking
+    // if it exceed the size limit. Otherwise, if the code is small, make sure
+    // that the total payload doesn't exceed that limit as well by constructing
+    // a temporary JSON object of the full payload.
+    if (request.code.size() > MAX_SIZE_BYTES ||
+        json(request).dump().size() > MAX_SIZE_BYTES) {
       assetId = uploadRequest(request);
       if (!assetId.has_value()) {
         if (optionalErrorMsg)
