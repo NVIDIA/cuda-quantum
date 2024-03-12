@@ -21,22 +21,13 @@ the Getting Started section of the linked documentation.
 [cudaq_docs_releases]:
     https://nvidia.github.io/cuda-quantum/latest/releases.html
 
-## Installing CUDA Quantum
+## Installation Including GPU-Acceleration
 
-To install the latest stable version of CUDA Quantum, run
-
-```console
-python3 -m pip install cuda-quantum
-```
-
-CUDA Quantum can be used to compile and run quantum programs on a CPU-only
-system, but a GPU is highly recommended and necessary to use the some of the
-simulators. The GPU-based simulators included in the CUDA Quantum Python wheels
-require an existing CUDA installation. Additionally, multi-GPU simulators
-require an existing CUDA-aware MPI installation.
-
-To install the necessary dependencies, we recommend using
-[Conda](https://docs.conda.io/en/latest/). If you are not already using Conda,
+CUDA Quantum does not require a GPU to use, but some components are GPU-accelerated.
+If you have access to an NVIDIA GPU, you can enable GPU-acceleration within
+CUDA Quantum by installing the CUDA as well as a CUDA-aware MPI implementation.
+We recommend using [Conda](https://docs.conda.io/en/latest/) to do so.
+If you are not already using Conda,
 you can install a minimal version following the instructions
 [here](https://docs.conda.io/projects/miniconda/en/latest/index.html). The
 following commands will create and activate a complete environment for CUDA
@@ -45,7 +36,7 @@ Quantum with all its dependencies:
 [//]: # (Begin conda install)
 
 ```console
-    conda create -y -n cuda-quantum python==3.10 pip
+    conda create -y -n cuda-quantum python=3.10 pip
     conda install -y -n cuda-quantum -c "nvidia/label/cuda-11.8.0" cuda
     conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler cuquantum
     conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib"

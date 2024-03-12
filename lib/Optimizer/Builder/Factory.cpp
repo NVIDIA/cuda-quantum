@@ -28,8 +28,49 @@ bool factory::isAArch64(ModuleOp module) {
   return tr.getArch() == llvm::Triple::aarch64;
 }
 
-/// Return an i64 array where the kth element is N if the kth
-/// operand is veq<N> and 0 otherwise (e.g. is a ref).
+template <bool isOutput>
+static Type genBufferType(Type ty) {
+  auto *ctx = ty.getContext();
+  if (isa<cudaq::cc::CallableType>(ty))
+    return cudaq::cc::PointerType::get(ctx);
+  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
+    auto i64Ty = IntegerType::get(ctx, 64);
+    if (isOutput) {
+      SmallVector<Type> mems = {
+          cudaq::cc::PointerType::get(vecTy.getElementType()), i64Ty};
+      return cudaq::cc::StructType::get(ctx, mems);
+    }
+    return i64Ty;
+  }
+  if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty)) {
+    if (strTy.isEmpty())
+      return IntegerType::get(ctx, 64);
+    SmallVector<Type> mems;
+    for (auto memTy : strTy.getMembers())
+      mems.push_back(genBufferType<isOutput>(memTy));
+    return cudaq::cc::StructType::get(ctx, mems);
+  }
+  if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ty)) {
+    assert(!cudaq::cc::isDynamicType(ty) && "must be a type of static extent");
+    return ty;
+  }
+  return ty;
+}
+
+Type factory::genArgumentBufferType(Type ty) {
+  return genBufferType</*isOutput=*/false>(ty);
+}
+
+cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy) {
+  auto *ctx = funcTy.getContext();
+  SmallVector<Type> eleTys;
+  for (auto inTy : funcTy.getInputs())
+    eleTys.push_back(genBufferType</*isOutput=*/false>(inTy));
+  for (auto outTy : funcTy.getResults())
+    eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
+  return cudaq::cc::StructType::get(ctx, eleTys /*packed=false*/);
+}
+
 Value factory::packIsArrayAndLengthArray(Location loc,
                                          ConversionPatternRewriter &rewriter,
                                          ModuleOp parentModule,
