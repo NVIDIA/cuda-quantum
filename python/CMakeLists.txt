@@ -168,10 +168,8 @@ if (NOT SKBUILD)
   install(DIRECTORY cudaq DESTINATION .)
 endif()
 
-if (NOT DEFINED CUDAQ_REPO_ROOT)
-  if (NOT DEFINED Python_EXECUTABLE)
-    find_package(Python 3 COMPONENTS Interpreter)
-  endif()
+if (NOT DEFINED Python_EXECUTABLE)
+  find_package(Python 3 COMPONENTS Interpreter)
 endif()
 
 # Do we have pytest and numpy? 
