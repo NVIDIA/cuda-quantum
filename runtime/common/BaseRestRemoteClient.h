@@ -162,6 +162,7 @@ public:
       if (!func->hasAttr(cudaq::entryPointAttrName))
         func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
       auto moduleOp = builder.create<ModuleOp>();
+      moduleOp->setAttrs(module->getAttrDictionary());
       for (auto &op : *module) {
         auto funcOp = dyn_cast<func::FuncOp>(op);
         // Add quantum kernels defined in the module.
