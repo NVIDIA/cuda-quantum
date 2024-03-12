@@ -765,6 +765,7 @@ MPI calls via CUDA Quantum API for C++ and Python will be delegated to the curre
     This is done automatically when executing that activation script, but you may wish to persist that environment variable 
     between bash sessions, e.g., by adding it to the `.bashrc` file.
 
+.. _updating-cuda-quantum:
 
 Updating CUDA Quantum
 --------------------------------
