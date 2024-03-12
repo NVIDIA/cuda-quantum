@@ -199,7 +199,7 @@ class PyKernelDecorator(object):
                     )
 
             if isinstance(arg, str):
-                # Only allow pauli words as string input
+                # Only allow `pauli_word` as string input
                 emitErrorIfInvalidPauli(arg)
                 arg = cudaq_runtime.pauli_word(arg)
 

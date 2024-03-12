@@ -222,7 +222,8 @@ def test_pauli_word_input():
         q = cudaq.qvector(4)
         x(q[0])
         x(q[1])
-        exp_pauli(theta, q, paulis[0])
+        for p in paulis:
+            exp_pauli(theta, q, p)
     
     print(test)
     want_exp = cudaq.observe(test, h, .11, ['XXXY']).expectation()

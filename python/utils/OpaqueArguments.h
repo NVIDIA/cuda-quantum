@@ -288,7 +288,7 @@ packArgs(OpaqueArguments &argData, py::args args,
         });
         continue;
       }
-      
+
       auto firstElement = casted[0];
 
       // Handle `list[str]`
