@@ -45,7 +45,7 @@ Quantum with all its dependencies:
 [//]: # (Begin conda install)
 
 ```console
-    conda create -y -n cuda-quantum python==3.10 pip
+    conda create -y -n cuda-quantum python=3.10 pip
     conda install -y -n cuda-quantum -c "nvidia/label/cuda-11.8.0" cuda
     conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler cuquantum
     conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib"
