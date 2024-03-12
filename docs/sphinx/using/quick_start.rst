@@ -118,7 +118,7 @@ compare the time to execute the program on the
 When you change the target to `qpp-cpu`, the program simply seems to hang; that is because it takes a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with `Ctrl+C`.
 
 For more information about enabling GPU-acceleration, please see
-our complete :ref:`Installation Guide <install-cuda-quantum>`.
+our complete :ref:`Installation Guide <additional-cuda-tools>`.
 For further information on available targets, see :doc:`Backends <backends/backends>`.
 
 You are now all set to start developing quantum applications using CUDA Quantum!

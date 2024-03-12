@@ -57,11 +57,22 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   add_nvqpp_test(CuQuantumBernsteinVazirani algorithms/bernstein_vazirani.cpp TARGET nvidia LABELS gpu_required)  
 endif()
 
-# mqpu code snippets, needs custatevec backend and (optionally MPI)
+# code snippets in docs
+add_nvqpp_test(QuickStart_default quick_start.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+add_nvqpp_test(FirstKernel using/first_kernel.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+add_nvqpp_test(FirstObserve using/first_observe.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+add_nvqpp_test(FirstSample using/first_sample.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+add_nvqpp_test(Timing using/time.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+
 set(NGPUS 0)
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+  add_nvqpp_test(QuickStart_nvidia quick_start.cpp TARGET nvidia LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+
+  # mqpu snippets need custatevec backend and optionally MPI
   add_nvqpp_test(SampleAsync using/cudaq/platform/sample_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
   add_nvqpp_test(ObserveMQPU using/cudaq/platform/observe_mqpu.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+  add_nvqpp_test(StateAsyncMQPU using/cudaq/platform/get_state_async.cpp TARGET nvidia-mqpu LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
+
   # Add the MPI test if MPI was found and there are more than 2 GPUs
   if (MPI_CXX_FOUND)
     # Count the number of GPUs
