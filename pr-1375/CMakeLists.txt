@@ -89,6 +89,10 @@ set_tests_properties(
 
 # Only add the python tests if we built the python API
 if (CUDAQ_ENABLE_PYTHON)
+  if (NOT DEFINED Python_EXECUTABLE)
+    find_package(Python 3 COMPONENTS Interpreter)
+  endif()
+
   function(add_pycudaq_test TEST_NAME SOURCE_LOCATION)
     cmake_parse_arguments(PARSED_ARGS "" "LABELS;SOURCE_DIR;LAUNCH_COMMAND" "" ${ARGN}) 
     if (NOT PARSED_ARGS_SOURCE_DIR)
