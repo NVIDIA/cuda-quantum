@@ -1,6 +1,8 @@
 CUDA Quantum Simulation Backends
 *********************************
 
+.. _nvidia-backend:
+
 The simulation backends that are currently available in CUDA Quantum are as follows.
 
 State Vector Simulators
@@ -37,6 +39,8 @@ To execute a program on the :code:`nvidia` target, use the following commands:
         nvq++ --target nvidia program.cpp [...] -o program.x
         ./program.x
 
+.. _nvidia-fp64-backend:
+
 By default, this will leverage :code:`FP32` floating point types for the simulation. To 
 switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead. 
 
@@ -44,10 +48,10 @@ switch to :code:`FP64`, specify the :code:`nvidia-fp64` target instead.
 
   This backend requires an NVIDIA GPU and CUDA runtime libraries. If you do not have these dependencies installed, you may encounter an error stating `Invalid simulator requested`. See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
 
-.. _nvidia-mgpu-backend:
-
 Multi-node multi-GPU
 ++++++++++++++++++++++++++++++++++
+
+.. _nvidia-mgpu-backend:
 
 The :code:`nvidia-mgpu` target provides a state vector simulator accelerated with 
 the :code:`cuStateVec` library but with support for Multi-Node, Multi-GPU distribution of the 
@@ -98,6 +102,8 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 OpenMP CPU-only
 ++++++++++++++++++++++++++++++++++
 
+.. _qpp-cpu-backend:
+
 This target provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library.
 This is the default target when running on CPU-only systems.
 
@@ -128,6 +134,8 @@ use the following commands:
 
 Tensor Network Simulators
 ==================================
+
+.. _tensor-backends:
 
 CUDA Quantum provides a couple of tensor-network simulator targets accelerated with 
 the :code:`cuTensorNet` library. 
@@ -268,10 +276,11 @@ Specific aspects of the simulation can be configured by defining the following e
   Setting random seed, via :code:`cudaq::set_random_seed`, is not supported for this backend due to a limitation of the :code:`cuTensorNet` library. This will be fixed in future release once this feature becomes available.
 
 
-.. _default-simulator:
-
 Default Simulator
 ==================================
+
+.. _default-simulator:
+
 If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA Quantum makes a default choice for the simulator.
 
 If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to `nvidia`. This will utilize the :ref:`cuQuantum single-GPU state vector simulator <cuQuantum single-GPU>`.  
