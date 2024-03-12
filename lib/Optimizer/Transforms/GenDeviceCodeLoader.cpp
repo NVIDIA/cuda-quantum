@@ -91,22 +91,27 @@ public:
         // called by our cudaq kernel
         // Set of dependent kernels that we've included.
         DenseSet<llvm::StringRef> includedNeededFuncs;
-        funcOp.walk([&](func::CallOp callOp) {
-          if (auto neededFunc =
-                  module.lookupSymbol<func::FuncOp>(callOp.getCallee())) {
-            if (neededFunc.empty())
-              return WalkResult::skip();
-            // If we've included this kernel, e.g. it's called a second time,
-            // skip.
-            if (includedNeededFuncs.contains(neededFunc.getName()))
-              return WalkResult::skip();
-            neededFunc.print(strOut, opf);
-            includedNeededFuncs.insert(neededFunc.getName());
-            strOut << '\n';
-            return WalkResult::advance();
-          }
-          return WalkResult::advance();
-        });
+        const std::function<WalkResult(func::CallOp)> emitDependentFunc =
+            [&](func::CallOp callOp) {
+              if (auto neededFunc =
+                      module.lookupSymbol<func::FuncOp>(callOp.getCallee())) {
+                if (neededFunc.empty())
+                  return WalkResult::skip();
+                // If we've included this kernel, e.g. it's called a second
+                // time, skip.
+                if (includedNeededFuncs.contains(neededFunc.getName()))
+                  return WalkResult::skip();
+                neededFunc.print(strOut, opf);
+                includedNeededFuncs.insert(neededFunc.getName());
+                strOut << '\n';
+                // Recursively look into the dependent kernel.
+                neededFunc.walk(emitDependentFunc);
+                return WalkResult::advance();
+              }
+              return WalkResult::advance();
+            };
+
+        funcOp.walk(emitDependentFunc);
 
         // Include the generated kernel thunk if present since it is on the
         // callee side of the launchKernel() callback.
