@@ -14,7 +14,6 @@ CUDA Quantum Backends
 * :ref:`density-matrix-cpu <default-simulator>`
 * :ref:`ionq <ionq-backend>`
 * :ref:`iqm <iqm-backend>`
-* :code:`nvcf`
 * :ref:`nvidia <nvidia-backend>`
 * :ref:`nvidia-fp64 <nvidia-fp64-backend>`
 * :ref:`nvidia-mqpu <nvidia-mgpu-backend>`
