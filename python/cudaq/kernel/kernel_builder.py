@@ -244,7 +244,7 @@ class PyKernel(object):
             return ty, None
         if typing.get_origin(ty) == list or isinstance(ty(), list):
             if '[' in str(ty) and ']' in str(ty):
-                allowedTypeMap = {'int':int, 'bool':bool, 'float':float}
+                allowedTypeMap = {'int': int, 'bool': bool, 'float': float}
                 # Infer the slice type
                 result = re.search(r'ist\[(.*)\]', str(ty))
                 eleTyName = result.group(1)
