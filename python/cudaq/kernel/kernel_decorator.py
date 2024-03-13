@@ -13,7 +13,7 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError
+from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -192,12 +192,6 @@ class PyKernelDecorator(object):
             if isinstance(arg, PyKernelDecorator):
                 arg.compile()
 
-            def emitErrorIfInvalidPauli(pauliArg):
-                if any(c not in 'XYZI' for c in pauliArg):
-                    emitFatalError(
-                        f"Invalid pauli_word string provided as runtime argument ({arg}) - can only contain X, Y, Z, or I."
-                    )
-
             if isinstance(arg, str):
                 # Only allow `pauli_word` as string input
                 emitErrorIfInvalidPauli(arg)
@@ -212,7 +206,7 @@ class PyKernelDecorator(object):
                                           self.module.context,
                                           argInstance=arg,
                                           argTypeToCompareTo=self.argTypes[i])
-            print("MLIR TYPE: ", mlirType, self.argTypes[i])
+
             # Support passing `list[int]` to a `list[float]` argument
             if cc.StdvecType.isinstance(mlirType):
                 if cc.StdvecType.isinstance(self.argTypes[i]):
@@ -253,8 +247,6 @@ class PyKernelDecorator(object):
                 processedArgs.append(arg)
 
         if self.returnType == None:
-            print("RUNNING PYALTLAUNCHK")
-
             cudaq_runtime.pyAltLaunchKernel(self.name,
                                             self.module,
                                             *processedArgs,

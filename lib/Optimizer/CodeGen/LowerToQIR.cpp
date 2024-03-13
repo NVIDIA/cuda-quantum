@@ -369,22 +369,64 @@ public:
     SmallVector<Value> operands = adaptor.getOperands();
     // Make sure to drop any length information from the type of the Pauli word.
     auto pauliWord = operands.back();
-    if (isa<LLVM::LLVMPointerType>(pauliWord.getType())) {
+    if (auto ptrTy = dyn_cast<LLVM::LLVMPointerType>(pauliWord.getType())) {
       operands.pop_back();
-      auto castedPauli = rewriter.create<LLVM::BitcastOp>(
-          loc, cudaq::opt::factory::getPointerType(context), pauliWord);
-      operands.push_back(castedPauli);
-    } else {
+      // Get the number of elements in the provided string literal
+      auto numElements = dyn_cast<LLVM::LLVMArrayType>(ptrTy.getElementType())
+                             .getNumElements() -
+                         1;
+
+      // We must create the {i8*, i64} struct from the string literal
+      SmallVector<Type> structTys{
+          LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)),
+          rewriter.getIntegerType(64)};
+      auto structTy = LLVM::LLVMStructType::getLiteral(context, structTys);
+
+      // Allocate the char span struct
       Value alloca = rewriter.create<LLVM::AllocaOp>(
-          loc, LLVM::LLVMPointerType::get(pauliWord.getType()),
+          loc, LLVM::LLVMPointerType::get(structTy),
           ArrayRef<Value>{
               cudaq::opt::factory::genLlvmI32Constant(loc, rewriter, 1)});
-      rewriter.create<LLVM::StoreOp>(loc, pauliWord, alloca);
+
+      // We'll need these constants
+      auto zero = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 0);
+      auto one = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 1);
+      auto size =
+          cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numElements);
+
+      // Set the string literal data
+      auto strPtr = rewriter.create<LLVM::GEPOp>(
+          loc, LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)), alloca,
+          ValueRange{zero, zero});
       auto castedPauli = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(context), pauliWord);
+      rewriter.create<LLVM::StoreOp>(loc, castedPauli, strPtr);
+
+      // Set the integer length
+      auto intPtr = rewriter.create<LLVM::GEPOp>(
+          loc, LLVM::LLVMPointerType::get(rewriter.getIntegerType(64)), alloca,
+          ValueRange{zero, one});
+      rewriter.create<LLVM::StoreOp>(loc, size, intPtr);
+
+      // Cast to raw opaque pointer
+      auto castedStore = rewriter.create<LLVM::BitcastOp>(
           loc, cudaq::opt::factory::getPointerType(context), alloca);
-      operands.pop_back();
-      operands.push_back(castedPauli);
+      operands.push_back(castedStore);
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
+                                                operands);
+      return success();
     }
+
+    Value alloca = rewriter.create<LLVM::AllocaOp>(
+        loc, LLVM::LLVMPointerType::get(pauliWord.getType()),
+        ArrayRef<Value>{
+            cudaq::opt::factory::genLlvmI32Constant(loc, rewriter, 1)});
+    rewriter.create<LLVM::StoreOp>(loc, pauliWord, alloca);
+    auto castedPauli = rewriter.create<LLVM::BitcastOp>(
+        loc, cudaq::opt::factory::getPointerType(context), alloca);
+    operands.pop_back();
+    operands.push_back(castedPauli);
+
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
                                               operands);
     return success();

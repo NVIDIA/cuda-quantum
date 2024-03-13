@@ -272,3 +272,10 @@ def mlirTypeToPyType(argType):
 
     emitFatalError(
         f"Cannot infer CUDA Quantum type from provided Python type ({argType})")
+
+
+def emitErrorIfInvalidPauli(pauliArg):
+    if any(c not in 'XYZI' for c in pauliArg):
+        emitFatalError(
+            f"Invalid pauli_word string provided as runtime argument ({pauliArg}) - can only contain X, Y, Z, or I."
+        )

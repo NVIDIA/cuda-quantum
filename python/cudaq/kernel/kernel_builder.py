@@ -15,7 +15,7 @@ import sys
 from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType
+from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType, emitErrorIfInvalidPauli
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
 
@@ -596,7 +596,7 @@ class PyKernel(object):
                 quantumVal = quake.ConcatOp(quake.VeqType.get(
                     self.ctx), [quantumVal] if quantumVal is not None else [] +
                                             qubitsList).result
-            quake.ExpPauliOp(thetaVal, quantumVal, pauliWordVal)
+            quake.ExpPauliOp(thetaVal, quantumVal, pauli=pauliWordVal)
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """
@@ -1115,20 +1115,20 @@ class PyKernel(object):
                 emitFatalError(
                     f"Invalid runtime argument type ({type(arg)} provided, {mlirTypeToPyType(self.mlirArgTypes[i])} required)"
                 )
-            
-            if issubclass(type(arg), list) and all(isinstance(a, str) for a in arg):
-                arg = [cudaq_runtime.pauli_word(a) for a in arg]
-                processedArgs.append(arg)
+               
+            # Handle list[str] separately - we allow this only for
+            # list[cudaq.pauli_word] inputs
+            if issubclass(type(arg), list) and all(
+                    isinstance(a, str) for a in arg):
+                [emitErrorIfInvalidPauli(a) for a in arg]
+                processedArgs.append([cudaq_runtime.pauli_word(a) for a in arg])
                 continue
 
+            # Handle `str` input separately - we allow this for
+            # `cudaq.pauli_word` inputs
             if isinstance(arg, str):
-                if any(c not in 'XYZI' for c in arg):
-                    emitFatalError(
-                        f"Invalid pauli_word string provided as runtime argument ({arg}) - can only contain X, Y, Z, or I."
-                    )
-
-                arg = cudaq_runtime.pauli_word(arg)
-                processedArgs.append(arg)
+                emitErrorIfInvalidPauli(arg)
+                processedArgs.append(cudaq_runtime.pauli_word(arg))
                 continue
 
             mlirType = mlirTypeFromPyType(type(arg), self.ctx)
