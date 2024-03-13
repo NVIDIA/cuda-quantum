@@ -530,7 +530,7 @@ add_subdirectory(tools)
 add_subdirectory(utils)
 
 if (CUDAQ_ENABLE_PYTHON)
-  find_package(Python 3 REQUIRED COMPONENTS Interpreter Development)
+  find_package(Python 3 COMPONENTS Interpreter Development)
   
   # Apply specific patch to pybind11 for our documentation.
   # Only apply the patch if not already applied.
