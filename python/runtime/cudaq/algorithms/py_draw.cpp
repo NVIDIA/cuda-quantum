@@ -69,7 +69,20 @@ Returns:
   # q0 : ┤ h ├──●──
   #      ╰───╯╭─┴─╮
   # q1 : ─────┤ x ├
-  #           ╰───╯)#");
+  #           ╰───╯
+  
+  # Example with arguments
+  import cudaq
+  @cudaq.kernel
+  def kernel(angle:float):
+      q = cudaq.qubit()
+      h(q)
+      ry(angle, q)
+  print(cudaq.draw(kernel, 0.59))
+  # Output
+  #      ╭───╮╭──────────╮
+  # q0 : ┤ h ├┤ ry(0.59) ├
+  #      ╰───╯╰──────────╯)#");
 }
 
 } // namespace cudaq

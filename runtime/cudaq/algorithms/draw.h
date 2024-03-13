@@ -70,12 +70,25 @@ std::string extractTrace(KernelFunctor &&kernel) {
 /// ...
 /// std::cout << cudaq::draw(bell_pair);
 /// /* Output:
-///     ╭───╮     
-///q0 : ┤ h ├──●──
-///     ╰───╯╭─┴─╮
-///q1 : ─────┤ x ├
-///          ╰───╯
+///      ╭───╮     
+/// q0 : ┤ h ├──●──
+///      ╰───╯╭─┴─╮
+/// q1 : ─────┤ x ├
+///           ╰───╯
 /// */
+///
+/// auto kernel = [](float angle) __qpu__ {
+///   cudaq::qvector q(1);
+///   h(q[0]);
+///   ry(angle, q[0]);
+/// };
+/// ...
+/// std::cout << cudaq::draw(kernel, 0.59);
+/// /* Output:
+///      ╭───╮╭──────────╮
+/// q0 : ┤ h ├┤ ry(0.59) ├
+///      ╰───╯╰──────────╯
+/// */      
 /// \endcode
 ///
 // clang-format on
