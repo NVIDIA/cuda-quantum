@@ -25,6 +25,7 @@ QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     """Handle requests in a separate thread."""
 
+
 class Server(http.server.SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
     default_request_version = 'HTTP/1.1'
