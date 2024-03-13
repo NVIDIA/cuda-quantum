@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 from functools import partialmethod
-from pydoc import locate
 import random
 import re
 import string
@@ -245,12 +244,13 @@ class PyKernel(object):
             return ty, None
         if typing.get_origin(ty) == list or isinstance(ty(), list):
             if '[' in str(ty) and ']' in str(ty):
+                allowedTypeMap = {'int':int, 'bool':bool, 'float':float}
                 # Infer the slice type
                 result = re.search(r'ist\[(.*)\]', str(ty))
                 eleTyName = result.group(1)
-                pyType = locate(eleTyName)
-                if eleTyName != None and pyType != None:
-                    return list, [pyType()]
+                pyType = allowedTypeMap[eleTyName]
+                if eleTyName != None and eleTyName in allowedTypeMap:
+                    return list, [allowedTypeMap[eleTyName]()]
                 emitFatalError(f'Invalid type for kernel builder {ty}')
         return ty, None
 
