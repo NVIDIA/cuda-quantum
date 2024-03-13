@@ -369,7 +369,7 @@ public:
     SmallVector<Value> operands = adaptor.getOperands();
     // Make sure to drop any length information from the type of the Pauli word.
     auto pauliWord = operands.back();
-    if (isa<cudaq::cc::PointerType>(pauliWord.getType())) {
+    if (isa<LLVM::LLVMPointerType>(pauliWord.getType())) {
       operands.pop_back();
       auto castedPauli = rewriter.create<LLVM::BitcastOp>(
           loc, cudaq::opt::factory::getPointerType(context), pauliWord);
