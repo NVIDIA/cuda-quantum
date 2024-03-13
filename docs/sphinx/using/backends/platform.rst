@@ -19,6 +19,8 @@ specific asynchronous function invocations targeting a desired QPU.
 NVIDIA `MQPU` Platform
 ++++++++++++++++++++++
 
+.. _mqpu-platform:
+
 The NVIDIA `MQPU` target (:code:`nvidia-mqpu`) provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
 Each QPU is simulated via a `cuStateVec` simulator backend. For more information about using multiple GPUs 
 to simulate each virtual QPU, or using a different backend for virtual QPUs, please see :ref:`remote MQPU platform <remote-mqpu-platform>`.
@@ -144,10 +146,10 @@ CUDA Quantum provides MPI utility functions to initialize, finalize, or query (r
 Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
 e.g., :code:`mpiexec`, :code:`mpirun`, :code:`srun`, etc.
 
-.. _remote-mqpu-platform:
-
 Remote `MQPU` Platform
 +++++++++++++++++++++++++++
+
+.. _remote-mqpu-platform:
 
 As shown in the above examples, the :code:`nvidia-mqpu` platform enables
 multi-QPU distribution whereby each QPU is simulated by a :ref:`single NVIDIA GPU <cuQuantum single-GPU>`.

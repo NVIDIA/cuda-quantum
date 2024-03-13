@@ -22,5 +22,7 @@ language constructs are supported within quantum kernels, take a look at the CUD
 
 **How do I build and run a quantum kernel?**
 
-Once a quantum kernel has been defined in a program, it can be executed using the `sample` or the `observe` primitives.
+Once a quantum kernel has been defined in a program, it may be called as a typical function, or can be executed
+using the `sample` or `observe` primitives.
+
 Let’s take a closer look at how to build and execute a quantum kernel with CUDA Quantum.

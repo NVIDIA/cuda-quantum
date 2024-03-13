@@ -20,10 +20,8 @@ CUDA Quantum Backends
 * :ref:`nvidia-mqpu <nvidia-mgpu-backend>`
 * :ref:`nvidia-mqpu-fp64 <nvidia-mgpu-backend>`
 * :ref:`oqc <oqc-backend>`
-* :code:`orca`
-* :code:`photonics`
 * :ref:`qpp-cpu <qpp-cpu-backend>`
 * :ref:`quantinuum <quantinuum-backend>`
-* :code:`remote-mqpu`
+* :ref:`remote-mqpu <mqpu-platform>`
 * :ref:`tensornet <tensor-backends>`
 * :ref:`tensornet-mps <tensor-backends>`
