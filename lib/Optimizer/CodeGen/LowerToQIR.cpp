@@ -369,10 +369,22 @@ public:
     SmallVector<Value> operands = adaptor.getOperands();
     // Make sure to drop any length information from the type of the Pauli word.
     auto pauliWord = operands.back();
-    operands.pop_back();
-    auto castedPauli = rewriter.create<LLVM::BitcastOp>(
-        loc, cudaq::opt::factory::getPointerType(context), pauliWord);
-    operands.push_back(castedPauli);
+    if (isa<cudaq::cc::PointerType>(pauliWord.getType())) {
+      operands.pop_back();
+      auto castedPauli = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(context), pauliWord);
+      operands.push_back(castedPauli);
+    } else {
+      Value alloca = rewriter.create<LLVM::AllocaOp>(
+          loc, LLVM::LLVMPointerType::get(pauliWord.getType()),
+          ArrayRef<Value>{
+              cudaq::opt::factory::genLlvmI32Constant(loc, rewriter, 1)});
+      rewriter.create<LLVM::StoreOp>(loc, pauliWord, alloca);
+      auto castedPauli = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(context), alloca);
+      operands.pop_back();
+      operands.push_back(castedPauli);
+    }
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
                                               operands);
     return success();

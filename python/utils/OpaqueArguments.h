@@ -291,16 +291,26 @@ packArgs(OpaqueArguments &argData, py::args args,
 
       auto firstElement = casted[0];
 
-      // Handle `list[str]`
+      // Handle `list[pauli_word]`
       if (py::isinstance<cudaq::pauli_word>(firstElement)) {
-        std::vector<cudaq::pauli_word> *ourAllocatedArg =
-            new std::vector<cudaq::pauli_word>(casted.size());
+        struct CLikeString {
+          char *ptr = nullptr;
+          int64_t length = 0;
+        };
+        std::vector<CLikeString> *ourAllocatedArg =
+            new std::vector<CLikeString>(casted.size());
         for (std::size_t counter = 0; auto el : casted) {
-          (*ourAllocatedArg)[counter++] =
-              cudaq::pauli_word(el.cast<cudaq::pauli_word>().str());
+          auto pw = el.cast<cudaq::pauli_word>();
+          (*ourAllocatedArg)[counter++] = {
+              strdup(pw.str().c_str()),
+              static_cast<int64_t>(pw.str().length())};
         }
         argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<std::vector<cudaq::pauli_word> *>(ptr);
+          auto *casted = static_cast<std::vector<CLikeString> *>(ptr);
+          for (auto &el : *casted)
+            delete el.ptr;
+
+          delete static_cast<std::vector<CLikeString> *>(ptr);
         });
         continue;
       }
