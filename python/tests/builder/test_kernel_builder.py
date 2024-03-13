@@ -1195,6 +1195,12 @@ q3 : ┤ h ├──────────────────────
     assert circuit == expected_str
 
 
+def test_list_subscript():
+    kernelAndArgs = cudaq.make_kernel(bool, list[bool], List[int], list[float])
+    print(kernelAndArgs[0])
+    assert len(kernelAndArgs) == 5 and len(kernelAndArgs[0].arguments) == 4
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
