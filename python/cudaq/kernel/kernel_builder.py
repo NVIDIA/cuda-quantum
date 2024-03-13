@@ -542,6 +542,13 @@ class PyKernel(object):
                     veqTy = quake.VeqType.get(self.ctx, size)
                     return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
 
+    def __isPauliWordType(self, ty):
+        if cc.StdvecType.isinstance(ty):
+            eleTy = cc.StdvecType.getElementType(ty)
+            if IntegerType.isinstance(eleTy) and IntegerType(eleTy).width == 8:
+                return True
+            return False
+
     def exp_pauli(self, theta, *args):
         """
         Apply a general Pauli tensor product rotation, `exp(i theta P)`, on 
@@ -570,9 +577,8 @@ class PyKernel(object):
                 elif isinstance(arg, QuakeValue) and quake.VeqType.isinstance(
                         arg.mlirValue.type):
                     quantumVal = arg.mlirValue
-                elif isinstance(arg,
-                                QuakeValue) and quake.PauliWordType.isinstance(
-                                    arg.mlirValue.type):
+                elif isinstance(arg, QuakeValue) and self.__isPauliWordType(
+                        arg.mlirValue.type):
                     pauliWordVal = arg.mlirValue
                 elif isinstance(arg, QuakeValue) and quake.RefType.isinstance(
                         arg.mlirValue.type):
@@ -1112,6 +1118,16 @@ class PyKernel(object):
             
             if issubclass(type(arg), list) and all(isinstance(a, str) for a in arg):
                 arg = [cudaq_runtime.pauli_word(a) for a in arg]
+                processedArgs.append(arg)
+                continue
+
+            if isinstance(arg, str):
+                if any(c not in 'XYZI' for c in arg):
+                    emitFatalError(
+                        f"Invalid pauli_word string provided as runtime argument ({arg}) - can only contain X, Y, Z, or I."
+                    )
+
+                arg = cudaq_runtime.pauli_word(arg)
                 processedArgs.append(arg)
                 continue
 

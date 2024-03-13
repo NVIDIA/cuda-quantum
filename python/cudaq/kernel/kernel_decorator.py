@@ -212,7 +212,7 @@ class PyKernelDecorator(object):
                                           self.module.context,
                                           argInstance=arg,
                                           argTypeToCompareTo=self.argTypes[i])
-
+            print("MLIR TYPE: ", mlirType, self.argTypes[i])
             # Support passing `list[int]` to a `list[float]` argument
             if cc.StdvecType.isinstance(mlirType):
                 if cc.StdvecType.isinstance(self.argTypes[i]):
@@ -253,6 +253,8 @@ class PyKernelDecorator(object):
                 processedArgs.append(arg)
 
         if self.returnType == None:
+            print("RUNNING PYALTLAUNCHK")
+
             cudaq_runtime.pyAltLaunchKernel(self.name,
                                             self.module,
                                             *processedArgs,

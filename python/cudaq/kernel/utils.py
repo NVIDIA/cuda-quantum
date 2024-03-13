@@ -89,7 +89,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
             if annotation.attr == 'pauli_word':
-                return quake.PauliWordType.get(ctx)
+                return cc.StdvecType.get(ctx, IntegerType.get_signless(8))
 
         if annotation.value.id in ['numpy', 'np']:
             if annotation.attr == 'ndarray':
@@ -204,7 +204,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
 
         if isinstance(argInstance[0], pauli_word):
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(pauli_word, ctx))
+            return cc.StdvecType.get(
+                ctx, cc.StdvecType.get(ctx, IntegerType.get_signless(8, ctx)))
 
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
@@ -223,7 +224,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType == qubit:
         return quake.RefType.get(ctx)
     if argType == pauli_word:
-        return quake.PauliWordType.get(ctx)
+        return cc.StdvecType.get(ctx, IntegerType.get_signless(8, ctx))
 
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
@@ -255,6 +256,11 @@ def mlirTypeToPyType(argType):
 
     if cc.StdvecType.isinstance(argType):
         eleTy = cc.StdvecType.getElementType(argType)
+        if cc.StdvecType.isinstance(eleTy):
+            innerEleTy = cc.StdvecType.getElementType(eleTy)
+            if IntegerType(innerEleTy).width == 8:
+                return getListType(cudaq_runtime.pauli_word)
+
         if IntegerType.isinstance(eleTy):
             if IntegerType(eleTy).width == 1:
                 return getListType(bool)
@@ -263,8 +269,6 @@ def mlirTypeToPyType(argType):
             return getListType(float)
         if ComplexType.isinstance(eleTy):
             return getListType(complex)
-        if quake.PauliWordType.isinstance(eleTy):
-            return getListType(cudaq_runtime.pauli_word)
 
     emitFatalError(
-        f"Cannot infer CUDA QUantum type from provided Python type ({argType})")
+        f"Cannot infer CUDA Quantum type from provided Python type ({argType})")

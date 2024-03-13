@@ -15,12 +15,12 @@ namespace cudaq {
 // qubits.
 class pauli_word {
 private:
-  std::string term;
+  std::vector<char> term;
 
 public:
   pauli_word() = default;
-  pauli_word(const std::string t) : term(t) {}
+  pauli_word(const std::string t) : term(t.begin(), t.end()) {}
   pauli_word(const pauli_word &) = default;
-  std::string str() { return term; }
+  std::string str() { return std::string(term.begin(), term.end()); }
 };
 } // namespace cudaq

@@ -833,7 +833,7 @@ def ExpPauliOp : QuakeOp<"exp_pauli"> {
   let arguments = (ins
     AnyFloat:$parameter,
     VeqType:$qubits,
-    AnyTypeOf<[cc_PointerType, PauliWordType]>:$pauli
+    AnyTypeOf<[cc_PointerType, cc_StdVectorType]>:$pauli
   );
   let results = (outs);
 
