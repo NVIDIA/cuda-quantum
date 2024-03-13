@@ -142,7 +142,7 @@ static std::vector<std::function<void()>> ALL_TEST_FUNCTORS;
       counts.dump();                                                           \
     });                                                                        \
     return true;                                                               \
-  }();
+  }()
 
 // Define some dummy argument values to use for testing.
 static const bool BOOL_VAL = true;
