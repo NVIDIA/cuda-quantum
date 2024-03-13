@@ -173,21 +173,26 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return ComplexType.get(mlirTypeFromPyType(float, ctx))
 
     if argType in [list, np.ndarray, List]:
-        if 'argInstance' not in kwargs:
+        if 'argInstance' not in kwargs or kwargs['argInstance'] == None:
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
 
         argInstance = kwargs['argInstance']
-        argTypeToCompareTo = kwargs['argTypeToCompareTo']
+        argTypeToCompareTo = kwargs[
+            'argTypeToCompareTo'] if 'argTypeToCompareTo' in kwargs else None
+
+        if isinstance(argInstance[0], bool):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
 
         if isinstance(argInstance[0], int):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
         if isinstance(argInstance[0], float):
-            # check if we are comparing to a complex...
-            eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
-            if ComplexType.isinstance(eleTy):
-                emitFatalError(
-                    "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
-                )
+            if argTypeToCompareTo != None:
+                # check if we are comparing to a complex...
+                eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
+                if ComplexType.isinstance(eleTy):
+                    emitFatalError(
+                        "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
+                    )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
         if isinstance(argInstance[0], complex):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
