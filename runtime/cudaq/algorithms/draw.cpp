@@ -391,7 +391,7 @@ std::string cudaq::__internal__::draw(const Trace &trace) {
 
   Diagram diagram(trace.getNumQudits());
 
-  // Separete the intructions in layers.  Each layer must contain gates that
+  // Separate the instructions in layers.  Each layer must contain gates that
   // can be drawn in the same diagram layer.  For example, if I have a
   // CX(0, 2) and a X(1), then I cannot draw those gates on the same layer
   // in the circuit diagram
