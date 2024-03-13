@@ -152,6 +152,11 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 
 namespace cudaq {
 
+Type cc::SpanLikeType::getElementType() const {
+  return llvm::TypeSwitch<Type, Type>(*this).Case<StdvecType, CharspanType>(
+      [](auto type) { return type.getElementType(); });
+}
+
 bool cc::isDynamicType(Type ty) {
   if (isa<cc::StdvecType>(ty))
     return true;

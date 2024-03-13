@@ -119,11 +119,11 @@ public:
   std::pair<Value, Value>
   computeRecursiveVectorSize(Location loc, OpBuilder &builder, Value hostArg,
                              cudaq::cc::PointerType hostVecTy,
-                             cudaq::cc::StdvecType stdvecTy) {
+                             cudaq::cc::SpanLikeType stdvecTy) {
     Value topLevelSize;
     Value recursiveSize;
     auto eleTy = stdvecTy.getElementType();
-    if (auto sTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
+    if (auto sTy = dyn_cast<cudaq::cc::SpanLikeType>(eleTy)) {
       // Convert size of vectors to i64s.
       topLevelSize = computeHostVectorLengthInBytes(
           loc, builder, hostArg, stdvecTy.getElementType(), hostVecTy);
@@ -187,7 +187,7 @@ public:
           totalSize = builder.create<arith::AddIOp>(loc, totalSize, pr.second);
           continue;
         }
-        auto memStdVecTy = cast<cudaq::cc::StdvecType>(memTy);
+        auto memStdVecTy = cast<cudaq::cc::SpanLikeType>(memTy);
         Type eTy = memStdVecTy.getElementType();
         auto stlVecTy = cudaq::opt::factory::stlVectorType(eTy);
         auto ptrMemTy = cudaq::cc::PointerType::get(stlVecTy);
@@ -227,14 +227,14 @@ public:
         loc, outputBuffer.getType(), outputBuffer, SmallVector<Value>{bytes});
   }
 
-  /// Given that \p arg is a StdvecType value, compute its extent size (the
+  /// Given that \p arg is a SpanLikeType value, compute its extent size (the
   /// number of elements in the outermost vector times `sizeof(int64_t)`) and
   /// total recursive size (both values are in bytes). We add the extent size
   /// into the message buffer field and increase the size of the addend by the
   /// total recursive size.
   std::pair<Value, Value> insertVectorSizeAndIncrementExtraBytes(
       Location loc, OpBuilder &builder, Value arg,
-      cudaq::cc::PointerType ptrInTy, cudaq::cc::StdvecType stdvecTy,
+      cudaq::cc::PointerType ptrInTy, cudaq::cc::SpanLikeType stdvecTy,
       Value stVal, std::int32_t idx, Value extraBytes) {
     auto [extentSize, recursiveSize] =
         computeRecursiveVectorSize(loc, builder, arg, ptrInTy, stdvecTy);
@@ -320,7 +320,7 @@ public:
           SmallVector<cudaq::cc::ComputePtrArg>{idx});
       Value argPtr = builder.create<cudaq::cc::LoadOp>(loc, ptrI8Ty, argPtrPtr);
 
-      if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(currArgTy)) {
+      if (auto stdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(currArgTy)) {
         // If this is a vector argument, then we will add data to the message
         // buffer's addendum (unless the vector is length 0).
         auto ptrInTy = cudaq::cc::PointerType::get(
@@ -410,7 +410,7 @@ public:
           break;
         // Get the corresponding cudaq kernel arg type
         auto currArgTy = kernelArgTypes[idx];
-        if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(currArgTy)) {
+        if (auto stdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(currArgTy)) {
           auto bytes = builder.create<cudaq::cc::ExtractValueOp>(
               loc, builder.getI64Type(), stVal, idx);
           Value argPtrPtr = builder.create<cudaq::cc::ComputePtrOp>(
@@ -495,7 +495,7 @@ public:
           builder.create<cudaq::cc::StoreOp>(loc, retOp.getOperands()[i], mem);
         }
       } else if (auto stdvecTy =
-                     dyn_cast<cudaq::cc::StdvecType>(funcTy.getResult(0))) {
+                     dyn_cast<cudaq::cc::SpanLikeType>(funcTy.getResult(0))) {
         auto stdvec = retOp.getOperands()[0];
         auto eleTy = [&]() -> Type {
           // TODO: Fold this conversion into the StdvecDataOp builder. We will
@@ -557,14 +557,14 @@ public:
   ///   addendum: [[3; 1 2 1, a, b c, z] [1; 3, d e f]]
   /// ```
   std::pair<Value, Value> unpackStdVector(Location loc, OpBuilder &builder,
-                                          cudaq::cc::StdvecType stdvecTy,
+                                          cudaq::cc::SpanLikeType stdvecTy,
                                           Value vecSize, Value trailingData) {
     // Convert the pointer-free std::vector<T> to a span structure to be
     // passed. A span structure is a pointer and a size (in element
     // units). Note that this structure may be recursive.
     auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
     Type eleTy = stdvecTy.getElementType();
-    auto innerStdvecTy = dyn_cast<cudaq::cc::StdvecType>(eleTy);
+    auto innerStdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(eleTy);
     std::size_t eleSize =
         innerStdvecTy ? /*(i64Type/8)*/ 8 : dataLayout->getTypeSize(eleTy);
     auto eleSizeVal = [&]() -> Value {
@@ -657,7 +657,7 @@ public:
                                             cudaq::cc::StructType structTy) {
     if (isa<cudaq::cc::CallableType>(inTy))
       return {builder.create<cudaq::cc::UndefOp>(loc, inTy), trailingData};
-    if (auto stdVecTy = dyn_cast<cudaq::cc::StdvecType>(inTy)) {
+    if (auto stdVecTy = dyn_cast<cudaq::cc::SpanLikeType>(inTy)) {
       Value vecSize = builder.create<cudaq::cc::ExtractValueOp>(
           loc, builder.getI64Type(), val, off);
       return unpackStdVector(loc, builder, stdVecTy, vecSize, trailingData);
@@ -788,7 +788,7 @@ public:
     // data into a message buffer or just returns a pointer to the shared heap
     // allocation, resp.
     bool hasVectorResult = funcTy.getNumResults() == 1 &&
-                           isa<cudaq::cc::StdvecType>(funcTy.getResult(0));
+                           isa<cudaq::cc::SpanLikeType>(funcTy.getResult(0));
     if (hasVectorResult) {
       auto *currentBlock = builder.getBlock();
       auto *reg = currentBlock->getParent();
@@ -887,7 +887,7 @@ public:
                                        Value hostArg, Type eleTy,
                                        cudaq::cc::PointerType hostVecTy) {
     auto rawSize = getVectorSize(loc, builder, hostVecTy, hostArg);
-    if (isa<cudaq::cc::StdvecType>(eleTy)) {
+    if (isa<cudaq::cc::SpanLikeType>(eleTy)) {
       auto three = builder.create<arith::ConstantIntOp>(loc, 3, 64);
       return builder.create<arith::DivSIOp>(loc, rawSize, three);
     }
@@ -907,7 +907,7 @@ public:
   }
 
   Value recursiveVectorDataCopy(Location loc, OpBuilder &builder, Value hostArg,
-                                Value buffPtr, cudaq::cc::StdvecType stdvecTy,
+                                Value buffPtr, cudaq::cc::SpanLikeType stdvecTy,
                                 cudaq::cc::PointerType hostVecTy) {
     auto vecLen = computeHostVectorLengthInBytes(loc, builder, hostArg,
                                                  stdvecTy, hostVecTy);
@@ -953,10 +953,10 @@ public:
   /// the ragged array.
   /// \return The new pointer to the end of the addendum block.
   Value encodeVectorData(Location loc, OpBuilder &builder, Value bytes,
-                         cudaq::cc::StdvecType stdvecTy, Value hostArg,
+                         cudaq::cc::SpanLikeType stdvecTy, Value hostArg,
                          Value bufferAddendum, cudaq::cc::PointerType ptrInTy) {
     auto eleTy = stdvecTy.getElementType();
-    if (auto subVecTy = dyn_cast<cudaq::cc::StdvecType>(eleTy))
+    if (auto subVecTy = dyn_cast<cudaq::cc::SpanLikeType>(eleTy))
       return recursiveVectorDataCopy(loc, builder, hostArg, bufferAddendum,
                                      subVecTy, ptrInTy);
     return copyVectorData(loc, builder, bytes, hostArg, bufferAddendum);
@@ -971,7 +971,7 @@ public:
                                 Value bufferArg, Value bufferAddendum) {
     for (auto iter : llvm::enumerate(deviceTy.getMembers())) {
       auto memTy = iter.value();
-      if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(memTy)) {
+      if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(memTy)) {
         Type eTy = vecTy.getElementType();
         auto hostTy = cudaq::opt::factory::stlVectorType(eTy);
         auto ptrHostTy = cudaq::cc::PointerType::get(hostTy);
@@ -1065,7 +1065,7 @@ public:
         if (strTy.isEmpty())
           continue;
 
-      if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(quakeTy)) {
+      if (auto stdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(quakeTy)) {
         // Per the CUDAQ spec, an entry point kernel must take a `[const]
         // std::vector<T>` value argument.
         // Should the spec stipulate that pure device kernels must pass by
@@ -1183,7 +1183,7 @@ public:
         Type inTy = arg.getType();
         std::int32_t idx = inp.index();
         Type quakeTy = funcTy.getInput(idx);
-        if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(quakeTy)) {
+        if (auto stdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(quakeTy)) {
           auto bytes = builder.create<cudaq::cc::ExtractValueOp>(
               loc, builder.getI64Type(), stVal, idx);
           assert(stdvecTy == funcTy.getInput(idx));
@@ -1245,7 +1245,7 @@ public:
     const bool multiResult = funcTy.getResults().size() > 1;
     for (auto res : llvm::enumerate(funcTy.getResults())) {
       int off = res.index() + offset;
-      if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(res.value())) {
+      if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(res.value())) {
         auto eleTy = vecTy.getElementType();
         auto ptrTy = cudaq::cc::PointerType::get(eleTy);
         auto gep0 = builder.create<cudaq::cc::ComputePtrOp>(

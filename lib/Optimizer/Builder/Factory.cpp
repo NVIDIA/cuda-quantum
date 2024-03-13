@@ -33,7 +33,7 @@ static Type genBufferType(Type ty) {
   auto *ctx = ty.getContext();
   if (isa<cudaq::cc::CallableType>(ty))
     return cudaq::cc::PointerType::get(ctx);
-  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
+  if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(ty)) {
     auto i64Ty = IntegerType::get(ctx, 64);
     if (isOutput) {
       SmallVector<Type> mems = {
@@ -225,7 +225,7 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
   auto numResults = funcTy.getNumResults();
   return numResults > 1 ||
          (numResults == 1 && funcTy.getResult(0)
-                                 .isa<cc::StdvecType, cc::StructType,
+                                 .isa<cc::SpanLikeType, cc::StructType,
                                       cc::ArrayType, cc::CallableType>());
 }
 
@@ -253,13 +253,13 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   auto *ctx = funcTy.getContext();
   if (funcTy.getNumResults() > 1)
     return cc::StructType::get(ctx, funcTy.getResults());
-  if (isa<cc::StdvecType>(funcTy.getResult(0)))
+  if (isa<cc::SpanLikeType>(funcTy.getResult(0)))
     return getDynamicBufferType(ctx);
   return funcTy.getResult(0);
 }
 
 static Type convertToHostSideType(Type ty) {
-  if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
+  if (auto memrefTy = dyn_cast<cc::SpanLikeType>(ty))
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
   auto *ctx = ty.getContext();

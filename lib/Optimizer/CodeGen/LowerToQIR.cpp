@@ -1652,6 +1652,10 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
     auto eleTy = typeConverter.convertType(type.getElementType());
     return factory::stdVectorImplType(eleTy);
   });
+  typeConverter.addConversion([&typeConverter](cc::CharspanType type) {
+    auto eleTy = typeConverter.convertType(type.getElementType());
+    return factory::stdStringImplType(eleTy);
+  });
   typeConverter.addConversion([](quake::MeasureType type) {
     return IntegerType::get(type.getContext(), 1);
   });
