@@ -1195,6 +1195,7 @@ q3 : ┤ h ├──────────────────────
     assert circuit == expected_str
 
 
+@skipIfPythonLessThan39
 def test_list_subscript():
     kernelAndArgs = cudaq.make_kernel(bool, list[bool], List[int], list[float])
     print(kernelAndArgs[0])
