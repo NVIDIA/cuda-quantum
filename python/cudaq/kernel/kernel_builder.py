@@ -248,8 +248,9 @@ class PyKernel(object):
                 # Infer the slice type
                 result = re.search(r'ist\[(.*)\]', str(ty))
                 eleTyName = result.group(1)
-                if eleTyName != None and locate(eleTyName) != None:
-                    return list, [locate(eleTyName)()]
+                pyType = locate(eleTyName)
+                if eleTyName != None and pyType != None:
+                    return list, [pyType()]
                 emitFatalError(f'Invalid type for kernel builder {ty}')
         return ty, None
 
