@@ -15,7 +15,7 @@
 struct kernel {
 
   auto operator()(const int n_qubits,
-                  const std::vector<double> &parameters) __qpu__ {
+                  const std::vector<double> parameters) __qpu__ {
 
     cudaq::qvector qubits(n_qubits);
     h(qubits);
