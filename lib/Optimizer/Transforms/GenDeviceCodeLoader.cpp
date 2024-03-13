@@ -123,7 +123,7 @@ public:
         OpPrintingFlags opf;
         opf.enableDebugInfo(/*enable=*/true,
                             /*pretty=*/false);
-        strOut << "module { ";
+        strOut << "module attributes " << module->getAttrDictionary() << " { ";
 
         // We'll also need any non-inlined functions that are
         // called by our cudaq kernel
