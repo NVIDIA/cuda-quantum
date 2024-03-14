@@ -153,6 +153,9 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
     means no decomposition will take place under the presence of controlled
     `quake.apply` operations in the module.
   }];
+
+  let dependentDialects = ["mlir::arith::ArithDialect"];
+
   let options = [
     ListOption<"disabledPatterns", "disable-patterns", "std::string",
                "Labels of decomposition patterns that should be filtered out">,

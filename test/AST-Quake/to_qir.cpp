@@ -28,17 +28,17 @@ struct kernel {
 };
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__kernel()
-// CHECK:         tail call %{{.*}}* @__quantum__rt__qubit_allocate_array(i64 3)
-// CHECK:         tail call i8* @__quantum__rt__array_get_element_ptr_1d(%{{.*}}* %{{.*}}, i64 1)
-// CHECK:         tail call void @__quantum__qis__h(%{{.*}}* %{{.*}})
-// CHECK:         tail call i8* @__quantum__rt__array_get_element_ptr_1d(%{{.*}}* %{{.*}}, i64 2)
-// CHECK:         tail call void (i64, void (%{{.*}}*, %{{.*}}*)*, ...) @invokeWithControlQubits(i64 1, void (%{{.*}}*, %{{.*}}*)* nonnull @__quantum__qis__x__ctl, %{{.*}}* %{{.*}}, %{{.*}}* %{{.*}})
-// CHECK:         tail call i8* @__quantum__rt__array_get_element_ptr_1d(%{{.*}}* %{{.*}}, i64 0)
-// CHECK:         tail call void (i64, void (%{{.*}}*, %{{.*}}*)*, ...) @invokeWithControlQubits(i64 1, void (%{{.*}}*, %{{.*}}*)* nonnull @__quantum__qis__x__ctl, %{{.*}}* %{{.*}}, %{{.*}}* %{{.*}})
-// CHECK:         tail call void @__quantum__qis__h(%{{.*}}* %{{.*}})
-// CHECK:         tail call %{{.*}}* @__quantum__qis__mz__to__register(%{{.*}}* %{{.*}}, i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623000, i64 0, i64 0))
-// CHECK:         tail call %{{.*}}* @__quantum__qis__mz__to__register(%{{.*}}* %{{.*}}, i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623100, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(%{{.*}}* %{{.*}})
+// CHECK:         tail call target("qir#Array") @__quantum__rt__qubit_allocate_array(i64 3)
+// CHECK:         tail call target("qir#Qubit") @__quantum__rt__array_get_qubit_element(target("qir#Array") %{{.*}}, i64 1)
+// CHECK:         tail call void @__quantum__qis__h(target("qir#Qubit") %{{.*}})
+// CHECK:         tail call target("qir#Qubit") @__quantum__rt__array_get_qubit_element(target("qir#Array") %{{.*}}, i64 2)
+// CHECK:         tail call void (i64, ptr, ...) @invokeWithControlQubits(i64 1, ptr nonnull @__quantum__qis__x__ctl, target("qir#Qubit") %{{.*}}, target("qir#Qubit") %{{.*}})
+// CHECK:         tail call target("qir#Qubit") @__quantum__rt__array_get_qubit_element(target("qir#Array") %{{.*}}, i64 0)
+// CHECK:         tail call void (i64, ptr, ...) @invokeWithControlQubits(i64 1, ptr nonnull @__quantum__qis__x__ctl, target("qir#Qubit") %{{.*}}, target("qir#Qubit") %{{.*}})
+// CHECK:         tail call void @__quantum__qis__h(target("qir#Qubit") %{{.*}})
+// CHECK:         tail call target("qir#Result") @__quantum__qis__mz__to__register(target("qir#Qubit") %{{.*}}, ptr nonnull @cstr.{{.*}})
+// CHECK:         tail call target("qir#Result") @__quantum__qis__mz__to__register(target("qir#Qubit") %{{.*}}, ptr nonnull @cstr.{{.*}})
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(target("qir#Array") %{{.*}})
 // CHECK:         ret void
 // CHECK:       }
 

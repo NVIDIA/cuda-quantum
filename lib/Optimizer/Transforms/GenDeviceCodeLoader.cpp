@@ -111,7 +111,7 @@ public:
     for (auto &op : *module.getBody()) {
       // FIXME: May not be a FuncOp in the future.
       if (auto funcOp = dyn_cast<func::FuncOp>(op)) {
-        if (!funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName))
+        if (!funcOp.getName().starts_with(cudaq::runtime::cudaqGenPrefixName))
           continue;
         auto className =
             funcOp.getName().drop_front(cudaq::runtime::cudaqGenPrefixLength);
@@ -181,7 +181,7 @@ public:
                                         {}),
             LLVM::Linkage::External);
         auto insPt = builder.saveInsertionPoint();
-        auto *initFunEntry = initFun.addEntryBlock();
+        auto *initFunEntry = initFun.addEntryBlock(builder);
         builder.setInsertionPointToStart(initFunEntry);
         auto devRef = builder.create<LLVM::AddressOfOp>(
             loc, cudaq::opt::factory::getPointerType(devName.getType()),

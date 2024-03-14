@@ -20,7 +20,6 @@ add_cudaq_library(OptCodeGen
   DEPENDS
     CCDialect
     OptCodeGenPassIncGen
-    OptPeepholeIncGen
     OptTransformsPassIncGen
     QuakeDialect
     

@@ -31,6 +31,7 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/InitAllExtensions.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
@@ -313,6 +314,7 @@ int main(int argc, char **argv) {
   auto cplusplusCode = fileOrError.get()->getBuffer();
   mlir::DialectRegistry registry;
   mlir::registerAllDialects(registry);
+  mlir::registerAllExtensions(registry);
   registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
   mlir::MLIRContext context(registry);
   // TODO: Consider only loading the dialects we know we'll use.

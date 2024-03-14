@@ -117,7 +117,7 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_31:.*]] = arith.cmpi sgt, %[[VAL_30]], %[[VAL_23]] : i32
 // ADJOINT:           %[[VAL_32:.*]] = arith.select %[[VAL_31]], %[[VAL_30]], %[[VAL_23]] : i32
 // ADJOINT:           %[[VAL_33:.*]] = arith.subi %[[VAL_32]], %[[VAL_25]] : i32
-// ADJOINT:           %[[VAL_34:.*]] = arith.addi %[[VAL_7]], %[[VAL_33]] : i32
+// ADJOINT:           %[[VAL_34:.*]] = arith.addi %[[VAL_33]], %[[VAL_7]] : i32
 // ADJOINT:           %[[VAL_35:.*]] = arith.constant 0 : i32
 // ADJOINT:           %[[VAL_36:.*]]:2 = cc.loop while ((%[[VAL_37:.*]] = %[[VAL_34]], %[[VAL_40:.*]] = %[[VAL_32]]) -> (i32, i32)) {
 // ADJOINT:             %[[VAL_41:.*]] = arith.cmpi slt, %[[VAL_37]], %[[VAL_9]] : i32
@@ -158,7 +158,7 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_75:.*]] = arith.cmpi sgt, %[[VAL_74]], %[[VAL_68]] : i64
 // ADJOINT:           %[[VAL_76:.*]] = arith.select %[[VAL_75]], %[[VAL_74]], %[[VAL_68]] : i64
 // ADJOINT:           %[[VAL_77:.*]] = arith.subi %[[VAL_76]], %[[VAL_69]] : i64
-// ADJOINT:           %[[VAL_78:.*]] = arith.addi %[[VAL_6]], %[[VAL_77]] : i64
+// ADJOINT:           %[[VAL_78:.*]] = arith.addi %[[VAL_77]], %[[VAL_6]] : i64
 // ADJOINT:           %[[VAL_79:.*]] = arith.constant 0 : i64
 // ADJOINT:           %[[VAL_80:.*]]:2 = cc.loop while ((%[[VAL_81:.*]] = %[[VAL_78]], %[[VAL_82:.*]] = %[[VAL_76]]) -> (i64, i64)) {
 // ADJOINT:             %[[VAL_83:.*]] = arith.cmpi slt, %[[VAL_81]], %[[VAL_14]] : i64

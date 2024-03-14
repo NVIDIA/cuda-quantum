@@ -57,7 +57,7 @@ public:
 
     // 1) Set initial value to 0.
     auto ty = c.initialValue.getType();
-    rewriter.startRootUpdate(loop);
+    rewriter.startOpModification(loop);
     auto createConstantOp = [&](std::int64_t val) -> Value {
       return rewriter.create<arith::ConstantIntOp>(loc, val, ty);
     };
@@ -153,7 +153,7 @@ public:
     }
     loop->setAttr(cudaq::opt::NormalizedLoopAttr, rewriter.getUnitAttr());
 
-    rewriter.finalizeRootUpdate(loop);
+    rewriter.finalizeOpModification(loop);
     LLVM_DEBUG(llvm::dbgs() << "loop after normalization: " << loop << '\n');
     return success();
   }
