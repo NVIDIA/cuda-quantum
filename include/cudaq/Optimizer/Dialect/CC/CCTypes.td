@@ -233,8 +233,8 @@ def cc_CharSpanType
   let description = [{
     This captures a C++ std::string(of char) type as an abstract CC type. The
     intention is to allow us to reason about std::string at the CC level before
-    decomposing these into more refined data structures
-                .
+    decomposing these into more refined data structures.
+
     ```c++
     void foo(std::string aString)...
     ```
@@ -252,6 +252,6 @@ def cc_CharSpanType
 }
 
 def IsSpanLikePred : CPred<"$_self.isa<cudaq::cc::SpanlikeType>()>">;
-def fir_SpanLikeType : Type<IsSpanLikePred, "dynamic length type">;
+def cc_SpanLikeType : Type<IsSpanLikePred, "dynamic length type">;
 
 #endif // CUDAQ_DIALECT_CC_TYPES_TD
