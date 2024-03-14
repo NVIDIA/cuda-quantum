@@ -8,6 +8,8 @@ To submit to a hardware backend, you need an account with the respective provide
 Quantinuum
 ==================================
 
+.. _quantinuum-backend:
+
 Setting Credentials
 ```````````````````
 
@@ -124,6 +126,8 @@ To see a complete example for using Quantinuum's backends, take a look at our :d
 IonQ
 ==================================
 
+.. _ionq-backend:
+
 Setting Credentials
 `````````````````````````
 
@@ -230,6 +234,8 @@ To see a complete example for using IonQ's backends, take a look at our :doc:`Py
 IQM
 ==================================
 
+.. _iqm-backend:
+
 Support for submissions to IQM is currently under development. 
 In particular, two-qubit gates can only be performed on adjacent qubits. For more information, we refer to the respective hardware documentation.
 Support for automatically injecting the necessary operations during compilation to execute arbitrary multi-qubit gates will be added in future versions.
@@ -311,6 +317,8 @@ To see a complete example for using IQM server backends, take a look at our :doc
 
 OQC
 ==================================
+
+.. _oqc-backend:
 
 `Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA quantum integration for multiple Quantum Processing Unit types.
 The 8 qubit ring topology Lucy device and the 32 qubit Kagome lattice topology Toshiko device are both supported via machine options described below.

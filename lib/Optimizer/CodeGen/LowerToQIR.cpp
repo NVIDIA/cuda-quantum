@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -1591,7 +1591,7 @@ public:
 
     LLVMConversionTarget target{*context};
     LLVMTypeConverter typeConverter(&getContext());
-    initializeTypeConversions(typeConverter);
+    cudaq::opt::initializeTypeConversions(typeConverter);
     RewritePatternSet patterns(context);
 
     populateComplexToLibmConversionPatterns(patterns, 1);
@@ -1636,55 +1636,52 @@ public:
     if (failed(applyFullConversion(getModule(), target, std::move(patterns))))
       signalPassFailure();
   }
-
-  void initializeTypeConversions(LLVMTypeConverter &typeConverter) {
-    typeConverter.addConversion([](quake::VeqType type) {
-      return cudaq::opt::getArrayType(type.getContext());
-    });
-    typeConverter.addConversion([](quake::RefType type) {
-      return cudaq::opt::getQubitType(type.getContext());
-    });
-    typeConverter.addConversion([](cudaq::cc::CallableType type) {
-      return lambdaAsPairOfPointers(type.getContext());
-    });
-    typeConverter.addConversion([&typeConverter](cudaq::cc::StdvecType type) {
-      auto eleTy = typeConverter.convertType(type.getElementType());
-      return cudaq::opt::factory::stdVectorImplType(eleTy);
-    });
-    typeConverter.addConversion([](quake::MeasureType type) {
-      return IntegerType::get(type.getContext(), 1);
-    });
-    typeConverter.addConversion([&typeConverter](cudaq::cc::PointerType type) {
-      auto eleTy = type.getElementType();
-      if (isa<NoneType>(eleTy))
-        return cudaq::opt::factory::getPointerType(type.getContext());
-      eleTy = typeConverter.convertType(eleTy);
-      if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy)) {
-        // If array has a static size, it becomes an LLVMArrayType.
-        assert(arrTy.isUnknownSize());
-        return cudaq::opt::factory::getPointerType(
-            typeConverter.convertType(arrTy.getElementType()));
-      }
-      return cudaq::opt::factory::getPointerType(eleTy);
-    });
-    typeConverter.addConversion(
-        [&typeConverter](cudaq::cc::ArrayType type) -> Type {
-          auto eleTy = typeConverter.convertType(type.getElementType());
-          if (type.isUnknownSize())
-            return type;
-          return LLVM::LLVMArrayType::get(eleTy, type.getSize());
-        });
-    typeConverter.addConversion(
-        [&typeConverter](cudaq::cc::StructType type) -> Type {
-          SmallVector<Type> members;
-          for (auto t : type.getMembers())
-            members.push_back(typeConverter.convertType(t));
-          return LLVM::LLVMStructType::getLiteral(type.getContext(), members);
-        });
-  }
 };
 
 } // namespace
+
+void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
+  typeConverter.addConversion(
+      [](quake::VeqType type) { return getArrayType(type.getContext()); });
+  typeConverter.addConversion(
+      [](quake::RefType type) { return getQubitType(type.getContext()); });
+  typeConverter.addConversion([](cc::CallableType type) {
+    return lambdaAsPairOfPointers(type.getContext());
+  });
+  typeConverter.addConversion([&typeConverter](cc::StdvecType type) {
+    auto eleTy = typeConverter.convertType(type.getElementType());
+    return factory::stdVectorImplType(eleTy);
+  });
+  typeConverter.addConversion([](quake::MeasureType type) {
+    return IntegerType::get(type.getContext(), 1);
+  });
+  typeConverter.addConversion([&typeConverter](cc::PointerType type) {
+    auto eleTy = type.getElementType();
+    if (isa<NoneType>(eleTy))
+      return factory::getPointerType(type.getContext());
+    eleTy = typeConverter.convertType(eleTy);
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
+      // If array has a static size, it becomes an LLVMArrayType.
+      assert(arrTy.isUnknownSize());
+      return factory::getPointerType(
+          typeConverter.convertType(arrTy.getElementType()));
+    }
+    return factory::getPointerType(eleTy);
+  });
+  typeConverter.addConversion([&typeConverter](cc::ArrayType type) -> Type {
+    auto eleTy = typeConverter.convertType(type.getElementType());
+    if (type.isUnknownSize())
+      return type;
+    return LLVM::LLVMArrayType::get(eleTy, type.getSize());
+  });
+  typeConverter.addConversion([&typeConverter](cc::StructType type) -> Type {
+    SmallVector<Type> members;
+    for (auto t : type.getMembers())
+      members.push_back(typeConverter.convertType(t));
+    return LLVM::LLVMStructType::getLiteral(type.getContext(), members,
+                                            type.getPacked());
+  });
+}
 
 std::unique_ptr<Pass> cudaq::opt::createConvertToQIRPass() {
   return std::make_unique<QuakeToQIRRewrite>();

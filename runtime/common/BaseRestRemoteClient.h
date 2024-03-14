@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -162,6 +162,7 @@ public:
       if (!func->hasAttr(cudaq::entryPointAttrName))
         func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
       auto moduleOp = builder.create<ModuleOp>();
+      moduleOp->setAttrs((*module)->getAttrDictionary());
       for (auto &op : *module) {
         auto funcOp = dyn_cast<func::FuncOp>(op);
         // Add quantum kernels defined in the module.

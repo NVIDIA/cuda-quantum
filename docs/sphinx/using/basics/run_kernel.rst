@@ -188,7 +188,7 @@ Running on a GPU
 
 .. tab:: C++
 
-  Using the `-- target` argument to `nvq++`, different targets can be specified for kernel execution.
+  Using the `--target` argument to `nvq++`, different targets can be specified for kernel execution.
   
   If a local GPU is detected, the target will default to `nvidia`. Otherwise, the CPU-based simulation
   target, `qpp-cpu`,  will be selected.

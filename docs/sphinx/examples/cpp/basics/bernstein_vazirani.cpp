@@ -24,7 +24,7 @@ std::vector<int> random_bitstring(int qubit_count) {
   return vector_of_bits;
 }
 
-__qpu__ void oracle(cudaq::qview<2> qvector, cudaq::qubit &auxillary_qubit,
+__qpu__ void oracle(cudaq::qview<> qvector, cudaq::qubit &auxillary_qubit,
                     std::vector<int> &hidden_bitstring) {
   for (auto i = 0; i <= hidden_bitstring.size(); i++) {
     if (hidden_bitstring[i] == 1)

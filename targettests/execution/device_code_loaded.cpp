@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,7 +14,7 @@
 #include <cudaq.h>
 
 // CHECK: { [[B0:.*]]:[[C0:.*]] [[B1:.*]]:[[C1:.*]] }
-// CHECK-NEXT: module { func.func @__nvqpp__mlirgen__ghz{{.*}}(%arg0: i32{{.*}}) attributes {
+// CHECK-NEXT: module {{.*}} func.func @__nvqpp__mlirgen__ghz{{.*}}(%arg0: i32{{.*}}) attributes {
 
 // Define a quantum kernel
 struct ghz {

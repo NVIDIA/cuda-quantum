@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -83,7 +83,7 @@ public:
         OpPrintingFlags opf;
         opf.enableDebugInfo(/*enable=*/true,
                             /*pretty=*/false);
-        strOut << "module { ";
+        strOut << "module attributes " << module->getAttrDictionary() << " { ";
         funcOp.print(strOut, opf);
         strOut << '\n';
 
