@@ -1952,6 +1952,8 @@ bool QuakeBridgeVisitor::WalkUpFromCXXOperatorCallExpr(
 bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
     clang::CXXOperatorCallExpr *x) {
   auto loc = toLocation(x->getSourceRange());
+
+  // Helper to replace the operator[] function name with the value, v.
   auto replaceTOSValue = [&](Value v) {
     [[maybe_unused]] auto funcVal = popValue();
     assert(funcVal.getDefiningOp<func::ConstantOp>());
