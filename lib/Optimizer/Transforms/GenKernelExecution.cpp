@@ -1023,6 +1023,8 @@ public:
     SmallVector<BlockArgument> blockArgs{dropAnyHiddenArguments(
         rewriteEntryBlock->getArguments(), funcTy, addThisPtr)};
     std::int32_t idx = 0;
+    SmallVector<Value> blockValues(blockArgs.size());
+    std::copy(blockArgs.begin(), blockArgs.end(), blockValues.begin());
     for (auto iter = blockArgs.begin(), end = blockArgs.end(); iter != end;
          ++iter, ++idx) {
       Value arg = *iter;
@@ -1042,6 +1044,16 @@ public:
         // Should the spec stipulate that pure device kernels must pass by
         // read-only reference, i.e., take `const std::vector<T> &` arguments?
         auto ptrInTy = cast<cudaq::cc::PointerType>(inTy);
+        // If this is a std::vector<bool>, unpack it.
+        if (stdvecTy.getElementType() == builder.getI1Type()) {
+          // Create a mock vector of i8 and populate the bools, 1 per char.
+          Value temp = builder.create<cudaq::cc::AllocaOp>(
+              loc, ptrInTy.getElementType());
+          builder.create<func::CallOp>(loc, std::nullopt,
+                                       cudaq::stdvecBoolUnpackToInitList,
+                                       ArrayRef<Value>{temp, arg});
+          arg = blockValues[idx] = temp;
+        }
         // FIXME: call the `size` member function. For expediency, assume this
         // is an std::vector and the size is the scaled delta between the
         // first two pointers. Use the unscaled size for now.
@@ -1139,8 +1151,7 @@ public:
       Value vecToBuffer = builder.create<cudaq::cc::ComputePtrOp>(
           loc, ptrI8Ty, buff, SmallVector<Value>{structSize});
       // Ignore any hidden `this` argument.
-      for (auto inp : llvm::enumerate(dropAnyHiddenArguments(
-               rewriteEntryBlock->getArguments(), funcTy, addThisPtr))) {
+      for (auto inp : llvm::enumerate(blockValues)) {
         Value arg = inp.value();
         Type inTy = arg.getType();
         std::int32_t idx = inp.index();
@@ -1152,6 +1163,17 @@ public:
           auto ptrInTy = cast<cudaq::cc::PointerType>(inTy);
           vecToBuffer = encodeVectorData(loc, builder, bytes, stdvecTy, arg,
                                          vecToBuffer, ptrInTy);
+          if (stdvecTy.getElementType() == builder.getI1Type()) {
+            auto ptrI1Ty = cudaq::cc::PointerType::get(builder.getI1Type());
+            auto heapPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(ptrI1Ty), arg,
+                ArrayRef<cudaq::cc::ComputePtrArg>{0, 0});
+            auto loadHeapPtr = builder.create<cudaq::cc::LoadOp>(loc, heapPtr);
+            Value heapCast = builder.create<cudaq::cc::CastOp>(
+                loc, cudaq::cc::PointerType::get(i8Ty), loadHeapPtr);
+            builder.create<func::CallOp>(loc, std::nullopt, "free",
+                                         ArrayRef<Value>{heapCast});
+          }
         } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(quakeTy)) {
           if (cudaq::cc::isDynamicType(strTy))
             vecToBuffer = encodeDynamicStructData(loc, builder, strTy, arg,
@@ -1303,6 +1325,12 @@ public:
                                        cudaq::stdvecBoolCtorFromInitList))) {
       module.emitError(std::string("could not load ") +
                        cudaq::stdvecBoolCtorFromInitList);
+      return;
+    }
+    if (failed(irBuilder.loadIntrinsic(module,
+                                       cudaq::stdvecBoolUnpackToInitList))) {
+      module.emitError(std::string("could not load ") +
+                       cudaq::stdvecBoolUnpackToInitList);
       return;
     }
     if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic))) {
