@@ -905,7 +905,7 @@ jobs:
       # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
       - name: Create release
         run: |
-          for installer in `find installers/ -type f`; do 
+          for installer in `find installers/ -type f -not -name '*.whl'`; do 
             mv -v "$installer" "$(basename -- "$installer")"
           done
           for dir in `ls wheelhouse/`; do 
