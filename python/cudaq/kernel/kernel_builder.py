@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 from functools import partialmethod
-from pydoc import locate
 import random
 import re
 import string
