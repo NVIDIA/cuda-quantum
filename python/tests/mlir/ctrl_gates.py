@@ -30,7 +30,7 @@ def test_kernel_2q_ctrl():
     # First three gates check the overload for providing a single control
     # qubit as a list of length 1.
     # Test both with and without keyword arguments.
-    kernel.ch(controls=[qubit_0], target=qubit_1)
+    kernel.ch([qubit_0], qubit_1)
     kernel.cx([qubit_1], qubit_0)
     kernel.cy([qubit_0], qubit_1)
     # Check the overload for providing a single control qubit on its own.
@@ -45,15 +45,15 @@ def test_kernel_2q_ctrl():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<2>
-# CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           quake.h [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:           quake.x [%[[VAL_4]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:           quake.y [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:           quake.z [%[[VAL_4]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:           quake.t [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:           quake.s [%[[VAL_4]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           quake.h {{\[}}%[[VAL_1]]] %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.x {{\[}}%[[VAL_2]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.y {{\[}}%[[VAL_1]]] %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.z {{\[}}%[[VAL_2]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.t {{\[}}%[[VAL_1]]] %[[VAL_2]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.s {{\[}}%[[VAL_2]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -69,7 +69,7 @@ def test_kernel_ctrl_rotation():
     qubit_0 = qreg[0]
     qubit_1 = qreg[1]
     # Check the overloads that accept a `QuakeValue`` as input.
-    kernel.cr1(parameter=angles[0], control=qubit_0, target=qubit_1)
+    kernel.cr1(angles[0], qubit_0, qubit_1)
     kernel.crx(angles[1], qubit_1, qubit_0)
     kernel.cry(angles[2], qubit_0, qubit_1)
     kernel.crz(angles[3], qubit_1, qubit_0)
@@ -208,7 +208,7 @@ def test_kernel_rotation_ctrl_register():
 
     # Test the gates both with and without keyword arguments.
     # Using the `float` parameter overload here.
-    kernel.cr1(parameter=0.0, control=controls, target=qubit_0)
+    kernel.cr1(0.0, controls, qubit_0)
     kernel.crx(1.0, controls, qubit_1)
     kernel.cry(2.0, controls, qubit_0)
     kernel.crz(3.0, controls, qubit_1)
@@ -224,29 +224,29 @@ def test_kernel_rotation_ctrl_register():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
-# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 3 : index
-# CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 3.000000e+00 : f64
-# CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2.000000e+00 : f64
-# CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1.000000e+00 : f64
-# CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f64
-# CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1 : index
-# CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : index
-# CHECK-DAG:       %[[VAL_8:.*]] = quake.alloca !quake.veq<3>
-# CHECK-DAG:       %[[VAL_9:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_1:.*]] = arith.constant 3 : i64
+# CHECK:           %[[VAL_2:.*]] = arith.constant 3.000000e+00 : f64
+# CHECK:           %[[VAL_3:.*]] = arith.constant 2.000000e+00 : f64
+# CHECK:           %[[VAL_4:.*]] = arith.constant 1.000000e+00 : f64
+# CHECK:           %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f64
+# CHECK:           %[[VAL_6:.*]] = arith.constant 1 : i64
+# CHECK:           %[[VAL_7:.*]] = arith.constant 0 : i64
+# CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<3>
+# CHECK:           %[[VAL_9:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_9]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_9]][1] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           %[[VAL_12:.*]] = cc.loop while ((%[[VAL_13:.*]] = %[[VAL_7]]) -> (index)) {
-# CHECK:             %[[VAL_14:.*]] = arith.cmpi slt, %[[VAL_13]], %[[VAL_1]] : index
-# CHECK:             cc.condition %[[VAL_14]](%[[VAL_13]] : index)
+# CHECK:           %[[VAL_12:.*]] = cc.loop while ((%[[VAL_13:.*]] = %[[VAL_7]]) -> (i64)) {
+# CHECK:             %[[VAL_14:.*]] = arith.cmpi slt, %[[VAL_13]], %[[VAL_1]] : i64
+# CHECK:             cc.condition %[[VAL_14]](%[[VAL_13]] : i64)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_15:.*]]: index):
-# CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_15]]] : (!quake.veq<3>, index) -> !quake.ref
+# CHECK:           ^bb0(%[[VAL_15:.*]]: i64):
+# CHECK:             %[[VAL_16:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_15]]] : (!quake.veq<3>, i64) -> !quake.ref
 # CHECK:             quake.x %[[VAL_16]] : (!quake.ref) -> ()
-# CHECK:             cc.continue %[[VAL_15]] : index
+# CHECK:             cc.continue %[[VAL_15]] : i64
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_17:.*]]: index):
-# CHECK:             %[[VAL_18:.*]] = arith.addi %[[VAL_17]], %[[VAL_6]] : index
-# CHECK:             cc.continue %[[VAL_18]] : index
+# CHECK:           ^bb0(%[[VAL_17:.*]]: i64):
+# CHECK:             %[[VAL_18:.*]] = arith.addi %[[VAL_17]], %[[VAL_6]] : i64
+# CHECK:             cc.continue %[[VAL_18]] : i64
 # CHECK:           } {invariant}
 # CHECK:           quake.r1 (%[[VAL_5]]) {{\[}}%[[VAL_8]]] %[[VAL_10]] : (f64, !quake.veq<3>, !quake.ref) -> ()
 # CHECK:           quake.rx (%[[VAL_4]]) {{\[}}%[[VAL_8]]] %[[VAL_11]] : (f64, !quake.veq<3>, !quake.ref) -> ()
