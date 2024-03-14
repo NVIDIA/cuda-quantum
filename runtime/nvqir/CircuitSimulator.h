@@ -62,6 +62,11 @@ public:
     // do nothing
   }
 
+  /// @brief Perform any flushing or synchronization to force that all
+  /// previously applied gates have truly been applied by the underlying
+  /// simulator.
+  virtual void synchronize() {}
+
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -653,6 +658,8 @@ protected:
       }
       gateQueue.pop();
     }
+    // For CUDA-based simulators, this calls cudaDeviceSynchronize()
+    synchronize();
   }
 
   /// @brief Set the current state to the |0> state,
@@ -732,6 +739,7 @@ public:
 
   /// @brief Allocate `count` qubits.
   std::vector<std::size_t> allocateQubits(std::size_t count) override {
+    cudaq::ScopedTrace trace("allocateQubits", count);
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());

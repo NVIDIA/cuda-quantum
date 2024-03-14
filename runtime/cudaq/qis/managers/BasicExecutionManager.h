@@ -105,6 +105,7 @@ public:
   }
 
   void resetExecutionContext() override {
+    cudaq::ScopedTrace trace("BasicExecutionManager::resetExecutionContext");
     synchronize();
 
     if (!executionContext)

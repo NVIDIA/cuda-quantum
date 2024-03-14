@@ -191,6 +191,7 @@ protected:
 
   /// @brief Increase the state size by the given number of qubits.
   void addQubitsToState(std::size_t count) override {
+    cudaq::ScopedTrace trace("CuStateVecCircuitSimulator::addQubitsToState", count);
     if (count == 0)
       return;
 
@@ -226,6 +227,7 @@ protected:
 
   /// @brief Increase the state size by one qubit.
   void addQubitToState() override {
+    cudaq::ScopedTrace trace("CuStateVecCircuitSimulator::addQubitToState");
     // Update the state vector
     if (!deviceStateVector) {
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
@@ -325,6 +327,11 @@ public:
 
   void setRandomSeed(std::size_t randomSeed) override {
     randomEngine = std::mt19937(randomSeed);
+  }
+
+  /// @brief Device synchronization
+  void synchronize() override {
+    cudaDeviceSynchronize();
   }
 
   /// @brief Measure operation
@@ -471,6 +478,7 @@ public:
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
+    cudaq::ScopedTrace trace("CuStateVecSimulator::sample");
     double expVal = 0.0;
     // cudaq::CountsDictionary counts;
     std::vector<custatevecPauli_t> z_pauli;
