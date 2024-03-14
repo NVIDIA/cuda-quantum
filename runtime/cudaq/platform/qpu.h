@@ -51,9 +51,12 @@ protected:
   /// observation and perform state-preparation circuit measurement
   /// based on the `spin_op` terms.
   void handleObservation(ExecutionContext *localContext) {
-    if (localContext && localContext->name == "observe")
+    // The reason for the 2 if checks is simply to do a flushGateQueue() before
+    // initiating the trace.
+    bool execute = localContext && localContext->name == "observe";
+    if (execute)
       getExecutionManager()->flushGateQueue();
-    if (localContext && localContext->name == "observe") {
+    if (execute) {
       cudaq::ScopedTrace trace("QPU::handleObservation (after flush)");
       double sum = 0.0;
       if (!localContext->spin.has_value())
