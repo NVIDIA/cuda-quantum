@@ -483,6 +483,9 @@ public:
       };
       if (auto ty = dyn_cast<IntegerType>(eleTy)) {
         switch (ty.getIntOrFloatBitWidth()) {
+        case 1:
+          doVector(false);
+          break;
         case 8:
           doVector(std::int8_t{});
           break;
