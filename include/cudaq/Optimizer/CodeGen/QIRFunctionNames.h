@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,8 @@
 
 /// This file provides some common QIR function name string s
 /// for use throughout our MLIR lowering infrastructure.
+
+#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 
 namespace cudaq::opt {
 
@@ -82,5 +84,7 @@ inline mlir::Type getResultType(mlir::MLIRContext *context) {
 inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
   return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
 }
+
+void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
 
 } // namespace cudaq::opt

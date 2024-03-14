@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -378,6 +378,7 @@ public:
       func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
     auto moduleOp = builder.create<ModuleOp>();
     moduleOp.push_back(func.clone());
+    moduleOp->setAttrs(m_module->getAttrDictionary());
 
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,

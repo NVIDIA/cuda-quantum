@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -57,7 +57,7 @@ int main() {
   return 0;
 }
 
-// CHECK: 2: module { func.func @__nvqpp__mlirgen__Z4mainE3$_0() attributes {
-// CHECK: 3: module { func.func @__nvqpp__mlirgen__Z4mainE3$_1() attributes {
-// CHECK: 4: module { func.func @__nvqpp__mlirgen__ghz{{.*}}() attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
-// CHECK: 5: module { func.func @__nvqpp__mlirgen__Z8functionvE3$_0() attributes {
+// CHECK: 2: module {{.*}} func.func @__nvqpp__mlirgen__Z4mainE3$_0() attributes {
+// CHECK: 3: module {{.*}} func.func @__nvqpp__mlirgen__Z4mainE3$_1() attributes {
+// CHECK: 4: module {{.*}} func.func @__nvqpp__mlirgen__ghz{{.*}}() attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
+// CHECK: 5: module {{.*}} func.func @__nvqpp__mlirgen__Z8functionvE3$_0() attributes {

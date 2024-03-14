@@ -24,6 +24,14 @@ qvector = cudaq_runtime.qvector
 
 
 class QuakeValue(object):
+    """
+    A :class:`QuakeValue` represents a handle to an individual function 
+    argument of a :class:`Kernel`, or a return value from an operation within
+    it. As documented in :func:`make_kernel`, a :class:`QuakeValue` can hold
+    values of the following types: int, float, list/List, :class:`qubit`, or 
+    :class:`qvector`. The :class:`QuakeValue` can also hold kernel operations 
+    such as qubit allocations and measurements.
+    """
 
     def __init__(self, mlirValue, pyKernel, size=None):
         self.mlirValue = mlirValue
@@ -34,9 +42,19 @@ class QuakeValue(object):
         self.knownUniqueExtractions = set()
 
     def __str__(self):
+        """
+        Return a string representation of the value of `self` (:class:`QuakeValue`).
+        """
         return str(self.mlirValue)
 
     def size(self):
+        """
+        Return the size of `self` (:class:`QuakeValue`), if it is of the type `stdvec` or `veq`.
+
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not `stdvec` or `veq`.
+
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             # assert this is a `stdvec` type or a `veq` type
             # See if we know the size of the `veq`
@@ -106,9 +124,34 @@ class QuakeValue(object):
         return thisVal, otherVal, mulOpStr
 
     def slice(self, startIdx, count):
+        """
+        Return a slice of the given :class:`QuakeValue` as a new :class:`QuakeValue`.
+
+        Note:
+            The underlying :class:`QuakeValue` must be a `list` or `veq`.
+
+        Args:
+            start (int): The index to begin the slice from.
+            count (int): The number of elements to extract after the `start` index.
+        Returns:
+            :class:`QuakeValue`: A new `QuakeValue` containing a slice of `self`
+            from the `start` element to the `start + count` element.
+        """
         raise RuntimeError("QuakeValue.slice not implemented")
 
     def __neg__(self):
+        """
+        Return the negation of `self` (:class:`QuakeValue`).
+
+        Raises:
+            RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+
+        .. code-block:: python
+
+            # Example:
+            kernel, value = cudaq.make_kernel(float)
+            new_value: QuakeValue = -value
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal = self.mlirValue
             if IntegerType.isinstance(thisVal.type):
@@ -116,6 +159,18 @@ class QuakeValue(object):
             return QuakeValue(arith.NegFOp(thisVal).result, self.pyKernel)
 
     def __mul__(self, other):
+        """
+        Return the product of `self` (:class:`QuakeValue`) with `other` (float).
+        
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+
+        .. code-block:: python
+
+            # Example:
+            kernel, value = cudaq.make_kernel(float)
+            new_value: QuakeValue = value * 5.0
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
                 other, 'Mul')
@@ -123,6 +178,18 @@ class QuakeValue(object):
                 getattr(arith, opStr)(thisVal, otherVal).result, self.pyKernel)
 
     def __rmul__(self, other):
+        """
+        Return the product of `other` (float) with `self` (:class:`QuakeValue`).
+
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        
+        .. code-block:: python
+
+            # Example:
+            kernel, value = cudaq.make_kernel(float)
+            new_value: QuakeValue = 5.0 * value
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
                 other, 'Mul')
@@ -130,6 +197,18 @@ class QuakeValue(object):
                 getattr(arith, opStr)(otherVal, thisVal).result, self.pyKernel)
 
     def __truediv__(self, other):
+        """
+        Return the division of `self` (:class:`QuakeValue`) with `other` (float).
+
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+
+        .. code-block:: python
+
+            # Example:
+            kernel, value = cudaq.make_kernel(float)
+            new_value: QuakeValue = value / 5.0
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
                 other, 'Div')
@@ -140,6 +219,18 @@ class QuakeValue(object):
                 getattr(arith, opStr)(thisVal, otherVal).result, self.pyKernel)
 
     def __rtruediv__(self, other):
+        """
+        Return the division of `other` (float) with `self` (:class:`QuakeValue`).
+
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        
+        .. code-block:: python
+
+            # Example:
+            kernel, value = cudaq.make_kernel(float)
+            new_value: QuakeValue = 5.0 / value
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
                 other, 'Div')
@@ -150,6 +241,18 @@ class QuakeValue(object):
                 getattr(arith, opStr)(otherVal, thisVal).result, self.pyKernel)
 
     def __add__(self, other):
+        """
+        Return the sum of `self` (:class:`QuakeValue`) and `other` (float).
+
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        
+        .. code-block:: python
+
+            # Example:
+            kernel, value = cudaq.make_kernel(float)
+            new_value: QuakeValue = value + 5.0
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
                 other, 'Add')
@@ -157,6 +260,18 @@ class QuakeValue(object):
                 getattr(arith, opStr)(thisVal, otherVal).result, self.pyKernel)
 
     def __radd__(self, other):
+        """
+        Return the sum of `other` (float) and `self` (:class:`QuakeValue`).
+
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        
+        .. code-block:: python
+
+            # Example:
+            kernel, value = cudaq.make_kernel(float)
+            new_value: QuakeValue = 5.0 + value
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
                 other, 'Add')
@@ -164,6 +279,18 @@ class QuakeValue(object):
                 getattr(arith, opStr)(otherVal, thisVal).result, self.pyKernel)
 
     def __sub__(self, other):
+        """
+        Return the difference of `self` (:class:`QuakeValue`) and `other` (float).
+
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+        
+        .. code-block:: python
+
+            # Example:
+            kernel, value = cudaq.make_kernel(float)
+            new_value: QuakeValue = value - 5.0
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
                 other, 'Sub')
@@ -171,6 +298,18 @@ class QuakeValue(object):
                 getattr(arith, opStr)(thisVal, otherVal).result, self.pyKernel)
 
     def __rsub__(self, other):
+        """
+        Return the difference of `other` (float) and `self` (:class:`QuakeValue`).
+
+        Raises:
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not a float.
+
+        .. code-block:: python
+
+            # Example:
+            kernel, value = cudaq.make_kernel(float)
+            new_value: QuakeValue = 5.0 - value
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             thisVal, otherVal, opStr = self.__checkTypesAndCreateQuakeValue(
                 other, 'Sub')
@@ -178,6 +317,20 @@ class QuakeValue(object):
                 getattr(arith, opStr)(otherVal, thisVal).result, self.pyKernel)
 
     def __getitem__(self, idx):
+        """
+        Return the element of `self` at the provided `index`.
+
+        Note:
+	        Only `list` or :class:`qvector` type :class:`QuakeValue`'s may be indexed.
+
+        Args:
+	        index (int): The element of `self` that you'd like to return.
+        Returns:
+	        :class:`QuakeValue`: 
+	        A new :class:`QuakeValue` for the `index` element of `self`.
+        Raises:
+	        RuntimeError: if `self` is a non-subscriptable :class:`QuakeValue`.
+        """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             if cc.StdvecType.isinstance(self.mlirValue.type):
                 eleTy = mlirTypeFromPyType(float, self.ctx)

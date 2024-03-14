@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "common/BaseRestRemoteClient.h"
+#include "common/NvqcConfig.h"
+#include <regex>
 
 using namespace mlir;
 
@@ -38,11 +40,17 @@ private:
   std::string m_functionId;
   // NVCF version Id of that function to use
   std::string m_functionVersionId;
-  // Available functions: function Id to number of GPUs mapping
-  using DeploymentInfo = std::unordered_map<std::string, std::size_t>;
+  // Information about function deployment from environment variable info.
+  struct FunctionEnvironments {
+    // These configs should be positive numbers.
+    int version{-1};
+    int numGpus{-1};
+    int timeoutSecs{-1};
+  };
+  // Available functions: function Id to info mapping
+  using DeploymentInfo = std::unordered_map<std::string, FunctionEnvironments>;
   DeploymentInfo m_availableFuncs;
-  static constexpr const char *CUDAQ_NCA_ID =
-      "mZraB3k06kOd8aPhD6MVXJwBVZ67aXDLsfmDo4MYXDs";
+  const std::string CUDAQ_NCA_ID = cudaq::getNvqcNcaId();
   // Base URL for NVCF APIs
   static inline const std::string m_baseUrl = "api.nvcf.nvidia.com/v2";
   // Return the URL to invoke the function specified in this client
@@ -80,28 +88,69 @@ private:
     return versions;
   }
   DeploymentInfo getAllAvailableDeployments() {
-    DeploymentInfo info;
     auto headers = getHeaders();
     auto allVisibleFunctions =
         m_restClient.get(fmt::format("https://{}/nvcf/functions", m_baseUrl),
                          "", headers, /*enableSsl=*/true);
+    const std::string cudaqNvcfFuncNamePrefix = "cuda_quantum";
+    DeploymentInfo info;
     for (auto funcInfo : allVisibleFunctions["functions"]) {
       if (funcInfo["ncaId"].get<std::string>() == CUDAQ_NCA_ID &&
           funcInfo["status"].get<std::string>() == "ACTIVE" &&
-          funcInfo["name"].get<std::string>().starts_with("cuda_quantum")) {
-        const std::size_t numGpus = [&]() {
-          if (funcInfo.contains("containerEnvironment")) {
+          funcInfo["name"].get<std::string>().starts_with(
+              cudaqNvcfFuncNamePrefix)) {
+        const auto containerEnvs = [&]() -> FunctionEnvironments {
+          FunctionEnvironments envs;
+          // Function name convention:
+          // Example: cuda_quantum_v1_t3600_8x
+          //          ------------  -  ---- -
+          //            Prefix      |    |  |
+          //              Version __|    |  |
+          //           Timeout (secs)  __|  |
+          //              Number of GPUs  __|
+          const std::regex funcNameRegex(
+              R"(^cuda_quantum_v(\d+)_t(\d+)_(\d+)x$)");
+          // The first match is the whole string.
+          constexpr std::size_t expectedNumMatches = 4;
+          std::smatch baseMatch;
+          const std::string fname = funcInfo["name"].get<std::string>();
+          // If the function name matches 'Production' naming convention,
+          // retrieve deployment information from the name.
+          if (std::regex_match(fname, baseMatch, funcNameRegex) &&
+              baseMatch.size() == expectedNumMatches) {
+            envs.version = std::stoi(baseMatch[1].str());
+            envs.timeoutSecs = std::stoi(baseMatch[2].str());
+            envs.numGpus = std::stoi(baseMatch[3].str());
+          } else if (funcInfo.contains("containerEnvironment")) {
+            // Otherwise, retrieve the info from deployment configurations.
+            // TODO: at some point, we may want to consolidate these two paths
+            // (name vs. meta-data). We keep it here since function metadata
+            // (similar to `containerEnvironment`) will be supported in the near
+            // future.
             for (auto it : funcInfo["containerEnvironment"]) {
-              if (it["key"].get<std::string>() == "NUM_GPUS")
-                return std::stoi(it["value"].get<std::string>());
+              const auto getEnvValueIfMatch =
+                  [](json &js, const std::string &envKey, int &varToSet) {
+                    if (js["key"].get<std::string>() == envKey)
+                      varToSet = std::stoi(js["value"].get<std::string>());
+                  };
+              getEnvValueIfMatch(it, "NUM_GPUS", envs.numGpus);
+              getEnvValueIfMatch(it, "NVQC_REST_PAYLOAD_VERSION", envs.version);
+              getEnvValueIfMatch(it, "WATCHDOG_TIMEOUT_SEC", envs.timeoutSecs);
             }
           }
-          return 1;
+
+          // Note: invalid/uninitialized FunctionEnvironments will be
+          // discarded, i.e., not added to the valid deployment list, since the
+          // API version number will not match.
+          return envs;
         }();
 
-        info[funcInfo["id"].get<std::string>()] = numGpus;
+        // Only add functions that match client version.
+        if (containerEnvs.version == version())
+          info[funcInfo["id"].get<std::string>()] = containerEnvs;
       }
     }
+
     return info;
   }
 
@@ -125,6 +174,26 @@ private:
           }
         }
       }
+      return std::nullopt;
+    } catch (...) {
+      // Make this non-fatal. Returns null, i.e., unknown.
+      return std::nullopt;
+    }
+  }
+
+  // Fetch the queue position of the given request ID. If the job has already
+  // begun execution, it will return `std::nullopt`.
+  std::optional<std::size_t> getQueuePosition(const std::string &requestId) {
+    auto headers = getHeaders();
+    try {
+      auto queuePos =
+          m_restClient.get(fmt::format("https://{}/nvcf/queues/{}/position",
+                                       m_baseUrl, requestId),
+                           "", headers, /*enableSsl=*/true);
+      if (queuePos.contains("positionInQueue"))
+        return queuePos["positionInQueue"].get<std::size_t>();
+      // When the job enters execution, it returns "status": 400 and "title":
+      // "Bad Request", so translate that to `std::nullopt`.
       return std::nullopt;
     } catch (...) {
       // Make this non-fatal. Returns null, i.e., unknown.
@@ -159,8 +228,8 @@ public:
     }
 
     m_availableFuncs = getAllAvailableDeployments();
-    for (const auto &[funcId, numGpus] : m_availableFuncs)
-      cudaq::info("Function Id {} has {} GPUs.", funcId, numGpus);
+    for (const auto &[funcId, info] : m_availableFuncs)
+      cudaq::info("Function Id {} has {} GPUs.", funcId, info.numGpus);
     {
       const auto funcIdIter = configs.find("function-id");
       if (funcIdIter != configs.end()) {
@@ -172,20 +241,29 @@ public:
                      m_functionId);
         }
       } else {
+        // Output an error message if no deployments can be found.
+        if (m_availableFuncs.empty())
+          throw std::runtime_error(
+              "Unable to find any active NVQC deployments for this key. Check "
+              "if you see any active functions on ngc.nvidia.com in the cloud "
+              "functions tab, or try to regenerate the key.");
+
         // Determine the function Id based on the number of GPUs
         const auto nGpusIter = configs.find("ngpus");
         // Default is 1 GPU if none specified
-        const std::size_t numGpusRequested =
+        const int numGpusRequested =
             (nGpusIter != configs.end()) ? std::stoi(nGpusIter->second) : 1;
         cudaq::info("Looking for an NVQC deployment that has {} GPUs.",
                     numGpusRequested);
-        for (const auto &[funcId, numGpus] : m_availableFuncs) {
-          if (numGpus == numGpusRequested) {
+        for (const auto &[funcId, info] : m_availableFuncs) {
+          if (info.numGpus == numGpusRequested) {
             m_functionId = funcId;
             if (m_logLevel > LogLevel::None) {
               // Print out the configuration
-              cudaq::log("Submitting jobs to NVQC service with {} GPU(s).",
-                         numGpus);
+              cudaq::log(
+                  "Submitting jobs to NVQC service with {} GPU(s). Max "
+                  "execution time: {} seconds (excluding queue wait time).",
+                  info.numGpus, info.timeoutSecs);
             }
             break;
           }
@@ -193,8 +271,8 @@ public:
         if (m_functionId.empty()) {
           // Make sure that we sort the GPU count list
           std::set<std::size_t> gpuCounts;
-          for (const auto &[funcId, numGpus] : m_availableFuncs) {
-            gpuCounts.emplace(numGpus);
+          for (const auto &[funcId, info] : m_availableFuncs) {
+            gpuCounts.emplace(info.numGpus);
           }
           std::stringstream ss;
           ss << "Unable to find NVQC deployment with " << numGpusRequested
@@ -275,13 +353,14 @@ public:
       // setting the backend to a single-GPU one. Only print once in case this
       // is a execution loop.
       static bool printOnce = false;
-      if (m_availableFuncs[m_functionId] > 1 &&
+      if (m_availableFuncs[m_functionId].numGpus > 1 &&
           std::find(MULTI_GPU_BACKENDS.begin(), MULTI_GPU_BACKENDS.end(),
                     backendSimName) == MULTI_GPU_BACKENDS.end() &&
           !printOnce) {
         std::cout << "The requested backend simulator (" << backendSimName
                   << ") is not capable of using all "
-                  << m_availableFuncs[m_functionId] << " GPUs requested.\n";
+                  << m_availableFuncs[m_functionId].numGpus
+                  << " GPUs requested.\n";
         std::cout << "Only one GPU will be used for simulation.\n";
         std::cout << "Please refer to CUDA Quantum documentation for a list of "
                      "multi-GPU capable simulator backends.\n";
@@ -326,7 +405,12 @@ public:
     });
 
     // Upload this request as an NVCF asset if needed.
-    if (request.code.size() > MAX_SIZE_BYTES) {
+    // Note: The majority of the payload is the IR code. Hence, first checking
+    // if it exceed the size limit. Otherwise, if the code is small, make sure
+    // that the total payload doesn't exceed that limit as well by constructing
+    // a temporary JSON object of the full payload.
+    if (request.code.size() > MAX_SIZE_BYTES ||
+        json(request).dump().size() > MAX_SIZE_BYTES) {
       assetId = uploadRequest(request);
       if (!assetId.has_value()) {
         if (optionalErrorMsg)
@@ -347,30 +431,97 @@ public:
     try {
       // Making the request
       cudaq::debug("Sending NVQC request to {}", nvcfInvocationUrl());
-      if (m_logLevel > LogLevel::None) {
-        auto queueDepth = getQueueDepth(m_functionId, m_functionVersionId);
-        if (queueDepth.has_value() && queueDepth.value() > 0) {
-          cudaq::log("Number of jobs ahead of yours in the NVQC queue: {}.",
-                     queueDepth.value());
-        }
-      }
+      auto lastQueuePos = std::numeric_limits<std::size_t>::max();
 
-      if (m_logLevel > LogLevel::None)
+      if (m_logLevel > LogLevel::Info)
         cudaq::log("Posting NVQC request now");
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
       cudaq::debug("Response: {}", resultJs.dump());
+
+      // Call getQueuePosition() until we're at the front of the queue. If log
+      // level is "none", then skip all this because we don't need to show the
+      // status to the user, and we don't need to know the precise
+      // requestStartTime.
+      if (m_logLevel > LogLevel::None) {
+        if (resultJs.contains("status") &&
+            resultJs["status"] == "pending-evaluation") {
+          const std::string reqId = resultJs["reqId"];
+          auto queuePos = getQueuePosition(reqId);
+          while (queuePos.has_value() && queuePos.value() > 0) {
+            if (queuePos.value() != lastQueuePos) {
+              // Position in queue has changed.
+              if (lastQueuePos == std::numeric_limits<std::size_t>::max()) {
+                // If lastQueuePos hasn't been populated with a true value yet,
+                // it means we have not fetched the queue depth or displayed
+                // anything to the user yet.
+                cudaq::log("Number of jobs ahead of yours in the NVQC queue: "
+                           "{}. Your job will start executing once it gets to "
+                           "the head of the queue.",
+                           queuePos.value());
+              } else {
+                cudaq::log("Position in queue for request {} has changed from "
+                           "{} to {}",
+                           reqId, lastQueuePos, queuePos.value());
+              }
+              lastQueuePos = queuePos.value();
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            queuePos = getQueuePosition(reqId);
+          }
+        }
+        if (lastQueuePos != std::numeric_limits<std::size_t>::max())
+          cudaq::log("Your job is finished waiting in the queue and will now "
+                     "begin execution.");
+      }
+
+      const auto requestStartTime = std::chrono::system_clock::now();
+      bool needToPrintNewline = false;
       while (resultJs.contains("status") &&
              resultJs["status"] == "pending-evaluation") {
         const std::string reqId = resultJs["reqId"];
-        if (m_logLevel > LogLevel::None)
-          cudaq::log("Polling NVQC result data for Request Id {}", reqId);
+        const int elapsedTimeSecs =
+            std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::system_clock::now() - requestStartTime)
+                .count();
+        // Warns if the remaining time is less than this threshold.
+        constexpr int TIMEOUT_WARNING_SECS = 5 * 60; // 5 minutes.
+        const int remainingSecs =
+            m_availableFuncs[m_functionId].timeoutSecs - elapsedTimeSecs;
+        std::string additionalInfo;
+        if (remainingSecs < 0)
+          fmt::format_to(std::back_inserter(additionalInfo),
+                         ". Exceeded wall time limit ({} seconds), but time "
+                         "spent waiting in queue is not counted. Proceeding.",
+                         m_availableFuncs[m_functionId].timeoutSecs);
+        else if (remainingSecs < TIMEOUT_WARNING_SECS)
+          fmt::format_to(std::back_inserter(additionalInfo),
+                         ". Approaching the wall time limit ({} seconds). "
+                         "Remaining time: {} seconds.",
+                         m_availableFuncs[m_functionId].timeoutSecs,
+                         remainingSecs);
+        // If NVQC log level is high enough or if we have additional info to
+        // print, then print the full message; else print a simple "."
+        if (m_logLevel > LogLevel::Info || !additionalInfo.empty()) {
+          if (needToPrintNewline)
+            std::cout << "\n";
+          needToPrintNewline = false;
+          cudaq::log("Polling NVQC result data for Request Id {}{}", reqId,
+                     additionalInfo);
+        } else if (m_logLevel > LogLevel::None) {
+          std::cout << ".";
+          std::cout.flush();
+          needToPrintNewline = true;
+        }
         // Wait 1 sec then poll the result
         std::this_thread::sleep_for(std::chrono::seconds(1));
         resultJs = m_restClient.get(nvcfInvocationStatus(reqId), "", jobHeader,
                                     /*enableSsl=*/true);
       }
+
+      if (needToPrintNewline)
+        std::cout << "\n";
 
       if (!resultJs.contains("status") || resultJs["status"] != "fulfilled") {
         if (optionalErrorMsg)
@@ -534,7 +685,6 @@ public:
     }
   }
 };
-
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeClient, PyRestRemoteClient, rest)
