@@ -15,8 +15,8 @@ computing, including CUDA, ISO standard parallelism, OpenMP, and OpenACC
 The CUDA Quantum Python wheels contain the Python API and core components of
 CUDA Quantum. More information about available packages as well as a link to the
 documentation and examples for each version can be found in the [release
-notes][cudaq_docs_releases]. System requirements and compatibility are listed in
-the Getting Started section of the linked documentation.
+notes][cudaq_docs_releases]. System and compatibility requirements
+are listed in the Installation Guide of the linked documentation.
 
 [cudaq_docs_releases]:
     https://nvidia.github.io/cuda-quantum/latest/releases.html
@@ -38,7 +38,7 @@ Quantum with all its dependencies:
 ```console
     conda create -y -n cuda-quantum python=3.10 pip
     conda install -y -n cuda-quantum -c "nvidia/label/cuda-11.8.0" cuda
-    conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler cuquantum
+    conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler
     conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib"
     conda env config vars set -n cuda-quantum MPI_PATH=$CONDA_PREFIX/envs/cuda-quantum
     conda run -n cuda-quantum pip install cuda-quantum

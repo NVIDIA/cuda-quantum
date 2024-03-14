@@ -11,15 +11,15 @@ import sys
 import cudaq
 
 print(f"Running on target {cudaq.get_target().name}")
-n_qubits = int(sys.argv[1]) if 1 < len(sys.argv) else 2
+qubit_count = int(sys.argv[1]) if 1 < len(sys.argv) else 2
 
 kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(n_qubits)
+qubits = kernel.qalloc(qubit_count)
 kernel.h(qubits[0])
-for i in range(1, nr_qubits):
-    cnot(qubits[0], qubits[i])
+for i in range(1, qubit_count):
+    kernel.cx(qubits[0], qubits[i])
 kernel.mz(qubits)
 
 result = cudaq.sample(kernel)
-print(result)  # Example: { 111:500 000:500 }
+print(result)  # Example: { 11:500 00:500 }
 # [End Documentation]
