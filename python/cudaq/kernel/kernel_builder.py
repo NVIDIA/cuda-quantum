@@ -543,7 +543,7 @@ class PyKernel(object):
 
     def __isPauliWordType(self, ty):
         """
-        A pauli word type in our MLIR dialects is a `cc.stdvec<i8>`. Return 
+        A Pauli word type in our MLIR dialects is a `cc.stdvec<i8>`. Return 
         True if the provided type is equivalent to this, False otherwise.
         """
         if cc.StdvecType.isinstance(ty):
@@ -1118,9 +1118,9 @@ class PyKernel(object):
                 emitFatalError(
                     f"Invalid runtime argument type ({type(arg)} provided, {mlirTypeToPyType(self.mlirArgTypes[i])} required)"
                 )
-               
-            # Handle list[str] separately - we allow this only for
-            # list[cudaq.pauli_word] inputs
+
+            # Handle `list[str]` separately - we allow this only for
+            # `list[cudaq.pauli_word]` inputs
             if issubclass(type(arg), list) and all(
                     isinstance(a, str) for a in arg):
                 [emitErrorIfInvalidPauli(a) for a in arg]
