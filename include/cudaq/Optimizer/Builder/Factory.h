@@ -51,7 +51,7 @@ inline mlir::Type getCharType(mlir::MLIRContext *ctx) {
 
 /// Return the LLVM-IR dialect `ptr` type.
 inline mlir::Type getPointerType(mlir::MLIRContext *ctx) {
-  return mlir::LLVM::LLVMPointerType::get(getCharType(ctx));
+  return mlir::LLVM::LLVMPointerType::get(ctx);
 }
 
 /// The type of a dynamic buffer as returned via the runtime.
@@ -67,7 +67,7 @@ inline mlir::Type getOpaquePointerType(mlir::MLIRContext *ctx) {
 
 /// Return the LLVM-IR dialect type: `ty*`.
 inline mlir::Type getPointerType(mlir::Type ty) {
-  return mlir::LLVM::LLVMPointerType::get(ty);
+  return mlir::LLVM::LLVMPointerType::get(ty.getContext());
 }
 
 cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);

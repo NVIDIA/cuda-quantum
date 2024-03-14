@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCInterfaces.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
+#include "mlir/Conversion/ConvertToLLVM/ToLLVMInterface.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
@@ -31,5 +32,6 @@ void cudaq::cc::CCDialect::initialize() {
 #include "cudaq/Optimizer/Dialect/CC/CCOps.cpp.inc"
       >();
   registerAttrs();
+  declarePromisedInterface<CCDialect, mlir::ConvertToLLVMPatternInterface>();
   addInterfaces<CCInlinerInterface>();
 }

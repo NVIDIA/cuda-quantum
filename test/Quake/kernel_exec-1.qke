@@ -96,9 +96,9 @@ module attributes {quake.mangled_name_map = {
 // CHECK:           %[[VAL_10:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_10]] : !cc.ptr<!cc.struct<{i32, f64}>>
 // CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>
-// CHECK:           %[[VAL_12:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr<array<4 x i8>>
+// CHECK:           %[[VAL_12:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
 // CHECK:           %[[VAL_13:.*]] = constant @ghz.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
-// CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr<array<4 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_15:.*]] = cc.func_ptr %[[VAL_13]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_5]][0, 1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
@@ -115,8 +115,8 @@ module attributes {quake.mangled_name_map = {
 // CHECK:         llvm.mlir.global external constant @ghz.kernelName("ghz\00") {addr_space = 0 : i32}
 
 // CHECK-LABEL:   func.func @ghz.thunk(
-// CHECK-SAME:                         %[[VAL_0:.*]]: !cc.ptr<i8>,
-// CHECK-SAME:                         %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i8>,
+// CHECK-SAME:      %[[VAL_1:.*]]: i1) -> !cc.struct<{!cc.ptr<i8>, i64}> {
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.struct<{i32, f64}>>
 // CHECK:           %[[VAL_4:.*]] = arith.constant 0 : i64
@@ -134,8 +134,8 @@ module attributes {quake.mangled_name_map = {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @ghz.argsCreator(
-// CHECK-SAME:                               %[[VAL_0:.*]]: !cc.ptr<!cc.ptr<i8>>,
-// CHECK-SAME:                               %[[VAL_1:.*]]: !cc.ptr<!cc.ptr<i8>>) -> i64 {
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.ptr<i8>>,
+// CHECK-SAME:      %[[VAL_1:.*]]: !cc.ptr<!cc.ptr<i8>>) -> i64 {
 // CHECK:           %[[VAL_2:.*]] = cc.undef !cc.struct<{i32, f64}>
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_0]][0] : (!cc.ptr<!cc.ptr<i8>>) -> !cc.ptr<!cc.ptr<i8>>
@@ -154,8 +154,8 @@ module attributes {quake.mangled_name_map = {
 // CHECK:         }
 
 // CHECK-LABEL:   llvm.func @ghz.kernelRegFunc() {
-// CHECK:           %[[VAL_0:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr<array<4 x i8>>
-// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!llvm.ptr<array<4 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_0:.*]] = llvm.mlir.addressof @ghz.kernelName : !llvm.ptr
+// CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!llvm.ptr) -> !cc.ptr<i8>
 // CHECK:           func.call @cudaqRegisterKernelName(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           %[[VAL_2:.*]] = func.constant @ghz.argsCreator : (!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64
 // CHECK:           %[[VAL_3:.*]] = cc.func_ptr %[[VAL_2]] : ((!cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i64) -> !cc.ptr<i8>

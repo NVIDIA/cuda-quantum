@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Common/InlinerInterface.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/Version.h"
@@ -21,6 +22,7 @@
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/InitAllDialects.h"
+#include "mlir/InitAllExtensions.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
@@ -28,22 +30,6 @@
 #include "mlir/Tools/mlir-opt/MlirOptMain.h"
 
 using namespace llvm;
-
-/// Dialect extension to allow inlining of the MLIR defined LLVM-IR dialects
-/// which lacks inlining support out of the box.
-class InlinerExtension
-    : public mlir::DialectExtension<InlinerExtension, mlir::LLVM::LLVMDialect> {
-public:
-  void apply(mlir::MLIRContext *ctx,
-             mlir::LLVM::LLVMDialect *dialect) const override {
-    dialect->addInterfaces<cudaq::EnableInlinerInterface>();
-    ctx->getOrLoadDialect<mlir::cf::ControlFlowDialect>();
-  };
-};
-
-static void registerInlinerExtension(mlir::DialectRegistry &registry) {
-  registry.addExtensions<InlinerExtension>();
-}
 
 /// @brief Add a command line flag for loading plugins
 static cl::list<std::string>
@@ -79,9 +65,9 @@ int main(int argc, char **argv) {
   }
 
   mlir::DialectRegistry registry;
-  registry.insert<quake::QuakeDialect, cudaq::cc::CCDialect>();
   registerAllDialects(registry);
-  registerInlinerExtension(registry);
+  cudaq::registerAllDialects(registry);
+  registerAllExtensions(registry);
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "nvq++ optimizer\n", registry));
 }

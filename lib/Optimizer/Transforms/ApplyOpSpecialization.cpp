@@ -402,7 +402,7 @@ public:
   static Value createIntConstant(OpBuilder &builder, Location loc, Type ty,
                                  std::int64_t val) {
     auto attr = builder.getIntegerAttr(ty, val);
-    return builder.create<arith::ConstantOp>(loc, attr, ty);
+    return builder.create<arith::ConstantOp>(loc, ty, attr);
   }
 
   /// Clone the LoopOp, \p loop, and return a new LoopOp that runs the loop

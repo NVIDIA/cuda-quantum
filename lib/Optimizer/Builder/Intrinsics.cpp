@@ -147,11 +147,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %2 = arith.addi %arg1, %1 : i64
     %3 = call @malloc(%2) : (i64) -> !cc.ptr<i8>
     %false = arith.constant false
-    call @llvm.memcpy.p0i8.p0i8.i64(%3, %arg0, %arg1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%3, %arg0, %arg1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     %4 = cc.compute_ptr %arg2[0, 0] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<!cc.ptr<i8>>
     %5 = cc.load %4 : !cc.ptr<!cc.ptr<i8>>
     %6 = cc.compute_ptr %3[%arg1] : (!cc.ptr<i8>, i64) -> !cc.ptr<i8>
-    call @llvm.memcpy.p0i8.p0i8.i64(%6, %5, %1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%6, %5, %1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     %7 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
     %8 = cc.insert_value %3, %7[0] : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
     %9 = cc.insert_value %2, %8[1] : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
@@ -169,7 +169,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %size = arith.muli %arg1, %arg2 : i64
     %0 = call @malloc(%size) : (i64) -> !cc.ptr<i8>
     %false = arith.constant false
-    call @llvm.memcpy.p0i8.p0i8.i64(%0, %arg0, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    call @llvm.memcpy.p0.p0.i64(%0, %arg0, %size, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     return %0 : !cc.ptr<i8>
   })#"},
 
@@ -196,10 +196,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
-    {cudaq::llvmMemCopyIntrinsic, // llvm.memcpy.p0i8.p0i8.i64
+    {cudaq::llvmMemCopyIntrinsic, // llvm.memcpy.p0.p0.i64
      {},
      R"#(
-  func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},
+  func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ())#"},
 
     {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"}};
 

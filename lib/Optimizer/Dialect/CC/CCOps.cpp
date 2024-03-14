@@ -350,7 +350,7 @@ struct FuseAddressArithmetic
         auto v1Ty = v1.getType();
         auto offAttr = IntegerAttr::get(v1Ty, othOffset);
         auto loc = thisOp.getLoc();
-        auto newOff = rewriter.create<arith::ConstantOp>(loc, offAttr, v1Ty);
+        auto newOff = rewriter.create<arith::ConstantOp>(loc, v1Ty, offAttr);
         return rewriter.create<arith::AddIOp>(loc, newOff, v1);
       };
       if (myOffset == cudaq::cc::ComputePtrOp::kDynamicIndex) {
@@ -549,7 +549,7 @@ void cudaq::cc::StdvecSizeOp::getCanonicalizationPatterns(
 //===----------------------------------------------------------------------===//
 
 // Override the default.
-Region &cudaq::cc::LoopOp::getLoopBody() { return getBodyRegion(); }
+// Region &cudaq::cc::LoopOp::getLoopBody() { return getBodyRegion(); }
 
 // The basic block of the step region must end in a continue op, which need not
 // be pretty printed if the loop has no block arguments. This ensures the step
@@ -635,7 +635,7 @@ LogicalResult cudaq::cc::LoopOp::verify() {
   const auto initArgsSize = getInitialArgs().size();
   if (getResults().size() != initArgsSize)
     return emitOpError("size of init args and outputs must be equal");
-  if (getWhileArguments().size() != initArgsSize)
+  if (getNumWhileArguments() != initArgsSize)
     return emitOpError("size of init args and while region args must be equal");
   if (auto condOp =
           dyn_cast<cudaq::cc::ConditionOp>(getWhileBlock()->getTerminator())) {
@@ -644,12 +644,12 @@ LogicalResult cudaq::cc::LoopOp::verify() {
   } else {
     return emitOpError("while region must end with condition op");
   }
-  if (getDoEntryArguments().size() != initArgsSize)
+  if (getNumDoEntryArguments() != initArgsSize)
     return emitOpError("size of init args and body region args must be equal");
   if (hasStep()) {
     if (isPostConditional())
       return emitOpError("post-conditional loop cannot have a step region");
-    if (getStepArguments().size() != initArgsSize)
+    if (getNumStepArguments() != initArgsSize)
       return emitOpError(
           "size of init args and step region args must be equal");
     if (auto contOp =
@@ -794,69 +794,58 @@ bool cudaq::cc::LoopOp::hasBreakInBody() {
 }
 
 void cudaq::cc::LoopOp::getSuccessorRegions(
-    std::optional<unsigned> index, ArrayRef<Attribute> operands,
-    SmallVectorImpl<RegionSuccessor> &regions) {
-  if (!index) {
+    RegionBranchPoint point, SmallVectorImpl<RegionSuccessor> &regions) {
+  if (point.isParent()) {
     // loop op, successor is either the WHILE region, or the DO region if loop
     // is post conditional.
     if (isPostConditional())
-      regions.push_back(
-          RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
+      regions.emplace_back(&getBodyRegion(), getDoEntryArguments());
     else
-      regions.push_back(
-          RegionSuccessor(&getWhileRegion(), getWhileArguments()));
+      regions.emplace_back(&getWhileRegion(), getWhileArguments());
     return;
   }
-  switch (index.value()) {
-  case 0:
-    // WHILE region, successors are the DO region and either the owning loop op
-    // (if no else region is present) or the else region.
-    regions.push_back(RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
+
+  Region *region = point.getRegionOrNull();
+  assert(region && "must be a region");
+  if (region == &getWhileRegion()) {
+    // WHILE region, successors are the owning loop op and the DO region.
+    regions.emplace_back(&getBodyRegion(), getDoEntryArguments());
     if (hasPythonElse())
-      regions.push_back(
-          RegionSuccessor(&getElseRegion(), getElseEntryArguments()));
+      regions.emplace_back(
+          &getElseRegion(), getElseEntryArguments());
     else
-      regions.push_back(RegionSuccessor(getResults()));
-    break;
-  case 1:
+    regions.emplace_back(getResults());
+  } else if (region == &getBodyRegion()) {
     // DO region, successor is STEP region (2) if present, or WHILE region (0)
     // if STEP is absent.
     if (hasStep())
-      regions.push_back(RegionSuccessor(&getStepRegion(), getStepArguments()));
+      regions.emplace_back(&getStepRegion(), getStepArguments());
     else
-      regions.push_back(
-          RegionSuccessor(&getWhileRegion(), getWhileArguments()));
+      regions.emplace_back(&getWhileRegion(), getWhileArguments());
     // If the body contains a break, then the loop op is also a successor.
     if (hasBreakInBody())
-      regions.push_back(RegionSuccessor(getResults()));
-    break;
-  case 2:
+      regions.emplace_back(getResults());
+  } else if (region == &getStepRegion()) {
     // STEP region, if present, WHILE region is always successor.
     if (hasStep())
-      regions.push_back(
-          RegionSuccessor(&getWhileRegion(), getWhileArguments()));
-    break;
-  case 3:
+      regions.emplace_back(&getWhileRegion(), getWhileArguments());
+  } else if (region == &getElseRegion()) {
     // ELSE region, successors are the owning loop op.
     if (hasPythonElse())
-      regions.push_back(RegionSuccessor(getResults()));
-    break;
+      regions.emplace_back(getResults());
+  } else {
+    emitOpError("unhandled region");
   }
 }
 
 OperandRange
-cudaq::cc::LoopOp::getSuccessorEntryOperands(std::optional<unsigned> index) {
-  assert(index && "invalid index region");
-  switch (*index) {
-  case 0:
-    if (!isPostConditional())
-      return getInitialArgs();
-    break;
-  case 1:
-    if (isPostConditional())
-      return getInitialArgs();
-    break;
-  }
+cudaq::cc::LoopOp::getEntrySuccessorOperands(RegionBranchPoint point) {
+  assert(!point.isParent() && "invalid index region");
+  Region *region = point.getRegionOrNull();
+  if (region == &getWhileRegion() && !isPostConditional())
+    return getInitialArgs();
+  if (region == &getBodyRegion() && isPostConditional())
+    return getInitialArgs();
   return {nullptr, 0};
 }
 
@@ -969,6 +958,10 @@ void cudaq::cc::LoopOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   patterns.add<HoistLoopInvariantArgs>(context);
 }
 
+SmallVector<Region *> cudaq::cc::LoopOp::getLoopRegions() {
+  return {&getWhileRegion(), &getBodyRegion(), &getStepRegion()};
+}
+
 //===----------------------------------------------------------------------===//
 // ScopeOp
 //===----------------------------------------------------------------------===//
@@ -1030,13 +1023,12 @@ void cudaq::cc::ScopeOp::getRegionInvocationBounds(
     ArrayRef<Attribute> attrs, SmallVectorImpl<InvocationBounds> &bounds) {}
 
 void cudaq::cc::ScopeOp::getSuccessorRegions(
-    std::optional<unsigned> index, ArrayRef<Attribute> operands,
-    SmallVectorImpl<RegionSuccessor> &regions) {
-  if (!index) {
-    regions.push_back(RegionSuccessor(&getRegion()));
+    RegionBranchPoint point, SmallVectorImpl<RegionSuccessor> &regions) {
+  if (point.isParent()) {
+    regions.emplace_back(&getRegion());
     return;
   }
-  regions.push_back(RegionSuccessor(getResults()));
+  regions.emplace_back(getResults());
 }
 
 namespace {
@@ -1254,16 +1246,31 @@ void cudaq::cc::IfOp::getRegionInvocationBounds(
 }
 
 void cudaq::cc::IfOp::getSuccessorRegions(
-    std::optional<unsigned> index, ArrayRef<Attribute> operands,
-    SmallVectorImpl<RegionSuccessor> &regions) {
-  if (index) {
-    regions.push_back(RegionSuccessor(getResults()));
+    RegionBranchPoint point, SmallVectorImpl<RegionSuccessor> &regions) {
+  if (point.isParent()) {
+    regions.emplace_back(&getThenRegion());
+    if (!getElseRegion().empty())
+      regions.emplace_back(&getElseRegion());
+  } else {
+    regions.emplace_back(getResults());
+  }
+}
+
+void cudaq::cc::IfOp::getEntrySuccessorRegions(
+    ArrayRef<Attribute> operands, SmallVectorImpl<RegionSuccessor> &regions) {
+  FoldAdaptor adaptor(operands);
+  auto boolAttr = dyn_cast_or_null<BoolAttr>(adaptor.getCondition());
+  if (!boolAttr)
+    return;
+  if (boolAttr.getValue()) {
+    regions.emplace_back(&getThenRegion());
     return;
   }
-  // TODO: can constant fold if the condition is a constant here.
-  regions.push_back(RegionSuccessor(&getThenRegion()));
-  if (!getElseRegion().empty())
-    regions.push_back(RegionSuccessor(&getElseRegion()));
+  if (!getElseRegion().empty()) {
+    regions.emplace_back(&getElseRegion());
+    return;
+  }
+  regions.emplace_back(getResults());
 }
 
 template <typename A>
@@ -1450,8 +1457,8 @@ LogicalResult cudaq::cc::ConditionOp::verify() {
   return success();
 }
 
-MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
-    std::optional<unsigned> index) {
+MutableOperandRange
+cudaq::cc::ConditionOp::getMutableSuccessorOperands(RegionBranchPoint point) {
   return getResultsMutable();
 }
 

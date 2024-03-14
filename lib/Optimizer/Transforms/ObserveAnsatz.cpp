@@ -156,7 +156,7 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
 
   LogicalResult matchAndRewrite(func::FuncOp funcOp,
                                 PatternRewriter &rewriter) const override {
-    rewriter.startRootUpdate(funcOp);
+    rewriter.startOpModification(funcOp);
 
     // Use an Analysis to count the number of qubits.
     auto iter = infoMap.find(funcOp);
@@ -233,8 +233,9 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
         qubitsToMeasure.push_back(qubitVal);
     }
 
-    for (auto &[measureNum, qubitToMeasure] :
-         llvm::enumerate(qubitsToMeasure)) {
+    for (auto iter : llvm::enumerate(qubitsToMeasure)) {
+      auto measureNum = iter.index();
+      auto qubitToMeasure = iter.value();
       // add the measure
       char regName[16];
       std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
@@ -243,7 +244,7 @@ struct AppendMeasurements : public OpRewritePattern<func::FuncOp> {
                                   builder.getStringAttr(regName));
     }
 
-    rewriter.finalizeRootUpdate(funcOp);
+    rewriter.finalizeOpModification(funcOp);
     return success();
   }
 };

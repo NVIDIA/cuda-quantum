@@ -165,7 +165,7 @@ public:
         auto funcOp = dyn_cast<mlir::func::FuncOp>(op);
         // Add quantum kernels defined in the module.
         if (funcOp && (funcOp->hasAttr(cudaq::kernelAttrName) ||
-                       funcOp.getName().startswith("__nvqpp__mlirgen__")))
+                       funcOp.getName().starts_with("__nvqpp__mlirgen__")))
           moduleOp.push_back(funcOp.clone());
       }
 

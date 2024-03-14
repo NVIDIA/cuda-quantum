@@ -15,6 +15,12 @@
 
 namespace cudaq::opt {
 
+/// LLVM intrinsic for QIR backends.
+constexpr static const char LLVMIntToQubit[] = "llvm.qir.i64ToQubit";
+constexpr static const char LLVMIntToResult[] = "llvm.qir.i64ToResult";
+constexpr static const char LLVMIntToArray[] = "llvm.qir.i64ToArray";
+constexpr static const char LLVMResultAddr[] = "llvm.qir.getResultPtr";
+
 /// QIS Function name strings
 constexpr static const char QIRQISPrefix[] = "__quantum__qis__";
 constexpr static const char QIRMeasureBody[] = "__quantum__qis__mz__body";
@@ -42,7 +48,9 @@ constexpr static const char NVQIRReleasePackedQubitArray[] =
 
 /// QIR Array function name strings
 constexpr static const char QIRArrayGetElementPtr1d[] =
-    "__quantum__rt__array_get_element_ptr_1d";
+    "__quantum__rt__array_get_qubit_element";
+constexpr static const char QIRArraySetElementAt[] =
+    "__quantum__rt__array_set_qubit_element";
 constexpr static const char QIRArrayQubitAllocateArray[] =
     "__quantum__rt__qubit_allocate_array";
 constexpr static const char QIRQubitAllocate[] =
@@ -65,26 +73,19 @@ constexpr static const char QIRRecordOutput[] =
 
 inline mlir::Type getQuantumTypeByName(mlir::StringRef type,
                                        mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMStructType::getOpaque(type, context);
+  return mlir::LLVM::LLVMTargetExtType::get(context, type, {}, {});
 }
 
 inline mlir::Type getQubitType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Qubit", context));
+  return getQuantumTypeByName("qir#Qubit", context);
 }
 
 inline mlir::Type getArrayType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Array", context));
+  return getQuantumTypeByName("qir#Array", context);
 }
 
 inline mlir::Type getResultType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Result", context));
-}
-
-inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
+  return getQuantumTypeByName("qir#Result", context);
 }
 
 void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);

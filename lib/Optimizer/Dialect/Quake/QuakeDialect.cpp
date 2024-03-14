@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "mlir/Conversion/ConvertToLLVM/ToLLVMInterface.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
@@ -27,5 +28,6 @@ void quake::QuakeDialect::initialize() {
 #define GET_OP_LIST
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.cpp.inc"
       >();
+  declarePromisedInterface<QuakeDialect, mlir::ConvertToLLVMPatternInterface>();
   addInterfaces<QuakeInlinerInterface>();
 }

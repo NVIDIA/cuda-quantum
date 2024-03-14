@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Todo.h"
 #include "llvm/IR/Module.h"
@@ -27,6 +28,7 @@
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/InitAllDialects.h"
+#include "mlir/InitAllExtensions.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/InitAllTranslations.h"
 #include "mlir/Parser/Parser.h"
@@ -101,8 +103,11 @@ int main(int argc, char **argv) {
                                     "quake mlir to llvm ir compiler\n");
 
   DialectRegistry registry;
-  registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
   registerAllDialects(registry);
+  registerAllExtensions(registry);
+  cudaq::registerAllDialects(registry);
+  registerBuiltinDialectTranslation(registry);
+  registerLLVMDialectTranslation(registry);
   MLIRContext context(registry);
   context.loadAllAvailableDialects();
 
@@ -137,7 +142,7 @@ int main(int argc, char **argv) {
 
   PassManager pm(&context);
   // Apply any generic pass manager command line options and run the pipeline.
-  applyPassManagerCLOptions(pm);
+  [[maybe_unused]] auto managerResult = applyPassManagerCLOptions(pm);
 
   std::error_code ec;
   llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
@@ -199,7 +204,6 @@ int main(int argc, char **argv) {
 
   // Convert the module to LLVM IR in a new LLVM IR context.
   llvm::LLVMContext llvmContext;
-  llvmContext.setOpaquePointers(false);
   auto llvmModule = translateModuleToLLVMIR(module.get(), llvmContext);
   if (!llvmModule)
     cudaq::emitFatalError(module->getLoc(), "Failed to emit LLVM IR");
@@ -207,7 +211,21 @@ int main(int argc, char **argv) {
   // Initialize LLVM targets.
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
-  ExecutionEngine::setupTargetTriple(llvmModule.get());
+  // Create target machine and configure the LLVM Module
+  auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+  if (!tmBuilderOrError) {
+    llvm::errs() << "Could not create JITTargetMachineBuilder\n";
+    std::exit(1);
+  }
+
+  auto tmOrError = tmBuilderOrError->createTargetMachine();
+  if (!tmOrError) {
+    llvm::errs() << "Could not create TargetMachine\n";
+    std::exit(1);
+  }
+
+  ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
+                                                  tmOrError.get().get());
 
   // Optionally run an optimization pipeline over the llvm module.
   auto optPipeline = makeOptimizingTransformer(optLevel, sizeLevel,

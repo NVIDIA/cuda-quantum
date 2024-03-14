@@ -47,19 +47,32 @@ func.func @sans_combine() {
    return 
 }
 
-// CHECK-LABEL: define void @sans_combine()
-// CHECK:         tail call void @__quantum__qis__h__body(%[[VAL_1:.*]]* null)
-// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_1]]* null, %[[VAL_1]]* nonnull inttoptr (i64 3 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__rx__body(double 4.300000e-01, %[[VAL_1]]* null)
-// CHECK:         tail call void @__quantum__qis__h__body(%[[VAL_1]]* nonnull inttoptr (i64 4 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_1]]* nonnull inttoptr (i64 4 to %[[VAL_1]]*), %[[VAL_1]]* nonnull inttoptr (i64 5 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__rx__body(double 3.300000e-01, %[[VAL_1]]* nonnull inttoptr (i64 4 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__h__body(%[[VAL_1]]* null)
-// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_1]]* null, %[[VAL_1]]* nonnull inttoptr (i64 4 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__rx__body(double 7.300000e-01, %[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*))
-// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_1]]* null, %[[VAL_2:.*]]* null)
-// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*), %[[VAL_2]]* nonnull inttoptr (i64 1 to %[[VAL_2]]*))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_2]]* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_2]]* nonnull inttoptr (i64 1 to %[[VAL_2]]*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
+// CHECK-LABEL: define void @sans_combine() local_unnamed_addr #1 {
+// CHECK:         %[[VAL_0:.*]] = tail call target("qir#Qubit") @llvm.qir.i64ToQubit(i64 0)
+// CHECK:         %[[VAL_1:.*]] = tail call target("qir#Qubit") @llvm.qir.i64ToQubit(i64 3)
+// CHECK:         %[[VAL_2:.*]] = tail call target("qir#Qubit") @llvm.qir.i64ToQubit(i64 4)
+// CHECK:         %[[VAL_3:.*]] = tail call target("qir#Qubit") @llvm.qir.i64ToQubit(i64 5)
+// CHECK:         tail call void @__quantum__qis__h__body(target("qir#Qubit") %[[VAL_0]])
+// CHECK:         tail call void @__quantum__qis__cnot__body(target("qir#Qubit") %[[VAL_0]], target("qir#Qubit") %[[VAL_1]])
+// CHECK:         tail call void @__quantum__qis__rx__body(double 4.300000e-01, target("qir#Qubit") %[[VAL_0]])
+// CHECK:         tail call void @__quantum__qis__h__body(target("qir#Qubit") %[[VAL_2]])
+// CHECK:         tail call void @__quantum__qis__cnot__body(target("qir#Qubit") %[[VAL_2]], target("qir#Qubit") %[[VAL_3]])
+// CHECK:         tail call void @__quantum__qis__rx__body(double 3.300000e-01, target("qir#Qubit") %[[VAL_2]])
+// CHECK:         tail call void @__quantum__qis__h__body(target("qir#Qubit") %[[VAL_0]])
+// CHECK:         tail call void @__quantum__qis__cnot__body(target("qir#Qubit") %[[VAL_0]], target("qir#Qubit") %[[VAL_2]])
+// CHECK:         %[[VAL_4:.*]] = tail call target("qir#Qubit") @llvm.qir.i64ToQubit(i64 2)
+// CHECK:         tail call void @__quantum__qis__rx__body(double 7.300000e-01, target("qir#Qubit") %[[VAL_4]])
+// CHECK:         %[[VAL_5:.*]] = tail call target("qir#Result") @llvm.qir.i64ToResult(i64 0)
+// CHECK:         tail call void @__quantum__qis__mz__body(target("qir#Qubit") %[[VAL_0]], target("qir#Result") %[[VAL_5]])
+// CHECK:         %[[VAL_6:.*]] = tail call target("qir#Result") @llvm.qir.i64ToResult(i64 1)
+// CHECK:         tail call void @__quantum__qis__mz__body(target("qir#Qubit") %[[VAL_4]], target("qir#Result") %[[VAL_6]])
+// CHECK:         %[[VAL_7:.*]] = tail call target("qir#Result") @llvm.qir.i64ToResult(i64 0)
+// CHECK:         tail call void @__quantum__rt__result_record_output(target("qir#Result") %[[VAL_7]], ptr nonnull @cstr.72303030303000)
+// CHECK:         %[[VAL_8:.*]] = tail call target("qir#Result") @llvm.qir.i64ToResult(i64 1)
+// CHECK:         tail call void @__quantum__rt__result_record_output(target("qir#Result") %[[VAL_8]], ptr nonnull @cstr.72303030303100)
 // CHECK:         ret void
+// CHECK:       }
+
+// CHECK: attributes #0 = { "irreversible" }
+// CHECK: attributes #1 = { "entry_point" "output_labeling_schema"="schema_id" "output_names"="{{\[\[}}[0,[0,\22r00000\22]],[1,[2,\22r00001\22]]]]" "qir_profiles"="base_profile" "requiredQubits"="6" "requiredResults"="2" }
 
