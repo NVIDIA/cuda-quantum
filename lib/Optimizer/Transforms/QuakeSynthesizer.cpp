@@ -219,6 +219,40 @@ LogicalResult synthesizeVectorArgument(OpBuilder &builder,
   return success();
 }
 
+template <typename A>
+std::vector<std::int32_t> asI32(const std::vector<A> &v) {
+  std::vector<std::int32_t> result(v.size());
+  for (auto iter : llvm::enumerate(v))
+    result[iter.index()] = static_cast<std::int32_t>(iter.value());
+  return result;
+}
+
+// TODO: consider using DenseArrayAttr here instead. NB: such a change may alter
+// the output of the constant array op.
+static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
+                                              BlockArgument argument,
+                                              std::vector<bool> &vec) {
+  auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
+  return synthesizeVectorArgument<IntegerType>(
+      builder, argument, vec, arrayAttr, makeIntegerElement<bool>);
+}
+
+static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
+                                              BlockArgument argument,
+                                              std::vector<std::int8_t> &vec) {
+  auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
+  return synthesizeVectorArgument<IntegerType>(
+      builder, argument, vec, arrayAttr, makeIntegerElement<std::int8_t>);
+}
+
+static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
+                                              BlockArgument argument,
+                                              std::vector<std::int16_t> &vec) {
+  auto arrayAttr = builder.getI32ArrayAttr(asI32(vec));
+  return synthesizeVectorArgument<IntegerType>(
+      builder, argument, vec, arrayAttr, makeIntegerElement<std::int16_t>);
+}
+
 static LogicalResult synthesizeVectorArgument(OpBuilder &builder,
                                               BlockArgument argument,
                                               std::vector<std::int32_t> &vec) {
@@ -449,12 +483,18 @@ public:
       };
       if (auto ty = dyn_cast<IntegerType>(eleTy)) {
         switch (ty.getIntOrFloatBitWidth()) {
-        case 32: {
+        case 8:
+          doVector(std::int8_t{});
+          break;
+        case 16:
+          doVector(std::int16_t{});
+          break;
+        case 32:
           doVector(std::int32_t{});
-        } break;
-        case 64: {
+          break;
+        case 64:
           doVector(std::int64_t{});
-        } break;
+          break;
         default:
           bufferAppendix += vecLength * (ty.getIntOrFloatBitWidth() / 8);
           funcOp.emitOpError("synthesis failed for vector<integral-type>.");
