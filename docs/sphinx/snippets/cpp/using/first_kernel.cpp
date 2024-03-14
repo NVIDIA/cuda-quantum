@@ -28,6 +28,6 @@ __qpu__ void kernel(int qubit_count) {
 
 // Just for the CI:
 int main() {
-  auto test_result = cudaq::sample(kernel, 1, 1);
+  auto test_result = cudaq::sample(100, kernel, 3);
   test_result.dump();
 }
