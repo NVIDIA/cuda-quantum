@@ -1339,11 +1339,6 @@ class PyASTBridge(ast.NodeVisitor):
                 theta = self.popValue()
                 if IntegerType.isinstance(theta.type):
                     theta = arith.SIToFPOp(self.getFloatType(), theta).result
-                # if isinstance(pauliWord.owner.opview, cc.CreateStringLiteralOp):
-                #     print('WE HERE: ', pauliWord.owner.opview.stringLiteral.value)
-                #     quake.ExpPauliOp(theta, qubits, constantPauli=pauliWord.owner.opview.stringLiteral)
-                #     return
-
                 quake.ExpPauliOp(theta, qubits, pauli=pauliWord)
                 return
 
