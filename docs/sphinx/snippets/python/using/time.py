@@ -8,9 +8,6 @@
 
 import cudaq
 
-cudaq.set_target('nvidia')
-
-
 @cudaq.kernel
 def kernel(qubit_count: int):
     qvector = cudaq.qvector(qubit_count)
@@ -32,8 +29,9 @@ cudaq.set_target('qpp-cpu')
 print('CPU time')  # Example: 27.57462 s.
 print(timeit.timeit(stmt=code_to_time, globals=globals(), number=1))
 
-# Execute on GPU backend.
-cudaq.set_target('nvidia')
-print('GPU time')  # Example: 0.773286 s.
-print(timeit.timeit(stmt=code_to_time, globals=globals(), number=1))
+if cudaq.num_available_gpus() > 0:
+    # Execute on GPU backend.
+    cudaq.set_target('nvidia')
+    print('GPU time')  # Example: 0.773286 s.
+    print(timeit.timeit(stmt=code_to_time, globals=globals(), number=1))
 #[End Time]

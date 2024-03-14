@@ -10,8 +10,6 @@
 import cudaq
 from cudaq import spin
 
-cudaq.set_target('nvidia')
-
 operator = spin.z(0)
 print(operator)  # prints: [1+0j] Z
 

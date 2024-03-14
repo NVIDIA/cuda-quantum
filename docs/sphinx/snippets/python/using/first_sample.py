@@ -8,8 +8,6 @@
 
 import cudaq
 
-cudaq.set_target('nvidia')
-
 qubit_count = 2
 kernel = cudaq.make_kernel()
 qvector = kernel.qalloc(qubit_count)
