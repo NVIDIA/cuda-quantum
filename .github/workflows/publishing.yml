@@ -512,7 +512,7 @@ jobs:
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
           echo "/tmp/install:"
-          find /tmp/install -type f
+          if [ -d /tmp/install ]; then find /tmp/install -type f; fi
 
           echo "release_id=$release_id" >> $GITHUB_OUTPUT
           echo "platform=$platform" >> $GITHUB_OUTPUT
@@ -563,7 +563,7 @@ jobs:
           gh release edit $release_id -R ${{ github.repository }} --notes-file new_notes.txt
 
           echo "/tmp/install:"
-          find /tmp/install -type f
+          if [ -d /tmp/install ]; then find /tmp/install -type f; fi
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
