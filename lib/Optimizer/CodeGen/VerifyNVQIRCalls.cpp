@@ -27,23 +27,29 @@ namespace {
 /// Verify that the QIR doesn't have any "bonus" calls to arbitrary code that is
 /// not possibly defined in the QIR standard or NVQIR runtime.
 struct VerifyNVQIRCallOpsPass
-    : public cudaq::opt::impl::VerifyNVQIRCallOpsBase<VerifyNVQIRCallOpsPass> {
-  explicit VerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &af)
-      : VerifyNVQIRCallOpsBase(), allowedFuncs(af) {}
+   : public cudaq::opt::impl::VerifyNVQIRCallOpsBase<VerifyNVQIRCallOpsPass> {
+  explicit VerifyNVQIRCallOpsPass(
+      const std::vector<llvm::StringRef> &allowedFuncs)
+      : VerifyNVQIRCallOpsBase(), allowedFuncs(allowedFuncs) {}
 
   void runOnOperation() override {
     LLVM::LLVMFuncOp func = getOperation();
     bool passFailed = false;
     // Check that a function name is either QIR or NVQIR registered.
     const auto isKnownFunctionName = [&](llvm::StringRef functionName) -> bool {
-      if (functionName.startswith("__quantum_"))
+      if (functionName.starts_with("__quantum_"))
         return true;
       static const std::vector<llvm::StringRef> NVQIR_FUNCS = {
           cudaq::opt::NVQIRInvokeWithControlBits,
           cudaq::opt::NVQIRInvokeRotationWithControlBits,
           cudaq::opt::NVQIRInvokeWithControlRegisterOrBits,
           cudaq::opt::NVQIRPackSingleQubitInArray,
-          cudaq::opt::NVQIRReleasePackedQubitArray};
+          cudaq::opt::NVQIRReleasePackedQubitArray,
+
+          // These are required to be added to the QIR Spec.
+          cudaq::opt::LLVMIntToQubit, cudaq::opt::LLVMIntToResult,
+          cudaq::opt::LLVMIntToArray, cudaq::opt::LLVMResultAddr};
+
       // It must be either NVQIR extension functions or in the allowed list.
       return std::find(NVQIR_FUNCS.begin(), NVQIR_FUNCS.end(), functionName) !=
                  NVQIR_FUNCS.end() ||

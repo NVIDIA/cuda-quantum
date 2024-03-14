@@ -60,12 +60,12 @@ public:
     if (!isIndirectFunc(op.getCallee(), indirectMap))
       return failure();
 
-    rewriter.startRootUpdate(op);
+    rewriter.startOpModification(op);
     auto callee = op.getCallee();
     llvm::StringRef directName = indirectMap[callee];
     op.setCalleeAttr(SymbolRefAttr::get(op.getContext(), directName));
     LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
-    rewriter.finalizeRootUpdate(op);
+    rewriter.finalizeOpModification(op);
     return success();
   }
 

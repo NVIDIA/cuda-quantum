@@ -188,7 +188,7 @@ public:
     // Stitch together the control-flow across op's regions.
     if (auto regionOp = dyn_cast<RegionBranchOpInterface>(op)) {
       SmallVector<RegionSuccessor> successors;
-      regionOp.getSuccessorRegions(std::nullopt, {}, successors);
+      regionOp.getSuccessorRegions(RegionBranchPoint::parent(), successors);
       for (auto iter : successors)
         if (iter.getSuccessor())
           entryCFG.insert(&iter.getSuccessor()->front());
@@ -197,7 +197,7 @@ public:
         for (auto &b : region)
           if (b.hasNoSuccessors())
             regionExitBlocks.push_back(&b);
-        regionOp.getSuccessorRegions(region.getRegionNumber(), {}, successors);
+        regionOp.getSuccessorRegions(RegionBranchPoint(&region), successors);
         // Every region has exactly one entry and one or more exits.
         for (auto *b : regionExitBlocks)
           for (auto iter : successors) {
@@ -629,7 +629,7 @@ public:
       op->erase();
     }
     for (auto wrap : wrapOps) {
-      auto ref = wrap.getRefValue();
+      auto ref = wrap.getUncheckedRefValue();
       auto wire = wrap.getWireValue();
       if (!ref || !wire.hasOneUse()) {
         LLVM_DEBUG(llvm::dbgs() << "erasing: "; wrap->dump();
@@ -986,14 +986,15 @@ public:
       SmallVector<Type> resultTypes(parent->getResultTypes());
       for (auto d : allDefs)
         resultTypes.push_back(dereferencedType(d.getType()));
-      ConversionPatternRewriter builder(ctx);
+      IRRewriter builder(ctx);
       builder.setInsertionPoint(parent);
       SmallVector<Value> operands(parent->getOperands());
       operands.insert(operands.end(), dataFlow.getLiveInArgs().begin(),
                       dataFlow.getLiveInArgs().end());
       Operation *np = Operation::create(
           parent->getLoc(), parent->getName(), resultTypes, operands,
-          parent->getAttrs(), parent->getSuccessors(), parent->getNumRegions());
+          parent->getAttrs(), OpaqueProperties(nullptr),
+          parent->getSuccessors(), parent->getNumRegions());
       builder.insert(np);
       for (unsigned i = 0; i < parent->getNumRegions(); ++i)
         builder.inlineRegionBefore(parent->getRegion(i), np->getRegion(i),

@@ -232,7 +232,7 @@ public:
     auto module = getOperation();
     auto *ctx = module.getContext();
     IRRewriter rewriter(ctx);
-    rewriter.startRootUpdate(module);
+    rewriter.startOpModification(module);
     LambdaOpAnalysisInfo newInfoMap(infoMap);
     for (auto &[op, lambdaInfo] : infoMap) {
       auto lambda = dyn_cast<cudaq::cc::CreateLambdaOp>(op);
@@ -330,7 +330,7 @@ public:
       newInfoMap[instantiate.getOperation()] = lambdaInfo;
       LLVM_DEBUG(llvm::dbgs() << module << '\n');
     }
-    rewriter.finalizeRootUpdate(module);
+    rewriter.finalizeOpModification(module);
     // Update the info map with the cc.instantiate_callable Ops.
     infoMap = newInfoMap;
   }

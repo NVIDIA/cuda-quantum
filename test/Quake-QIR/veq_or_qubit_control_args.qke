@@ -6,7 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s | cudaq-translate | FileCheck %s
+// RUN: cudaq-opt --add-dealloc --canonicalize --quake-to-qir %s | FileCheck %s
+// RUN: cudaq-opt %s | cudaq-translate | FileCheck --check-prefix=TRANSLATE %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_fancyCnot._Z9fancyCnotRN5cudaq5quditILm2EEES2_ = "_Z9fancyCnotRN5cudaq5quditILm2EEES2_", __nvqpp__mlirgen__function_toffoli._Z7toffoliv = "_Z7toffoliv"}} {
   func.func private @__nvqpp__mlirgen__function_fancyCnot._Z9fancyCnotRN5cudaq5quditILm2EEES2_.ctrl(%arg0: !quake.veq<?>, %arg1: !quake.ref, %arg2: !quake.ref) {
@@ -27,29 +28,67 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_fancyCno
   }
 }
 
-// CHECK:         %[[VAL_0:.*]] = tail call
-// CHECK:         %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 3)
-// CHECK:         %[[VAL_2:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
-// CHECK:         %[[VAL_3:.*]] = bitcast i8* %[[VAL_2]] to %[[VAL_4:.*]]**
-// CHECK:         %[[VAL_5:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_3]], align 8
-// CHECK:         %[[VAL_6:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 2)
-// CHECK:         %[[VAL_7:.*]] = bitcast i8* %[[VAL_6]] to %[[VAL_4]]**
-// CHECK:         %[[VAL_8:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_7]], align 8
-// CHECK:         tail call void @__quantum__qis__x(%[[VAL_4]]* %[[VAL_5]])
-// CHECK:         tail call void @__quantum__qis__x(%[[VAL_4]]* %[[VAL_8]])
-// CHECK:         %[[VAL_9:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 1)
-// CHECK:         %[[VAL_10:.*]] = bitcast i8* %[[VAL_9]] to %[[VAL_4]]**
-// CHECK:         %[[VAL_11:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_10]], align 8
-// CHECK:         %[[VAL_12:.*]] = tail call %[[VAL_1]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_13:.*]] = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_12]], i64 0)
-// CHECK:         %[[VAL_14:.*]] = bitcast i8* %[[VAL_13]] to %[[VAL_4]]**
-// CHECK:         store %[[VAL_4]]* %[[VAL_5]], %[[VAL_4]]** %[[VAL_14]], align 8
-// CHECK:         %[[VAL_15:.*]] = alloca [2 x i64], align 8
-// CHECK:         %[[VAL_16:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_15]], i64 0, i64 0
-// CHECK:         %[[VAL_17:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_1]]* %[[VAL_12]])
-// CHECK:         store i64 %[[VAL_17]], i64* %[[VAL_16]], align 8
-// CHECK:         %[[VAL_18:.*]] = getelementptr inbounds [2 x i64], [2 x i64]* %[[VAL_15]], i64 0, i64 1
-// CHECK:         store i64 0, i64* %[[VAL_18]], align 8
-// CHECK:         call void (i64, i64*, i64, void (%[[VAL_1]]*, %[[VAL_4]]*)*, ...) @invokeWithControlRegisterOrQubits(i64 2, i64* nonnull %[[VAL_16]], i64 1, void (%[[VAL_1]]*, %[[VAL_4]]*)* nonnull @__quantum__qis__x__ctl, %[[VAL_1]]* %[[VAL_12]], %[[VAL_4]]* %[[VAL_11]], %[[VAL_4]]* %[[VAL_8]])
-// CHECK:         call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
-// CHECK:         ret void
+// CHECK-LABEL:   llvm.func @__nvqpp__mlirgen__function_fancyCnot._Z9fancyCnotRN5cudaq5quditILm2EEES2_.ctrl(
+// CHECK-SAME:      %[[VAL_0:.*]]: !llvm.target<"qir#Array">,
+// CHECK-SAME:      %[[VAL_1:.*]]: !llvm.target<"qir#Qubit">,
+// CHECK-SAME:      %[[VAL_2:.*]]: !llvm.target<"qir#Qubit">)
+// CHECK:           %[[VAL_3:.*]] = llvm.mlir.addressof @__quantum__qis__x__ctl : !llvm.ptr
+// CHECK:           %[[VAL_4:.*]] = llvm.mlir.constant(2 : i64) : i64
+// CHECK:           %[[VAL_5:.*]] = llvm.alloca %[[VAL_4]] x i64 {alignment = 8 : i64} : (i64) -> !llvm.ptr
+// CHECK:           %[[VAL_6:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[VAL_7:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[VAL_8:.*]] = llvm.getelementptr %[[VAL_5]]{{\[}}%[[VAL_7]]] : (!llvm.ptr, i64) -> !llvm.ptr, i64
+// CHECK:           %[[VAL_9:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[VAL_0]]) : (!llvm.target<"qir#Array">) -> i64
+// CHECK:           llvm.store %[[VAL_9]], %[[VAL_8]] : i64, !llvm.ptr
+// CHECK:           %[[VAL_10:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[VAL_11:.*]] = llvm.getelementptr %[[VAL_5]]{{\[}}%[[VAL_10]]] : (!llvm.ptr, i64) -> !llvm.ptr, i64
+// CHECK:           llvm.store %[[VAL_6]], %[[VAL_11]] : i64, !llvm.ptr
+// CHECK:           %[[VAL_12:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           llvm.call @invokeWithControlRegisterOrQubits(%[[VAL_4]], %[[VAL_5]], %[[VAL_12]], %[[VAL_3]], %[[VAL_0]], %[[VAL_1]], %[[VAL_2]]) : (i64, !llvm.ptr, i64, !llvm.ptr, !llvm.target<"qir#Array">, !llvm.target<"qir#Qubit">, !llvm.target<"qir#Qubit">) -> ()
+// CHECK:           llvm.return
+// CHECK:         }
+
+// CHECK-LABEL:   llvm.func @__nvqpp__mlirgen__function_toffoli._Z7toffoliv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = llvm.mlir.constant(3 : i64) : i64
+// CHECK:           %[[VAL_1:.*]] = llvm.call @__quantum__rt__qubit_allocate_array(%[[VAL_0]]) : (i64) -> !llvm.target<"qir#Array">
+// CHECK:           %[[VAL_2:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[VAL_3:.*]] = llvm.call @__quantum__rt__array_get_qubit_element(%[[VAL_1]], %[[VAL_2]]) : (!llvm.target<"qir#Array">, i64) -> !llvm.target<"qir#Qubit">
+// CHECK:           %[[VAL_4:.*]] = llvm.mlir.constant(2 : i64) : i64
+// CHECK:           %[[VAL_5:.*]] = llvm.call @__quantum__rt__array_get_qubit_element(%[[VAL_1]], %[[VAL_4]]) : (!llvm.target<"qir#Array">, i64) -> !llvm.target<"qir#Qubit">
+// CHECK:           llvm.call @__quantum__qis__x(%[[VAL_3]]) : (!llvm.target<"qir#Qubit">) -> ()
+// CHECK:           llvm.call @__quantum__qis__x(%[[VAL_5]]) : (!llvm.target<"qir#Qubit">) -> ()
+// CHECK:           %[[VAL_6:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[VAL_7:.*]] = llvm.call @__quantum__rt__array_get_qubit_element(%[[VAL_1]], %[[VAL_6]]) : (!llvm.target<"qir#Array">, i64) -> !llvm.target<"qir#Qubit">
+// CHECK:           %[[VAL_8:.*]] = llvm.mlir.constant(2 : i64) : i64
+// CHECK:           %[[VAL_9:.*]] = llvm.call @__quantum__rt__array_get_qubit_element(%[[VAL_1]], %[[VAL_8]]) : (!llvm.target<"qir#Array">, i64) -> !llvm.target<"qir#Qubit">
+// CHECK:           %[[VAL_10:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[VAL_11:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[VAL_12:.*]] = llvm.mlir.constant(8 : i32) : i32
+// CHECK:           %[[VAL_13:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[VAL_12]], %[[VAL_11]]) : (i32, i64) -> !llvm.target<"qir#Array">
+// CHECK:           %[[VAL_14:.*]] = llvm.call @__quantum__rt__array_get_qubit_element(%[[VAL_13]], %[[VAL_10]]) : (!llvm.target<"qir#Array">, i64) -> !llvm.target<"qir#Qubit">
+// CHECK:           llvm.call @__quantum__rt__array_set_qubit_element(%[[VAL_13]], %[[VAL_10]], %[[VAL_14]]) : (!llvm.target<"qir#Array">, i64, !llvm.target<"qir#Qubit">) -> ()
+// CHECK:           llvm.call @__nvqpp__mlirgen__function_fancyCnot._Z9fancyCnotRN5cudaq5quditILm2EEES2_.ctrl(%[[VAL_13]], %[[VAL_7]], %[[VAL_9]]) : (!llvm.target<"qir#Array">, !llvm.target<"qir#Qubit">, !llvm.target<"qir#Qubit">) -> ()
+// CHECK:           llvm.call @__quantum__rt__qubit_release_array(%[[VAL_1]]) : (!llvm.target<"qir#Array">) -> ()
+// CHECK:           llvm.return
+// CHECK:         }
+
+// TRANSLATE-LABEL: define void @__nvqpp__mlirgen__function_toffoli._Z7toffoliv() local_unnamed_addr {
+// TRANSLATE:         %[[VAL_0:.*]] = tail call target("qir#Array") @__quantum__rt__qubit_allocate_array(i64 3)
+// TRANSLATE:         %[[VAL_1:.*]] = tail call target("qir#Qubit") @__quantum__rt__array_get_qubit_element(target("qir#Array") %[[VAL_0]], i64 0)
+// TRANSLATE:         %[[VAL_2:.*]] = tail call target("qir#Qubit") @__quantum__rt__array_get_qubit_element(target("qir#Array") %[[VAL_0]], i64 2)
+// TRANSLATE:         tail call void @__quantum__qis__x(target("qir#Qubit") %[[VAL_1]])
+// TRANSLATE:         tail call void @__quantum__qis__x(target("qir#Qubit") %[[VAL_2]])
+// TRANSLATE:         %[[VAL_3:.*]] = tail call target("qir#Qubit") @__quantum__rt__array_get_qubit_element(target("qir#Array") %[[VAL_0]], i64 1)
+// TRANSLATE:         %[[VAL_4:.*]] = tail call target("qir#Array") @__quantum__rt__array_create_1d(i32 8, i64 1)
+// TRANSLATE:         %[[VAL_5:.*]] = tail call target("qir#Qubit") @__quantum__rt__array_get_qubit_element(target("qir#Array") %[[VAL_4]], i64 0)
+// TRANSLATE:         tail call void @__quantum__rt__array_set_qubit_element(target("qir#Array") %[[VAL_4]], i64 0, target("qir#Qubit") %[[VAL_5]])
+// TRANSLATE:         %[[VAL_6:.*]] = alloca [2 x i64], align 8
+// TRANSLATE:         %[[VAL_7:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(target("qir#Array") %[[VAL_4]])
+// TRANSLATE:         store i64 %[[VAL_7]], ptr %[[VAL_6]], align 8
+// TRANSLATE:         %[[VAL_8:.*]] = getelementptr inbounds i8, ptr %[[VAL_6]], i64 8
+// TRANSLATE:         store i64 0, ptr %[[VAL_8]], align 8
+// TRANSLATE:         call void (i64, ptr, i64, ptr, ...) @invokeWithControlRegisterOrQubits(i64 2, ptr nonnull %[[VAL_6]], i64 1, ptr nonnull @__quantum__qis__x__ctl, target("qir#Array") %[[VAL_4]], target("qir#Qubit") %[[VAL_3]], target("qir#Qubit") %[[VAL_2]])
+// TRANSLATE:         call void @__quantum__rt__qubit_release_array(target("qir#Array") %[[VAL_0]])
+// TRANSLATE:         ret void
+// TRANSLATE:       }
+

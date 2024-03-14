@@ -1403,7 +1403,7 @@ public:
     SmallVector<func::FuncOp> workList;
     for (auto &op : *module.getBody())
       if (auto funcOp = dyn_cast<func::FuncOp>(op))
-        if (funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName) &&
+        if (funcOp.getName().starts_with(cudaq::runtime::cudaqGenPrefixName) &&
             hasLegalType(funcOp.getFunctionType()))
           workList.push_back(funcOp);
 
@@ -1472,7 +1472,7 @@ public:
                                       {}));
       {
         OpBuilder::InsertionGuard guard(builder);
-        auto *initFunEntry = initFun.addEntryBlock();
+        auto *initFunEntry = initFun.addEntryBlock(builder);
         builder.setInsertionPointToStart(initFunEntry);
         auto kernRef = builder.create<LLVM::AddressOfOp>(
             loc, cudaq::opt::factory::getPointerType(kernelNameObj.getType()),

@@ -12,8 +12,7 @@
 
 namespace cudaq {
 
-static constexpr const char llvmMemCopyIntrinsic[] =
-    "llvm.memcpy.p0i8.p0i8.i64";
+static constexpr const char llvmMemCopyIntrinsic[] = "llvm.memcpy.p0.p0.i64";
 
 // cudaq::range(count);
 static constexpr const char setCudaqRangeVector[] = "__nvqpp_CudaqRangeInit";

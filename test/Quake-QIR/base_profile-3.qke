@@ -20,9 +20,15 @@ func.func @__nvqpp__mlirgen__t1() {
   return
 }
 
-// CHECK-LABEL: define void @__nvqpp__mlirgen__t1()
-// CHECK: tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* null)
-// CHECK: tail call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([4 x i8], [4 x i8]* @cstr.426F6200, i64 0, i64 0)
-// CHECK: ret void
+// CHECK-LABEL: define void @__nvqpp__mlirgen__t1() local_unnamed_addr #1 {
+// CHECK:         %[[VAL_0:.*]] = tail call target("qir#Qubit") @llvm.qir.i64ToQubit(i64 1)
+// CHECK:         %[[VAL_1:.*]] = tail call target("qir#Result") @llvm.qir.i64ToResult(i64 0)
+// CHECK:         tail call void @__quantum__qis__mz__body(target("qir#Qubit") %[[VAL_0]], target("qir#Result") %[[VAL_1]])
+// CHECK:         %[[VAL_2:.*]] = tail call target("qir#Result") @llvm.qir.i64ToResult(i64 0)
+// CHECK:         tail call void @__quantum__rt__result_record_output(target("qir#Result") %[[VAL_2]], ptr nonnull @cstr.426F6200)
+// CHECK:         ret void
+// CHECK:       }
 
-// CHECK: { "entry_point" "output_labeling_schema"="schema_id" "output_names"="{{.*}}" "qir_profiles"="base_profile" "requiredQubits"="2" "requiredResults"="1" }
+// CHECK: attributes #0 = { "irreversible" }
+// CHECK: attributes #1 = { "entry_point" "output_labeling_schema"="schema_id" "output_names"="{{\[\[}}[0,[1,\22Bob\22]]]]" "qir_profiles"="base_profile" "requiredQubits"="2" "requiredResults"="1" }
+

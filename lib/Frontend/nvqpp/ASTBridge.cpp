@@ -298,9 +298,9 @@ public:
           if (auto *id = decl->getIdentifier()) {
             auto name = id->getName();
             if (name.equals("qubit") || name.equals("qudit") ||
-                name.equals("qspan") || name.startswith("qreg") ||
-                name.startswith("qvector") || name.startswith("qarray") ||
-                name.startswith("qview"))
+                name.equals("qspan") || name.starts_with("qreg") ||
+                name.starts_with("qvector") || name.starts_with("qarray") ||
+                name.starts_with("qview"))
               cudaq::details::reportClangError(
                   x, mangler,
                   "may not use quantum types in non-kernel functions");
@@ -623,7 +623,8 @@ std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler) {
   std::string s;
   llvm::raw_string_ostream os(s);
-  mangler->mangleTypeName(ty, os);
+  mangler->mangleCXXRTTIName(
+      ty, os, /*normalizeIntegers=*/false); // FIXME: should this be true?
   os.flush();
   LLVM_DEBUG(llvm::dbgs() << "type name mangled as '" << s << "'\n");
   return s;
