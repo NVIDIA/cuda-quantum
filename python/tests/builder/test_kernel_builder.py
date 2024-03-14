@@ -925,13 +925,13 @@ def test_pauli_word_input():
     ]
     h = cudaq.SpinOperator(h2_data, 4)
     
-    kernel22, theta, paulis = cudaq.make_kernel(float, list[cudaq.pauli_word])
-    q = kernel22.qalloc(4)
-    kernel22.x(q[0])
-    kernel22.x(q[1])
-    kernel22.for_loop(0, paulis.size(), lambda idx : kernel22.exp_pauli(theta, q, paulis[idx]))
+    kernel, theta, paulis = cudaq.make_kernel(float, list[cudaq.pauli_word])
+    q = kernel.qalloc(4)
+    kernel.x(q[0])
+    kernel.x(q[1])
+    kernel.for_loop(0, paulis.size(), lambda idx : kernel.exp_pauli(theta, q, paulis[idx]))
 
-    want_exp = cudaq.observe(kernel22, h, .11, ['XXXY']).expectation()
+    want_exp = cudaq.observe(kernel, h, .11, ['XXXY']).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
 

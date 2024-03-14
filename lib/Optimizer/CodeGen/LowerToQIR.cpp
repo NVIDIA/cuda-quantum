@@ -367,14 +367,25 @@ public:
          cudaq::opt::factory::getPointerType(context)},
         parentModule);
     SmallVector<Value> operands = adaptor.getOperands();
-    // Make sure to drop any length information from the type of the Pauli word.
+    // First need to check the type of the Pauli word. We expect
+    // a pauli_word directly `{i8*,i64}` or a string literal
+    // `ptr<i8>`. If it is a string literal, we need to map it to
+    // a pauli word.
     auto pauliWord = operands.back();
     if (auto ptrTy = dyn_cast<LLVM::LLVMPointerType>(pauliWord.getType())) {
-      operands.pop_back();
+      // Make sure we have the right types to extract the
+      // length of the string literal
+      auto ptrEleTy = ptrTy.getElementType();
+      auto innerArrTy = dyn_cast<LLVM::LLVMArrayType>(ptrEleTy);
+      if (!innerArrTy)
+        return instOp.emitError(
+            "exp_pauli string literal expected to be ptr<array<i8 x N.>.");
+
       // Get the number of elements in the provided string literal
-      auto numElements = dyn_cast<LLVM::LLVMArrayType>(ptrTy.getElementType())
-                             .getNumElements() -
-                         1;
+      auto numElements = innerArrTy.getNumElements() - 1;
+
+      // Remove the old operand
+      operands.pop_back();
 
       // We must create the {i8*, i64} struct from the string literal
       SmallVector<Type> structTys{
@@ -417,6 +428,9 @@ public:
       return success();
     }
 
+    // Here we know we have a pauli word expressed as `{i8*, i64}`.
+    // Allocate a stack slot for it and store what we have to that pointer,
+    // pass the pointer to NVQIR
     Value alloca = rewriter.create<LLVM::AllocaOp>(
         loc, LLVM::LLVMPointerType::get(pauliWord.getType()),
         ArrayRef<Value>{
@@ -426,7 +440,6 @@ public:
         loc, cudaq::opt::factory::getPointerType(context), alloca);
     operands.pop_back();
     operands.push_back(castedPauli);
-
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
                                               operands);
     return success();

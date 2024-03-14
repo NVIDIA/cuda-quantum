@@ -281,14 +281,17 @@ packArgs(OpaqueArguments &argData, py::args args,
     if (py::isinstance<py::list>(arg)) {
       auto casted = py::cast<py::list>(arg);
       if (casted.empty()) {
-        std::vector<cudaq::pauli_word> *ourAllocatedArg =
-            new std::vector<cudaq::pauli_word>();
+        // If its empty, just put any vector on the `argData`,
+        // it won't matter since it is empty and all
+        // vectors have the same memory footprint (span-like).
+        std::vector<int> *ourAllocatedArg = new std::vector<int>();
         argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<std::vector<cudaq::pauli_word> *>(ptr);
+          delete static_cast<std::vector<int> *>(ptr);
         });
         continue;
       }
 
+      // Get the first element in the list
       auto firstElement = casted[0];
 
       // Handle `list[pauli_word]`

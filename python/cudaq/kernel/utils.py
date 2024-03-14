@@ -275,6 +275,10 @@ def mlirTypeToPyType(argType):
 
 
 def emitErrorIfInvalidPauli(pauliArg):
+    """
+    Verify that the input string is a valid Pauli string. 
+    Throw an exception if not.
+    """
     if any(c not in 'XYZI' for c in pauliArg):
         emitFatalError(
             f"Invalid pauli_word string provided as runtime argument ({pauliArg}) - can only contain X, Y, Z, or I."

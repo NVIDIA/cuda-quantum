@@ -542,6 +542,10 @@ class PyKernel(object):
                     return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
 
     def __isPauliWordType(self, ty):
+        """
+        A pauli word type in our MLIR dialects is a `cc.stdvec<i8>`. Return 
+        True if the provided type is equivalent to this, False otherwise.
+        """
         if cc.StdvecType.isinstance(ty):
             eleTy = cc.StdvecType.getElementType(ty)
             if IntegerType.isinstance(eleTy) and IntegerType(eleTy).width == 8:

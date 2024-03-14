@@ -109,7 +109,9 @@ void bindQIS(py::module &mod) {
            py::return_value_policy::reference,
            "Return the qubit at the given index.");
 
-  py::class_<pauli_word>(mod, "pauli_word")
+  py::class_<pauli_word>(mod, "pauli_word",
+                         "The `pauli_word` is a thin wrapper on a Pauli tensor "
+                         "product string, e.g. `XXYZ` on 4 qubits.")
       .def(py::init<>())
       .def(py::init<const std::string>());
 }
