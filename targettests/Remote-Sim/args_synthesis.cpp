@@ -82,13 +82,11 @@ void f(cudaq::qubit &q, const std::vector<float> &k) __qpu__ {
     rx(k[i], q);
 }
 
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
-// Vector of bool is not fully supported in MLIR mode.
-// void f(cudaq::qubit &q, const std::vector<bool>& k) __qpu__ {
-//   for (int i = 0; i < k.size(); ++i)
-//     if (k[i])
-//         x(q);
-// }
+void f(cudaq::qubit &q, const std::vector<bool> &k) __qpu__ {
+  // for (int i = 0; i < k.size(); ++i)
+  //   if (k[i])
+  //     x(q);
+}
 
 template <typename T, typename = typename std::enable_if<
                           std::is_integral<T>::value, T>::type>
@@ -168,9 +166,8 @@ DEFINE_TEST_KERNEL(test4, (std::size_t, a, SIZE_T_VAL));
 DEFINE_TEST_KERNEL(test5, (int64_t, a, INT64_VAL));
 DEFINE_TEST_KERNEL(test6, (double, a, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test7, (float, a, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test8, (std::vector<bool>, a, VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test9, (std::vector<char>, a, VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test9, (std::vector<char>, a, VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test10, (std::vector<int>, a, VEC_INT_VAL));
 DEFINE_TEST_KERNEL(test11, (std::vector<std::size_t>, a, VEC_SIZE_T_VAL));
 DEFINE_TEST_KERNEL(test12, (std::vector<double>, a, VEC_DOUBLE_VAL));
@@ -183,10 +180,10 @@ DEFINE_TEST_KERNEL(test2_3, (bool, a, BOOL_VAL)(std::size_t, b, SIZE_T_VAL));
 DEFINE_TEST_KERNEL(test2_4, (bool, a, BOOL_VAL)(int64_t, b, INT64_VAL));
 DEFINE_TEST_KERNEL(test2_5, (bool, a, BOOL_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test2_6, (bool, a, BOOL_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test2_7, (bool, a, BOOL_VAL) (std::vector<bool>, b,
-// VEC_BOOL_VAL)); DEFINE_TEST_KERNEL(test2_8, (bool, a, BOOL_VAL)
-// (std::vector<char>, b, VEC_CHAR_VAL));
+// VEC_BOOL_VAL));
+DEFINE_TEST_KERNEL(test2_8,
+                   (bool, a, BOOL_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test2_9,
                    (bool, a, BOOL_VAL)(std::vector<int>, b, VEC_INT_VAL));
 DEFINE_TEST_KERNEL(test2_10, (bool, a, BOOL_VAL)(std::vector<std::size_t>, b,
@@ -202,11 +199,10 @@ DEFINE_TEST_KERNEL(test3_3, (char, a, CHAR_VAL)(std::size_t, b, SIZE_T_VAL));
 DEFINE_TEST_KERNEL(test3_4, (char, a, CHAR_VAL)(int64_t, b, INT64_VAL));
 DEFINE_TEST_KERNEL(test3_5, (char, a, CHAR_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test3_6, (char, a, CHAR_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test3_7,
 //                    (char, a, CHAR_VAL)(std::vector<bool>, b, VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test3_8,
-//                    (char, a, CHAR_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test3_8,
+                   (char, a, CHAR_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test3_9,
                    (char, a, CHAR_VAL)(std::vector<int>, b, VEC_INT_VAL));
 DEFINE_TEST_KERNEL(test3_10, (char, a, CHAR_VAL)(std::vector<std::size_t>, b,
@@ -222,11 +218,10 @@ DEFINE_TEST_KERNEL(test4_3, (int, a, INT_VAL)(std::size_t, b, SIZE_T_VAL));
 DEFINE_TEST_KERNEL(test4_4, (int, a, INT_VAL)(int64_t, b, INT64_VAL));
 DEFINE_TEST_KERNEL(test4_5, (int, a, INT_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test4_6, (int, a, INT_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test4_7,
 //                    (int, a, INT_VAL)(std::vector<bool>, b, VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test4_8,
-//                    (int, a, INT_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test4_8,
+                   (int, a, INT_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test4_9,
                    (int, a, INT_VAL)(std::vector<int>, b, VEC_INT_VAL));
 DEFINE_TEST_KERNEL(test4_10, (int, a, INT_VAL)(std::vector<std::size_t>, b,
@@ -245,13 +240,10 @@ DEFINE_TEST_KERNEL(test5_4,
 DEFINE_TEST_KERNEL(test5_5,
                    (std::size_t, a, SIZE_T_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test5_6, (std::size_t, a, SIZE_T_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test5_7, (std::size_t, a, SIZE_T_VAL)(std::vector<bool>,
-// b,
-//                                                          VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test5_8, (std::size_t, a, SIZE_T_VAL)(std::vector<char>,
-// b,
-//                                                          VEC_CHAR_VAL));
+// b, VEC_BOOL_VAL));
+DEFINE_TEST_KERNEL(test5_8, (std::size_t, a, SIZE_T_VAL)(std::vector<char>, b,
+                                                         VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test5_9, (std::size_t, a, SIZE_T_VAL)(std::vector<int>, b,
                                                          VEC_INT_VAL));
 DEFINE_TEST_KERNEL(test5_10,
@@ -269,13 +261,11 @@ DEFINE_TEST_KERNEL(test6_3,
 DEFINE_TEST_KERNEL(test6_4, (double, a, DOUBLE_VAL)(int64_t, b, INT64_VAL));
 DEFINE_TEST_KERNEL(test6_5, (double, a, DOUBLE_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test6_6, (double, a, DOUBLE_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test6_7,
 //                    (double, a, DOUBLE_VAL)(std::vector<bool>, b,
 //                    VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test6_8,
-//                    (double, a, DOUBLE_VAL)(std::vector<char>, b,
-//                    VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test6_8,
+                   (double, a, DOUBLE_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test6_9,
                    (double, a, DOUBLE_VAL)(std::vector<int>, b, VEC_INT_VAL));
 DEFINE_TEST_KERNEL(test6_10, (double, a, DOUBLE_VAL)(std::vector<std::size_t>,
@@ -291,13 +281,11 @@ DEFINE_TEST_KERNEL(test7_3, (float, a, FLOAT_VAL)(std::size_t, b, SIZE_T_VAL));
 DEFINE_TEST_KERNEL(test7_4, (float, a, FLOAT_VAL)(int64_t, b, INT64_VAL));
 DEFINE_TEST_KERNEL(test7_5, (float, a, FLOAT_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test7_6, (float, a, FLOAT_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test7_7,
 //                    (float, a, FLOAT_VAL)(std::vector<bool>, b,
 //                    VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test7_8,
-//                    (float, a, FLOAT_VAL)(std::vector<char>, b,
-//                    VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test7_8,
+                   (float, a, FLOAT_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test7_9,
                    (float, a, FLOAT_VAL)(std::vector<int>, b, VEC_INT_VAL));
 DEFINE_TEST_KERNEL(test7_10, (float, a, FLOAT_VAL)(std::vector<std::size_t>, b,
@@ -307,44 +295,34 @@ DEFINE_TEST_KERNEL(test7_11, (float, a, FLOAT_VAL)(std::vector<double>, b,
 DEFINE_TEST_KERNEL(test7_12,
                    (float, a, FLOAT_VAL)(std::vector<float>, b, VEC_FLOAT_VAL));
 
-// FIXME: vector<char> is not supported in synthesis
-// DEFINE_TEST_KERNEL(test8_1,
-//                    (std::vector<char>, a, VEC_CHAR_VAL)(char, b, CHAR_VAL));
-// DEFINE_TEST_KERNEL(test8_2,
-//                    (std::vector<char>, a, VEC_CHAR_VAL)(int, b, INT_VAL));
-// DEFINE_TEST_KERNEL(test8_3, (std::vector<char>, a, VEC_CHAR_VAL)(std::size_t,
-// b,
-//                                                                  SIZE_T_VAL));
-// DEFINE_TEST_KERNEL(test8_4,
-//                    (std::vector<char>, a, VEC_CHAR_VAL)(int64_t, b,
-//                    INT64_VAL));
-// DEFINE_TEST_KERNEL(test8_5,
-//                    (std::vector<char>, a, VEC_CHAR_VAL)(double, b,
-//                    DOUBLE_VAL));
-// DEFINE_TEST_KERNEL(test8_6,
-//                    (std::vector<char>, a, VEC_CHAR_VAL)(float, b,
-//                    FLOAT_VAL));
+DEFINE_TEST_KERNEL(test8_1,
+                   (std::vector<char>, a, VEC_CHAR_VAL)(char, b, CHAR_VAL));
+DEFINE_TEST_KERNEL(test8_2,
+                   (std::vector<char>, a, VEC_CHAR_VAL)(int, b, INT_VAL));
+DEFINE_TEST_KERNEL(test8_3, (std::vector<char>, a, VEC_CHAR_VAL)(std::size_t, b,
+                                                                 SIZE_T_VAL));
+DEFINE_TEST_KERNEL(test8_4,
+                   (std::vector<char>, a, VEC_CHAR_VAL)(int64_t, b, INT64_VAL));
+DEFINE_TEST_KERNEL(test8_5,
+                   (std::vector<char>, a, VEC_CHAR_VAL)(double, b, DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test8_6,
+                   (std::vector<char>, a, VEC_CHAR_VAL)(float, b, FLOAT_VAL));
 // DEFINE_TEST_KERNEL(test8_7, (std::vector<char>, a,
 //                              VEC_CHAR_VAL)(std::vector<bool>, b,
 //                              VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test8_8, (std::vector<char>, a,
-//                              VEC_CHAR_VAL)(std::vector<char>, b,
-//                              VEC_CHAR_VAL));
-// DEFINE_TEST_KERNEL(test8_9, (std::vector<char>, a,
-//                              VEC_CHAR_VAL)(std::vector<int>, b,
-//                              VEC_INT_VAL));
-// DEFINE_TEST_KERNEL(test8_10,
-//                    (std::vector<char>, a,
-//                     VEC_CHAR_VAL)(std::vector<std::size_t>, b,
-//                     VEC_SIZE_T_VAL));
-// DEFINE_TEST_KERNEL(test8_11,
-//                    (std::vector<char>, a, VEC_CHAR_VAL)(std::vector<double>,
-//                    b,
-//                                                         VEC_DOUBLE_VAL));
-// DEFINE_TEST_KERNEL(test8_12,
-//                    (std::vector<char>, a, VEC_CHAR_VAL)(std::vector<float>,
-//                    b,
-//                                                         VEC_FLOAT_VAL))
+DEFINE_TEST_KERNEL(test8_8, (std::vector<char>, a,
+                             VEC_CHAR_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test8_9, (std::vector<char>, a,
+                             VEC_CHAR_VAL)(std::vector<int>, b, VEC_INT_VAL));
+DEFINE_TEST_KERNEL(test8_10,
+                   (std::vector<char>, a,
+                    VEC_CHAR_VAL)(std::vector<std::size_t>, b, VEC_SIZE_T_VAL));
+DEFINE_TEST_KERNEL(test8_11,
+                   (std::vector<char>, a, VEC_CHAR_VAL)(std::vector<double>, b,
+                                                        VEC_DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test8_12,
+                   (std::vector<char>, a, VEC_CHAR_VAL)(std::vector<float>, b,
+                                                        VEC_FLOAT_VAL));
 
 DEFINE_TEST_KERNEL(test9_1,
                    (std::vector<int>, a, VEC_INT_VAL)(char, b, CHAR_VAL));
@@ -358,13 +336,11 @@ DEFINE_TEST_KERNEL(test9_5,
                    (std::vector<int>, a, VEC_INT_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test9_6,
                    (std::vector<int>, a, VEC_INT_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test9_7, (std::vector<int>, a,
 //                              VEC_INT_VAL)(std::vector<bool>, b,
 //                              VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test9_8, (std::vector<int>, a,
-//                              VEC_INT_VAL)(std::vector<char>, b,
-//                              VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test9_8, (std::vector<int>, a,
+                             VEC_INT_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test9_9, (std::vector<int>, a, VEC_INT_VAL)(std::vector<int>,
                                                                b, VEC_INT_VAL));
 DEFINE_TEST_KERNEL(test9_10,
@@ -389,13 +365,12 @@ DEFINE_TEST_KERNEL(test10_5, (std::vector<std::size_t>, a,
                               VEC_SIZE_T_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test10_6, (std::vector<std::size_t>, a,
                               VEC_SIZE_T_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test10_7,
 //                    (std::vector<std::size_t>, a,
 //                     VEC_SIZE_T_VAL)(std::vector<bool>, b, VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test10_8,
-//                    (std::vector<std::size_t>, a,
-//                     VEC_SIZE_T_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test10_8,
+                   (std::vector<std::size_t>, a,
+                    VEC_SIZE_T_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test10_9,
                    (std::vector<std::size_t>, a,
                     VEC_SIZE_T_VAL)(std::vector<int>, b, VEC_INT_VAL));
@@ -421,17 +396,14 @@ DEFINE_TEST_KERNEL(test11_5, (std::vector<double>, a,
                               VEC_DOUBLE_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test11_6, (std::vector<double>, a,
                               VEC_DOUBLE_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test11_7,
 //                    (std::vector<double>, a,
 //                    VEC_DOUBLE_VAL)(std::vector<bool>,
 //                                                             b,
 //                                                             VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test11_8,
-//                    (std::vector<double>, a,
-//                    VEC_DOUBLE_VAL)(std::vector<char>,
-//                                                             b,
-//                                                             VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test11_8,
+                   (std::vector<double>, a, VEC_DOUBLE_VAL)(std::vector<char>,
+                                                            b, VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test11_9,
                    (std::vector<double>, a, VEC_DOUBLE_VAL)(std::vector<int>, b,
                                                             VEC_INT_VAL));
@@ -457,15 +429,13 @@ DEFINE_TEST_KERNEL(test12_5, (std::vector<float>, a,
                               VEC_FLOAT_VAL)(double, b, DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test12_6,
                    (std::vector<float>, a, VEC_FLOAT_VAL)(float, b, FLOAT_VAL));
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1383
 // DEFINE_TEST_KERNEL(test12_7,
 //                    (std::vector<float>, a, VEC_FLOAT_VAL)(std::vector<bool>,
 //                    b,
 //                                                           VEC_BOOL_VAL));
-// DEFINE_TEST_KERNEL(test12_8,
-//                    (std::vector<float>, a, VEC_FLOAT_VAL)(std::vector<char>,
-//                    b,
-//                                                           VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test12_8,
+                   (std::vector<float>, a, VEC_FLOAT_VAL)(std::vector<char>, b,
+                                                          VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test12_9, (std::vector<float>, a,
                               VEC_FLOAT_VAL)(std::vector<int>, b, VEC_INT_VAL));
 DEFINE_TEST_KERNEL(test12_10, (std::vector<float>, a,
@@ -494,44 +464,38 @@ DEFINE_TEST_KERNEL(test_mixed_5,
 DEFINE_TEST_KERNEL(test_mixed_6,
                    (std::size_t, a, SIZE_T_VAL)(int, b, INT_VAL)(std::size_t, c,
                                                                  SIZE_T_VAL));
-// FIXME: vector<char> is not supported in synthesis
-// DEFINE_TEST_KERNEL(test_mixed_7,
-//                    (int, a, INT_VAL)(std::vector<char>, b,
-//                                      VEC_CHAR_VAL)(std::vector<float>, c,
-//                                                    VEC_FLOAT_VAL));
-// DEFINE_TEST_KERNEL(test_mixed_8,
-//                    (int, a, INT_VAL)(std::vector<char>, b,
-//                                      VEC_CHAR_VAL)(std::vector<double>, c,
-//                                                    VEC_DOUBLE_VAL));
-// DEFINE_TEST_KERNEL(test_mixed_9, (std::size_t, a,
-//                                   SIZE_T_VAL)(std::vector<double>, b,
-//                                               VEC_DOUBLE_VAL)(std::vector<char>,
-//                                                               c,
-//                                                               VEC_CHAR_VAL));
-// DEFINE_TEST_KERNEL(test_mixed_10, (std::size_t, a,
-//                                    SIZE_T_VAL)(std::vector<float>, b,
-//                                                VEC_FLOAT_VAL)(std::vector<char>,
-//                                                               c,
-//                                                               VEC_CHAR_VAL));
-// DEFINE_TEST_KERNEL(test_mixed_11,
-//                    (double, a, DOUBLE_VAL)(std::vector<char>, b,
-//                                            VEC_CHAR_VAL)(std::vector<float>,
-//                                            c,
-//                                                          VEC_FLOAT_VAL));
-// DEFINE_TEST_KERNEL(test_mixed_12,
-//                    (double, a, DOUBLE_VAL)(std::vector<char>, b,
-//                                            VEC_CHAR_VAL)(std::vector<double>,
-//                                            c,
-//                                                          VEC_DOUBLE_VAL));
-// DEFINE_TEST_KERNEL(test_mixed_13,
-//                    (float, a, FLOAT_VAL)(std::vector<double>, b,
-//                                          VEC_DOUBLE_VAL)(std::vector<char>,
-//                                          c,
-//                                                          VEC_CHAR_VAL));
-// DEFINE_TEST_KERNEL(test_mixed_14,
-//                    (float, a, FLOAT_VAL)(std::vector<float>, b,
-//                                          VEC_FLOAT_VAL)(std::vector<char>, c,
-//                                                         VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test_mixed_7,
+                   (int, a, INT_VAL)(std::vector<char>, b,
+                                     VEC_CHAR_VAL)(std::vector<float>, c,
+                                                   VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_8,
+                   (int, a, INT_VAL)(std::vector<char>, b,
+                                     VEC_CHAR_VAL)(std::vector<double>, c,
+                                                   VEC_DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test_mixed_9, (std::size_t, a,
+                                  SIZE_T_VAL)(std::vector<double>, b,
+                                              VEC_DOUBLE_VAL)(std::vector<char>,
+                                                              c, VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test_mixed_10, (std::size_t, a,
+                                   SIZE_T_VAL)(std::vector<float>, b,
+                                               VEC_FLOAT_VAL)(std::vector<char>,
+                                                              c, VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test_mixed_11,
+                   (double, a, DOUBLE_VAL)(std::vector<char>, b,
+                                           VEC_CHAR_VAL)(std::vector<float>, c,
+                                                         VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_12,
+                   (double, a, DOUBLE_VAL)(std::vector<char>, b,
+                                           VEC_CHAR_VAL)(std::vector<double>, c,
+                                                         VEC_DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test_mixed_13,
+                   (float, a, FLOAT_VAL)(std::vector<double>, b,
+                                         VEC_DOUBLE_VAL)(std::vector<char>, c,
+                                                         VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test_mixed_14,
+                   (float, a, FLOAT_VAL)(std::vector<float>, b,
+                                         VEC_FLOAT_VAL)(std::vector<char>, c,
+                                                        VEC_CHAR_VAL));
 DEFINE_TEST_KERNEL(test_mixed_15,
                    (std::vector<float>, a,
                     VEC_FLOAT_VAL)(double, b, DOUBLE_VAL)(std::vector<float>, c,
