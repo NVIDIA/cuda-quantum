@@ -3,13 +3,8 @@ Building your first CUDA Quantum Program
 
 .. tab:: Python
 
-  .. 
-    Fix me :: comment back in when updated python rolls out.
-    We can define our quantum kernel as we do any other function in Python, through the use of the
-   `@cudaq.kernel` decorator. 
-  
-  We can define our quantum kernel in Python through the use of the :func:`cudaq.make_kernel` function.
-  Let's begin with a simple GHZ-state example, producing a state of
+  We can define our quantum kernel as a typical Python function, with the additional use of the
+  `@cudaq.kernel` decorator. Let's begin with a simple GHZ-state example, producing a state of
   maximal entanglement amongst an allocated set of qubits. 
   
   .. literalinclude:: ../../snippets/python/using/first_kernel.py

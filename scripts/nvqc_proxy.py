@@ -22,6 +22,10 @@ PROXY_PORT = 3030
 QPUD_PORT = 3031  # see `docker/build/cudaq.nvqc.Dockerfile`
 
 
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    """Handle requests in a separate thread."""
+
+
 class Server(http.server.SimpleHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
     default_request_version = 'HTTP/1.1'
@@ -85,7 +89,7 @@ class Server(http.server.SimpleHTTPRequestHandler):
 
 
 Handler = Server
-with socketserver.TCPServer(("", PROXY_PORT), Handler) as httpd:
+with ThreadedHTTPServer(("", PROXY_PORT), Handler) as httpd:
     print("Serving at port", PROXY_PORT)
     print("Forward to port", QPUD_PORT)
     httpd.serve_forever()
