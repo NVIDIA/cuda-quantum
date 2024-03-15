@@ -66,7 +66,9 @@ void CollectControls(cudaq::qview<> ctls, cudaq::qview<> aux,
 /// When collecting controls, if there is an uneven number of original control
 /// qubits then the last control and the second to last auxiliary will be
 /// collected into the last auxiliary.
-void AdjustForSingleControl(cudaq::qview<> ctls, cudaq::qview<> aux) __qpu__ {
+void AdjustForSingleControl(
+    const std::vector<std::reference_wrapper<cudaq::qubit>> &ctls,
+    cudaq::qview<> aux) __qpu__ {
   if (ctls.size() % 2 != 0)
     CCNOT(ctls[ctls.size() - 1], aux[ctls.size() - 3], aux[ctls.size() - 2]);
 }
@@ -79,7 +81,7 @@ void x(const std::vector<std::reference_wrapper<cudaq::qubit>> &ctrls,
   if (numCtrls == 0) {
     x(target);
   } else if (numCtrls == 1) {
-    cx(ctrls[0], target);
+    cx(ctrls[0].get(), target);
   } else if (numCtrls == 2) {
     CCNOT(ctrls[0], ctrls[1], target);
   } else {
@@ -93,6 +95,26 @@ void x(const std::vector<std::reference_wrapper<cudaq::qubit>> &ctrls,
             CCNOT(aux[ctrls.size() - 3], aux[ctrls.size() - 4], target);
           }
         });
+  }
+}
+
+template <typename mod>
+void z(const std::vector<std::reference_wrapper<cudaq::qubit>> &ctrls,
+       cudaq::qubit &target) __qpu__ {
+  static_assert(std::is_same_v<mod, cudaq::ctrl>);
+  const std::size_t numCtrls = ctrls.size();
+  if (numCtrls == 0) {
+    z(target);
+  } else if (numCtrls == 1) {
+    z<cudaq::ctrl>(ctrls[0].get(), target);
+  } else {
+    cudaq::qvector aux(numCtrls - 1);
+    cudaq::compute_action(
+        [&]() {
+          CollectControls(ctrls, aux, 0);
+          AdjustForSingleControl(ctrls, aux);
+        },
+        [&]() { z<cudaq::ctrl>(aux[ctrls.size() - 2], target); });
   }
 }
 } // namespace internal
@@ -117,5 +139,27 @@ void x(cudaq::qview<> ctrls, cudaq::qubit &target) __qpu__ {
   for (auto &q : ctrls)
     castedCtls.emplace_back(q);
   internal::x<mod>(castedCtls, target);
+}
+
+template <typename mod, typename... QubitTy>
+void z(cudaq::qubit &c0, cudaq::qubit &c1, QubitTy &...qubits) __qpu__ {
+  static_assert(std::is_same_v<mod, cudaq::ctrl>);
+  std::vector<std::reference_wrapper<cudaq::qubit>> ctls{{qubits...}};
+  // Last qubit is the target
+  ctls.pop_back();
+  // Add the two explicit qubits
+  ctls.emplace_back(c1);
+  ctls.emplace_back(c0);
+  internal::z<mod>(
+      ctls, cudaq::getParameterPackVals<sizeof...(qubits) - 1>(qubits...));
+}
+
+template <typename mod>
+void z(cudaq::qview<> ctrls, cudaq::qubit &target) __qpu__ {
+  static_assert(std::is_same_v<mod, cudaq::ctrl>);
+  std::vector<std::reference_wrapper<cudaq::qubit>> castedCtls;
+  for (auto &q : ctrls)
+    castedCtls.emplace_back(q);
+  internal::z<mod>(castedCtls, target);
 }
 } // namespace cudaq
