@@ -13,11 +13,13 @@ from cudaq import spin
 operator = spin.z(0)
 print(operator)  # prints: [1+0j] Z
 
+
 @cudaq.kernel
 def kernel():
     qubit = cudaq.qubit()
-    h(qubit) 
+    h(qubit)
     # [End Observe1]
+
 
 #[Begin Observe2]
 result = cudaq.observe(kernel, operator)

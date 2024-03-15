@@ -4,6 +4,7 @@
 import cudaq
 from cudaq import spin
 
+
 @cudaq.kernel
 def kernel(theta: float):
     qvector = cudaq.qvector(2)
