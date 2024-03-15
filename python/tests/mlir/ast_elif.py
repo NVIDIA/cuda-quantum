@@ -36,10 +36,10 @@ def test_elif():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost(
 # CHECK-SAME:                                      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 2 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 4 : i64
 # CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<4>
 # CHECK:           %[[VAL_6:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f64>) -> i64
 # CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.struct<{i64, f64}>{{\[}}%[[VAL_6]] : i64]

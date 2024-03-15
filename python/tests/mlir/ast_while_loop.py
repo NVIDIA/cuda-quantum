@@ -69,12 +69,12 @@ def test_complex_conditional():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 14 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant false
-# CHECK:           %[[VAL_4:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_5:.*]] = arith.constant 5 : i64
+# CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 14 : i64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant false
+# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_5:.*]] = arith.constant 5 : i64
 # CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<6>
 # CHECK:           %[[VAL_7:.*]] = cc.alloca i64
 # CHECK:           cc.store %[[VAL_5]], %[[VAL_7]] : !cc.ptr<i64>

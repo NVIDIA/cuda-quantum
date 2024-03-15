@@ -31,9 +31,9 @@ def test_decrementing_range():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test(
 # CHECK-SAME:                                      %[[VAL_0:.*]]: i64,
 # CHECK-SAME:                                      %[[VAL_1:.*]]: i64) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_4:.*]] = arith.constant -1 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant -1 : i64
 # CHECK:           %[[VAL_5:.*]] = cc.alloca i64
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_5]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_6:.*]] = cc.alloca i64

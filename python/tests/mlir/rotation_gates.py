@@ -81,10 +81,10 @@ def test_rotation_qreg():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:                                                                 %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 3 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 1.000000e+00 : f64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_4:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<3>
 # CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %[[VAL_4]]) -> (i64)) {
 # CHECK:             %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_1]] : i64

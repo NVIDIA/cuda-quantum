@@ -29,8 +29,8 @@ def test_ghz():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz(
 # CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_3:.*]] = cc.alloca i64
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
@@ -91,9 +91,9 @@ def test_ghz():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__simple(
 # CHECK-SAME:                                        %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 2 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_4:.*]] = cc.alloca i64
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>

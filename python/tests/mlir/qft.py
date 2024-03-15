@@ -37,11 +37,11 @@ def test_qft():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__iqft(
 # CHECK-SAME:                                      %[[VAL_0:.*]]: !quake.veq<?>) {
-# CHECK:           %[[VAL_1:.*]] = arith.constant -3.1415926535897931 : f64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant -1 : i64
-# CHECK:           %[[VAL_4:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_5:.*]] = arith.constant 2 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant -3.1415926535897931 : f64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant -1 : i64
+# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_5:.*]] = arith.constant 2 : i64
 # CHECK:           %[[VAL_6:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_7:.*]] = cc.alloca i64
 # CHECK:           cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<i64>

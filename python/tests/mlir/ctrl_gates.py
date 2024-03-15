@@ -85,10 +85,10 @@ def test_kernel_ctrl_rotation():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 3.000000e+00 : f64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 2.000000e+00 : f64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
-# CHECK:           %[[VAL_4:.*]] = arith.constant 0.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 2.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 0.000000e+00 : f64
 # CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][1] : (!quake.veq<2>) -> !quake.ref
@@ -224,13 +224,13 @@ def test_kernel_rotation_ctrl_register():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 3 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 3.000000e+00 : f64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 2.000000e+00 : f64
-# CHECK:           %[[VAL_4:.*]] = arith.constant 1.000000e+00 : f64
-# CHECK:           %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f64
-# CHECK:           %[[VAL_6:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_7:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 3.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 2.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 1.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_6:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_7:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<3>
 # CHECK:           %[[VAL_9:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_9]][0] : (!quake.veq<2>) -> !quake.ref
