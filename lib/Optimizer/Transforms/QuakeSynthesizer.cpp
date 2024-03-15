@@ -448,9 +448,18 @@ public:
         continue;
       }
 
+      if (isa<cudaq::cc::CallableType>(type)) {
+        // TODO: for now we ignore the passing of callable arguments.
+        continue;
+      }
+
       // The struct type ends up as a i64 in the thunk kernel args pointer, so
       // just skip ahead. TODO: add support for struct types!
-      if (isa<cudaq::cc::StructType, cudaq::cc::CallableType>(type)) {
+      if (auto structTy = dyn_cast<cudaq::cc::StructType>(type)) {
+        if (structTy.isEmpty()) {
+          // TODO: for now we can ignore empty struct types.
+          continue;
+        }
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto rawSize = *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
