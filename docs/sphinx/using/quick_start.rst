@@ -16,7 +16,7 @@ This Quick Start page guides you through installing CUDA Quantum and running you
 If you have already installed and configured CUDA Quantum, or if you are using our 
 `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`_, you can move directly to our
 :doc:`Basics Section <basics/basics>`. More information about working with containers and Docker alternatives can be 
-found in our complete :doc:`Installation Guide <install/index>`.
+found in our complete :doc:`Installation Guide <install/install>`.
 
 Install CUDA Quantum
 ----------------------------
