@@ -443,7 +443,9 @@ public:
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto sizeFromBuffer =
             *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        auto vectorSize = sizeFromBuffer / (eleTy.getIntOrFloatBitWidth() / 8);
+        auto bytesInType = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
+        assert(bytesInType > 0 && "element must have a size");
+        auto vectorSize = sizeFromBuffer / bytesInType;
         stdVecInfo.emplace_back(argNum, eleTy, vectorSize);
         continue;
       }

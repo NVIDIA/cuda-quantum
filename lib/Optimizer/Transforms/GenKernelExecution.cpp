@@ -298,6 +298,7 @@ public:
     // Process all the arguments for the original call by looping over the
     // kernel's arguments.
     bool hasTrailingData = false;
+    DenseMap<std::int32_t, Value> replacementArgs;
     for (auto kaIter : llvm::enumerate(kernelArgTypes)) {
       std::int32_t idx = kaIter.index();
 
@@ -324,7 +325,19 @@ public:
         // buffer's addendum (unless the vector is length 0).
         auto ptrInTy = cudaq::cc::PointerType::get(
             cudaq::opt::factory::stlVectorType(stdvecTy.getElementType()));
+
         Value arg = builder.create<cudaq::cc::CastOp>(loc, ptrInTy, argPtr);
+        if (stdvecTy.getElementType() == builder.getI1Type()) {
+          // Create a mock vector of i8 and populate the bools, 1 per char.
+          Value temp = builder.create<cudaq::cc::AllocaOp>(
+              loc, ptrInTy.getElementType());
+          builder.create<func::CallOp>(loc, std::nullopt,
+                                       cudaq::stdvecBoolUnpackToInitList,
+                                       ArrayRef<Value>{temp, arg});
+          replacementArgs[idx] = temp;
+          arg = temp;
+        }
+
         auto [p1, p2] = insertVectorSizeAndIncrementExtraBytes(
             loc, builder, arg, ptrInTy, stdvecTy, stVal, idx, extraBytes);
         stVal = p1;
@@ -410,6 +423,20 @@ public:
           arg = builder.create<cudaq::cc::CastOp>(loc, ptrInTy, arg);
           vecToBuffer = encodeVectorData(loc, builder, bytes, stdvecTy, arg,
                                          vecToBuffer, ptrInTy);
+          if (stdvecTy.getElementType() == builder.getI1Type()) {
+            auto ptrI1Ty = cudaq::cc::PointerType::get(builder.getI1Type());
+            assert(replacementArgs.count(idx) && "must be in map");
+            auto arg = replacementArgs[idx];
+            auto heapPtr = builder.create<cudaq::cc::ComputePtrOp>(
+                loc, cudaq::cc::PointerType::get(ptrI1Ty), arg,
+                ArrayRef<cudaq::cc::ComputePtrArg>{0, 0});
+            auto loadHeapPtr = builder.create<cudaq::cc::LoadOp>(loc, heapPtr);
+            auto i8Ty = builder.getI8Type();
+            Value heapCast = builder.create<cudaq::cc::CastOp>(
+                loc, cudaq::cc::PointerType::get(i8Ty), loadHeapPtr);
+            builder.create<func::CallOp>(loc, std::nullopt, "free",
+                                         ArrayRef<Value>{heapCast});
+          }
         } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(currArgTy)) {
           if (cudaq::cc::isDynamicType(strTy)) {
             Value argPtrPtr = builder.create<cudaq::cc::ComputePtrOp>(
