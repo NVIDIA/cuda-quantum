@@ -145,6 +145,7 @@ static std::vector<std::function<void()>> ALL_TEST_FUNCTORS;
 // Define some dummy argument values to use for testing.
 static const bool BOOL_VAL = true;
 static const char CHAR_VAL = 'a';
+static const short SHORT_VAL = 1;
 static const int INT_VAL = 1;
 static const std::size_t SIZE_T_VAL = 1;
 static const int64_t INT64_VAL = 1;
@@ -156,22 +157,25 @@ static const std::vector<int> VEC_INT_VAL = {1, 2};
 static const std::vector<std::size_t> VEC_SIZE_T_VAL = {1, 2};
 static const std::vector<double> VEC_DOUBLE_VAL = {1.0, 2.0};
 static const std::vector<float> VEC_FLOAT_VAL = {1.0, 2.0};
+static const std::vector<short> VEC_SHORT_VAL = {1, 2};
 
 // Define tests
 // Note: these are single-qubit tests, so will run very fast.
 DEFINE_TEST_KERNEL(test1, (bool, a, BOOL_VAL));
 DEFINE_TEST_KERNEL(test2, (char, a, CHAR_VAL));
-DEFINE_TEST_KERNEL(test3, (int, a, INT_VAL));
-DEFINE_TEST_KERNEL(test4, (std::size_t, a, SIZE_T_VAL));
-DEFINE_TEST_KERNEL(test5, (int64_t, a, INT64_VAL));
-DEFINE_TEST_KERNEL(test6, (double, a, DOUBLE_VAL));
-DEFINE_TEST_KERNEL(test7, (float, a, FLOAT_VAL));
-// DEFINE_TEST_KERNEL(test8, (std::vector<bool>, a, VEC_BOOL_VAL));
-DEFINE_TEST_KERNEL(test9, (std::vector<char>, a, VEC_CHAR_VAL));
-DEFINE_TEST_KERNEL(test10, (std::vector<int>, a, VEC_INT_VAL));
-DEFINE_TEST_KERNEL(test11, (std::vector<std::size_t>, a, VEC_SIZE_T_VAL));
-DEFINE_TEST_KERNEL(test12, (std::vector<double>, a, VEC_DOUBLE_VAL));
-DEFINE_TEST_KERNEL(test13, (std::vector<float>, a, VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test3, (short, a, SHORT_VAL));
+DEFINE_TEST_KERNEL(test4, (int, a, INT_VAL));
+DEFINE_TEST_KERNEL(test5, (std::size_t, a, SIZE_T_VAL));
+DEFINE_TEST_KERNEL(test6, (int64_t, a, INT64_VAL));
+DEFINE_TEST_KERNEL(test7, (double, a, DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test8, (float, a, FLOAT_VAL));
+// DEFINE_TEST_KERNEL(test9, (std::vector<bool>, a, VEC_BOOL_VAL));
+DEFINE_TEST_KERNEL(test10, (std::vector<char>, a, VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test11, (std::vector<int>, a, VEC_INT_VAL));
+DEFINE_TEST_KERNEL(test12, (std::vector<std::size_t>, a, VEC_SIZE_T_VAL));
+DEFINE_TEST_KERNEL(test13, (std::vector<double>, a, VEC_DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test14, (std::vector<float>, a, VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test15, (std::vector<short>, a, VEC_SHORT_VAL));
 
 // Two-argument tests: all possible combinations
 DEFINE_TEST_KERNEL(test2_1, (bool, a, BOOL_VAL)(char, b, CHAR_VAL));
@@ -192,6 +196,9 @@ DEFINE_TEST_KERNEL(test2_11,
                    (bool, a, BOOL_VAL)(std::vector<double>, b, VEC_DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test2_12,
                    (bool, a, BOOL_VAL)(std::vector<float>, b, VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test2_13, (bool, a, BOOL_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test2_14,
+                   (bool, a, BOOL_VAL)(std::vector<short>, b, VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test3_1, (char, a, CHAR_VAL)(char, b, CHAR_VAL));
 DEFINE_TEST_KERNEL(test3_2, (char, a, CHAR_VAL)(int, b, INT_VAL));
@@ -211,6 +218,9 @@ DEFINE_TEST_KERNEL(test3_11,
                    (char, a, CHAR_VAL)(std::vector<double>, b, VEC_DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test3_12,
                    (char, a, CHAR_VAL)(std::vector<float>, b, VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test3_13, (char, a, CHAR_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test3_14,
+                   (char, a, CHAR_VAL)(std::vector<short>, b, VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test4_1, (int, a, INT_VAL)(char, b, CHAR_VAL));
 DEFINE_TEST_KERNEL(test4_2, (int, a, INT_VAL)(int, b, INT_VAL));
@@ -230,6 +240,9 @@ DEFINE_TEST_KERNEL(test4_11,
                    (int, a, INT_VAL)(std::vector<double>, b, VEC_DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test4_12,
                    (int, a, INT_VAL)(std::vector<float>, b, VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test4_13, (int, a, INT_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test4_14,
+                   (int, a, INT_VAL)(std::vector<short>, b, VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test5_1, (std::size_t, a, SIZE_T_VAL)(char, b, CHAR_VAL));
 DEFINE_TEST_KERNEL(test5_2, (std::size_t, a, SIZE_T_VAL)(int, b, INT_VAL));
@@ -253,6 +266,9 @@ DEFINE_TEST_KERNEL(test5_11, (std::size_t, a, SIZE_T_VAL)(std::vector<double>,
                                                           b, VEC_DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test5_12, (std::size_t, a, SIZE_T_VAL)(std::vector<float>, b,
                                                           VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test5_13, (std::size_t, a, SIZE_T_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test5_14, (std::size_t, a, SIZE_T_VAL)(std::vector<short>, b,
+                                                          VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test6_1, (double, a, DOUBLE_VAL)(char, b, CHAR_VAL));
 DEFINE_TEST_KERNEL(test6_2, (double, a, DOUBLE_VAL)(int, b, INT_VAL));
@@ -274,6 +290,9 @@ DEFINE_TEST_KERNEL(test6_11, (double, a, DOUBLE_VAL)(std::vector<double>, b,
                                                      VEC_DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test6_12, (double, a, DOUBLE_VAL)(std::vector<float>, b,
                                                      VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test6_13, (double, a, DOUBLE_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test6_14, (double, a, DOUBLE_VAL)(std::vector<short>, b,
+                                                     VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test7_1, (float, a, FLOAT_VAL)(char, b, CHAR_VAL));
 DEFINE_TEST_KERNEL(test7_2, (float, a, FLOAT_VAL)(int, b, INT_VAL));
@@ -294,6 +313,9 @@ DEFINE_TEST_KERNEL(test7_11, (float, a, FLOAT_VAL)(std::vector<double>, b,
                                                    VEC_DOUBLE_VAL));
 DEFINE_TEST_KERNEL(test7_12,
                    (float, a, FLOAT_VAL)(std::vector<float>, b, VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test7_13, (float, a, FLOAT_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test7_14,
+                   (float, a, FLOAT_VAL)(std::vector<short>, b, VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test8_1,
                    (std::vector<char>, a, VEC_CHAR_VAL)(char, b, CHAR_VAL));
@@ -323,6 +345,11 @@ DEFINE_TEST_KERNEL(test8_11,
 DEFINE_TEST_KERNEL(test8_12,
                    (std::vector<char>, a, VEC_CHAR_VAL)(std::vector<float>, b,
                                                         VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test8_13,
+                   (std::vector<char>, a, VEC_CHAR_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test8_14,
+                   (std::vector<char>, a, VEC_CHAR_VAL)(std::vector<short>, b,
+                                                        VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test9_1,
                    (std::vector<int>, a, VEC_INT_VAL)(char, b, CHAR_VAL));
@@ -352,6 +379,11 @@ DEFINE_TEST_KERNEL(test9_11,
 DEFINE_TEST_KERNEL(test9_12,
                    (std::vector<int>, a, VEC_INT_VAL)(std::vector<float>, b,
                                                       VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test9_13,
+                   (std::vector<int>, a, VEC_INT_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test9_14,
+                   (std::vector<int>, a, VEC_INT_VAL)(std::vector<short>, b,
+                                                      VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test10_1, (std::vector<std::size_t>, a,
                               VEC_SIZE_T_VAL)(char, b, CHAR_VAL));
@@ -383,6 +415,11 @@ DEFINE_TEST_KERNEL(test10_11,
 DEFINE_TEST_KERNEL(test10_12,
                    (std::vector<std::size_t>, a,
                     VEC_SIZE_T_VAL)(std::vector<float>, b, VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test10_13, (std::vector<std::size_t>, a,
+                               VEC_SIZE_T_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test10_14,
+                   (std::vector<std::size_t>, a,
+                    VEC_SIZE_T_VAL)(std::vector<short>, b, VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test11_1,
                    (std::vector<double>, a, VEC_DOUBLE_VAL)(char, b, CHAR_VAL));
@@ -416,6 +453,11 @@ DEFINE_TEST_KERNEL(test11_11,
 DEFINE_TEST_KERNEL(test11_12,
                    (std::vector<double>, a, VEC_DOUBLE_VAL)(std::vector<float>,
                                                             b, VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test11_13, (std::vector<double>, a,
+                               VEC_DOUBLE_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test11_14,
+                   (std::vector<double>, a, VEC_DOUBLE_VAL)(std::vector<short>,
+                                                            b, VEC_SHORT_VAL));
 
 DEFINE_TEST_KERNEL(test12_1,
                    (std::vector<float>, a, VEC_FLOAT_VAL)(char, b, CHAR_VAL));
@@ -447,6 +489,74 @@ DEFINE_TEST_KERNEL(test12_11,
 DEFINE_TEST_KERNEL(test12_12,
                    (std::vector<float>, a, VEC_FLOAT_VAL)(std::vector<float>, b,
                                                           VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test12_13,
+                   (std::vector<float>, a, VEC_FLOAT_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test12_14,
+                   (std::vector<float>, a, VEC_FLOAT_VAL)(std::vector<short>, b,
+                                                          VEC_SHORT_VAL));
+
+DEFINE_TEST_KERNEL(test13_1, (short, a, SHORT_VAL)(char, b, CHAR_VAL));
+DEFINE_TEST_KERNEL(test13_2, (short, a, SHORT_VAL)(int, b, INT_VAL));
+DEFINE_TEST_KERNEL(test13_3, (std::vector<float>, a,
+                              VEC_FLOAT_VAL)(std::size_t, b, SIZE_T_VAL));
+DEFINE_TEST_KERNEL(test13_4, (short, a, SHORT_VAL)(int64_t, b, INT64_VAL));
+DEFINE_TEST_KERNEL(test13_5, (std::vector<float>, a,
+                              VEC_FLOAT_VAL)(double, b, DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test13_6, (short, a, SHORT_VAL)(float, b, FLOAT_VAL));
+// DEFINE_TEST_KERNEL(test13_7,
+//                    (short, a, SHORT_VAL)(std::vector<bool>,
+//                    b,
+//                                                           VEC_BOOL_VAL));
+DEFINE_TEST_KERNEL(test13_8,
+                   (short, a, SHORT_VAL)(std::vector<char>, b, VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test13_9, (std::vector<float>, a,
+                              VEC_FLOAT_VAL)(std::vector<int>, b, VEC_INT_VAL));
+DEFINE_TEST_KERNEL(test13_10, (std::vector<float>, a,
+                               VEC_FLOAT_VAL)(std::vector<std::size_t>, b,
+                                              VEC_SIZE_T_VAL));
+DEFINE_TEST_KERNEL(test13_11, (short, a, SHORT_VAL)(std::vector<double>, b,
+                                                    VEC_DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test13_12,
+                   (short, a, SHORT_VAL)(std::vector<float>, b, VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test13_13, (short, a, SHORT_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test13_14,
+                   (short, a, SHORT_VAL)(std::vector<short>, b, VEC_SHORT_VAL));
+
+DEFINE_TEST_KERNEL(test14_1,
+                   (std::vector<short>, a, VEC_SHORT_VAL)(char, b, CHAR_VAL));
+DEFINE_TEST_KERNEL(test14_2,
+                   (std::vector<short>, a, VEC_SHORT_VAL)(int, b, INT_VAL));
+DEFINE_TEST_KERNEL(test14_3, (std::vector<float>, a,
+                              VEC_FLOAT_VAL)(std::size_t, b, SIZE_T_VAL));
+DEFINE_TEST_KERNEL(test14_4, (std::vector<short>, a, VEC_SHORT_VAL)(int64_t, b,
+                                                                    INT64_VAL));
+DEFINE_TEST_KERNEL(test14_5, (std::vector<float>, a,
+                              VEC_FLOAT_VAL)(double, b, DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test14_6,
+                   (std::vector<short>, a, VEC_SHORT_VAL)(float, b, FLOAT_VAL));
+// DEFINE_TEST_KERNEL(test14_7,
+//                    (std::vector<short>, a, VEC_SHORT_VAL)(std::vector<bool>,
+//                    b,
+//                                                           VEC_BOOL_VAL));
+DEFINE_TEST_KERNEL(test14_8,
+                   (std::vector<short>, a, VEC_SHORT_VAL)(std::vector<char>, b,
+                                                          VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test14_9, (std::vector<float>, a,
+                              VEC_FLOAT_VAL)(std::vector<int>, b, VEC_INT_VAL));
+DEFINE_TEST_KERNEL(test14_10, (std::vector<float>, a,
+                               VEC_FLOAT_VAL)(std::vector<std::size_t>, b,
+                                              VEC_SIZE_T_VAL));
+DEFINE_TEST_KERNEL(test14_11,
+                   (std::vector<short>, a, VEC_SHORT_VAL)(std::vector<double>,
+                                                          b, VEC_DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test14_12,
+                   (std::vector<short>, a, VEC_SHORT_VAL)(std::vector<float>, b,
+                                                          VEC_FLOAT_VAL));
+DEFINE_TEST_KERNEL(test14_13,
+                   (std::vector<short>, a, VEC_SHORT_VAL)(short, b, SHORT_VAL));
+DEFINE_TEST_KERNEL(test14_14,
+                   (std::vector<short>, a, VEC_SHORT_VAL)(std::vector<short>, b,
+                                                          VEC_SHORT_VAL));
 
 // These tests are just some random tests for more than 2 arguments. An
 // exhaustive combinatorial list would be impractical.
@@ -514,6 +624,58 @@ DEFINE_TEST_KERNEL(test_mixed_18,
                        bool, c, BOOL_VAL)(std::vector<int>, d,
                                           VEC_INT_VAL)(std::vector<double>, e,
                                                        VEC_DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test_mixed_19, (bool, a, BOOL_VAL)(char, b, CHAR_VAL)(
+                                      short, c, SHORT_VAL)(bool, d, BOOL_VAL));
+DEFINE_TEST_KERNEL(test_mixed_20,
+                   (bool, a, BOOL_VAL)(std::vector<short>, b,
+                                       VEC_SHORT_VAL)(short, c, SHORT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_21,
+                   (bool, a, BOOL_VAL)(char, b, CHAR_VAL)(int, c, INT_VAL)(
+                       std::vector<short>, d, VEC_SHORT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_22, (int, a, INT_VAL)(char, b, CHAR_VAL)(
+                                      int, c, INT_VAL)(short, d, SHORT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_23,
+                   (std::size_t, a,
+                    SIZE_T_VAL)(char, b, CHAR_VAL)(short, c,
+                                                   SHORT_VAL)(int, d, INT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_24,
+                   (std::size_t, a,
+                    SIZE_T_VAL)(int, b, INT_VAL)(std::size_t, c,
+                                                 SIZE_T_VAL)(std::vector<short>,
+                                                             d, VEC_SHORT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_25,
+                   (int, a, INT_VAL)(std::vector<char>, b, VEC_CHAR_VAL)(
+                       std::vector<float>, c, VEC_FLOAT_VAL)(std::vector<short>,
+                                                             d, VEC_SHORT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_26,
+                   (int, a, INT_VAL)(std::vector<char>, b, VEC_CHAR_VAL)(
+                       std::vector<short>, c,
+                       VEC_SHORT_VAL)(std::vector<double>, d, VEC_DOUBLE_VAL));
+DEFINE_TEST_KERNEL(test_mixed_27,
+                   (std::size_t, a, SIZE_T_VAL)(short, b, SHORT_VAL)(
+                       std::vector<double>, c,
+                       VEC_DOUBLE_VAL)(std::vector<short>, d,
+                                       VEC_SHORT_VAL)(std::vector<char>, e,
+                                                      VEC_CHAR_VAL));
+DEFINE_TEST_KERNEL(test_mixed_28,
+                   (std::size_t, a, SIZE_T_VAL)(short, b, SHORT_VAL)(
+                       std::vector<float>, c,
+                       VEC_FLOAT_VAL)(std::vector<char>, d,
+                                      VEC_CHAR_VAL)(short, e, SHORT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_29,
+                   (std::vector<short>, a,
+                    VEC_SHORT_VAL)(double, b, DOUBLE_VAL)(std::vector<char>, c,
+                                                          VEC_CHAR_VAL)(
+                       std::vector<float>, d, VEC_FLOAT_VAL)(std::vector<short>,
+                                                             e, VEC_SHORT_VAL));
+DEFINE_TEST_KERNEL(test_mixed_30,
+                   (double, a, DOUBLE_VAL)(short, b, SHORT_VAL)(
+                       std::vector<char>, c, VEC_CHAR_VAL)(std::vector<short>,
+                                                           d, VEC_SHORT_VAL)(
+                       std::vector<short>, e,
+                       VEC_SHORT_VAL)(std::vector<double>, ff,
+                                      VEC_DOUBLE_VAL)(std::size_t, g,
+                                                      SIZE_T_VAL));
 
 int main() {
   // Run all tests
