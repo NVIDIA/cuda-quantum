@@ -9,6 +9,9 @@
 #pragma once
 
 namespace cudaq {
-  static const int TIMING_OBSERVE = 1;
-  static const int TIMING_MAX_VALUE = 1;
-}
+static const int TIMING_OBSERVE = 1;
+static const int TIMING_ALLOCATE = 2;
+static const int TIMING_LAUNCH = 3;
+static const int TIMING_SAMPLE = 4;
+static const int TIMING_MAX_VALUE = 4;
+} // namespace cudaq

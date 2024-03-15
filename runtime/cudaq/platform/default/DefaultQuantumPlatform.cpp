@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
+#include "common/Timing.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -33,7 +34,7 @@ public:
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t, std::uint64_t) override {
-    cudaq::ScopedTrace trace("QPU::launchKernel");
+    cudaq::ScopedTrace trace(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
     kernelFunc(args);
   }
 
@@ -51,8 +52,9 @@ public:
   /// Overrides resetExecutionContext to forward to
   /// the ExecutionManager. Also handles observe post-processing
   void resetExecutionContext() override {
-    cudaq::ScopedTrace trace("DefaultPlatform::resetExecutionContext",
-                             executionContext->name);
+    cudaq::ScopedTrace trace(
+        executionContext->name == "observe" ? cudaq::TIMING_OBSERVE : 0,
+        "DefaultPlatform::resetExecutionContext", executionContext->name);
     handleObservation(executionContext);
     cudaq::getExecutionManager()->resetExecutionContext();
     executionContext = nullptr;

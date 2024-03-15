@@ -11,6 +11,7 @@
 
 #include "CircuitSimulator.h"
 #include "Gates.h"
+#include "Timing.h"
 #include "cuComplex.h"
 #include "custatevec.h"
 #include <bitset>
@@ -478,7 +479,7 @@ public:
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
-    cudaq::ScopedTrace trace("CuStateVecSimulator::sample");
+    cudaq::ScopedTrace trace(cudaq::TIMING_SAMPLE, "CuStateVecSimulator::sample");
     double expVal = 0.0;
     // cudaq::CountsDictionary counts;
     std::vector<custatevecPauli_t> z_pauli;
