@@ -188,6 +188,13 @@ void tuple_for_each_with_idx(TupleType &&t, FunctionType f) {
                           std::integral_constant<size_t, 0>());
 }
 
+// Utility function to access a parameter at index from a variadic parameter
+// pack.
+template <size_t Idx, typename... T>
+decltype(auto) getParameterPackVals(T &&...Args) noexcept {
+  return std::get<Idx>(std::forward_as_tuple(std::forward<T>(Args)...));
+}
+
 // Function check if file with given path+name exists
 inline bool fileExists(const std::string &name) {
   if (FILE *file = fopen(name.c_str(), "r")) {
