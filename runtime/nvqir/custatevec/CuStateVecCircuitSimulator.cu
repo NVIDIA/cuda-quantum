@@ -519,7 +519,6 @@ public:
     }
     cudaq::sample_result perTermData(static_cast<double>(expVal.real()),
                                      results);
-    perTermData.dump();
     return cudaq::observe_result(static_cast<double>(expVal.real()), op,
                                  perTermData);
   }
