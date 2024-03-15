@@ -178,15 +178,27 @@ public:
   /// @param tag See Timing.h
   /// @param name String to print
   template <typename... Args>
-  ScopedTrace(const int tag, const std::string &name, Args &&...args) {
+  ScopedTrace(const int tag, const std::string &name, Args &&...args)
+      : tag(tag) {
     tagFound = g_timingList().find(tag) != g_timingList().end();
     if (tagFound || details::should_log(details::LogLevel::trace)) {
       startTime = std::chrono::system_clock::now();
       traceName = name;
-      argsMsg = " (args = {{";
-      constexpr std::size_t nArgs = sizeof...(Args);
-      for (std::size_t i = 0; i < nArgs; i++) {
-        argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
+      if (tagFound) {
+        // This needs double double braces because it goes through
+        // fmt::format(fmt::runtime()) twice ... once in this function and once
+        // in the cudaq::log() in the destructor.
+        argsMsg = " (args = {{{{";
+        constexpr std::size_t nArgs = sizeof...(Args);
+        for (std::size_t i = 0; i < nArgs; i++) {
+          argsMsg += (i != nArgs - 1) ? "{}, " : "{}}}}})";
+        }
+      } else {
+        argsMsg = " (args = {{";
+        constexpr std::size_t nArgs = sizeof...(Args);
+        for (std::size_t i = 0; i < nArgs; i++) {
+          argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
+        }
       }
       argsMsg = fmt::format(fmt::runtime(argsMsg), args...);
       globalTraceStack++;
