@@ -13,7 +13,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -412,7 +411,8 @@ public:
       // Process scalar floating point types.
       if (type == builder.getF32Type()) {
         synthesizeRuntimeArgument<float>(
-            builder, argument, args, offset, type.getIntOrFloatBitWidth() / 8,
+            builder, argument, args, offset,
+            cudaq::opt::convertBitsToBytes(type.getIntOrFloatBitWidth()),
             [=](OpBuilder &builder, float *concrete) {
               llvm::APFloat f(*concrete);
               return builder.create<arith::ConstantFloatOp>(
@@ -422,7 +422,8 @@ public:
       }
       if (type == builder.getF64Type()) {
         synthesizeRuntimeArgument<double>(
-            builder, argument, args, offset, type.getIntOrFloatBitWidth() / 8,
+            builder, argument, args, offset,
+            cudaq::opt::convertBitsToBytes(type.getIntOrFloatBitWidth()),
             [=](OpBuilder &builder, double *concrete) {
               llvm::APFloat f(*concrete);
               return builder.create<arith::ConstantFloatOp>(
@@ -443,7 +444,8 @@ public:
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto sizeFromBuffer =
             *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        auto bytesInType = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
+        auto bytesInType =
+            cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
         assert(bytesInType > 0 && "element must have a size");
         auto vectorSize = sizeFromBuffer / bytesInType;
         stdVecInfo.emplace_back(argNum, eleTy, vectorSize);
@@ -510,7 +512,8 @@ public:
           doVector(std::int64_t{});
           break;
         default:
-          bufferAppendix += vecLength * (ty.getIntOrFloatBitWidth() / 8);
+          bufferAppendix += vecLength * cudaq::opt::convertBitsToBytes(
+                                            ty.getIntOrFloatBitWidth());
           funcOp.emitOpError("synthesis failed for vector<integral-type>.");
           break;
         }
