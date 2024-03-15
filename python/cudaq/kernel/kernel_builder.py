@@ -245,10 +245,17 @@ class PyKernel(object):
             return ty, None
         if get_origin(ty) == list or isinstance(ty(), list):
             if '[' in str(ty) and ']' in str(ty):
-                allowedTypeMap = {'int': int, 'bool': bool, 'float': float}
+                allowedTypeMap = {
+                    'int': int,
+                    'bool': bool,
+                    'float': float,
+                    'pauli_word': cudaq_runtime.pauli_word
+                }
                 # Infer the slice type
                 result = re.search(r'ist\[(.*)\]', str(ty))
                 eleTyName = result.group(1)
+                if 'cudaq_runtime.pauli_word' in str(ty):
+                    eleTyName = 'pauli_word'
                 pyType = allowedTypeMap[eleTyName]
                 if eleTyName != None and eleTyName in allowedTypeMap:
                     return list, [pyType()]
