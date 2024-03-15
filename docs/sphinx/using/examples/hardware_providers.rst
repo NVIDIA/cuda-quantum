@@ -19,10 +19,19 @@ The following code illustrates how to run kernels on IonQ's backends.
 
 The following code illustrates how to run kernels on IQM's backends.
 
+.. tab:: Python
+
    .. literalinclude:: ../../examples/python/providers/iqm.py
       :language: python
 
+.. tab:: C++
+
+   .. literalinclude:: ../../examples/cpp/providers/iqm.cpp
+      :language: cpp
+
 The following code illustrates how to run kernels on OQC's backends.
+
+.. tab:: Python
 
    .. literalinclude:: ../../examples/python/providers/oqc.py
       :language: python
