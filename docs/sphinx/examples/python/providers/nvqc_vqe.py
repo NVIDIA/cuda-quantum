@@ -34,7 +34,7 @@ hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
 
 def opt_gradient(parameter_vector):
     # Evaluate energy and gradient on different remote QPUs
-    # (i.e., concurrent job submissions to NVCF)
+    # (i.e., concurrent job submissions to NVQC)
     energy_future = cudaq.observe_async(ansatz,
                                         hamiltonian,
                                         parameter_vector[0],
