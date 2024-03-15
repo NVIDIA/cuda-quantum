@@ -9,7 +9,7 @@ in quantum computing. It offers a unified programming model designed for a hybri
 setting |---| that is, CPUs, GPUs, and QPUs working together. CUDA Quantum contains support for 
 programming in Python and in C++.
 
-You are browsing the documentation for |version| version of CUDA Quantum. You can find documentation for all released versions :doc:`here <releases>`.
+You are browsing the documentation for |version| version of CUDA Quantum. You can find documentation for all released versions :doc:`here <versions>`.
 
 **CUDA Quantum** is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.
 
