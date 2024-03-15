@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "common/BaseRestRemoteClient.h"
+#include "common/NvqcConfig.h"
+#include <regex>
 
 using namespace mlir;
 
@@ -20,7 +22,6 @@ public:
 /// Implementation of QPU subtype that submits simulation request to NVCF.
 /// REST client submitting jobs to NVCF-hosted `cudaq-qpud` service.
 class PyNvcfRuntimeClient : public cudaq::BaseNvcfRuntimeClient {
-public:
   /// @brief The constructor
   PyNvcfRuntimeClient() : BaseNvcfRuntimeClient() {}
 };

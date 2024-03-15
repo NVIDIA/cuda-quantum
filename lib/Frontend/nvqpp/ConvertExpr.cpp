@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -1952,6 +1952,8 @@ bool QuakeBridgeVisitor::WalkUpFromCXXOperatorCallExpr(
 bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
     clang::CXXOperatorCallExpr *x) {
   auto loc = toLocation(x->getSourceRange());
+
+  // Helper to replace the operator[] function name with the value, v.
   auto replaceTOSValue = [&](Value v) {
     [[maybe_unused]] auto funcVal = popValue();
     assert(funcVal.getDefiningOp<func::ConstantOp>());

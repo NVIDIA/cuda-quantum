@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -63,6 +63,25 @@ inline mlir::Type getPointerType(mlir::Type ty) {
 }
 
 cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
+
+mlir::Type genArgumentBufferType(mlir::Type ty);
+
+/// Build an LLVM struct type with all the arguments and then all the results.
+/// If the type is a std::vector, then add an i64 to the struct for the
+/// length. The actual data values will be appended to the end of the
+/// dynamically sized struct.
+///
+/// A kernel signature of
+/// ```c++
+/// i32_t operator() (i16_t, std::vector<double>, double);
+/// ```
+/// will generate the LLVM struct
+/// ```llvm
+/// { i16, i64, double, i32 }
+/// ```
+/// where the values of the vector argument are pass-by-value and appended to
+/// the end of the struct as a sequence of \i n double values.
+cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy);
 
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {

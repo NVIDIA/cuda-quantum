@@ -120,6 +120,10 @@ public:
       : cudaq::RemoteRuntimeServer(),
         m_simHandle(DEFAULT_NVQIR_SIMULATION_BACKEND,
                     loadNvqirSimLib(DEFAULT_NVQIR_SIMULATION_BACKEND)) {}
+
+  virtual int version() const override {
+    return cudaq::RestRequest::REST_PAYLOAD_VERSION;
+  }
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) override {
     const auto portIter = configs.find("port");
@@ -544,6 +548,18 @@ protected:
       } else {
         cudaq::info(os.str());
       }
+
+      // Verify REST API version of the incoming request
+      // If the incoming JSON payload has a different version than the one this
+      // server is expecting, throw an error. Note: we don't support
+      // automatically versioning the payload (converting payload between
+      // different versions) at the moment.
+      if (static_cast<int>(request.version) != version())
+        throw std::runtime_error(fmt::format(
+            "Incompatible REST payload version detected: supported version {}, "
+            "got version {}.",
+            version(), request.version));
+
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);
       if (!shouldHandle) {
