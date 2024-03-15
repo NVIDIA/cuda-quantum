@@ -1,0 +1,137 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-translate --convert-to=iqm %s | FileCheck %s
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__bell = "_ZN4bellclEv"}} {
+  func.func @__nvqpp__mlirgen__bell() attributes {"cudaq-entrypoint"} {
+    %cst = arith.constant 0.000000e+00 : f64
+    %cst_0 = arith.constant 3.1415926535897931 : f64
+    %cst_1 = arith.constant 1.5707963267948966 : f64
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %0 = quake.alloca !quake.veq<2>
+
+    %q0 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+    quake.phased_rx(%cst_1, %cst_1) %q0 : (f64, f64, !quake.ref) -> ()
+    quake.phased_rx(%cst_0, %cst) %q0 : (f64, f64, !quake.ref) -> ()
+
+    %q1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+    quake.phased_rx(%cst_1, %cst_1) %q1 : (f64, f64, !quake.ref) -> ()
+    quake.phased_rx(%cst_0, %cst) %q1 : (f64, f64, !quake.ref) -> ()
+    quake.z [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+    quake.phased_rx(%cst_1, %cst_1) %q1 : (f64, f64, !quake.ref) -> ()
+    quake.phased_rx(%cst_0, %cst) %q1 : (f64, f64, !quake.ref) -> ()
+
+    %8 = llvm.alloca %c2_i64 x i1 : (i64) -> !llvm.ptr<i1>
+
+    %bit = quake.mz %q0 : (!quake.ref) -> !quake.measure
+    %bits = quake.discriminate %bit : (!quake.measure) -> i1
+    llvm.store %bits, %8 : !llvm.ptr<i1>
+
+    %bit_4 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+    %bits_4 = quake.discriminate %bit_4 : (!quake.measure) -> i1
+    %9 = llvm.getelementptr %8[1] : (!llvm.ptr<i1>) -> !llvm.ptr<i1>
+    llvm.store %bits_4, %9 : !llvm.ptr<i1>
+    return
+  }
+}
+
+// CHECK: {
+// CHECK:     "instructions": [
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 0.25,
+// CHECK:                       "phase_t": 0.25
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 0.5,
+// CHECK:                       "phase_t": 0.0
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 0.25,
+// CHECK:                       "phase_t": 0.25
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB2"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 0.5,
+// CHECK:                       "phase_t": 0.0
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB2"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {},
+// CHECK:                   "name": "cz",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1",
+// CHECK:                       "QB2"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 0.25,
+// CHECK:                       "phase_t": 0.25
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB2"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "angle_t": 0.5,
+// CHECK:                       "phase_t": 0.0
+// CHECK:                   },
+// CHECK:                   "name": "phased_rx",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB2"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "key": "m_QB1"
+// CHECK:                   },
+// CHECK:                   "name": "measurement",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB1"
+// CHECK:                   ]
+// CHECK:               },
+// CHECK:         {
+// CHECK:                   "args": {
+// CHECK:                       "key": "m_QB2"
+// CHECK:                   },
+// CHECK:                   "name": "measurement",
+// CHECK:                   "qubits": [
+// CHECK:                       "QB2"
+// CHECK:                   ]
+// CHECK:               }
+// CHECK:           ],
+// CHECK:           "name": "__nvqpp__mlirgen__bell"
+// CHECK: }

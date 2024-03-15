@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -44,6 +44,12 @@ std::unique_ptr<mlir::Pass> createQuakeSynthesizer();
 std::unique_ptr<mlir::Pass> createQuakeSynthesizer(std::string_view, void *);
 std::unique_ptr<mlir::Pass> createRaiseToAffinePass();
 std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
+
+std::unique_ptr<mlir::Pass>
+createPySynthCallableBlockArgs(const std::vector<std::string> &);
+inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
+  return createPySynthCallableBlockArgs({});
+}
 
 // declarative passes
 #define GEN_PASS_DECL

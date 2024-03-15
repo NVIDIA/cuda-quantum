@@ -173,6 +173,9 @@ function show_help {
 -v
 	Verbose output. Shows the commands the driver executes.
 
+--version
+	Display compiler version information.
+
 -h | --help
 	Print this help.
 HELP
@@ -190,7 +193,8 @@ llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 
 IS_RELOCATABLE_INSTALL=@CUDAQ_RELOCATABLE_BOOL@
 INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
-
+# Full version string of this nvq++ script.
+NVQPP_VERSION_STRING="nvq++ Version @CUDA_QUANTUM_VERSION@ (https://github.com/NVIDIA/cuda-quantum @CUDA_QUANTUM_COMMIT_SHA@)"
 # If we are a relocatable package, then we
 # want to re-divert llvm_install_dir to the install_dir
 if ${IS_RELOCATABLE_INSTALL}; then
@@ -317,6 +321,7 @@ CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
 CMAKE_FALLBACK_HOST_CXX=${CXX}
 TARGET_ARGS=()
+HOST_TARGET=$(${LLVMBIN}llc${llvm_suffix} --version | grep "Default target" | head -1 | cut -d':' -f2 | tr -d ' ')
 
 if [[ $# -eq 0 ]]; then
     SHOW_HELP=true
@@ -533,7 +538,6 @@ while [ $# -ne 0 ]; do
 		LINKLIBS="${LINKLIBS} $1"
 		;;
 	--version)
-		CUDAQ_QUAKE_ARGS="--nvqpp-version ${CUDAQ_QUAKE_ARGS}"
 		SHOW_VERSION=true
 		;;
 	-v)
@@ -579,13 +583,20 @@ function delete_temp_files {
 }
 trap delete_temp_files EXIT
 
-COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
+COMPILER_FLAGS="${CPPSTD} -Wno-c++20-extensions ${COMPILER_FLAGS}"
 
 # Goal here is to parse the backend config file, get the
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
 OBJS_TO_MERGE=""
 if [ -n "${TARGET_CONFIG}" ]; then
+	# Disable compilation on non-x86 machines when targetting NVQC.
+	# See https://github.com/NVIDIA/cuda-quantum/issues/1345 for current status.
+	if [ "${TARGET_CONFIG}" == "nvqc" ]; then
+		if [ "${HOST_TARGET:0:6}" != "x86_64" ]; then
+			error_exit "Cannot use nvqc target from non-x86_64 client at this time"
+		fi
+	fi
 	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false
@@ -675,9 +686,8 @@ fi
 OPT_PASSES="builtin.module(${OPT_PASSES})"
 
 if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
-	# If version is requested and no source files were provided, bypass the
-	# cudaq-quake path that expects to read code from stdin.
-	echo "" | ${TOOLBIN}cudaq-quake ${CUDAQ_QUAKE_ARGS}
+	# If version is requested and no source files were provided, log the version string.
+	echo "$NVQPP_VERSION_STRING"
 	DO_LINK=false
 fi
 
@@ -687,7 +697,7 @@ for i in ${SRCS}; do
 	# If LIBRARY_MODE explicitly requested, then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-		run ${CMAKE_FALLBACK_HOST_CXX} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
+		run ${CMAKE_FALLBACK_HOST_CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
 		OBJS="${OBJS} ${file}.o"
 		# Go to the next iteration, maybe there
 		# will be cudaq kernels there

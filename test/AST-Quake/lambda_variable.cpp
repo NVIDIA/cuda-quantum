@@ -1,13 +1,14 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// FIXME: should not require C++20,
-// tracked in https://github.com/NVIDIA/cuda-quantum/issues/1102.
+// The source code in this test uses concepts, a C++20 language feature, and 
+// hence is not expected to compile as C++17. The REQUIRES line below reflects this.
+
 // REQUIRES: c++20
 // RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
@@ -37,6 +38,7 @@ struct test3_caller {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_callee(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes {"cudaq-kernel"} {
 // CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<?>) -> !quake.ref
@@ -49,7 +51,7 @@ struct test3_caller {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test3_callee" {}>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test3_callee" {} [8,1]>
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
 // CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref{{.*}}):
 // CHECK:             quake.h %[[VAL_4]] : (!quake.ref) -> ()
@@ -65,6 +67,7 @@ struct test3_caller {
 // CHECK:           quake.y %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // This is a template case (`auto`), so use the specialization that `callback`
 // is resolved to in the AST.
@@ -88,10 +91,11 @@ struct test4_caller {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test4_callee" {}>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test4_callee" {} [8,1]>
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
 // CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref{{.*}}):
 // CHECK:             quake.h %[[VAL_4]] : (!quake.ref) -> ()
@@ -116,3 +120,4 @@ struct test4_caller {
 // CHECK:           call @__nvqpp__mlirgen__ZN12test4_caller[[LAM]]_(%[[VAL_3]]) : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on

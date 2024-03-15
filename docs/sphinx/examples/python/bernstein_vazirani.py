@@ -13,12 +13,12 @@ def random_bitstring(length: int):
 def oracle(kernel: cudaq.Kernel, register: cudaq.QuakeValue,
            auxillary_qubit: cudaq.QuakeValue, hidden_bitstring: str):
     """
-    The inner-product oracle for Bernstein Vazirani.
+    The inner-product oracle for the Bernstein-Vazirani algorithm.
     """
     for index, bit in enumerate(hidden_bitstring):
         if bit == "0":
             # Apply identity operation to the qubit if it's
-            # to be in the 0-state.
+            # in the 0-state.
             # In this case, we do nothing.
             pass
         else:
@@ -29,7 +29,7 @@ def oracle(kernel: cudaq.Kernel, register: cudaq.QuakeValue,
 
 def bernstein_vazirani(qubit_count: int):
     """
-    Returns a kernel implementing the Bernstein Vazirani algorithm
+    Returns a kernel implementing the Bernstein-Vazirani algorithm
     for a random, hidden bitstring.
     """
     kernel = cudaq.make_kernel()

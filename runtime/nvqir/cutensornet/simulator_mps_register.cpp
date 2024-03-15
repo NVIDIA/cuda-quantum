@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -98,7 +98,10 @@ public:
   }
 
   virtual std::string name() const override { return "tensornet-mps"; }
-
+  CircuitSimulator *clone() override {
+    thread_local static auto simulator = std::make_unique<SimulatorMPS>();
+    return simulator.get();
+  }
   virtual ~SimulatorMPS() noexcept {
     for (auto &tensor : m_mpsTensors_d) {
       HANDLE_CUDA_ERROR(cudaFree(tensor));

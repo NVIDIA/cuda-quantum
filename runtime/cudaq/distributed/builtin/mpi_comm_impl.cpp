@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -96,7 +96,7 @@ MPI_Comm unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
 
 /// @brief Tracking in-flight non-blocking send and receive requests.
 struct PendingRequest {
-  MPI_Request requests[2];
+  MPI_Request requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
   int nActiveRequests;
   PendingRequest() : nActiveRequests(0){};
   static std::mutex g_mutex;

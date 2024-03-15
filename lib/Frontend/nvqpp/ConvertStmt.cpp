@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -444,6 +444,19 @@ bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
     // If there is no initialization expression, skip creating an `if` scope.
     if (!TraverseStmt(cond))
       return false;
+
+    // For something like an `operator[]` the TOS value (likely) is a
+    // pointer to the indexed element in a vector. Since there may not be a cast
+    // node in the AST to make that a RHS value, we must explicitly check here
+    // and add the required a load and cast.
+    if (auto ptrTy = dyn_cast<cc::PointerType>(peekValue().getType())) {
+      Value v = popValue();
+      pushValue(builder.create<cc::LoadOp>(loc, v));
+      if (ptrTy != builder.getI1Type()) {
+        reportClangError(x, mangler,
+                         "expression in condition not yet supported");
+      }
+    }
     if (x->getElse())
       builder.create<cc::IfOp>(loc, TypeRange{}, popValue(),
                                stmtBuilder(x->getThen()),

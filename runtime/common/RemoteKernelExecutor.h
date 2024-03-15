@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,6 +17,7 @@
 #include "common/Registry.h"
 #include <optional>
 #include <string_view>
+#include <unordered_map>
 
 namespace mlir {
 class MLIRContext;
@@ -38,7 +39,9 @@ public:
   virtual void start() = 0;
   // Stop the server.
   virtual void stop() = 0;
-
+  // Return the version of the server implementation.
+  // It's defined by the Json payload version that it can handle.
+  virtual int version() const = 0;
   // Handle incoming kernel execution requests.
   virtual void handleRequest(std::size_t reqId, ExecutionContext &io_context,
                              const std::string &backendSimName,
@@ -58,6 +61,15 @@ public:
   // Configure the client, e.g., address of the server.
   virtual void
   setConfig(const std::unordered_map<std::string, std::string> &configs) = 0;
+
+  // Return the API version of the client implementation.
+  // It defines the version number of the constructed payload and server
+  // compatibility check/lookup.
+  virtual int version() const = 0;
+
+  // Reset the random seed sequence using for remote execution.
+  // This is triggered by a random seed value being set in CUDAQ runtime.
+  virtual void resetRemoteRandomSeed(std::size_t seed) = 0;
 
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and

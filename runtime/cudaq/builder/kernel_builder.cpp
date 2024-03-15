@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -755,18 +755,17 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   cudaq::ScopedTrace trace("cudaq::details::jitCode", kernelName);
 
   // Start of by getting the current ModuleOp
-  auto block = builder.getBlock();
+  auto *block = builder.getBlock();
   auto *context = builder.getContext();
-  auto function = block->getParentOp();
+  auto *function = block->getParentOp();
   auto currentModule = function->getParentOfType<ModuleOp>();
 
   // Create a unique hash from that ModuleOp
-  std::string modulePrintOut;
-  {
-    llvm::raw_string_ostream os(modulePrintOut);
-    currentModule.print(os);
-  }
-  auto moduleHash = std::hash<std::string>{}(modulePrintOut);
+  auto hash = llvm::hash_code{0};
+  currentModule.walk([&hash](Operation *op) {
+    hash = llvm::hash_combine(hash, OperationEquivalence::computeHash(op));
+  });
+  auto moduleHash = static_cast<size_t>(hash);
 
   if (jit) {
     // Have we added more instructions
@@ -830,6 +829,16 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   if (failed(pm.run(module)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
+
+  // The "fast" instruction selection compilation algorithm is actually very
+  // slow for large quantum circuits. Disable that here. Revisit this
+  // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
+  // in the future. Also note that llvm::TargetMachine::setFastIsel() and
+  // setO0WantsFastISel() do not retain their values in our current version of
+  // LLVM. This use of LLVM command line parameters could be changed if the LLVM
+  // JIT ever supports the TargetMachine options in the future.
+  const char *argv[] = {"", "-fast-isel=0", nullptr};
+  llvm::cl::ParseCommandLineOptions(2, argv);
 
   cudaq::info("- Pass manager was applied.");
   ExecutionEngineOptions opts;

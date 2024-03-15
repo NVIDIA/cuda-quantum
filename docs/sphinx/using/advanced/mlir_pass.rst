@@ -1,4 +1,4 @@
-Create your Own CUDA Quantum Compiler Pass 
+Create your own CUDA Quantum Compiler Pass 
 ******************************************
 
 The CUDA Quantum IR can be transformed, analyzed, or optimized 
@@ -13,7 +13,7 @@ Pass code as part of the existing CUDA Quantum CMake system.
 As an example, clone the repository and add the following directory structure 
 under :code:`lib`, :code:`lib/Plugins/MyCustomPlugin/`. Within this directory create a 
 :code:`CMakeLists.txt` file and a :code:`MyCustomPlugin.cpp` file. In the CMake file, 
-add the following 
+add the following: 
 
 .. code:: cmake 
 
@@ -21,9 +21,9 @@ add the following
 
 Creating a CUDA Quantum IR pass starts with the implementation of an 
 :code:`mlir::OperationPass`. A full discussion of the MLIR Pass infrastructure 
-is beyond the scope of this document, please see 
+is beyond the scope of this document; please see 
 `MLIR Passes <https://mlir.llvm.org/docs/PassManagement>`_. To create such 
-a pass, start with the following template in the :code:`MyCustomPlugin.cpp` file
+a pass, start with the following template in the :code:`MyCustomPlugin.cpp` file:
 
 .. code:: cpp 
     
@@ -89,7 +89,7 @@ and also that there is a :code:`lib/Plugins/CMakeLists.txt` file that adds your
 plugin directory with :code:`add_subdirectory`.
 
 Then build CUDA Quantum and you will have a :code:`MyCustomPlugin.so` plugin library 
-in the install. You can load the plugin and use it with :code:`cudaq-opt` as follows 
+in the install. You can load the plugin and use it with :code:`cudaq-opt` as follows: 
 
 .. code:: bash 
 

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,3 +10,4 @@ add_subdirectory(Builder)
 add_subdirectory(CodeGen)
 add_subdirectory(Dialect)
 add_subdirectory(Transforms)
+add_subdirectory(CAPI)

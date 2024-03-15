@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,7 +15,9 @@ set(COMMON_RUNTIME_SRC
   NoiseModel.cpp 
   ServerHelper.cpp 
   Resources.cpp
+  Trace.cpp
   Future.cpp
+  Executor.cpp
 )
 
 # Create the cudaq-common library
@@ -51,6 +53,7 @@ if(OPENSSL_FOUND)
                        GIT_REPOSITORY https://github.com/libcpr/cpr.git
                        GIT_TAG 871ed52d350214a034f6ef8a3b8f51c5ce1bd400) 
   set(CURL_STATICLIB ON)
+  set(CURL_USE_STATIC_LIBS TRUE)
   find_package(CURL COMPONENTS HTTP HTTPS)
   if (CURL_FOUND)
     message(STATUS "Using system curl for CPR.")
@@ -94,6 +97,12 @@ install(EXPORT cudaq-common-targets
         FILE CUDAQCommonTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq)
+if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
+  # Copy to build directory so that developers can run from the build directory
+  file(COPY "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION "${CMAKE_BINARY_DIR}")
+  # Also include it as an install target
+  install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
+endif()
 
 ## ----- Runtime MLIR Library ----- 
 ## We need support in the runtime for compiler-level things, 
@@ -105,8 +114,9 @@ install(EXPORT cudaq-common-targets
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 
-add_library(cudaq-mlir-runtime SHARED RuntimeMLIR.cpp)
+add_library(cudaq-mlir-runtime SHARED RuntimeMLIR.cpp JIT.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
+set_source_files_properties(JIT.cpp PROPERTIES COMPILE_FLAGS -fno-rtti)
 
 target_include_directories(cudaq-mlir-runtime
   PRIVATE . ${CMAKE_SOURCE_DIR}/runtime)

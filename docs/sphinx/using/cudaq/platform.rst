@@ -177,6 +177,7 @@ each simulated by a `tensornet` simulator backend.
     .. literalinclude:: ../../snippets/python/using/cudaq/platform/sample_async_remote.py
         :language: python
         :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
 
 In the above code snippets, the :code:`remote-mqpu` platform was used in the auto-launch mode,
 whereby a specific number of server instances, i.e., virtual QPUs, are launched on the local machine

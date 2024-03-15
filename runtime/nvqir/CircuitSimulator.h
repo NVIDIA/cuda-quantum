@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -403,21 +403,21 @@ protected:
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
 
-      // Configure the register name so we can operate on it
-      std::string mutableName = regName;
-      if (regName.empty())
-        mutableName = cudaq::GlobalRegisterName;
-
-      // Insert the sample qubit into the register name map
-      auto iter = registerNameToMeasuredQubit.find(mutableName);
-      if (iter == registerNameToMeasuredQubit.end())
-        registerNameToMeasuredQubit.emplace(mutableName,
-                                            std::vector<std::size_t>{qubitIdx});
-      else {
-        if (std::find(iter->second.begin(), iter->second.end(), qubitIdx) ==
-            iter->second.end())
+      auto processForRegName = [&](const std::string &regStr) {
+        // Insert the sample qubit into the register name map
+        auto iter = registerNameToMeasuredQubit.find(regStr);
+        if (iter == registerNameToMeasuredQubit.end())
+          registerNameToMeasuredQubit.emplace(
+              regStr, std::vector<std::size_t>{qubitIdx});
+        else if (std::find(iter->second.begin(), iter->second.end(),
+                           qubitIdx) == iter->second.end())
           iter->second.push_back(qubitIdx);
-      }
+      };
+
+      // Insert into global register and named register (if it exists)
+      processForRegName(cudaq::GlobalRegisterName);
+      if (!regName.empty())
+        processForRegName(regName);
 
       return true;
     }
@@ -563,12 +563,7 @@ protected:
       executionContext->result.append(execResult);
     } else {
 
-      bool hasGlobal = false;
-
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
-        if (regName == cudaq::GlobalRegisterName)
-          hasGlobal = true;
-
         // Measurements are sorted according to qubit allocation order
         std::sort(qubits.begin(), qubits.end());
         auto last = std::unique(qubits.begin(), qubits.end());
@@ -594,43 +589,6 @@ protected:
 
         executionContext->result.append(tmp);
       }
-
-      // Form the global register from a combination of the sorted register
-      // names. In the future, we may want to let the user customize
-      if (!hasGlobal) {
-        cudaq::ExecutionResult globalResult(cudaq::GlobalRegisterName);
-        std::vector<std::string> sortedRegNames =
-            executionContext->result.register_names();
-        std::sort(sortedRegNames.begin(), sortedRegNames.end());
-
-        // Populate sequential_data[] once so that we don't have to do it every
-        // shot. This is because calling result.sequential_data() is relatively
-        // slow if done inside a loop because it would constructs a copy of the
-        // data on every call.
-        std::vector<std::vector<std::string>> sequential_data;
-        sequential_data.reserve(sortedRegNames.size());
-        for (auto regName : sortedRegNames)
-          sequential_data.push_back(
-              executionContext->result.sequential_data(regName));
-
-        // Count how often each occurrence happened (in the new sorted order)
-        cudaq::CountsDictionary myGlobalCountDict;
-        globalResult.sequentialData.reserve(executionContext->shots);
-        for (size_t shot = 0; shot < executionContext->shots; shot++) {
-          std::string myResult;
-          myResult.reserve(sortedRegNames.size());
-          for (auto &dataByShot : sequential_data)
-            if (shot < dataByShot.size())
-              myResult += dataByShot[shot];
-          globalResult.sequentialData.push_back(myResult);
-          myGlobalCountDict[myResult]++;
-        }
-        for (auto &[bits, count] : myGlobalCountDict)
-          globalResult.appendResult(bits, count);
-
-        // Append the newly calculated globalResult into the result list
-        executionContext->result.append(globalResult);
-      }
     }
 
     sampleQubits.clear();
@@ -643,6 +601,26 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
+    if (executionContext && executionContext->name == "tracer") {
+      std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
+      for (auto &c : controls)
+        controlsInfo.emplace_back(2, c);
+      for (auto &t : targets)
+        targetsInfo.emplace_back(2, t);
+
+      std::vector<double> anglesProcessed;
+      if constexpr (std::is_same_v<ScalarType, double>)
+        anglesProcessed = params;
+      else {
+        for (auto &a : params)
+          anglesProcessed.push_back(static_cast<ScalarType>(a));
+      }
+
+      executionContext->kernelTrace.appendInstruction(
+          name, anglesProcessed, controlsInfo, targetsInfo);
+      return;
+    }
+
     gateQueue.emplace(name, matrix, controls, targets, params);
   }
 
@@ -894,6 +872,14 @@ public:
         executionContext->result.append(counts);
       }
 
+      // Reorder the global register (if necessary). This might be necessary if
+      // the mapping pass had run and we want to undo the shuffle that occurred
+      // during mapping.
+      if (!executionContext->reorderIdx.empty()) {
+        executionContext->result.reorder(executionContext->reorderIdx);
+        executionContext->reorderIdx.clear();
+      }
+
       // Clear the sample bits for the next run
       sampleQubits.clear();
       midCircuitSampleResults.clear();
@@ -960,6 +946,7 @@ public:
                                                        element.imag());
                      }
                    });
+    cudaq::info(gateToString("custom_unitary", controls, {}, targets));
     enqueueGate("custom", actual, controls, targets, {});
   }
 
@@ -969,7 +956,10 @@ public:
                                const std::vector<std::size_t> &targets) {
     flushAnySamplingTasks();
     QuantumOperation gate;
-    cudaq::info(gateToString(gate.name(), controls, angles, targets));
+    // This is a very hot section of code. Don't form the log string unless
+    // we're actually going to use it.
+    if (cudaq::details::should_log(cudaq::details::LogLevel::info))
+      cudaq::info(gateToString(gate.name(), controls, angles, targets));
     enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
   }
 

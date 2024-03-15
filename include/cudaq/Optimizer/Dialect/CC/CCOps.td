@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -761,7 +761,6 @@ def cc_StoreOp : CCOp<"store",
 // Aggregate operations.
 //===----------------------------------------------------------------------===//
 
-
 def cc_AddressOfOp : CCOp<"address_of", [Pure,
     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
   // Note: should be used to get a pointer to a global object as well, but we
@@ -809,6 +808,14 @@ def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
   let assemblyFormat = [{
     $container `` $position `:` functional-type(operands, results) attr-dict
   }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "std::int64_t":$index), [{
+      return build($_builder, $_state, resultType, aggregate,
+                   mlir::ArrayRef<std::int64_t>{index});
+    }]>
+  ];
 }
 
 def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
@@ -837,6 +844,14 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
     $value `,` $container `` $position `:` functional-type(operands, results)
       attr-dict
   }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "mlir::Value":$newValue, "std::int64_t":$index), [{
+      return build($_builder, $_state, resultType, aggregate, newValue,
+                   mlir::ArrayRef<std::int64_t>{index});
+    }]>
+  ];
 }
 
 def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {

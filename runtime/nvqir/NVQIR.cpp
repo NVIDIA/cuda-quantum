@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -139,6 +139,9 @@ std::size_t qubitToSizeT(Qubit *q) {
 using namespace nvqir;
 
 extern "C" {
+
+void print_i64(const char *msg, std::size_t i) { printf(msg, i); }
+void print_f64(const char *msg, double f) { printf(msg, f); }
 
 /// @brief QIR Initialization function
 void __quantum__rt__initialize(int argc, int8_t **argv) {

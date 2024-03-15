@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -41,29 +41,24 @@ protected:
                                  std::vector<cudaq::QuditInfo>, spin_op>;
 
   /// @brief `typedef` for a queue of instructions
-  using InstructionQueue = std::queue<Instruction>;
+  using InstructionQueue = std::vector<Instruction>;
 
-  /// @brief The current execution context, e.g. sampling
-  /// or observation
+  /// @brief The current execution context, e.g. sampling or observation
   cudaq::ExecutionContext *executionContext = nullptr;
 
-  /// @brief Store qudits for delayed deletion under
-  /// certain execution contexts
+  /// @brief Store qudits for delayed deletion under certain execution contexts
   std::vector<QuditInfo> contextQuditIdsForDeletion;
 
   /// @brief The current queue of operations to execute
   InstructionQueue instructionQueue;
 
-  /// @brief When adjoint operations are requested
-  /// we can store them here for delayed execution
-  std::stack<InstructionQueue> adjointQueueStack;
+  /// @brief When adjoint operations are requested we can store them here for
+  /// delayed execution
+  std::vector<InstructionQueue> adjointQueueStack;
 
-  /// @brief When we are in a control region, we
-  /// need to store extra control qudit ids.
+  /// @brief When we are in a control region, we need to store extra control
+  /// qudit ids.
   std::vector<std::size_t> extraControlIds;
-
-  /// @brief Flag to indicate we are in an adjoint region
-  bool inAdjointRegion = false;
 
   /// @brief Subtype-specific qudit allocation method
   virtual void allocateQudit(const QuditInfo &q) = 0;
@@ -78,26 +73,25 @@ protected:
   /// all qudits in the vector.
   virtual void deallocateQudits(const std::vector<QuditInfo> &qudits) = 0;
 
-  /// @brief Subtype-specific handler for when
-  // the execution context changes
+  /// @brief Subtype-specific handler for when the execution context changes
   virtual void handleExecutionContextChanged() = 0;
 
-  /// @brief Subtype-specific handler for when the
-  /// current execution context has ended.
+  /// @brief Subtype-specific handler for when the current execution context has
+  /// ended.
   virtual void handleExecutionContextEnded() = 0;
 
-  /// @brief Subtype-specific method for affecting the
-  /// execution of a queued instruction.
+  /// @brief Subtype-specific method for affecting the execution of a queued
+  /// instruction.
   virtual void executeInstruction(const Instruction &inst) = 0;
 
   /// @brief Subtype-specific method for performing qudit measurement.
-  virtual int measureQudit(const cudaq::QuditInfo &q) = 0;
+  virtual int measureQudit(const cudaq::QuditInfo &q,
+                           const std::string &registerName) = 0;
 
   /// @brief Measure the state in the basis described by the given `spin_op`.
   virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
 
   /// @brief Subtype-specific method for performing qudit reset.
-  /// @param q Qudit to reset
   virtual void resetQudit(const QuditInfo &q) = 0;
 
 public:
@@ -107,9 +101,7 @@ public:
   void setExecutionContext(cudaq::ExecutionContext *_ctx) override {
     executionContext = _ctx;
     handleExecutionContextChanged();
-    while (!instructionQueue.empty()) {
-      instructionQueue.pop();
-    }
+    instructionQueue.clear();
   }
 
   void resetExecutionContext() override {
@@ -161,44 +153,30 @@ public:
     contextQuditIdsForDeletion.push_back(qid);
   }
 
-  void startAdjointRegion() override { adjointQueueStack.emplace(); }
+  void startAdjointRegion() override { adjointQueueStack.emplace_back(); }
 
   void endAdjointRegion() override {
-    // Get the top queue and remove it
-    auto adjointQueue = adjointQueueStack.top();
-    adjointQueueStack.pop();
+    assert(!adjointQueueStack.empty() && "There must be at least one queue");
 
-    // Reverse it
-    [](InstructionQueue &q) {
-      std::stack<Instruction> s;
-      while (!q.empty()) {
-        s.push(q.front());
-        q.pop();
-      }
-      while (!s.empty()) {
-        q.push(s.top());
-        s.pop();
-      }
-    }(adjointQueue);
+    auto adjointQueue = std::move(adjointQueueStack.back());
+    adjointQueueStack.pop_back();
 
-    while (!adjointQueue.empty()) {
-      auto front = adjointQueue.front();
-      adjointQueue.pop();
-      if (adjointQueueStack.empty()) {
-        instructionQueue.push(front);
-      } else {
-        adjointQueueStack.top().push(front);
-      }
-    }
+    // Select the queue to which these instructions will be added.
+    InstructionQueue *queue = adjointQueueStack.empty()
+                                  ? &instructionQueue
+                                  : &(adjointQueueStack.back());
+
+    std::reverse(adjointQueue.begin(), adjointQueue.end());
+    for (auto &instruction : adjointQueue)
+      queue->push_back(instruction);
   }
 
   void startCtrlRegion(const std::vector<std::size_t> &controls) override {
-    for (auto &c : controls)
+    for (auto c : controls)
       extraControlIds.push_back(c);
   }
 
   void endCtrlRegion(const std::size_t n_controls) override {
-    // extra_control_qubits.erase(end - n_controls, end);
     extraControlIds.resize(extraControlIds.size() - n_controls);
   }
 
@@ -228,7 +206,22 @@ public:
     for (auto &t : targets)
       mutable_targets.push_back(t);
 
-    if (isAdjoint || !adjointQueueStack.empty()) {
+    // We need to check if we need take the adjoint of the operation. To do this
+    // we use a logical XOR between `isAdjoint` and whether the size of
+    // `adjointQueueStack` is even. The size of `adjointQueueStack` corresponds
+    // to the number of nested `cudaq::adjoint` calls. If the size is even, then
+    // we need to change the operation when `isAdjoint` is true. If the size is
+    // odd, then we need to change the operation when `isAdjoint` is false.
+    // (Adjoint modifiers cancel each other, e.g, `adj adj r1` is `r1`.)
+    //
+    // The cases:
+    //  * not-adjoint, even number of `cudaq::adjoint` => _no_ need to change op
+    //  * not-adjoint, odd number of `cudaq::adjoint`  => change op
+    //  * adjoint,     even number of `cudaq::adjoint` => change op
+    //  * adjoint,     odd number `cudaq::adjoint`     => _no_ need to change op
+    //
+    bool evenAdjointStack = (adjointQueueStack.size() % 2) == 0;
+    if (isAdjoint != !evenAdjointStack) {
       for (std::size_t i = 0; i < params.size(); i++)
         mutable_params[i] = -1.0 * params[i];
       if (gateName == "t")
@@ -239,36 +232,32 @@ public:
 
     if (!adjointQueueStack.empty()) {
       // Add to the adjoint instruction queue
-      adjointQueueStack.top().emplace(std::make_tuple(
-          mutable_name, mutable_params, mutable_controls, mutable_targets, op));
+      adjointQueueStack.back().emplace_back(
+          mutable_name, mutable_params, mutable_controls, mutable_targets, op);
       return;
     }
 
     // Add to the instruction queue
-    instructionQueue.emplace(std::make_tuple(std::move(mutable_name),
-                                             mutable_params, mutable_controls,
-                                             mutable_targets, op));
+    instructionQueue.emplace_back(std::move(mutable_name), mutable_params,
+                                  mutable_controls, mutable_targets, op);
   }
 
   void synchronize() override {
-    while (!instructionQueue.empty()) {
-      auto instruction = instructionQueue.front();
-      if (isInTracerMode()) {
-        auto [gateName, params, controls, targets, op] = instruction;
-        std::vector<std::size_t> controlIds;
-        std::transform(controls.begin(), controls.end(),
-                       std::back_inserter(controlIds),
-                       [](const auto &el) { return el.id; });
-        executionContext->kernelResources.appendInstruction(
-            cudaq::Resources::Instruction(gateName, controlIds, targets[0].id));
-      } else {
+    for (auto &instruction : instructionQueue) {
+      if (!isInTracerMode()) {
         executeInstruction(instruction);
+        continue;
       }
-      instructionQueue.pop();
+
+      auto &&[name, params, controls, targets, op] = instruction;
+      executionContext->kernelTrace.appendInstruction(name, params, controls,
+                                                      targets);
     }
+    instructionQueue.clear();
   }
 
-  int measure(const cudaq::QuditInfo &target) override {
+  int measure(const cudaq::QuditInfo &target,
+              const std::string registerName = "") override {
     if (isInTracerMode())
       return 0;
 
@@ -276,7 +265,7 @@ public:
     synchronize();
 
     // Instruction executed, run the measure call
-    return measureQudit(target);
+    return measureQudit(target, registerName);
   }
 
   cudaq::SpinMeasureResult measure(cudaq::spin_op &op) override {

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -20,6 +20,9 @@ find_library(CUSTATEVEC_LIB
     ${CUSTATEVEC_ROOT}/lib
     ${CUSTATEVEC_ROOT}/lib64/${CUDA_MAJOR_VERSION}
     ${CUSTATEVEC_ROOT}/lib/${CUDA_MAJOR_VERSION})
+
+get_filename_component(CUSTATEVEC_LIB_DIR ${CUSTATEVEC_LIB} DIRECTORY)
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUSTATEVEC_LIB_DIR}")
 
 macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
   add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILENAME})

@@ -1,0 +1,59 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-translate --convert-to=iqm %s | FileCheck %s
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__super = "_ZN5superclEv"}} {
+  func.func @__nvqpp__mlirgen__super() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = quake.alloca !quake.veq<1>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
+    %cst = arith.constant 0.000000e+00 : f64
+    %cst_0 = arith.constant 3.1415926535897931 : f64
+    %cst_1 = arith.constant 1.5707963267948966 : f64
+    quake.phased_rx (%cst_1, %cst_1) %1 : (f64, f64, !quake.ref) -> ()
+    quake.phased_rx (%cst_0, %cst) %1 : (f64, f64, !quake.ref) -> ()
+    %2 = quake.mz %1 : (!quake.ref) -> !quake.measure
+    return
+  }
+}
+
+// CHECK: {
+// CHECK:     "instructions": [
+// CHECK:         {
+// CHECK:             "args": {
+// CHECK:                 "angle_t": 0.25,
+// CHECK:                 "phase_t": 0.25
+// CHECK:             },
+// CHECK:             "name": "phased_rx",
+// CHECK:             "qubits": [
+// CHECK:                 "QB1"
+// CHECK:             ]
+// CHECK:         },
+// CHECK:         {
+// CHECK:             "args": {
+// CHECK:                 "angle_t": 0.5,
+// CHECK:                 "phase_t": 0.0
+// CHECK:             },
+// CHECK:             "name": "phased_rx",
+// CHECK:             "qubits": [
+// CHECK:                 "QB1"
+// CHECK:             ]
+// CHECK:         },
+// CHECK:         {
+// CHECK:             "args": {
+// CHECK:                 "key": "m_QB1"
+// CHECK:             },
+// CHECK:             "name": "measurement",
+// CHECK:             "qubits": [
+// CHECK:                 "QB1"
+// CHECK:             ]
+// CHECK:         }
+// CHECK:     ],
+// CHECK:     "name": "__nvqpp__mlirgen__super"
+// CHECK: }

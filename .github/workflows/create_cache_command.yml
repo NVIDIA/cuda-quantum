@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: "${{ format('refs/pull/{0}/merge', needs.pr_info.outputs.pull_request_number) }}"
 
@@ -171,7 +171,7 @@ jobs:
           reactions-edit-mode: append
           reactions: hooray
 
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
         id: read_json
         with:
           matrix-step-name: dev_environment

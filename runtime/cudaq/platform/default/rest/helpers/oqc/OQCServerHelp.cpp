@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,8 +9,16 @@
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include <map>
+#include <regex>
+#include <sstream>
 #include <thread>
+
 namespace cudaq {
+
+const std::string Lucy = "lucy";
+const std::string Toshiko = "toshiko";
+const std::map<std::string, uint> Machines = {{Lucy, 8}, {Toshiko, 32}};
 
 /// @brief The OQCServerHelper class extends the ServerHelper class to handle
 /// interactions with the OQC server for submitting and retrieving quantum
@@ -21,9 +29,6 @@ private:
 
   /// @brief Check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
-
-  /// @brief Output names indexed by jobID/taskID
-  std::map<std::string, OutputNamesType> outputNames;
 
   /// @brief Create n requested tasks placeholders returning uuids for each
   std::vector<std::string> createNTasks(int n);
@@ -79,6 +84,10 @@ public:
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) override;
+
+  /// @brief Update `passPipeline` with architecture-specific pass options
+  void updatePassPipeline(const std::filesystem::path &platformPath,
+                          std::string &passPipeline) override;
 };
 
 namespace {
@@ -96,9 +105,24 @@ auto make_env_functor(std::string key, std::string def = "") {
 }
 
 std::string get_from_config(BackendConfig config, const std::string &key,
-                            const auto &envVar) {
+                            const auto &missing_functor) {
   const auto iter = config.find(key);
-  return iter != config.end() ? iter->second : envVar();
+  auto item = iter != config.end() ? iter->second : missing_functor();
+  std::transform(item.begin(), item.end(), item.begin(),
+                 [](auto c) { return std::tolower(c); });
+  return item;
+}
+
+void check_machine_allowed(const std::string &machine) {
+  if (Machines.find(machine) == Machines.end()) {
+    std::string allowed;
+    for (const auto &machine : Machines)
+      allowed += machine.first + " ";
+    std::stringstream stream;
+    stream << "machine " << machine
+           << " is not of known oqc-machine set: " << allowed;
+    throw std::runtime_error(stream.str());
+  }
 }
 
 } // namespace
@@ -107,10 +131,17 @@ std::string get_from_config(BackendConfig config, const std::string &key,
 void OQCServerHelper::initialize(BackendConfig config) {
 
   cudaq::info("Initializing OQC Backend.");
+
+  // Fetch machine info before checking emulate because we want to be able to
+  // emulate specific machines.
+  auto machine = get_from_config(config, "machine", []() { return Lucy; });
+  check_machine_allowed(machine);
+  config["machine"] = machine;
   const auto emulate_it = config.find("emulate");
   if (emulate_it != config.end() && emulate_it->second == "true") {
     cudaq::info("Emulation is enabled, ignore all oqc connection specific "
                 "information.");
+    backendConfig = std::move(config);
     return;
   }
   // Set the necessary configuration variables for the OQC API
@@ -120,31 +151,15 @@ void OQCServerHelper::initialize(BackendConfig config) {
   config["version"] = "v0.3";
   config["user_agent"] = "cudaq/0.3.0";
   config["target"] = "Lucy";
-  config["qubits"] = 8;
+  config["qubits"] = Machines.at(machine);
   config["email"] =
       get_from_config(config, "email", make_env_functor("OQC_EMAIL"));
   config["password"] = make_env_functor("OQC_PASSWORD")();
   // Construct the API job path
   config["job_path"] = "/tasks"; // config["url"] + "/tasks";
 
-  // Parse the output_names.* (for each job) and place it in outputNames[]
-  for (auto &[key, val] : config) {
-    if (key.starts_with("output_names.")) {
-      // Parse `val` into jobOutputNames.
-      // Note: See `FunctionAnalysisData::resultQubitVals` of
-      // LowerToBaseProfileQIR.cpp for an example of how this was populated.
-      OutputNamesType jobOutputNames;
-      nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
-      for (const auto &el : outputNamesJSON[0]) {
-        auto result = el[0].get<std::size_t>();
-        auto qubit = el[1][0].get<std::size_t>();
-        auto registerName = el[1][1].get<std::string>();
-        jobOutputNames[result] = {qubit, registerName};
-      }
+  parseConfigForCommonParams(config);
 
-      this->outputNames[key] = jobOutputNames;
-    }
-  }
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
 }
@@ -301,10 +316,10 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     }
   }
 
-  if (outputNames.find("output_names." + jobId) == outputNames.end())
+  if (outputNames.find(jobId) == outputNames.end())
     throw std::runtime_error("Could not find output names for job " + jobId);
 
-  auto &output_names = outputNames["output_names." + jobId];
+  auto &output_names = outputNames[jobId];
   for (auto &[result, info] : output_names) {
     cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
                 info.registerName);
@@ -338,39 +353,38 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     sampleResult.append(executionResult);
   }
 
-  // Note: the bitstring is sorted by the underlying QIR result number. The user
-  // doesn't know anything about QIR result numbers that the compiler generates,
-  // so we need to convert them into something the user can understand. We will
-  // make registers for each result using output_names.
+  // First reorder the global register by QIR qubit number.
+  std::vector<std::size_t> qirQubitMeasurements;
+  qirQubitMeasurements.reserve(output_names.size());
+  for (auto &[result, info] : output_names)
+    qirQubitMeasurements.push_back(info.qubitNum);
+
+  std::vector<std::size_t> idx(output_names.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
+    return qirQubitMeasurements[i1] < qirQubitMeasurements[i2];
+  });
+  cudaq::info("Reordering global result to map QIR result order to QIR qubit "
+              "allocation order is {}",
+              idx);
+  sampleResult.reorder(idx);
+
+  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
+  // original user qubit allocation order.
+  auto thisJobReorderIdxIt = reorderIdx.find(jobId);
+  if (thisJobReorderIdxIt != reorderIdx.end()) {
+    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
+    if (!thisJobReorderIdx.empty())
+      sampleResult.reorder(thisJobReorderIdx);
+  }
+
+  // We will also make registers for each result using output_names.
   for (auto &[result, info] : output_names) {
     sample_result singleBitResult = sampleResult.get_marginal({result});
     ExecutionResult executionResult{singleBitResult.to_map(),
                                     info.registerName};
     sampleResult.append(executionResult);
   }
-
-  // It does no good to return the global register to the user in result order
-  // because the user doesn't know what result numbers the compiler ended up
-  // using. Re-order global register to make it alphabetical based on result
-  // name like our other emulation results.
-
-  // Get the indices `idx[]` such that newBitStrings(:) = oldBitStr(idx(:)),
-  // where newBitStrings will contain bitstrings that are alphabetically sorted
-  // based on the result names.
-  std::vector<std::size_t> idx(output_names.size());
-  std::iota(idx.begin(), idx.end(), 0);
-  std::vector<std::string> outputNames(output_names.size());
-  int i = 0;
-  for (auto &[result, info] : output_names)
-    outputNames[i++] = info.registerName;
-  // Sort idx by outputNames
-  std::sort(idx.begin(), idx.end(),
-            [&outputNames](std::size_t a, std::size_t b) {
-              return outputNames[a] < outputNames[b];
-            });
-
-  // Now reorder the bitstrings according to idx[]
-  sampleResult.reorder(idx, GlobalRegisterName);
 
   return sampleResult;
 }
@@ -398,6 +412,17 @@ RestHeaders OQCServerHelper::getHeaders() {
 
   // Return the headers
   return headers;
+}
+
+void OQCServerHelper::updatePassPipeline(
+    const std::filesystem::path &platformPath, std::string &passPipeline) {
+  auto machine =
+      get_from_config(backendConfig, "machine", []() { return Lucy; });
+  check_machine_allowed(machine);
+  std::string pathToFile = platformPath / std::string("mapping/oqc") /
+                           (machine + std::string(".txt"));
+  passPipeline =
+      std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
 }
 
 } // namespace cudaq

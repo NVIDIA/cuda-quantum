@@ -1,25 +1,21 @@
 /*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
+#include "common/Logger.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
-#include "cudaq/qis/qudit.h"
 #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "photonics_qis.h"
 #include "qpp.h"
 #include <cmath>
 #include <complex>
 #include <cstring>
 #include <functional>
 #include <iostream>
-#include <map>
-#include <queue>
 #include <sstream>
-#include <stack>
 
 namespace cudaq {
 
@@ -108,7 +104,8 @@ protected:
   }
 
   /// @brief Method for performing qudit measurement.
-  int measureQudit(const cudaq::QuditInfo &q) override {
+  int measureQudit(const cudaq::QuditInfo &q,
+                   const std::string &registerName) override {
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;

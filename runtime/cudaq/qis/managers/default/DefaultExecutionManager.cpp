@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -150,9 +150,10 @@ protected:
         })();
   }
 
-  int measureQudit(const cudaq::QuditInfo &q) override {
+  int measureQudit(const cudaq::QuditInfo &q,
+                   const std::string &registerName) override {
     flushRequestedAllocations();
-    return simulator()->mz(q.id);
+    return simulator()->mz(q.id, registerName);
   }
 
   void measureSpinOp(const cudaq::spin_op &op) override {

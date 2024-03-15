@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -35,6 +35,11 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
                     "A string describing the features for this `cudaq.Target`.")
       .def("num_qpus", &cudaq::RuntimeTarget::num_qpus,
            "Return the number of QPUs available in this `cudaq.Target`.")
+      .def("is_remote", &cudaq::RuntimeTarget::is_remote,
+           "Returns true if the target consists of a remote REST QPU.")
+      .def("is_emulated", &cudaq::RuntimeTarget::is_emulated,
+           "Returns true if the emulation mode for the target has been "
+           "activated.")
       .def(
           "__str__",
           [](cudaq::RuntimeTarget &self) {
@@ -74,6 +79,8 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             strValue = value.cast<py::bool_>() ? "true" : "false";
           else if (py::isinstance<py::str>(value))
             strValue = value.cast<std::string>();
+          else if (py::isinstance<py::int_>(value))
+            strValue = std::to_string(value.cast<int>());
           else
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");
@@ -95,6 +102,8 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             strValue = value.cast<py::bool_>() ? "true" : "false";
           else if (py::isinstance<py::str>(value))
             strValue = value.cast<std::string>();
+          else if (py::isinstance<py::int_>(value))
+            strValue = std::to_string(value.cast<int>());
           else
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");

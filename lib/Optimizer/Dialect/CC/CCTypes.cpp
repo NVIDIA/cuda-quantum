@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,11 +11,11 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "mlir/Interfaces/DataLayoutInterfaces.h"
 
 using namespace mlir;
 
 namespace cudaq {
-
 //===----------------------------------------------------------------------===//
 // StructType
 //===----------------------------------------------------------------------===//
@@ -47,9 +47,17 @@ Type cc::StructType::parse(AsmParser &parser) {
   bool isPacked = false;
   if (succeeded(parser.parseOptionalKeyword("packed")))
     isPacked = true;
+  std::uint64_t size = 0;
+  unsigned align = 0;
+  if (succeeded(parser.parseOptionalLSquare())) {
+    if (parser.parseInteger(size) || parser.parseComma() ||
+        parser.parseInteger(align) || parser.parseRSquare())
+      return {};
+  }
   if (parser.parseGreater())
     return {};
-  return cc::StructType::get(ctx, nameAttr, members, isOpaque, isPacked);
+  return cc::StructType::get(ctx, nameAttr, members, isOpaque, isPacked, size,
+                             align);
 }
 
 void cc::StructType::print(AsmPrinter &printer) const {
@@ -68,24 +76,31 @@ void cc::StructType::print(AsmPrinter &printer) const {
       printer << ' ';
     printer << "packed";
   }
+  if (getBitSize() || getAlignment()) {
+    if (getName() || !getOpaque() || getPacked())
+      printer << ' ';
+    printer << '[' << getBitSize() << ',' << getAlignment() << ']';
+  }
   printer << '>';
 }
 
 unsigned
 cc::StructType::getTypeSizeInBits(const DataLayout &dataLayout,
                                   DataLayoutEntryListRef params) const {
-  return 0;
+  return static_cast<unsigned>(getBitSize());
 }
 
 unsigned cc::StructType::getABIAlignment(const DataLayout &dataLayout,
                                          DataLayoutEntryListRef params) const {
-  return 0;
+  return getAlignment();
 }
 
 unsigned
 cc::StructType::getPreferredAlignment(const DataLayout &dataLayout,
                                       DataLayoutEntryListRef params) const {
-  return 0;
+  // No distinction between ABI and preferred alignments for now. Clang just
+  // gives us an alignment value.
+  return getAlignment();
 }
 
 //===----------------------------------------------------------------------===//
@@ -136,6 +151,21 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 //===----------------------------------------------------------------------===//
 
 namespace cudaq {
+
+bool cc::isDynamicType(Type ty) {
+  if (isa<cc::StdvecType>(ty))
+    return true;
+  if (auto strTy = dyn_cast<cc::StructType>(ty)) {
+    for (auto memTy : strTy.getMembers())
+      if (isDynamicType(memTy))
+        return true;
+    return false;
+  }
+  if (auto arrTy = dyn_cast<cc::ArrayType>(ty))
+    return arrTy.isUnknownSize() || isDynamicType(arrTy.getElementType());
+  // Note: this isn't considering quake, builtin, etc. types.
+  return false;
+}
 
 cc::CallableType cc::CallableType::getNoSignature(MLIRContext *ctx) {
   return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));

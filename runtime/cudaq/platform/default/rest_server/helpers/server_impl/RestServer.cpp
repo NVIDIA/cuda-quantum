@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -39,6 +39,11 @@ cudaq::RestServer::RestServer(int port, const std::string &name) {
   m_impl->app.port(port);
   m_impl->app.server_name(name);
   m_impl->app.loglevel(crow::LogLevel::Warning);
+  // Disable streaming by setting stream threshold to 0 to enforce synchronous
+  // TCP buffer write. Asynchronous buffer write (`asio::async_write`) is
+  // susceptible to corruption if the app is shut down right after handling a
+  // request.
+  m_impl->app.stream_threshold(0);
   // Note: don't enable multi-threading (`m_impl->app.multithreaded()`) since
   // we're handling requests sequentially.
 }
@@ -52,7 +57,11 @@ static inline crow::response
 invokeRouteHandler(const cudaq::RestServer::RouteHandler &handler,
                    const crow::request &req) {
   try {
-    return handler(req.body).dump();
+    std::unordered_multimap<std::string, std::string> headers;
+    for (const auto &[k, v] : req.headers)
+      headers.emplace(k, v);
+
+    return handler(req.body, headers).dump();
   } catch (std::exception &e) {
     const std::string errorMsg =
         std::string("Unhandled exception encountered: ") + e.what();

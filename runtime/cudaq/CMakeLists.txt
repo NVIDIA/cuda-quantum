@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,6 +15,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 # Create the CUDA Quantum Library
 add_library(${LIBRARY_NAME} 
          SHARED cudaq.cpp 
+                algorithms/draw.cpp
                 algorithms/state.cpp
                 platform/quantum_platform.cpp 
                 qis/execution_manager.cpp

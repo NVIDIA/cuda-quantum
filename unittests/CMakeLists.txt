@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -19,6 +19,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/builder_tester.cpp
   integration/ccnot_tester.cpp
   integration/deuteron_variational_tester.cpp
+  integration/draw_tester.cpp
   integration/ghz_nisq_tester.cpp
   integration/gradient_tester.cpp
   integration/grover_test.cpp
@@ -82,7 +83,11 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_BACKEND_TENSORNET_MPS)
     set(TEST_LABELS "gpu_required")
   endif()
-  if (${NVQIR_BACKEND} STREQUAL "custatevec-fp32" OR ${NVQIR_BACKEND} STREQUAL "custatevec-fp64")
+  if (${NVQIR_BACKEND} STREQUAL "custatevec-fp32")
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_CUSTATEVEC_FP32)
+    set(TEST_LABELS "gpu_required")
+  endif()
+  if (${NVQIR_BACKEND} STREQUAL "custatevec-fp64")
     set(TEST_LABELS "gpu_required")
   endif()
   if ("${TEST_LABELS}" STREQUAL "")

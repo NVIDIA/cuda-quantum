@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -14,7 +14,8 @@ endif()
 add_subdirectory(remote)
 
 set(LIBRARY_NAME cudaq-platform-mqpu)
-add_library(${LIBRARY_NAME} SHARED MultiQPUPlatform.cpp ../common/QuantumExecutionQueue.cpp)
+add_library(${LIBRARY_NAME}
+  SHARED MultiQPUPlatform.cpp ../common/QuantumExecutionQueue.cpp)
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
@@ -27,11 +28,11 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-spin 
     cudaq-common 
   PRIVATE 
+    cudaq
     mqpu_util
     pthread
     spdlog::spdlog 
     fmt::fmt-header-only 
-    remote-simulator-qpu
 )
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)
@@ -41,5 +42,7 @@ if (CUDA_FOUND AND CUSTATEVEC_ROOT)
 endif()
   
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-platform-mqpu-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+  EXPORT cudaq-platform-mqpu-targets DESTINATION lib)
 add_target_config(remote-mqpu)
+add_target_config(nvqc)

@@ -19,27 +19,23 @@ in this guide and should work for you as long as your system meets the compatibi
 requirements listed under :ref:`Prerequisites <compatibility-prebuilt-binaries>`. 
 To install them, please follow the instructions :ref:`here <install-prebuilt-binaries>`.
 
-If you still want to build and install CUDA Quantum from source, you will need
-to ensure that all dependencies installed in the build and host system are
-compatible with your CUDA Quantum installation. The rest of this guide outlines
-specific compatibility requirements during the build and after installation, and
-walks through the installation steps.
+If our pre-built packages are not a good option for you, e.g. because you would 
+like to use CUDA Quantum on an operating system that is not officially supported, 
+please follow this guide carefully without skipping any steps to build and install
+CUDA Quantum from source. The rest of this guide details system requirements 
+during the build and after installation, and walks through the installation steps.
 
 .. note::
-  
-  The build described in this guide does not include the support
-  for building the Python support for CUDA Quantum. For more information about 
-  using CUDA Quantum from Python, please take a look at 
-  :ref:`this page <install-python-wheels>`.
 
-CUDA Quantum contains some components that are only included as
-pre-built binaries and not part of our open source repository. We are working on
-either open-sourcing these components or making them available as separate downloads
-in the future. Even without these components, almost all features of CUDA
-Quantum will be enabled in a source build, though some pieces may be less
-performant. 
-At this time, the :ref:`multi-GPU state vector simulator <nvidia-mgpu-backend>` 
-backend will not be included if you build CUDA Quantum from source.
+  CUDA Quantum contains some components that are only included as
+  pre-built binaries and not part of our open source repository. We are working on
+  either open-sourcing these components or making them available as separate downloads
+  in the future. Even without these components, almost all features of CUDA
+  Quantum will be enabled in a source build, though some pieces may be less
+  performant. 
+  At this time, the :ref:`multi-GPU state vector simulator <nvidia-mgpu-backend>` 
+  backend will not be included if you build CUDA Quantum from source.
+
 
 .. _compatibility-prebuilt-binaries:
 
@@ -66,17 +62,20 @@ will be installed and used.
 - CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
   architecture. Other architectures may work but are not tested and may require
   adjustments to the build instructions.
-- Needed only on the host system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
+- Needed **only on the host** system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
   Hopper architecture and `Compute Capability
   <https://developer.nvidia.com/cuda-gpus>`__ 7+. Make sure you have the latest
   `drivers <https://www.nvidia.com/download/index.aspx>`__ installed for your
   GPU, and double check that the driver version listed by the `nvidia-smi`
-  command is 470.57.02 or newer.
+  command is 470.57.02 or newer. You do *not* need to have a GPU available on the
+  build system; the CUDA compiler needed for the build can be installed and used
+  without a GPU.
 
 We strongly recommend using a virtual environment for the build that includes
 *only* the tools and dependencies listed in this guide. If you have additional
 software installed, you will need to make sure that the build is linking against
 the correct libraries and versions.
+
 
 Build Dependencies
 ------------------------------------
@@ -85,17 +84,12 @@ In addition to the prerequisites listed above, you will need to install the
 following prerequisites in your build environment prior to proceeding with 
 the build as described in the subsequent sections:
 
-- GNU C library: We currently statically link dependencies, in some cases
-  including the standard libraries. We may revise that in the future. 
-  To use the current build configuration, please make sure you have the 
-  static version of the `GNU C library <https://www.gnu.org/software/libc/>`__, 
-  including the POSIX Threads library, installed on your system. 
-  The necessary package(s) can usually be obtained via package manager 
-  for your distribution.
-- Python version 3.8 or newer: The Python interpreter is required
-  (only) for some of the LLVM build scripts and the Python version
-  used for the build does not have to match the version on the host
-  system.
+- Python version 3.8 or newer: If you intend to build CUDA Quantum with Python
+  support, make sure the Python version on the build system matches the version
+  on the host system. If you intend to only build the C++ support for
+  CUDA Quantum, the Python interpreter is required only for some of the 
+  LLVM build scripts and the Python version used for the build does not have 
+  to match the version on the host system.
 - Common tools: `wget`, `git`, `unzip`. The commands in the rest of this guide assume
   that these tools are present on the build system, but they can be replaced by
   other alternatives (such as, for example, manually going to a web page and
@@ -118,29 +112,42 @@ to set the following environment variables prior to proceeding:
     :start-after: [>InstallLocations]
     :end-before: [<InstallLocations]
 
-These environment variables *must* be set during the build. Their value can be
-chosen freely, but the paths specified during the build are also where the
-corresponding libraries will be installed on the host system. We are working on
-making this more flexible in the future.
+These environment variables *must* be set during the build. We strongly
+recommend that their value is set to a path that does *not* already exist; 
+this will ensure that these components are built/installed as needed when
+building CUDA Quantum.
+The configured paths can be chosen freely, but the paths specified during the
+build are also where the corresponding libraries will be installed on the 
+host system. We are working on making this more flexible in the future.
 
 .. note::
-
-  If you deviate from the instructions below for installing one of the
-  dependencies and instead install it for example via package manager, you will
-  need to make sure that the installation path matches the path you set for the
-  corresponding environment variable(s).
 
   Please do **not** set `LLVM_INSTALL_PREFIX` to an existing directory;
   To avoid compatibility issues, it is important to use the same compiler
   to build the LLVM/MLIR dependencies from source as is later used to 
   build CUDA Quantum itself.
 
+.. note::
+
+  If you are setting the `CURL_INSTALL_PREFIX` variable to an existing 
+  CURL installation (not recommended), please make sure the command 
+  `curl --version` lists HTTP and HTTPS as supported protocols. If these 
+  protocols are not listed, please instead set the `CURL_INSTALL_PREFIX` 
+  variable to a path that does *not* exist. In that case, a suitable 
+  library will be automatically built from source as part of
+  building CUDA Quantum.
+
+If you deviate from the instructions below for installing one of the
+dependencies and instead install it, for example, via package manager, you will
+need to make sure that the installation path matches the path you set for the
+corresponding environment variable(s).
+
 CUDA
 +++++++++++++++++++++++++++++++
 
 Building CUDA Quantum requires a full installation of the CUDA toolkit.
 The instructions are tested using version 11.8, but any CUDA 11 or 12 version
-should work, as long as the installed driver on both the build and the host 
+should work, as long as the installed driver on the host 
 system supports that CUDA version. We recommend using the latest CUDA version
 that is supported by your driver.
 
@@ -156,43 +163,6 @@ install CUDA 11.8:
     :dedent:
     :start-after: [>CUDAInstall]
     :end-before: [<CUDAInstall]
-
-cuQuantum
-+++++++++++++++++++++++++++++++
-
-Each version of CUDA Quantum is compatible only with a specific cuQuantum version.
-As of CUDA Quantum 0.6, this is version 23.10. Newer versions of cuQuantum (if they exist)
-might be compatible but have not been tested.
-
-Make sure the environment variable `CUDA_ARCH_FOLDER` is set to either `x86_64`
-or `sbsa` (for ARM64) depending on your processor architecture, and `CUDA_VERSION`
-is set to the installed CUDA version.
-Install cuQuantum version 23.10 using the following commands:
-
-.. literalinclude:: ../../scripts/configure_build.sh
-    :language: bash
-    :dedent:
-    :start-after: [>cuQuantumInstall]
-    :end-before: [<cuQuantumInstall]
-
-cuTensor
-+++++++++++++++++++++++++++++++
-
-Depending on how you installed CUDA, the cuTensor library is usually not included 
-in the installation. This library is used by some of the simulator backends. 
-Please check the cuQuantum documentation to ensure you choose a version that is 
-compatible with the used cuQuantum version, such as version 1.7.
-
-Make sure the environment variable `CUDA_ARCH_FOLDER` is set to either `x86_64`
-or `sbsa` (for ARM64) depending on your processor architecture, and `CUDA_VERSION`
-is set to the installed CUDA version.
-Install cuTensor version 1.7 using the following commands:
-
-.. literalinclude:: ../../scripts/configure_build.sh
-    :language: bash
-    :dedent:
-    :start-after: [>cuTensorInstall]
-    :end-before: [<cuTensorInstall]
 
 Toolchain
 +++++++++++++++++++++++++++++++
@@ -234,6 +204,7 @@ environment variables to point to the respective compilers on your build system:
   CUDA Quantum, some components and backends will be omitted automatically 
   during the build.
 
+
 Building CUDA Quantum
 ------------------------------------
 
@@ -244,24 +215,38 @@ checkout the appropriate branch, tag, or commit.
 Note that the build scripts assume that they are run from within a git repository, 
 and merely downloading the source code as ZIP archive hence will not work.
 
+Please follow the instructions in the respective subsection(s) to build the necessary 
+components for using CUDA Quantum from C++ and/or Python.
+After the build, check the build log printed to the console to confirm that all desired 
+components have been built. 
+In particular, look for a line "Looking for CUDA compiler" in the build output, 
+and confirm that it found the installed CUDA compiler, and the correct host compiler 
+is used.
+
+.. note::
+
+  The CUDA Quantum build will compile or omit optional components automatically depending
+  on whether the necessary pre-requisites are found in the build environment.
+  If you see a message that a component has been skipped, and/or the CUDA compiler
+  is not properly detected, make sure you followed the 
+  instructions for installing the necessary prerequisites and build dependencies, 
+  and have set the necessary environment variables as described in this document.
+
+.. _cudaq-cpp-from-source:
+
+C++ Support
++++++++++++++++++++++++++++++++
+
 From within the folder where you cloned the CUDA Quantum repository, run the following
 command to build CUDA Quantum:
 
 .. literalinclude:: ../../docker/build/assets.Dockerfile
     :language: bash
     :dedent:
-    :start-after: [>CUDAQuantumBuild]
-    :end-before: [<CUDAQuantumBuild]
+    :start-after: [>CUDAQuantumCppBuild]
+    :end-before: [<CUDAQuantumCppBuild]
 
-The CUDA Quantum build will compile or omit optional components automatically depending
-on whether the necessary pre-requisites are found in the build environment.
-Please check the build log to confirm that all desired components have been built. If
-you see a message that a component has been skipped, make sure you followed the 
-instructions for installing the necessary prerequisites and build dependencies, 
-and have set the necessary environment variables as described in this document.
-
-Preparing the Installation
-------------------------------------
+Note that `lld` is primarily needed when the build or host system does not already have an existing default linker on its path; CUDA Quantum supports the same linkers as `clang` does.
 
 To easily migrate the built binaries to the host system, we recommend creating a
 `self-extracting archive <https://makeself.io/>`__. To do so, download the 
@@ -283,17 +268,102 @@ You can then create a self-extracting archive with the command
         "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
         bash cudaq/migrate_assets.sh -t /opt/nvidia/cudaq
 
+.. _cudaq-python-from-source:
+
+Python Support
++++++++++++++++++++++++++++++++
+
+The most convenient way to enable Python support within CUDA Quantum is to build 
+a `wheel <https://pythonwheels.com/>`__ that can then easily be installed
+using `pip`. To ensure the wheel can be installed on the host system, make sure to
+use the same Python version for the build as the one that is installed on the host system.
+To build the CUDA Quantum Python wheel, you will need to install the following additional 
+Python-specific tools:
+
+- Python development headers: The development headers for your Python version are installed
+  in the way as you installed Python itself. If you installed Python via the package manager
+  for your system, you may need to install an additional package to get the development headers.
+  The package name is usually your python version followed by either a `-dev` or `-devel` suffix.
+  If you are using a `Conda environment <https://conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-python>`__,
+  the necessary headers should already be installed.
+- Pip package manager: Make sure the `pip` module is enable for your Python version.
+  We refer to the Python `documentation <https://pip.pypa.io/en/stable/installation/>`__ for
+  more information about installing/enabling `pip`.
+- Python modules: Install the additional modules `numpy`, `build`, `auditwheel`, and `patchelf` for your
+  Python version, e.g. `python3 -m pip install numpy build auditwheel patchelf`.
+
+From within the folder where you cloned the CUDA Quantum repository, run the following
+command to build the CUDA Quantum Python wheel:
+
+.. literalinclude:: ../../docker/build/assets.Dockerfile
+    :language: bash
+    :dedent:
+    :start-after: [>CUDAQuantumPythonBuild]
+    :end-before: [<CUDAQuantumPythonBuild]
+
+.. note::
+
+  A version identifier will be automatically assigned to the wheel based on the commit
+  history. You can manually override this detection to give a more descriptive identifier
+  by setting the environment variable `SETUPTOOLS_SCM_PRETEND_VERSION` to the desired
+  value before building the wheel.
+
+After the initial build, `auditwheel <https://github.com/pypa/auditwheel>`__ is used to 
+include dependencies in the wheel, if necessary, and correctly label the wheel.
+We recommend not including the CUDA runtime libraries and instead install them separately
+on the host system following the instructions in the next section. The following 
+command builds the final wheel, not including CUDA dependencies: 
+
+.. literalinclude:: ../../docker/build/assets.Dockerfile
+    :language: bash
+    :dedent:
+    :start-after: [>CUDAQuantumWheel]
+    :end-before: [<CUDAQuantumWheel]
+
+The command above will create a new wheel in the `wheelhouse` folder. This wheel can be
+installed on any `compatible platform <https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/>`__.
+
+.. note::
+  You can confirm that the wheel is indeed compatible with your host platform by 
+  checking that the wheel tag (i.e. the file name ending of the `.whl` file) is listed under
+  "Compatible Tags" when running the command `python3 -m pip debug --verbose` on the host.
+
+
 Installation on the Host
 ------------------------------------
 
 Make sure your host system satisfies the `Prerequisites`_ listed above.
-Copy the `install_cuda_quantum` file that you created following the instructions
-in the `Preparing the Installation`_ section onto the host system, and then
-run the commands
+
+- To use CUDA Quantum with C++, you should also make sure that the
+  `C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__ 
+  is installed and discoverable on your host system.
+  CUDA Quantum supports the GNU C++ standard library (`libstdc++`), 
+  version 11 or newer. Other libraries may work but can cause issues in certain cases.
+- To use CUDA Quantum with Python, you should have a working
+  Python installation on the host system, including the `pip` package manager.
+
+If you followed the instructions for building the 
+:ref:`CUDA Quantum Python wheel <cudaq-python-from-source>`,
+copy the built `.whl` file to the host system, and install it using `pip`; e.g.
 
 .. code-block:: bash
 
-    sudo bash install_cuda_quantum.* --accept
+    pip install cuda_quantum*.whl
+
+To install the necessary CUDA and MPI dependencies for some of the components, 
+you can either follow the instructions on `PyPI.org <https://pypi.org/project/cuda-quantum/>`__, 
+replacing `pip install cuda-quantum` with the command above, or you can follow the
+instructions in the remaining sections of this document to customize and better
+optimize them for your host system.
+
+If you followed the instructions for building the 
+:ref:`CUDA Quantum C++ tools <cudaq-cpp-from-source>`,
+copy the `install_cuda_quantum` file that you created to the host system, 
+and install it by running the commands
+
+.. code-block:: bash
+
+    sudo bash install_cuda_quantum.$(uname -m) --accept
     . /opt/nvidia/cudaq/set_env.sh
 
 This will extract the built assets and move them to the correct locations.
@@ -310,18 +380,9 @@ the `/etc/profile` file:
 
 .. note:: 
 
-  CUDA Quantum is configured to use its own linker, meaning the 
-  `LLD <https://lld.llvm.org/>`__ linker, by default. While this linker should be 
-  a drop-in replacement for system linkers, in rare cases it may be necessary to use
-  your own linker instead. You can configure CUDA Quantum to use an external linker 
-  setting the `NVQPP_LD_PATH` environment variable to point to it; for example
-  `export NVQPP_LD_PATH=ld`.
-
-To enable C++ development in general, you should also make sure that the
-`C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__ 
-is installed and discoverable on your host system.
-CUDA Quantum supports the GNU C++ standard library (`libstdc++`), 
-version 11 or newer. Other libraries may work but can cause issues in certain cases.
+  CUDA Quantum includes its own linker, specifically the `LLD <https://lld.llvm.org/>`__ 
+  linker. You can customize which linker the `nvq++` compiler uses by setting the
+  `NVQPP_LD_PATH` environment variable; for example `export NVQPP_LD_PATH=ld`.
 
 The remaining sections in this document list additional runtime dependencies 
 that are not included in the migrated assets and are needed to use some of the 
@@ -372,6 +433,7 @@ for example, this can be done by compiling and running the following program:
     :language: cpp
 
 .. note::
+
   If you are encountering an error similar to "The value of the MCA parameter `plm_rsh_agent` 
   was set to a path that could not be found", please make sure you have an SSH Client installed
   or update the MCA parameter to another suitable agent.
@@ -390,6 +452,12 @@ and then running the command
 .. code-block:: bash
 
     bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
+
+.. note::
+
+  To activate the MPI plugin for the Python support, replace `${CUDA_QUANTUM_PATH}`
+  with the path that is listed under "Location" when you run the command
+  `pip show cuda-quantum`.
 
 If you use a different MPI implementation than OpenMPI or MPICH, you will need to 
 implement the necessary plugin interface yourself prior to activating the plugin 

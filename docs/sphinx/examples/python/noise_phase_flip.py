@@ -12,11 +12,11 @@ cudaq.set_target('density-matrix-cpu')
 # our phase flip channel to.
 noise = cudaq.NoiseModel()
 
-# Phase flip channel with `1.0` probability of the qubit
+# We define a phase-flip channel setting to `1.0` the probability of the qubit
 # undergoing a phase rotation of 180 degrees (π).
 phase_flip = cudaq.PhaseFlipChannel(1.0)
 # We will apply this channel to any Z gate on the qubit.
-# Meaning, after each Z gate on qubit 0, there will be a
+# In other words, after each Z gate on qubit 0, there will be a
 # probability of `1.0` that the qubit undergoes an extra
 # Z rotation.
 noise.add_channel('z', [0], phase_flip)

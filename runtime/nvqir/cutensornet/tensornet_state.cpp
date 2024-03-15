@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -136,13 +136,8 @@ std::vector<std::complex<double>> TensorNetState::getStateVector() {
 
   // Create the quantum state amplitudes accessor
   cutensornetStateAccessor_t accessor;
-  // Revert the bit-ordering
-  std::vector<int64_t> strides;
-  for (std::size_t bitIdx = 0; bitIdx < m_numQubits; ++bitIdx)
-    strides.emplace_back(1LL << (m_numQubits - bitIdx - 1));
-
-  HANDLE_CUTN_ERROR(cutensornetCreateAccessor(
-      m_cutnHandle, m_quantumState, 0, nullptr, strides.data(), &accessor));
+  HANDLE_CUTN_ERROR(cutensornetCreateAccessor(m_cutnHandle, m_quantumState, 0,
+                                              nullptr, nullptr, &accessor));
 
   const int32_t numHyperSamples =
       8; // desired number of hyper samples used in the tensor network

@@ -240,7 +240,19 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
         counts["counts"].get<std::unordered_map<std::string, std::size_t>>()));
   }
 
-  return sample_result(srs);
+  sample_result sampleResult(srs);
+
+  // The original sampleResult is ordered by qubit number (FIXME: VERIFY THIS)
+  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
+  // original user qubit allocation order.
+  auto thisJobReorderIdxIt = reorderIdx.find(jobID);
+  if (thisJobReorderIdxIt != reorderIdx.end()) {
+    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
+    if (!thisJobReorderIdx.empty())
+      sampleResult.reorder(thisJobReorderIdx);
+  }
+
+  return sampleResult;
 }
 
 std::map<std::string, std::string>
