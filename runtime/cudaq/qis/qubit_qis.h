@@ -633,3 +633,7 @@ std::vector<T> slice_vector(std::vector<T> &original, std::size_t start,
 }
 
 } // namespace cudaq
+
+#if defined(CUDAQ_ENABLE_MULTI_CONTROL_DECOMPOSITION)
+#include <cudaq/kernels/decomposition/controlled_gates.h>
+#endif
