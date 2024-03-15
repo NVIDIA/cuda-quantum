@@ -7,8 +7,6 @@
  ******************************************************************************/
 
 #include "common/BaseRestRemoteClient.h"
-#include "common/NvqcConfig.h"
-#include <regex>
 
 using namespace mlir;
 
@@ -21,6 +19,7 @@ public:
 
 /// REST client submitting jobs to NVCF-hosted `cudaq-qpud` service.
 class NvcfRuntimeClient : public cudaq::BaseNvcfRuntimeClient {
+public:
   /// @brief The constructor
   NvcfRuntimeClient() : BaseNvcfRuntimeClient() {}
 };

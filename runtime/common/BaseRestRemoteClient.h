@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/NvqcConfig.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -46,6 +47,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <regex>
 #include <streambuf>
 
 namespace {
@@ -320,7 +322,7 @@ public:
 /// Base class for the REST client submitting jobs to NVCF-hosted `cudaq-qpud`
 /// service.
 class BaseNvcfRuntimeClient : public cudaq::BaseRemoteRestRuntimeClient {
-private:
+protected:
   // None: Don't log; Info: basic info; Trace: Timing data per invocation.
   enum class LogLevel : int { None = 0, Info, Trace };
   // NVQC logging level
