@@ -9,6 +9,7 @@
 #pragma once
 
 #include <chrono>
+#include <set>
 
 // Be careful about fmt getting into public headers
 #include "common/FmtCore.h"
@@ -74,11 +75,21 @@ void debug(const std::string_view, Args &&...) {}
 template <typename... Args>
 void log(const std::string_view message, Args &&...args) {
   const auto timestamp = std::chrono::system_clock::now();
-  fmt::print("[{:%Y-%m-%d %H:%M:}{:%S}] {}\n", timestamp,
+  const auto now_c = std::chrono::system_clock::to_time_t(timestamp);
+  std::tm now_tm = *std::localtime(&now_c);
+  fmt::print("[{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:%S}] {}\n",
+             now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday,
+             now_tm.tm_hour, now_tm.tm_min, now_tm.tm_sec,
              std::chrono::round<std::chrono::milliseconds>(
                  timestamp.time_since_epoch()),
              fmt::format(fmt::runtime(message), args...));
 }
+
+// This must be a function rather than a global variable to avoid a startup
+// ordering issue that would otherwise occur if we simply made this a global
+// variable and then accessed it in the initializeLogger function.
+// NOTE: the only time that this list should be modified is at startup time.
+std::set<int> &g_timingList();
 
 /// @brief This type is meant to provided quick tracing
 /// of function calls. Instantiate at the beginning
@@ -117,6 +128,12 @@ private:
   /// @brief Any arguments the user would also like to print
   std::string argsMsg;
 
+  /// @brief Integer timing tag value (used to enable/disable this trace)
+  int tag = 0;
+
+  /// @brief Whether or not timing tag was found in g_timingList
+  bool tagFound = false;
+
   thread_local static inline short int globalTraceStack = -1;
 
 public:
@@ -129,7 +146,19 @@ public:
     }
   }
 
-  /// @brief  Constructor, take and print user-specified critical arguments
+  /// @brief The constructor with a timing tag.
+  /// @param tag See Timing.h
+  /// @param name String to print
+  ScopedTrace(const int tag, const std::string &name) : tag(tag) {
+    tagFound = g_timingList().find(tag) != g_timingList().end();
+    if (tagFound || details::should_log(details::LogLevel::trace)) {
+      startTime = std::chrono::system_clock::now();
+      traceName = name;
+      globalTraceStack++;
+    }
+  }
+
+  /// @brief Constructor, take and print user-specified critical arguments
   template <typename... Args>
   ScopedTrace(const std::string &name, Args &&...args) {
     if (details::should_log(details::LogLevel::trace)) {
@@ -145,18 +174,43 @@ public:
     }
   }
 
+  /// @brief Constructor, take and print user-specified critical arguments
+  /// @param tag See Timing.h
+  /// @param name String to print
+  template <typename... Args>
+  ScopedTrace(const int tag, const std::string &name, Args &&...args) {
+    tagFound = g_timingList().find(tag) != g_timingList().end();
+    if (tagFound || details::should_log(details::LogLevel::trace)) {
+      startTime = std::chrono::system_clock::now();
+      traceName = name;
+      argsMsg = " (args = {{";
+      constexpr std::size_t nArgs = sizeof...(Args);
+      for (std::size_t i = 0; i < nArgs; i++) {
+        argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
+      }
+      argsMsg = fmt::format(fmt::runtime(argsMsg), args...);
+      globalTraceStack++;
+    }
+  }
+
   /// The destructor, get the elapsed time and trace.
   ~ScopedTrace() {
-    if (details::should_log(details::LogLevel::trace)) {
+    if (tagFound || details::should_log(details::LogLevel::trace)) {
       auto duration = static_cast<double>(
           std::chrono::duration_cast<std::chrono::microseconds>(
               std::chrono::system_clock::now() - startTime)
               .count() /
           1000.0);
-      details::trace(fmt::format(
-          "{}{} executed in {} ms.{}",
+      // If we're printing because the tag was found, then add that tag info
+      std::string tagStr = tagFound ? fmt::format("[tag={}] ", tag) : "";
+      auto str = fmt::format(
+          "{}{}{} executed in {} ms.{}",
           globalTraceStack > 0 ? std::string(globalTraceStack, '-') + " " : "",
-          traceName, duration, argsMsg));
+          tagStr, traceName, duration, argsMsg);
+      if (tagFound)
+        cudaq::log(str);
+      else
+        details::trace(str);
       globalTraceStack--;
     }
   }

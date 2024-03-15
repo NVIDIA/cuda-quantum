@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "Logger.h"
+#include "Timing.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <filesystem>
 #include <spdlog/cfg/env.h>
@@ -16,6 +17,16 @@
 #include <spdlog/spdlog.h>
 
 namespace cudaq {
+
+// This must be a function rather than a global variable to avoid a startup
+// ordering issue that would otherwise occur if we simply made this a global
+// variable and then accessed it in the initializeLogger function.
+// NOTE: the only time that this list should be modified is at startup time.
+std::set<int> &g_timingList() {
+  static std::set<int> timingList;
+  return timingList;
+}
+
 /// @brief This function will run at startup and initialize
 /// the logger for the runtime to use. It will set the log
 /// level and optionally dump to file if specified.
@@ -36,6 +47,23 @@ __attribute__((constructor)) void initializeLogger() {
     auto fileLogger = spdlog::basic_logger_mt("cudaqFileLogger", envVal);
     spdlog::set_default_logger(fileLogger);
     spdlog::flush_on(spdlog::get_level());
+  }
+
+  // Parse comma separated integers into g_timingList
+  if (auto *val = std::getenv("CUDAQ_TIMING_TAGS")) {
+    std::string valueStr(val);
+    std::stringstream ss(valueStr);
+    int tag = 0;
+    while (ss >> tag) {
+      if (tag > cudaq::TIMING_MAX_VALUE)
+        fmt::print("WARNING: value in CUDAQ_TIMING_TAGS ({}) is too high and "
+                   "will be ignored!\n",
+                   tag);
+      else
+        g_timingList().insert(tag);
+      if (ss.peek() == ',')
+        ss.ignore();
+    }
   }
 }
 
