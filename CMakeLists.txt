@@ -501,6 +501,12 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
   endif()
 endif()
 
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
+  # The asio submodule doesn't use cmake, so use find_path for it.
+  find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
+  add_subdirectory(tpls/Crow)
+endif()
+
 
 # Check for CUDA Support
 # ==============================================================================
