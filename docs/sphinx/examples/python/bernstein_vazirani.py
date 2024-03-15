@@ -4,11 +4,11 @@ import random
 from typing import List
 
 
-def random_bitstring(length: int):
-    bitstring = []
+def random_bits(length: int):
+    bitset = []
     for _ in range(length):
-        bitstring.append(random.randint(0, 1))
-    return bitstring
+        bitset.append(random.randint(0, 1))
+    return bitset
 
 
 # If you have a NVIDIA GPU you can use this example to see
@@ -32,13 +32,13 @@ qubit_count = 5  # set to around 30 qubits for `nvidia` target
 # Generate a random, hidden bitstring for the oracle
 # to encode. Note: we define the bitstring here so
 # as to be able to return it for verification.
-hidden_bitstring = random_bitstring(qubit_count)
+hidden_bits = random_bits(qubit_count)
 
 
 @cudaq.kernel
 def oracle(register: cudaq.qview, auxillary_qubit: cudaq.qubit,
-           hidden_bitstring: List[int]):
-    for index, bit in enumerate(hidden_bitstring):
+           hidden_bits: List[int]):
+    for index, bit in enumerate(hidden_bits):
         if bit == 1:
             # apply a `cx` gate with the current qubit as
             # the control and the auxillary qubit as the target.
@@ -46,10 +46,10 @@ def oracle(register: cudaq.qview, auxillary_qubit: cudaq.qubit,
 
 
 @cudaq.kernel
-def bernstein_vazirani(hidden_bitstring: List[int]):
+def bernstein_vazirani(hidden_bits: List[int]):
     # Allocate the specified number of qubits - this
     # corresponds to the length of the hidden bitstring.
-    qubits = cudaq.qvector(len(hidden_bitstring))
+    qubits = cudaq.qvector(len(hidden_bits))
     # Allocate an extra auxillary qubit.
     auxillary_qubit = cudaq.qubit()
 
@@ -61,7 +61,7 @@ def bernstein_vazirani(hidden_bitstring: List[int]):
     h(qubits)
 
     # Query the oracle.
-    oracle(qubits, auxillary_qubit, hidden_bitstring)
+    oracle(qubits, auxillary_qubit, hidden_bits)
 
     # Apply another set of Hadamards to the register.
     h(qubits)
@@ -71,11 +71,11 @@ def bernstein_vazirani(hidden_bitstring: List[int]):
     mz(qubits)
 
 
-print(cudaq.draw(bernstein_vazirani, hidden_bitstring))
-result = cudaq.sample(bernstein_vazirani, hidden_bitstring)
+print(cudaq.draw(bernstein_vazirani, hidden_bits))
+result = cudaq.sample(bernstein_vazirani, hidden_bits)
 
-print(f"encoded bitstring = {hidden_bitstring}")
+print(f"encoded bitstring = {hidden_bits}")
 print(f"measured state = {result.most_probable()}")
 print(
-    f"Were we successful? {''.join([str(i) for i in hidden_bitstring]) == result.most_probable()}"
+    f"Were we successful? {''.join([str(i) for i in hidden_bits]) == result.most_probable()}"
 )
