@@ -8,7 +8,9 @@
 
 from functools import partialmethod
 import random
+import re
 import string
+import typing
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
 from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType
@@ -215,7 +217,9 @@ class PyKernel(object):
 
         with self.ctx, InsertionPoint(self.module.body), self.loc:
             self.mlirArgTypes = [
-                mlirTypeFromPyType(argType, self.ctx) for argType in argTypeList
+                mlirTypeFromPyType(argType[0], self.ctx, argInstance=argType[1])
+                for argType in
+                [self.__processArgType(ty) for ty in argTypeList]
             ]
 
             self.funcOp = func.FuncOp(self.funcName, (self.mlirArgTypes, []),
@@ -230,6 +234,25 @@ class PyKernel(object):
                 func.ReturnOp([])
 
             self.insertPoint = InsertionPoint.at_block_begin(e)
+
+    def __processArgType(self, ty):
+        """
+        Process input argument type. Specifically, try to infer the 
+        element type for a list, e.g. list[float]. 
+        """
+        if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
+            return ty, None
+        if typing.get_origin(ty) == list or isinstance(ty(), list):
+            if '[' in str(ty) and ']' in str(ty):
+                allowedTypeMap = {'int': int, 'bool': bool, 'float': float}
+                # Infer the slice type
+                result = re.search(r'ist\[(.*)\]', str(ty))
+                eleTyName = result.group(1)
+                pyType = allowedTypeMap[eleTyName]
+                if eleTyName != None and eleTyName in allowedTypeMap:
+                    return list, [allowedTypeMap[eleTyName]()]
+                emitFatalError(f'Invalid type for kernel builder {ty}')
+        return ty, None
 
     def getIntegerAttr(self, type, value):
         """
