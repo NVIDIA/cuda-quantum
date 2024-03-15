@@ -348,6 +348,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.PyKernelDecorator"><code class="docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
@@ -358,6 +359,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -479,7 +481,7 @@
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -500,7 +502,7 @@
 <span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 <span class="c1"># Adds parameterized gates based on the UCCSD ansatz.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">apply_call</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
 
 <span class="n">parameter_count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd_num_parameters</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span>
                                                      <span class="n">qubit_count</span><span class="p">)</span>
@@ -521,7 +523,7 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
--1.1371755939165522
+-1.1371745102369863
 </pre></div></div>
 </div>
 <p>We see that the energy has converged to the ground state minimum for <span class="math notranslate nohighlight">\(H_{2}\)</span>, as expected.</p>

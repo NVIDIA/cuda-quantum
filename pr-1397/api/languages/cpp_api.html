@@ -345,6 +345,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.PyKernelDecorator"><code class="docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#kernel-execution">Kernel Execution</a><ul>
@@ -355,6 +356,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -1858,6 +1860,59 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq5TraceE">
 <span class="target" id="classcudaq_1_1Trace"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Trace</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq5TraceE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>A trace is a circuit representation of the executed computation, as seen by the execution manager. (Here, a circuit is represented as a list of instructions on qudits). Since the execution manager cannot “see” control flow, the trace of a kernel with control flow represents a single execution path, and thus two calls to the same kernel might produce traces. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="draw_8h_1a44e20e25f5bb089d7619498cabe14729"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">draw</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::draw::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::draw::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Returns a drawing of the execution path, i.e., the trace, of the kernel. The drawing is a UTF-8 encoded string. </p>
+<p>
+Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithms/draw.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">bell_pair</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="p">};</span>
+<span class="p">...</span>
+<span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">draw</span><span class="p">(</span><span class="n">bell_pair</span><span class="p">);</span>
+<span class="cm">/* Output:</span>
+<span class="cm">     ╭───╮     </span>
+<span class="cm">q0 : ┤ h ├──●──</span>
+<span class="cm">     ╰───╯╭─┴─╮</span>
+<span class="cm">q1 : ─────┤ x ├</span>
+<span class="cm">          ╰───╯</span>
+<span class="cm">*/</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">float</span><span class="w"> </span><span class="n">angle</span><span class="p">)</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">ry</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="p">};</span>
+<span class="p">...</span>
+<span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="mf">0.59</span><span class="p">);</span>
+<span class="cm">/* Output:</span>
+<span class="cm">     ╭───╮╭──────────╮</span>
+<span class="cm">q0 : ┤ h ├┤ ry(0.59) ├</span>
+<span class="cm">     ╰───╯╰──────────╯</span>
+<span class="cm">*/</span><span class="w">      </span>
+</pre></div>
+</div>
+ </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel</strong> – The quantum callable with non-trivial function signature. </p></li>
+<li><p><strong>args</strong> – The arguments required for evaluation of the quantum kernel. </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The UTF-8 encoded string of the circuit, without measurement operations.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp class">
