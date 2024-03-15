@@ -11,8 +11,15 @@ Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA
 
 The code block below represents the contents of a file titled `simple_vqe.py`. 
 
-.. literalinclude:: ../../examples/python/simple_vqe.py
-   :language: python
+.. tab:: Python
+
+   .. literalinclude:: ../../examples/python/simple_vqe.py
+      :language: python
+
+.. tab:: C++
+   
+   .. literalinclude:: ../../examples/cpp/algorithms/vqe_h2.cpp
+      :language: cpp
 
 Let's look at a more advanced variation of the previous example.
 

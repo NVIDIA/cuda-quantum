@@ -29,7 +29,7 @@ parameter_count: int = 2 * layer_count
 
 
 @cudaq.kernel
-def kernel_qaoa(qubit_count: int, layer_count: int, thetas: List):
+def kernel_qaoa(qubit_count: int, layer_count: int, thetas: List[float]):
     """QAOA ansatz for Max-Cut"""
     qvector = cudaq.qvector(qubit_count)
 

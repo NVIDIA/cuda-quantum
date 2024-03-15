@@ -11,10 +11,13 @@ import cudaq
 
 print(f"Simulation Target = {cudaq.get_target().name}")
 
-kernel = cudaq.make_kernel()
-qubit = kernel.qalloc()
-kernel.h(qubit)
-kernel.mz(qubit)
+
+@cudaq.kernel
+def kernel():
+    qubit = cudaq.qubit()
+    h(qubit)
+    mz(qubit)
+
 
 result = cudaq.sample(kernel)
 print(result)  # Example: { 1:500 0:500 }

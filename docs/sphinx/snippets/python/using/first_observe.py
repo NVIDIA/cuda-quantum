@@ -10,15 +10,14 @@
 import cudaq
 from cudaq import spin
 
-cudaq.set_target('nvidia')
-
 operator = spin.z(0)
 print(operator)  # prints: [1+0j] Z
 
-kernel = cudaq.make_kernel()
-qubit = kernel.qalloc()
-kernel.h(qubit)
-#[End Observe1]
+@cudaq.kernel
+def kernel():
+    qubit = cudaq.qubit()
+    h(qubit) 
+    # [End Observe1]
 
 #[Begin Observe2]
 result = cudaq.observe(kernel, operator)
