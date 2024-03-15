@@ -438,11 +438,11 @@ public:
       return false;
     }
 
-    return !shouldObserveFromSampling();
+    return true;
   }
 
   /// @brief Compute the expected value from the observable matrix.
-  cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
+  cudaq::observe_result observe(const cudaq::spin_op &op) override {
     {
       cudaq::ScopedTrace trace(
           "CuStateVecCircuitSimulator::observe - flushGateQueue");
@@ -480,6 +480,7 @@ public:
     };
 
     // Contruct data to send on to custatevec
+    std::vector<std::string> termStrs;
     op.for_each_term([&](cudaq::spin_op &term) {
       coeffs.emplace_back(term.get_coefficient());
       std::vector<custatevecPauli_t> paulis;
@@ -497,6 +498,7 @@ public:
       pauliOperatorsArray.emplace_back(pauliOperatorsArrayHolder.back().data());
       basisBitsArray.emplace_back(basisBitsArrayHolder.back().data());
       nBasisBitsArray.emplace_back(pauliOperatorsArrayHolder.back().size());
+      termStrs.emplace_back(term.to_string(false));
     });
     std::vector<double> expectationValues(nPauliOperatorArrays);
     {
@@ -508,10 +510,18 @@ public:
           nPauliOperatorArrays, basisBitsArray.data(), nBasisBitsArray.data()));
     }
     std::complex<double> expVal = 0.0;
-    for (uint32_t i = 0; i < nPauliOperatorArrays; ++i)
+    std::vector<cudaq::ExecutionResult> results;
+    results.reserve(nPauliOperatorArrays);
+    for (uint32_t i = 0; i < nPauliOperatorArrays; ++i) {
       expVal += coeffs[i] * expectationValues[i];
-
-    return cudaq::ExecutionResult({}, expVal.real());
+      results.emplace_back(
+          cudaq::ExecutionResult({}, termStrs[i], expectationValues[i]));
+    }
+    cudaq::sample_result perTermData(static_cast<double>(expVal.real()),
+                                     results);
+    perTermData.dump();
+    return cudaq::observe_result(static_cast<double>(expVal.real()), op,
+                                 perTermData);
   }
 
   /// @brief Sample the multi-qubit state.

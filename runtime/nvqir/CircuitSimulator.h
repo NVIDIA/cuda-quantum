@@ -126,7 +126,7 @@ public:
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
-  virtual cudaq::ExecutionResult observe(const cudaq::spin_op &term) = 0;
+  virtual cudaq::observe_result observe(const cudaq::spin_op &term) = 0;
 
   /// @brief Allocate a single qubit, return the qubit as a logical index
   virtual std::size_t allocateQubit() = 0;
@@ -690,7 +690,7 @@ public:
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
-  cudaq::ExecutionResult observe(const cudaq::spin_op &term) override {
+  cudaq::observe_result observe(const cudaq::spin_op &term) override {
     throw std::runtime_error("This CircuitSimulator does not implement "
                              "observe(const cudaq::spin_op &).");
   }

@@ -65,9 +65,8 @@ protected:
       // and computing <ZZ..ZZZ>
       if (localContext->canHandleObserve) {
         auto [exp, data] = cudaq::measure(H);
-        results.emplace_back(data.to_map(), H.to_string(false), exp);
         localContext->expectationValue = exp;
-        localContext->result = cudaq::sample_result(results);
+        localContext->result = data;
       } else {
 
         // Loop over each term and compute coeff * <term>
