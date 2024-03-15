@@ -27,17 +27,6 @@ Unitary Operations on Qubits
 
 This operation implements the transformation defined by the Pauli-X matrix. It is also known as the quantum version of a `NOT`-gate.
 
-.. tab:: C++
-
-    .. code-block:: cpp
-
-        cudaq::qubit q;
-
-        // Apply the unitary transformation
-        // X = | 0  1 |
-        //     | 1  0 |
-        x(q);
-
 .. tab:: Python
 
     .. code-block:: python
@@ -50,11 +39,6 @@ This operation implements the transformation defined by the Pauli-X matrix. It i
         #     | 1  0 |
         kernel.x(q)
 
-:code:`y`
----------------------
-
-This operation implements the transformation defined by the Pauli-Y matrix.
-
 .. tab:: C++
 
     .. code-block:: cpp
@@ -62,9 +46,14 @@ This operation implements the transformation defined by the Pauli-Y matrix.
         cudaq::qubit q;
 
         // Apply the unitary transformation
-        // Y = | 0  -i |
-        //     | i   0 |
-        y(q);
+        // X = | 0  1 |
+        //     | 1  0 |
+        x(q);
+
+:code:`y`
+---------------------
+
+This operation implements the transformation defined by the Pauli-Y matrix.
 
 .. tab:: Python
 
@@ -78,11 +67,6 @@ This operation implements the transformation defined by the Pauli-Y matrix.
         #     | i   0 |
         kernel.y(q)
 
-:code:`z`
----------------------
-
-This operation implements the transformation defined by the Pauli-Z matrix.
-
 .. tab:: C++
 
     .. code-block:: cpp
@@ -90,9 +74,14 @@ This operation implements the transformation defined by the Pauli-Z matrix.
         cudaq::qubit q;
 
         // Apply the unitary transformation
-        // Z = | 1   0 |
-        //     | 0  -1 |
-        z(q);
+        // Y = | 0  -i |
+        //     | i   0 |
+        y(q);
+
+:code:`z`
+---------------------
+
+This operation implements the transformation defined by the Pauli-Z matrix.
 
 .. tab:: Python
 
@@ -106,12 +95,6 @@ This operation implements the transformation defined by the Pauli-Z matrix.
         #     | 0  -1 |
         kernel.z(q)
 
-:code:`h`
----------------------
-
-This operation is a rotation by π about the X+Z axis, and 
-enables one to create a superposition of computational basis states.
-
 .. tab:: C++
 
     .. code-block:: cpp
@@ -119,9 +102,15 @@ enables one to create a superposition of computational basis states.
         cudaq::qubit q;
 
         // Apply the unitary transformation
-        // H = (1 / sqrt(2)) * | 1   1 |
-        //                     | 1  -1 |
-        h(q);
+        // Z = | 1   0 |
+        //     | 0  -1 |
+        z(q);
+
+:code:`h`
+---------------------
+
+This operation is a rotation by π about the X+Z axis, and 
+enables one to create a superposition of computational basis states.
 
 .. tab:: Python
 
@@ -135,11 +124,6 @@ enables one to create a superposition of computational basis states.
         #                     | 1  -1 |
         kernel.h(q)
 
-:code:`r1`
----------------------
-
-This operation is an arbitrary rotation about the :code:`|1>` state.
-
 .. tab:: C++
 
     .. code-block:: cpp
@@ -147,9 +131,14 @@ This operation is an arbitrary rotation about the :code:`|1>` state.
         cudaq::qubit q;
 
         // Apply the unitary transformation
-        // R1(λ) = | 1     0    |
-        //         | 0  exp(iλ) |
-        r1(std::numbers::pi, q);
+        // H = (1 / sqrt(2)) * | 1   1 |
+        //                     | 1  -1 |
+        h(q);
+
+:code:`r1`
+---------------------
+
+This operation is an arbitrary rotation about the :code:`|1>` state.
 
 .. tab:: Python
 
@@ -163,11 +152,6 @@ This operation is an arbitrary rotation about the :code:`|1>` state.
         #         | 0  exp(iλ) |
         kernel.r1(math.pi, q)
 
-:code:`rx`
----------------------
-
-This operation is an arbitrary rotation about the X axis.
-
 .. tab:: C++
 
     .. code-block:: cpp
@@ -175,9 +159,14 @@ This operation is an arbitrary rotation about the X axis.
         cudaq::qubit q;
 
         // Apply the unitary transformation
-        // Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
-        //         | -isin(θ/2)  cos(θ/2)  |
-        rx(std::numbers::pi, q);
+        // R1(λ) = | 1     0    |
+        //         | 0  exp(iλ) |
+        r1(std::numbers::pi, q);
+
+:code:`rx`
+---------------------
+
+This operation is an arbitrary rotation about the X axis.
 
 .. tab:: Python
 
@@ -191,11 +180,6 @@ This operation is an arbitrary rotation about the X axis.
         #         | -isin(θ/2)  cos(θ/2)  |
         kernel.rx(math.pi, q)
 
-:code:`ry`
----------------------
-
-This operation is an arbitrary rotation about the Y axis.
-
 .. tab:: C++
 
     .. code-block:: cpp
@@ -203,9 +187,14 @@ This operation is an arbitrary rotation about the Y axis.
         cudaq::qubit q;
 
         // Apply the unitary transformation
-        // Ry(θ) = | cos(θ/2)  -sin(θ/2) |
-        //         | sin(θ/2)   cos(θ/2) |
-        ry(std::numbers::pi, q);
+        // Rx(θ) = |  cos(θ/2)  -isin(θ/2) |
+        //         | -isin(θ/2)  cos(θ/2)  |
+        rx(std::numbers::pi, q);
+
+:code:`ry`
+---------------------
+
+This operation is an arbitrary rotation about the Y axis.
 
 .. tab:: Python
 
@@ -219,11 +208,6 @@ This operation is an arbitrary rotation about the Y axis.
         #         | sin(θ/2)   cos(θ/2) |
         kernel.ry(math.pi, q)
 
-:code:`rz`
----------------------
-
-This operation is an arbitrary rotation about the Z axis.
-
 .. tab:: C++
 
     .. code-block:: cpp
@@ -231,9 +215,14 @@ This operation is an arbitrary rotation about the Z axis.
         cudaq::qubit q;
 
         // Apply the unitary transformation
-        // Rz(λ) = | exp(-iλ/2)      0     |
-        //         |     0       exp(iλ/2) |
-        rz(std::numbers::pi, q);
+        // Ry(θ) = | cos(θ/2)  -sin(θ/2) |
+        //         | sin(θ/2)   cos(θ/2) |
+        ry(std::numbers::pi, q);
+
+:code:`rz`
+---------------------
+
+This operation is an arbitrary rotation about the Z axis.
 
 .. tab:: Python
 
@@ -247,11 +236,6 @@ This operation is an arbitrary rotation about the Z axis.
         #         |     0       exp(iλ/2) |
         kernel.rz(math.pi, q)
 
-:code:`s`
----------------------
-
-This operation applies to its target a rotation by π/2 about the Z axis.
-
 .. tab:: C++
 
     .. code-block:: cpp
@@ -259,9 +243,14 @@ This operation applies to its target a rotation by π/2 about the Z axis.
         cudaq::qubit q;
 
         // Apply the unitary transformation
-        // S = | 1   0 |
-        //     | 0   i |
-        s(q);
+        // Rz(λ) = | exp(-iλ/2)      0     |
+        //         |     0       exp(iλ/2) |
+        rz(std::numbers::pi, q);
+
+:code:`s`
+---------------------
+
+This operation applies to its target a rotation by π/2 about the Z axis.
 
 .. tab:: Python
 
@@ -275,11 +264,6 @@ This operation applies to its target a rotation by π/2 about the Z axis.
         #     | 0   i |
         kernel.s(q)
 
-:code:`t`
----------------------
-
-This operation applies to its target a π/4 rotation about the Z axis.
-
 .. tab:: C++
 
     .. code-block:: cpp
@@ -287,9 +271,14 @@ This operation applies to its target a π/4 rotation about the Z axis.
         cudaq::qubit q;
 
         // Apply the unitary transformation
-        // T = | 1      0     |
-        //     | 0  exp(iπ/4) |
-        t(q);
+        // S = | 1   0 |
+        //     | 0   i |
+        s(q);
+
+:code:`t`
+---------------------
+
+This operation applies to its target a π/4 rotation about the Z axis.
 
 .. tab:: Python
 
@@ -303,23 +292,21 @@ This operation applies to its target a π/4 rotation about the Z axis.
         #     | 0  exp(iπ/4) |
         kernel.t(q)
 
-:code:`swap`
----------------------
-
-This operation swaps the states of two qubits.
-
 .. tab:: C++
 
     .. code-block:: cpp
 
-        cudaq::qubit q1, q2;
+        cudaq::qubit q;
 
         // Apply the unitary transformation
-        // Swap = | 1 0 0 0 |
-        //        | 0 0 1 0 |
-        //        | 0 1 0 0 |
-        //        | 0 0 0 1 |
-        swap(q1, q2);
+        // T = | 1      0     |
+        //     | 0  exp(iπ/4) |
+        t(q);
+
+:code:`swap`
+---------------------
+
+This operation swaps the states of two qubits.
 
 .. tab:: Python
 
@@ -335,31 +322,25 @@ This operation swaps the states of two qubits.
         #        | 0 0 0 1 |
         kernel.swap(qs[0], qs[1])
 
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qubit q1, q2;
+
+        // Apply the unitary transformation
+        // Swap = | 1 0 0 0 |
+        //        | 0 0 1 0 |
+        //        | 0 1 0 0 |
+        //        | 0 0 0 1 |
+        swap(q1, q2);
+
 
 Adjoint and Controlled Operations
 ==================================
 
 The template argument :code:`cudaq::adj` can be used to invoke the 
 `adjoint <https://en.wikipedia.org/wiki/Conjugate_transpose>`__ transformation:
-
-.. tab:: C++
-
-    .. code-block:: cpp
-
-        // Allocate a qubit in a |0> state.
-        cudaq::qubit q
-
-        // Apply the unitary transformation defined by the matrix
-        // T = | 1      0     |
-        //     | 0  exp(iπ/4) |
-        // to the state of the qubit `q`:
-        t(q);
-
-        // Apply its adjoint transformation defined by the matrix
-        // T† = | 1      0     |
-        //      | 0  exp(-iπ/4) |
-        t<cudaq::adj>(q);
-        // Qubit `q` is now again in the initial state |0>.
 
 .. tab:: Python
 
@@ -381,35 +362,28 @@ The template argument :code:`cudaq::adj` can be used to invoke the
         kernel.tdg(q)
         # Qubit `q` is now again in the initial state |0>.
 
-The template argument :code:`cudaq::ctrl` can be used to apply the transformation
-conditional on the state of one or more control qubits, see also this 
-`Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
-
 .. tab:: C++
 
     .. code-block:: cpp
 
-        // Allocate qubits in a |0> state.
-        cudaq::qubit c1, c2, q;
-        // Create a superposition.
-        h(c1);
-        // Qubit c1 is now in a state (|0> + |1>) / √2.
+        // Allocate a qubit in a |0> state.
+        cudaq::qubit q
 
-        // Apply the unitary transformation
-        // | 1  0  0  0 |
-        // | 0  1  0  0 |
-        // | 0  0  0  1 |
-        // | 0  0  1  0 |
-        x<cudaq::ctrl>(c1, c2);
-        // The qubits c1 and c2 are in a state (|00> + |11>) / √2.
+        // Apply the unitary transformation defined by the matrix
+        // T = | 1      0     |
+        //     | 0  exp(iπ/4) |
+        // to the state of the qubit `q`:
+        t(q);
 
-        // Set the state of qubit q to |1>:
-        x(q);
-        // Apply the transformation T only if both 
-        // control qubits are in a |1> state:
-        t<cudaq::ctrl>(c1, c2, q);
-        // The qubits c1, c2, and q are now in a state
-        // (|000> + exp(iπ/4)|111>) / √2.
+        // Apply its adjoint transformation defined by the matrix
+        // T† = | 1      0     |
+        //      | 0  exp(-iπ/4) |
+        t<cudaq::adj>(q);
+        // Qubit `q` is now again in the initial state |0>.
+
+The template argument :code:`cudaq::ctrl` can be used to apply the transformation
+conditional on the state of one or more control qubits, see also this 
+`Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
 
 .. tab:: Python
 
@@ -438,6 +412,32 @@ conditional on the state of one or more control qubits, see also this
         kernel.ct([c1, c2], q)
         # The qubits c1, c2, and q are now in a state
         # (|000> + exp(iπ/4)|111>) / √2.
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        // Allocate qubits in a |0> state.
+        cudaq::qubit c1, c2, q;
+        // Create a superposition.
+        h(c1);
+        // Qubit c1 is now in a state (|0> + |1>) / √2.
+
+        // Apply the unitary transformation
+        // | 1  0  0  0 |
+        // | 0  1  0  0 |
+        // | 0  0  0  1 |
+        // | 0  0  1  0 |
+        x<cudaq::ctrl>(c1, c2);
+        // The qubits c1 and c2 are in a state (|00> + |11>) / √2.
+
+        // Set the state of qubit q to |1>:
+        x(q);
+        // Apply the transformation T only if both 
+        // control qubits are in a |1> state:
+        t<cudaq::ctrl>(c1, c2, q);
+        // The qubits c1, c2, and q are now in a state
+        // (|000> + exp(iπ/4)|111>) / √2.
 
 Following common convention, by default the transformation is applied to the target qubit(s)
 if all control qubits are in a :code:`|1>` state. 
@@ -470,13 +470,6 @@ This operation measures a qubit with respect to the computational basis,
 i.e., it projects the state of that qubit onto the eigenvectors of the Pauli-Z matrix.
 This is a non-linear transformation, and no template overloads are available.
 
-.. tab:: C++
-
-    .. code-block:: cpp
-
-        cudaq::qubit q;
-        mz(q);
-
 .. tab:: Python
 
     .. code-block:: python
@@ -485,19 +478,19 @@ This is a non-linear transformation, and no template overloads are available.
         q = kernel.qalloc()
         kernel.mz(q)
 
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qubit q;
+        mz(q);
+
 :code:`mx`
 ---------------------
 
 This operation measures a qubit with respect to the Pauli-X basis, 
 i.e., it projects the state of that qubit onto the eigenvectors of the Pauli-X matrix.
 This is a non-linear transformation, and no template overloads are available.
-
-.. tab:: C++
-
-    .. code-block:: cpp
-
-        cudaq::qubit q;
-        mx(q);
 
 .. tab:: Python
 
@@ -507,19 +500,19 @@ This is a non-linear transformation, and no template overloads are available.
         q = kernel.qalloc()
         kernel.mx(q)
 
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qubit q;
+        mx(q);
+
 :code:`my`
 ---------------------
 
 This operation measures a qubit with respect to the Pauli-Y basis, 
 i.e., it projects the state of that qubit onto the eigenvectors of the Pauli-Y matrix.
 This is a non-linear transformation, and no template overloads are available.
-
-.. tab:: C++
-
-    .. code-block:: cpp
-
-        cudaq::qubit q;
-        my(q);
 
 .. tab:: Python
 
@@ -528,3 +521,10 @@ This is a non-linear transformation, and no template overloads are available.
         kernel = cudaq.make_kernel()
         q = kernel.qalloc()
         kernel.my(q)
+        
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qubit q;
+        my(q);
