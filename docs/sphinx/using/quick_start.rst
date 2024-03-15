@@ -16,7 +16,7 @@ This Quick Start page guides you through installing CUDA Quantum and running you
 If you have already installed and configured CUDA Quantum, or if you are using our 
 `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`_, you can move directly to our
 :doc:`Basics Section <basics/basics>`. More information about working with containers and Docker alternatives can be 
-found in our complete :doc:`Installation Guide <install/index>`.
+found in our complete :doc:`Installation Guide <install/install>`.
 
 Install CUDA Quantum
 ----------------------------
@@ -27,6 +27,11 @@ Install CUDA Quantum
    please follow the instructions for `installing CUDA Quantum <https://pypi.org/project/cuda-quantum/>`_ from PyPI. 
    If you have an NVIDIA GPU, make sure to also follow the instructions for enabling GPU-acceleration.
 
+   .. include:: ../../../python/README.md
+      :parser: myst_parser.sphinx_
+      :start-after: (Begin complete install)
+      :end-before: (End complete install)
+
    Once you completed the installation, please follow the instructions
    :ref:`below <validate-installation>` to run your first CUDA Quantum program!
 
@@ -36,17 +41,17 @@ Install CUDA Quantum
    please download the `install_cuda_quantum` file for your processor architecture from
    the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__; that is the file with the `aarch64` extension for ARM processors, and the one with `x86_64` for, e.g., Intel and AMD processors.
 
-   To install CUDA Quantum, execute the command
+   To install CUDA Quantum, execute the commands
 
-   .. literalinclude:: ../../../docker/test/installer/linux.Dockerfile
-      :language: bash
-      :dedent:
-      :start-after: [>CUDAQuantumInstall]
-      :end-before: [<CUDAQuantumInstall]
+   .. code-block:: bash
+
+      sudo -E bash install_cuda_quantum.$(uname -m) --accept 
+      . /etc/profile
 
    If you have an NVIDIA GPU, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA Quantum.
 
-   Please see the complete :ref:`installation guide <install-prebuilt-binaries>` for more details and for
+   Please see the complete :ref:`installation guide <install-prebuilt-binaries>` for more details, including
+
    - a list of :ref:`supported operating systems <dependencies-and-compatibility>`, 
    - instructions on how to :ref:`enable MPI parallelization <distributed-computing-with-mpi>` within CUDA Quantum, and
    - information about :ref:`updating CUDA Quantum <updating-cuda-quantum>`.
@@ -75,7 +80,6 @@ should be observed around 500 times each.
 
    .. literalinclude:: /snippets/python/quick_start.py
       :language: python
-      :caption: program.py
       :start-after: [Begin Documentation]
       :end-before: [End Documentation]
 
@@ -91,7 +95,6 @@ should be observed around 500 times each.
 
    .. literalinclude:: /snippets/cpp/quick_start.cpp
       :language: cpp
-      :caption: program.cpp
       :start-after: [Begin Documentation]
       :end-before: [End Documentation]
 
@@ -109,11 +112,15 @@ compare the time to execute the program on the
 
 .. tab:: Python
 
-    python3 program.py 28 --target nvidia
+   .. code-block:: console
+
+      python3 program.py 28 --target nvidia
 
 .. tab:: C++
 
-    nvq++ program.cpp -o program.x --target nvidia && ./program.x 28
+   .. code-block:: console
+
+      nvq++ program.cpp -o program.x --target nvidia && ./program.x 28
 
 When you change the target to `qpp-cpu`, the program simply seems to hang; that is because it takes a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with `Ctrl+C`.
 
