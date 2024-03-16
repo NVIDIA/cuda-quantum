@@ -11,7 +11,7 @@ import random
 import re
 import string
 import sys
-import typing
+from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
 from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType
@@ -243,7 +243,7 @@ class PyKernel(object):
         """
         if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
             return ty, None
-        if typing.get_origin(ty) == list or isinstance(ty(), list):
+        if get_origin(ty) == list or isinstance(ty(), list):
             if '[' in str(ty) and ']' in str(ty):
                 allowedTypeMap = {'int': int, 'bool': bool, 'float': float}
                 # Infer the slice type
