@@ -907,5 +907,6 @@ def test_no_valueerror_np_array():
     def test(var : np.ndarray):
         q = cudaq.qubit()
         ry(var[0], q)
+        mz(q)
     
     test(np.array([1.,2.]))
