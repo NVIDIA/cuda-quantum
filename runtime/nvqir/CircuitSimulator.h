@@ -13,6 +13,7 @@
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
+#include "common/Timing.h"
 
 #include <cstdarg>
 #include <cstddef>
@@ -646,8 +647,35 @@ protected:
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
+    // Collect summary data and print upon program termination
+    struct SummaryData {
+      std::size_t gateCount = 0;
+      std::size_t controlCount = 0;
+      std::size_t targetCount = 0;
+      bool enabled = false;
+      SummaryData() {
+        auto &x = cudaq::g_timingList();
+        if (x.find(cudaq::TIMING_GATE_COUNT) != x.end())
+          enabled = true;
+      }
+      ~SummaryData() {
+        if (enabled) {
+          cudaq::log("CircuitSimulator Total Program Metrics:");
+          cudaq::log("gateCount = {}", gateCount);
+          cudaq::log("controlCount = {}", controlCount);
+          cudaq::log("targetCount = {}", targetCount);
+        }
+      }
+    };
+    static thread_local SummaryData summaryData;
+
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
+      if (summaryData.enabled) {
+        summaryData.gateCount++;
+        summaryData.controlCount += next.controls.size();
+        summaryData.targetCount += next.targets.size();
+      }
       applyGate(next);
       if (executionContext && executionContext->noiseModel) {
         std::vector<std::size_t> noiseQubits{next.controls.begin(),
