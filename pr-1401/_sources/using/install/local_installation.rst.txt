@@ -320,7 +320,7 @@ After the window reloaded, enter "File: Open Folder" in the Command Palette to o
 
 To run the examples, open the Command Palette and enter "View: Show Terminal"
 to launch an integrated terminal. You are now all set to 
-:ref:`get started <validate-installation>` with CUDA Quantum development.
+:ref:`get started <post-installation>` with CUDA Quantum development.
 
 .. _singularity-in-vscode:
 
@@ -390,7 +390,7 @@ Command Palette to open the desired folder.
 
 To run the examples, open the Command Palette and enter "View: Show Terminal"
 to launch an integrated terminal. You are now all set to 
-:ref:`get started <validate-installation>` with CUDA Quantum development.
+:ref:`get started <post-installation>` with CUDA Quantum development.
 
 
 .. _connect-to-remote:
@@ -837,7 +837,7 @@ The following table summarizes the required components.
 Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
 
 
-.. _validate-installation:
+.. _post-installation:
 
 Next Steps
 ----------
