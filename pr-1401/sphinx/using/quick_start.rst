@@ -37,8 +37,9 @@ Install CUDA Quantum
 
 .. tab:: C++
 
-   To develop CUDA Quantum applications using C++, 
-   please download the `install_cuda_quantum` file for your processor architecture from
+   To develop CUDA Quantum applications using C++, please make sure you have a C++ toolchain installed
+   that supports C++20, for example `g++` version 11 or newer.
+   Download the `install_cuda_quantum` file for your processor architecture from
    the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__; that is the file with the `aarch64` extension for ARM processors, and the one with `x86_64` for, e.g., Intel and AMD processors.
 
    To install CUDA Quantum, execute the commands

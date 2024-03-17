@@ -555,8 +555,9 @@ to set them every time you launch a new shell, we recommend adding them to
 <a class="reference internal" href="#validate-installation"><span class="std std-ref">below</span></a> to run your first CUDA Quantum program!</p>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<p>To develop CUDA Quantum applications using C++,
-please download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture from
+<p>To develop CUDA Quantum applications using C++, please make sure you have a C++ toolchain installed
+that supports C++20, for example <code class="code docutils literal notranslate"><span class="pre">g++</span></code> version 11 or newer.
+Download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture from
 the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>; that is the file with the <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> extension for ARM processors, and the one with <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> for, e.g., Intel and AMD processors.</p>
 <p>To install CUDA Quantum, execute the commands</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept
@@ -592,13 +593,15 @@ should be observed around 500 times each.</p>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running on target </span><span class="si">{</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="k">else</span> <span class="mi">2</span>
 
+
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
     <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
-        <span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
     <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
 
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>  <span class="c1"># Example: { 11:500 00:500 }</span>
@@ -617,7 +620,7 @@ should be observed around 500 times each.</p>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qubits</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">);</span>
 <span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">x</span><span class="p">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">);</span>
 <span class="p">}</span>

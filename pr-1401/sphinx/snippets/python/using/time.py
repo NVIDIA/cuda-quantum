@@ -8,6 +8,7 @@
 
 import cudaq
 
+
 @cudaq.kernel
 def kernel(qubit_count: int):
     qvector = cudaq.qvector(qubit_count)
