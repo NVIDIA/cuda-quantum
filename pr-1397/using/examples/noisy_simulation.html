@@ -98,7 +98,11 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quick_start.html#validate-your-installation">Validate your Installation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
@@ -127,14 +131,26 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample-Async">Sample Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe-Async">Observe Async</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
@@ -142,6 +158,27 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-linearity">Gate linearity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
 </ul>
@@ -162,7 +199,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../backends/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../backends/hardware.html">   Hardware</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../backends/hardware.html">   Quantum Hardware</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#quantinuum">Quantinuum</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#submission-from-c">Submission from C++</a></li>
@@ -241,7 +278,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../install/data_center_install.html">Data Center Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#installation-from-source">Installation from Source</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../install/data_center_install.html#cuda">CUDA</a></li>
@@ -495,16 +531,18 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># probability of decaying into a mixed state.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">depolarization</span><span class="p">)</span>
 
+
 <span class="c1"># Now we define our simple kernel function and allocate</span>
 <span class="c1"># a qubit to it.</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="c1"># First we apply a Y-gate to the qubit.</span>
+    <span class="c1"># This will bring it to the |1&gt; state, where it will remain</span>
+    <span class="c1"># with a probability of `1 - p = 0.0`.</span>
+    <span class="n">y</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
-<span class="c1"># First we apply a Y-gate to qubit 0.</span>
-<span class="c1"># This will bring the qubit to the |1&gt; state, where it will remain</span>
-<span class="c1"># with a probability of `1 - p = 0.0`.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 <span class="c1"># Without noise, the qubit should still be in the |1&gt; state.</span>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
@@ -602,22 +640,23 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># probability of `1.0` that the qubit decays back to the ground state.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">amplitude_damping</span><span class="p">)</span>
 
+
 <span class="c1"># Now we define our simple kernel function and allocate a qubit.</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="c1"># Then we apply a Hadamard gate to the qubit.</span>
+    <span class="c1"># This will bring it to `1/sqrt(2) (|0&gt; + |1&gt;)`, where it will remain</span>
+    <span class="c1"># with a probability of `1 - p = 0.0`.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+    <span class="c1"># Measure.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
-<span class="c1"># Then we apply a Hadamard gate to the qubit.</span>
-<span class="c1"># This will bring it to `1/sqrt(2) (|0&gt; + |1&gt;)`, where it will remain</span>
-<span class="c1"># with a probability of `1 - p = 0.0`.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-
-<span class="c1"># Measure.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 <span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
 <span class="c1"># Note: We must pass the noise model to sample via keyword.</span>
 <span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="n">noisy_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noisy_result</span><span class="p">)</span>
 
 <span class="c1"># Our results should show all measurements in the |0&gt; state, indicating</span>
 <span class="c1"># that the noise has successfully impacted the system.</span>
@@ -626,7 +665,7 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># The qubit will now have a 50/50 mix of measurements between</span>
 <span class="c1"># |0&gt; and |1&gt;.</span>
 <span class="n">noiseless_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="n">noiseless_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noiseless_result</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -713,21 +752,23 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># a probability of `1.0` of undergoing an extra X-gate.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bit_flip</span><span class="p">)</span>
 
+
 <span class="c1"># Now we define our simple kernel function and allocate a register</span>
 <span class="c1"># of qubits to it.</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="c1"># Apply an X-gate to the qubit.</span>
+    <span class="c1"># It will remain in the |1&gt; state with a probability of `1 - p = 0.0`.</span>
+    <span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+    <span class="c1"># Measure.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
-<span class="c1"># Apply an X-gate to the qubit.</span>
-<span class="c1"># It will remain in the |1&gt; state with a probability of `1 - p = 0.0`.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-<span class="c1"># Measure.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 <span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
 <span class="c1"># Note: We must pass the noise model to sample via keyword.</span>
 <span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="n">noisy_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noisy_result</span><span class="p">)</span>
 
 <span class="c1"># Our results should show all measurements in the |0&gt; state, indicating</span>
 <span class="c1"># that the noise has successfully impacted the system.</span>
@@ -735,7 +776,7 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># To confirm this, we can run the simulation again without noise.</span>
 <span class="c1"># We should now see the qubit in the |1&gt; state.</span>
 <span class="n">noiseless_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="n">noiseless_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noiseless_result</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -821,31 +862,31 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># Z rotation.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">phase_flip</span><span class="p">)</span>
 
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="c1"># Single qubit initialized to the |0&gt; state.</span>
-<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 
-<span class="c1"># Place qubit in superposition state.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+    <span class="c1"># Single qubit initialized to the |0&gt; state.</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="c1"># Place qubit in superposition state.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+    <span class="c1"># Rotate the phase around Z by 180 degrees (π).</span>
+    <span class="n">z</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+    <span class="c1"># Apply another Hadamard and measure.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
-<span class="c1"># Rotate the phase around Z by 180 degrees (π).</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-
-<span class="c1"># Apply another Hadamard and measure.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 <span class="c1"># Without noise, we&#39;d expect the qubit to end in the |1&gt;</span>
 <span class="c1"># state due to the phase rotation between the two Hadamard</span>
 <span class="c1"># gates.</span>
-<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="n">counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+<span class="n">noiseless_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noiseless_result</span><span class="p">)</span>
 
 <span class="c1"># With noise, our Z-gate will effectively cancel out due</span>
 <span class="c1"># to the presence of a phase flip error on the gate with a</span>
 <span class="c1"># probability of `1.0`. This will put us back in the |0&gt; state.</span>
-<span class="n">noisy_counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="n">noisy_counts</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+<span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noisy_result</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -952,22 +993,22 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># probability of `1.0` that the qubit decays back to ground.</span>
 <span class="n">noise</span><span class="o">.</span><span class="n">add_channel</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">amplitude_damping</span><span class="p">)</span>
 
-<span class="c1"># Now we define our simple kernel function and allocate a qubit.</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
 
-<span class="c1"># Then we apply a Hadamard gate to the qubit.</span>
-<span class="c1"># This will bring it to `1/sqrt(2) (|0&gt; + |1&gt;)`, where it will remain</span>
-<span class="c1"># with a probability of `1 - p = 0.0`.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="c1"># Then we apply a Hadamard gate to the qubit.</span>
+    <span class="c1"># This will bring it to `1/sqrt(2) (|0&gt; + |1&gt;)`, where it will remain</span>
+    <span class="c1"># with a probability of `1 - p = 0.0`.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
+    <span class="c1"># Measure.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
-<span class="c1"># Measure.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 
 <span class="c1"># Now we&#39;re ready to run the noisy simulation of our kernel.</span>
 <span class="c1"># Note: We must pass the noise model to sample via keyword.</span>
 <span class="n">noisy_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="n">noisy_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noisy_result</span><span class="p">)</span>
 
 <span class="c1"># Our results should show all measurements in the |0&gt; state, indicating</span>
 <span class="c1"># that the noise has successfully impacted the system.</span>
@@ -976,7 +1017,7 @@ Let’s take a look at the various built-in noise models we support, before conc
 <span class="c1"># The qubit will now have a 50/50 mix of measurements between</span>
 <span class="c1"># |0&gt; and |1&gt;.</span>
 <span class="n">noiseless_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="n">noiseless_result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">noiseless_result</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

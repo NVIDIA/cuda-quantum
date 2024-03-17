@@ -26,6 +26,8 @@
         <script src="../_static/clipboard.min.js"></script>
         <script src="../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -98,7 +100,11 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">   Quick Start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">   Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#validate-your-installation">Validate your Installation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="basics/basics.html">   Basics</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
@@ -127,14 +133,26 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Sample-Async">Sample Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/python/tutorials/executing_circuits.html#Observe-Async">Observe Async</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
@@ -142,6 +160,27 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/quantum_bits.html#Gate-linearity">Gate linearity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
 </ul>
@@ -162,7 +201,7 @@
 <li class="toctree-l3"><a class="reference internal" href="backends/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="backends/hardware.html">   Hardware</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="backends/hardware.html">   Quantum Hardware</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="backends/hardware.html#quantinuum">Quantinuum</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backends/hardware.html#submission-from-c">Submission from C++</a></li>
@@ -241,7 +280,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="install/data_center_install.html">Data Center Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install/data_center_install.html#installation-from-source">Installation from Source</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="install/data_center_install.html#cuda">CUDA</a></li>
@@ -468,160 +506,162 @@
 <h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this heading">¶</a></h1>
 <p><strong>NVIDIA CUDA Quantum</strong></p>
 <p>CUDA Quantum streamlines hybrid application development and promotes productivity and scalability
-in quantum algorithm research. It offers a unified programming model designed for a hybrid
+in quantum computing. It offers a unified programming model designed for a hybrid
 setting—that is, CPUs, GPUs, and QPUs working together. CUDA Quantum contains support for
 programming in Python and in C++.</p>
-<p>This Quick Start page guides you through getting set up with CUDA Quantum and running your first program.
-If you have already installed and configured CUDA Quantum, we encourage you to move directly to our
-<a class="reference internal" href="basics/basics.html"><span class="doc">Basics Section</span></a>.</p>
+<p>This Quick Start page guides you through installing CUDA Quantum and running your first program.
+If you have already installed and configured CUDA Quantum, or if you are using our
+<a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">Docker image</a>, you can move directly to our
+<a class="reference internal" href="basics/basics.html"><span class="doc">Basics Section</span></a>. More information about working with containers and Docker alternatives can be
+found in our complete <a class="reference internal" href="install/install.html"><span class="doc">Installation Guide</span></a>.</p>
+<section id="install-cuda-quantum">
+<h2>Install CUDA Quantum<a class="headerlink" href="#install-cuda-quantum" title="Permalink to this heading">¶</a></h2>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<p>If you want to develop CUDA Quantum applications using Python, install the
-latest stable release of the CUDA Quantum Python API:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>cuda-quantum
+<p>To develop CUDA Quantum applications using Python,
+please follow the instructions for <a class="reference external" href="https://pypi.org/project/cuda-quantum/">installing CUDA Quantum</a> from PyPI.
+If you have an NVIDIA GPU, make sure to also follow the instructions for enabling GPU-acceleration.</p>
+<p>CUDA Quantum does not require a GPU to use, but some components are GPU-accelerated.
+If you have access to an NVIDIA GPU, you can enable GPU-acceleration within
+CUDA Quantum by installing the CUDA as well as a CUDA-aware MPI implementation.
+We recommend using <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> to do so.
+If you are not already using Conda,
+you can install a minimal version following the instructions
+<a class="reference external" href="https://docs.conda.io/projects/miniconda/en/latest/index.html">here</a>. The
+following commands will create and activate a complete environment for CUDA
+Quantum with all its dependencies:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda create -y -n cuda-quantum python=3.10 pip</span>
+<span class="go">conda install -y -n cuda-quantum -c &quot;nvidia/label/cuda-11.8.0&quot; cuda</span>
+<span class="go">conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler</span>
+<span class="go">conda env config vars set -n cuda-quantum LD_LIBRARY_PATH=&quot;$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib&quot;</span>
+<span class="go">conda env config vars set -n cuda-quantum MPI_PATH=$CONDA_PREFIX/envs/cuda-quantum</span>
+<span class="go">conda run -n cuda-quantum pip install cuda-quantum</span>
+<span class="go">conda activate cuda-quantum</span>
+<span class="go">source $CONDA_PREFIX/lib/python3.10/site-packages/distributed_interfaces/activate_custom_mpi.sh</span>
 </pre></div>
 </div>
-<p>For further information, see the <a class="reference external" href="https://pypi.org/project/cuda-quantum/">CUDA Quantum project</a> on PyPI.</p>
-<p>We also offer a fully featured CUDA Quantum installation, including all Python and C++ tools, via our
-<a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">Docker container</a>. For further
-installation methods and resources, see our <a class="reference internal" href="install/install.html#install-cuda-quantum"><span class="std std-ref">Installation Guide</span></a>.</p>
-<p>You should now be able to import CUDA Quantum and start building quantum programs in Python!</p>
-<p>To test your installation, create a file titled <code class="code docutils literal notranslate"><span class="pre">first_program.py</span></code>, containing the following code:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Simulation Target = </span><span class="si">{</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-<span class="n">qubit</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
-
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>  <span class="c1"># Example: { 1:500 0:500 }</span>
+<p>You must configure MPI by setting the following environment variables:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl=&#39;^openib&#39;</span>
 </pre></div>
 </div>
-<p>You may now execute this file as you do any other Python program. For example, from the command line:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>first_program.py
-</pre></div>
-</div>
-<p>The Hadamard gate places the qubit in a superposition state, giving a roughly 50/50 mixture
-of measurements in the <code class="code docutils literal notranslate"><span class="pre">|0&gt;</span></code> and <code class="code docutils literal notranslate"><span class="pre">|1&gt;</span></code> states.</p>
-<p>If you have a local GPU, the following dependencies must be installed before using any GPU accelerated simulation target.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-y<span class="w"> </span>-n<span class="w"> </span>cuda-quantum<span class="w"> </span><span class="nv">python</span><span class="o">==</span><span class="m">3</span>.10<span class="w"> </span>pip
-conda<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>-n<span class="w"> </span>cuda-quantum<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;nvidia/label/cuda-11.8.0&quot;</span><span class="w"> </span>cuda
-conda<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>-n<span class="w"> </span>cuda-quantum<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span>mpi4py<span class="w"> </span>openmpi<span class="w"> </span>cxx-compiler<span class="w"> </span>cuquantum
-conda<span class="w"> </span>env<span class="w"> </span>config<span class="w"> </span>vars<span class="w"> </span><span class="nb">set</span><span class="w"> </span>-n<span class="w"> </span>cuda-quantum<span class="w"> </span><span class="nv">LD_LIBRARY_PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$LD_LIBRARY_PATH</span><span class="s2">:</span><span class="nv">$CONDA_PREFIX</span><span class="s2">/envs/cuda-quantum/lib&quot;</span>
-conda<span class="w"> </span>env<span class="w"> </span>config<span class="w"> </span>vars<span class="w"> </span><span class="nb">set</span><span class="w"> </span>-n<span class="w"> </span>cuda-quantum<span class="w"> </span><span class="nv">MPI_PATH</span><span class="o">=</span><span class="nv">$CONDA_PREFIX</span>/envs/cuda-quantum
-conda<span class="w"> </span>run<span class="w"> </span>-n<span class="w"> </span>cuda-quantum<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>cuda-quantum
-conda<span class="w"> </span>activate<span class="w"> </span>cuda-quantum
-<span class="nb">source</span><span class="w"> </span><span class="nv">$CONDA_PREFIX</span>/lib/python3.10/site-packages/distributed_interfaces/activate_custom_mpi.sh
-</pre></div>
-</div>
-<p>When a GPU is detected, the simulation target defaults to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>. Otherwise, the target will default to the
-<code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> simulator. To confirm the detection of your GPU, you may once again run the example</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>first_program.py
-</pre></div>
-</div>
-<p>and confirm that <code class="code docutils literal notranslate"><span class="pre">Simulation</span> <span class="pre">Target</span> <span class="pre">=</span> <span class="pre">nvidia</span></code> is printed to the console.</p>
-<p>For further information on available targets, see <a class="reference internal" href="backends/backends.html"><span class="doc">Backends</span></a>.</p>
-<p>Now that you have successfully run your first program, you are ready to move on to our <a class="reference internal" href="basics/basics.html"><span class="doc">Basics Section</span></a>.</p>
+<p><em>If you do not set these variables you may encounter a segmentation fault.</em></p>
+<p><strong>Important</strong>: It is <em>not</em> sufficient to set these variable within the Conda
+environment, like the commands above do for <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code>. To avoid having
+to set them every time you launch a new shell, we recommend adding them to
+<code class="docutils literal notranslate"><span class="pre">~/.profile</span></code> (create the file if it does not exist), and to <code class="docutils literal notranslate"><span class="pre">~/.bash_profile</span></code> or
+<code class="docutils literal notranslate"><span class="pre">~/.bash_login</span></code> if such a file exists.</p>
+<p>Once you completed the installation, please follow the instructions
+<a class="reference internal" href="#validate-installation"><span class="std std-ref">below</span></a> to run your first CUDA Quantum program!</p>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<p>To install CUDA Quantum for C++, we provide a set of pre-built binaries.
-Support for using CUDA Quantum with Python can be installed side-by-side with
-the pre-built binaries for C++ by following the instructions on
-<a class="reference external" href="https://pypi.org/project/cuda-quantum">PyPI.org</a>. The pre-built binaries
-work across a range of Linux operating systems listed  under <a class="reference internal" href="install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a>.</p>
-<p>Before installing our pre-built binaries, please make sure that your
-operating system is using the <a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>
-version 2.28 or newer. You can confirm this by checking the output of the command
-<code class="code docutils literal notranslate"><span class="pre">ldd</span> <span class="pre">--version</span></code>. If this command does not exist, or shows an older version than 2.28,
-please double check that your operating system is listed as
-<a class="reference internal" href="install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">supported</span></a>. If you use an operating system
-with an older GNU C library version, you will need to build the installer from
-source following the instructions in <a class="reference internal" href="install/data_center_install.html#data-center-install"><span class="std std-ref">Installation from Source</span></a>.</p>
-<p>You can download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture from
-the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>.
-The installer is a <a class="reference external" href="https://makeself.io/">self-extracting archive</a> that contains the
-pre-built binaries as well as a script to move them to the correct locations. You will need
-<code class="code docutils literal notranslate"><span class="pre">bash</span></code>, <code class="code docutils literal notranslate"><span class="pre">tar</span></code>, and <code class="code docutils literal notranslate"><span class="pre">gzip</span></code> (usually already installed on most Linux distributions) to run
-the installer.
-The installation location of CUDA Quantum is not currently configurable and using the installer
-hence requires admin privileges on the system. We may revise that in the future; please see and
-upvote the corresponding <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/1075">GitHub issue</a>.</p>
-<p>To install CUDA Quantum, execute the command</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MPI_PATH</span><span class="o">=</span>/usr/local/openmpi<span class="w"> </span><span class="se">\</span>
-sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>/etc/profile
+<p>To develop CUDA Quantum applications using C++, please make sure you have a C++ toolchain installed
+that supports C++20, for example <code class="code docutils literal notranslate"><span class="pre">g++</span></code> version 11 or newer.
+Download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture from
+the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>; that is the file with the <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> extension for ARM processors, and the one with <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> for, e.g., Intel and AMD processors.</p>
+<p>To install CUDA Quantum, execute the commands</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept
+.<span class="w"> </span>/etc/profile
 </pre></div>
 </div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries.
-For more information see the corresponding section on <a class="reference internal" href="install/local_installation.html#cuda-dependencies-prebuilt-binaries"><span class="std std-ref">Additional CUDA Tools</span></a>.</p>
+<p>If you have an NVIDIA GPU, please also install the <a class="reference external" href="https://developer.nvidia.com/cuda-downloads">CUDA Toolkit</a> to enable GPU-acceleration within CUDA Quantum.</p>
+<p>Please see the complete <a class="reference internal" href="install/local_installation.html#install-prebuilt-binaries"><span class="std std-ref">installation guide</span></a> for more details, including</p>
+<ul class="simple">
+<li><p>a list of <a class="reference internal" href="install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">supported operating systems</span></a>,</p></li>
+<li><p>instructions on how to <a class="reference internal" href="install/local_installation.html#distributed-computing-with-mpi"><span class="std std-ref">enable MPI parallelization</span></a> within CUDA Quantum, and</p></li>
+<li><p>information about <a class="reference internal" href="install/local_installation.html#updating-cuda-quantum"><span class="std std-ref">updating CUDA Quantum</span></a>.</p></li>
+</ul>
+<p>Once you completed the installation, please follow the instructions
+<a class="reference internal" href="#validate-installation"><span class="std std-ref">below</span></a> to run your first CUDA Quantum program!</p>
 </div>
-<p>The installation ensures that the necessary environment variables for
-using the CUDA Quantum toolchain are set upon login for all POSIX shells.
-Confirm that the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> command is found. If it is not, please make sure
-to set the environment variables defined by the <code class="code docutils literal notranslate"><span class="pre">set_env.sh</span></code> script in the
-CUDA Quantum installation folder (usually <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>).</p>
-<p>If an MPI installation is available in the directory defined by <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code>,
-the installer automatically enables MPI support in CUDA Quantum.
-If you do not have MPI installed on your system, you can simply
-leave that path empty, and CUDA Quantum will be installed without MPI support.
-If you install MPI at a later point in time, you can activate the MPI support in CUDA
-Quantum by setting the <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code> variable to its installation location and
-executing the commands</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">MPI_PATH=/usr/local/openmpi # update this path as needed</span>
-<span class="go">bash &quot;${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh&quot;</span>
+</div>
+</section>
+<section id="validate-your-installation">
+<span id="validate-installation"></span><h2>Validate your Installation<a class="headerlink" href="#validate-your-installation" title="Permalink to this heading">¶</a></h2>
+<p>Let’s run a simple program to validate your installation.
+The quantum kernel in the following program creates and measures the state
+<span class="math notranslate nohighlight">\((|00\rangle + |11\rangle) / \sqrt{2}\)</span>. That means each kernel execution should
+either yield <code class="code docutils literal notranslate"><span class="pre">00</span></code> or <code class="code docutils literal notranslate"><span class="pre">11</span></code>. The program samples, meaning it executes, the kernel 1000 times
+and prints how many times each output was measured. On average, the values <code class="code docutils literal notranslate"><span class="pre">00</span></code> and <code class="code docutils literal notranslate"><span class="pre">11</span></code>
+should be observed around 500 times each.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<p>Create a file titled <code class="code docutils literal notranslate"><span class="pre">program.py</span></code>, containing the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running on target </span><span class="si">{</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="k">else</span> <span class="mi">2</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">():</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>  <span class="c1"># Example: { 11:500 00:500 }</span>
 </pre></div>
 </div>
-<p id="local-development-with-vscode">To develop C++ code, you most likely also want to install the
-<a class="reference external" href="https://en.cppreference.com/w/cpp/standard_library">C++ standard library</a>.
-CUDA Quantum supports the GNU C++ standard library (<code class="code docutils literal notranslate"><span class="pre">libstdc++</span></code>),
-version 11 or newer. Other libraries may work but can cause issues in certain cases.
-The C++ standard library, including development headers, is almost certainly
-available via the package manager for your system. To ensure the libraries and headers
-are discoverable, the easiest option is usually to install the complete GCC toolchain.
-Note that for certain distributions, you may need to manually enable that version
-after installation by running a script called <code class="code docutils literal notranslate"><span class="pre">enable</span></code>. You can search for such a
-script with the command <code class="code docutils literal notranslate"><span class="pre">find</span> <span class="pre">/</span> <span class="pre">-path</span> <span class="pre">'*gcc*'</span> <span class="pre">-name</span> <span class="pre">enable</span></code>.</p>
-<p>We also offer a fully featured CUDA Quantum installation, including all C++ and Python tools, via our
-<a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">Docker container</a>. For further
-installation methods and resources, see our <a class="reference internal" href="install/install.html"><span class="doc">Installation Guide</span></a>.</p>
-<p>You should now have the CUDA Quantum compiler toolchain available via the command line and are ready to run your first quantum program!</p>
-<p>To test your installation, create a file titled <code class="code docutils literal notranslate"><span class="pre">first_program.cpp</span></code>, containing the following code:</p>
+<p>Run this program as you do any other Python program, for example:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 program.py</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<p>Create a file titled <code class="code docutils literal notranslate"><span class="pre">program.cpp</span></code>, containing the following code:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
-<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">qubit</span><span class="p">;</span>
-<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qubit</span><span class="p">);</span>
-<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">);</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">qubits</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">;</span><span class="w"> </span><span class="o">++</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">);</span>
 <span class="p">}</span>
 
-<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
-<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span><span class="w"> </span><span class="c1">// Example: { 1:500 0:500 }</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argv</span><span class="p">[])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">qubit_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">argc</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="w"> </span><span class="n">qubit_count</span><span class="p">);</span>
+<span class="w">  </span><span class="n">result</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span><span class="w"> </span><span class="c1">// Example: { 11:500 00:500 }</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>You may now compile and execute this file from the command line using the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> toolchain:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>first_program.cpp<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./a.out
+<p>Compile the program using the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> compiler and run the built application with the following command:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ program.cpp -o program.x &amp;&amp; ./program.x</span>
 </pre></div>
 </div>
-<p>The Hadamard gate places the qubit in a superposition state, giving a roughly 50/50 mixture
-of measurements in the <code class="code docutils literal notranslate"><span class="pre">|0&gt;</span></code> and <code class="code docutils literal notranslate"><span class="pre">|1&gt;</span></code> states.</p>
-<p>If you have a local GPU, you may check that it has been properly configured by running your program with
-the target set to <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="o">=</span>nvidia<span class="w"> </span>first_program.cpp<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./a.out
+</div>
+</div>
+<p>If you have an NVIDIA GPU the program uses GPU acceleration by default.
+To confirm that this works as expected and to see the effects of GPU acceleration, you can
+increase the numbers of qubits the program uses to 28 and
+compare the time to execute the program on the
+<code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target (<a class="reference internal" href="backends/simulators.html#cuquantum-single-gpu"><span class="std std-ref">GPU-accelerated statevector simulator</span></a>) to the time when setting the target to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> (<a class="reference internal" href="backends/simulators.html#openmp-cpu-only"><span class="std std-ref">OpenMP parallelized CPU-only statevector simulator</span></a>):</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 program.py 28 --target nvidia</span>
 </pre></div>
 </div>
-<p>If no GPU is detected, an error will be returned to the terminal: <code class="code docutils literal notranslate"><span class="pre">Could</span> <span class="pre">not</span> <span class="pre">find</span> <span class="pre">a</span> <span class="pre">valid</span> <span class="pre">CUDA</span> <span class="pre">or</span> <span class="pre">libnvqir-custatevec-fp32</span>
-<span class="pre">installation.</span> <span class="pre">Make</span> <span class="pre">sure</span> <span class="pre">you</span> <span class="pre">have</span> <span class="pre">a</span> <span class="pre">compatible</span> <span class="pre">GPU</span> <span class="pre">and</span> <span class="pre">the</span> <span class="pre">necessary</span> <span class="pre">driver</span> <span class="pre">installed</span></code>.</p>
-<p>For further examples of simulation with NVIDIA cuQuantum, see <a class="reference internal" href="examples/cuquantum.html"><span class="doc">Examples</span></a>.</p>
-<p>For further information on available targets, see <a class="reference internal" href="backends/backends.html"><span class="doc">Backends</span></a>.</p>
-<p>Now that you have successfully run your first program, you are ready to move on to our <a class="reference internal" href="basics/basics.html"><span class="doc">Basics Section</span></a>.</p>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ program.cpp -o program.x --target nvidia &amp;&amp; ./program.x 28</span>
+</pre></div>
 </div>
 </div>
+</div>
+<p>When you change the target to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code>, the program simply seems to hang; that is because it takes a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with <code class="code docutils literal notranslate"><span class="pre">Ctrl+C</span></code>.</p>
+<p>For more information about enabling GPU-acceleration, please see
+our complete <a class="reference internal" href="install/local_installation.html#additional-cuda-tools"><span class="std std-ref">Installation Guide</span></a>.
+For further information on available targets, see <a class="reference internal" href="backends/backends.html"><span class="doc">Backends</span></a>.</p>
+<p>You are now all set to start developing quantum applications using CUDA Quantum!
+Please proceed to <a class="reference internal" href="basics/basics.html"><span class="doc">Basics</span></a> for an introduction
+to the fundamental features of CUDA Quantum.</p>
+</section>
 </section>
 
 

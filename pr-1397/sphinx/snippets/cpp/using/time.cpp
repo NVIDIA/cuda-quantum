@@ -27,10 +27,8 @@ __qpu__ void kernel(int qubit_count) {
 }
 
 // [Begin Time]
-int main() {
-  // 25 qubits.
-  auto qubit_count = 25;
-  // 1 million samples.
+int main(int argc, char *argv[]) {
+  auto qubit_count = 1 < argc ? atoi(argv[1]) : 25;
   auto shots_count = 1000000;
   auto start = std::chrono::high_resolution_clock::now();
 

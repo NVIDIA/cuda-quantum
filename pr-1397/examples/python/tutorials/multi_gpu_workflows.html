@@ -32,7 +32,7 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="CUDA Quantum Backends" href="../../../using/backends/backends.html" />
+    <link rel="next" title="Multiple Qubits" href="multiple_qubits.html" />
     <link rel="prev" title="Hybrid Quantum Neural Networks" href="hybrid_qnns.html" /> 
 </head>
 
@@ -101,7 +101,11 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../../using/quick_start.html">   Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../using/quick_start.html">   Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/quick_start.html#validate-your-installation">Validate your Installation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/basics/basics.html">   Basics</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
@@ -130,14 +134,26 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Observe">Observe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="executing_circuits.html">Executing Quantum Circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Sample-Async">Sample Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="executing_circuits.html#Observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="executing_circuits.html#Observe-Async">Observe Async</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Available-Targets">Available Targets</a></li>
@@ -145,6 +161,27 @@
 <li class="toctree-l3"><a class="reference internal" href="#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Multiple-QPU's">Multiple QPU’s</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="multiple_qubits.html">Multiple Qubits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_bits.html">Quantum Bits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit">Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-linearity">Gate linearity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
 </ul>
@@ -165,7 +202,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/backends/hardware.html">   Hardware</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/backends/hardware.html">   Quantum Hardware</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#submission-from-c">Submission from C++</a></li>
@@ -244,7 +281,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/install/data_center_install.html">Data Center Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#installation-from-source">Installation from Source</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/install/data_center_install.html#cuda">CUDA</a></li>
@@ -461,7 +497,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="hybrid_qnns.html" class="btn btn-neutral float-left" title="Hybrid Quantum Neural Networks" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA Quantum Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="multiple_qubits.html" class="btn btn-neutral float-right" title="Multiple Qubits" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -723,7 +759,7 @@ We split this into 4 batches of 2500 , 2500 , 2500 , 2500
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="hybrid_qnns.html" class="btn btn-neutral float-left" title="Hybrid Quantum Neural Networks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA Quantum Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="multiple_qubits.html" class="btn btn-neutral float-right" title="Multiple Qubits" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

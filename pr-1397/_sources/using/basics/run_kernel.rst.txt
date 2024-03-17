@@ -35,7 +35,7 @@ Sample
         :start-after: [Begin Sample3]
         :end-before: [End Sample3]
 
-  We can execute this program as we do any python file.
+  We can execute this program as we do any Python file.
 
   .. code-block:: console
 

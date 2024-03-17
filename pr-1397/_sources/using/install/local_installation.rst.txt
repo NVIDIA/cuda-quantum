@@ -320,7 +320,7 @@ After the window reloaded, enter "File: Open Folder" in the Command Palette to o
 
 To run the examples, open the Command Palette and enter "View: Show Terminal"
 to launch an integrated terminal. You are now all set to 
-:ref:`get started <validate-installation>` with CUDA Quantum development.
+:ref:`get started <post-installation>` with CUDA Quantum development.
 
 .. _singularity-in-vscode:
 
@@ -390,7 +390,7 @@ Command Palette to open the desired folder.
 
 To run the examples, open the Command Palette and enter "View: Show Terminal"
 to launch an integrated terminal. You are now all set to 
-:ref:`get started <validate-installation>` with CUDA Quantum development.
+:ref:`get started <post-installation>` with CUDA Quantum development.
 
 
 .. _connect-to-remote:
@@ -653,7 +653,7 @@ to help you get started. Take a look at `Next Steps`_ to dive into CUDA Quantum 
 Additional CUDA Tools
 ------------------------------------
 
-CUDA Quantum makes use of CUDA tools in certain backends and components. 
+CUDA Quantum makes use of GPU-acceleration in certain backends and components. 
 Depending on how you installed CUDA Quantum, you may need to install 
 certain CUDA libraries separately to take advantage of these.
 
@@ -665,14 +665,17 @@ If you installed CUDA Quantum via `PyPI <https://pypi.org/project/cuda-quantum>`
 Installation In Container Images
 ++++++++++++++++++++++++++++++++++++
 
-If you are using the CUDA Quantum container image, the image already contains all necessary runtime libraries to use all CUDA Quantum components. It does not, 
-however, contain all development dependencies for CUDA, such as, for example the `nvcc` compiler. You can install all CUDA development dependencies by running the command 
+If you are using the CUDA Quantum container image, the image already contains all necessary runtime libraries to use all CUDA Quantum components. To take advantage of GPU-acceleration, make sure
+to enable GPU support when you launch the container, that is pass the `--gpus all` flag when launching 
+the container with Docker and the `--nv` flag when launching the container with Singularity.
+
+Note that the image does not contain all development dependencies for CUDA, such as, for example the `nvcc` compiler. You can install all CUDA development dependencies by running the command 
 
 .. code-block:: console
 
     sudo apt-get install cuda-toolkit-11.8
 
-inside the container. Note that most Python packages that use GPU-acceleration, such as for example `CuPy <https://cupy.dev>`__, require an existing CUDA installation. After installing the `cuda-toolkit-11.8` you can install CuPy with the command
+inside the container. Most Python packages that use GPU-acceleration, such as for example `CuPy <https://cupy.dev>`__, require an existing CUDA installation. After installing the `cuda-toolkit-11.8` you can install CuPy with the command
 
 .. code-block:: console
 
@@ -765,6 +768,7 @@ MPI calls via CUDA Quantum API for C++ and Python will be delegated to the curre
     This is done automatically when executing that activation script, but you may wish to persist that environment variable 
     between bash sessions, e.g., by adding it to the `.bashrc` file.
 
+.. _updating-cuda-quantum:
 
 Updating CUDA Quantum
 --------------------------------
@@ -833,7 +837,7 @@ The following table summarizes the required components.
 Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
 
 
-.. _validate-installation:
+.. _post-installation:
 
 Next Steps
 ----------

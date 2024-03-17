@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,14 +10,18 @@
 // [Begin Documentation]
 #include <cudaq.h>
 
-__qpu__ void kernel() {
-  cudaq::qubit qubit;
-  h(qubit);
-  mz(qubit);
+__qpu__ void kernel(int qubit_count) {
+  cudaq::qvector qubits(qubit_count);
+  h(qubits[0]);
+  for (auto i = 1; i < qubit_count; ++i) {
+    cx(qubits[0], qubits[i]);
+  }
+  mz(qubits);
 }
 
-int main() {
-  auto result = cudaq::sample(kernel);
-  result.dump(); // Example: { 1:500 0:500 }
+int main(int argc, char *argv[]) {
+  auto qubit_count = 1 < argc ? atoi(argv[1]) : 2;
+  auto result = cudaq::sample(kernel, qubit_count);
+  result.dump(); // Example: { 11:500 00:500 }
 }
 // [End Documentation]

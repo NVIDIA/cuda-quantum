@@ -9,4 +9,3 @@ CUDA Quantum Basics
       Building your first CUDA Quantum Program <build_kernel.rst>
       Running your first CUDA Quantum Program <run_kernel.rst>
       Troubleshooting <troubleshooting.rst>
-      

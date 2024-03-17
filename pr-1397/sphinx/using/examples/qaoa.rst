@@ -16,7 +16,7 @@ Quantum Approximate Optimization Algorithm
    For more on the QAOA algorithm and the Max-Cut problem, refer to 
    `this paper <https://arxiv.org/abs/1411.4028>`__.
 
-   .. literalinclude:: ../../examples/cpp/other/builder/qaoa_maxcut_builder.cpp
+   .. literalinclude:: ../../examples/cpp/algorithms/qaoa_maxcut.cpp
       :language: cpp
       :start-after: [Begin Documentation]
       :end-before: [End Documentation]

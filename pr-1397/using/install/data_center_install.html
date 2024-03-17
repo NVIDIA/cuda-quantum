@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Data Center Installation &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Installation from Source &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -98,7 +98,11 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quick_start.html#validate-your-installation">Validate your Installation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
@@ -127,14 +131,26 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Sample-Async">Sample Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/tutorials/executing_circuits.html#Observe-Async">Observe Async</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
@@ -142,6 +158,27 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-linearity">Gate linearity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
 </ul>
@@ -162,7 +199,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../backends/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../backends/hardware.html">   Hardware</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../backends/hardware.html">   Quantum Hardware</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../backends/hardware.html#quantinuum">Quantinuum</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware.html#submission-from-c">Submission from C++</a></li>
@@ -241,7 +278,6 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Data Center Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#installation-from-source">Installation from Source</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#cuda">CUDA</a></li>
@@ -452,7 +488,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="install.html">Installation Guide</a></li>
-      <li class="breadcrumb-item active">Data Center Installation</li>
+      <li class="breadcrumb-item active">Installation from Source</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/using/install/data_center_install.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -465,10 +501,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="data-center-installation">
-<h1>Data Center Installation<a class="headerlink" href="#data-center-installation" title="Permalink to this heading">¶</a></h1>
-<section id="installation-from-source">
-<span id="data-center-install"></span><h2>Installation from Source<a class="headerlink" href="#installation-from-source" title="Permalink to this heading">¶</a></h2>
+  <section id="installation-from-source">
+<h1>Installation from Source<a class="headerlink" href="#installation-from-source" title="Permalink to this heading">¶</a></h1>
 <p>In most cases, you should not need to build CUDA Quantum from source. For the
 best experience, we recommend using a container runtime to avoid conflicts with
 other software tools installed on the system. Note that <a class="reference external" href="https://docs.sylabs.io/guides/2.6/user-guide/faq.html#what-is-so-special-about-singularity">Singularity</a>
@@ -500,7 +534,6 @@ performant.
 At this time, the <a class="reference internal" href="../backends/simulators.html#nvidia-mgpu-backend"><span class="std std-ref">multi-GPU state vector simulator</span></a>
 backend will not be included if you build CUDA Quantum from source.</p>
 </div>
-</section>
 <section id="prerequisites">
 <span id="compatibility-prebuilt-binaries"></span><h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading">¶</a></h2>
 <p>The following pre-requisites need to be satisfied both on the build system and

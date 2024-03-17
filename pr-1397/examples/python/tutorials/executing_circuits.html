@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Cost Minimization" href="cost_minimization.html" />
-    <link rel="prev" title="CUDA Quantum Tutorials" href="../../../using/tutorials.html" /> 
+    <link rel="next" title="Hybrid Quantum Neural Networks" href="hybrid_qnns.html" />
+    <link rel="prev" title="Deutschs’ Algorithm" href="deutschs_algorithm.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -101,7 +101,11 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../../../using/quick_start.html">   Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../using/quick_start.html">   Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/quick_start.html#validate-your-installation">Validate your Installation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/basics/basics.html">   Basics</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
@@ -130,14 +134,26 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../../../using/tutorials.html">   Applications</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Observe">Observe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Executing Quantum Circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Sample-Async">Sample Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Observe-Async">Observe Async</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
@@ -145,6 +161,27 @@
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Acceleration-via-NVIDIA-GPUs">Acceleration via NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-NVIDIA-GPUs">Multiple NVIDIA GPUs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="multiple_qubits.html">Multiple Qubits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quantum_bits.html">Quantum Bits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit">Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-linearity">Gate linearity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
 </ul>
@@ -165,7 +202,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/backends/hardware.html">   Hardware</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/backends/hardware.html">   Quantum Hardware</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/backends/hardware.html#submission-from-c">Submission from C++</a></li>
@@ -244,7 +281,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/install/data_center_install.html">Data Center Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#installation-from-source">Installation from Source</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../using/install/data_center_install.html#cuda">CUDA</a></li>
@@ -460,8 +496,8 @@
             <a href="../../../_sources/examples/python/tutorials/executing_circuits.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA Quantum Tutorials" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="deutschs_algorithm.html" class="btn btn-neutral float-left" title="Deutschs’ Algorithm" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hybrid_qnns.html" class="btn btn-neutral float-right" title="Hybrid Quantum Neural Networks" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -475,7 +511,7 @@
 <h2>Sample<a class="headerlink" href="#Sample" title="Permalink to this heading">¶</a></h2>
 <p>Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA Quantum <code class="docutils literal notranslate"><span class="pre">sample</span></code> call enables this:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -486,23 +522,27 @@
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 
 <span class="c1"># Define a quantum kernel function.</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
 
-<span class="c1"># Allocate our `qubit_count` to the kernel.</span>
-<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
 
-<span class="c1"># 2-qubit GHZ state.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
-    <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
 
-<span class="c1"># If we dont specify measurements, all qubits are measured in</span>
-<span class="c1"># the Z-basis by default.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+    <span class="c1"># 2-qubit GHZ state.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="c1"># If we dont specify measurements, all qubits are measured in</span>
+    <span class="c1"># the Z-basis by default.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
 
-<span class="n">result</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">))</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -511,16 +551,96 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{ 00:490 11:510 }
+     ╭───╮
+q0 : ┤ h ├──●──
+     ╰───╯╭─┴─╮
+q1 : ─────┤ x ├
+          ╰───╯
+
+{ 00:483 11:517 }
+
 </pre></div></div>
 </div>
 <p>Note that there is a subtle difference between how <code class="docutils literal notranslate"><span class="pre">sample</span></code> is executed with the target device set to a simulator or with the target device set to a QPU. In simulation mode, the quantum state is built once and then sampled <span class="math notranslate nohighlight">\(s\)</span> times where <span class="math notranslate nohighlight">\(s\)</span> equals the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>. In hardware execution mode, the quantum state collapses upon measurement and hence needs to be rebuilt over and over again.</p>
+<section id="Sample-Async">
+<h3>Sample Async<a class="headerlink" href="#Sample-Async" title="Permalink to this heading">¶</a></h3>
+<p>Asynchronous programming is a technique that enables your program to start a potentially long-running task and still be able to be responsive to other events while that task runs, rather than having to wait until that task has finished. Once that task has finished, your program is presented with the result.</p>
+<p><code class="docutils literal notranslate"><span class="pre">sample</span></code> can be a time intensive task. We can parallelize the execution of <code class="docutils literal notranslate"><span class="pre">sample</span></code> via the arguments it accepts.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Parallelize over the various kernels one would like to execute.</span>
+
+<span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">2</span>
+
+<span class="c1"># Set the simulation target.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia-mqpu&quot;</span><span class="p">)</span>
+
+<span class="c1"># Kernel 1</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel_1</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+
+    <span class="c1"># 2-qubit GHZ state.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="c1"># If we dont specify measurements, all qubits are measured in</span>
+    <span class="c1"># the Z-basis by default.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+
+
+<span class="c1"># Kernel 2</span>
+
+
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span> <span class="nf">kernel_2</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+
+    <span class="c1"># 2-qubit GHZ state.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="c1"># If we dont specify measurements, all qubits are measured in</span>
+    <span class="c1"># the Z-basis by default.</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+
+
+<span class="c1"># Asynchronous execution on multiple qpus via nvidia gpus.</span>
+<span class="n">result_1</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel_1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">result_2</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel_2</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">qpu_id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">result_1</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result_2</span><span class="o">.</span><span class="n">get</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{ 00:480 11:520 }
+
+{ 00:487 11:513 }
+
+</pre></div></div>
+</div>
+<p>Similar to the above, one can also parallelize over the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> or the variational parameters of a quantum circuit.</p>
+</section>
 </section>
 <section id="Observe">
 <h2>Observe<a class="headerlink" href="#Observe" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">observe</span></code> function allows us to gather qubit statistics and calculate expectation values. We must supply a spin operator in the form of a Hamiltonian from which we would like to calculate <span class="math notranslate nohighlight">\(\bra{\psi}H\ket{\psi}\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -531,23 +651,13 @@
 <span class="c1"># Define the simulation target.</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;qpp-cpu&quot;</span><span class="p">)</span>
 
-<span class="c1"># Define a quantum kernel function.</span>
-<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
-
-<span class="c1"># Allocate our `qubit_count` to the kernel.</span>
-<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
-
-<span class="c1"># 2-qubit GHZ state.</span>
-<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">):</span>
-    <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+<span class="c1"># Using the same quantum kernel function as we did with `sample`.</span>
 
 <span class="c1"># Define a Hamiltonian in terms of Pauli Spin operators.</span>
 <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="c1"># Compute the expectation value given the state prepared by the kernel.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&lt;H&gt; =&#39;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 </pre></div>
@@ -558,9 +668,13 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;H&gt; = 0.0
+&lt;H&gt; = -1.0000000000000002
 </pre></div></div>
 </div>
+<section id="Observe-Async">
+<h3>Observe Async<a class="headerlink" href="#Observe-Async" title="Permalink to this heading">¶</a></h3>
+<p>Similar to <code class="docutils literal notranslate"><span class="pre">sample_async</span></code> above, <code class="docutils literal notranslate"><span class="pre">observe</span></code> also supports asynchronous execution for the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async:~:text=cudaq.observe_async(),%C2%B6">arguments it accepts</a>. One can parallelize over various kernels, spin operators, variational parameters or even noise models.</p>
+</section>
 </section>
 </section>
 
@@ -568,8 +682,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../../../using/tutorials.html" class="btn btn-neutral float-left" title="CUDA Quantum Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cost_minimization.html" class="btn btn-neutral float-right" title="Cost Minimization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="deutschs_algorithm.html" class="btn btn-neutral float-left" title="Deutschs’ Algorithm" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="hybrid_qnns.html" class="btn btn-neutral float-right" title="Hybrid Quantum Neural Networks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
