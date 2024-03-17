@@ -19,7 +19,7 @@ def kernel():
     qubits = cudaq.qvector(qubit_count)
     h(qubits[0])
     for i in range(1, qubit_count):
-        cx(qubits[0], qubits[i])
+        x.ctrl(qubits[0], qubits[i])
     mz(qubits)
 
 

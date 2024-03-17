@@ -14,7 +14,7 @@ __qpu__ void kernel(int qubit_count) {
   cudaq::qvector qubits(qubit_count);
   h(qubits[0]);
   for (auto i = 1; i < qubit_count; ++i) {
-    cx(qubits[0], qubits[i]);
+    x.ctrl(qubits[0], qubits[i]);
   }
   mz(qubits);
 }
