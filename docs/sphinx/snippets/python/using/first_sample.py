@@ -8,8 +8,6 @@
 
 import cudaq
 
-cudaq.set_target('nvidia')
-
 
 @cudaq.kernel
 def kernel(qubit_count: int):
