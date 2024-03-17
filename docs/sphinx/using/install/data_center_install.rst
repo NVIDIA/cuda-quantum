@@ -1,8 +1,5 @@
-Data Center Installation
-=========================
-
 Installation from Source
-+++++++++++++++++++++++++
+=========================
 
 In most cases, you should not need to build CUDA Quantum from source. For the
 best experience, we recommend using a container runtime to avoid conflicts with
