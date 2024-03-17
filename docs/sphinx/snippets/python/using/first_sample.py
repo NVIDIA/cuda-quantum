@@ -8,6 +8,7 @@
 
 import cudaq
 
+
 @cudaq.kernel
 def kernel(qubit_count: int):
     qvector = cudaq.qvector(qubit_count)
@@ -15,6 +16,7 @@ def kernel(qubit_count: int):
     for qubit in range(qubit_count - 1):
         cx(qvector[qubit], qvector[qubit + 1])
     mz(qvector)
+
 
 #[Begin Sample1]
 qubit_count = 2
