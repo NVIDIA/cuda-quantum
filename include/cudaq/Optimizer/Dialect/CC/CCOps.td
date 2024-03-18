@@ -1058,7 +1058,7 @@ def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
     the data pointer is part of the aggregate value and nothing is dereferenced.
   }];
 
-  let arguments = (ins cc_StdVectorType:$stdvec);
+  let arguments = (ins SpanningType:$stdvec);
   let results = (outs AnyPointerType:$data);
 
   let hasCanonicalizer = 1;
@@ -1079,7 +1079,7 @@ def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
     is dereferenced.
   }];
 
-  let arguments = (ins cc_StdVectorType:$stdvec);
+  let arguments = (ins SpanningType:$stdvec);
   let results = (outs AnyInteger:$size);
 
   let hasCanonicalizer = 1;

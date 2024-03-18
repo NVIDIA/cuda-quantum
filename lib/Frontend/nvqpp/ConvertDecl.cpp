@@ -90,7 +90,7 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (isa<FunctionType, cc::CallableType, cc::PointerType, cc::StdvecType,
+      if (isa<FunctionType, cc::CallableType, cc::PointerType, cc::SpanLikeType,
               LLVM::LLVMStructType, quake::ControlType, quake::RefType,
               quake::VeqType, quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
@@ -175,6 +175,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
   }
   if (isInNamespace(x, "std")) {
+    if (name.equals("basic_string"))
+      return pushType(cc::CharspanType::get(ctx));
     if (name.equals("vector")) {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the vector's element type.

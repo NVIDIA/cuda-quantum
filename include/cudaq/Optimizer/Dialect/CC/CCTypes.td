@@ -251,7 +251,7 @@ def cc_CharSpanType
   }];
 }
 
-def IsSpanLikePred : CPred<"$_self.isa<cudaq::cc::SpanlikeType>()>">;
-def cc_SpanLikeType : Type<IsSpanLikePred, "dynamic length type">;
+def IsSpanLikePred : CPred<"$_self.isa<cudaq::cc::SpanLikeType>()">;
+def SpanningType : Type<IsSpanLikePred, "dynamic length type">;
 
 #endif // CUDAQ_DIALECT_CC_TYPES_TD
