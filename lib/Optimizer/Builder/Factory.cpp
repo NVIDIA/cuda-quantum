@@ -270,8 +270,7 @@ static Type convertToHostSideType(Type ty) {
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
   if (auto memrefTy = dyn_cast<cc::CharspanType>(ty))
-    return convertToHostSideType(
-        factory::stlStringType(memrefTy.getContext()));
+    return convertToHostSideType(factory::stlStringType(memrefTy.getContext()));
   auto *ctx = ty.getContext();
   if (auto structTy = dyn_cast<cc::StructType>(ty)) {
     SmallVector<Type> newMembers;
