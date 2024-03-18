@@ -33,6 +33,6 @@ void test0(double theta) {
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.charspan) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[VAL_7:.*]] = quake.concat %[[VAL_6]] : (!quake.ref) -> !quake.veq<1>
-// CHECK:           quake.exp_pauli(%[[VAL_4]]) %[[VAL_7]], %[[VAL_5]] : (f64, !quake.veq<1>, !cc.ptr<i8>) -> ()
+// CHECK:           quake.exp_pauli %[[VAL_4]], %[[VAL_7]], %[[VAL_5]] : (f64, !quake.veq<1>, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
