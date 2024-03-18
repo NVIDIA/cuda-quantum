@@ -319,8 +319,9 @@
 <li class="toctree-l2"><a class="reference internal" href="api/languages/python_api.html">Python API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#program-construction">Program Construction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PyKernelDecorator"><code class="docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
@@ -331,6 +332,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -352,6 +354,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
@@ -411,13 +414,14 @@
 <li class="toctree-l2"><a class="reference internal" href="data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cutensor">cuTensor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#preparing-the-installation">Preparing the Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#c-support">C++ Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="data_center_install.html#python-support">Python Support</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="data_center_install.html#mpi">MPI</a></li>
@@ -461,6 +465,24 @@
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples">Examples</a></p></li>
 </ul>
+<p><strong>0.6.0</strong></p>
+<p>The 0.6.0 release contains improved support for various HPC scenarios. We have added a
+<a class="reference internal" href="install.html#distributed-computing-with-mpi"><span class="std std-ref">plugin infrastructure</span></a> for connecting CUDA Quantum
+with an existing MPI installation, and we’ve added a <a class="reference internal" href="using/cudaq/platform.html#remote-mqpu-platform"><span class="std std-ref">new platform target</span></a> that distributes workloads across multiple virtual QPUs,
+each simulated by one or more GPUs.</p>
+<p>Starting with 0.6.0, we are now also distributing
+<a class="reference internal" href="install.html#install-prebuilt-binaries"><span class="std std-ref">pre-built binaries</span></a> for using CUDA Quantum with C++.
+The binaries are built against the <a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>
+version 2.28.
+We’ve added a detailed <a class="reference internal" href="data_center_install.html"><span class="doc">Building from Source</span></a> guide to build these binaries for older <code class="code docutils literal notranslate"><span class="pre">glibc</span></code> versions.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cuda-quantum/">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">C++ installer</a></p></li>
+<li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.6.0">Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.6.0/docs/sphinx/examples">Examples</a></p></li>
+</ul>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">here</a>.</p>
 <p><strong>0.5.0</strong></p>
 <p>With 0.5.0 we have added support for quantum kernel execution on OQC and IQM backends. For more information, see <a class="reference internal" href="using/hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.
 CUDA Quantum now allows to executing adaptive quantum kernels on quantum hardware backends that support it.
@@ -468,12 +490,12 @@ The 0.5.0 release furthermore improves the tensor network simulation tools and a
 <p>Additionally, we are now publishing images for experimental features, which currently includes improved Python language support.
 Please take a look at <a class="reference internal" href="install.html"><span class="doc">Getting Started</span></a> for more information about how to obtain them.</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum">Docker image</a></p></li>
-<li><p><a class="reference external" href="https://pypi.org/project/cuda-quantum/">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cuda-quantum/0.5.0">Python wheel</a></p></li>
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.5.0">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.5.0/docs/sphinx/examples">Examples</a></p></li>
 </ul>
-<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">here</a>.</p>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.5.0">here</a>.</p>
 <p><strong>0.4.1</strong></p>
 <p>The 0.4.1 release adds support for ARM processors in the form of multi-platform Docker images and <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code> Python wheels. Additionally, all GPU-based backends are now included in the Python wheels as well as in the Docker image.</p>
 <ul class="simple">

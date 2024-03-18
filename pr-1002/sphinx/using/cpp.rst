@@ -2,13 +2,12 @@
 CUDA Quantum in C++
 ======================
 
-Welcome to CUDA Quantum!
-This is a introduction by example for using CUDA Quantum in C++. 
+Welcome to CUDA Quantum! ON this page, we will illustrate CUDA Quantum in C++ through several examples.
 
 Introduction
 --------------------------------
 
-Welcome to CUDA Quantum! We're going to take a look at how to construct quantum programs using CUDA Quantum kernel expressions.
+We're going to take a look at how to construct quantum programs using CUDA Quantum kernel expressions.
 
 CUDA Quantum kernels are any typed callable in the language that is annotated with the :code:`__qpu__` attribute. Let's take a look at a very 
 simple "Hello World" example, specifically a CUDA Quantum kernel that prepares a GHZ state on a programmer-specified number of qubits. 
@@ -20,7 +19,7 @@ Here we see that we can define a custom :code:`struct` that is templated on a :c
 Our kernel expression is free to use this template parameter in the allocation of a 
 compile-time-known register of qubits. Within the kernel, we are free to apply various quantum operations, 
 like a Hadamard on qubit 0 :code:`h(q[0])`. Controlled operations are **modifications** of single-qubit 
-operations, like the :code:`x<cudaq::ctrl>(q[0],q[1])` operation to affect a controlled-X. We 
+operations, like the :code:`x<cudaq::ctrl>(q[0],q[1])` operation which implements a controlled-X gate. We 
 can measure single qubits or entire registers. 
 
 In this example we are interested in sampling the final state produced by this CUDA Quantum kernel. 
@@ -28,7 +27,7 @@ To do so, we leverage the generic :code:`cudaq::sample` function, which returns 
 encoding the qubit measurement strings and the corresponding number of times that string 
 was observed (here the default number of shots is used, :code:`1000`).
 
-To compile and execute this code, we run the following 
+The following example illustrates how to compile and execute this code.
 
 .. code:: bash 
 
@@ -46,17 +45,17 @@ at an example of this:
     :language: cpp
 
 Here we define a parameterized CUDA Quantum kernel, a callable type named :code:`ansatz` that takes as 
-input a single angle :code:`theta`. This angle is used as part of a single :code:`ry` rotation. 
+input a single angle :code:`theta`. This angle becomes the argument of a single :code:`ry` rotation. 
 
-In host code, we define a Hamiltonian operator we are interested in via the CUDA Quantum :code:`spin_op` type. 
-CUDA Quantum provides a generic function :code:`cudaq::observe` which takes a parameterized 
-kernel, the :code:`spin_op` whose expectation value we wish to compute, and the runtime 
-parameters at which we evaluate the parameterized kernel. 
+In host code, we define a Hamiltonian operator via the CUDA Quantum :code:`spin_op` type. 
+CUDA Quantum provides a generic function :code:`cudaq::observe. This function takes as input three terms. 
+The first two terms are a parameterized kernel and the :code:`spin_op` whose expectation value we wish to compute.
+The last term contains the runtime parameters at which we evaluate the parameterized kernel. 
 
 The return type of this function is an :code:`cudaq::observe_result` which contains all the data 
 from the execution, but is trivially convertible to a double, resulting in the expectation value we are interested in. 
 
-To compile and execute this code, we run the following 
+To compile and execute this code, we run the following:
 
 .. code:: bash 
 
@@ -68,12 +67,12 @@ Multi-control Synthesis
 
 Now let's take a look at how CUDA Quantum allows one to control a general unitary 
 on an arbitrary number of control qubits. For this scenario, our general unitary can be described 
-by another pre-defined CUDA Quantum kernel expression. Let's take a look at the following example:
+by another pre-defined CUDA Quantum kernel expression. 
 
 .. literalinclude:: ../examples/cpp/basics/multi_controlled_operations.cpp
     :language: cpp
 
-In this example, we show 2 distinct ways for generating a Toffoli operation. The first one in host code 
+In this example, we show two distinct ways for generating a Toffoli operation. The first one in host code 
 is the definition of a CUDA Quantum lambda that synthesizes a Toffoli via the general multi-control functionality 
 for any single-qubit quantum operation :code:`x<cudaq::ctrl>(q[0], q[1], q[2])`.
 
@@ -84,7 +83,7 @@ the given qubit. Within the :code:`control` call, we specify two control qubits,
 This call requires trailing parameters that serve as the arguments for the applied kernel (:code:`apply_x` takes 
 a single target qubit).
 
-To compile and execute this code, we run the following 
+To compile and execute this code, we run the following: 
 
 .. code:: bash 
 
@@ -147,15 +146,16 @@ The following code illustrates how to run a simulation with a custom noise model
 Using Quantum Hardware Providers
 -----------------------------------
 
-CUDA Quantum contains support for using a set of hardware providers. 
+CUDA Quantum contains support for using a set of hardware providers. In the code blocks below,
+we will run kernels on Quantinuum and IonQ machines. 
 For more information about executing quantum kernels on different hardware backends, please take a look at :doc:`hardware`.
 
-The following code illustrates how run kernels on Quantinuum's backends.
+The following code illustrates how to run kernels on Quantinuum's backends.
 
 .. literalinclude:: ../examples/cpp/providers/quantinuum.cpp
     :language: cpp
 
-The following code illustrates how run kernels on IonQ's backends.
+The following code illustrates how to run kernels on IonQ's backends.
 
 .. literalinclude:: ../examples/cpp/providers/ionq.cpp
     :language: cpp

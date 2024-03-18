@@ -324,8 +324,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../api/languages/python_api.html">Python API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#program-construction">Program Construction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.PyKernelDecorator"><code class="docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
@@ -336,6 +337,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -357,6 +359,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
@@ -416,13 +419,14 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../data_center_install.html#prerequisites">Prerequisites</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../data_center_install.html#build-dependencies">Build Dependencies</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../data_center_install.html#cuda">CUDA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../data_center_install.html#cuquantum">cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../data_center_install.html#cutensor">cuTensor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../data_center_install.html#preparing-the-installation">Preparing the Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../data_center_install.html#c-support">C++ Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../data_center_install.html#python-support">Python Support</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../data_center_install.html#mpi">MPI</a></li>
@@ -463,6 +467,8 @@
              
   <section id="Variational-Quantum-Eigensolver">
 <h1>Variational Quantum Eigensolver<a class="headerlink" href="#Variational-Quantum-Eigensolver" title="Permalink to this heading">¶</a></h1>
+<p>A common application of the Variational Quantum Eigensolver (VQE) algorithm is to compute the ground state energy of a molecular system. The code below demonstrates how to perform classical preprocessing for a <span class="math notranslate nohighlight">\(H_2\)</span> molecule (i.e. obtain the integrals from a Hartree-Fock computation to build the molecular Hamiltonian), prepare the initial Hartree-Fock state on the quantum register, add the parameterized UCCSD ansatz to the kernel, and select the COBYLA optimizer. We are then ready to call
+<code class="docutils literal notranslate"><span class="pre">cudaq:vqe</span></code> to estimate the minimum energy of the system.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -472,7 +478,7 @@
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
@@ -493,7 +499,7 @@
 <span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
 <span class="c1"># Adds parameterized gates based on the UCCSD ansatz.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">apply_call</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">electron_count</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
 
 <span class="n">parameter_count</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">kernels</span><span class="o">.</span><span class="n">uccsd_num_parameters</span><span class="p">(</span><span class="n">electron_count</span><span class="p">,</span>
                                                      <span class="n">qubit_count</span><span class="p">)</span>
@@ -514,10 +520,10 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
--1.1371755939165522
+-1.1371745102369863
 </pre></div></div>
 </div>
-<p>We see that the energy has converged to the ground state minimum as expected for <span class="math notranslate nohighlight">\(H_{2}\)</span>.</p>
+<p>We see that the energy has converged to the ground state minimum for <span class="math notranslate nohighlight">\(H_{2}\)</span>, as expected.</p>
 </section>
 
 

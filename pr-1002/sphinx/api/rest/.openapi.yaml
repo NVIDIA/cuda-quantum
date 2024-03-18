@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -46,8 +46,12 @@ definitions:
       version:
         type: integer
         format: int64
-        description: Version number of this RestRequest schema.
+        description: Version number of the payload. Each REST server version only supports a specific payload version. 
         example: 1
+      clientVersion:
+        type: string
+        description: Version description of the CUDA Quantum client generating the request.
+        example: CUDA Quantum Version 0.7.0 (https://github.com/NVIDIA/cuda-quantum 8650fb9d79e7e780ea95d9506a513162daf84b80)
       entryPoint:
         type: string
         description: Entry point kernel identifier as a fully-qualified name.
