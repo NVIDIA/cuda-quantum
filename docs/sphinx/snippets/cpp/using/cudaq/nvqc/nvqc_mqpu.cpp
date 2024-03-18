@@ -28,7 +28,8 @@ int main() {
   // Run VQE with a gradient-based optimizer.
   // Delegate cost function and gradient computation across different NVQC-based
   // QPUs.
-  // Note: this needs to be compiled with `--nvqc-nqpus 3` create 3 virtual QPUs.
+  // Note: this needs to be compiled with `--nvqc-nqpus 3` create 3 virtual
+  // QPUs.
   cudaq::optimizers::lbfgs optimizer;
   auto [opt_val, opt_params] = optimizer.optimize(
       /*dim=*/1, /*opt_function*/ [&](const std::vector<double> &params,

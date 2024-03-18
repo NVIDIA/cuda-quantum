@@ -192,7 +192,7 @@ To select a specific number of GPUs on the NVQC managed service, the following `
 Multiple QPUs Asynchronous Execution
 +++++++++++++++++++++++++++++++++++++
 
-NVQC provides scalable virtualized QPU services, whereby clients
+NVQC provides scalable QPU virtualization services, whereby clients
 can submit asynchronous jobs simultaneously to NVQC. These jobs are
 handled by a pool of service worker instances.
 
