@@ -13,7 +13,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -412,7 +411,8 @@ public:
       // Process scalar floating point types.
       if (type == builder.getF32Type()) {
         synthesizeRuntimeArgument<float>(
-            builder, argument, args, offset, type.getIntOrFloatBitWidth() / 8,
+            builder, argument, args, offset,
+            cudaq::opt::convertBitsToBytes(type.getIntOrFloatBitWidth()),
             [=](OpBuilder &builder, float *concrete) {
               llvm::APFloat f(*concrete);
               return builder.create<arith::ConstantFloatOp>(
@@ -422,7 +422,8 @@ public:
       }
       if (type == builder.getF64Type()) {
         synthesizeRuntimeArgument<double>(
-            builder, argument, args, offset, type.getIntOrFloatBitWidth() / 8,
+            builder, argument, args, offset,
+            cudaq::opt::convertBitsToBytes(type.getIntOrFloatBitWidth()),
             [=](OpBuilder &builder, double *concrete) {
               llvm::APFloat f(*concrete);
               return builder.create<arith::ConstantFloatOp>(
@@ -443,14 +444,26 @@ public:
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto sizeFromBuffer =
             *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
-        auto vectorSize = sizeFromBuffer / (eleTy.getIntOrFloatBitWidth() / 8);
+        auto bytesInType =
+            cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
+        assert(bytesInType > 0 && "element must have a size");
+        auto vectorSize = sizeFromBuffer / bytesInType;
         stdVecInfo.emplace_back(argNum, eleTy, vectorSize);
+        continue;
+      }
+
+      if (isa<cudaq::cc::CallableType>(type)) {
+        // TODO: for now we ignore the passing of callable arguments.
         continue;
       }
 
       // The struct type ends up as a i64 in the thunk kernel args pointer, so
       // just skip ahead. TODO: add support for struct types!
-      if (isa<cudaq::cc::StructType, cudaq::cc::CallableType>(type)) {
+      if (auto structTy = dyn_cast<cudaq::cc::StructType>(type)) {
+        if (structTy.isEmpty()) {
+          // TODO: for now we can ignore empty struct types.
+          continue;
+        }
         char *ptrToSizeInBuffer = static_cast<char *>(args) + offset;
         auto rawSize = *reinterpret_cast<std::uint64_t *>(ptrToSizeInBuffer);
         stdVecInfo.emplace_back(argNum, Type{}, rawSize);
@@ -499,7 +512,8 @@ public:
           doVector(std::int64_t{});
           break;
         default:
-          bufferAppendix += vecLength * (ty.getIntOrFloatBitWidth() / 8);
+          bufferAppendix += vecLength * cudaq::opt::convertBitsToBytes(
+                                            ty.getIntOrFloatBitWidth());
           funcOp.emitOpError("synthesis failed for vector<integral-type>.");
           break;
         }
