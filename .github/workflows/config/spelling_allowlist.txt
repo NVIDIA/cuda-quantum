@@ -218,6 +218,7 @@ reStructuredText
 runtime
 rvalue
 scalability
+scalable
 sexualized
 struct
 structs
