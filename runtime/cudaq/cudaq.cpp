@@ -439,5 +439,26 @@ void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
   // Free the initialization list, which was heap allocated.
   free(initList);
 }
+
+/// Construct a block of 0 and 1 bytes that corresponds to the `vector<bool>`
+/// values. This gets rid of the bit packing implementation of the
+/// `std::vector<bool>` overload. The conversion turns the `std::vector<bool>`
+/// into a mock vector structure that looks like `std::vector<char>`. The
+/// calling routine must cleanup the buffer allocated by this code.
+void __nvqpp_vector_bool_to_initializer_list(void *outData,
+                                             const std::vector<bool> &inVec) {
+  // The MockVector must be allocated by the caller.
+  struct MockVector {
+    char *start;
+    char *end;
+  };
+  MockVector *mockVec = reinterpret_cast<MockVector *>(outData);
+  auto outSize = inVec.size();
+  // The buffer allocated here must be freed by the caller.
+  mockVec->start = static_cast<char *>(malloc(outSize));
+  mockVec->end = mockVec->start + outSize;
+  for (unsigned i = 0; i < outSize; ++i)
+    (mockVec->start)[i] = static_cast<char>(inVec[i]);
+}
 }
 } // namespace cudaq::support
