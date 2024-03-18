@@ -15,13 +15,15 @@ computing, including CUDA, ISO standard parallelism, OpenMP, and OpenACC
 The CUDA Quantum Python wheels contain the Python API and core components of
 CUDA Quantum. More information about available packages as well as a link to the
 documentation and examples for each version can be found in the [release
-notes][cudaq_docs_releases]. System requirements and compatibility are listed in
-the Getting Started section of the linked documentation.
+notes][cudaq_docs_releases]. System and compatibility requirements
+are listed in the Installation Guide of the linked documentation.
 
 [cudaq_docs_releases]:
     https://nvidia.github.io/cuda-quantum/latest/releases.html
 
 ## Installation Including GPU-Acceleration
+
+[//]: # (Begin complete install)
 
 CUDA Quantum does not require a GPU to use, but some components are GPU-accelerated.
 If you have access to an NVIDIA GPU, you can enable GPU-acceleration within
@@ -36,14 +38,14 @@ Quantum with all its dependencies:
 [//]: # (Begin conda install)
 
 ```console
-    conda create -y -n cuda-quantum python=3.10 pip
-    conda install -y -n cuda-quantum -c "nvidia/label/cuda-11.8.0" cuda
-    conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler cuquantum
-    conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib"
-    conda env config vars set -n cuda-quantum MPI_PATH=$CONDA_PREFIX/envs/cuda-quantum
-    conda run -n cuda-quantum pip install cuda-quantum
-    conda activate cuda-quantum
-    source $CONDA_PREFIX/lib/python3.10/site-packages/distributed_interfaces/activate_custom_mpi.sh
+conda create -y -n cuda-quantum python=3.10 pip
+conda install -y -n cuda-quantum -c "nvidia/label/cuda-11.8.0" cuda
+conda install -y -n cuda-quantum -c conda-forge mpi4py openmpi cxx-compiler
+conda env config vars set -n cuda-quantum LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CONDA_PREFIX/envs/cuda-quantum/lib"
+conda env config vars set -n cuda-quantum MPI_PATH=$CONDA_PREFIX/envs/cuda-quantum
+conda run -n cuda-quantum pip install cuda-quantum
+conda activate cuda-quantum
+source $CONDA_PREFIX/lib/python3.10/site-packages/distributed_interfaces/activate_custom_mpi.sh
 ```
 
 [//]: # (End conda install)
@@ -53,7 +55,7 @@ You must configure MPI by setting the following environment variables:
 [//]: # (Begin ompi setup)
 
 ```console
-  export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
+export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib'
 ```
 
 [//]: # (End ompi setup)
@@ -65,6 +67,8 @@ environment, like the commands above do for `LD_LIBRARY_PATH`. To avoid having
 to set them every time you launch a new shell, we recommend adding them to
 `~/.profile` (create the file if it does not exist), and to `~/.bash_profile` or
 `~/.bash_login` if such a file exists.
+
+[//]: # (End complete install)
 
 MPI uses [SSH](https://en.wikipedia.org/wiki/Secure_Shell) or
 [RSH](https://en.wikipedia.org/wiki/Remote_Shell) to communicate with each node
