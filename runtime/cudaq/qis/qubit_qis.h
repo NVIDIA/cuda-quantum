@@ -457,8 +457,11 @@ std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
 
 namespace support {
 // Helper to initialize a `vector<bool>` data structure.
-extern "C" void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &,
-                                                        char *, std::size_t);
+extern "C" {
+void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &, char *,
+                                             std::size_t);
+void __nvqpp_vector_bool_to_initializer_list(void *, const std::vector<bool> &);
+}
 } // namespace support
 
 // Measure the state in the given spin_op basis.

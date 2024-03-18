@@ -23,7 +23,15 @@ class PointerType;
 class StructType;
 } // namespace cc
 
-namespace opt::factory {
+namespace opt {
+
+template <typename T>
+  requires std::integral<T>
+T convertBitsToBytes(T bits) {
+  return (bits + 7) / 8;
+}
+
+namespace factory {
 
 constexpr const char targetTripleAttrName[] = "llvm.triple";
 constexpr const char targetDataLayoutAttrName[] = "llvm.data_layout";
@@ -225,5 +233,6 @@ bool isAArch64(mlir::ModuleOp);
 /// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`.
 bool structUsesTwoArguments(mlir::Type ty);
 
-} // namespace opt::factory
+} // namespace factory
+} // namespace opt
 } // namespace cudaq
