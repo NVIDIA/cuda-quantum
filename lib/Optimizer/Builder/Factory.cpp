@@ -245,6 +245,7 @@ cc::StructType factory::stlVectorType(Type eleTy) {
   return cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, ptrTy, ptrTy});
 }
 
+// FIXME: Give these front-end names so we can disambiguate more types.
 cc::StructType factory::getDynamicBufferType(MLIRContext *ctx) {
   auto ptrTy = cc::PointerType::get(IntegerType::get(ctx, 8));
   return cc::StructType::get(ctx,
