@@ -661,16 +661,23 @@ protected:
 
   /// @brief Return true if expectation values should be computed from
   /// sampling + parity of bit strings.
-  bool shouldObserveFromSampling() {
+  /// Default is to enable observe from sampling, i.e., simulating the
+  /// change-of-basis circuit for each term.
+  ///
+  /// The environment variable "CUDAQ_OBSERVE_FROM_SAMPLING" can be used to turn
+  /// on or off this setting.
+  bool shouldObserveFromSampling(bool defaultConfig = true) {
     if (auto envVar = std::getenv(observeSamplingEnvVar); envVar) {
       std::string asString = envVar;
       std::transform(asString.begin(), asString.end(), asString.begin(),
                      [](auto c) { return std::tolower(c); });
       if (asString == "false" || asString == "off" || asString == "0")
         return false;
+      if (asString == "true" || asString == "on" || asString == "1")
+        return true;
     }
 
-    return true;
+    return defaultConfig;
   }
 
 public:

@@ -183,10 +183,10 @@ protected:
       controls32.push_back((int)c);
     custatevecPauli_t pauli[] = {pauliStringToEnum(gate.name())};
     int targets[] = {(int)qubitIdx};
-    custatevecApplyPauliRotation(handle, deviceStateVector,
-                                 cuStateVecCudaDataType, nQubitsAllocated,
-                                 -0.5 * angle, pauli, targets, 1,
-                                 controls32.data(), nullptr, controls32.size());
+    HANDLE_ERROR(custatevecApplyPauliRotation(
+        handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
+        -0.5 * angle, pauli, targets, 1, controls32.data(), nullptr,
+        controls32.size()));
   }
 
   /// @brief Increase the state size by the given number of qubits.
@@ -433,12 +433,16 @@ public:
   /// via sampling
   bool canHandleObserve() override {
     // Do not compute <H> from matrix if shots based sampling requested
-    if (executionContext &&
-        executionContext->shots != static_cast<std::size_t>(-1)) {
+    // i.e., a valid shots count value was set.
+    if (executionContext && executionContext->shots > 0) {
       return false;
     }
 
-    return true;
+    // If no shots requested (exact expectation calulation), don't use
+    // term-by-term observe as the default since
+    // `CuStateVecCircuitSimulator::observe` will do a batched expectation value
+    // calculation to compute all expectation values for all terms at once.
+    return !shouldObserveFromSampling(/*defaultConfig=*/false);
   }
 
   /// @brief Compute the expected value from the observable matrix.
@@ -481,6 +485,7 @@ public:
 
     // Contruct data to send on to custatevec
     std::vector<std::string> termStrs;
+    termStrs.reserve(nPauliOperatorArrays);
     op.for_each_term([&](cudaq::spin_op &term) {
       coeffs.emplace_back(term.get_coefficient());
       std::vector<custatevecPauli_t> paulis;
