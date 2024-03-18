@@ -1040,7 +1040,7 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     AnyPointerType:$buffer,
     AnyInteger:$length
   );
-  let results = (outs cc_StdVectorType:$stdvec);
+  let results = (outs SpanningType:$stdvec);
 
   let assemblyFormat = [{
     $buffer `,` $length `:` functional-type(operands, results) attr-dict

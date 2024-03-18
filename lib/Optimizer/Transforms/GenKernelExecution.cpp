@@ -61,6 +61,7 @@ public:
   /// Add LLVM code with the OpBuilder that computes the size in bytes
   /// of a `std::vector<T>` array in the same way as a `std::vector<T>::size()`.
   /// This assumes the vector is laid out in memory as the following structure.
+  ///
   /// <code>
   ///   struct vector {
   ///     T* begin;
@@ -68,12 +69,26 @@ public:
   ///     T* allocated_end;
   ///   };
   /// </code>
+  ///
   /// The first two elements are pointers to the beginning and end of the data
   /// in the vector, respectively. This data is kept in a contiguous memory
   /// range. The following implementation follows what Clang CodeGen produces
   /// for `std::vector<T>::size()` without the final `sdiv` op that divides the
   /// `sizeof(data[N])` by the `sizeof(T)`. The result is the total required
   /// memory size for the vector data itself in \e bytes.
+  ///
+  /// In order to handle a std::string value it is assumed to be laid out in
+  /// memory as the following structure.
+  ///
+  /// <code>
+  ///   struct vector {
+  ///     i8* data;
+  ///     i64 length;
+  ///     [i8 x 16] inlinedata;
+  ///   };
+  /// </code>
+  ///
+  /// In the string case, the size can just be read from the data structure.
   Value getVectorSize(Location loc, OpBuilder &builder,
                       cudaq::cc::PointerType ptrTy, Value arg) {
     // Create the i64 type
@@ -81,6 +96,14 @@ public:
 
     // We're given ptr<struct<...>>, get that struct type (struct<T*,T*,T*>)
     auto inpStructTy = cast<cudaq::cc::StructType>(ptrTy.getElementType());
+
+    if (inpStructTy.getMember(1) == i64Ty) {
+      // This is a string, so just read the length out.
+      auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
+      auto lenPtr = builder.create<cudaq::cc::ComputePtrOp>(
+          loc, ptrI64Ty, arg, SmallVector<cudaq::cc::ComputePtrArg>{0, 1});
+      return builder.create<cudaq::cc::LoadOp>(loc, lenPtr);
+    }
 
     // For the following GEP calls, we'll expect them to return T**
     auto ptrTtype = cudaq::cc::PointerType::get(inpStructTy.getMember(0));
@@ -124,7 +147,8 @@ public:
     Value recursiveSize;
     auto eleTy = stdvecTy.getElementType();
     if (auto sTy = dyn_cast<cudaq::cc::SpanLikeType>(eleTy)) {
-      // Convert size of vectors to i64s.
+      // This is the recursive case. vector<vector<...>>. Convert size of
+      // vectors to i64s.
       topLevelSize = computeHostVectorLengthInBytes(
           loc, builder, hostArg, stdvecTy.getElementType(), hostVecTy);
       auto nested = fetchHostVectorFront(loc, builder, hostArg, hostVecTy);
