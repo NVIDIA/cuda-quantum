@@ -23,12 +23,6 @@
       },
       {
         "pattern": "openapi.html"
-      },
-      {
-        "pattern": "^https://www.nvidia.com/en-us/solutions/quantum-computing/cloud"
-      },
-      {
-        "pattern": "^https://developer.nvidia.com/quantum-cloud-early-access"
       }
     ]
 }
