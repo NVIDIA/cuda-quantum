@@ -83,6 +83,7 @@ while IFS= read -r line; do
         eval "$line"
     fi
 done <<< "$ompi_script"
+status_sum=0
 
 # Run core tests
 echo "Running core tests."
@@ -121,8 +122,16 @@ for parallelTest in "$root_folder/tests/parallel"/*.py; do
     fi
 done
 
+# Run snippets in docs
+for ex in `find "$root_folder/snippets" -name '*.py'`; do
+    python3 "$ex"
+    if [ ! $? -eq 0 ]; then
+        echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
+        status_sum=$((status_sum+1))
+    fi
+done
+
 # Run examples
-status_sum=0
 for ex in `find "$root_folder/examples" -name '*.py' -not -path '*/providers/*'`; do
     python3 "$ex"
     if [ ! $? -eq 0 ]; then
