@@ -7,6 +7,7 @@ CUDA Quantum Backends
 
       Simulation <simulators.rst>
       Quantum Hardware <hardware.rst>
+      NVIDIA Quantum Cloud <nvqc.rst>
       Multi-Processor Platforms <platform.rst>
 
 **The following is a comprehensive list of the available targets in CUDA Quantum:**
