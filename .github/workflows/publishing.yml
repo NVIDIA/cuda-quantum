@@ -875,7 +875,7 @@ jobs:
 
   create_release:
     name: CUDA Quantum Release
-    needs: [assets, cudaq_hpc, cudaq_wheels, image_validation]
+    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels]
     if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.assets_from_run == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
@@ -935,7 +935,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_hpc, cudaq_wheels, create_release, image_validation]
+    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels, create_release, installer_validation, image_validation]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest
