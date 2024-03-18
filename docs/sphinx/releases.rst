@@ -10,6 +10,18 @@ The latest version of CUDA Quantum is on the main branch of our `GitHub reposito
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+**0.7.0**
+
+The 0.7.0 release adds support for using NVIDIA Quantum Cloud, giving you access to our most powerful GPU-accelerated simulators even if you don't have an NVIDIA GPU. With 0.7.0, we have furthermore greatly increased expressiveness of the Python and C++ language frontends. Check our our `documentation <https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html>`__ to learn more about the new Python syntax support we have added, and `follow our blog <https://developer.nvidia.com/cuda-q>`__ to learn more about the new setup and its performance benefits.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
+- `Python wheel <https://pypi.org/project/cuda-quantum/>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.7.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.7.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases>`__.
+
 **0.6.0**
 
 The 0.6.0 release contains improved support for various HPC scenarios. We have added a
@@ -23,13 +35,13 @@ The binaries are built against the `GNU C library <https://www.gnu.org/software/
 version 2.28.
 We've added a detailed :doc:`Building from Source <using/install/data_center_install>` guide to build these binaries for older `glibc` versions.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
-- `Python wheel <https://pypi.org/project/cuda-quantum/>`__
-- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cuda-quantum/0.6.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.6.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.6.0>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.6.0/docs/sphinx/examples>`__
 
-The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases>`__.
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.6.0>`__.
 
 **0.5.0**
 
