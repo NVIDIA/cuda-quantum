@@ -3,6 +3,7 @@
 // nvq++ qaoa_maxcut.cpp -o qaoa.x && ./qaoa.x
 // ```
 
+// [Begin Documentation]
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
 #include <cudaq/gradients.h>
@@ -89,3 +90,4 @@ int main() {
 
   return 0;
 }
+// [End Documentation]
