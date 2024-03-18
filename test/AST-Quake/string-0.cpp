@@ -25,7 +25,7 @@ void test0(double theta) {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__KernelWithString(
-// CHECK-SAME:      %[[VAL_0:.*]]: f64, %[[VAL_1:.*]]: !cc.charspan)
+// CHECK-SAME:      %[[VAL_0:.*]]: f64{{.*}}, %[[VAL_1:.*]]: !cc.charspan{{.*}})
 // CHECK:           %[[VAL_2:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
