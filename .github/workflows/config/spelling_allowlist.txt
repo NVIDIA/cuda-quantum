@@ -171,6 +171,8 @@ expressivity
 extensibility
 extremal
 fermionic
+frontend
+frontends
 homogenous
 iff
 increment
