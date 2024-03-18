@@ -229,13 +229,20 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
                                       cc::ArrayType, cc::CallableType>());
 }
 
+cc::StructType factory::stlStringType(MLIRContext *ctx) {
+  auto i8Ty = IntegerType::get(ctx, 8);
+  auto ptrI8Ty = cc::PointerType::get(i8Ty);
+  auto i64Ty = IntegerType::get(ctx, 64);
+  auto padTy = cc::ArrayType::get(ctx, i8Ty, 16);
+  return cc::StructType::get(ctx, ArrayRef<Type>{ptrI8Ty, i64Ty, padTy});
+}
+
 // FIXME: We should get the underlying structure of a std::vector from the
 // AST. For expediency, we just construct the expected type directly here.
 cc::StructType factory::stlVectorType(Type eleTy) {
   MLIRContext *ctx = eleTy.getContext();
-  auto elePtrTy = cc::PointerType::get(eleTy);
-  SmallVector<Type> eleTys = {elePtrTy, elePtrTy, elePtrTy};
-  return cc::StructType::get(ctx, eleTys);
+  auto ptrTy = cc::PointerType::get(eleTy);
+  return cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, ptrTy, ptrTy});
 }
 
 cc::StructType factory::getDynamicBufferType(MLIRContext *ctx) {
@@ -259,9 +266,12 @@ Type factory::getSRetElementType(FunctionType funcTy) {
 }
 
 static Type convertToHostSideType(Type ty) {
-  if (auto memrefTy = dyn_cast<cc::SpanLikeType>(ty))
+  if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
+  if (auto memrefTy = dyn_cast<cc::CharspanType>(ty))
+    return convertToHostSideType(
+        factory::stlStringType(memrefTy.getContext()));
   auto *ctx = ty.getContext();
   if (auto structTy = dyn_cast<cc::StructType>(ty)) {
     SmallVector<Type> newMembers;

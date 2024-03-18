@@ -46,7 +46,7 @@ void RzArcTan2(bool input, std::string basis) __qpu__ {
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @_Z9RzArcTan2bNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE(
-// CHECK-SAME:      %[[VAL_0:.*]]: i1, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>}>>) attributes {no_this} {
+// CHECK-SAME:      %[[VAL_0:.*]]: i1, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64, !cc.array<i8 x 16>}>>) attributes {no_this} {
 // CHECK:           return
 // CHECK:         }
 // clang-format on

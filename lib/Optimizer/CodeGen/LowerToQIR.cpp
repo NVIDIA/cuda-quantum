@@ -1648,13 +1648,9 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
   typeConverter.addConversion([](cc::CallableType type) {
     return lambdaAsPairOfPointers(type.getContext());
   });
-  typeConverter.addConversion([&typeConverter](cc::StdvecType type) {
+  typeConverter.addConversion([&typeConverter](cc::SpanLikeType type) {
     auto eleTy = typeConverter.convertType(type.getElementType());
     return factory::stdVectorImplType(eleTy);
-  });
-  typeConverter.addConversion([&typeConverter](cc::CharspanType type) {
-    auto eleTy = typeConverter.convertType(type.getElementType());
-    return factory::stdStringImplType(eleTy);
   });
   typeConverter.addConversion([](quake::MeasureType type) {
     return IntegerType::get(type.getContext(), 1);
