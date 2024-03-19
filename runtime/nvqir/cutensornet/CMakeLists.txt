@@ -90,6 +90,24 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
     target_link_libraries(nvqir-tensornet PRIVATE -Wl,--whole-archive ${CUDAQ_CUTENSORNET_PLUGIN_LIB} -Wl,--no-whole-archive)
     target_link_libraries(nvqir-tensornet-mps PRIVATE -Wl,--whole-archive ${CUDAQ_CUTENSORNET_PLUGIN_LIB} -Wl,--no-whole-archive)
   endif()
+
+  add_library(cudaq-em-mps SHARED MpsExecutionManager.cpp)
+  set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-em-mps)
+  target_include_directories(cudaq-em-mps
+      PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+        $<INSTALL_INTERFACE:include>
+      PRIVATE .)
+
+  target_link_libraries(cudaq-em-mps
+    PUBLIC cudaq-spin PRIVATE nvqir cudaq-common fmt::fmt-header-only LLVMSupport)
+
+  install(TARGETS cudaq-em-mps EXPORT cudaq-em-mps-targets DESTINATION lib)
+
+  install(EXPORT cudaq-em-mps-targets
+          FILE CUDAQEmMpsTargets.cmake
+          NAMESPACE cudaq::
+          DESTINATION lib/cmake/cudaq)
 else()
   message(WARNING "Skipped tensornet backend due to incompatible cutensornet version. Please install cutensornet v2.3.0+.")
 endif()
