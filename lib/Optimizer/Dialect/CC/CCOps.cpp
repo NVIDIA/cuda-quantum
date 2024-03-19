@@ -419,14 +419,16 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
     if (auto fltTy = dyn_cast<FloatType>(eleTy)) {
       auto floatConstVal =
           cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
-      return builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy);
+      return builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy)
+          .getResult();
     }
     auto intConstVal =
         cast<IntegerAttr>(conArr.getConstantValues()[offset]).getInt();
     auto intTy = cast<IntegerType>(eleTy);
-    return builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy);
+    return builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy)
+        .getResult();
   }
-  return builder.create<cc::PoisonOp>(loc, eleTy);
+  return builder.create<cc::PoisonOp>(loc, eleTy).getResult();
 }
 
 //===----------------------------------------------------------------------===//
