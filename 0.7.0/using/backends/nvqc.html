@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA Quantum Backends &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>NVIDIA Quantum Cloud &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -29,8 +29,8 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA Quantum Simulation Backends" href="simulators.html" />
-    <link rel="prev" title="Variational Quantum Eigensolver" href="../../examples/python/tutorials/vqe.html" /> 
+    <link rel="next" title="Multi-Processor Platforms" href="platform.html" />
+    <link rel="prev" title="CUDA Quantum Hardware Backends" href="hardware.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -183,7 +183,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">   Backends</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="backends.html">   Backends</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="simulators.html">   Simulation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="simulators.html#single-gpu">Single-GPU</a></li>
@@ -226,12 +226,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="nvqc.html">   NVIDIA Quantum Cloud</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l3"><a class="reference internal" href="nvqc.html#faq">FAQ</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">   NVIDIA Quantum Cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#simulator-backend-selection">Simulator Backend Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multiple-gpus">Multiple GPUs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#faq">FAQ</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="platform.html">   Multi-Processor Platforms</a><ul>
@@ -495,55 +495,393 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">CUDA Quantum Backends</li>
+          <li class="breadcrumb-item"><a href="backends.html">CUDA Quantum Backends</a></li>
+      <li class="breadcrumb-item active">NVIDIA Quantum Cloud</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/backends/backends.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/using/backends/nvqc.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="../../examples/python/tutorials/vqe.html" class="btn btn-neutral float-left" title="Variational Quantum Eigensolver" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="simulators.html" class="btn btn-neutral float-right" title="CUDA Quantum Simulation Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="hardware.html" class="btn btn-neutral float-left" title="CUDA Quantum Hardware Backends" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="platform.html" class="btn btn-neutral float-right" title="Multi-Processor Platforms" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="cuda-quantum-backends">
-<h1>CUDA Quantum Backends<a class="headerlink" href="#cuda-quantum-backends" title="Permalink to this heading">¶</a></h1>
-<div class="toctree-wrapper compound">
-<p class="caption" role="heading"><span class="caption-text">Backend Targets</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="simulators.html">   Simulation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="hardware.html">   Quantum Hardware</a></li>
-<li class="toctree-l1"><a class="reference internal" href="nvqc.html">   NVIDIA Quantum Cloud</a></li>
-<li class="toctree-l1"><a class="reference internal" href="platform.html">   Multi-Processor Platforms</a></li>
-</ul>
+  <section id="nvidia-quantum-cloud">
+<h1>NVIDIA Quantum Cloud<a class="headerlink" href="#nvidia-quantum-cloud" title="Permalink to this heading">¶</a></h1>
+<p>NVIDIA Quantum Cloud (NVQC) offers universal access to the world’s most powerful computing platform,
+for every quantum researcher to do their life’s work.
+To learn more about NVQC visit this <a class="reference external" href="https://www.nvidia.com/en-us/solutions/quantum-computing/cloud">link</a>.</p>
+<p>Apply for early access <a class="reference external" href="https://developer.nvidia.com/quantum-cloud-early-access-join">here</a>.
+Access to the Quantum Cloud early access program requires an NVIDIA Developer account.</p>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this heading">¶</a></h2>
+<p>Once you have been approved for an early access to NVQC, you will be able to follow these instructions to use it.</p>
+<p>1. Follow the instructions in your NVQC Early Access welcome email to obtain an API Key for NVQC.
+You can also find the instructions <a class="reference external" href="https://developer.nvidia.com/quantum-cloud-early-access-members">here</a> (link available only for approved users)</p>
+<ol class="arabic simple" start="2">
+<li><p>Set the environment variable <code class="code docutils literal notranslate"><span class="pre">NVQC_API_KEY</span></code> to the API Key obtained above.</p></li>
+</ol>
+<blockquote>
+<div><div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export NVQC_API_KEY=&lt;your NVQC API key&gt;</span>
+</pre></div>
 </div>
-<p><strong>The following is a comprehensive list of the available targets in CUDA Quantum:</strong></p>
+</div></blockquote>
+<p>You may wish to persist that environment variable between bash sessions, e.g., by adding it to your <code class="code docutils literal notranslate"><span class="pre">$HOME/.bashrc</span></code> file.</p>
+<ol class="arabic simple" start="3">
+<li><p>Run your first NVQC example</p></li>
+</ol>
+<p>The following is a typical CUDA Quantum kernel example.
+By selecting the <code class="code docutils literal notranslate"><span class="pre">nvqc</span></code> target, the quantum circuit simulation will run on NVQC in the cloud, rather than running locally.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvqc&quot;</span><span class="p">)</span>
+<span class="n">num_qubits</span> <span class="o">=</span> <span class="mi">25</span>
+<span class="c1"># Define a simple quantum kernel to execute on NVQC.</span>
+<span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">)</span>
+<span class="c1"># Maximally entangled state between 25 qubits.</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qubits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">[2024-03-14 19:26:31.438] Submitting jobs to NVQC service with 1 GPU(s). Max execution time: 3600 seconds (excluding queue wait time).</span>
+
+<span class="go">================ NVQC Device Info ================</span>
+<span class="go">GPU Device Name: &quot;NVIDIA H100 80GB HBM3&quot;</span>
+<span class="go">CUDA Driver Version / Runtime Version: 12.2 / 11.8</span>
+<span class="go">Total global memory (GB): 79.1</span>
+<span class="go">Memory Clock Rate (MHz): 2619.000</span>
+<span class="go">GPU Clock Rate (MHz): 1980.000</span>
+<span class="go">==================================================</span>
+<span class="go">{ 1111111111111111111111111:486 0000000000000000000000000:514 }</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+
+<span class="c1">// Define a simple quantum kernel to execute on NVQC.</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Maximally entangled state between 25 qubits.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">NUM_QUBITS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">25</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="n">NUM_QUBITS</span><span class="p">);</span>
+<span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NUM_QUBITS</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">{});</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The code above is saved in <code class="code docutils literal notranslate"><span class="pre">nvqc_intro.cpp</span></code> and compiled with the following command, targeting the <code class="code docutils literal notranslate"><span class="pre">nvqc</span></code> platform</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ nvqc_intro.cpp -o nvqc_intro.x --target nvqc</span>
+<span class="go">./nvqc_intro.x</span>
+
+<span class="go">[2024-03-14 19:25:05.545] Submitting jobs to NVQC service with 1 GPU(s). Max execution time: 3600 seconds (excluding queue wait time).</span>
+
+<span class="go">================ NVQC Device Info ================</span>
+<span class="go">GPU Device Name: &quot;NVIDIA H100 80GB HBM3&quot;</span>
+<span class="go">CUDA Driver Version / Runtime Version: 12.2 / 11.8</span>
+<span class="go">Total global memory (GB): 79.1</span>
+<span class="go">Memory Clock Rate (MHz): 2619.000</span>
+<span class="go">GPU Clock Rate (MHz): 1980.000</span>
+<span class="go">==================================================</span>
+<span class="go">{</span>
+<span class="go">__global__ : { 1111111111111111111111111:487 0000000000000000000000000:513 }</span>
+<span class="go">result : { 1111111111111111111111111:487 0000000000000000000000000:513 }</span>
+<span class="go">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="simulator-backend-selection">
+<h2>Simulator Backend Selection<a class="headerlink" href="#simulator-backend-selection" title="Permalink to this heading">¶</a></h2>
+<p>NVQC hosts all CUDA Quantum simulator backends (see <a class="reference internal" href="simulators.html"><span class="doc">CUDA Quantum Simulation Backends</span></a>).
+You may use the NVQC <code class="code docutils literal notranslate"><span class="pre">backend</span></code> (Python) or <code class="code docutils literal notranslate"><span class="pre">--nvqc-backend</span></code> (C++) option to select the simulator to be used by the service.</p>
+<p>For example, to request the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> simulator backend, the user can do the following for C++ or Python.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvqc&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;tensornet&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ nvqc_sample.cpp -o nvqc_sample.x --target nvqc --nvqc-backend tensornet</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By default, the single-GPU single-precision <code class="code docutils literal notranslate"><span class="pre">custatevec-fp32</span></code> simulator backend will be selected if backend information is not specified.</p>
+</div>
+</section>
+<section id="multiple-gpus">
+<h2>Multiple GPUs<a class="headerlink" href="#multiple-gpus" title="Permalink to this heading">¶</a></h2>
+<p>Some CUDA Quantum simulator backends are capable of multi-GPU distribution as detailed in <a class="reference internal" href="simulators.html"><span class="doc">CUDA Quantum Simulation Backends</span></a>.
+For example, the <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend can partition and distribute state vector simulation to multiple GPUs to simulate
+a larger number of qubits, whose state vector size grows beyond the memory size of a single GPU.</p>
+<p>To select a specific number of GPUs on the NVQC managed service, the following <code class="code docutils literal notranslate"><span class="pre">ngpus</span></code> (Python) or <code class="code docutils literal notranslate"><span class="pre">--nvqc-ngpus</span></code> (C++) option can be used.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvqc&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;nvidia-mgpu&quot;</span><span class="p">,</span> <span class="n">ngpus</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ nvqc_sample.cpp -o nvqc_sample.x --target nvqc --nvqc-backend nvidia-mgpu --nvqc-ngpus 4</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If your NVQC subscription does not contain service instances that have the specified number of GPUs,
+you may encounter the following error.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Unable to find NVQC deployment with 16 GPUs.</span>
+<span class="go">Available deployments have {1, 2, 4, 8} GPUs.</span>
+<span class="go">Please check your `ngpus` value (Python) or `--nvqc-ngpus` value (C++).</span>
+</pre></div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Not all simulator backends are capable of utilizing multiple GPUs.
+When requesting a multiple-GPU service with a single-GPU simulator backend,
+you might encounter the following log message:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">The requested backend simulator (custatevec-fp32) is not capable of using all 4 GPUs requested.</span>
+<span class="go">Only one GPU will be used for simulation.</span>
+<span class="go">Please refer to CUDA Quantum documentation for a list of multi-GPU capable simulator backends.</span>
+</pre></div>
+</div>
+<p>Consider removing the <code class="code docutils literal notranslate"><span class="pre">ngpus</span></code> value (Python) or <code class="code docutils literal notranslate"><span class="pre">--nvqc-ngpus</span></code> value (C++) to use the default of 1 GPU
+if you don’t need to use a multi-GPU backend to better utilize NVQC resources.</p>
+<p>Please refer to the table below for a list of backend simulator names along with its multi-GPU capability.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Simulator Backends</span><a class="headerlink" href="#id1" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 22%" />
+<col style="width: 56%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>GPU Accelerated</p></th>
+<th class="head"><p>Multi-GPU</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">qpp</span></code></p></td>
+<td><p>CPU-only state vector simulator</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">dm</span></code></p></td>
+<td><p>CPU-only density matrix simulator</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">custatevec-fp32</span></code></p></td>
+<td><p>Single-precision <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> simulator</p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">custatevec-fp64</span></code></p></td>
+<td><p>Double-precision <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> simulator</p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">tensornet</span></code></p></td>
+<td><p>Double-precision <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> full tensor network contraction simulator</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code></p></td>
+<td><p>Double-precision <code class="code docutils literal notranslate"><span class="pre">cuTensorNet</span></code> matrix-product state simulator</p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code></p></td>
+<td><p>Double-precision <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> multi-GPU simulator</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="multiple-qpus-asynchronous-execution">
+<h2>Multiple QPUs Asynchronous Execution<a class="headerlink" href="#multiple-qpus-asynchronous-execution" title="Permalink to this heading">¶</a></h2>
+<p>NVQC provides scalable QPU virtualization services, whereby clients
+can submit asynchronous jobs simultaneously to NVQC. These jobs are
+handled by a pool of service worker instances.</p>
+<p>For example, in the following code snippet, using the <code class="code docutils literal notranslate"><span class="pre">nqpus</span></code> (Python) or <code class="code docutils literal notranslate"><span class="pre">--nvqc-nqpus</span></code> (C++) configuration option,
+the user instantiates 3 virtual QPU instances to submit simulation jobs to NVQC
+calculating the expectation value along with parameter-shift gradients simultaneously.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
+<span class="kn">from</span> <span class="nn">cudaq</span> <span class="kn">import</span> <span class="n">spin</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="c1"># Use NVQC with 3 virtual QPUs</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvqc&quot;</span><span class="p">,</span> <span class="n">nqpus</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Number of QPUs:&quot;</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span><span class="o">.</span><span class="n">num_qpus</span><span class="p">())</span>
+<span class="c1"># Create the parameterized ansatz</span>
+<span class="n">kernel</span><span class="p">,</span> <span class="n">theta</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<span class="n">qreg</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qreg</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qreg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+<span class="c1"># Define its spin Hamiltonian.</span>
+<span class="n">hamiltonian</span> <span class="o">=</span> <span class="p">(</span><span class="mf">5.907</span> <span class="o">-</span> <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span>
+               <span class="mf">2.1433</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.21829</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span>
+               <span class="mf">6.125</span> <span class="o">*</span> <span class="n">spin</span><span class="o">.</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">opt_gradient</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">):</span>
+    <span class="c1"># Evaluate energy and gradient on different remote QPUs</span>
+    <span class="c1"># (i.e., concurrent job submissions to NVQC)</span>
+    <span class="n">energy_future</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                                        <span class="n">hamiltonian</span><span class="p">,</span>
+                                        <span class="n">parameter_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                        <span class="n">qpu_id</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">plus_future</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                                      <span class="n">hamiltonian</span><span class="p">,</span>
+                                      <span class="n">parameter_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                                      <span class="n">qpu_id</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">minus_future</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span>
+                                       <span class="n">hamiltonian</span><span class="p">,</span>
+                                       <span class="n">parameter_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span>
+                                       <span class="n">qpu_id</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">energy_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">(),</span> <span class="p">[</span>
+        <span class="p">(</span><span class="n">plus_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="o">-</span> <span class="n">minus_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span> <span class="o">/</span>
+        <span class="mf">2.0</span>
+    <span class="p">])</span>
+
+
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">LBFGS</span><span class="p">()</span>
+<span class="n">optimal_value</span><span class="p">,</span> <span class="n">optimal_parameters</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">opt_gradient</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Ground state energy =&quot;</span><span class="p">,</span> <span class="n">optimal_value</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Optimal parameters =&quot;</span><span class="p">,</span> <span class="n">optimal_parameters</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/algorithm.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/gradients.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq/optimizers.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="o">::</span><span class="nn">spin</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin_op</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.907</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.1433</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span>
+<span class="w">                     </span><span class="mf">.21829</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">6.125</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">theta</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ansatz</span><span class="p">.</span><span class="n">qalloc</span><span class="p">();</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ansatz</span><span class="p">.</span><span class="n">qalloc</span><span class="p">();</span>
+<span class="w">  </span><span class="n">ansatz</span><span class="p">.</span><span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ansatz</span><span class="p">.</span><span class="n">ry</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">);</span>
+<span class="w">  </span><span class="n">ansatz</span><span class="p">.</span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Run VQE with a gradient-based optimizer.</span>
+<span class="w">  </span><span class="c1">// Delegate cost function and gradient computation across different NVQC-based</span>
+<span class="w">  </span><span class="c1">// QPUs.</span>
+<span class="w">  </span><span class="c1">// Note: this needs to be compiled with `--nvqc-nqpus 3` create 3 virtual</span>
+<span class="w">  </span><span class="c1">// QPUs.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">optimizers</span><span class="o">::</span><span class="n">lbfgs</span><span class="w"> </span><span class="n">optimizer</span><span class="p">;</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">opt_val</span><span class="p">,</span><span class="w"> </span><span class="n">opt_params</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">optimizer</span><span class="p">.</span><span class="n">optimize</span><span class="p">(</span>
+<span class="w">      </span><span class="cm">/*dim=*/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="cm">/*opt_function*/</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">params</span><span class="p">,</span>
+<span class="w">                                      </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">grads</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Queue asynchronous jobs to do energy evaluations across multiple QPUs</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">energy_future</span><span class="w"> </span><span class="o">=</span>
+<span class="w">            </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe_async</span><span class="p">(</span><span class="cm">/*qpu_id=*/</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">paramShift</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">M_PI_2</span><span class="p">;</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">plus_future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe_async</span><span class="p">(</span><span class="cm">/*qpu_id=*/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">                                                </span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">paramShift</span><span class="p">);</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">minus_future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe_async</span><span class="p">(</span><span class="cm">/*qpu_id=*/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">h</span><span class="p">,</span>
+<span class="w">                                                 </span><span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">paramShift</span><span class="p">);</span>
+<span class="w">        </span><span class="n">grads</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">plus_future</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">expectation</span><span class="p">()</span><span class="w"> </span><span class="o">-</span>
+<span class="w">                    </span><span class="n">minus_future</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">expectation</span><span class="p">())</span><span class="w"> </span><span class="o">/</span>
+<span class="w">                   </span><span class="mf">2.0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">energy_future</span><span class="p">.</span><span class="n">get</span><span class="p">().</span><span class="n">expectation</span><span class="p">();</span>
+<span class="w">      </span><span class="p">});</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Minimum energy = &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">opt_val</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot; (expected -1.74886).</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The code above is saved in <code class="code docutils literal notranslate"><span class="pre">nvqc_vqe.cpp</span></code> and compiled with the following command, targeting the <code class="code docutils literal notranslate"><span class="pre">nvqc</span></code> platform with 3 virtual QPUs.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ nvqc_vqe.cpp -o nvqc_vqe.x --target nvqc --nvqc-nqpus 3</span>
+<span class="go">./nvqc_vqe.x</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The NVQC managed-service has a pool of worker instances processing incoming requests on a
+first-come-first-serve basis. Thus, the attainable speedup using multiple virtual QPUs vs.
+sequential execution on a single QPU depends on the NVQC service load. For example,
+if the number of free workers is greater than the number of requested virtual QPUs, a linear
+(ideal) speedup could be achieved. On the other hand, if all the service workers are busy,
+multi-QPU distribution may not deliver any substantial speedup.</p>
+</div>
+</section>
+<section id="faq">
+<h2>FAQ<a class="headerlink" href="#faq" title="Permalink to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>How do I get more information about my NVQC API submission?</p></li>
+</ol>
+<p>The environment variable <code class="code docutils literal notranslate"><span class="pre">NVQC_LOG_LEVEL</span></code> can be used to turn on and off
+certain logs. There are three levels:</p>
 <ul class="simple">
-<li><p><a class="reference internal" href="simulators.html#id3"><span class="std std-ref">density-matrix-cpu</span></a></p></li>
-<li><p><a class="reference internal" href="hardware.html#ionq-backend"><span class="std std-ref">ionq</span></a></p></li>
-<li><p><a class="reference internal" href="hardware.html#iqm-backend"><span class="std std-ref">iqm</span></a></p></li>
-<li><p><a class="reference internal" href="simulators.html#nvidia-backend"><span class="std std-ref">nvidia</span></a></p></li>
-<li><p><a class="reference internal" href="simulators.html#nvidia-fp64-backend"><span class="std std-ref">nvidia-fp64</span></a></p></li>
-<li><p><a class="reference internal" href="simulators.html#nvidia-mgpu-backend"><span class="std std-ref">nvidia-mqpu</span></a></p></li>
-<li><p><a class="reference internal" href="simulators.html#nvidia-mgpu-backend"><span class="std std-ref">nvidia-mqpu-fp64</span></a></p></li>
-<li><p><a class="reference internal" href="nvqc.html"><span class="doc">nvqc</span></a></p></li>
-<li><p><a class="reference internal" href="hardware.html#oqc-backend"><span class="std std-ref">oqc</span></a></p></li>
-<li><p><a class="reference internal" href="simulators.html#qpp-cpu-backend"><span class="std std-ref">qpp-cpu</span></a></p></li>
-<li><p><a class="reference internal" href="hardware.html#quantinuum-backend"><span class="std std-ref">quantinuum</span></a></p></li>
-<li><p><a class="reference internal" href="platform.html#mqpu-platform"><span class="std std-ref">remote-mqpu</span></a></p></li>
-<li><p><a class="reference internal" href="simulators.html#tensor-backends"><span class="std std-ref">tensornet</span></a></p></li>
-<li><p><a class="reference internal" href="simulators.html#tensor-backends"><span class="std std-ref">tensornet-mps</span></a></p></li>
+<li><p>Info (<code class="code docutils literal notranslate"><span class="pre">info</span></code>): basic information about NVQC is logged to the console. This is the default.</p></li>
+<li><p>Off (<code class="code docutils literal notranslate"><span class="pre">off</span></code> or <code class="code docutils literal notranslate"><span class="pre">0</span></code>): disable all NVQC logging.</p></li>
+<li><p>Trace: (<code class="code docutils literal notranslate"><span class="pre">trace</span></code>): log additional information for each NVQC job execution (including timing)</p></li>
 </ul>
+<ol class="arabic simple" start="2">
+<li><p>I want to persist my API key to a configuration file.</p></li>
+</ol>
+<p>You may persist your NVQC API Key to a credential configuration file in lieu of
+using the <code class="code docutils literal notranslate"><span class="pre">NVQC_API_KEY</span></code> environment variable.
+The configuration file can be generated as follows, replacing
+the <code class="code docutils literal notranslate"><span class="pre">api_key</span></code> value with your NVQC API Key.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;key: &lt;api_key&gt;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span><span class="nv">$HOME</span>/.nvqc_config
+</pre></div>
+</div>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="../../examples/python/tutorials/vqe.html" class="btn btn-neutral float-left" title="Variational Quantum Eigensolver" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="simulators.html" class="btn btn-neutral float-right" title="CUDA Quantum Simulation Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="hardware.html" class="btn btn-neutral float-left" title="CUDA Quantum Hardware Backends" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="platform.html" class="btn btn-neutral float-right" title="Multi-Processor Platforms" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
