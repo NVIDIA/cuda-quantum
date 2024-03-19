@@ -52,6 +52,10 @@ Program Construction
     .. automethod:: apply_call
 
 .. autoclass:: cudaq::PyKernelDecorator
+    :members:
+    :special-members: __str__, __call__
+
+.. autofunction:: kernel
     
 Kernel Execution
 =============================
