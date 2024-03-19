@@ -21,16 +21,18 @@ depolarization = cudaq.DepolarizationChannel(1.0)
 # probability of decaying into a mixed state.
 noise.add_channel('y', [0], depolarization)
 
+
 # Now we define our simple kernel function and allocate
 # a qubit to it.
-kernel = cudaq.make_kernel()
-qubit = kernel.qalloc()
+@cudaq.kernel
+def kernel():
+    qubit = cudaq.qubit()
+    # First we apply a Y-gate to the qubit.
+    # This will bring it to the |1> state, where it will remain
+    # with a probability of `1 - p = 0.0`.
+    y(qubit)
+    mz(qubit)
 
-# First we apply a Y-gate to qubit 0.
-# This will bring the qubit to the |1> state, where it will remain
-# with a probability of `1 - p = 0.0`.
-kernel.y(qubit)
-kernel.mz(qubit)
 
 # Without noise, the qubit should still be in the |1> state.
 counts = cudaq.sample(kernel)
