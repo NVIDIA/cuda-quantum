@@ -1049,7 +1049,7 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     AnyPointerType:$buffer,
     AnyInteger:$length
   );
-  let results = (outs cc_StdVectorType:$stdvec);
+  let results = (outs SpanningType:$stdvec);
 
   let assemblyFormat = [{
     $buffer `,` $length `:` functional-type(operands, results) attr-dict
@@ -1067,7 +1067,7 @@ def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
     the data pointer is part of the aggregate value and nothing is dereferenced.
   }];
 
-  let arguments = (ins cc_StdVectorType:$stdvec);
+  let arguments = (ins SpanningType:$stdvec);
   let results = (outs AnyPointerType:$data);
 
   let hasCanonicalizer = 1;
@@ -1088,7 +1088,7 @@ def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
     is dereferenced.
   }];
 
-  let arguments = (ins cc_StdVectorType:$stdvec);
+  let arguments = (ins SpanningType:$stdvec);
   let results = (outs AnyInteger:$size);
 
   let hasCanonicalizer = 1;

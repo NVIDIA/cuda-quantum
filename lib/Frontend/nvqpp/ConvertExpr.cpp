@@ -279,7 +279,7 @@ static Value toIntegerImpl(OpBuilder &builder, Location loc, Value bitVec) {
 
         // bits[k]
         auto eleTy =
-            cast<cudaq::cc::StdvecType>(bitVec.getType()).getElementType();
+            cast<cudaq::cc::SpanLikeType>(bitVec.getType()).getElementType();
         auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
         auto vecPtr =
             builder.create<cudaq::cc::StdvecDataOp>(loc, elePtrTy, bitVec);
@@ -1037,7 +1037,8 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // The following cases are λ expressions, quantum data, or a std::vector view.
   // In those cases, there is nothing to materialize, so we can just pass the
   // Value on the top of the stack.
-  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::StdvecType>(ty))
+  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::SpanLikeType>(
+          ty))
     return true;
 
   // If not one of the above special cases, then materialize the value to a
@@ -1162,11 +1163,21 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
 
+  if (isInClassInNamespace(func, "basic_string", "std")) {
+    if (funcName.equals("data") || funcName.equals("c_str")) {
+      FunctionType funcTy = cast<FunctionType>(popType());
+      return pushValue(builder.create<cc::StdvecDataOp>(
+          loc, funcTy.getResult(0), popValue()));
+    }
+    // fall through and use std::vector for other member functions.
+  }
+
   // Dealing with our std::vector as a view data structures. If we have some θ
   // with the type `std::vector<double/float/int>`, and in the kernel, θ.size()
   // is called, we need to convert that to loading the size field of the pair.
   // For θ.empty(), the size is loaded and compared to zero.
-  if (isInClassInNamespace(func, "vector", "std")) {
+  if (isInClassInNamespace(func, "vector", "std") ||
+      isInClassInNamespace(func, "basic_string", "std")) {
     // Get the size of the std::vector.
     auto svec = popValue();
     if (isa<cc::PointerType>(svec.getType()))
@@ -1197,7 +1208,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         if (memberCall->getImplicitObjectArgument()) {
           [[maybe_unused]] auto calleeTy = popType();
           assert(isa<FunctionType>(calleeTy));
-          auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+          auto eleTy = cast<cc::SpanLikeType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
           return pushValue(
               builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec));
@@ -1208,7 +1219,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           [[maybe_unused]] auto calleeTy = popType();
           assert(isa<FunctionType>(calleeTy));
           auto negativeOneIndex = getConstantInt(builder, loc, -1, 64);
-          auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+          auto eleTy = cast<cc::SpanLikeType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
           auto *ctx = eleTy.getContext();
           auto i64Ty = mlir::IntegerType::get(ctx, 64);
@@ -1224,7 +1235,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         if (memberCall->getImplicitObjectArgument()) {
           [[maybe_unused]] auto calleeTy = popType();
           assert(isa<FunctionType>(calleeTy));
-          auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+          auto eleTy = cast<cc::SpanLikeType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
           auto *ctx = eleTy.getContext();
           auto i64Ty = mlir::IntegerType::get(ctx, 64);
@@ -1239,7 +1250,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           [[maybe_unused]] auto calleeTy = popType();
           assert(isa<FunctionType>(calleeTy));
           Value negativeOneIndex = getConstantInt(builder, loc, -1, 64);
-          auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+          auto eleTy = cast<cc::SpanLikeType>(svec.getType()).getElementType();
           auto elePtrTy = cc::PointerType::get(eleTy);
           auto vecPtr = builder.create<cc::StdvecDataOp>(loc, elePtrTy, svec);
           return pushValue(builder.create<cc::ComputePtrOp>(
@@ -1416,6 +1427,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         } else if (auto load = v.getDefiningOp<cudaq::cc::LoadOp>()) {
           processedArgs.push_back(load.getPtrvalue());
         } else {
+          v.dump();
           reportClangError(x, mangler, "could not determine string argument");
         }
       };
@@ -1537,8 +1549,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       SymbolRefAttr calleeSymbol;
       auto *ctx = builder.getContext();
 
-      // Expand the negations inline around the quake.apply. This will result in
-      // less duplication of code than threading the negated sense of the
+      // Expand the negations inline around the quake.apply. This will result
+      // in less duplication of code than threading the negated sense of the
       // control recursively through the callable.
       auto inlinedStartControlNegations = [&]() {
         if (!negations.empty()) {
@@ -1805,7 +1817,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return pushValue(toIntegerImpl(builder, loc, args[0]));
 
     if (funcName.equals("slice_vector")) {
-      auto svecTy = dyn_cast<cc::StdvecType>(args[0].getType());
+      auto svecTy = dyn_cast<cc::SpanLikeType>(args[0].getType());
       auto eleTy = svecTy.getElementType();
       assert(svecTy && "first argument must be std::vector");
       Value offset = args[1];
@@ -2005,8 +2017,8 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
     }
     if (typeName == "_Bit_reference" || typeName == "__bit_reference") {
       // For vector<bool>, on the kernel side this is represented as a sequence
-      // of byte-sized boolean values (true and false). On the host side, C++ is
-      // likely going to pack the booleans as bits in words.
+      // of byte-sized boolean values (true and false). On the host side, C++
+      // is likely going to pack the booleans as bits in words.
       auto indexVar = popValue();
       auto svec = popValue();
       assert(svec.getType().isa<cc::StdvecType>());

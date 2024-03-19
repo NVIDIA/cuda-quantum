@@ -463,6 +463,30 @@ set(SPDLOG_SYSTEM_INCLUDES ON)
 add_subdirectory(tpls/spdlog)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
+  # Look for CURL
+  set(CURL_STATICLIB ON)
+  set(CURL_USE_STATIC_LIBS TRUE)
+  find_package(CURL COMPONENTS HTTP HTTPS)
+
+  if (CURL_FOUND)
+    message(STATUS "Using system curl for CPR.")
+    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+  elseif (CMAKE_USE_SYSTEM_CURL)
+    message(FATAL_ERROR "CMAKE_USE_SYSTEM_CURL defined but a suitable package was not found. Make sure that `curl-config --protocols` lists HTTP and HTTPS.")
+  else()
+    message(STATUS "Curl not found. Building curl for CPR.")
+    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
+  endif()
+
+  # Now, build CPR as needed
+  set(BUILD_SHARED_LIBS OFF)
+  set(CPR_ENABLE_SSL ON) # needed for https requests
+  set(CPR_FORCE_OPENSSL_BACKEND ON)
+  add_subdirectory(tpls/cpr)
+  target_compile_options(cpr PRIVATE -Wno-covered-switch-default -w)
+endif()
+
 # QPP simulator
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(tpls/qpp EXCLUDE_FROM_ALL)
