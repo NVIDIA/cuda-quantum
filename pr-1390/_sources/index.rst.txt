@@ -3,6 +3,12 @@ CUDA Quantum
 ************
 
 Welcome to the CUDA Quantum documentation page!
+
+CUDA Quantum streamlines hybrid application development and promotes productivity and scalability
+in quantum computing. It offers a unified programming model designed for a hybrid
+setting |---| that is, CPUs, GPUs, and QPUs working together. CUDA Quantum contains support for 
+programming in Python and in C++.
+
 You are browsing the documentation for |version| version of CUDA Quantum. You can find documentation for all released versions :doc:`here <versions>`.
 
 **CUDA Quantum** is a programming model and toolchain for using quantum acceleration in heterogeneous computing architectures available in C++ and Python.
@@ -11,14 +17,17 @@ You are browsing the documentation for |version| version of CUDA Quantum. You ca
    :caption: Contents
    :maxdepth: 2
 
-      Getting Started <install.rst>
-      Learn the Basics <using/cudaq.rst>
-      Advanced Topics  <using/advanced.rst>
-      Examples <using/examples.rst>
-      Tutorials <using/tutorials.rst>
-      Simulator Backends <using/simulators.rst>
-      Hardware Backends <using/hardware.rst>
+      Quick Start <using/quick_start.rst>
+      Basics <using/basics/basics.rst>
+      Examples <using/examples/examples.rst>
+      Applications <using/tutorials.rst>
+      Backends <using/backends/backends.rst>
+      Installation <using/install/install.rst>
+      Integration <using/integration/integration.rst>
+      Extending <using/extending/extending.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
-      Data Center Installation Guide <data_center_install.rst>
       Other Versions <versions.rst>
+
+.. |---|   unicode:: U+2014 .. EM DASH
+   :trim:
