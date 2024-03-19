@@ -1428,6 +1428,20 @@ public:
   }
 };
 
+class PoisonOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::PoisonOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::PoisonOp poison, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto resTy = getTypeConverter()->convertType(poison.getType());
+    // FIXME: This should use PoisonOp, obviously, when we upgrade MLIR.
+    rewriter.replaceOpWithNewOp<LLVM::UndefOp>(poison, resTy);
+    return success();
+  }
+};
+
 class UndefOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::UndefOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
@@ -1624,7 +1638,7 @@ public:
         OneTargetOneParamRewrite<quake::RyOp>,
         OneTargetOneParamRewrite<quake::RzOp>,
         OneTargetTwoParamRewrite<quake::U2Op>,
-        OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite,
+        OneTargetTwoParamRewrite<quake::U3Op>, PoisonOpPattern, ResetRewrite,
         StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
         StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
         UndefOpPattern>(typeConverter);
