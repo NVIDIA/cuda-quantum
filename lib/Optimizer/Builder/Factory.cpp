@@ -33,7 +33,7 @@ static Type genBufferType(Type ty) {
   auto *ctx = ty.getContext();
   if (isa<cudaq::cc::CallableType>(ty))
     return cudaq::cc::PointerType::get(ctx);
-  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
+  if (auto vecTy = dyn_cast<cudaq::cc::SpanLikeType>(ty)) {
     auto i64Ty = IntegerType::get(ctx, 64);
     if (isOutput) {
       SmallVector<Type> mems = {
@@ -225,19 +225,27 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
   auto numResults = funcTy.getNumResults();
   return numResults > 1 ||
          (numResults == 1 && funcTy.getResult(0)
-                                 .isa<cc::StdvecType, cc::StructType,
+                                 .isa<cc::SpanLikeType, cc::StructType,
                                       cc::ArrayType, cc::CallableType>());
+}
+
+cc::StructType factory::stlStringType(MLIRContext *ctx) {
+  auto i8Ty = IntegerType::get(ctx, 8);
+  auto ptrI8Ty = cc::PointerType::get(i8Ty);
+  auto i64Ty = IntegerType::get(ctx, 64);
+  auto padTy = cc::ArrayType::get(ctx, i8Ty, 16);
+  return cc::StructType::get(ctx, ArrayRef<Type>{ptrI8Ty, i64Ty, padTy});
 }
 
 // FIXME: We should get the underlying structure of a std::vector from the
 // AST. For expediency, we just construct the expected type directly here.
 cc::StructType factory::stlVectorType(Type eleTy) {
   MLIRContext *ctx = eleTy.getContext();
-  auto elePtrTy = cc::PointerType::get(eleTy);
-  SmallVector<Type> eleTys = {elePtrTy, elePtrTy, elePtrTy};
-  return cc::StructType::get(ctx, eleTys);
+  auto ptrTy = cc::PointerType::get(eleTy);
+  return cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, ptrTy, ptrTy});
 }
 
+// FIXME: Give these front-end names so we can disambiguate more types.
 cc::StructType factory::getDynamicBufferType(MLIRContext *ctx) {
   auto ptrTy = cc::PointerType::get(IntegerType::get(ctx, 8));
   return cc::StructType::get(ctx,
@@ -253,7 +261,7 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   auto *ctx = funcTy.getContext();
   if (funcTy.getNumResults() > 1)
     return cc::StructType::get(ctx, funcTy.getResults());
-  if (isa<cc::StdvecType>(funcTy.getResult(0)))
+  if (isa<cc::SpanLikeType>(funcTy.getResult(0)))
     return getDynamicBufferType(ctx);
   return funcTy.getResult(0);
 }
@@ -262,6 +270,8 @@ static Type convertToHostSideType(Type ty) {
   if (auto memrefTy = dyn_cast<cc::StdvecType>(ty))
     return convertToHostSideType(
         factory::stlVectorType(memrefTy.getElementType()));
+  if (auto memrefTy = dyn_cast<cc::CharspanType>(ty))
+    return convertToHostSideType(factory::stlStringType(memrefTy.getContext()));
   auto *ctx = ty.getContext();
   if (auto structTy = dyn_cast<cc::StructType>(ty)) {
     SmallVector<Type> newMembers;
