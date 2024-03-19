@@ -12,7 +12,7 @@ The latest version of CUDA Quantum is on the main branch of our `GitHub reposito
 
 **0.7.0**
 
-The 0.7.0 release adds support for using NVIDIA Quantum Cloud, giving you access to our most powerful GPU-accelerated simulators even if you don't have an NVIDIA GPU. With 0.7.0, we have furthermore greatly increased expressiveness of the Python and C++ language frontends. Check our our new documentation to learn more about the new Python syntax support we have added, and follow our blog to learn more about the new setup and its performance benefits.
+The 0.7.0 release adds support for using NVIDIA Quantum Cloud, giving you access to our most powerful GPU-accelerated simulators even if you don't have an NVIDIA GPU. With 0.7.0, we have furthermore greatly increased expressiveness of the Python and C++ language frontends. Check our our `documentation <https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html>`__ to learn more about the new Python syntax support we have added, and `follow our blog <https://developer.nvidia.com/cuda-q>`__ to learn more about the new setup and its performance benefits.
 
 - `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
 - `Python wheel <https://pypi.org/project/cuda-quantum/>`__
