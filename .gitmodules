@@ -35,3 +35,6 @@
 	path = tpls/qpp
 	url = https://github.com/softwareQinc/qpp.git
 	shallow = true
+[submodule "tpls/cpr"]
+	path = tpls/cpr
+	url = https://github.com/libcpr/cpr.git
