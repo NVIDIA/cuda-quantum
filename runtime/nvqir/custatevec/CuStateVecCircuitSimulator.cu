@@ -170,6 +170,11 @@ protected:
         CUSTATEVEC_MATRIX_LAYOUT_ROW, 0, targets.data(), targets.size(),
         controls.empty() ? nullptr : controls.data(), nullptr, controls.size(),
         cuStateVecComputeType, extraWorkspace, extraWorkspaceSizeInBytes));
+
+    if (extraWorkspace) {
+      HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
+      extraWorkspace = nullptr;
+    }
   }
 
   /// @brief Utility function for applying one-target-qubit rotation operations
@@ -259,8 +264,10 @@ protected:
       HANDLE_ERROR(custatevecDestroy(handle));
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     }
-    if (extraWorkspaceSizeInBytes)
+    if (extraWorkspace) {
       HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
+      extraWorkspace = nullptr;
+    }
     deviceStateVector = nullptr;
     extraWorkspaceSizeInBytes = 0;
   }
@@ -394,9 +401,6 @@ public:
   /// given the operator matrix and target qubit indices.
   auto getExpectationFromOperatorMatrix(const std::complex<double> *matrix,
                                         const std::vector<std::size_t> &tgts) {
-    void *extraWorkspace = nullptr;
-    size_t extraWorkspaceSizeInBytes = 0;
-
     // Convert the size_t tgts into ints
     std::vector<int> tgtsInt(tgts.size());
     std::transform(tgts.begin(), tgts.end(), tgtsInt.begin(),
@@ -410,9 +414,8 @@ public:
         cuStateVecCudaDataType, CUSTATEVEC_MATRIX_LAYOUT_ROW, tgts.size(),
         cuStateVecComputeType, &extraWorkspaceSizeInBytes));
 
-    if (extraWorkspaceSizeInBytes > 0) {
+    if (extraWorkspaceSizeInBytes > 0)
       HANDLE_CUDA_ERROR(cudaMalloc(&extraWorkspace, extraWorkspaceSizeInBytes));
-    }
 
     double expect;
 
@@ -422,8 +425,11 @@ public:
         CUDA_R_64F, nullptr, matrix, cuStateVecCudaDataType,
         CUSTATEVEC_MATRIX_LAYOUT_ROW, tgtsInt.data(), tgts.size(),
         cuStateVecComputeType, extraWorkspace, extraWorkspaceSizeInBytes));
-    if (extraWorkspaceSizeInBytes)
+
+    if (extraWorkspace) {
       HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
+      extraWorkspace = nullptr;
+    }
 
     return expect;
   }
@@ -501,9 +507,8 @@ public:
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
         &sampler, shots, &extraWorkspaceSizeInBytes));
     // allocate external workspace if necessary
-    if (extraWorkspaceSizeInBytes > 0) {
+    if (extraWorkspaceSizeInBytes > 0)
       HANDLE_CUDA_ERROR(cudaMalloc(&extraWorkspace, extraWorkspaceSizeInBytes));
-    }
 
     // Run the sampling preprocess step.
     HANDLE_ERROR(custatevecSamplerPreprocess(handle, sampler, extraWorkspace,
@@ -515,6 +520,11 @@ public:
         handle, sampler, bitstrings0, measuredBits32.data(),
         measuredBits32.size(), randomValues_.data(), shots,
         CUSTATEVEC_SAMPLER_OUTPUT_ASCENDING_ORDER));
+
+    if (extraWorkspace) {
+      HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
+      extraWorkspace = nullptr;
+    }
 
     std::vector<std::string> sequentialData;
 
