@@ -658,6 +658,17 @@ def cc_UnwindReturnOp : CCOp<"unwind_return", [
 // Memory operations and initializations.
 //===----------------------------------------------------------------------===//
 
+def cc_PoisonOp : CCOp<"poison", [Pure]> {
+  let summary = "Explicit poison value";
+  let description = [{
+    A PoisonOp is used to create an LLVM poison value. A poison value occurs
+    in CC when the IR violates its own semantics, such as accessing the 10th
+    element of a constant array which only has 3 elements.
+  }];
+  let results = (outs AnyType:$inputType);
+  let assemblyFormat = "type($inputType) attr-dict";
+}
+
 def cc_UndefOp : CCOp<"undef", [Pure]> {
   let summary = "Explicit undefined value.";
   let description = [{
@@ -671,9 +682,7 @@ def cc_UndefOp : CCOp<"undef", [Pure]> {
     ```
   }];
   let results = (outs AnyType:$inputType);
-  let assemblyFormat = [{
-    type($inputType) attr-dict
-  }];
+  let assemblyFormat = "type($inputType) attr-dict";
 }
 
 def cc_AllocaOp : CCOp<"alloca", [
@@ -1040,7 +1049,7 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     AnyPointerType:$buffer,
     AnyInteger:$length
   );
-  let results = (outs cc_StdVectorType:$stdvec);
+  let results = (outs SpanningType:$stdvec);
 
   let assemblyFormat = [{
     $buffer `,` $length `:` functional-type(operands, results) attr-dict
@@ -1058,7 +1067,7 @@ def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
     the data pointer is part of the aggregate value and nothing is dereferenced.
   }];
 
-  let arguments = (ins cc_StdVectorType:$stdvec);
+  let arguments = (ins SpanningType:$stdvec);
   let results = (outs AnyPointerType:$data);
 
   let hasCanonicalizer = 1;
@@ -1079,7 +1088,7 @@ def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
     is dereferenced.
   }];
 
-  let arguments = (ins cc_StdVectorType:$stdvec);
+  let arguments = (ins SpanningType:$stdvec);
   let results = (outs AnyInteger:$size);
 
   let hasCanonicalizer = 1;

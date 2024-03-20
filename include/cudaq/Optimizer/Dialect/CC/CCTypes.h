@@ -14,6 +14,17 @@
 #include "mlir/IR/Types.h"
 #include "mlir/Interfaces/DataLayoutInterfaces.h"
 
+namespace cudaq::cc {
+
+class SpanLikeType : public mlir::Type {
+public:
+  using mlir::Type::Type;
+  mlir::Type getElementType() const;
+  static bool classof(mlir::Type type);
+};
+
+} // namespace cudaq::cc
+
 //===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
@@ -22,6 +33,10 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h.inc"
 
 namespace cudaq::cc {
+
+inline bool SpanLikeType::classof(mlir::Type type) {
+  return type.isa<StdvecType, CharspanType>();
+}
 
 /// Return true if and only if \p ty has dynamic extent. This is a recursive
 /// test on composable types.

@@ -55,6 +55,7 @@ listReachableFunctions(clang::CallGraphNode *cgn) {
 static bool isQubitType(Type ty) {
   if (ty.isa<quake::RefType, quake::VeqType>())
     return true;
+  // FIXME: next if case is a bug.
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
     return isQubitType(vecTy.getElementType());
   return false;
