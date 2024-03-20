@@ -161,7 +161,7 @@ CUDAQ_TEST(NVQIRTester, checkReset) {
       __quantum__rt__array_get_element_ptr_1d(qubits, 1));
 
 #if defined CUDAQ_BACKEND_TENSORNET
-  // Tensornet backends doesn't have a qubit count limit, just check that it can
+  // Tensornet backends don't have a qubit count limit, just check that it can
   // perform qubit reset in a loop.
   constexpr int N_ITERS = 3;
 #else
