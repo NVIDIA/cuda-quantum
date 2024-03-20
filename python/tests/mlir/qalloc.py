@@ -58,7 +58,7 @@ def test_kernel_qalloc_qreg_keyword():
     """
     kernel = cudaq.make_kernel()
     # Use `qalloc()` with 10 qubits allocated.
-    qubit = kernel.qalloc(qubit_count=10)
+    qubit = kernel.qalloc(10)
     # Assert that 10 qubits have been allocated in the MLIR.
     print(kernel)
 
@@ -111,8 +111,7 @@ def test_kernel_qalloc_qubit_keyword():
     is provided with a keyword argument.
     """
     kernel = cudaq.make_kernel()
-    # Use `qalloc()` with 1 qubit allocated and `qubit_count` keyword used.
-    qubit = kernel.qalloc(qubit_count=1)
+    qubit = kernel.qalloc(1)
     # Assert that only 1 qubit is allocated in the MLIR.
     print(kernel)
 

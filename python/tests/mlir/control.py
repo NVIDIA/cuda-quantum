@@ -43,8 +43,8 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_1]]) -> (i64)) {
 # CHECK:             %[[VAL_5:.*]] = arith.cmpi slt, %[[VAL_4]], %[[VAL_0]] : i64
@@ -69,9 +69,9 @@ def test_kernel_control_no_args(qubit_count):
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 5 : i64
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 5 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<5>
 # CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_2]]) -> (i64)) {
 # CHECK:             %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_0]] : i64

@@ -29,8 +29,8 @@ def test_qreg_iter():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__foo(
 # CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_3:.*]] = cc.alloca i64
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>

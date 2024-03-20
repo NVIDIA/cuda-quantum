@@ -86,8 +86,11 @@ jobs:
             lit_status=$?
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/targettests/lit.site.cfg.py build/targettests
             targ_status=$?
-            if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ]; then
-              echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status, target tests status $targ_status)."
+            /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/python/tests/mlir/lit.site.cfg.py build/python/tests/mlir
+            pymlir_status=$?
+            if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ] || [ $pymlir_status -ne 0 ]; then
+              echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status, \
+              target tests status $targ_status, Python MLIR status $pymlir_status)."
               exit 1
             fi
 
