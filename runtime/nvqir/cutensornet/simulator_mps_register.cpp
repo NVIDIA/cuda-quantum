@@ -275,19 +275,19 @@ public:
       return SimulatorTensorNetBase::swap(ctrlBits, srcIdx, tgtIdx);
     // Controlled swap gate: using cnot decomposition of swap gate to perform
     // decomposition.
+    const auto size = ctrlBits.size();
+    std::vector<std::size_t> ctls(size + 1);
+    std::copy(ctrlBits.begin(), ctrlBits.end(), ctls.begin());
     {
-      std::vector<std::size_t> ctls = ctrlBits;
-      ctls.emplace_back(tgtIdx);
+      ctls[size] = tgtIdx;
       decomposeMultiControlledInstruction<nvqir::x<double>>({}, ctls, {srcIdx});
     }
     {
-      std::vector<std::size_t> ctls = ctrlBits;
-      ctls.emplace_back(srcIdx);
+      ctls[size] = srcIdx;
       decomposeMultiControlledInstruction<nvqir::x<double>>({}, ctls, {tgtIdx});
     }
     {
-      std::vector<std::size_t> ctls = ctrlBits;
-      ctls.emplace_back(tgtIdx);
+      ctls[size] = tgtIdx;
       decomposeMultiControlledInstruction<nvqir::x<double>>({}, ctls, {srcIdx});
     }
   }
