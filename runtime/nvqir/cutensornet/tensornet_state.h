@@ -19,6 +19,7 @@ class TensorNetState {
   std::size_t m_numQubits;
   cutensornetHandle_t m_cutnHandle;
   cutensornetState_t m_quantumState;
+  // Track id of tensors that are applied to the state tensors.
   int64_t m_tensorId = -1;
 
 public:
@@ -75,7 +76,7 @@ public:
 
   /// @brief Number of qubits that this state represents.
   std::size_t getNumQubits() const { return m_numQubits; }
-  
+
   /// @brief True if the state contains gate tensors (not just initial qubit
   /// tensors)
   bool isDirty() const { return m_tensorId > 0; }
