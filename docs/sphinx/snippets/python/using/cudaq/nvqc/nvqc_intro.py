@@ -5,11 +5,19 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+# [Begin Documentation]
+import cudaq
 
-set(LIBRARY_NAME rest_server_impl)
+cudaq.set_target("nvqc")
+num_qubits = 25
+# Define a simple quantum kernel to execute on NVQC.
+kernel = cudaq.make_kernel()
+qubits = kernel.qalloc(num_qubits)
+# Maximally entangled state between 25 qubits.
+kernel.h(qubits[0])
+for i in range(num_qubits - 1):
+    kernel.cx(qubits[i], qubits[i + 1])
+kernel.mz(qubits)
 
-add_library(${LIBRARY_NAME} OBJECT RestServer.cpp)
-
-target_link_libraries(${LIBRARY_NAME} PRIVATE Crow::Crow)
-target_include_directories(${LIBRARY_NAME} PRIVATE
-  ../ ${Crow_SOURCE_DIR}/include ${asio_SOURCE_DIR}/asio/include)
+counts = cudaq.sample(kernel)
+print(counts)

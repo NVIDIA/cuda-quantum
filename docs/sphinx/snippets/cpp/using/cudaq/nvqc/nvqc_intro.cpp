@@ -6,27 +6,24 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std -verify %s
-
+// [Begin Documentation]
 #include <cudaq.h>
-#include <string>
-#include <tuple>
 
-// expected-error@+1{{kernel argument type not supported}}
-void prepQubit(std::string basis, cudaq::qubit &q) __qpu__ {}
-
-// expected-error@+1{{kernel argument type not supported}}
-void RzArcTan2(bool input, std::string basis) __qpu__ {
-  cudaq::qubit aux;
-  cudaq::qubit resource;
-  cudaq::qubit target;
-  if (input) {
-    x(target);
+// Define a simple quantum kernel to execute on NVQC.
+struct ghz {
+  // Maximally entangled state between 25 qubits.
+  auto operator()() __qpu__ {
+    constexpr int NUM_QUBITS = 25;
+    cudaq::qvector q(NUM_QUBITS);
+    h(q[0]);
+    for (int i = 0; i < NUM_QUBITS - 1; i++) {
+      x<cudaq::ctrl>(q[i], q[i + 1]);
+    }
+    auto result = mz(q);
   }
-  prepQubit(basis, target);
-}
+};
 
 int main() {
-  RzArcTan2(true, {});
-  return 0;
+  auto counts = cudaq::sample(ghz{});
+  counts.dump();
 }

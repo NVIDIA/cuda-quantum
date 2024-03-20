@@ -838,8 +838,8 @@ def ExpPauliOp : QuakeOp<"exp_pauli"> {
   let results = (outs);
 
   let assemblyFormat = [{
-    `(` $parameter `)` $qubits `,` $pauli `:` functional-type(operands,
-      results) attr-dict
+    $parameter `,` $qubits `,` $pauli `:` functional-type(operands, results)
+      attr-dict
   }];
 }
 
