@@ -19,6 +19,7 @@ class SimulatorMPS : public SimulatorTensorNetBase {
   double m_relCutoff = 1e-5;
   std::vector<void *> m_mpsTensors_d;
   std::vector<std::size_t> m_auxQubitsForGateDecomp;
+
 public:
   SimulatorMPS() : SimulatorTensorNetBase() {
     if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
@@ -195,10 +196,11 @@ public:
 
     collectControls(controls, aux, 0);
     adjustForSingleControl(controls, aux);
-    
+
     // Add to the singly-controlled instruction queue
-    enqueueQuantumOperation<QuantumOperation>(params, {aux[controls.size() - 2]}, targets);
-   
+    enqueueQuantumOperation<QuantumOperation>(
+        params, {aux[controls.size() - 2]}, targets);
+
     adjustForSingleControl(controls, aux);
     collectControls(controls, aux, 0);
   }
@@ -268,11 +270,10 @@ public:
       decomposeMultiControlledInstruction<nvqir::x<double>>({}, ctls, {srcIdx});
     }
   }
- 
-  void applyExpPauli(double theta,
-                             const std::vector<std::size_t> &controls,
-                             const std::vector<std::size_t> &qubitIds,
-                             const cudaq::spin_op &op) override {
+
+  void applyExpPauli(double theta, const std::vector<std::size_t> &controls,
+                     const std::vector<std::size_t> &qubitIds,
+                     const cudaq::spin_op &op) override {
     if (op.is_identity()) {
       if (controls.empty()) {
         // exp(i*theta*Id) is noop if this is not a controlled gate.
