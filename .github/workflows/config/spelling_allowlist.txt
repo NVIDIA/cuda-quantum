@@ -171,6 +171,8 @@ expressivity
 extensibility
 extremal
 fermionic
+frontend
+frontends
 homogenous
 iff
 increment
@@ -218,6 +220,7 @@ reStructuredText
 runtime
 rvalue
 scalability
+scalable
 sexualized
 struct
 structs
