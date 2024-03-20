@@ -111,9 +111,9 @@ public:
     m_mpsTensors_d.clear();
   }
 
-  void resetExecutionContext() override {
-    SimulatorTensorNetBase::resetExecutionContext();
+  void deallocateStateImpl() override {
     m_auxQubitsForGateDecomp.clear();
+    SimulatorTensorNetBase::deallocateStateImpl();
   }
 
   /// @brief Return the state vector data
