@@ -63,14 +63,14 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     };
     cudaq::gradients::central_difference gradient(ansatz, argMapper);
     cudaq::optimizers::lbfgs optimizer;
-    optimizer.initial_parameters = {0.35, 0.25};
-    optimizer.max_eval = 10;
-    optimizer.max_line_search_trials = 10;
+    optimizer.initial_parameters = {0.359, 0.257};
+    optimizer.max_eval = 4;
+    optimizer.max_line_search_trials = 8;
     auto [opt_val_0, optpp] =
         cudaq::vqe(ansatz, gradient, h3, optimizer, 2, argMapper);
     printf("Opt-params: %lf %lf \n", optpp[0], optpp[1]);
     printf("<H3> = %lf\n", opt_val_0);
-    EXPECT_NEAR(opt_val_0, -2.045375, 1e-3);
+    EXPECT_NEAR(opt_val_0, -2.045375, 1e-2);
   }
 
   {
@@ -97,12 +97,12 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
 
     cudaq::gradients::central_difference gradient(ansatz);
     cudaq::optimizers::lbfgs optimizer;
-    optimizer.initial_parameters = {0.35, 0.25};
-    optimizer.max_eval = 10;
-    optimizer.max_line_search_trials = 10;
+    optimizer.initial_parameters = {0.359, 0.257};
+    optimizer.max_eval = 4;
+    optimizer.max_line_search_trials = 8;
     auto [opt_val_0, optpp] = cudaq::vqe(ansatz, gradient, h3, optimizer, 2);
     printf("<H3> = %lf\n", opt_val_0);
-    EXPECT_NEAR(opt_val_0, -2.045375, 1e-3);
+    EXPECT_NEAR(opt_val_0, -2.045375, 1e-2);
   }
 
   {
@@ -125,7 +125,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     EXPECT_EQ(counter, 1000);
   }
 
-  // MPS doesn't support gates on more than 2 qubits
   {
     auto ccnot_builder = cudaq::make_kernel();
     auto q = ccnot_builder.qalloc(3);

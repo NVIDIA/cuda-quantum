@@ -13,7 +13,10 @@
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/optimizers.h>
 
-#ifndef CUDAQ_BACKEND_DM
+// Skip these VQE tests for slow backends to reduce test time.
+// Note: CUDA-Q API level tests (e.g., `cudaq::observe`) should cover all
+// backend-specific functionalities required for the `cudaq::vqe` wrapper.
+#if !defined CUDAQ_BACKEND_DM && !defined CUDAQ_BACKEND_TENSORNET
 
 struct ansatz_compute_action {
   void operator()(std::vector<double> theta) __qpu__ {

@@ -160,8 +160,15 @@ CUDAQ_TEST(NVQIRTester, checkReset) {
   Qubit *q1 = *reinterpret_cast<Qubit **>(
       __quantum__rt__array_get_element_ptr_1d(qubits, 1));
 
+#if defined CUDAQ_BACKEND_TENSORNET
+  // Tensornet backends doesn't have a qubit count limit, just check that it can
+  // perform qubit reset in a loop.
+  constexpr int N_ITERS = 3;
+#else
+  constexpr int N_ITERS = 100;
+#endif
   // Make sure that the state vector doesn't grow with each additional reset
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < N_ITERS; i++) {
     __quantum__qis__reset(q0);
     __quantum__qis__reset(q1);
     __quantum__qis__x(q1);
