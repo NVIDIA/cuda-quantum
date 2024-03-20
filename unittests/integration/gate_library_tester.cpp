@@ -88,7 +88,6 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
   }
 }
 
-
 CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     // Same check, with 2 control qubits
