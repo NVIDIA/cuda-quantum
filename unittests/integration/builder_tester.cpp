@@ -125,7 +125,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     EXPECT_EQ(counter, 1000);
   }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
   // MPS doesn't support gates on more than 2 qubits
   {
     auto ccnot_builder = cudaq::make_kernel();
@@ -139,7 +138,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     counts.dump();
     EXPECT_TRUE(counts.begin()->first == "101");
   }
-#endif
 
   {
     // Check controlled parametric gates (constant angle)
@@ -221,8 +219,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkRotations) {
 
   // rx: entire qvector
@@ -427,11 +423,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("0111"), 1000);
   }
 }
-#endif
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// Skip, else fails with error - '"MPS simulator: Gates on 3 or more qubits are
-// unsupported. Encountered: swap[0][1,2]" thrown in the test body.'
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
 
@@ -575,7 +567,6 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
     EXPECT_NEAR(counts.count(want_state), 1000, 0);
   }
 }
-#endif
 
 // Conditional execution on the tensornet backend is slow for a large number of
 // shots.
@@ -708,8 +699,6 @@ CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
   EXPECT_FALSE(kernel.isArgStdVec(1));
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkKernelControl) {
   cudaq::set_random_seed(13);
 
@@ -766,7 +755,6 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "101");
 }
-#endif
 
 CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   auto kernel = cudaq::make_kernel();
@@ -1101,8 +1089,6 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   // rx: pi
   {
@@ -1217,7 +1203,6 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     EXPECT_EQ(counts.count("11111111"), 1000);
   }
 }
-#endif
 
 #ifndef CUDAQ_BACKEND_DM
 

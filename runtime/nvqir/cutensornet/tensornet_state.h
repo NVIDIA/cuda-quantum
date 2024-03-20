@@ -19,6 +19,7 @@ class TensorNetState {
   std::size_t m_numQubits;
   cutensornetHandle_t m_cutnHandle;
   cutensornetState_t m_quantumState;
+  int64_t m_tensorId = -1;
 
 public:
   /// @brief Constructor
@@ -45,7 +46,8 @@ public:
 
   /// @brief Contract the tensor network representation to retrieve the state
   /// vector.
-  std::vector<std::complex<double>> getStateVector();
+  std::vector<std::complex<double>>
+  getStateVector(const std::vector<int32_t> &projectedModes = {});
 
   /// @brief Compute the reduce density matrix on a set of qubits
   ///
@@ -73,7 +75,10 @@ public:
 
   /// @brief Number of qubits that this state represents.
   std::size_t getNumQubits() const { return m_numQubits; }
-
+  
+  /// @brief True if the state contains gate tensors (not just initial qubit
+  /// tensors)
+  bool isDirty() const { return m_tensorId > 0; }
   /// @brief Destructor
   ~TensorNetState();
 };
