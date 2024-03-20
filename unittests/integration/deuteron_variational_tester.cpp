@@ -60,8 +60,8 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
 
 #if defined CUDAQ_BACKEND_TENSORNET
   // Reduce test time by reducing the broadcast size.
-  std::vector<double> params{-M_PI, -M_PI + M_2_PI / 49,
-                             -M_PI + 2 * M_2_PI / 49};
+  std::vector<double> params{-M_PI, -M_PI + 2. * M_PI / 49.,
+                             -M_PI + 4. * M_PI / 49.};
   std::vector<double> expected{12.250290, 12.746370, 13.130148};
 #else
   auto params = cudaq::linspace(-M_PI, M_PI, 50);
