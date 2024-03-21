@@ -440,7 +440,10 @@ public:
   bool canHandleObserve() override {
     // Do not compute <H> from matrix if shots based sampling requested
     // i.e., a valid shots count value was set.
-    if (executionContext && executionContext->shots > 0) {
+    // Note: -1 is also used to denote non-sampling execution. Hence, we need to
+    // check for this particular -1 value as being casted to an unsigned type.
+    if (executionContext && executionContext->shots > 0 &&
+        executionContext->shots != static_cast<std::size_t>(-1)) {
       return false;
     }
 
