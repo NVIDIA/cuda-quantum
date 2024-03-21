@@ -188,10 +188,10 @@ protected:
       controls32.push_back((int)c);
     custatevecPauli_t pauli[] = {pauliStringToEnum(gate.name())};
     int targets[] = {(int)qubitIdx};
-    custatevecApplyPauliRotation(handle, deviceStateVector,
-                                 cuStateVecCudaDataType, nQubitsAllocated,
-                                 -0.5 * angle, pauli, targets, 1,
-                                 controls32.data(), nullptr, controls32.size());
+    HANDLE_ERROR(custatevecApplyPauliRotation(
+        handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
+        -0.5 * angle, pauli, targets, 1, controls32.data(), nullptr,
+        controls32.size()));
   }
 
   /// @brief Increase the state size by the given number of qubits.
@@ -439,39 +439,102 @@ public:
   /// via sampling
   bool canHandleObserve() override {
     // Do not compute <H> from matrix if shots based sampling requested
-    if (executionContext &&
+    // i.e., a valid shots count value was set.
+    // Note: -1 is also used to denote non-sampling execution. Hence, we need to
+    // check for this particular -1 value as being casted to an unsigned type.
+    if (executionContext && executionContext->shots > 0 &&
         executionContext->shots != static_cast<std::size_t>(-1)) {
       return false;
     }
 
-    /// Seems that FP32 is faster with
-    /// custatevecComputeExpectationsOnPauliBasis
-    if constexpr (std::is_same_v<ScalarType, float>) {
-      return false;
-    }
-
-    return !shouldObserveFromSampling();
+    // If no shots requested (exact expectation calulation), don't use
+    // term-by-term observe as the default since
+    // `CuStateVecCircuitSimulator::observe` will do a batched expectation value
+    // calculation to compute all expectation values for all terms at once.
+    return !shouldObserveFromSampling(/*defaultConfig=*/false);
   }
 
   /// @brief Compute the expected value from the observable matrix.
-  cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
+  cudaq::observe_result observe(const cudaq::spin_op &op) override {
+    {
+      cudaq::ScopedTrace trace(
+          "CuStateVecCircuitSimulator::observe - flushGateQueue");
+      flushGateQueue();
+    }
 
-    flushGateQueue();
+    // Use batched custatevecComputeExpectationsOnPauliBasis to compute all term
+    // expectation values in one go
+    uint32_t nPauliOperatorArrays = op.num_terms();
+    // Stable holders of vectors since we need to send vectors of pointers to
+    // custatevec
+    std::deque<std::vector<custatevecPauli_t>> pauliOperatorsArrayHolder;
+    std::deque<std::vector<int32_t>> basisBitsArrayHolder;
+    std::vector<const custatevecPauli_t *> pauliOperatorsArray;
+    std::vector<const int32_t *> basisBitsArray;
+    std::vector<std::complex<double>> coeffs;
+    std::vector<uint32_t> nBasisBitsArray;
+    pauliOperatorsArray.reserve(nPauliOperatorArrays);
+    basisBitsArray.reserve(nPauliOperatorArrays);
+    coeffs.reserve(nPauliOperatorArrays);
+    nBasisBitsArray.reserve(nPauliOperatorArrays);
+    // Helper to convert Pauli enums
+    const auto cudaqToCustateVec = [](cudaq::pauli pauli) -> custatevecPauli_t {
+      switch (pauli) {
+      case cudaq::pauli::I:
+        return CUSTATEVEC_PAULI_I;
+      case cudaq::pauli::X:
+        return CUSTATEVEC_PAULI_X;
+      case cudaq::pauli::Y:
+        return CUSTATEVEC_PAULI_Y;
+      case cudaq::pauli::Z:
+        return CUSTATEVEC_PAULI_Z;
+      }
+      __builtin_unreachable();
+    };
 
-    // The op is on the following target bits.
-    std::set<std::size_t> targets;
+    // Contruct data to send on to custatevec
+    std::vector<std::string> termStrs;
+    termStrs.reserve(nPauliOperatorArrays);
     op.for_each_term([&](cudaq::spin_op &term) {
-      term.for_each_pauli(
-          [&](cudaq::pauli p, std::size_t idx) { targets.insert(idx); });
+      coeffs.emplace_back(term.get_coefficient());
+      std::vector<custatevecPauli_t> paulis;
+      std::vector<int32_t> idxs;
+      paulis.reserve(term.num_qubits());
+      idxs.reserve(term.num_qubits());
+      term.for_each_pauli([&](cudaq::pauli p, std::size_t idx) {
+        if (p != cudaq::pauli::I) {
+          paulis.emplace_back(cudaqToCustateVec(p));
+          idxs.emplace_back(idx);
+        }
+      });
+      pauliOperatorsArrayHolder.emplace_back(std::move(paulis));
+      basisBitsArrayHolder.emplace_back(std::move(idxs));
+      pauliOperatorsArray.emplace_back(pauliOperatorsArrayHolder.back().data());
+      basisBitsArray.emplace_back(basisBitsArrayHolder.back().data());
+      nBasisBitsArray.emplace_back(pauliOperatorsArrayHolder.back().size());
+      termStrs.emplace_back(term.to_string(false));
     });
-
-    std::vector<std::size_t> targetsVec(targets.begin(), targets.end());
-
-    // Get the matrix
-    auto matrix = op.to_matrix();
-    /// Compute the expectation value.
-    auto ee = getExpectationFromOperatorMatrix(matrix.data(), targetsVec);
-    return cudaq::ExecutionResult({}, ee);
+    std::vector<double> expectationValues(nPauliOperatorArrays);
+    {
+      cudaq::ScopedTrace trace("CuStateVecCircuitSimulator::observe - "
+                               "custatevecComputeExpectationsOnPauliBasis");
+      HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(
+          handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
+          expectationValues.data(), pauliOperatorsArray.data(),
+          nPauliOperatorArrays, basisBitsArray.data(), nBasisBitsArray.data()));
+    }
+    std::complex<double> expVal = 0.0;
+    std::vector<cudaq::ExecutionResult> results;
+    results.reserve(nPauliOperatorArrays);
+    for (uint32_t i = 0; i < nPauliOperatorArrays; ++i) {
+      expVal += coeffs[i] * expectationValues[i];
+      results.emplace_back(
+          cudaq::ExecutionResult({}, termStrs[i], expectationValues[i]));
+    }
+    cudaq::sample_result perTermData(static_cast<double>(expVal.real()),
+                                     results);
+    return cudaq::observe_result(static_cast<double>(expVal.real()), op,
+                                 perTermData);
   }
 
   /// @brief Sample the multi-qubit state.

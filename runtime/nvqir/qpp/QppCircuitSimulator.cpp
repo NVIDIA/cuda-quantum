@@ -181,7 +181,7 @@ public:
     return !shouldObserveFromSampling();
   }
 
-  cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
+  cudaq::observe_result observe(const cudaq::spin_op &op) override {
 
     flushGateQueue();
 
@@ -212,7 +212,7 @@ public:
       ee = qpp::apply(asEigen, state, targets).trace().real();
     }
 
-    return cudaq::ExecutionResult({}, ee);
+    return cudaq::observe_result(ee, op);
   }
 
   /// @brief Reset the qubit

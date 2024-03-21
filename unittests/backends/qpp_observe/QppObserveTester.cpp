@@ -27,7 +27,7 @@ CUDAQ_TEST(QPPBackendTester, checkBackendObserve) {
                      .21829 * z(0) - 6.125 * z(1);
 
   auto expVal = qpp.observe(h);
-  EXPECT_NEAR(expVal.expectationValue.value(), -1.74, 1e-2);
+  EXPECT_NEAR(expVal.expectation(), -1.74, 1e-2);
 
   struct ansatzTest {
     auto operator()(double theta) __qpu__ {

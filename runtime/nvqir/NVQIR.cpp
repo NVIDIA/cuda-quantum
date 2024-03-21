@@ -420,8 +420,8 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   if (currentContext->canHandleObserve) {
     circuitSimulator->flushGateQueue();
     auto result = circuitSimulator->observe(*currentContext->spin.value());
-    currentContext->expectationValue = result.expectationValue;
-    currentContext->result = cudaq::sample_result(result);
+    currentContext->expectationValue = result.expectation();
+    currentContext->result = result.raw_data();
     return ResultZero;
   }
 

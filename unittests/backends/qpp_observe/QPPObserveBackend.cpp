@@ -19,7 +19,7 @@ class QppObserveTester : public nvqir::QppCircuitSimulator<qpp::ket> {
 public:
   NVQIR_SIMULATOR_CLONE_IMPL(QppObserveTester)
   bool canHandleObserve() override { return true; }
-  cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
+  cudaq::observe_result observe(const cudaq::spin_op &op) override {
     flushGateQueue();
 
     ::qpp::cmat X = ::qpp::Gates::get_instance().X;
@@ -51,7 +51,7 @@ public:
       }
     }
 
-    return cudaq::ExecutionResult({}, sum);
+    return cudaq::observe_result(sum, op);
   }
 
   std::string name() const override { return "qpp-test"; }
