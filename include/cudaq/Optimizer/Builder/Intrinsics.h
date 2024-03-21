@@ -17,6 +17,8 @@ static constexpr const char llvmMemCopyIntrinsic[] =
 static constexpr const char setCudaqRangeVector[] = "__nvqpp_CudaqRangeInit";
 static constexpr const char stdvecBoolCtorFromInitList[] =
     "__nvqpp_initializer_list_to_vector_bool";
+static constexpr const char stdvecBoolUnpackToInitList[] =
+    "__nvqpp_vector_bool_to_initializer_list";
 
 /// Builder for lowering the clang AST to an IR for CUDA Quantum. Lowering
 /// includes the transformation of both quantum and classical computation.

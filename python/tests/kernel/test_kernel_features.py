@@ -851,6 +851,17 @@ def test_aug_assign_add():
     assert test2() == 10
 
 
+def test_no_valueerror_np_array():
+
+    @cudaq.kernel
+    def test(var: np.ndarray):
+        q = cudaq.qubit()
+        ry(var[0], q)
+        mz(q)
+
+    test(np.array([1., 2.]))
+
+
 def test_draw():
 
     @cudaq.kernel
