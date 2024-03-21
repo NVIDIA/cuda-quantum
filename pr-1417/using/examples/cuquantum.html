@@ -526,7 +526,9 @@ can be trivially simulated via a NVIDIA GPU-accelerated backend:</p>
 
 <span class="kn">import</span> <span class="nn">cudaq</span>
 
-<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">28</span>
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="c1"># We can set a larger `qubit_count` if running on a GPU backend.</span>
+<span class="c1"># qubit_count = 28</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
