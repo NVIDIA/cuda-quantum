@@ -157,6 +157,7 @@ protected:
   }
 
   void flushGateQueue() override {
+    synchronize();
     flushRequestedAllocations();
     simulator()->flushGateQueue();
   }

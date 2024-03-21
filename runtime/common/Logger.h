@@ -9,12 +9,15 @@
 #pragma once
 
 #include <chrono>
-#include <set>
 
 // Be careful about fmt getting into public headers
 #include "common/FmtCore.h"
 
 namespace cudaq {
+
+/// @brief Returns true if `tag` is enabled. Tags are only enabled/disabled at
+/// program startup.
+bool isTimingTagEnabled(int tag);
 
 // Keep all spdlog headers hidden in the implementation file
 namespace details {
@@ -85,12 +88,6 @@ void log(const std::string_view message, Args &&...args) {
              fmt::format(fmt::runtime(message), args...));
 }
 
-// This must be a function rather than a global variable to avoid a startup
-// ordering issue that would otherwise occur if we simply made this a global
-// variable and then accessed it in the initializeLogger function.
-// NOTE: the only time that this list should be modified is at startup time.
-std::set<int> &g_timingList();
-
 /// @brief This type is meant to provided quick tracing
 /// of function calls. Instantiate at the beginning
 /// of a function and when it goes out of scope at function
@@ -131,7 +128,7 @@ private:
   /// @brief Integer timing tag value (used to enable/disable this trace)
   int tag = 0;
 
-  /// @brief Whether or not timing tag was found in g_timingList
+  /// @brief Whether or not timing tag is enabled
   bool tagFound = false;
 
   thread_local static inline short int globalTraceStack = -1;
@@ -150,7 +147,7 @@ public:
   /// @param tag See Timing.h
   /// @param name String to print
   ScopedTrace(const int tag, const std::string &name) : tag(tag) {
-    tagFound = g_timingList().find(tag) != g_timingList().end();
+    tagFound = cudaq::isTimingTagEnabled(tag);
     if (tagFound || details::should_log(details::LogLevel::trace)) {
       startTime = std::chrono::system_clock::now();
       traceName = name;
@@ -180,7 +177,7 @@ public:
   template <typename... Args>
   ScopedTrace(const int tag, const std::string &name, Args &&...args)
       : tag(tag) {
-    tagFound = g_timingList().find(tag) != g_timingList().end();
+    tagFound = cudaq::isTimingTagEnabled(tag);
     if (tagFound || details::should_log(details::LogLevel::trace)) {
       startTime = std::chrono::system_clock::now();
       traceName = name;

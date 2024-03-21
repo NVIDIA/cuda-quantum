@@ -9,10 +9,10 @@
 #pragma once
 
 namespace cudaq {
-static const int TIMING_OBSERVE = 1;
-static const int TIMING_ALLOCATE = 2;
-static const int TIMING_LAUNCH = 3;
-static const int TIMING_SAMPLE = 4;
-static const int TIMING_GATE_COUNT = 5;
-static const int TIMING_MAX_VALUE = 5;
+static constexpr int TIMING_OBSERVE = 1;
+static constexpr int TIMING_ALLOCATE = 2;
+static constexpr int TIMING_LAUNCH = 3;
+static constexpr int TIMING_SAMPLE = 4;
+static constexpr int TIMING_GATE_COUNT = 5;
+static constexpr int TIMING_MAX_VALUE = 5;
 } // namespace cudaq

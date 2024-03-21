@@ -10,6 +10,7 @@
 #include "Timing.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <filesystem>
+#include <set>
 #include <spdlog/cfg/env.h>
 #include <spdlog/cfg/helpers.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -22,9 +23,16 @@ namespace cudaq {
 // ordering issue that would otherwise occur if we simply made this a global
 // variable and then accessed it in the initializeLogger function.
 // NOTE: the only time that this list should be modified is at startup time.
-std::set<int> &g_timingList() {
+static std::set<int> &g_timingList() {
   static std::set<int> timingList;
   return timingList;
+}
+
+bool isTimingTagEnabled(int tag) {
+  // Note: this function is called very frequently, so it needs to be fast. It
+  // is assumed that g_timingList() contains a small number of elements
+  // (typically less than 10).
+  return g_timingList().contains(tag);
 }
 
 /// @brief This function will run at startup and initialize

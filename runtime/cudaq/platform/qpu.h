@@ -58,7 +58,6 @@ protected:
     if (execute) {
       cudaq::ScopedTrace trace(cudaq::TIMING_OBSERVE,
                                "handleObservation flushGateQueue()");
-      getExecutionManager()->synchronize();
       getExecutionManager()->flushGateQueue();
     }
     if (execute) {

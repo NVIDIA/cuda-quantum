@@ -654,8 +654,7 @@ protected:
       std::size_t targetCount = 0;
       bool enabled = false;
       SummaryData() {
-        auto &x = cudaq::g_timingList();
-        if (x.find(cudaq::TIMING_GATE_COUNT) != x.end())
+        if (cudaq::isTimingTagEnabled(cudaq::TIMING_GATE_COUNT))
           enabled = true;
       }
       ~SummaryData() {
