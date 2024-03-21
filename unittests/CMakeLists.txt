@@ -124,18 +124,18 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
 
   # Test CUDAQ_OBSERVE_FROM_SAMPLING=ON mode.
   # (term-by-term expectation value calculation by applying change-of-basis gates then reverting them)
-  add_executable(test_custatevec_direct_observe 
+  add_executable(test_custatevec_observe_from_sampling 
     integration/builder_tester.cpp  
     integration/deuteron_variational_tester.cpp
     integration/gradient_tester.cpp
     integration/nlopt_tester.cpp
   )
-  target_include_directories(test_custatevec_direct_observe PRIVATE .)
-  target_compile_definitions(test_custatevec_direct_observe PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
+  target_include_directories(test_custatevec_observe_from_sampling PRIVATE .)
+  target_compile_definitions(test_custatevec_observe_from_sampling PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_custatevec_direct_observe PRIVATE -Wl,--no-as-needed)
+    target_link_options(test_custatevec_observe_from_sampling PRIVATE -Wl,--no-as-needed)
   endif()
-  target_link_libraries(test_custatevec_direct_observe
+  target_link_libraries(test_custatevec_observe_from_sampling
     PRIVATE 
     cudaq
     cudaq-builder
@@ -143,7 +143,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     nvqir-custatevec-fp32
     gtest_main)
   # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
-  gtest_discover_tests(test_custatevec_direct_observe TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required")
+  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required")
 
     if (MPI_CXX_FOUND)
       # Count the number of GPUs
