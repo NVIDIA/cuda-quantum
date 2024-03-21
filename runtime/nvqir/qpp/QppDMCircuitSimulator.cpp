@@ -84,6 +84,12 @@ protected:
     state = qpp::kron(zero_state, state);
   }
 
+  void
+  addQubitsToState(std::size_t count,
+                   std::vector<std::complex<double>> &inputState) override {
+    throw std::runtime_error("Not yet implemented.");
+  }
+
   void setToZeroState() override {
     state = qpp::cmat::Zero(stateDimension, stateDimension);
     state(0, 0) = 1.0;
@@ -99,6 +105,30 @@ public:
     // There has to be at least one copy
     return cudaq::State{{stateDimension, stateDimension},
                         {state.data(), state.data() + state.size()}};
+  }
+
+  /// @brief Expects the density matrix to be passed in as a flattened
+  /// array of length `2^(n_qubits) * 2^(n_qubits)`. Eigen will handle
+  /// the reshaping to a matrix of size `(2^n, 2^n)`.
+  void
+  setStateData(const std::vector<std::complex<double>> &inputState) override {
+    cudaq::info("Manually setting the simulator density matrix.");
+    if (inputState.size() != (stateDimension * stateDimension)) {
+      std::stringstream ss;
+      ss << "The simulator expects a flattened density matrix of length "
+            "(2^n_qubits * 2^n_qubits) = "
+         << (stateDimension * stateDimension)
+         << ". The provided density matrix has length " << inputState.size()
+         << ".\n";
+      throw std::runtime_error(ss.str());
+    }
+    state = qpp::cmat::Map(inputState.data(), stateDimension, stateDimension);
+  }
+
+  /// @brief Primarily used for testing.
+  auto getDensityMatrix() {
+    flushGateQueue();
+    return state;
   }
 
   NVQIR_SIMULATOR_CLONE_IMPL(QppNoiseCircuitSimulator)

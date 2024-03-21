@@ -134,6 +134,11 @@ public:
   /// @brief Allocate `count` qubits.
   virtual std::vector<std::size_t> allocateQubits(const std::size_t count) = 0;
 
+  /// @brief Allocate `count` qubits in a specified input state.
+  virtual std::vector<std::size_t>
+  allocateQubits(const std::size_t count,
+                 std::vector<std::complex<double>> &inputState) = 0;
+
   /// @brief Deallocate the qubit with give unique index
   virtual void deallocate(const std::size_t qubitIdx) = 0;
 
@@ -369,6 +374,11 @@ protected:
   /// This is subclass specific.
   virtual void addQubitToState() = 0;
 
+  /// @brief Add a new set of qubits, prepared in the given `inputState`.
+  virtual void
+  addQubitsToState(std::size_t count,
+                   std::vector<std::complex<double>> &inputState) = 0;
+
   /// @brief Subclass specific part of deallocateState().
   /// It will be invoked by deallocateState()
   virtual void deallocateStateImpl() = 0;
@@ -392,6 +402,12 @@ protected:
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
   virtual cudaq::State getStateData() { return {}; }
+
+  /// @brief Set the internal state representation. Each subtype will
+  /// override this, allowing for exposure at the user-API level via
+  /// the `cudaq::from_state` or a new `cudaq::set_state` function.
+  virtual void
+  setStateData(const std::vector<std::complex<double>> &inputState) = 0;
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in resetExecutionContext. Return true to indicate this is
@@ -757,6 +773,44 @@ public:
 
     // Tell the subtype to allocate more qubits
     addQubitsToState(count);
+
+    // May be that the state grows enough that we
+    // want to handle observation via sampling
+    if (executionContext)
+      executionContext->canHandleObserve = canHandleObserve();
+
+    return qubits;
+  }
+
+  /// @brief Allocate `count` qubits in a specified state.
+  std::vector<std::size_t>
+  allocateQubits(std::size_t count,
+                 std::vector<std::complex<double>> &inState) override {
+    std::vector<std::size_t> qubits;
+    for (std::size_t i = 0; i < count; i++)
+      qubits.emplace_back(tracker.getNextIndex());
+
+    if (isInBatchMode()) {
+      // Store the current number of qubits requested
+      batchModeCurrentNumQubits += count;
+
+      // We have an allocated state, it has been set to |0>,
+      // we want to reuse it as is. If the state needs to grow, then
+      // we will ask the subtype to add more qubits.
+      if (qubits.back() < nQubitsAllocated)
+        count = 0;
+      else
+        count = qubits.back() + 1 - nQubitsAllocated;
+    }
+
+    cudaq::info("Allocating {} new qubits in a custom initial state.", count);
+
+    previousStateDimension = stateDimension;
+    nQubitsAllocated += count;
+    stateDimension = calculateStateDim(nQubitsAllocated);
+
+    // Tell the subtype to allocate more qubits
+    addQubitsToState(count, inState);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling

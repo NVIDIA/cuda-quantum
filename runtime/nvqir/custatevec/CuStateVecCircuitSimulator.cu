@@ -229,6 +229,10 @@ protected:
     }
   }
 
+  void addQubitsToState(std::size_t count, std::vector<std::complex<double>> &inputState) override {
+    throw std::runtime_error("Not yet implemented.");
+  }
+
   /// @brief Increase the state size by one qubit.
   void addQubitToState() override {
     // Update the state vector
@@ -575,6 +579,12 @@ public:
     } else {
       return cudaq::State{{stateDimension}, tmp};
     }
+  }
+
+  // FIXME: Need this defined to prevent a build error.
+  void setStateData(const std::vector<std::complex<double>> &inputState) override {
+    throw std::runtime_error(
+        "Setting the internal state representation is not yet supported for CuStateVec.\n");
   }
 
   std::string name() const override;

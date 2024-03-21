@@ -111,4 +111,4 @@ public:
 };
 } // end namespace nvqir
 
-NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS, tensornet_mps)
+// NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS, tensornet_mps)

@@ -54,8 +54,17 @@ public:
   /// @brief Add qubits to the underlying quantum state
   virtual void addQubitsToState(std::size_t count) override;
 
+  // virtual void addQubitsToState(std::size_t count,
+  // std::vector<std::complex<double>> &inputState) override;
+
   /// @brief Return the state vector data
   virtual cudaq::State getStateData() override;
+
+  virtual void
+  setStateData(const std::vector<std::complex<double>> &inputState) override {
+    throw std::runtime_error("Setting the internal state representation is not "
+                             "yet supported for CuTensorNet.\n");
+  }
 
   /// Clone API
   virtual nvqir::CircuitSimulator *clone() override;

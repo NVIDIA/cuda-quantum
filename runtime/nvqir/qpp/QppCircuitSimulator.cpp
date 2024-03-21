@@ -109,6 +109,28 @@ protected:
     return;
   }
 
+  /// @brief Override for qubit allocation given a state vector.
+  void
+  addQubitsToState(std::size_t count,
+                   std::vector<std::complex<double>> &inputState) override {
+    if (count == 0)
+      return;
+
+    if (state.size() == 0) {
+      // If this is the first time, allocate the entire system
+      // state as the user provided state
+      state = qpp::ket::Map(inputState.data(), stateDimension);
+      return;
+    }
+
+    // If we are resizing an existing, we will Kronecker the user
+    // state onto the system state.
+    qpp::ket user_state = qpp::ket::Map(inputState.data(), stateDimension);
+    state = qpp::kron(state, user_state);
+
+    return;
+  }
+
   /// @brief Reset the qubit state.
   void deallocateStateImpl() override {
     StateType tmp;
@@ -274,6 +296,19 @@ public:
     // There has to be at least one copy
     return cudaq::State{{stateDimension},
                         {state.data(), state.data() + state.size()}};
+  }
+
+  void
+  setStateData(const std::vector<std::complex<double>> &inputState) override {
+    cudaq::info("Manually setting the simulator state vector.");
+    if (inputState.size() != stateDimension) {
+      std::stringstream ss;
+      ss << "The simulator expects a state vector of length " << stateDimension
+         << " but the provided vector has length " << inputState.size()
+         << ".\n";
+      throw std::runtime_error(ss.str());
+    }
+    state = qpp::ket::Map(inputState.data(), stateDimension);
   }
 
   /// @brief Primarily used for testing.
