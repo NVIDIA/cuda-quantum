@@ -131,7 +131,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   auto *loopVar = x->getLoopVariable();
   auto i64Ty = builder.getI64Type();
   auto idxTy = builder.getIndexType();
-  if (auto stdvecTy = dyn_cast<cc::StdvecType>(buffer.getType())) {
+  if (auto stdvecTy = dyn_cast<cc::SpanLikeType>(buffer.getType())) {
     auto eleTy = stdvecTy.getElementType();
     auto dataPtrTy = cc::PointerType::get(eleTy);
     auto dataArrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
@@ -283,7 +283,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
       // necessarily an explicit cast or promotion node in the AST.)
       result = builder.create<cc::LoadOp>(loc, result);
     }
-    if (auto vecTy = dyn_cast<cc::StdvecType>(resTy)) {
+    if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {
       // Returning vector data that was allocated on the stack is not valid.
       // Allocate space on the heap and make a copy of the vector instead. It
       // will be the responsibility of the calling side to free this memory.
