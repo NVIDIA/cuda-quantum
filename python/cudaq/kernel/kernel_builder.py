@@ -10,7 +10,8 @@ from functools import partialmethod
 import random
 import re
 import string
-import typing
+import sys
+from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
 from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType
@@ -242,7 +243,7 @@ class PyKernel(object):
         """
         if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
             return ty, None
-        if typing.get_origin(ty) == list or isinstance(ty(), list):
+        if get_origin(ty) == list or isinstance(ty(), list):
             if '[' in str(ty) and ']' in str(ty):
                 allowedTypeMap = {'int': int, 'bool': bool, 'float': float}
                 # Infer the slice type
@@ -1084,11 +1085,22 @@ class PyKernel(object):
                 f"Invalid number of arguments passed to kernel `{self.funcName}` ({len(args)} provided, {len(self.mlirArgTypes)} required"
             )
 
+        def getListType(eleType: type):
+            if sys.version_info < (3, 9):
+                return List[eleType]
+            else:
+                return list[eleType]
+
         # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
-            mlirType = mlirTypeFromPyType(type(arg), self.ctx)
-            if mlirType != self.mlirArgTypes[i]:
+            argType = type(arg)
+            listType = None
+            if argType == list:
+                listType = getListType(type(arg[0]))
+            mlirType = mlirTypeFromPyType(argType, self.ctx)
+            if mlirType != self.mlirArgTypes[
+                    i] and listType != mlirTypeToPyType(self.mlirArgTypes[i]):
                 emitFatalError(
                     f"Invalid runtime argument type ({type(arg)} provided, {mlirTypeToPyType(self.mlirArgTypes[i])} required)"
                 )

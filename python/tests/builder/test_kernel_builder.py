@@ -1075,6 +1075,13 @@ def test_call_kernel_expressions_List():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
+    kernelAndArgs = cudaq.make_kernel(List[bool])
+    cudaq.sample(kernelAndArgs[0], [False, True, False])
+    kernelAndArgs = cudaq.make_kernel(List[int])
+    cudaq.sample(kernelAndArgs[0], [1, 2, 3, 4])
+    kernelAndArgs = cudaq.make_kernel(List[float])
+    cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
+
 
 @skipIfPythonLessThan39
 def test_call_kernel_expressions_list():
@@ -1112,6 +1119,13 @@ def test_call_kernel_expressions_list():
     assert np.isclose(-1.74,
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
+
+    kernelAndArgs = cudaq.make_kernel(list[bool])
+    cudaq.sample(kernelAndArgs[0], [False, True, False])
+    kernelAndArgs = cudaq.make_kernel(list[int])
+    cudaq.sample(kernelAndArgs[0], [1, 2, 3, 4])
+    kernelAndArgs = cudaq.make_kernel(list[float])
+    cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
 
 
 def test_adequate_number_params():
@@ -1200,6 +1214,7 @@ def test_list_subscript():
     kernelAndArgs = cudaq.make_kernel(bool, list[bool], List[int], list[float])
     print(kernelAndArgs[0])
     assert len(kernelAndArgs) == 5 and len(kernelAndArgs[0].arguments) == 4
+    cudaq.sample(kernelAndArgs[0], False, [False], [3], [3.5])
 
 
 # leave for gdb debugging
