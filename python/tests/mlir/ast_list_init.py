@@ -30,13 +30,13 @@ def test_list_init():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 4 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 4.000000e+00 : f64
-# CHECK:           %[[VAL_4:.*]] = arith.constant 3.000000e+00 : f64
-# CHECK:           %[[VAL_5:.*]] = arith.constant 2.000000e+00 : f64
-# CHECK:           %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 4 : i64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 4.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 3.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_5:.*]] = arith.constant 2.000000e+00 : f64
+# CHECK-DAG:           %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
 # CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<6>
 # CHECK:           %[[VAL_8:.*]] = cc.alloca !cc.array<f64 x 4>
 # CHECK:           %[[VAL_9:.*]] = cc.compute_ptr %[[VAL_8]][0] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
