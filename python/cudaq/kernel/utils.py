@@ -173,8 +173,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return ComplexType.get(mlirTypeFromPyType(float, ctx))
 
     if argType in [list, np.ndarray, List]:
-        if 'argInstance' not in kwargs or kwargs['argInstance'] == None:
+        if 'argInstance' not in kwargs:
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+        if argType != np.ndarray:
+            if kwargs['argInstance'] == None:
+                return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
 
         argInstance = kwargs['argInstance']
         argTypeToCompareTo = kwargs[

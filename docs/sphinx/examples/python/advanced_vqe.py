@@ -8,15 +8,18 @@ from typing import List, Tuple
 # or a tuple of (cost, gradient_vector) depending on the optimizer used.
 
 # In this example, we will use the spin Hamiltonian and ansatz from `simple_vqe.py`
-# and find the `thetas` that minimize the expectation value of the system.
+# and find the `angles` that minimize the expectation value of the system.
 hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
     0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
-kernel, thetas = cudaq.make_kernel(list)
-qubits = kernel.qalloc(2)
-kernel.x(qubits[0])
-kernel.ry(thetas[0], qubits[1])
-kernel.cx(qubits[1], qubits[0])
+
+@cudaq.kernel
+def kernel(angles: List[float]):
+    qvector = cudaq.qvector(2)
+    x(qvector[0])
+    ry(angles[0], qvector[1])
+    x.ctrl(qvector[1], qvector[0])
+
 
 # Define the optimizer that we'd like to use.
 optimizer = cudaq.optimizers.Adam()
