@@ -80,9 +80,9 @@ void log(const std::string_view message, Args &&...args) {
   const auto timestamp = std::chrono::system_clock::now();
   const auto now_c = std::chrono::system_clock::to_time_t(timestamp);
   std::tm now_tm = *std::localtime(&now_c);
-  fmt::print("[{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:%S}] {}\n",
+  fmt::print("[{:04}-{:02}-{:02} {:02}:{:02}:{:%S}] {}\n",
              now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday,
-             now_tm.tm_hour, now_tm.tm_min, now_tm.tm_sec,
+             now_tm.tm_hour, now_tm.tm_min,
              std::chrono::round<std::chrono::milliseconds>(
                  timestamp.time_since_epoch()),
              fmt::format(fmt::runtime(message), args...));
