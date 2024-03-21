@@ -16,7 +16,7 @@ from lit.llvm import llvm_config
 # Configuration file for the 'lit' test runner.
 
 # name: The name of this test suite.
-config.name = 'pyCUDAQMLIR'
+config.name = 'PYCUDAQMLIR'
 
 # testFormat: The test format to use to interpret tests.
 #
