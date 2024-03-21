@@ -122,8 +122,8 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     gtest_main)
   gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required")
 
-  # Test CUDAQ_OBSERVE_FROM_SAMPLING=OFF mode.
-  # These tests use cudaq::observe.
+  # Test CUDAQ_OBSERVE_FROM_SAMPLING=ON mode.
+  # (term-by-term expectation value calculation by applying change-of-basis gates then reverting them)
   add_executable(test_custatevec_direct_observe 
     integration/builder_tester.cpp  
     integration/deuteron_variational_tester.cpp
@@ -142,8 +142,8 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     cudaq-platform-default
     nvqir-custatevec-fp32
     gtest_main)
-  # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=0"
-  gtest_discover_tests(test_custatevec_direct_observe TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=0" PROPERTIES LABELS "gpu_required")
+  # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
+  gtest_discover_tests(test_custatevec_direct_observe TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required")
 
     if (MPI_CXX_FOUND)
       # Count the number of GPUs
