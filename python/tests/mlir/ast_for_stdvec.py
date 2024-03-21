@@ -27,9 +27,7 @@ def test_elif():
             i += 1
 
     print(cost)
-    ## [SKIP_TEST] : Following gives as error on 'python/cudaq/kernel/utils.py:176: ValueError'
-    ## ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
-    # cost(np.asarray([1., 2., 3., 4.]))
+    cost(np.asarray([1., 2., 3., 4.]))
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost(
