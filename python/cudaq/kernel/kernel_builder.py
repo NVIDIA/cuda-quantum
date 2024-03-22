@@ -14,7 +14,7 @@ import sys
 from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType
+from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType, emitErrorIfInvalidPauli
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
 
@@ -245,13 +245,20 @@ class PyKernel(object):
             return ty, None
         if get_origin(ty) == list or isinstance(ty(), list):
             if '[' in str(ty) and ']' in str(ty):
-                allowedTypeMap = {'int': int, 'bool': bool, 'float': float}
+                allowedTypeMap = {
+                    'int': int,
+                    'bool': bool,
+                    'float': float,
+                    'pauli_word': cudaq_runtime.pauli_word
+                }
                 # Infer the slice type
                 result = re.search(r'ist\[(.*)\]', str(ty))
                 eleTyName = result.group(1)
+                if 'cudaq_runtime.pauli_word' in str(ty):
+                    eleTyName = 'pauli_word'
                 pyType = allowedTypeMap[eleTyName]
                 if eleTyName != None and eleTyName in allowedTypeMap:
-                    return list, [allowedTypeMap[eleTyName]()]
+                    return list, [pyType()]
                 emitFatalError(f'Invalid type for kernel builder {ty}')
         return ty, None
 
@@ -541,6 +548,13 @@ class PyKernel(object):
                     veqTy = quake.VeqType.get(self.ctx, size)
                     return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
 
+    def __isPauliWordType(self, ty):
+        """
+        A Pauli word type in our MLIR dialects is a `cc.charspan`. Return 
+        True if the provided type is equivalent to this, False otherwise.
+        """
+        return cc.CharspanType.isinstance(ty)
+
     def exp_pauli(self, theta, *args):
         """
         Apply a general Pauli tensor product rotation, `exp(i theta P)`, on 
@@ -569,6 +583,9 @@ class PyKernel(object):
                 elif isinstance(arg, QuakeValue) and quake.VeqType.isinstance(
                         arg.mlirValue.type):
                     quantumVal = arg.mlirValue
+                elif isinstance(arg, QuakeValue) and self.__isPauliWordType(
+                        arg.mlirValue.type):
+                    pauliWordVal = arg.mlirValue
                 elif isinstance(arg, QuakeValue) and quake.RefType.isinstance(
                         arg.mlirValue.type):
                     qubitsList.append(arg.mlirValue)
@@ -585,7 +602,7 @@ class PyKernel(object):
                 quantumVal = quake.ConcatOp(quake.VeqType.get(
                     self.ctx), [quantumVal] if quantumVal is not None else [] +
                                             qubitsList).result
-            quake.ExpPauliOp(thetaVal, quantumVal, pauliWordVal)
+            quake.ExpPauliOp(thetaVal, quantumVal, pauli=pauliWordVal)
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """
@@ -1094,9 +1111,27 @@ class PyKernel(object):
         # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
+            # Handle `list[str]` separately - we allow this only for
+            # `list[cudaq.pauli_word]` inputs
+            if issubclass(type(arg), list) and len(arg) and all(
+                    isinstance(a, str) for a in arg):
+                [emitErrorIfInvalidPauli(a) for a in arg]
+                processedArgs.append([cudaq_runtime.pauli_word(a) for a in arg])
+                continue
+
+            # Handle `str` input separately - we allow this for
+            # `cudaq.pauli_word` inputs
+            if isinstance(arg, str):
+                emitErrorIfInvalidPauli(arg)
+                processedArgs.append(cudaq_runtime.pauli_word(arg))
+                continue
+
             argType = type(arg)
             listType = None
             if argType == list:
+                if len(arg) == 0:
+                    processedArgs.append(arg)
+                    continue
                 listType = getListType(type(arg[0]))
             mlirType = mlirTypeFromPyType(argType, self.ctx)
             if mlirType != self.mlirArgTypes[
