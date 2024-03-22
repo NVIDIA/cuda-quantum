@@ -7,8 +7,6 @@
  ******************************************************************************/
 
 // REQUIRES: remote-sim
-// REQUIRES: c++20
-// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/1111
 
 // clang-format off
 // RUN: nvq++ --target remote-mqpu --remote-mqpu-auto-launch 4 %s -o %t && %t 

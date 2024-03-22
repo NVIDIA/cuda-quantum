@@ -15,6 +15,11 @@ if (CMAKE_EXE_LINKER_FLAGS)
     string(REPLACE " " ";" LINKER_FLAGS_LIST ${CMAKE_EXE_LINKER_FLAGS}) 
     # Remove the "-static" flag
     list(REMOVE_ITEM LINKER_FLAGS_LIST -static)
+    # Don't statically link C++ standard library.
+    # Note: this app needs to be able to resolve C++ standard library symbols (JIT compile) 
+    # which it doesn't use at build time.
+    # Hence, static linking with C++ standard library is not suitable.
+    list(REMOVE_ITEM LINKER_FLAGS_LIST -static-libstdc++)
     # Convert the list back to a space-separated string
     string(REPLACE ";" " " CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS_LIST}") 
 endif()
