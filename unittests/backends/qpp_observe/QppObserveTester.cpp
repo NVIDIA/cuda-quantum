@@ -28,6 +28,7 @@ CUDAQ_TEST(QPPBackendTester, checkBackendObserve) {
 
   auto expVal = qpp.observe(h);
   EXPECT_NEAR(expVal.expectation(), -1.74, 1e-2);
+  EXPECT_NEAR(expVal.raw_data().expectation(h.to_string(false)), -1.74, 1e-2);
 
   struct ansatzTest {
     auto operator()(double theta) __qpu__ {
@@ -41,6 +42,8 @@ CUDAQ_TEST(QPPBackendTester, checkBackendObserve) {
 
   double energy = cudaq::observe(ansatzTest{}, h, .59);
   EXPECT_NEAR(energy, -1.74, 1e-2);
+  double energy_async = cudaq::observe_async(ansatzTest{}, h, .59).get();
+  EXPECT_NEAR(energy_async, -1.74, 1e-2);
 }
 
 int main(int argc, char **argv) {
