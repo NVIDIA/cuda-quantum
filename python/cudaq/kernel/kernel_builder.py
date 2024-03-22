@@ -550,7 +550,7 @@ class PyKernel(object):
 
     def __isPauliWordType(self, ty):
         """
-        A Pauli word type in our MLIR dialects is a `cc.stdvec<i8>`. Return 
+        A Pauli word type in our MLIR dialects is a `cc.charspan`. Return 
         True if the provided type is equivalent to this, False otherwise.
         """
         return cc.CharspanType.isinstance(ty)
