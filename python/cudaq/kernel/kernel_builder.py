@@ -1117,7 +1117,7 @@ class PyKernel(object):
         for i, arg in enumerate(args):
             # Handle `list[str]` separately - we allow this only for
             # `list[cudaq.pauli_word]` inputs
-            if issubclass(type(arg), list) and all(
+            if issubclass(type(arg), list) and len(arg) and all(
                     isinstance(a, str) for a in arg):
                 [emitErrorIfInvalidPauli(a) for a in arg]
                 processedArgs.append([cudaq_runtime.pauli_word(a) for a in arg])
@@ -1133,6 +1133,9 @@ class PyKernel(object):
             argType = type(arg)
             listType = None
             if argType == list:
+                if len(arg) == 0:
+                    processedArgs.append(arg)
+                    continue
                 listType = getListType(type(arg[0]))
             mlirType = mlirTypeFromPyType(argType, self.ctx)
             if mlirType != self.mlirArgTypes[

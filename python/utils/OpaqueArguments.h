@@ -284,9 +284,9 @@ packArgs(OpaqueArguments &argData, py::args args,
         // If its empty, just put any vector on the `argData`,
         // it won't matter since it is empty and all
         // vectors have the same memory footprint (span-like).
-        std::vector<int> *ourAllocatedArg = new std::vector<int>();
+        std::vector<bool> *ourAllocatedArg = new std::vector<bool>();
         argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<std::vector<int> *>(ptr);
+          delete static_cast<std::vector<bool> *>(ptr);
         });
         continue;
       }
@@ -304,6 +304,18 @@ packArgs(OpaqueArguments &argData, py::args args,
         }
         argData.emplace_back(ourAllocatedArg, [](void *ptr) {
           delete static_cast<std::vector<cudaq::pauli_word> *>(ptr);
+        });
+        continue;
+      }
+
+      if (py::isinstance<py::bool_>(firstElement)) {
+        std::vector<bool> *ourAllocatedArg =
+            new std::vector<bool>(casted.size());
+        for (std::size_t counter = 0; auto el : casted) {
+          (*ourAllocatedArg)[counter++] = Py_IsTrue(el.ptr()) == true;
+        }
+        argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+          delete static_cast<std::vector<bool> *>(ptr);
         });
         continue;
       }

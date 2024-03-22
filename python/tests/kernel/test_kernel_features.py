@@ -897,6 +897,13 @@ def test_aug_assign_add():
 
     assert test2() == 10
 
+def test_empty_lists():
+    @cudaq.kernel
+    def empty(var : list[cudaq.pauli_word], varvar : list[float], varvarvar :list[bool]):
+        q = cudaq.qvector(2)
+        x(q[0])
+
+    empty([], [], [])
 
 def test_no_valueerror_np_array():
 
