@@ -931,6 +931,7 @@ def test_pauli_word_input():
     kernel.x(q[1])
     kernel.for_loop(0, paulis.size(), lambda idx : kernel.exp_pauli(theta, q, paulis[idx]))
 
+    print(kernel)
     want_exp = cudaq.observe(kernel, h, .11, ['XXXY']).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 

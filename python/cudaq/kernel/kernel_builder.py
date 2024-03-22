@@ -553,11 +553,7 @@ class PyKernel(object):
         A Pauli word type in our MLIR dialects is a `cc.stdvec<i8>`. Return 
         True if the provided type is equivalent to this, False otherwise.
         """
-        if cc.StdvecType.isinstance(ty):
-            eleTy = cc.StdvecType.getElementType(ty)
-            if IntegerType.isinstance(eleTy) and IntegerType(eleTy).width == 8:
-                return True
-            return False
+        return cc.CharspanType.isinstance(ty)
 
     def exp_pauli(self, theta, *args):
         """

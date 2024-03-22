@@ -89,7 +89,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
             if annotation.attr == 'pauli_word':
-                return cc.StdvecType.get(ctx, IntegerType.get_signless(8))
+                return cc.CharspanType.get(ctx)
 
         if annotation.value.id in ['numpy', 'np']:
             if annotation.attr == 'ndarray':
@@ -174,6 +174,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return IntegerType.get_signless(1, ctx)
     if argType == complex:
         return ComplexType.get(mlirTypeFromPyType(float, ctx))
+    if argType == pauli_word:
+        return cc.CharspanType.get(ctx)
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
@@ -211,8 +213,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
 
         if isinstance(argInstance[0], pauli_word):
-            return cc.StdvecType.get(
-                ctx, cc.StdvecType.get(ctx, IntegerType.get_signless(8, ctx)))
+            return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
 
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
@@ -231,7 +232,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType == qubit:
         return quake.RefType.get(ctx)
     if argType == pauli_word:
-        return cc.StdvecType.get(ctx, IntegerType.get_signless(8, ctx))
+        return cc.CharspanType.get(ctx)
 
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
@@ -255,6 +256,9 @@ def mlirTypeToPyType(argType):
     if ComplexType.isinstance(argType):
         return complex
 
+    if cc.CharspanType.isinstance(argType):
+        return pauli_word
+
     def getListType(eleType: type):
         if sys.version_info < (3, 9):
             return List[eleType]
@@ -263,10 +267,8 @@ def mlirTypeToPyType(argType):
 
     if cc.StdvecType.isinstance(argType):
         eleTy = cc.StdvecType.getElementType(argType)
-        if cc.StdvecType.isinstance(eleTy):
-            innerEleTy = cc.StdvecType.getElementType(eleTy)
-            if IntegerType(innerEleTy).width == 8:
-                return getListType(cudaq_runtime.pauli_word)
+        if cc.CharspanType.isinstance(eleTy):
+            return getListType(pauli_word)
 
         if IntegerType.isinstance(eleTy):
             if IntegerType(eleTy).width == 1:
