@@ -247,7 +247,7 @@ struct ButterPecan {
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__RockyRoad() local_unnamed_addr {
 // QIR:         %[[VAL_0:.*]] = alloca double, align 8
 // QIR:         store double 0.000000e+00, double* %[[VAL_0]], align 8
-// QIR:         %[[VAL_1:.*]] = tail call { double, double } @_ZNSt8literals16complex_literalsli1iEe(x86_fp80 0xK3FFF8000000000000000)
+// QIR:         %[[VAL_1:.*]] = tail call { double, double } @_ZNSt8literals16complex_literalsli1iEe(
 // QIR:         %[[VAL_2:.*]] = alloca { double, double }, align 8
 // QIR:         %[[VAL_3:.*]] = extractvalue { double, double } %[[VAL_1]], 0
 // QIR:         %[[VAL_4:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_2]], i64 0, i32 0
@@ -258,7 +258,7 @@ struct ButterPecan {
 // QIR:         %[[VAL_7:.*]] = call { double, double } @_ZStplIdESt7complexIT_ERKS1_RKS2_(double* nonnull %[[VAL_0]], { double, double }* nonnull %[[VAL_2]])
 // QIR:         %[[VAL_8:.*]] = alloca double, align 8
 // QIR:         store double 1.000000e+00, double* %[[VAL_8]], align 8
-// QIR:         %[[VAL_9:.*]] = call { double, double } @_ZNSt8literals16complex_literalsli1iEe(x86_fp80 0xK00000000000000000000)
+// QIR:         %[[VAL_9:.*]] = call { double, double } @_ZNSt8literals16complex_literalsli1iEe(
 // QIR:         %[[VAL_10:.*]] = alloca { double, double }, align 8
 // QIR:         %[[VAL_11:.*]] = extractvalue { double, double } %[[VAL_9]], 0
 // QIR:         %[[VAL_12:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_10]], i64 0, i32 0
