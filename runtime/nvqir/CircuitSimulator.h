@@ -665,9 +665,9 @@ protected:
           cudaq::log("Gate Count = {}", gateCount);
           cudaq::log("Control Count = {}", controlCount);
           cudaq::log("Target Count = {}", targetCount);
-          cudaq::log("State Vector I/O (GB) = {:.6}",
+          cudaq::log("State Vector I/O (GB) = {:.6f}",
                      static_cast<double>(svIO) / 1e9);
-          cudaq::log("State Vector GFLOPs = {:.6}",
+          cudaq::log("State Vector GFLOPs = {:.6f}",
                      static_cast<double>(svFLOPs) / 1e9);
         }
       }
