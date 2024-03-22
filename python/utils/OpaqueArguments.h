@@ -312,7 +312,8 @@ packArgs(OpaqueArguments &argData, py::args args,
         std::vector<bool> *ourAllocatedArg =
             new std::vector<bool>(casted.size());
         for (std::size_t counter = 0; auto el : casted) {
-          (*ourAllocatedArg)[counter++] = el.ptr() == (PyObject*) &_Py_TrueStruct;
+          (*ourAllocatedArg)[counter++] =
+              el.ptr() == (PyObject *)&_Py_TrueStruct;
         }
         argData.emplace_back(ourAllocatedArg, [](void *ptr) {
           delete static_cast<std::vector<bool> *>(ptr);
