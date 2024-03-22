@@ -11,7 +11,7 @@
 # Usage:
 # bash scripts/build_cudaq.sh
 # -or-
-# bash scripts/build_cudaq.sh -c DEBUG
+# bash scripts/build_cudaq.sh -c Debug
 # -or-
 # LLVM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 # -or-
