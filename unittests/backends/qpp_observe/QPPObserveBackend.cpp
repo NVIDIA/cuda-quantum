@@ -51,7 +51,9 @@ public:
       }
     }
 
-    return cudaq::observe_result(sum, op);
+    return cudaq::observe_result(sum, op,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, op.to_string(false), sum)));
   }
 
   std::string name() const override { return "qpp-test"; }

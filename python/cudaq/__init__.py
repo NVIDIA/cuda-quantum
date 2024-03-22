@@ -28,6 +28,7 @@ Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
+pauli_word = cudaq_runtime.pauli_word
 
 # to be deprecated
 qreg = cudaq_runtime.qvector

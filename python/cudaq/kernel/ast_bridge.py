@@ -1339,7 +1339,7 @@ class PyASTBridge(ast.NodeVisitor):
                 theta = self.popValue()
                 if IntegerType.isinstance(theta.type):
                     theta = arith.SIToFPOp(self.getFloatType(), theta).result
-                quake.ExpPauliOp(theta, qubits, pauliWord)
+                quake.ExpPauliOp(theta, qubits, pauli=pauliWord)
                 return
 
             elif node.func.id == 'int':
@@ -2754,8 +2754,13 @@ class PyASTBridge(ast.NodeVisitor):
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
             if cc.PointerType.isinstance(value.type):
-                if cc.ArrayType.isinstance(
-                        cc.PointerType.getElementType(value.type)):
+                eleTy = cc.PointerType.getElementType(value.type)
+                if cc.ArrayType.isinstance(eleTy):
+                    self.pushValue(value)
+                    return
+                # Retain `ptr<i8>`
+                if IntegerType.isinstance(eleTy) and IntegerType(
+                        eleTy).width == 8:
                     self.pushValue(value)
                     return
                 loaded = cc.LoadOp(value).result
