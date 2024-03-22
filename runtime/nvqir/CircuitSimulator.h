@@ -652,6 +652,8 @@ protected:
       std::size_t gateCount = 0;
       std::size_t controlCount = 0;
       std::size_t targetCount = 0;
+      std::size_t svIO = 0;
+      std::size_t svFLOPs = 0;
       bool enabled = false;
       SummaryData() {
         if (cudaq::isTimingTagEnabled(cudaq::TIMING_GATE_COUNT))
@@ -660,9 +662,13 @@ protected:
       ~SummaryData() {
         if (enabled) {
           cudaq::log("CircuitSimulator Total Program Metrics:");
-          cudaq::log("gateCount = {}", gateCount);
-          cudaq::log("controlCount = {}", controlCount);
-          cudaq::log("targetCount = {}", targetCount);
+          cudaq::log("Gate Count = {}", gateCount);
+          cudaq::log("Control Count = {}", controlCount);
+          cudaq::log("Target Count = {}", targetCount);
+          cudaq::log("State Vector I/O (GB) = {:.6}",
+                     static_cast<double>(svIO) / 1e9);
+          cudaq::log("State Vector GFLOPs = {:.6}",
+                     static_cast<double>(svFLOPs) / 1e9);
         }
       }
     };
@@ -674,6 +680,18 @@ protected:
         summaryData.gateCount++;
         summaryData.controlCount += next.controls.size();
         summaryData.targetCount += next.targets.size();
+        // Times 2 because operating on the state vector requires both reading
+        // and writing.
+        summaryData.svIO +=
+            (2 * stateDimension * sizeof(std::complex<ScalarType>)) /
+            (1 << next.controls.size());
+        // For each element of the state vector, 2 complex multiplies and 1
+        // complex accumulate is needed. This is reduced if there if this is a
+        // controlled operation.
+        // Each complex multiply is 6 real ops.
+        // So 2 complex multiplies and 1 complex addition is 2*6+2 = 14 ops.
+        summaryData.svFLOPs += stateDimension * (14 * next.targets.size()) /
+                               (1 << next.controls.size());
       }
       applyGate(next);
       if (executionContext && executionContext->noiseModel) {
