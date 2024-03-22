@@ -850,6 +850,21 @@ def test_invalid_cudaq_type():
         print(test)
 
 
+def test_bool_list_elements():
+    @cudaq.kernel
+    def kernel(var : list[bool]):
+        q = cudaq.qubit()
+        x(q)
+        if var[0]:
+            x(q)
+        
+    counts = cudaq.sample(kernel, [False], shots_count=100)
+    assert '1' in counts and len(counts) == 1
+    
+    counts = cudaq.sample(kernel, [True], shots_count=100)
+    assert '0' in counts and len(counts) == 1
+    
+
 def test_list_float_pass_list_int():
 
     @cudaq.kernel
