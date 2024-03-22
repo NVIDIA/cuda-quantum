@@ -17,7 +17,7 @@
 # Usage:
 # bash scripts/build_llvm.sh
 # -or-
-# bash scripts/build_llvm.sh -c DEBUG
+# bash scripts/build_llvm.sh -c Debug
 # -or-
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
 
