@@ -35,16 +35,13 @@ public:
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op.
-  observe_result(double &e, const spin_op &H) : expVal(e), spinOp(H) {}
+  observe_result(double e, const spin_op &H) : expVal(e), spinOp(H) {}
 
   /// @brief Constructor, takes the precomputed expectation value for
   /// <psi(x) | H | psi(x)> for the given spin_op. If this execution
   /// was shots based, also provide the sample_result data containing counts
   /// for each term in H.
-  observe_result(double &e, const spin_op &H, sample_result counts)
-      : expVal(e), spinOp(H), data(counts) {}
-
-  observe_result(double &&e, const spin_op &H, sample_result counts)
+  observe_result(double e, const spin_op &H, sample_result counts)
       : expVal(e), spinOp(H), data(counts) {}
 
   /// @brief Return the raw counts data for all terms
