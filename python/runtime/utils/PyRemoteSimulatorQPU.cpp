@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ArgumentWrapper.h"
 #include "common/BaseRemoteSimulatorQPU.h"
 #include <mlir/IR/BuiltinOps.h>
 
@@ -27,14 +28,9 @@ public:
     cudaq::info("PyRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                 "(simulator = {})",
                 name, qpu_id, m_simName);
-    struct ArgsWrapper {
-      mlir::ModuleOp mod;
-      std::vector<std::string> callablNames;
-      void *rawArgs = nullptr;
-    };
-    auto *wrapper = reinterpret_cast<ArgsWrapper *>(args);
+    auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(args);
     auto m_module = wrapper->mod;
-    auto callableNames = wrapper->callablNames;
+    auto callableNames = wrapper->callableNames;
 
     auto *mlirContext = m_module->getContext();
 
@@ -81,14 +77,9 @@ public:
     cudaq::info("PyNvcfSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                 "(simulator = {})",
                 name, qpu_id, m_simName);
-    struct ArgsWrapper {
-      mlir::ModuleOp mod;
-      std::vector<std::string> callablNames;
-      void *rawArgs = nullptr;
-    };
-    auto *wrapper = reinterpret_cast<ArgsWrapper *>(args);
+    auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(args);
     auto m_module = wrapper->mod;
-    auto callableNames = wrapper->callablNames;
+    auto callableNames = wrapper->callableNames;
 
     auto *mlirContext = m_module->getContext();
 

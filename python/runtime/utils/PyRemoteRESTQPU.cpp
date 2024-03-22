@@ -5,6 +5,8 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
+#include "common/ArgumentWrapper.h"
 #include "common/BaseRemoteRESTQPU.h"
 #include "common/RuntimeMLIRCommonImpl.h"
 
@@ -59,14 +61,10 @@ protected:
   std::tuple<ModuleOp, MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
-    struct ArgsWrapper {
-      ModuleOp mod;
-      std::vector<std::string> callablNames;
-      void *rawArgs = nullptr;
-    };
-    auto *wrapper = reinterpret_cast<ArgsWrapper *>(data);
+
+    auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(data);
     auto m_module = wrapper->mod;
-    auto callableNames = wrapper->callablNames;
+    auto callableNames = wrapper->callableNames;
 
     auto *context = m_module->getContext();
     static bool initOnce = [&] {
