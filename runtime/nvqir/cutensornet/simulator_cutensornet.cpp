@@ -241,13 +241,17 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
     for (std::size_t i = 0; i < terms.size(); ++i) {
       expVal += (coeffs[i] * termExpVals[i]);
     }
-    return cudaq::observe_result(expVal.real(), ham);
+    return cudaq::observe_result(expVal.real(), ham,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, ham.to_string(false), expVal.real())));
   } else {
     TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
     std::complex<double> expVal =
         m_state->computeExpVal(spinOp.getNetworkOperator());
     expVal += spinOp.getIdentityTermOffset();
-    return cudaq::observe_result(expVal.real(), ham);
+    return cudaq::observe_result(expVal.real(), ham,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, ham.to_string(false), expVal.real())));
   }
 }
 
