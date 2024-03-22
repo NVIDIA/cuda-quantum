@@ -52,7 +52,7 @@ public:
          const int shots) override;
 
   /// @brief Evaluate the expectation value of a given observable
-  virtual cudaq::ExecutionResult observe(const cudaq::spin_op &op) override;
+  virtual cudaq::observe_result observe(const cudaq::spin_op &op) override;
 
   /// @brief Add qubits to the underlying quantum state
   virtual void addQubitsToState(std::size_t count) override;
