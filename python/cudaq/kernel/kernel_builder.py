@@ -1115,17 +1115,6 @@ class PyKernel(object):
         # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
-            argType = type(arg)
-            listType = None
-            if argType == list:
-                listType = getListType(type(arg[0]))
-            mlirType = mlirTypeFromPyType(argType, self.ctx)
-            if mlirType != self.mlirArgTypes[
-                    i] and listType != mlirTypeToPyType(self.mlirArgTypes[i]):
-                emitFatalError(
-                    f"Invalid runtime argument type ({type(arg)} provided, {mlirTypeToPyType(self.mlirArgTypes[i])} required)"
-                )
-
             # Handle `list[str]` separately - we allow this only for
             # `list[cudaq.pauli_word]` inputs
             if issubclass(type(arg), list) and all(
@@ -1141,8 +1130,13 @@ class PyKernel(object):
                 processedArgs.append(cudaq_runtime.pauli_word(arg))
                 continue
 
-            mlirType = mlirTypeFromPyType(type(arg), self.ctx)
-            if mlirType != self.mlirArgTypes[i]:
+            argType = type(arg)
+            listType = None
+            if argType == list:
+                listType = getListType(type(arg[0]))
+            mlirType = mlirTypeFromPyType(argType, self.ctx)
+            if mlirType != self.mlirArgTypes[
+                    i] and listType != mlirTypeToPyType(self.mlirArgTypes[i]):
                 emitFatalError(
                     f"Invalid runtime argument type ({type(arg)} provided, {mlirTypeToPyType(self.mlirArgTypes[i])} required)"
                 )
