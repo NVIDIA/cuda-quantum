@@ -23,6 +23,7 @@
 #include <iostream>
 #include <map>
 #include <random>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -295,11 +296,29 @@ spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms,
   std::mt19937 gen(seed);
   std::vector<std::complex<double>> coeffs(nTerms, 1.0);
   std::vector<spin_op_term> randomTerms;
+  // Make sure we don't put duplicates into randomTerms by using dupCheckSet
+  std::set<std::vector<bool>> dupCheckSet;
+  constexpr std::size_t MAX_ITER = 1000;
   for (std::size_t i = 0; i < nTerms; i++) {
     std::vector<bool> termData(2 * nQubits);
-    std::fill_n(termData.begin(), termData.size() * (1 - .5), 1);
-    std::shuffle(termData.begin(), termData.end(), gen);
-    randomTerms.push_back(termData);
+    std::size_t num_attempts = 0;
+    while (num_attempts < MAX_ITER) {
+      std::fill_n(termData.begin(), nQubits, true);
+      std::shuffle(termData.begin(), termData.end(), gen);
+      if (dupCheckSet.contains(termData)) {
+        // Prepare to loop again
+        std::fill(termData.begin(), termData.end(), false);
+        num_attempts++;
+      } else {
+        dupCheckSet.insert(termData);
+        break;
+      }
+    }
+    if (num_attempts >= MAX_ITER)
+      throw std::runtime_error(
+          fmt::format("Unable to produce {} unique random terms for {} qubits",
+                      nTerms, nQubits));
+    randomTerms.push_back(std::move(termData));
   }
 
   return spin_op(randomTerms, coeffs);
