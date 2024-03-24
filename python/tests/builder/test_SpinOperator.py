@@ -384,6 +384,19 @@ def test_spin_op_serdes():
             assert (h1 == h3)
 
 
+def test_spin_op_batch_efficiently():
+    qubit_count = 5
+    term_count = 7
+    num_of_gpus = 4
+    hamiltonian = cudaq.SpinOperator.random(qubit_count, term_count)
+    batched = hamiltonian.distribute_terms(num_of_gpus)
+    assert len(batched) == 4
+    assert batched[0].get_term_count() == 2
+    assert batched[1].get_term_count() == 2
+    assert batched[2].get_term_count() == 2
+    assert batched[3].get_term_count() == 1
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
