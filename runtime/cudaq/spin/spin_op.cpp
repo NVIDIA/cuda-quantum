@@ -298,26 +298,40 @@ spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms,
   std::vector<spin_op_term> randomTerms;
   // Make sure we don't put duplicates into randomTerms by using dupCheckSet
   std::set<std::vector<bool>> dupCheckSet;
-  constexpr std::size_t MAX_ITER = 1000;
+  if (nQubits <= 30) {
+    // For the given algorithm below that sets bool=true for 1/2 of the the
+    // termData, the maximum number of unique terms is n choose k, where n =
+    // 2*nQubits, and k=nQubits. For up to 30 qubits, we can calculate n choose
+    // k without overflows (i.e. 60 choose 30 = 118264581564861424) to validate
+    // that nTerms is reasonable. For anything larger, the user can't set nTerms
+    // large enough to run into actual problems because they would encounter
+    // memory limitations long before anything else.
+    // Note: use the multiplicative formula to evaluate n-choose-k. The
+    // arrangement of multiplications and divisions do not truncate any division
+    // remainders.
+    std::size_t maxTerms = 1;
+    for (std::size_t i = 1; i <= nQubits; i++) {
+      maxTerms *= 2 * nQubits + 1 - i;
+      maxTerms /= i;
+    }
+    if (nTerms > maxTerms)
+      throw std::runtime_error(
+          fmt::format("Unable to produce {} unique random terms for {} qubits",
+                      nTerms, nQubits));
+  }
   for (std::size_t i = 0; i < nTerms; i++) {
     std::vector<bool> termData(2 * nQubits);
-    std::size_t num_attempts = 0;
-    while (num_attempts < MAX_ITER) {
+    while (true) {
       std::fill_n(termData.begin(), nQubits, true);
       std::shuffle(termData.begin(), termData.end(), gen);
       if (dupCheckSet.contains(termData)) {
         // Prepare to loop again
         std::fill(termData.begin(), termData.end(), false);
-        num_attempts++;
       } else {
         dupCheckSet.insert(termData);
         break;
       }
     }
-    if (num_attempts >= MAX_ITER)
-      throw std::runtime_error(
-          fmt::format("Unable to produce {} unique random terms for {} qubits",
-                      nTerms, nQubits));
     randomTerms.push_back(std::move(termData));
   }
 

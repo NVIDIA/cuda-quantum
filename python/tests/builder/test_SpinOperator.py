@@ -395,6 +395,14 @@ def test_spin_op_random():
         assert hamiltonian.get_term_count() == term_count
 
 
+def test_spin_op_random_too_many():
+    # Make sure that the user gets all the random terms that they ask for.
+    qubit_count = 3
+    term_count = 21  # too many because 6 choose 3 = 20
+    with pytest.raises(RuntimeError) as error:
+        hamiltonian = cudaq.SpinOperator.random(qubit_count, term_count)
+
+
 def test_spin_op_batch_efficiently():
     qubit_count = 5
     term_count = 7
