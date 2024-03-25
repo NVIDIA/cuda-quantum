@@ -36,14 +36,7 @@ static llvm::cl::opt<bool> printRestPayloadVersion(
         "Display the REST request payload version that this server supports."),
     llvm::cl::init(false));
 
-// DEBUG
-int dummy(std::string_view sv) { return sv.size(); }
-
 int main(int argc, char **argv) {
-  // DEBUG
-  std::string test = "abc";
-  printf("Test: %d\n", dummy(test));
-  
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here. Revisit this
   // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
