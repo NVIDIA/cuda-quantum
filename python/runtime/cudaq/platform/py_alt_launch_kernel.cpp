@@ -375,8 +375,9 @@ void bindAltLaunchKernel(py::module &mod) {
         auto name = kernel.attr("name").cast<std::string>();
         auto kernelFuncOp = getKernelFuncOp(module, name);
         cudaq::OpaqueArguments args;
-        cudaq::packArgs(args, runtimeArgs, kernelFuncOp,
-                        [](OpaqueArguments &, py::object &) { return false; });
+        cudaq::packArgs(
+            args, runtimeArgs, kernelFuncOp,
+            [](OpaqueArguments &, py::object &) { return false; }, false);
         return getQIRLL(name, module, args, profile);
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");
