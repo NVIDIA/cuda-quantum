@@ -181,8 +181,6 @@ class PyKernel(object):
     circuits. The :class:`Kernel` programmatically represents the circuit as an MLIR 
     function using the Quake dialect.
 
-    See :func:`make_kernel` for the :class:`Kernel` constructor.
-
     Attributes:
         name (:obj:`str`): The name of the :class:`Kernel` function. Read-only.
         arguments (List[:class:`QuakeValue`]): The arguments accepted by the 
@@ -1197,6 +1195,26 @@ setattr(PyKernel, 'cr1',
 
 
 def make_kernel(*args):
+    """
+    Create a :class:`Kernel`: An empty kernel function to be used for quantum 
+    program construction. This kernel is non-parameterized if it accepts no 
+    arguments, else takes the provided types as arguments. 
+
+    Returns a kernel if it is non-parameterized, else a tuple containing the 
+    kernel and a :class:`QuakeValue` for each kernel argument.
+
+.. code-block:: python
+
+    # Example:
+    # Non-parameterized kernel.
+    kernel = cudaq.make_kernel()
+
+    # Example:
+    # Parameterized kernel that accepts an `int` and `float` as arguments.
+    kernel, int_value, float_value = cudaq.make_kernel(int, float)
+
+    """
+
     kernel = PyKernel([*args])
     if len([*args]) == 0:
         return kernel
