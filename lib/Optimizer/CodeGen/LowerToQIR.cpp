@@ -367,11 +367,78 @@ public:
          cudaq::opt::factory::getPointerType(context)},
         parentModule);
     SmallVector<Value> operands = adaptor.getOperands();
-    // Make sure to drop any length information from the type of the Pauli word.
+    // First need to check the type of the Pauli word. We expect
+    // a pauli_word directly `{i8*,i64}` or a string literal
+    // `ptr<i8>`. If it is a string literal, we need to map it to
+    // a pauli word.
     auto pauliWord = operands.back();
-    operands.pop_back();
+    if (auto ptrTy = dyn_cast<LLVM::LLVMPointerType>(pauliWord.getType())) {
+      // Make sure we have the right types to extract the
+      // length of the string literal
+      auto ptrEleTy = ptrTy.getElementType();
+      auto innerArrTy = dyn_cast<LLVM::LLVMArrayType>(ptrEleTy);
+      if (!innerArrTy)
+        return instOp.emitError(
+            "exp_pauli string literal expected to be ptr<array<i8 x N.>.");
+
+      // Get the number of elements in the provided string literal
+      auto numElements = innerArrTy.getNumElements() - 1;
+
+      // Remove the old operand
+      operands.pop_back();
+
+      // We must create the {i8*, i64} struct from the string literal
+      SmallVector<Type> structTys{
+          LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)),
+          rewriter.getIntegerType(64)};
+      auto structTy = LLVM::LLVMStructType::getLiteral(context, structTys);
+
+      // Allocate the char span struct
+      Value alloca = rewriter.create<LLVM::AllocaOp>(
+          loc, LLVM::LLVMPointerType::get(structTy),
+          ArrayRef<Value>{
+              cudaq::opt::factory::genLlvmI32Constant(loc, rewriter, 1)});
+
+      // We'll need these constants
+      auto zero = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 0);
+      auto one = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 1);
+      auto size =
+          cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numElements);
+
+      // Set the string literal data
+      auto strPtr = rewriter.create<LLVM::GEPOp>(
+          loc, LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)), alloca,
+          ValueRange{zero, zero});
+      auto castedPauli = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(context), pauliWord);
+      rewriter.create<LLVM::StoreOp>(loc, castedPauli, strPtr);
+
+      // Set the integer length
+      auto intPtr = rewriter.create<LLVM::GEPOp>(
+          loc, LLVM::LLVMPointerType::get(rewriter.getIntegerType(64)), alloca,
+          ValueRange{zero, one});
+      rewriter.create<LLVM::StoreOp>(loc, size, intPtr);
+
+      // Cast to raw opaque pointer
+      auto castedStore = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(context), alloca);
+      operands.push_back(castedStore);
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
+                                                operands);
+      return success();
+    }
+
+    // Here we know we have a pauli word expressed as `{i8*, i64}`.
+    // Allocate a stack slot for it and store what we have to that pointer,
+    // pass the pointer to NVQIR
+    Value alloca = rewriter.create<LLVM::AllocaOp>(
+        loc, LLVM::LLVMPointerType::get(pauliWord.getType()),
+        ArrayRef<Value>{
+            cudaq::opt::factory::genLlvmI32Constant(loc, rewriter, 1)});
+    rewriter.create<LLVM::StoreOp>(loc, pauliWord, alloca);
     auto castedPauli = rewriter.create<LLVM::BitcastOp>(
-        loc, cudaq::opt::factory::getPointerType(context), pauliWord);
+        loc, cudaq::opt::factory::getPointerType(context), alloca);
+    operands.pop_back();
     operands.push_back(castedPauli);
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
                                               operands);
@@ -1428,6 +1495,20 @@ public:
   }
 };
 
+class PoisonOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::PoisonOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::PoisonOp poison, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto resTy = getTypeConverter()->convertType(poison.getType());
+    // FIXME: This should use PoisonOp, obviously, when we upgrade MLIR.
+    rewriter.replaceOpWithNewOp<LLVM::UndefOp>(poison, resTy);
+    return success();
+  }
+};
+
 class UndefOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::UndefOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
@@ -1624,7 +1705,7 @@ public:
         OneTargetOneParamRewrite<quake::RyOp>,
         OneTargetOneParamRewrite<quake::RzOp>,
         OneTargetTwoParamRewrite<quake::U2Op>,
-        OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite,
+        OneTargetTwoParamRewrite<quake::U3Op>, PoisonOpPattern, ResetRewrite,
         StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
         StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
         UndefOpPattern>(typeConverter);
@@ -1648,7 +1729,7 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
   typeConverter.addConversion([](cc::CallableType type) {
     return lambdaAsPairOfPointers(type.getContext());
   });
-  typeConverter.addConversion([&typeConverter](cc::StdvecType type) {
+  typeConverter.addConversion([&typeConverter](cc::SpanLikeType type) {
     auto eleTy = typeConverter.convertType(type.getElementType());
     return factory::stdVectorImplType(eleTy);
   });

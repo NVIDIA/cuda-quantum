@@ -120,7 +120,30 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
     gtest_main)
-    gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required")
+  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required")
+
+  # Test CUDAQ_OBSERVE_FROM_SAMPLING=ON mode.
+  # (term-by-term expectation value calculation by applying change-of-basis gates then reverting them)
+  add_executable(test_custatevec_observe_from_sampling 
+    integration/builder_tester.cpp  
+    integration/deuteron_variational_tester.cpp
+    integration/gradient_tester.cpp
+    integration/nlopt_tester.cpp
+  )
+  target_include_directories(test_custatevec_observe_from_sampling PRIVATE .)
+  target_compile_definitions(test_custatevec_observe_from_sampling PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_custatevec_observe_from_sampling PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_link_libraries(test_custatevec_observe_from_sampling
+    PRIVATE 
+    cudaq
+    cudaq-builder
+    cudaq-platform-default
+    nvqir-custatevec-fp32
+    gtest_main)
+  # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
+  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required")
 
     if (MPI_CXX_FOUND)
       # Count the number of GPUs
@@ -240,7 +263,9 @@ add_subdirectory(backends)
 add_subdirectory(Optimizer)
 
 if (CUDAQ_ENABLE_PYTHON)
-  find_package(Python COMPONENTS Interpreter)
+  if (NOT Python_FOUND)
+    message(FATAL_ERROR "find_package(Python) not run?")
+  endif()
   execute_process(COMMAND ${Python_EXECUTABLE} -c "import openfermionpyscf"
     OUTPUT_VARIABLE PYSCF_output
     ERROR_VARIABLE  PYSCF_error

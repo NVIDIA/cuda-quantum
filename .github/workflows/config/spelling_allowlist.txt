@@ -98,6 +98,7 @@ accessor
 acknowledgement
 adjoint
 al
+amongst
 ancilla
 ansatz
 ansatzes
@@ -165,10 +166,13 @@ et
 excitations
 executables
 exponentiated
+expressibility
 expressivity
 extensibility
 extremal
 fermionic
+frontend
+frontends
 homogenous
 iff
 increment
@@ -215,9 +219,13 @@ qudits
 reStructuredText
 runtime
 rvalue
+scalability
+scalable
 sexualized
 struct
 structs
+subcircuit
+subcircuits
 subclass
 subclassed
 subclasses

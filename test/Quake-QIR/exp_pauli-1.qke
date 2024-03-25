@@ -19,7 +19,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
     quake.x %3 : (!quake.ref) -> ()
     %4 = cc.load %0 : !cc.ptr<f64>
     %5 = cc.string_literal "XXXY" : !cc.ptr<!cc.array<i8 x 5>>
-    quake.exp_pauli(%4) %1, %5 : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
+    quake.exp_pauli %4, %1, %5 : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
     return
   }
 }
@@ -34,6 +34,12 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
 // CHECK:         %[[VAL_7:.*]] = bitcast i8* %[[VAL_6]] to %[[VAL_4]]**
 // CHECK:         %[[VAL_8:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_7]], align 8
 // CHECK:         tail call void @__quantum__qis__x(%[[VAL_4]]* %[[VAL_8]])
-// CHECK:         tail call void @__quantum__qis__exp_pauli(double %[[VAL_9:.*]], %[[VAL_1]]* %[[VAL_0]], i8* nonnull getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.5858585900, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+// CHECK:         %[[VAL_9:.*]] = alloca { i8*, i64 }, align 8
+// CHECK:         %[[VAL_10:.*]] = getelementptr inbounds { i8*, i64 }, { i8*, i64 }* %[[VAL_9]], i64 0, i32 0
+// CHECK:         store i8* getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.5858585900, i64 0, i64 0), i8** %[[VAL_10]], align 8
+// CHECK:         %[[VAL_11:.*]] = getelementptr inbounds { i8*, i64 }, { i8*, i64 }* %[[VAL_9]], i64 0, i32 1
+// CHECK:         store i64 4, i64* %[[VAL_11]], align 8
+// CHECK:         %[[VAL_12:.*]] = bitcast { i8*, i64 }* %[[VAL_9]] to i8*
+// CHECK:         call void @__quantum__qis__exp_pauli(double %[[VAL_13:.*]], %[[VAL_1]]* %[[VAL_0]], i8* nonnull %[[VAL_12]])
+// CHECK:         call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void

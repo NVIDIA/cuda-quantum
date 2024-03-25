@@ -378,10 +378,42 @@ def test_spin_op_from_word():
 def test_spin_op_serdes():
     for nq in range(1, 31):
         for nt in range(1, nq + 1):
-            h1 = cudaq.SpinOperator.random(qubit_count=nq, term_count=nt)
+            h1 = cudaq.SpinOperator.random(qubit_count=nq,
+                                           term_count=nt,
+                                           seed=13)
             h2 = h1.serialize()
             h3 = cudaq.SpinOperator(h2, nq)
             assert (h1 == h3)
+
+
+def test_spin_op_random():
+    # Make sure that the user gets all the random terms that they ask for.
+    qubit_count = 5
+    term_count = 7
+    for i in range(100):
+        hamiltonian = cudaq.SpinOperator.random(qubit_count, term_count, seed=i)
+        assert hamiltonian.get_term_count() == term_count
+
+
+def test_spin_op_random_too_many():
+    # Make sure that the user gets all the random terms that they ask for.
+    qubit_count = 3
+    term_count = 21  # too many because 6 choose 3 = 20
+    with pytest.raises(RuntimeError) as error:
+        hamiltonian = cudaq.SpinOperator.random(qubit_count, term_count)
+
+
+def test_spin_op_batch_efficiently():
+    qubit_count = 5
+    term_count = 7
+    num_of_gpus = 4
+    hamiltonian = cudaq.SpinOperator.random(qubit_count, term_count, seed=13)
+    batched = hamiltonian.distribute_terms(num_of_gpus)
+    assert len(batched) == 4
+    assert batched[0].get_term_count() == 2
+    assert batched[1].get_term_count() == 2
+    assert batched[2].get_term_count() == 2
+    assert batched[3].get_term_count() == 1
 
 
 # leave for gdb debugging
