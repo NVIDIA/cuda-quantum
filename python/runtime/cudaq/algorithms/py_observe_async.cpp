@@ -111,7 +111,6 @@ observe_result pyObservePar(const PyParType &type, py::object &kernel,
     kernel.attr("compile")();
 
   // Ensure the user input is correct.
-  // auto validatedArgs = validateInputArguments(kernel, args);
   auto &platform = cudaq::get_platform();
   if (!platform.supports_task_distribution())
     throw std::runtime_error(
