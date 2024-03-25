@@ -319,8 +319,10 @@ void bindAltLaunchKernel(py::module &mod) {
       "pyAltLaunchKernel",
       [&](const std::string &kernelName, MlirModule module,
           py::args runtimeArgs, std::vector<std::string> callable_names) {
+        auto kernelFunc = getKernelFuncOp(module, kernelName);
+
         cudaq::OpaqueArguments args;
-        cudaq::packArgs(args, runtimeArgs, callableArgHandler);
+        cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
         pyAltLaunchKernel(kernelName, module, args, callable_names);
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
@@ -329,8 +331,10 @@ void bindAltLaunchKernel(py::module &mod) {
       "pyAltLaunchKernelR",
       [&](const std::string &kernelName, MlirModule module, MlirType returnType,
           py::args runtimeArgs, std::vector<std::string> callable_names) {
+        auto kernelFunc = getKernelFuncOp(module, kernelName);
+
         cudaq::OpaqueArguments args;
-        cudaq::packArgs(args, runtimeArgs, callableArgHandler);
+        cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
         return pyAltLaunchKernelR(kernelName, module, returnType, args,
                                   callable_names);
       },

@@ -9,8 +9,13 @@
 #pragma once
 
 #include "common/FmtCore.h"
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/builder/kernel_builder.h"
 #include "cudaq/qis/pauli_word.h"
+
+#include "mlir/CAPI/IR.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+
 #include <chrono>
 #include <functional>
 #include <future>
@@ -246,10 +251,37 @@ inline void packArgs(OpaqueArguments &argData, py::args args) {
   }
 }
 
+inline mlir::func::FuncOp getKernelFuncOp(MlirModule module,
+                                          const std::string &kernelName) {
+  using namespace mlir;
+  ModuleOp mod = unwrap(module);
+  func::FuncOp kernelFunc;
+  mod.walk([&](func::FuncOp function) {
+    if (function.getName().equals("__nvqpp__mlirgen__" + kernelName)) {
+      kernelFunc = function;
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+
+  if (!kernelFunc)
+    throw std::runtime_error("Could not find " + kernelName +
+                             " function in current module.");
+
+  return kernelFunc;
+}
+
 inline void
 packArgs(OpaqueArguments &argData, py::args args,
+         mlir::func::FuncOp kernelFuncOp,
          const std::function<bool(OpaqueArguments &argData, py::object &arg)>
              &backupHandler) {
+  if (kernelFuncOp.getNumArguments() != args.size())
+    throw std::runtime_error("Invalid runtime arguments - kernel expected " +
+                             std::to_string(kernelFuncOp.getNumArguments()) +
+                             " but was provided " +
+                             std::to_string(args.size()) + " arguments.");
+
   for (std::size_t i = 0; i < args.size(); i++) {
     py::object arg = args[i];
     if (py::isinstance<py::float_>(arg)) {
@@ -281,12 +313,31 @@ packArgs(OpaqueArguments &argData, py::args args,
     if (py::isinstance<py::list>(arg)) {
       auto casted = py::cast<py::list>(arg);
       if (casted.empty()) {
+        auto mlirArgITy = kernelFuncOp.getArgument(i).getType();
+        auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(mlirArgITy);
+        if (!stdvecTy)
+          throw std::runtime_error(
+              "Runtime argument is a list but corresponding kernel argument "
+              "type is not a list.");
+
+        auto eleTy = stdvecTy.getElementType();
+        // Handle boolean different since C++ library implementation
+        // for vectors of bool is different than other types.
+        if (eleTy.isInteger(1)) {
+          std::vector<bool> *ourAllocatedArg = new std::vector<bool>();
+          argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<std::vector<bool> *>(ptr);
+          });
+          continue;
+        }
+
         // If its empty, just put any vector on the `argData`,
         // it won't matter since it is empty and all
         // vectors have the same memory footprint (span-like).
-        std::vector<bool> *ourAllocatedArg = new std::vector<bool>();
+        std::vector<std::size_t> *ourAllocatedArg =
+            new std::vector<std::size_t>();
         argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<std::vector<bool> *>(ptr);
+          delete static_cast<std::vector<std::size_t> *>(ptr);
         });
         continue;
       }
@@ -396,10 +447,12 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
 
 /// @brief Create a new OpaqueArguments pointer and pack the
 /// python arguments in it. Clients must delete the memory.
-inline OpaqueArguments *toOpaqueArgs(py::args &args) {
+inline OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
+                                     const std::string &name) {
+  auto kernelFunc = getKernelFuncOp(mod, name);
   auto *argData = new cudaq::OpaqueArguments();
   args = simplifiedValidateInputArguments(args);
-  cudaq::packArgs(*argData, args,
+  cudaq::packArgs(*argData, args, kernelFunc,
                   [](OpaqueArguments &, py::object &) { return false; });
   return argData;
 }

@@ -188,6 +188,7 @@ class PyKernelDecorator(object):
         # validate the argument types
         processedArgs = []
         callableNames = []
+        isEmptyListAndElementType = [None]*len(args)
         for i, arg in enumerate(args):
             if isinstance(arg, PyKernelDecorator):
                 arg.compile()
@@ -216,6 +217,7 @@ class PyKernelDecorator(object):
                             argEleTy):
                         processedArgs.append([float(i) for i in arg])
                         mlirType = self.argTypes[i]
+                        continue
 
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:

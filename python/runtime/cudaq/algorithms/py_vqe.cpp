@@ -59,14 +59,14 @@ bool isArgumentStdVec(MlirModule &module, const std::string &kernelName,
 observe_result pyObserve(py::object &kernel, spin_op &spin_operator,
                          py::args args, const int shots,
                          bool argMapperProvided = false) {
-  auto kernelName = kernel.attr("name").cast<std::string>();
-  auto &platform = cudaq::get_platform();
-  args = simplifiedValidateInputArguments(args);
-  auto *argData = toOpaqueArgs(args);
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
-
+  auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto &platform = cudaq::get_platform();
+  args = simplifiedValidateInputArguments(args);
+  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+
   auto numKernelArgs = getNumArguments(kernelMod, kernelName);
   if (numKernelArgs == 0)
     throw std::runtime_error(
