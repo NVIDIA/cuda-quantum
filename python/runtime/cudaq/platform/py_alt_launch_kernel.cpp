@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "JITExecutionCache.h"
+#include "common/ArgumentWrapper.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
@@ -15,6 +17,8 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "utils/OpaqueArguments.h"
+
 #include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
@@ -23,11 +27,9 @@
 #include "mlir/InitAllPasses.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
+
 #include <fmt/core.h>
 #include <pybind11/stl.h>
-
-#include "JITExecutionCache.h"
-#include "utils/OpaqueArguments.h"
 
 namespace py = pybind11;
 using namespace mlir;
@@ -182,12 +184,7 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   auto &platform = cudaq::get_platform();
   if (platform.is_remote() || platform.is_emulated()) {
-    struct ArgWrapper {
-      ModuleOp mod;
-      std::vector<std::string> callableNames;
-      void *rawArgs = nullptr;
-    };
-    auto *wrapper = new ArgWrapper{mod, names, rawArgs};
+    auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
     cudaq::altLaunchKernel(name.c_str(), thunk,
                            reinterpret_cast<void *>(wrapper), size, 0);
     delete wrapper;
