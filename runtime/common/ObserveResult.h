@@ -80,7 +80,7 @@ public:
     // Expand the string representation of the term to match the number of
     // qubits of the overall spin_op this result represents by appending
     // identity ops.
-    if (!data.has_expectation(termStr) && termStr.size() < numQubits)
+    if (!data.has_expectation(termStr))
       for (std::size_t i = termStr.size(); i < numQubits; i++)
         termStr += "I";
     return data.expectation(termStr);
