@@ -20,6 +20,7 @@ if (CMAKE_EXE_LINKER_FLAGS)
     # which it doesn't use at build time.
     # Hence, static linking with C++ standard library is not suitable.
     list(REMOVE_ITEM LINKER_FLAGS_LIST -static-libstdc++)
+    list(REMOVE_ITEM LINKER_FLAGS_LIST -static-libgcc)
     # Convert the list back to a space-separated string
     string(REPLACE ";" " " CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS_LIST}") 
 endif()
