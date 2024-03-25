@@ -188,7 +188,6 @@ class PyKernelDecorator(object):
         # validate the argument types
         processedArgs = []
         callableNames = []
-        isEmptyListAndElementType = [None]*len(args)
         for i, arg in enumerate(args):
             if isinstance(arg, PyKernelDecorator):
                 arg.compile()
