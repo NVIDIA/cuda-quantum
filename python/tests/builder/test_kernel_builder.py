@@ -914,6 +914,7 @@ def test_from_state():
         assert np.isclose(ss[i], state[i], 1e-3)
 
 
+@skipIfPythonLessThan39
 def test_pauli_word_input():
     h2_data = [
         3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
