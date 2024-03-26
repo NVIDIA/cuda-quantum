@@ -858,8 +858,7 @@ public:
       // Change the function name
       qFunctionName += "__to__register";
       // Append a string type argument
-      funcTypes.push_back(
-          LLVM::LLVMPointerType::get(rewriter.getI8Type()));
+      funcTypes.push_back(LLVM::LLVMPointerType::get(rewriter.getI8Type()));
       appendName = true;
     } else {
       // If no register name is supplied, make one up. Zero pad the counter so
