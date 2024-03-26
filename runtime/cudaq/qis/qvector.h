@@ -52,10 +52,13 @@ public:
     getExecutionManager()->initializeState(targets, vector.data());
   }
 
+  qvector(const std::vector<double> &vector)
+      : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}
   qvector(const std::initializer_list<double> &list)
-      : qvector({list.begin(), list.end()}) {}
+      : qvector(std::vector<complex>{list.begin(), list.end()}) {}
   qvector(const std::initializer_list<complex> &list)
-      : qvector({list.begin(), list.end()}) {}
+      : qvector(std::vector<complex>{list.begin(), list.end()}) {}
+
   /// @cond
   /// Nullary constructor
   /// meant to be used with `kernel_builder<cudaq::qvector<>>`

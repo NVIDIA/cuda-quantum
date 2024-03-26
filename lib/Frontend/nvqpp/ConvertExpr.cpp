@@ -53,8 +53,7 @@ static clang::NamedDecl *getNamedDecl(clang::Expr *expr) {
 static std::pair<SmallVector<Value>, SmallVector<Value>>
 maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands,
                     bool isControl = false) {
-  // If this is not a controlled op, then we just keep all operands
-  // as targets.
+  // If this is not a controlled op, then we just keep all operands as targets.
   if (!isControl)
     return std::make_pair(operands, SmallVector<Value>{});
 
@@ -599,30 +598,30 @@ Value QuakeBridgeVisitor::integerCoercion(Location loc,
   TODO_loc(loc, "Integer conversion but not integer types");
 }
 
-bool QuakeBridgeVisitor::TraverseImplicitCastExpr(clang::ImplicitCastExpr *x,
-                                                  DataRecursionQueue *) {
-  // RecursiveASTVisitor is tuned for dumping surface syntax so doesn't visit
-  // the type. Override so that the casted to type is visited and pushed on the
-  // stack.
+bool QuakeBridgeVisitor::TraverseCastExpr(clang::CastExpr *x,
+                                          DataRecursionQueue *) {
+  // RecursiveASTVisitor is tuned for dumping surface syntax so doesn't
+  // necessarily visit the type. Override so that the casted to type is visited
+  // and pushed on the stack.
   [[maybe_unused]] auto typeStackDepth = typeStack.size();
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (!TraverseType(x->getType()))
     return false;
   assert(typeStack.size() == typeStackDepth + 1 && "must push a type");
-  auto result = Base::TraverseImplicitCastExpr(x);
+  for (auto *sub : getStmtChildren(x))
+    if (!TraverseStmt(sub))
+      return false;
+  bool result = WalkUpFromCastExpr(x);
   if (result) {
     assert(typeStack.size() == typeStackDepth && "must be original depth");
   }
   return result;
 }
 
-bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
+bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
   // The type to cast the expression into is pushed during the traversal of the
   // ImplicitCastExpr in non-error cases.
   auto castToTy = popType();
-  if (x->getCastKind() == clang::CastKind::CK_FunctionToPointerDecay)
-    return true; // NOP
-
   auto loc = toLocation(x);
   auto intToIntCast = [&](Location locSub, Value mlirVal) {
     clang::QualType srcTy = x->getSubExpr()->getType();
@@ -654,9 +653,10 @@ bool QuakeBridgeVisitor::VisitImplicitCastExpr(clang::ImplicitCastExpr *x) {
     assert(result && "integer conversion failed");
     return result;
   }
+  case clang::CastKind::CK_FunctionToPointerDecay:
   case clang::CastKind::CK_ArrayToPointerDecay:
-    return true;
   case clang::CastKind::CK_NoOp:
+  case clang::CastKind::CK_ToVoid:
     return true;
   case clang::CastKind::CK_FloatingToIntegral: {
     auto qualTy = x->getType();
@@ -1082,8 +1082,8 @@ bool QuakeBridgeVisitor::TraverseLambdaExpr(clang::LambdaExpr *x,
 bool QuakeBridgeVisitor::TraverseMemberExpr(clang::MemberExpr *x,
                                             DataRecursionQueue *) {
   if (auto *methodDecl = dyn_cast<clang::CXXMethodDecl>(x->getMemberDecl())) {
-    // For function members, we want to push the type of the function, since the
-    // visit to CallExpr requires a type to have been pushed.
+    // For function members, we want to push the type of the function, since
+    // the visit to CallExpr requires a type to have been pushed.
     [[maybe_unused]] auto typeStackDepth = typeStack.size();
     if (!TraverseType(methodDecl->getType()))
       return false;
@@ -1576,8 +1576,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       SymbolRefAttr calleeSymbol;
       auto *ctx = builder.getContext();
 
-      // Expand the negations inline around the quake.apply. This will result
-      // in less duplication of code than threading the negated sense of the
+      // Expand the negations inline around the quake.apply. This will result in
+      // less duplication of code than threading the negated sense of the
       // control recursively through the callable.
       auto inlinedStartControlNegations = [&]() {
         if (!negations.empty()) {
@@ -2044,8 +2044,8 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
     }
     if (typeName == "_Bit_reference" || typeName == "__bit_reference") {
       // For vector<bool>, on the kernel side this is represented as a sequence
-      // of byte-sized boolean values (true and false). On the host side, C++
-      // is likely going to pack the booleans as bits in words.
+      // of byte-sized boolean values (true and false). On the host side, C++ is
+      // likely going to pack the booleans as bits in words.
       auto indexVar = popValue();
       auto svec = popValue();
       assert(svec.getType().isa<cc::StdvecType>());
@@ -2136,22 +2136,6 @@ void QuakeBridgeVisitor::maybeAddCallOperationSignature(clang::Decl *x) {
   }
 }
 
-bool QuakeBridgeVisitor::TraverseCXXTemporaryObjectExpr(
-    clang::CXXTemporaryObjectExpr *x, DataRecursionQueue *) {
-  if (auto *ctor = x->getConstructor())
-    maybeAddCallOperationSignature(ctor);
-  if (!TraverseType(x->getType()))
-    return false;
-  return WalkUpFromCXXTemporaryObjectExpr(x);
-}
-
-bool QuakeBridgeVisitor::VisitCXXTemporaryObjectExpr(
-    clang::CXXTemporaryObjectExpr *x) {
-  // We probably want a distinctive op here instead of just leaving a type.
-  // Really this means allocating at least 1 byte and calling the default ctor.
-  return true;
-}
-
 bool QuakeBridgeVisitor::TraverseInitListExpr(clang::InitListExpr *x,
                                               DataRecursionQueue *) {
   if (x->isSyntacticForm()) {
@@ -2228,9 +2212,8 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     return pushValue(last[0]);
   }
 
-  // These initializer expressions are not quantum references. In this case,
-  // we allocate some memory for a variable and store the init list elements
-  // there.
+  // These initializer expressions are not quantum references. In this case, we
+  // allocate some memory for a variable and store the init list elements there.
   auto structTy = dyn_cast<cc::StructType>(initListTy);
   std::int32_t structMems = structTy ? structTy.getMembers().size() : 0;
   std::int32_t numEles = structMems ? size / structMems : size;
@@ -2244,7 +2227,14 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     return initListTy;
   }();
 
-  if (initializerIsGlobal) {
+  bool lastValuesAreConstant = [&]() {
+    for (Value v : last)
+      if (!opt::factory::maybeValueOfFloatConstant(v))
+        return false;
+    return true;
+  }();
+
+  if (initializerIsGlobal && lastValuesAreConstant) {
     static unsigned counter = 0;
     auto *ctx = builder.getContext();
     auto globalTy = cc::ArrayType::get(ctx, eleTy, size);
@@ -2252,7 +2242,6 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
     auto f64Ty = builder.getF64Type();
     for (Value v : last) {
       auto fp = opt::factory::maybeValueOfFloatConstant(v);
-      assert(fp);
       values.push_back(FloatAttr::get(f64Ty, *fp));
     }
     // NB: Unfortunately, the LLVM-IR dialect doesn't lower DenseF64ArrayAttr to
@@ -2372,17 +2361,40 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
               loc, quake::VeqType::getUnsized(ctx), initials));
         }
         // Otherwise, it is the cudaq::qvector(std::vector<complex>) ctor.
-        auto ptrTy = cast<cc::PointerType>(initials.getType());
-        auto arrTy = cast<cc::ArrayType>(ptrTy.getElementType());
-        auto veqTy = quake::VeqType::get(ctx, arrTy.getSize());
-        auto alloc = builder.create<quake::AllocaOp>(loc, veqTy);
+        Value numQubits;
+        Type initialsTy = initials.getType();
+        if (auto ptrTy = dyn_cast<cc::PointerType>(initialsTy)) {
+          if (auto arrTy = dyn_cast<cc::ArrayType>(ptrTy.getElementType())) {
+            if (arrTy.isUnknownSize()) {
+              if (auto allocOp = initials.getDefiningOp<cc::AllocaOp>())
+                if (auto size = allocOp.getSeqSize())
+                  numQubits = size;
+            } else {
+              numQubits = builder.create<arith::ConstantIntOp>(
+                  loc, arrTy.getSize(), 64);
+            }
+          }
+        } else if (auto stdvecTy = dyn_cast<cc::StdvecType>(initialsTy)) {
+          numQubits = builder.create<cc::StdvecSizeOp>(
+              loc, builder.getI64Type(), initials);
+          auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
+          initials = builder.create<cc::StdvecDataOp>(loc, ptrTy, initials);
+        }
+        if (!numQubits) {
+          reportClangError(
+              x, mangler,
+              "internal error: could not determine the number of qubits");
+          return false;
+        }
+        auto veqTy = quake::VeqType::getUnsized(ctx);
+        auto alloc = builder.create<quake::AllocaOp>(loc, veqTy, numQubits);
         return pushValue(builder.create<quake::InitializeStateOp>(
             loc, veqTy, alloc, initials));
       }
       if ((ctorName == "qspan" || ctorName == "qview") &&
           isa<quake::VeqType>(peekValue().getType())) {
-        // One of the qspan ctors, which effectively just makes a copy. Here
-        // we omit making a copy and just forward the veq argument.
+        // One of the qspan ctors, which effectively just makes a copy. Here we
+        // omit making a copy and just forward the veq argument.
         assert(isa<quake::VeqType>(ctorTy));
         return true;
       }
@@ -2401,6 +2413,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     }();
     if (isVectorOfQubitRefs)
       return true;
+    if (ctorName == "complex") {
+      Value imag = popValue();
+      Value real = popValue();
+      return pushValue(builder.create<complex::CreateOp>(
+          loc, ComplexType::get(real.getType()), real, imag));
+    }
     if (ctorName == "function") {
       // Are we converting a lambda expr to a std::function?
       auto backVal = peekValue();
@@ -2457,15 +2475,14 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       return true;
     }
 
-    // We check for vector constructors with 2 args, the first
-    // could be an initializer_list or an integer, while the
-    // second is the allocator
+    // We check for vector constructors with 2 args, the first could be an
+    // initializer_list or an integer, while the second is the allocator
     if (ctorName == "vector") {
       if (x->getNumArgs() == 2) {
-        // This is a std::vector constructor, first we'll check if it
-        // is constructed from a constant initializer list, in that case
-        // we'll have a AllocaOp at the top of the stack that allocates a
-        // ptr<array<TxC>>, where C is constant / known
+        // This is a std::vector constructor, first we'll check if it is
+        // constructed from a constant initializer list, in that case we'll have
+        // a AllocaOp at the top of the stack that allocates a ptr<array<TxC>>,
+        // where C is constant / known
         auto desugared = x->getArg(0)->getType().getCanonicalType();
         if (auto recordType =
                 dyn_cast<clang::RecordType>(desugared.getTypePtr()))
@@ -2480,9 +2497,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
                       allocation, definingOp.getSeqSize()));
           }
 
-        // Next check if its created from a size integer
-        // Let's do a check on the first argument, make sure that when
-        // we peel off all the typedefs that it is an integer
+        // Next check if its created from a size integer. Let's do a check on
+        // the first argument, make sure that when we peel off all the typedefs
+        // that it is an integer.
         if (auto builtInType =
                 dyn_cast<clang::BuiltinType>(desugared.getTypePtr()))
           if (builtInType->isInteger() &&
@@ -2496,8 +2513,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
               return ctorTy;
             }();
 
-            // create stdvec init op without a buffer.
-            // Allocate the required memory chunk
+            // Create stdvec init op without a buffer. Allocate the required
+            // memory chunk
             Value alloca = builder.create<cc::AllocaOp>(loc, eleTy, arrSize);
 
             // Create the stdvec_init op
@@ -2505,8 +2522,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
                 loc, cc::StdvecType::get(eleTy), alloca, arrSize));
           }
       }
-      // Disallow any default vector construction bc we don't
-      // want any .push_back
+      // Disallow any default vector construction bc we don't want any
+      // .push_back
       if (ctor->isDefaultConstructor())
         reportClangError(ctor, mangler,
                          "Default std::vector<T> constructor within quantum "
@@ -2517,15 +2534,15 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
   auto *parent = ctor->getParent();
   if (ctor->isCopyConstructor() && parent->isLambda()) {
-    // Copy-ctor on a lambda. For now on the QPU device side, we do not
-    // make a copy of a lambda. Any capture data will be marshalled at
-    // runtime and passed as ordinary arguments via lambda lifting.
+    // Copy-ctor on a lambda. For now on the QPU device side, we do not make a
+    // copy of a lambda. Any capture data will be marshalled at runtime and
+    // passed as ordinary arguments via lambda lifting.
     return true;
   }
 
   if (ctor->isCopyOrMoveConstructor() && parent->isPOD()) {
-    // Copy or move constructor on a POD struct. The value stack should
-    // contain the object to load the value from.
+    // Copy or move constructor on a POD struct. The value stack should contain
+    // the object to load the value from.
     auto fromStruct = popValue();
     assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
     return pushValue(builder.create<cc::LoadOp>(loc, fromStruct));
@@ -2543,11 +2560,10 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   //    one byte.
   // 2) Allocate a new object.
   // 3) Call the constructor passing the address of the allocation as `this`.
-
   auto mem = builder.create<cc::AllocaOp>(loc, ctorTy);
-  // FIXME: Using Ctor_Complete for mangled name generation blindly here.
-  // Is there a programmatic way of determining which enum to use from the
-  // AST?
+
+  // FIXME: Using Ctor_Complete for mangled name generation blindly here. Is
+  // there a programmatic way of determining which enum to use from the AST?
   auto mangledName =
       cxxMangledDeclName(clang::GlobalDecl{ctor, clang::Ctor_Complete});
   auto funcTy =
