@@ -30,9 +30,9 @@ def test_control_kernel():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__reflect(
 # CHECK-SAME:                                         %[[VAL_0:.*]]: !quake.veq<?>) {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 2 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64
 # CHECK:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_5:.*]] = arith.subi %[[VAL_4]], %[[VAL_1]] : i64
 # CHECK:           %[[VAL_6:.*]] = quake.subveq %[[VAL_0]], %[[VAL_2]], %[[VAL_5]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>

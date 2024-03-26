@@ -754,9 +754,9 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
         std::string kernelName, std::vector<std::string> extraLibPaths) {
 
   // Start of by getting the current ModuleOp
-  auto block = builder.getBlock();
+  auto *block = builder.getBlock();
   auto *context = builder.getContext();
-  auto function = block->getParentOp();
+  auto *function = block->getParentOp();
   auto currentModule = function->getParentOfType<ModuleOp>();
 
   // Create a unique hash from that ModuleOp

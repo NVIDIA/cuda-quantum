@@ -8,9 +8,9 @@
 
 # RUN: PYTHONPATH=../../ python3 %s | FileCheck %s
 
-from ..mlir.ir import *
-from ..mlir.dialects import quake
-from ..mlir.dialects import builtin, func, arith
+from cudaq.mlir.ir import *
+from cudaq.mlir.dialects import quake
+from cudaq.mlir.dialects import builtin, func, arith
 
 with Context() as ctx:
     quake.register_dialect()

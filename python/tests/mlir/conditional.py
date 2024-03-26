@@ -49,9 +49,9 @@ def test_kernel_conditional():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 2 : i64
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 2 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_5]][1] : (!quake.veq<2>) -> !quake.ref

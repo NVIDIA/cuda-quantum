@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -108,5 +108,11 @@ void bindQIS(py::module &mod) {
       .def("__getitem__", &qvector<2>::operator[],
            py::return_value_policy::reference,
            "Return the qubit at the given index.");
+
+  py::class_<pauli_word>(mod, "pauli_word",
+                         "The `pauli_word` is a thin wrapper on a Pauli tensor "
+                         "product string, e.g. `XXYZ` on 4 qubits.")
+      .def(py::init<>())
+      .def(py::init<const std::string>());
 }
 } // namespace cudaq

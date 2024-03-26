@@ -27,52 +27,57 @@ def test_ghz():
 
     print(ghz)
 
-    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz(
-    # CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
-    # CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-    # CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
-    # CHECK:           %[[VAL_3:.*]] = cc.alloca i64
-    # CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i64>
-    # CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
-    # CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_4]] : i64]
-    # CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<?>) -> !quake.ref
-    # CHECK:           quake.h %[[VAL_6]] : (!quake.ref) -> ()
-    # CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
-    # CHECK:           %[[VAL_8:.*]] = arith.subi %[[VAL_7]], %[[VAL_1]] : i64
-    # CHECK:           %[[VAL_9:.*]] = math.absi %[[VAL_8]] : i64
-    # CHECK:           %[[VAL_10:.*]] = cc.alloca i64{{\[}}%[[VAL_9]] : i64]
-    # CHECK:           %[[VAL_11:.*]] = cc.loop while ((%[[VAL_12:.*]] = %[[VAL_2]]) -> (i64)) {
-    # CHECK:             %[[VAL_13:.*]] = arith.cmpi slt, %[[VAL_12]], %[[VAL_8]] : i64
-    # CHECK:             cc.condition %[[VAL_13]](%[[VAL_12]] : i64)
-    # CHECK:           } do {
-    # CHECK:           ^bb0(%[[VAL_14:.*]]: i64):
-    # CHECK:             %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_10]]{{\[}}%[[VAL_14]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
-    # CHECK:             cc.store %[[VAL_14]], %[[VAL_15]] : !cc.ptr<i64>
-    # CHECK:             cc.continue %[[VAL_14]] : i64
-    # CHECK:           } step {
-    # CHECK:           ^bb0(%[[VAL_16:.*]]: i64):
-    # CHECK:             %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_1]] : i64
-    # CHECK:             cc.continue %[[VAL_17]] : i64
-    # CHECK:           } {invariant}
-    # CHECK:           %[[VAL_18:.*]] = cc.loop while ((%[[VAL_19:.*]] = %[[VAL_2]]) -> (i64)) {
-    # CHECK:             %[[VAL_20:.*]] = arith.cmpi slt, %[[VAL_19]], %[[VAL_9]] : i64
-    # CHECK:             cc.condition %[[VAL_20]](%[[VAL_19]] : i64)
-    # CHECK:           } do {
-    # CHECK:           ^bb0(%[[VAL_21:.*]]: i64):
-    # CHECK:             %[[VAL_22:.*]] = cc.compute_ptr %[[VAL_10]]{{\[}}%[[VAL_21]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
-    # CHECK:             %[[VAL_23:.*]] = cc.load %[[VAL_22]] : !cc.ptr<i64>
-    # CHECK:             %[[VAL_24:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_23]]] : (!quake.veq<?>, i64) -> !quake.ref
-    # CHECK:             %[[VAL_25:.*]] = arith.addi %[[VAL_23]], %[[VAL_1]] : i64
-    # CHECK:             %[[VAL_26:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_25]]] : (!quake.veq<?>, i64) -> !quake.ref
-    # CHECK:             quake.x {{\[}}%[[VAL_24]]] %[[VAL_26]] : (!quake.ref, !quake.ref) -> ()
-    # CHECK:             cc.continue %[[VAL_21]] : i64
-    # CHECK:           } step {
-    # CHECK:           ^bb0(%[[VAL_27:.*]]: i64):
-    # CHECK:             %[[VAL_28:.*]] = arith.addi %[[VAL_27]], %[[VAL_1]] : i64
-    # CHECK:             cc.continue %[[VAL_28]] : i64
-    # CHECK:           } {invariant}
-    # CHECK:           return
-    # CHECK:         }
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz(
+# CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK:           %[[VAL_3:.*]] = cc.alloca i64
+# CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i64>
+# CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
+# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_4]] : i64]
+# CHECK:           %[[VAL_6:.*]] = quake.extract_ref %[[VAL_5]][0] : (!quake.veq<?>) -> !quake.ref
+# CHECK:           quake.h %[[VAL_6]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
+# CHECK:           %[[VAL_8:.*]] = arith.subi %[[VAL_7]], %[[VAL_1]] : i64
+# CHECK:           %[[VAL_9:.*]] = math.absi %[[VAL_8]] : i64
+# CHECK:           %[[VAL_10:.*]] = cc.alloca i64{{\[}}%[[VAL_9]] : i64]
+# CHECK:           %[[VAL_11:.*]] = cc.alloca i64
+# CHECK:           cc.store %[[VAL_2]], %[[VAL_11]] : !cc.ptr<i64>
+# CHECK:           %[[VAL_12:.*]] = cc.loop while ((%[[VAL_13:.*]] = %[[VAL_2]]) -> (i64)) {
+# CHECK:             %[[VAL_14:.*]] = arith.cmpi slt, %[[VAL_13]], %[[VAL_8]] : i64
+# CHECK:             cc.condition %[[VAL_14]](%[[VAL_13]] : i64)
+# CHECK:           } do {
+# CHECK:           ^bb0(%[[VAL_15:.*]]: i64):
+# CHECK:             %[[VAL_16:.*]] = cc.load %[[VAL_11]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_10]]{{\[}}%[[VAL_16]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+# CHECK:             cc.store %[[VAL_16]], %[[VAL_17]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_18:.*]] = arith.addi %[[VAL_16]], %[[VAL_1]] : i64
+# CHECK:             cc.store %[[VAL_18]], %[[VAL_11]] : !cc.ptr<i64>
+# CHECK:             cc.continue %[[VAL_15]] : i64
+# CHECK:           } step {
+# CHECK:           ^bb0(%[[VAL_19:.*]]: i64):
+# CHECK:             %[[VAL_20:.*]] = arith.addi %[[VAL_19]], %[[VAL_1]] : i64
+# CHECK:             cc.continue %[[VAL_20]] : i64
+# CHECK:           } {invariant}
+# CHECK:           %[[VAL_21:.*]] = cc.loop while ((%[[VAL_22:.*]] = %[[VAL_2]]) -> (i64)) {
+# CHECK:             %[[VAL_23:.*]] = arith.cmpi slt, %[[VAL_22]], %[[VAL_9]] : i64
+# CHECK:             cc.condition %[[VAL_23]](%[[VAL_22]] : i64)
+# CHECK:           } do {
+# CHECK:           ^bb0(%[[VAL_24:.*]]: i64):
+# CHECK:             %[[VAL_25:.*]] = cc.compute_ptr %[[VAL_10]]{{\[}}%[[VAL_24]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+# CHECK:             %[[VAL_26:.*]] = cc.load %[[VAL_25]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_27:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_26]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:             %[[VAL_28:.*]] = arith.addi %[[VAL_26]], %[[VAL_1]] : i64
+# CHECK:             %[[VAL_29:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_28]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:             quake.x {{\[}}%[[VAL_27]]] %[[VAL_29]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:             cc.continue %[[VAL_24]] : i64
+# CHECK:           } step {
+# CHECK:           ^bb0(%[[VAL_30:.*]]: i64):
+# CHECK:             %[[VAL_31:.*]] = arith.addi %[[VAL_30]], %[[VAL_1]] : i64
+# CHECK:             cc.continue %[[VAL_31]] : i64
+# CHECK:           } {invariant}
+# CHECK:           return
+# CHECK:         }
 
     @cudaq.kernel
     def simple(numQubits: int):
@@ -86,9 +91,9 @@ def test_ghz():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__simple(
 # CHECK-SAME:                                        %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 2 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_4:.*]] = cc.alloca i64
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>

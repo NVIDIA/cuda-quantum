@@ -7,11 +7,16 @@
 # ============================================================================ #
 import pytest
 import os, math
+import numpy as np
 
 import cudaq
 from cudaq import spin
 
 num_qpus = 3
+
+
+def assert_close(want, got, tolerance=1.e-5) -> bool:
+    return abs(want - got) < tolerance
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -99,6 +104,23 @@ def test_observe():
     check_observe(kernel)
 
 
+# Make sure spin_op serializes and deserializes correctly
+def test_single_term_spin_op():
+    h = spin.z(0)
+    n_samples = 3
+    n_qubits = 5
+    n_parameters = n_qubits
+    parameters = np.random.default_rng(13).uniform(low=0,
+                                                   high=1,
+                                                   size=(n_samples,
+                                                         n_parameters))
+    kernel, params = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(n_qubits)
+    for i in range(n_qubits):
+        kernel.rx(params[i], qubits[i])
+    cudaq.observe(kernel, h, parameters)
+
+
 def test_observe_kernel():
 
     @cudaq.kernel
@@ -161,13 +183,67 @@ def test_multi_qpus():
 def test_multi_qpus_kernel():
 
     @cudaq.kernel
-    def parameterized_ansatz(theta: float):
+    def ansatz(theta: float):
         qreg = cudaq.qvector(2)
         x(qreg[0])
         ry(theta, qreg[1])
         x.ctrl(qreg[1], qreg[0])
 
-    check_multi_qpus(parameterized_ansatz)
+    check_multi_qpus(ansatz)
+
+
+# Check randomness and repeatability by setting the seed value
+def test_seed():
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.h(qubit)
+    kernel.mz(qubit)
+    # Set the runtime seed
+    cudaq.set_random_seed(123)
+    # First check: different executions after setting the seed value can produce randomized results.
+    # We don't expect to run these number of tests,
+    # the first time we encounter a different distribution, it will terminate.
+    max_num_tests = 100
+    zero_counts = []
+    found_different_result = False
+    for i in range(max_num_tests):
+        count = cudaq.sample(kernel)
+        zero_counts.append(count["0"])
+        for x in zero_counts:
+            if x != zero_counts[0]:
+                found_different_result = True
+                break
+        if found_different_result:
+            # Found a different distribution.
+            # No need to run any more simulation.
+            break
+    assert (found_different_result)
+    # Now, reset the seed
+    # Check that the new sequence of distributions exactly matches the prior.
+    cudaq.set_random_seed(123)
+    for i in range(len(zero_counts)):
+        # Rerun sampling
+        count = cudaq.sample(kernel)
+        assert (count["0"] == zero_counts[i])
+
+
+def test_additional_spin_ops():
+
+    @cudaq.kernel
+    def main_kernel():
+        qubits = cudaq.qvector(3)
+        x(qubits[0])
+        x.ctrl(qubits[1], qubits[0])
+
+    spin_ham = spin.z(0)
+    energy = cudaq.observe(main_kernel, spin_ham).expectation()
+    assert assert_close(energy, -1)
+    spin_ham = spin.z(0) - spin.z(1)
+    energy = cudaq.observe(main_kernel, spin_ham).expectation()
+    assert assert_close(energy, -2)
+    spin_ham = spin.z(0) + spin.z(1) + spin.z(2)
+    energy = cudaq.observe(main_kernel, spin_ham).expectation()
+    assert assert_close(energy, 1)
 
 
 # leave for gdb debugging

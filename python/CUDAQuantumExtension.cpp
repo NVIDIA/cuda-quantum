@@ -23,7 +23,6 @@
 #include "runtime/cudaq/algorithms/py_sample_async.h"
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_vqe.h"
-#include "runtime/cudaq/kernels/py_common_kernels.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_qubit_qis.h"
@@ -42,6 +41,11 @@
 namespace py = pybind11;
 
 static std::unique_ptr<cudaq::LinkedLibraryHolder> holder;
+
+namespace cudaq {
+const char *getVersion();
+const char *getFullRepositoryVersion();
+} // namespace cudaq
 
 PYBIND11_MODULE(_quakeDialects, m) {
   holder = std::make_unique<cudaq::LinkedLibraryHolder>();
@@ -90,7 +94,6 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindSpinWrapper(cudaqRuntime);
   cudaq::bindQIS(cudaqRuntime);
   cudaq::bindOptimizerWrapper(cudaqRuntime);
-  cudaq::bindCommonKernels(cudaqRuntime);
   cudaq::bindNoise(cudaqRuntime);
   cudaq::bindExecutionContext(cudaqRuntime);
   cudaq::bindExecutionManager(cudaqRuntime);
@@ -106,6 +109,11 @@ PYBIND11_MODULE(_quakeDialects, m) {
                    "Provide the seed for backend quantum kernel simulation.");
   cudaqRuntime.def("num_available_gpus", &cudaq::num_available_gpus,
                    "The number of available GPUs detected on the system.");
+
+  std::stringstream ss;
+  ss << "CUDA Quantum Version " << cudaq::getVersion() << " ("
+     << cudaq::getFullRepositoryVersion() << ")";
+  cudaqRuntime.attr("__version__") = ss.str();
 
   auto mpiSubmodule = cudaqRuntime.def_submodule("mpi");
   mpiSubmodule.def(

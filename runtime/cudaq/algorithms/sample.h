@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -67,7 +67,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     auto &platform = get_platform();
     platform.set_exec_ctx(&context, qpu_id);
     wrappedKernel();
-    platform.reset_exec_ctx();
+    platform.reset_exec_ctx(qpu_id);
     // In trace mode, if we have a measure result
     // that is passed to an if statement, then
     // we'll have collected registernames

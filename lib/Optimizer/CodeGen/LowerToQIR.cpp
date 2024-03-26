@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -367,11 +367,78 @@ public:
          cudaq::opt::factory::getPointerType(context)},
         parentModule);
     SmallVector<Value> operands = adaptor.getOperands();
-    // Make sure to drop any length information from the type of the Pauli word.
+    // First need to check the type of the Pauli word. We expect
+    // a pauli_word directly `{i8*,i64}` or a string literal
+    // `ptr<i8>`. If it is a string literal, we need to map it to
+    // a pauli word.
     auto pauliWord = operands.back();
-    operands.pop_back();
+    if (auto ptrTy = dyn_cast<LLVM::LLVMPointerType>(pauliWord.getType())) {
+      // Make sure we have the right types to extract the
+      // length of the string literal
+      auto ptrEleTy = ptrTy.getElementType();
+      auto innerArrTy = dyn_cast<LLVM::LLVMArrayType>(ptrEleTy);
+      if (!innerArrTy)
+        return instOp.emitError(
+            "exp_pauli string literal expected to be ptr<array<i8 x N.>.");
+
+      // Get the number of elements in the provided string literal
+      auto numElements = innerArrTy.getNumElements() - 1;
+
+      // Remove the old operand
+      operands.pop_back();
+
+      // We must create the {i8*, i64} struct from the string literal
+      SmallVector<Type> structTys{
+          LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)),
+          rewriter.getIntegerType(64)};
+      auto structTy = LLVM::LLVMStructType::getLiteral(context, structTys);
+
+      // Allocate the char span struct
+      Value alloca = rewriter.create<LLVM::AllocaOp>(
+          loc, LLVM::LLVMPointerType::get(structTy),
+          ArrayRef<Value>{
+              cudaq::opt::factory::genLlvmI32Constant(loc, rewriter, 1)});
+
+      // We'll need these constants
+      auto zero = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 0);
+      auto one = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 1);
+      auto size =
+          cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numElements);
+
+      // Set the string literal data
+      auto strPtr = rewriter.create<LLVM::GEPOp>(
+          loc, LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)), alloca,
+          ValueRange{zero, zero});
+      auto castedPauli = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(context), pauliWord);
+      rewriter.create<LLVM::StoreOp>(loc, castedPauli, strPtr);
+
+      // Set the integer length
+      auto intPtr = rewriter.create<LLVM::GEPOp>(
+          loc, LLVM::LLVMPointerType::get(rewriter.getIntegerType(64)), alloca,
+          ValueRange{zero, one});
+      rewriter.create<LLVM::StoreOp>(loc, size, intPtr);
+
+      // Cast to raw opaque pointer
+      auto castedStore = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(context), alloca);
+      operands.push_back(castedStore);
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
+                                                operands);
+      return success();
+    }
+
+    // Here we know we have a pauli word expressed as `{i8*, i64}`.
+    // Allocate a stack slot for it and store what we have to that pointer,
+    // pass the pointer to NVQIR
+    Value alloca = rewriter.create<LLVM::AllocaOp>(
+        loc, LLVM::LLVMPointerType::get(pauliWord.getType()),
+        ArrayRef<Value>{
+            cudaq::opt::factory::genLlvmI32Constant(loc, rewriter, 1)});
+    rewriter.create<LLVM::StoreOp>(loc, pauliWord, alloca);
     auto castedPauli = rewriter.create<LLVM::BitcastOp>(
-        loc, cudaq::opt::factory::getPointerType(context), pauliWord);
+        loc, cudaq::opt::factory::getPointerType(context), alloca);
+    operands.pop_back();
     operands.push_back(castedPauli);
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
                                               operands);
@@ -1428,6 +1495,20 @@ public:
   }
 };
 
+class PoisonOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::PoisonOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::PoisonOp poison, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto resTy = getTypeConverter()->convertType(poison.getType());
+    // FIXME: This should use PoisonOp, obviously, when we upgrade MLIR.
+    rewriter.replaceOpWithNewOp<LLVM::UndefOp>(poison, resTy);
+    return success();
+  }
+};
+
 class UndefOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::UndefOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
@@ -1519,11 +1600,79 @@ public:
 
   ModuleOp getModule() { return getOperation(); }
 
+  // This is an ad hox transformation to convert constant array values into a
+  // buffer of constants.
+  LogicalResult eraseConstantArrayOps() {
+    bool ok = true;
+    getModule().walk([&](cudaq::cc::ConstantArrayOp carr) {
+      // If there is a constant array, then we expect that it is involved in
+      // a stdvec initializer expression. So look for the pattern and expand
+      // the store into a series of scalar stores.
+      //
+      //   %100 = cc.const_array [c1, c2, ... cN] : ...
+      //   %110 = cc.alloca ...
+      //   cc.store %100, %110 : ...
+      //   __________________________
+      //
+      //   cc.store c1, %110[0]
+      //   cc.store c2, %110[1]
+      //   ...
+      //   cc.store cN, %110[N-1]
+
+      // Are all uses the value to a store?
+      if (!std::all_of(carr->getUsers().begin(), carr->getUsers().end(),
+                       [&](auto *op) {
+                         auto st = dyn_cast<cudaq::cc::StoreOp>(op);
+                         return st && st.getValue() == carr.getResult();
+                       })) {
+        ok = false;
+        return;
+      }
+
+      auto eleTy = cast<cudaq::cc::ArrayType>(carr.getType()).getElementType();
+      auto ptrTy = cudaq::cc::PointerType::get(eleTy);
+      auto loc = carr.getLoc();
+      for (auto *user : carr->getUsers()) {
+        auto origStore = cast<cudaq::cc::StoreOp>(user);
+        OpBuilder builder(origStore);
+        auto buffer = origStore.getPtrvalue();
+        for (auto iter : llvm::enumerate(carr.getConstantValues())) {
+          auto v = [&]() -> Value {
+            auto val = iter.value();
+            if (auto fTy = dyn_cast<FloatType>(eleTy))
+              return builder.create<arith::ConstantFloatOp>(
+                  loc, cast<FloatAttr>(val).getValue(), fTy);
+            auto iTy = cast<IntegerType>(eleTy);
+            return builder.create<arith::ConstantIntOp>(
+                loc, cast<IntegerAttr>(val).getInt(), iTy);
+          }();
+          std::int32_t idx = iter.index();
+          Value arrWithOffset = builder.create<cudaq::cc::ComputePtrOp>(
+              loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+          builder.create<cudaq::cc::StoreOp>(loc, v, arrWithOffset);
+        }
+        origStore.erase();
+      }
+
+      carr.erase();
+    });
+    return ok ? success() : failure();
+  }
+
   void runOnOperation() override final {
     auto *context = &getContext();
+
+    // Ad hoc deal with ConstantArrayOp transformation.
+    // TODO: Merge this into the codegen dialect once that gets to main.
+    if (failed(eraseConstantArrayOps())) {
+      getModule().emitOpError("unexpected constant arrays");
+      signalPassFailure();
+      return;
+    }
+
     LLVMConversionTarget target{*context};
     LLVMTypeConverter typeConverter(&getContext());
-    initializeTypeConversions(typeConverter);
+    cudaq::opt::initializeTypeConversions(typeConverter);
     RewritePatternSet patterns(context);
 
     populateComplexToLibmConversionPatterns(patterns, 1);
@@ -1556,7 +1705,7 @@ public:
         OneTargetOneParamRewrite<quake::RyOp>,
         OneTargetOneParamRewrite<quake::RzOp>,
         OneTargetTwoParamRewrite<quake::U2Op>,
-        OneTargetTwoParamRewrite<quake::U3Op>, ResetRewrite,
+        OneTargetTwoParamRewrite<quake::U3Op>, PoisonOpPattern, ResetRewrite,
         StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
         StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
         UndefOpPattern>(typeConverter);
@@ -1568,55 +1717,52 @@ public:
     if (failed(applyFullConversion(getModule(), target, std::move(patterns))))
       signalPassFailure();
   }
-
-  void initializeTypeConversions(LLVMTypeConverter &typeConverter) {
-    typeConverter.addConversion([](quake::VeqType type) {
-      return cudaq::opt::getArrayType(type.getContext());
-    });
-    typeConverter.addConversion([](quake::RefType type) {
-      return cudaq::opt::getQubitType(type.getContext());
-    });
-    typeConverter.addConversion([](cudaq::cc::CallableType type) {
-      return lambdaAsPairOfPointers(type.getContext());
-    });
-    typeConverter.addConversion([&typeConverter](cudaq::cc::StdvecType type) {
-      auto eleTy = typeConverter.convertType(type.getElementType());
-      return cudaq::opt::factory::stdVectorImplType(eleTy);
-    });
-    typeConverter.addConversion([](quake::MeasureType type) {
-      return IntegerType::get(type.getContext(), 1);
-    });
-    typeConverter.addConversion([&typeConverter](cudaq::cc::PointerType type) {
-      auto eleTy = type.getElementType();
-      if (isa<NoneType>(eleTy))
-        return cudaq::opt::factory::getPointerType(type.getContext());
-      eleTy = typeConverter.convertType(eleTy);
-      if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy)) {
-        // If array has a static size, it becomes an LLVMArrayType.
-        assert(arrTy.isUnknownSize());
-        return cudaq::opt::factory::getPointerType(
-            typeConverter.convertType(arrTy.getElementType()));
-      }
-      return cudaq::opt::factory::getPointerType(eleTy);
-    });
-    typeConverter.addConversion(
-        [&typeConverter](cudaq::cc::ArrayType type) -> Type {
-          auto eleTy = typeConverter.convertType(type.getElementType());
-          if (type.isUnknownSize())
-            return type;
-          return LLVM::LLVMArrayType::get(eleTy, type.getSize());
-        });
-    typeConverter.addConversion(
-        [&typeConverter](cudaq::cc::StructType type) -> Type {
-          SmallVector<Type> members;
-          for (auto t : type.getMembers())
-            members.push_back(typeConverter.convertType(t));
-          return LLVM::LLVMStructType::getLiteral(type.getContext(), members);
-        });
-  }
 };
 
 } // namespace
+
+void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
+  typeConverter.addConversion(
+      [](quake::VeqType type) { return getArrayType(type.getContext()); });
+  typeConverter.addConversion(
+      [](quake::RefType type) { return getQubitType(type.getContext()); });
+  typeConverter.addConversion([](cc::CallableType type) {
+    return lambdaAsPairOfPointers(type.getContext());
+  });
+  typeConverter.addConversion([&typeConverter](cc::SpanLikeType type) {
+    auto eleTy = typeConverter.convertType(type.getElementType());
+    return factory::stdVectorImplType(eleTy);
+  });
+  typeConverter.addConversion([](quake::MeasureType type) {
+    return IntegerType::get(type.getContext(), 1);
+  });
+  typeConverter.addConversion([&typeConverter](cc::PointerType type) {
+    auto eleTy = type.getElementType();
+    if (isa<NoneType>(eleTy))
+      return factory::getPointerType(type.getContext());
+    eleTy = typeConverter.convertType(eleTy);
+    if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
+      // If array has a static size, it becomes an LLVMArrayType.
+      assert(arrTy.isUnknownSize());
+      return factory::getPointerType(
+          typeConverter.convertType(arrTy.getElementType()));
+    }
+    return factory::getPointerType(eleTy);
+  });
+  typeConverter.addConversion([&typeConverter](cc::ArrayType type) -> Type {
+    auto eleTy = typeConverter.convertType(type.getElementType());
+    if (type.isUnknownSize())
+      return type;
+    return LLVM::LLVMArrayType::get(eleTy, type.getSize());
+  });
+  typeConverter.addConversion([&typeConverter](cc::StructType type) -> Type {
+    SmallVector<Type> members;
+    for (auto t : type.getMembers())
+      members.push_back(typeConverter.convertType(t));
+    return LLVM::LLVMStructType::getLiteral(type.getContext(), members,
+                                            type.getPacked());
+  });
+}
 
 std::unique_ptr<Pass> cudaq::opt::createConvertToQIRPass() {
   return std::make_unique<QuakeToQIRRewrite>();

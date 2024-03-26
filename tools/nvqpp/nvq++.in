@@ -321,6 +321,7 @@ CXX=${LLVMBIN}clang++${llvm_suffix}
 LINKER_CXX=${CXX}
 CMAKE_FALLBACK_HOST_CXX=${CXX}
 TARGET_ARGS=()
+HOST_TARGET=$(${LLVMBIN}llc${llvm_suffix} --version | grep "Default target" | head -1 | cut -d':' -f2 | tr -d ' ')
 
 if [[ $# -eq 0 ]]; then
     SHOW_HELP=true
@@ -589,6 +590,13 @@ COMPILER_FLAGS="${CPPSTD} -Wno-c++20-extensions ${COMPILER_FLAGS}"
 # the resultant binary to target that specified backend.
 OBJS_TO_MERGE=""
 if [ -n "${TARGET_CONFIG}" ]; then
+	# Disable compilation on non-x86 machines when targetting NVQC.
+	# See https://github.com/NVIDIA/cuda-quantum/issues/1345 for current status.
+	if [ "${TARGET_CONFIG}" == "nvqc" ]; then
+		if [ "${HOST_TARGET:0:6}" != "x86_64" ]; then
+			error_exit "Cannot use nvqc target from non-x86_64 client at this time"
+		fi
+	fi
 	TARGET_CONFIG_FILE="${install_dir}/targets/${TARGET_CONFIG}.config"
 	if [ -f "${TARGET_CONFIG_FILE}" ]; then
 		GEN_TARGET_BACKEND=false

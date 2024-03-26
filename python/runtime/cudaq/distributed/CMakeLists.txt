@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -16,7 +16,9 @@ if (SKBUILD)
     target_link_libraries(${LIBRARY_NAME} PRIVATE pybind11::pybind11 Python::Module)
     target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--unresolved-symbols=ignore-in-object-files)
 else()
-    find_package(Python 3 COMPONENTS Development.Embed REQUIRED)
+    if (NOT Python_FOUND)
+      message(FATAL_ERROR "find_package(Python) not run?")
+    endif()
     target_link_libraries(${LIBRARY_NAME} PRIVATE pybind11::pybind11 Python::Python)
 endif()
 target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime/cudaq/distributed)

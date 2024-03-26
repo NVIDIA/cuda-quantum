@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -72,6 +72,14 @@ def test_target_override():
 
 
 os.environ.pop("CUDAQ_DEFAULT_SIMULATOR")
+
+
+# This isn't really an environment variable test, but version checking could
+# loosely be interpreted as "environment" checking, so hence placing the test
+# here.
+def test_version():
+    assert "CUDA Quantum Version" in cudaq.__version__
+
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -46,7 +46,7 @@ definitions:
       version:
         type: integer
         format: int64
-        description: Version number of this RestRequest schema.
+        description: Version number of the payload. Each REST server version only supports a specific payload version. 
         example: 1
       clientVersion:
         type: string

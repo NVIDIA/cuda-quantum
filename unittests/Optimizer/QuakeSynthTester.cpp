@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -22,8 +22,8 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/Passes.h"
-
 #include <gtest/gtest.h>
+#include <iostream>
 
 using namespace mlir;
 
@@ -118,7 +118,7 @@ TEST(QuakeSynthTests, checkSimpleIntegerInput) {
   auto qubits = kernel.qalloc(nQubits);
   kernel.h(qubits);
   kernel.mz(qubits);
-  printf("%s\n", kernel.to_quake().c_str());
+  std::cout << kernel.to_quake() << '\n';
 
   // Set the proper name for the kernel
   auto properName = cudaq::runtime::cudaqGenPrefixName + kernel.name();
@@ -127,7 +127,7 @@ TEST(QuakeSynthTests, checkSimpleIntegerInput) {
   auto counts = cudaq::sample(kernel, 5);
   EXPECT_EQ(counts.size(), 32);
 
-  // Map the kernel_builder to_quake output  to MLIR
+  // Map the kernel_builder to_quake output to MLIR
   auto context = cudaq::initializeMLIR();
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
@@ -169,7 +169,7 @@ TEST(QuakeSynthTests, checkDoubleInput) {
   kernel.x<cudaq::ctrl>(q[0], q[1]);
   kernel.x<cudaq::ctrl>(q[1], q[0]);
 
-  printf("%s\n", kernel.to_quake().c_str());
+  std::cout << kernel.to_quake() << '\n';
 
   // Set the proper name for the kernel
   auto properName = cudaq::runtime::cudaqGenPrefixName + kernel.name();
@@ -212,7 +212,7 @@ TEST(QuakeSynthTests, checkDoubleInput) {
   EXPECT_NEAR(energy, -2.045375, 1e-3);
 }
 
-TEST(QuakeSynthTester, checkVector) {
+TEST(QuakeSynthTests, checkVectorOfDouble) {
   auto [kernel, thetas] = cudaq::make_kernel<std::vector<double>>();
   auto theta = thetas[0];
   auto phi = thetas[1];
@@ -226,7 +226,7 @@ TEST(QuakeSynthTester, checkVector) {
   kernel.x<cudaq::ctrl>(q[0], q[1]);
   kernel.x<cudaq::ctrl>(q[1], q[0]);
 
-  printf("%s\n", kernel.to_quake().c_str());
+  std::cout << kernel.to_quake() << '\n';
 
   // Set the proper name for the kernel
   auto properName = cudaq::runtime::cudaqGenPrefixName + kernel.name();
@@ -268,6 +268,97 @@ TEST(QuakeSynthTester, checkVector) {
   energy = observeJitCode(jit.get(), h3, kernel.name());
   // Should see the same thing as before.
   EXPECT_NEAR(energy, -2.045375, 1e-3);
+}
+
+TEST(QuakeSynthTests, checkVectorOfInt) {
+  auto [kernel, hiddenBits] = cudaq::make_kernel<std::vector<int>>();
+
+  auto q = kernel.qalloc(hiddenBits.size());
+  auto aq = kernel.qalloc();
+
+  kernel.h(aq);
+  kernel.z(aq);
+  kernel.h(q);
+  for (std::size_t i = 0; i < *q.constantSize(); ++i) {
+    kernel.c_if(hiddenBits[i], [&]() { kernel.x<cudaq::ctrl>(aq, q[i]); });
+  }
+  kernel.h(q);
+  kernel.mz(q);
+
+  // Dump the kernel to stdout.
+  std::cout << kernel.to_quake() << '\n';
+
+  // Set the proper name for the kernel
+  auto properName = cudaq::runtime::cudaqGenPrefixName + kernel.name();
+
+  // Should get a uniform distribution of all bit strings
+  std::vector<int> ghostBits = {0, 1, 1, 0, 0};
+  auto counts = cudaq::sample(kernel, ghostBits);
+  EXPECT_EQ(counts.size(), 1);
+
+  // Map the kernel_builder to_quake output to MLIR
+  auto context = cudaq::initializeMLIR();
+  auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
+
+  // Create a struct defining the runtime args for the kernel
+  auto [args, offset] = cudaq::mapToRawArgs(kernel.name(), ghostBits);
+
+  // Run quake-synth
+  EXPECT_TRUE(succeeded(runQuakeSynth(kernel.name(), args, module)));
+
+  // Get the function, make sure that it has no arguments
+  auto func = module->lookupSymbol<func::FuncOp>(properName);
+  EXPECT_TRUE(func);
+  EXPECT_TRUE(func.getArguments().empty());
+
+  func.dump();
+
+  // Lower to LLVM and create the JIT execution engine
+  EXPECT_TRUE(succeeded(lowerToLLVMDialect(*module)));
+  auto jitOrError = ExecutionEngine::create(*module);
+  EXPECT_TRUE(!!jitOrError);
+  std::unique_ptr<ExecutionEngine> jit = std::move(jitOrError.get());
+
+  // Sample this new kernel processed with quake synth
+  auto countz = sampleJitCode(jit.get(), kernel.name());
+  EXPECT_EQ(countz.size(), 1);
+}
+
+TEST(QuakeSynthTests, checkCallable) {
+  auto [ansatz, thetas] = cudaq::make_kernel<std::vector<double>>();
+  auto q = ansatz.qalloc(2);
+  ansatz.x(q[0]);
+  ansatz.ry(thetas[0], q[1]);
+  ansatz.x<cudaq::ctrl>(q[1], q[0]);
+
+  auto [kernel, angles] = cudaq::make_kernel<std::vector<double>>();
+  kernel.call(ansatz, angles);
+
+  // Set the proper name for the kernel
+  auto properName = cudaq::runtime::cudaqGenPrefixName + kernel.name();
+
+  std::vector<double> argsValue = {0.0};
+  using namespace cudaq::spin;
+  cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                     .21829 * z(0) - 6.125 * z(1);
+  double energy = cudaq::observe(kernel, h, argsValue);
+  std::cout << "Energy = " << energy << "\n";
+  // Map the kernel_builder to_quake output to MLIR
+  auto context = cudaq::initializeMLIR();
+  std::cout << "Quake Code:\n" << kernel.to_quake() << "\n";
+  auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
+
+  // Create a struct defining the runtime args for the kernel
+  auto [args, offset] = cudaq::mapToRawArgs(kernel.name(), argsValue);
+
+  // Run quake-synth
+  EXPECT_TRUE(succeeded(runQuakeSynth(kernel.name(), args, module)));
+
+  // Get the function, make sure that it has no arguments
+  auto func = module->lookupSymbol<func::FuncOp>(properName);
+  func.dump();
+  EXPECT_TRUE(func);
+  EXPECT_TRUE(func.getArguments().empty());
 }
 
 int main(int argc, char **argv) {

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -162,8 +162,8 @@ protected:
 
     if (executionContext->canHandleObserve) {
       auto result = simulator()->observe(*executionContext->spin.value());
-      executionContext->expectationValue = result.expectationValue;
-      executionContext->result = cudaq::sample_result(result);
+      executionContext->expectationValue = result.expectation();
+      executionContext->result = result.raw_data();
       return;
     }
 

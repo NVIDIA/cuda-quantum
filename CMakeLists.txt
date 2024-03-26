@@ -113,19 +113,6 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
         message(FATAL_ERROR "Cloning git submodules failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually")
     endif()
-    # Apply patches; check if patch is already applied first, and apply it if not
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT
-                    ERROR_QUIET)
-    if(NOT GIT_PATCH_RESULT EQUAL "0")
-      execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                      RESULT_VARIABLE GIT_PATCH_RESULT)
-    endif()
-    if(NOT GIT_PATCH_RESULT EQUAL "0")
-        message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
-    endif()
   endif()
 endif()
 
@@ -476,6 +463,30 @@ set(SPDLOG_SYSTEM_INCLUDES ON)
 add_subdirectory(tpls/spdlog)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
+  # Look for CURL
+  set(CURL_STATICLIB ON)
+  set(CURL_USE_STATIC_LIBS TRUE)
+  find_package(CURL COMPONENTS HTTP HTTPS)
+
+  if (CURL_FOUND)
+    message(STATUS "Using system curl for CPR.")
+    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+  elseif (CMAKE_USE_SYSTEM_CURL)
+    message(FATAL_ERROR "CMAKE_USE_SYSTEM_CURL defined but a suitable package was not found. Make sure that `curl-config --protocols` lists HTTP and HTTPS.")
+  else()
+    message(STATUS "Curl not found. Building curl for CPR.")
+    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
+  endif()
+
+  # Now, build CPR as needed
+  set(BUILD_SHARED_LIBS OFF)
+  set(CPR_ENABLE_SSL ON) # needed for https requests
+  set(CPR_FORCE_OPENSSL_BACKEND ON)
+  add_subdirectory(tpls/cpr)
+  target_compile_options(cpr PRIVATE -Wno-covered-switch-default -w)
+endif()
+
 # QPP simulator
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(tpls/qpp EXCLUDE_FROM_ALL)
@@ -488,6 +499,12 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
   if (OpenMP_CXX_FOUND)
     target_compile_definitions(libqpp INTERFACE HAS_OPENMP)
   endif()
+endif()
+
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
+  # The asio submodule doesn't use cmake, so use find_path for it.
+  find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
+  add_subdirectory(tpls/Crow)
 endif()
 
 
@@ -543,9 +560,23 @@ add_subdirectory(tools)
 add_subdirectory(utils)
 
 if (CUDAQ_ENABLE_PYTHON)
-  set(PYBIND11_FINDPYTHON ON)
-  # Manually call find_package due to https://github.com/pybind/pybind11/pull/4805.
-  find_package(Python 3 COMPONENTS Interpreter Development.Module REQUIRED)
+  find_package(Python 3 COMPONENTS Interpreter Development)
+  
+  # Apply specific patch to pybind11 for our documentation.
+  # Only apply the patch if not already applied.
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_PATCH_RESULT
+                  ERROR_QUIET)
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_PATCH_RESULT)
+  endif()
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+  endif()
+  
   add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()

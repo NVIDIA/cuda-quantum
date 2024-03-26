@@ -28,6 +28,7 @@ Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
+pauli_word = cudaq_runtime.pauli_word
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
@@ -38,6 +39,7 @@ gradients = cudaq_runtime.gradients
 OptimizationResult = cudaq_runtime.OptimizationResult
 
 # Runtime Functions
+__version__ = cudaq_runtime.__version__
 initialize_cudaq = cudaq_runtime.initialize_cudaq
 set_target = cudaq_runtime.set_target
 reset_target = cudaq_runtime.reset_target

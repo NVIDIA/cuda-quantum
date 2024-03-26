@@ -14,12 +14,15 @@ import os
 
 cudaq.set_target("oqc")
 
+
 # Create the kernel we'd like to execute on OQC.
-kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(2)
-kernel.h(qubits[0])
-kernel.cx(qubits[0], qubits[1])
-kernel.mz(qubits)
+@cudaq.kernel
+def kernel():
+    qvector = cudaq.qvector(2)
+    h(qvector[0])
+    x.ctrl[qvector[1], qvector[1]]
+    mz(qvector)
+
 
 # Option A:
 # By using the asynchronous `cudaq.sample_async`, the remaining

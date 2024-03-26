@@ -178,10 +178,13 @@ jobs:
           NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
           NGC_CLI_ORG: ${{ env.NGC_QUANTUM_ORG }}
           NGC_CLI_TEAM: cuda-quantum
+        # When a new REST version is introduced, NVQC_REST_PAYLOAD_VERSION needs to be updated in lockstep with the new nightly CUDA Quantum image. 
+        # Otherwise, deployment of the test function will fail.
         run: |
           create_function_result=$(ngc-cli/ngc cloud-function function create \
             --container-image nvcr.io/${{ env.NGC_QUANTUM_ORG }}/${{ env.NGC_QUANTUM_TEAM }}/cuda-quantum:nightly \
             --container-environment-variable NUM_GPUS:1 \
+            --container-environment-variable NVQC_REST_PAYLOAD_VERSION:1 \
             --api-body-format CUSTOM \
             --inference-port 3030 \
             --health-uri / \
@@ -541,8 +544,9 @@ jobs:
             fi
           done
 
-          # Test NVQC Python examples
-          for ex in `find examples/python -name '*.py'`; do
+          # Test NVQC Python examples + Python MLIR execution tests (not IR tests)
+          python3 -m pip install pytest
+          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -559,7 +563,7 @@ jobs:
             else
               # Only run examples that are not target-specific (e.g., ionq, iqm)
               if ! grep -q "set_target" "$ex"; then
-                # Use --target command line option to run these examples with
+                # Use --target command line option to run these examples with nvqc
                 python3 $ex --target nvqc 1> /dev/null
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -657,8 +661,9 @@ jobs:
           export NVQC_FUNCTION_ID="$NVQC_FUNCTION_ID"
           export NVQC_FUNCTION_VERSION_ID="${{ needs.deploy_nvqc_test_function.outputs.nvqc_function_version_id }}"
           set +e # Allow script to keep going through errors
+          python$python_version -m pip install pytest
           test_err_sum=0
-          for ex in `find examples/python -name '*.py'`; do
+          for ex in `find examples/python python/tests/mlir/target -name '*.py'`; do
             filename=$(basename -- "$ex")
             filename="${filename%.*}"
             echo "Testing $filename:"
@@ -670,6 +675,19 @@ jobs:
               else
                 echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
                 test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              # Only run examples that are not target-specific (e.g., ionq, iqm)
+              if ! grep -q "set_target" "$ex"; then
+                # Use --target command line option to run these examples with nvqc
+                python$python_version $ex --target nvqc 1> /dev/null
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  echo ":white_check_mark: Successfully ran test: $ex" >> $GITHUB_STEP_SUMMARY
+                else
+                  echo ":x: Test failed (failed to execute): $ex" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
               fi
             fi
           done

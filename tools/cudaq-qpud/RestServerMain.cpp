@@ -30,6 +30,11 @@ constexpr const char *DEFAULT_SERVER_IMPL = "rest";
 static llvm::cl::opt<std::string> serverSubType(
     "type", llvm::cl::desc("HTTP server subtype handling incoming requests."),
     llvm::cl::init(DEFAULT_SERVER_IMPL));
+static llvm::cl::opt<bool> printRestPayloadVersion(
+    "schema-version",
+    llvm::cl::desc(
+        "Display the REST request payload version that this server supports."),
+    llvm::cl::init(false));
 
 int main(int argc, char **argv) {
   // The "fast" instruction selection compilation algorithm is actually very
@@ -60,6 +65,15 @@ int main(int argc, char **argv) {
     printf("[cudaq-qpud] Using server subtype: %s\n", serverSubType.c_str());
   auto restServer =
       cudaq::registry::get<cudaq::RemoteRuntimeServer>(serverSubType);
+
+  if (printRestPayloadVersion) {
+    // IMPORTANT: Don't change this message without updating
+    // `cudaq.nvqc.Dockerfile`, which relies on the this information to perform
+    // deployment sanity check.
+    printf("\nCUDA Quantum REST API version: %d\n", restServer->version());
+    return 0;
+  }
+
   restServer->init({{"port", std::to_string(port)}});
   restServer->start();
   if (cudaq::mpi::available())

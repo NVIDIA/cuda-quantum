@@ -68,6 +68,18 @@ template <typename... Args>
 void debug(const std::string_view, Args &&...) {}
 #endif
 
+/// @brief Log a message with timestamp.
+// Note 1: This will always log the message regardless of the logging level.
+// Note 2: File and line info is not included in the log line.
+template <typename... Args>
+void log(const std::string_view message, Args &&...args) {
+  const auto timestamp = std::chrono::system_clock::now();
+  fmt::print("[{:%Y-%m-%d %H:%M:}{:%S}] {}\n", timestamp,
+             std::chrono::round<std::chrono::milliseconds>(
+                 timestamp.time_since_epoch()),
+             fmt::format(fmt::runtime(message), args...));
+}
+
 /// @brief This type is meant to provided quick tracing
 /// of function calls. Instantiate at the beginning
 /// of a function and when it goes out of scope at function

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,6 +11,7 @@
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #pragma GCC diagnostic ignored "-Wrestrict"
 #endif
+#include <fmt/chrono.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))

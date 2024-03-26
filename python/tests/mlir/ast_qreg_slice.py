@@ -54,13 +54,13 @@ def test_slice():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice() attributes {"cudaq-entrypoint"} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant 3 : i64
-# CHECK:           %[[VAL_1:.*]] = arith.constant 4 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_4:.*]] = arith.constant 3.1415926535897931 : f64
-# CHECK:           %[[VAL_5:.*]] = arith.constant 5 : i64
-# CHECK:           %[[VAL_6:.*]] = arith.constant 0 : i64
+# CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 3 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 4 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 2 : i64
+# CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 3.1415926535897931 : f64
+# CHECK-DAG:           %[[VAL_5:.*]] = arith.constant 5 : i64
+# CHECK-DAG:           %[[VAL_6:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<4>
 # CHECK:           %[[VAL_8:.*]] = quake.subveq %[[VAL_7]], %[[VAL_2]], %[[VAL_0]] : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
 # CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref

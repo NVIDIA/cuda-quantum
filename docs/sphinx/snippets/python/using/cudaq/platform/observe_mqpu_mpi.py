@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,12 +12,16 @@ from cudaq import spin
 cudaq.mpi.initialize()
 cudaq.set_target("nvidia-mqpu")
 
+
 # Define spin ansatz.
-kernel, theta = cudaq.make_kernel(float)
-qvec = kernel.qalloc(2)
-kernel.x(qvec[0])
-kernel.ry(theta, qvec[1])
-kernel.cx(qvec[1], qvec[0])
+@cudaq.kernel
+def kernel(angle: float):
+    qvector = cudaq.qvector(2)
+    x(qvector[0])
+    ry(angle, qvector[1])
+    x.ctrl(qvector[1], qvector[0])
+
+
 # Define spin Hamiltonian.
 hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
     0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)

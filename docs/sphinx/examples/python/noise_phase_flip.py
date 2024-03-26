@@ -21,28 +21,28 @@ phase_flip = cudaq.PhaseFlipChannel(1.0)
 # Z rotation.
 noise.add_channel('z', [0], phase_flip)
 
-kernel = cudaq.make_kernel()
-# Single qubit initialized to the |0> state.
-qubit = kernel.qalloc()
 
-# Place qubit in superposition state.
-kernel.h(qubit)
+@cudaq.kernel
+def kernel():
+    # Single qubit initialized to the |0> state.
+    qubit = cudaq.qubit()
+    # Place qubit in superposition state.
+    h(qubit)
+    # Rotate the phase around Z by 180 degrees (π).
+    z(qubit)
+    # Apply another Hadamard and measure.
+    h(qubit)
+    mz(qubit)
 
-# Rotate the phase around Z by 180 degrees (π).
-kernel.z(qubit)
-
-# Apply another Hadamard and measure.
-kernel.h(qubit)
-kernel.mz(qubit)
 
 # Without noise, we'd expect the qubit to end in the |1>
 # state due to the phase rotation between the two Hadamard
 # gates.
-counts = cudaq.sample(kernel)
-counts.dump()
+noiseless_result = cudaq.sample(kernel)
+print(noiseless_result)
 
 # With noise, our Z-gate will effectively cancel out due
 # to the presence of a phase flip error on the gate with a
 # probability of `1.0`. This will put us back in the |0> state.
-noisy_counts = cudaq.sample(kernel, noise_model=noise)
-noisy_counts.dump()
+noisy_result = cudaq.sample(kernel, noise_model=noise)
+print(noisy_result)

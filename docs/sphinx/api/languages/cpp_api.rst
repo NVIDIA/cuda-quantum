@@ -61,6 +61,8 @@ Common
 
 .. doxygenclass:: cudaq::Trace
 
+.. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
+
 .. doxygenclass:: cudaq::Resources
 
 .. doxygentypedef:: cudaq::complex_matrix::value_type
@@ -140,6 +142,8 @@ Platform
 .. doxygenclass:: cudaq::BaseRemoteRESTQPU
 
 .. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
+
+.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU    
 
 .. doxygenclass:: cudaq::quantum_platform
     :members:

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -108,6 +108,12 @@ void registerCCDialectAndTypes(py::module &m) {
         }
       },
       py::arg("context") = py::none(), py::arg("load") = true);
+
+  mlir_type_subclass(ccMod, "CharspanType", [](MlirType type) {
+    return unwrap(type).isa<cudaq::cc::CharspanType>();
+  }).def_classmethod("get", [](py::object cls, MlirContext ctx) {
+    return wrap(cudaq::cc::CharspanType::get(unwrap(ctx)));
+  });
 
   mlir_type_subclass(
       ccMod, "PointerType",

@@ -147,6 +147,10 @@ public:
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
 
+  /// @brief Called by the runtime to notify that a new random seed value is
+  /// set.
+  virtual void onRandomSeedSet(std::size_t seed);
+
 protected:
   /// The Platform QPUs, populated by concrete subtypes
   std::vector<std::unique_ptr<QPU>> platformQPUs;

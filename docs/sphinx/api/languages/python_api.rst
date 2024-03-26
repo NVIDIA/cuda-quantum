@@ -50,6 +50,12 @@ Program Construction
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
+
+.. autoclass:: cudaq::PyKernelDecorator
+    :members:
+    :special-members: __str__, __call__
+
+.. autofunction:: kernel
     
 Kernel Execution
 =============================
@@ -61,6 +67,7 @@ Kernel Execution
 .. autofunction:: cudaq::get_state
 .. autofunction:: cudaq::get_state_async
 .. autofunction:: cudaq::vqe
+.. autofunction:: cudaq::draw    
 
 Backend Configuration
 =============================

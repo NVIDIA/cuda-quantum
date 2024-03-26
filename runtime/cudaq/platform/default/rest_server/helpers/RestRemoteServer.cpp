@@ -120,6 +120,10 @@ public:
       : cudaq::RemoteRuntimeServer(),
         m_simHandle(DEFAULT_NVQIR_SIMULATION_BACKEND,
                     loadNvqirSimLib(DEFAULT_NVQIR_SIMULATION_BACKEND)) {}
+
+  virtual int version() const override {
+    return cudaq::RestRequest::REST_PAYLOAD_VERSION;
+  }
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) override {
     const auto portIter = configs.find("port");
@@ -493,16 +497,69 @@ protected:
     return simLibHandle;
   }
 
-  virtual json processRequest(const std::string &reqBody) {
+  virtual json processRequest(const std::string &reqBody,
+                              bool forceLog = false) {
+    // Create a watchdog thread to kill the process if the request is taking too
+    // long.
+    std::mutex watchdogMutex;
+    std::condition_variable watchdogCV;
+    bool processingComplete = false;
+    std::future<void> watchdogResult = std::async(std::launch::async, [&]() {
+      std::unique_lock<std::mutex> lock(watchdogMutex);
+      std::chrono::seconds timeout(60 * 60 * 24 * 30); // default to 30 days
+      if (auto timeoutStr = getenv("WATCHDOG_TIMEOUT_SEC"))
+        timeout = std::chrono::seconds(atoi(timeoutStr));
+
+      if (watchdogCV.wait_for(lock, timeout,
+                              [&]() { return processingComplete; })) {
+        // Succeeded. Gracefully return from the async.
+        return;
+      } else {
+        // Timed out. Perform abort.
+        fmt::print("Processing timed out after {} seconds! Aborting!\n",
+                   timeout.count());
+        exit(-1);
+      }
+    });
+
+    // Notify watchdog thread of graceful completion at scope exit
+    auto notifyWatchdog = llvm::make_scope_exit([&] {
+      std::unique_lock<std::mutex> lock(watchdogMutex);
+      processingComplete = true;
+      lock.unlock();
+      watchdogCV.notify_one();
+      watchdogResult.get();
+    });
+
     try {
       // IMPORTANT: This assumes the REST server handles incoming requests
       // sequentially.
       static std::size_t g_requestCounter = 0;
       auto requestJson = json::parse(reqBody);
       cudaq::RestRequest request(requestJson);
-      cudaq::info(
-          "[RemoteRestRuntimeServer] Incoming job request from client {}",
-          request.clientVersion);
+
+      std::ostringstream os;
+      os << "[RemoteRestRuntimeServer] Incoming job request from client "
+         << request.clientVersion;
+      if (forceLog) {
+        // Force the request to appear in the logs regardless of server log
+        // level.
+        cudaq::log(os.str());
+      } else {
+        cudaq::info(os.str());
+      }
+
+      // Verify REST API version of the incoming request
+      // If the incoming JSON payload has a different version than the one this
+      // server is expecting, throw an error. Note: we don't support
+      // automatically versioning the payload (converting payload between
+      // different versions) at the moment.
+      if (static_cast<int>(request.version) != version())
+        throw std::runtime_error(fmt::format(
+            "Incompatible REST payload version detected: supported version {}, "
+            "got version {}.",
+            version(), request.version));
+
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);
       if (!shouldHandle) {
@@ -557,8 +614,13 @@ protected:
   }
 
 protected:
-  virtual json processRequest(const std::string &reqBody) override {
-    auto executionResult = RemoteRestRuntimeServer::processRequest(reqBody);
+  virtual json processRequest(const std::string &reqBody,
+                              bool forceLog = false) override {
+    // When calling RemoteRestRuntimeServer::processRequest, set forceLog=true
+    // so that incoming requests are always logged, regardless of what log level
+    // we're running the server at.
+    auto executionResult =
+        RemoteRestRuntimeServer::processRequest(reqBody, /*forceLog=*/true);
     // Amend execution information
     executionResult["executionInfo"] = constructExecutionInfo();
     return executionResult;

@@ -11,16 +11,20 @@ import math
 cudaq.set_target("nvqc", nqpus=3)
 
 print("Number of QPUs:", cudaq.get_target().num_qpus())
+
+
 # Note: depending on the user's account, there might be different
 # number of NVQC worker instances available. Hence, although we're making
 # concurrent job submissions across multiple QPUs, the speedup would be
 # determined by the number of NVQC worker instances.
 # Create the parameterized ansatz
-kernel, theta = cudaq.make_kernel(float)
-qreg = kernel.qalloc(2)
-kernel.x(qreg[0])
-kernel.ry(theta, qreg[1])
-kernel.cx(qreg[1], qreg[0])
+@cudaq.kernel
+def ansatz(theta: float):
+    qvector = cudaq.qvector(2)
+    x(qvector[0])
+    ry(theta, qvector[1])
+    x.ctrl(qvector[1], qvector[0])
+
 
 # Define its spin Hamiltonian.
 hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
@@ -31,15 +35,15 @@ hamiltonian = (5.907 - 2.1433 * spin.x(0) * spin.x(1) -
 def opt_gradient(parameter_vector):
     # Evaluate energy and gradient on different remote QPUs
     # (i.e., concurrent job submissions to NVQC)
-    energy_future = cudaq.observe_async(kernel,
+    energy_future = cudaq.observe_async(ansatz,
                                         hamiltonian,
                                         parameter_vector[0],
                                         qpu_id=0)
-    plus_future = cudaq.observe_async(kernel,
+    plus_future = cudaq.observe_async(ansatz,
                                       hamiltonian,
                                       parameter_vector[0] + 0.5 * math.pi,
                                       qpu_id=1)
-    minus_future = cudaq.observe_async(kernel,
+    minus_future = cudaq.observe_async(ansatz,
                                        hamiltonian,
                                        parameter_vector[0] - 0.5 * math.pi,
                                        qpu_id=2)

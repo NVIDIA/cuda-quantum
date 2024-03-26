@@ -1,24 +1,29 @@
 import cudaq
 from cudaq import spin
 
+from typing import List
+
 # We begin by defining the spin Hamiltonian for the system that we are working
 # with. This is achieved through the use of `cudaq.SpinOperator`'s, which allow
 # for the convenient creation of complex Hamiltonians out of Pauli spin operators.
 hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
     0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
+
 # Next, using the `cudaq.Kernel`, we define the variational quantum circuit
 # that we'd like to use as an ansatz.
 # Create a kernel that takes a list of floats as a function argument.
-kernel, thetas = cudaq.make_kernel(list)
-# Allocate 2 qubits.
-qubits = kernel.qalloc(2)
-kernel.x(qubits[0])
-# Apply an `ry` gate that is parameterized by the first
-# `QuakeValue` entry of our list, `thetas`.
-kernel.ry(thetas[0], qubits[1])
-kernel.cx(qubits[1], qubits[0])
-# Note: the kernel must not contain measurement instructions.
+@cudaq.kernel
+def kernel(angles: List[float]):
+    # Allocate 2 qubits.
+    qubits = cudaq.qvector(2)
+    x(qubits[0])
+    # Apply an `ry` gate that is parameterized by the first value
+    # of our `angles`.
+    ry(angles[0], qubits[1])
+    x.ctrl(qubits[1], qubits[0])
+    # Note: the kernel must not contain measurement instructions.
+
 
 # The last thing we need is to pick an optimizer from the suite of `cudaq.optimizers`.
 # We can optionally tune this optimizer through its initial parameters, iterations,

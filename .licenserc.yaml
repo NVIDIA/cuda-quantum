@@ -31,6 +31,7 @@ header:
     - 'build'
     - 'examples'
     - 'tpls'
+    - 'docs/sphinx/**/*.html'
     - 'docs/sphinx/examples'
     - 'docs/sphinx/_templates'
     - 'docs/sphinx/_static/cuda_quantum_icon.svg'
