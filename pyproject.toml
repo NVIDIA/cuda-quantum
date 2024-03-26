@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -33,7 +33,7 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5" ]
 
 [build-system]
-requires = ["scikit-build-core", "cmake>=3.26"]
+requires = ["scikit-build-core", "cmake>=3.26,<3.29"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
