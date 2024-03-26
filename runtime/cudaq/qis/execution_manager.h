@@ -36,6 +36,7 @@ struct QuantumOperation {
   const std::vector<QuditInfo> &targets;
   bool isAdjoint = false;
   const spin_op op = spin_op();
+  const std::vector<std::complex<double>> unitary;
 };
 
 extern "C" {
@@ -119,7 +120,8 @@ public:
                      const std::vector<double> &params,
                      const std::vector<QuditInfo> &controls,
                      const std::vector<QuditInfo> &targets,
-                     bool isAdjoint = false, const spin_op op = spin_op()) = 0;
+                     bool isAdjoint = false, const spin_op op = spin_op(),
+                     const std::vector<std::complex<double>> unitary = {}) = 0;
 
   /// Reset the qubit to the |0> state
   virtual void reset(const QuditInfo &target) = 0;

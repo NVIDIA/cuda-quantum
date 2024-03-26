@@ -118,6 +118,7 @@ def test_quantinuum_exp_pauli():
 
 
 def test_u3_emulatation():
+
     @cudaq.kernel
     def check_x():
         q = cudaq.qubit()
@@ -125,6 +126,20 @@ def test_u3_emulatation():
 
     with pytest.raises(RuntimeError) as error:
         counts = cudaq.sample(check_x)
+
+
+def test_arbitrary_unitary_synthesis():
+    import numpy as np
+    custom_h = cudaq.register_operation(1. / np.sqrt(2.) *
+                                        np.array([[1, 1], [1, -1]]))
+
+    @cudaq.kernel
+    def basic():
+        q = cudaq.qubit()
+        custom_h(q)
+
+    with pytest.raises(RuntimeError) as error:
+        cudaq.sample(basic)
 
 
 # leave for gdb debugging

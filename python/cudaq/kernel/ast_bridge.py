@@ -11,8 +11,8 @@ import sys, os
 from typing import Callable
 from collections import deque
 import numpy as np
-from .analysis import FindDepKernelsVisitor
-from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
+from .analysis import FindDepKernelsVisitor, preprocessCustomOperationLambda
+from .utils import globalAstRegistry, globalKernelRegistry, globalRegisteredUnitaries, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
@@ -1079,6 +1079,8 @@ class PyASTBridge(ast.NodeVisitor):
             ry(np.pi, qubits)
         ```
         """
+        global globalRegisteredUnitaries
+
         if self.verbose:
             print("[Visit Call] {}".format(
                 ast.unparse(node) if hasattr(ast, 'unparse') else node))
@@ -1507,6 +1509,61 @@ class PyASTBridge(ast.NodeVisitor):
                         params[idx] = arith.SIToFPOp(self.getFloatType(),
                                                      val).result
                 self.__applyQuantumOperation(node.func.id, params, qubitTargets)
+                return
+
+            if node.func.id in globalRegisteredUnitaries:
+                unitary = globalRegisteredUnitaries[node.func.id]
+                resTy = cc.StdvecType.get(self.ctx,
+                                          ComplexType.get(self.getFloatType()))
+                # Unitary could be constant or it could be a parameterized callable
+                if isinstance(unitary, Callable):
+                    if node.func.id not in SymbolTable(self.module.operation):
+                        # Get unitary source and AST
+                        unitaryModule = preprocessCustomOperationLambda(
+                            unitary, node.func.id)
+                        PyASTBridge(
+                            existingModule=self.module,
+                            knownResultType=resTy,
+                            disableEntryPointTag=True,
+                            disableNvqppPrefix=True).visit(unitaryModule)
+
+                    funcOp = SymbolTable(self.module.operation)[node.func.id]
+                    numParams = len(funcOp.arguments)
+                    numVals = len(self.valueStack)
+                    operands = [self.popValue() for _ in range(numVals)]
+                    operands.reverse()
+                    params = operands[:numParams]
+                    qubits = operands[numParams:]  # `numVals`-`numParams`
+                    res = func.CallOp([resTy], node.func.id, params).result
+                    quake.UnitaryOp(StringAttr.get(node.func.id),
+                                    controls=[],
+                                    targets=qubits,
+                                    unitary=res)
+                    return
+
+                # how many targets should there be?
+                numTargets = int(np.log2(unitary.shape[0]))
+                if len(self.valueStack) != numTargets:
+                    self.emitFatalError(
+                        "invalid number of arguments passed to callable {} ({} vs required {})"
+                        .format(node.func.id, len(node.args), numTargets), node)
+                targets = [self.popValue() for _ in range(numTargets)]
+                targets.reverse()
+                # flatten the matrix
+                unitary = list(unitary.flat)
+                # Need to map to an `ArrayAttr<ArrayAttr>` where each element
+                # is a pair (represented as an array) -> (real, imaginary)
+                arrayAttrList = []
+                for el in unitary:
+                    arrayAttrList.append(
+                        DenseF32ArrayAttr.get([np.real(el),
+                                               np.imag(el)]))
+                unitary = ArrayAttr.get(arrayAttrList)
+                quake.UnitaryOp(StringAttr.get(node.func.id),
+                                controls=[],
+                                targets=targets,
+                                constantUnitary=unitary,
+                                is_adj=False)
                 return
 
             if node.func.id in globalKernelRegistry:
@@ -1942,6 +1999,50 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(
                     f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                 )
+
+            if node.func.value.id in globalRegisteredUnitaries:
+                unitary = globalRegisteredUnitaries[node.func.value.id]
+                # how many targets should there be?
+                numTargets = int(np.log2(unitary.shape[0]))
+                # flatten the matrix
+                unitary = list(unitary.flat)
+                # Need to map to an `ArrayAttr<ArrayAttr>`` where each element
+                # is a pair (represented as an array) -> (real, imaginary)
+                arrayAttrList = []
+                for el in unitary:
+                    arrayAttrList.append(
+                        DenseF32ArrayAttr.get([np.real(el),
+                                               np.imag(el)]))
+                unitary = ArrayAttr.get(arrayAttrList)
+                targets = [self.popValue() for _ in range(numTargets)]
+                targets.reverse()
+                controls = [
+                    self.popValue() for _ in range(len(self.valueStack))
+                ]
+                negatedControlQubits = None
+                if node.func.attr == 'ctrl':
+                    is_adj = False
+
+                    if len(self.controlNegations):
+                        negCtrlBool = control in self.controlNegations
+                        negatedControlQubits = DenseBoolArrayAttr.get(
+                            negCtrlBool)
+                        self.controlNegations.clear()
+                    self.checkControlAndTargetTypes(controls, targets)
+                elif node.func.attr == 'adj':
+                    is_adj = True
+                else:
+                    self.emitFatalError(
+                        f'Unknown attribute on custom operation {node.func.value.id} ({node.func.attr}).'
+                    )
+
+                quake.UnitaryOp(StringAttr.get(node.func.value.id),
+                                controls=controls,
+                                targets=targets,
+                                constantUnitary=unitary,
+                                is_adj=is_adj,
+                                negated_qubit_controls=negatedControlQubits)
+                return
 
             # We have a `func_name.ctrl`
             if node.func.value.id == 'swap' and node.func.attr == 'ctrl':

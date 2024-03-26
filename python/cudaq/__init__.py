@@ -36,10 +36,11 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
-from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
+from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredUnitaries
 from .runtime.sample import sample
 from .runtime.observe import observe
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
+from .runtime.register_op import register_operation
 
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
@@ -114,9 +115,10 @@ def synthesize(kernel, *args):
 
 
 def __clearKernelRegistries():
-    global globalKernelRegistry, globalAstRegistry
+    global globalKernelRegistry, globalAstRegistry, globalRegisteredUnitaries
     globalKernelRegistry.clear()
     globalAstRegistry.clear()
+    globalRegisteredUnitaries.clear()
 
 
 # Expose chemistry domain functions

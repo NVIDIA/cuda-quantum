@@ -36,9 +36,10 @@ protected:
   /// @brief An instruction is composed of a operation name,
   /// a optional set of rotation parameters, control qudits,
   /// target qudits, and an optional spin_op.
-  using Instruction = std::tuple<std::string, std::vector<double>,
-                                 std::vector<cudaq::QuditInfo>,
-                                 std::vector<cudaq::QuditInfo>, spin_op>;
+  using Instruction =
+      std::tuple<std::string, std::vector<double>,
+                 std::vector<cudaq::QuditInfo>, std::vector<cudaq::QuditInfo>,
+                 spin_op, std::vector<std::complex<double>>>;
 
   /// @brief `typedef` for a queue of instructions
   using InstructionQueue = std::vector<Instruction>;
@@ -178,7 +179,9 @@ public:
   void apply(const std::string_view gateName, const std::vector<double> &params,
              const std::vector<cudaq::QuditInfo> &controls,
              const std::vector<cudaq::QuditInfo> &targets,
-             bool isAdjoint = false, spin_op op = spin_op()) override {
+             bool isAdjoint = false, const spin_op op = spin_op(),
+             const std::vector<std::complex<double>> unitary =
+                 std::vector<std::complex<double>>{}) override {
 
     // Make a copy of the name that we can mutate if necessary
     std::string mutable_name(gateName);
@@ -225,14 +228,16 @@ public:
 
     if (!adjointQueueStack.empty()) {
       // Add to the adjoint instruction queue
-      adjointQueueStack.back().emplace_back(
-          mutable_name, mutable_params, mutable_controls, mutable_targets, op);
+      adjointQueueStack.back().emplace_back(mutable_name, mutable_params,
+                                            mutable_controls, mutable_targets,
+                                            op, unitary);
       return;
     }
 
     // Add to the instruction queue
     instructionQueue.emplace_back(std::move(mutable_name), mutable_params,
-                                  mutable_controls, mutable_targets, op);
+                                  mutable_controls, mutable_targets, op,
+                                  unitary);
   }
 
   void synchronize() override {
@@ -242,7 +247,7 @@ public:
         continue;
       }
 
-      auto &&[name, params, controls, targets, op] = instruction;
+      auto &&[name, params, controls, targets, op, unitary] = instruction;
       executionContext->kernelTrace.appendInstruction(name, params, controls,
                                                       targets);
     }

@@ -32,6 +32,10 @@ globalKernelRegistry = {}
 # and the source code location for the kernel.
 globalAstRegistry = {}
 
+# Keep a global registry of all registered custom
+# unitary operations.
+globalRegisteredUnitaries = {}
+
 
 class Color:
     RED = '\033[91m'

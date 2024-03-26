@@ -106,7 +106,7 @@ public:
     instructions.emplace("plusGate", [&](const Instruction &inst) {
       qpp::cmat u(3, 3);
       u << 0, 0, 1, 1, 0, 0, 0, 1, 0;
-      auto &[gateName, params, controls, qudits, op] = inst;
+      auto &[gateName, params, controls, qudits, op, unitary] = inst;
       auto target = qudits[0];
       cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);

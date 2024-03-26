@@ -14,7 +14,7 @@ import sys
 from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType, emitErrorIfInvalidPauli
+from .utils import globalRegisteredUnitaries, mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType, emitErrorIfInvalidPauli
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
 
@@ -170,6 +170,72 @@ def __singleTargetSingleParameterControlOperation(self,
                            target,
                            isAdj=isAdj,
                            context=self.ctx)
+
+
+def __generalCustomOperation(self, opName, *args):
+    """
+    Utility function for adding a generic quantum operation to the MLIR representation for the PyKernel.
+    """
+    # To be refactored...
+    import numpy as np
+    import inspect
+    from typing import Callable
+
+    global globalRegisteredUnitaries
+    unitary = globalRegisteredUnitaries[opName]
+
+    params = []
+    targets = []
+    with self.insertPoint, self.loc:
+        for arg in args:
+            if isinstance(arg, float):
+                fty = mlirTypeFromPyType(float, self.ctx)
+                params.append(arith.ConstantOp(fty, FloatAttr.get(fty, arg)))
+            elif isinstance(arg, QuakeValue):
+                targets.append(arg.mlirValue)
+            else:
+                emitFatalError(f"invalid argument type passed to {opName}.")
+
+        numTargets = 1
+        numParameters = 0
+        if isinstance(unitary, Callable):
+            numParameters = len(inspect.getfullargspec(unitary).args)
+        else:
+            numTargets = int(np.log2(unitary.shape[0]))
+            if numTargets != len(targets):
+                emitFatalError(
+                    f"invalid number of parameters passed to {opName} ({len(targets)} vs required {numTargets})."
+                )
+
+        if numParameters != len(params):
+            emitFatalError(
+                f"invalid number of parameters passed to {opName} ({len(params)} vs required {numParameters})."
+            )
+
+        if isinstance(unitary, Callable):
+            resTy = cc.StdvecType.get(self.ctx, ComplexType.get(F64Type.get()))
+            res = func.CallOp([resTy], opName, params).result
+            quake.UnitaryOp(opName,
+                            controls=[],
+                            targets=targets,
+                            unitary=res,
+                            is_adj=False)
+            return
+
+        # flatten the matrix
+        unitary = list(unitary.flat)
+        # Need to map to an `ArrayAttr<ArrayAttr>`` where each element is a
+        # pair (represented as an array) -> (real, imaginary)
+        arrayAttrList = []
+        for el in unitary:
+            arrayAttrList.append(
+                DenseF32ArrayAttr.get([np.real(el), np.imag(el)]))
+        unitary = ArrayAttr.get(arrayAttrList)
+        quake.UnitaryOp(opName,
+                        controls=[],
+                        targets=targets,
+                        constantUnitary=unitary,
+                        is_adj=False)
 
 
 class PyKernel(object):

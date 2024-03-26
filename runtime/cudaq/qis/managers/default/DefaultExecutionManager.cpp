@@ -102,7 +102,7 @@ protected:
     flushRequestedAllocations();
 
     // Get the data, create the Qubit* targets
-    auto [gateName, parameters, controls, targets, op] = instruction;
+    auto [gateName, parameters, controls, targets, op, unitary] = instruction;
 
     // Map the Qudits to Qubits
     std::vector<std::size_t> localT;
@@ -111,6 +111,11 @@ protected:
     std::vector<std::size_t> localC;
     std::transform(controls.begin(), controls.end(), std::back_inserter(localC),
                    [](auto &&el) { return el.id; });
+
+    if (!unitary.empty()) {
+      simulator()->applyCustomOperation(unitary, localC, localT);
+      return;
+    }
 
     // Apply the gate
     llvm::StringSwitch<std::function<void()>>(gateName)
