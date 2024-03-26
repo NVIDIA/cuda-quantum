@@ -387,6 +387,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PyKernelDecorator"><code class="docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.kernel"><code class="docutils literal notranslate"><span class="pre">kernel()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
@@ -538,6 +539,8 @@
         <li><a href="api/languages/python_api.html#cudaq.SpinOperator.__add__">(cudaq.SpinOperator method)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.__call__">__call__() (cudaq.PyKernelDecorator method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.__eq__">__eq__() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.__getitem__">__getitem__() (cudaq.ComplexMatrix method)</a>
@@ -599,7 +602,11 @@
 </li>
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.__str__">__str__() (cudaq.ComplexMatrix method)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.__str__">(cudaq.PyKernelDecorator method)</a>
 </li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.QuakeValue.__sub__">__sub__() (cudaq.QuakeValue method)</a>
 
       <ul>
@@ -658,6 +665,8 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.KrausOperator.col_count">col_count (cudaq.KrausOperator property)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.compile">compile() (cudaq.PyKernelDecorator method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix">ComplexMatrix (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.CentralDifference.compute">compute() (cudaq.gradients.CentralDifference method)</a>
@@ -686,6 +695,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq12async_resultE">cudaq::async_result (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq12async_result3getEv">cudaq::async_result::get (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20BaseNvcfSimulatorQPUE">cudaq::BaseNvcfSimulatorQPU (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17BaseRemoteRESTQPUE">cudaq::BaseRemoteRESTQPU (C++ class)</a>
 </li>
@@ -913,7 +924,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14id_coefficientEv">cudaq::observe_result::id_coefficient (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultERdRK7spin_op">cudaq::observe_result::observe_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultERdRK7spin_op13sample_result">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultEdRK7spin_op">cudaq::observe_result::observe_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultEdRK7spin_op13sample_result">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_resultcvdEv">cudaq::observe_result::operator double (C++ function)</a>
 </li>
@@ -947,10 +958,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringEPFvPvEPvNSt8uint64_tENSt8uint64_tE">cudaq::QPU::launchKernel (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE">cudaq::QPU::onRandomSeedSet (C++ function)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE">cudaq::QPU::onRandomSeedSet (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUENSt6size_tE">cudaq::QPU::QPU (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUERR3QPU">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUEv">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU21resetExecutionContextEv">cudaq::QPU::resetExecutionContext (C++ function)</a>
@@ -1402,6 +1413,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Kernel">Kernel (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.kernel">kernel() (in module cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
