@@ -186,10 +186,10 @@ public:
         cudaq::opt::factory::createLLVMFunctionSymbol(
             cudaq::opt::QIRArrayGetElementPtr1d, i8PtrTy,
             {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
-    Value zero = cudaq::opt::factory::createI64Constant(loc, rewriter, 0);
-    Value one = cudaq::opt::factory::createI64Constant(loc, rewriter, 1);
+    Value zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
-    Value eight = cudaq::opt::factory::createI32Constant(loc, rewriter, 8);
+    Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
     // Function to convert a QIR Qubit value to an Array value.
     auto wrapQubitInArray = [&](Value v) -> Value {
       if (v.getType() != cudaq::opt::getQubitType(context))
@@ -237,11 +237,11 @@ public:
 
     auto array_qbit_type = cudaq::opt::getArrayType(context);
     auto qbit_element_ptr_type =
-        LLVM::LLVMPointerType::get(rewriter.getIntegerType(8));
+        LLVM::LLVMPointerType::get(rewriter.getI8Type());
 
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qir_array_get_element_ptr_1d, qbit_element_ptr_type,
-        {array_qbit_type, rewriter.getIntegerType(64)}, parentModule);
+        {array_qbit_type, rewriter.getI64Type()}, parentModule);
 
     Value idx_operand;
     auto i64Ty = rewriter.getI64Type();
@@ -289,8 +289,8 @@ public:
     auto arrayTy = cudaq::opt::getArrayType(context);
     auto resultTy = arrayTy;
 
-    auto i32Ty = rewriter.getIntegerType(32);
-    auto i64Ty = rewriter.getIntegerType(64);
+    auto i32Ty = rewriter.getI32Type();
+    auto i64Ty = rewriter.getI64Type();
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         rtSubveqFuncName, arrayTy, {arrayTy, i32Ty, i64Ty, i64Ty, i64Ty},
         parentModule);
@@ -389,8 +389,8 @@ public:
 
       // We must create the {i8*, i64} struct from the string literal
       SmallVector<Type> structTys{
-          LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)),
-          rewriter.getIntegerType(64)};
+          LLVM::LLVMPointerType::get(rewriter.getI8Type()),
+          rewriter.getI64Type()};
       auto structTy = LLVM::LLVMStructType::getLiteral(context, structTys);
 
       // Allocate the char span struct
@@ -407,7 +407,7 @@ public:
 
       // Set the string literal data
       auto strPtr = rewriter.create<LLVM::GEPOp>(
-          loc, LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)), alloca,
+          loc, LLVM::LLVMPointerType::get(rewriter.getI8Type()), alloca,
           ValueRange{zero, zero});
       auto castedPauli = rewriter.create<LLVM::BitcastOp>(
           loc, cudaq::opt::factory::getPointerType(context), pauliWord);
@@ -415,7 +415,7 @@ public:
 
       // Set the integer length
       auto intPtr = rewriter.create<LLVM::GEPOp>(
-          loc, LLVM::LLVMPointerType::get(rewriter.getIntegerType(64)), alloca,
+          loc, LLVM::LLVMPointerType::get(rewriter.getI64Type()), alloca,
           ValueRange{zero, one});
       rewriter.create<LLVM::StoreOp>(loc, size, intPtr);
 
@@ -859,7 +859,7 @@ public:
       qFunctionName += "__to__register";
       // Append a string type argument
       funcTypes.push_back(
-          LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)));
+          LLVM::LLVMPointerType::get(rewriter.getI8Type()));
       appendName = true;
     } else {
       // If no register name is supplied, make one up. Zero pad the counter so
@@ -913,7 +913,7 @@ public:
         loc, cudaq::opt::getResultType(context), symbolRef, ValueRange{args});
     if (regName)
       callOp->setAttr("registerName", regName);
-    auto i1Ty = rewriter.getIntegerType(1);
+    auto i1Ty = rewriter.getI1Type();
     auto i1PtrTy = LLVM::LLVMPointerType::get(i1Ty);
     auto cast =
         rewriter.create<LLVM::BitcastOp>(loc, i1PtrTy, callOp.getResult());
