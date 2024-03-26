@@ -169,16 +169,19 @@ fi
 if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]; then
   if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
     echo "Installing LLVM libraries..."
+    # FIXME: Having to set ld library path here is rather ugly...
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
     PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
+    LD_LIBRARY_PATH="$(dirname $CC)/../lib/$(uname -m)-unknown-linux-gnu"
     bash "$this_file_dir/build_llvm.sh" -v
   else 
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
 
   if [ "$toolchain" = "llvm" ]; then
+    cp -rv "$(dirname $CC)/../lib/$(uname -m)-unknown-linux-gnu" "$LLVM_INSTALL_PREFIX/lib"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang" 
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     export FC="$LLVM_INSTALL_PREFIX/bin/flang-new"

@@ -29,7 +29,7 @@
 # - https://github.com/llvm/llvm-project/blob/main/openmp/docs/SupportAndFAQ.rst#q-how-to-build-an-openmp-gpu-offload-capable-compiler
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
-LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;openmp;mlir;python-bindings'}
+LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'} # FIXME: openmp
 PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
@@ -74,7 +74,7 @@ if [ -z "${llvm_projects##*python-bindings;*}" ]; then
     echo "Building PyBind11..."
     git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 
     mkdir "tpls/pybind11/build" && cd "tpls/pybind11/build"
-    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX"
+    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYBIND11_TEST=False
     cmake --build . --target install --config Release
   fi
 fi
@@ -124,9 +124,15 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
   llvm_components+="lld;"
   projects=("${projects[@]/lld}")
 fi
+if [ -z "${llvm_projects##*openmp;*}" ]; then
+  echo "- including OpenMP support"
+  llvm_runtimes+="openmp;"
+  llvm_projects=`echo $llvm_projects | sed 's|openmp||g;s|;;|;|g;s|^;||'`
+  projects=("${projects[@]/openmp}")
+fi
 if [ -z "${llvm_projects##*compiler-rt;*}" ]; then
   echo "- including runtime components"
-  llvm_runtimes="libcxx;libcxxabi;libunwind"
+  llvm_runtimes+="libcxx;libcxxabi;libunwind;"
   llvm_components+="compiler-rt;compiler-rt-headers;"
   projects=("${projects[@]/compiler-rt}")
 fi
@@ -168,9 +174,9 @@ cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 cmake_args=" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
-  -DLLVM_ENABLE_PROJECTS='"$llvm_projects"' \
-  -DLLVM_ENABLE_RUNTIMES='"$llvm_runtimes"' \
-  -DLLVM_DISTRIBUTION_COMPONENTS='"$llvm_components"' \
+  -DLLVM_ENABLE_PROJECTS='"${llvm_projects%;}"' \
+  -DLLVM_ENABLE_RUNTIMES='"${llvm_runtimes%;}"' \
+  -DLLVM_DISTRIBUTION_COMPONENTS='"${llvm_components%;}"' \
   -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
   -DZLIB_ROOT='"$ZLIB_INSTALL_PREFIX"' \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
@@ -213,19 +219,6 @@ else
   ninja $install_target 2> logs/ninja_error.txt 1> logs/ninja_output.txt
   status=$?
 fi
-
-# A bit hacky:
-# A way to make sure clang finds and uses both the built resources *and*
-# the built runtime(s) is to install/move them to the same location and 
-# configure that location as the resource directory.
-resources_build_dir=`echo "$LLVM_INSTALL_PREFIX/lib/clang"/*`
-cd "$resources_build_dir"
-for subdir in `find ./* -maxdepth 0 -type d`; do
-  mv "$subdir"/* "$LLVM_INSTALL_PREFIX/$subdir/" 
-  rmdir "$subdir"
-done
-cd "$llvm_source/build"
-rmdir -p "$resources_build_dir" 2> /dev/null || true
 
 # Build and install runtimes using the newly built toolchain
 if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then

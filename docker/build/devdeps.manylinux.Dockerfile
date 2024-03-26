@@ -74,10 +74,8 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && python3 -m ensurepip --upgrade && python3 -m pip install pytest \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" -DPYBIND11_TEST=False \
     && cmake --build . --target install --config Release \
-    && python3 -m pip uninstall -y pytest \
     && cd / && rm -rf /pybind11-project
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum.
