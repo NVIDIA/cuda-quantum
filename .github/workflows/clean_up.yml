@@ -3,7 +3,12 @@ on:
     inputs:
       delete_draft_releases:
         type: boolean
-        description: Delete all draft releases on GitHub (this may impact publishing).
+        description: Delete all draft releases on GitHub. This will interfere with any active publishing workflow.
+        required: false
+        default: false
+      delete_temp_branches:
+        type: boolean
+        description: Delete temporary branches created for publishing. This will interfere with any active publishing workflow.
         required: false
         default: false
   schedule:
@@ -15,6 +20,30 @@ on:
 name: Clean up
 
 jobs:
+  bot_branches:
+    name: Delete temporary bot/* branches
+    if: github.event_name == 'workflow_dispatch' && inputs.delete_temp_branches
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: |
+          branches_to_delete=`gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/${{ github.repository }}/branches \
+            --jq '.[] | select(.name | test("^bot/[0-9]+")).name'`
+
+          for branch in $branches_to_delete; do 
+            echo "Deleting $branch."
+            gh api \
+              --method DELETE \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              /repos/nvidia/cuda-quantum/git/refs/heads/$branch 
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   draft_releases:
     name: Delete draft release
     if: github.event_name == 'workflow_dispatch' && inputs.delete_draft_releases
@@ -34,7 +63,7 @@ jobs:
             fi 
           done < rels.txt
         env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
 
   ghcr_images:
     name: Clean up GHCR images
