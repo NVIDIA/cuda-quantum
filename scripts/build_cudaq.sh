@@ -109,7 +109,7 @@ else
     echo "No cuTensor installation detected. Please set the environment variable CUTENSOR_INSTALL_PREFIX to enable cuTensor integration."
     echo "Some backends will be omitted from the build."
   else
-    echo "Using cuQuantum installation in $CUTENSOR_INSTALL_PREFIX."
+    echo "Using cuTensor installation in $CUTENSOR_INSTALL_PREFIX."
   fi
 fi
 
