@@ -11,6 +11,8 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Todo.h"
+#include "clang/Basic/TargetInfo.h"
+#include "llvm/TargetParser/Triple.h"
 
 #define DEBUG_TYPE "lower-ast-type"
 
@@ -321,9 +323,15 @@ Type QuakeBridgeVisitor::builtinTypeToType(const clang::BuiltinType *t) {
     return builder.getF32Type();
   case BuiltinType::Double:
     return builder.getF64Type();
-  case BuiltinType::LongDouble:
-    return astContext->getTypeSize(t) == 64 ? builder.getF64Type()
-                                            : builder.getF128Type();
+  case BuiltinType::LongDouble: {
+    auto bitWidth = astContext->getTargetInfo().getLongDoubleWidth();
+    if (bitWidth == 64)
+      return builder.getF64Type();
+    llvm::Triple triple(astContext->getTargetInfo().getTargetOpts().Triple);
+    if (triple.isX86())
+      return builder.getF80Type();
+    return builder.getF128Type();
+  }
   case BuiltinType::Float128:
   case BuiltinType::Ibm128: /* double double format -> {double, double} */
     return builder.getF128Type();
