@@ -30,7 +30,7 @@ std::string pyDraw(py::object &kernel, py::args args) {
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   args = simplifiedValidateInputArguments(args);
-  auto *argData = toOpaqueArgs(args);
+  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
 
   return details::extractTrace([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});

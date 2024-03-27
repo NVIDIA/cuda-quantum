@@ -51,14 +51,17 @@ for more information on this programming pattern.)#")
       [&](py::object &kernel, py::args args, std::size_t shots,
           std::size_t qpu_id) {
         auto &platform = cudaq::get_platform();
-        auto kernelName = kernel.attr("name").cast<std::string>();
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
 
+        auto kernelName = kernel.attr("name").cast<std::string>();
+        auto kernelMod = kernel.attr("module").cast<MlirModule>();
+        auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
+
         args = simplifiedValidateInputArguments(args);
         auto *argData = new cudaq::OpaqueArguments();
-        cudaq::packArgs(*argData, args);
-        auto kernelMod = kernel.attr("module").cast<MlirModule>();
+        cudaq::packArgs(*argData, args, kernelFunc,
+                        [](OpaqueArguments &, py::object &) { return false; });
 
         // The function below will be executed multiple times
         // if the kernel has conditional feedback. In that case,
