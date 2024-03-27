@@ -130,7 +130,6 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   auto *body = x->getBody();
   auto *loopVar = x->getLoopVariable();
   auto i64Ty = builder.getI64Type();
-  auto idxTy = builder.getIndexType();
   if (auto stdvecTy = dyn_cast<cc::SpanLikeType>(buffer.getType())) {
     auto eleTy = stdvecTy.getElementType();
     auto dataPtrTy = cc::PointerType::get(eleTy);
@@ -160,8 +159,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
-      auto iterIdx = block.getArgument(0);
-      Value index = builder.create<arith::IndexCastOp>(loc, i64Ty, iterIdx);
+      Value index = block.getArgument(0);
       // May need to create a temporary for the loop variable. Create a new
       // scope.
       auto scopeBuilder = [&](OpBuilder &builder, Location loc) {
@@ -198,7 +196,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
       builder.create<cc::ScopeOp>(loc, scopeBuilder);
     };
 
-    auto idxIters = builder.create<arith::IndexCastOp>(loc, idxTy, iters);
+    auto idxIters = builder.create<cudaq::cc::CastOp>(
+        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
     opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
   } else if (auto veqTy = dyn_cast<quake::VeqType>(buffer.getType());
              veqTy && veqTy.hasSpecifiedSize()) {
@@ -208,14 +207,14 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
-      auto iterIdx = block.getArgument(0);
-      Value index = builder.create<arith::IndexCastOp>(loc, i64Ty, iterIdx);
+      Value index = block.getArgument(0);
       Value ref = builder.create<quake::ExtractRefOp>(loc, buffer, index);
       symbolTable.insert(loopVar->getName(), ref);
       if (!TraverseStmt(static_cast<clang::Stmt *>(body)))
         result = false;
     };
-    auto idxIters = builder.create<arith::IndexCastOp>(loc, idxTy, iters);
+    auto idxIters = builder.create<cudaq::cc::CastOp>(
+        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
     opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
   } else {
     TODO_x(toLocation(x), x, mangler, "ranged for statement");

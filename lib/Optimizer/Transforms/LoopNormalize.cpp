@@ -59,8 +59,6 @@ public:
     auto ty = c.initialValue.getType();
     rewriter.startRootUpdate(loop);
     auto createConstantOp = [&](std::int64_t val) -> Value {
-      if (ty == rewriter.getIndexType())
-        return rewriter.create<arith::ConstantIndexOp>(loc, val);
       return rewriter.create<arith::ConstantIntOp>(loc, val, ty);
     };
     auto zero = createConstantOp(0);

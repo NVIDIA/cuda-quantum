@@ -25,8 +25,8 @@ using namespace mlir;
 
 static Value createCast(PatternRewriter &rewriter, Location loc, Value inVal) {
   auto i64Ty = rewriter.getI64Type();
-  if (inVal.getType() == rewriter.getIndexType())
-    return rewriter.create<arith::IndexCastOp>(loc, i64Ty, inVal);
+  assert(inVal.getType() != rewriter.getIndexType() &&
+         "use of index type is deprecated");
   return rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, inVal,
                                             cudaq::cc::CastOpMode::Unsigned);
 }

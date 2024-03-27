@@ -158,10 +158,6 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
     return QuakeValue(opBuilder, extractedQubit);
   }
 
-  if (indexVar.getType().isa<IndexType>())
-    indexVar =
-        opBuilder.create<arith::IndexCastOp>(opBuilder.getI64Type(), indexVar);
-
   // We are unable to check that the number of elements have
   // been passed in correctly.
   canValidateVectorNumElements = false;
@@ -340,14 +336,10 @@ QuakeValue QuakeValue::operator+(const double constValue) {
 QuakeValue QuakeValue::operator+(const int constValue) {
   auto v = value->asMLIR();
   if (!v.getType().isIntOrIndex())
-    throw std::runtime_error("Can only add int/index QuakeValues.");
+    throw std::runtime_error("Can only add integral QuakeValues.");
 
-  Value constant;
-  if (isa<IndexType>(v.getType())) {
-    constant = opBuilder.create<arith::ConstantIndexOp>(constValue);
-  } else {
-    constant = opBuilder.create<arith::ConstantIntOp>(constValue, v.getType());
-  }
+  Value constant =
+      opBuilder.create<arith::ConstantIntOp>(constValue, v.getType());
   Value added = opBuilder.create<arith::AddIOp>(v.getType(), constant, v);
   return QuakeValue(opBuilder, added);
 }
@@ -382,12 +374,8 @@ QuakeValue QuakeValue::operator-(const int constValue) {
   if (!v.getType().isIntOrIndex())
     throw std::runtime_error("Can only subtract double/float QuakeValues.");
 
-  Value constant;
-  if (isa<IndexType>(v.getType())) {
-    constant = opBuilder.create<arith::ConstantIndexOp>(constValue);
-  } else {
-    constant = opBuilder.create<arith::ConstantIntOp>(constValue, v.getType());
-  }
+  Value constant =
+      opBuilder.create<arith::ConstantIntOp>(constValue, v.getType());
 
   Value subtracted = opBuilder.create<arith::SubIOp>(v.getType(), v, constant);
   return QuakeValue(opBuilder, subtracted);

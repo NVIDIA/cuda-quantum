@@ -252,14 +252,8 @@ public:
       idx_operand = adaptor.getOperands()[1];
 
       if (idx_operand.getType().isIntOrFloat() &&
-          idx_operand.getType().cast<IntegerType>().getWidth() < 64) {
+          idx_operand.getType().cast<IntegerType>().getWidth() < 64)
         idx_operand = rewriter.create<LLVM::ZExtOp>(loc, i64Ty, idx_operand);
-      }
-      if (idx_operand.getType().isa<IndexType>()) {
-        idx_operand =
-            rewriter.create<arith::IndexCastOp>(loc, i64Ty, idx_operand)
-                .getResult();
-      }
     }
 
     auto get_qbit_qir_call = rewriter.create<LLVM::CallOp>(
@@ -301,8 +295,6 @@ public:
       if (v.getType().isa<IntegerType>() &&
           v.getType().cast<IntegerType>().getWidth() < 64)
         return rewriter.create<LLVM::ZExtOp>(loc, i64Ty, v);
-      if (v.getType().isa<IndexType>())
-        return rewriter.create<arith::IndexCastOp>(loc, i64Ty, v);
       return v;
     };
     lowArg = extend(lowArg);

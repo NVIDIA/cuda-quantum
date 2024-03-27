@@ -158,13 +158,13 @@ public:
       auto topLevelCount =
           convertLengthBytesToLengthI64(loc, builder, topLevelSize);
       // Now walk the vectors recursively.
-      auto topLevelIndex = builder.create<arith::IndexCastOp>(
-          loc, builder.getIndexType(), topLevelCount);
+      auto topLevelIndex = builder.create<cudaq::cc::CastOp>(
+          loc, builder.getI64Type(), topLevelCount,
+          cudaq::cc::CastOpMode::Unsigned);
       cudaq::opt::factory::createInvariantLoop(
           builder, loc, topLevelIndex,
           [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-            Value i = builder.create<arith::IndexCastOp>(
-                loc, builder.getI64Type(), block.getArgument(0));
+            Value i = block.getArgument(0);
             auto sub = builder.create<cudaq::cc::ComputePtrOp>(loc, hostVecTy,
                                                                nested, i);
             auto p =
@@ -627,13 +627,13 @@ public:
       // the vecTmp variable. Leaf vectors do not need a fresh variable. This
       // effectively translates all the size/offset information for all the
       // subvectors into temps.
-      Value vecLengthIndex = builder.create<arith::IndexCastOp>(
-          loc, builder.getIndexType(), vecLength);
+      Value vecLengthIndex = builder.create<cudaq::cc::CastOp>(
+          loc, builder.getI64Type(), vecLength,
+          cudaq::cc::CastOpMode::Unsigned);
       cudaq::opt::factory::createInvariantLoop(
           builder, loc, vecLengthIndex,
           [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-            Value i = builder.create<arith::IndexCastOp>(loc, i64Ty,
-                                                         block.getArgument(0));
+            Value i = block.getArgument(0);
             auto innerPtr = builder.create<cudaq::cc::ComputePtrOp>(
                 loc, cudaq::cc::PointerType::get(i64Ty), innerVec,
                 SmallVector<cudaq::cc::ComputePtrArg>{i});
@@ -937,8 +937,9 @@ public:
                                                  stdvecTy, hostVecTy);
     auto nested = fetchHostVectorFront(loc, builder, hostArg, hostVecTy);
     auto vecLogicalLen = convertLengthBytesToLengthI64(loc, builder, vecLen);
-    auto vecLenIndex = builder.create<arith::IndexCastOp>(
-        loc, builder.getIndexType(), vecLogicalLen);
+    auto vecLenIndex = builder.create<cudaq::cc::CastOp>(
+        loc, builder.getI64Type(), vecLogicalLen,
+        cudaq::cc::CastOpMode::Unsigned);
     auto buffPtrTy = buffPtr.getType();
     auto tmp = builder.create<cudaq::cc::AllocaOp>(loc, buffPtrTy);
     auto newEnd = builder.create<cudaq::cc::ComputePtrOp>(
@@ -951,8 +952,7 @@ public:
     cudaq::opt::factory::createInvariantLoop(
         builder, loc, vecLenIndex,
         [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-          Value i = builder.create<arith::IndexCastOp>(
-              loc, builder.getI64Type(), block.getArgument(0));
+          Value i = block.getArgument(0);
           auto currBuffPtr = builder.create<cudaq::cc::ComputePtrOp>(
               loc, ptrI64Ty, vecBasePtr,
               SmallVector<cudaq::cc::ComputePtrArg>{i});
