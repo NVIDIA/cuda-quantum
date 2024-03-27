@@ -109,10 +109,6 @@ void invokeWrappedKernel(std::string_view irString,
           return std::make_unique<llvm::SectionMemoryManager>();
         });
     llvm::Triple targetTriple(llvm::Twine(llvmModule->getTargetTriple()));
-    // IMPORTANT: need to setAutoClaimResponsibilityForObjectSymbols to true to
-    // prevent debug asserts about symbol responsibility.
-    // objectLayer->setAutoClaimResponsibilityForObjectSymbols(true);
-
     return objectLayer;
   };
 
