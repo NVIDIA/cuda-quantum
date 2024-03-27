@@ -48,8 +48,6 @@ struct oracle {
   }
 };
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(GroverTester, checkNISQ) {
   using namespace cudaq;
   auto counts = cudaq::sample(1000, run_grover{}, 3, 1, oracle{});
@@ -62,4 +60,3 @@ CUDAQ_TEST(GroverTester, checkNISQ) {
   }
   EXPECT_EQ(counter, 1000);
 }
-#endif

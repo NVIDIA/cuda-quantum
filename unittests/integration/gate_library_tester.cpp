@@ -88,8 +88,6 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     // Same check, with 2 control qubits
@@ -117,7 +115,6 @@ CUDAQ_TEST(GateLibraryTester, checkControlledGivensRotation) {
     EXPECT_NEAR(std::abs(ss_01_off[0]), 1.0, 1e-6);
   }
 }
-#endif
 
 CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {

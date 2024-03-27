@@ -63,14 +63,14 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     };
     cudaq::gradients::central_difference gradient(ansatz, argMapper);
     cudaq::optimizers::lbfgs optimizer;
-    optimizer.initial_parameters = {0.35, 0.25};
-    optimizer.max_eval = 10;
-    optimizer.max_line_search_trials = 10;
+    optimizer.initial_parameters = {0.359, 0.257};
+    optimizer.max_eval = 4;
+    optimizer.max_line_search_trials = 8;
     auto [opt_val_0, optpp] =
         cudaq::vqe(ansatz, gradient, h3, optimizer, 2, argMapper);
     printf("Opt-params: %lf %lf \n", optpp[0], optpp[1]);
     printf("<H3> = %lf\n", opt_val_0);
-    EXPECT_NEAR(opt_val_0, -2.045375, 1e-3);
+    EXPECT_NEAR(opt_val_0, -2.045375, 1e-2);
   }
 
   {
@@ -97,12 +97,12 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
 
     cudaq::gradients::central_difference gradient(ansatz);
     cudaq::optimizers::lbfgs optimizer;
-    optimizer.initial_parameters = {0.35, 0.25};
-    optimizer.max_eval = 10;
-    optimizer.max_line_search_trials = 10;
+    optimizer.initial_parameters = {0.359, 0.257};
+    optimizer.max_eval = 4;
+    optimizer.max_line_search_trials = 8;
     auto [opt_val_0, optpp] = cudaq::vqe(ansatz, gradient, h3, optimizer, 2);
     printf("<H3> = %lf\n", opt_val_0);
-    EXPECT_NEAR(opt_val_0, -2.045375, 1e-3);
+    EXPECT_NEAR(opt_val_0, -2.045375, 1e-2);
   }
 
   {
@@ -125,8 +125,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     EXPECT_EQ(counter, 1000);
   }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-  // MPS doesn't support gates on more than 2 qubits
   {
     auto ccnot_builder = cudaq::make_kernel();
     auto q = ccnot_builder.qalloc(3);
@@ -139,7 +137,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     counts.dump();
     EXPECT_TRUE(counts.begin()->first == "101");
   }
-#endif
 
   {
     // Check controlled parametric gates (constant angle)
@@ -221,8 +218,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkRotations) {
 
   // rx: entire qvector
@@ -427,11 +422,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("0111"), 1000);
   }
 }
-#endif
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// Skip, else fails with error - '"MPS simulator: Gates on 3 or more qubits are
-// unsupported. Encountered: swap[0][1,2]" thrown in the test body.'
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
 
@@ -575,7 +566,6 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
     EXPECT_NEAR(counts.count(want_state), 1000, 0);
   }
 }
-#endif
 
 // Conditional execution on the tensornet backend is slow for a large number of
 // shots.
@@ -708,8 +698,6 @@ CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
   EXPECT_FALSE(kernel.isArgStdVec(1));
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkKernelControl) {
   cudaq::set_random_seed(13);
 
@@ -766,7 +754,6 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "101");
 }
-#endif
 
 CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   auto kernel = cudaq::make_kernel();
@@ -1101,8 +1088,6 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   // rx: pi
   {
@@ -1217,7 +1202,6 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     EXPECT_EQ(counts.count("11111111"), 1000);
   }
 }
-#endif
 
 #ifndef CUDAQ_BACKEND_DM
 

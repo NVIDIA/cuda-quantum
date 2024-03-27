@@ -7,8 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
+
 CUDAQ_TEST(NegativeControlsTester, checkSimple) {
 
   auto kernel = []() __qpu__ {
@@ -63,4 +62,3 @@ CUDAQ_TEST(NegativeControlsTester, checkSimple) {
 
   EXPECT_EQ(counter, 1000);
 }
-#endif
