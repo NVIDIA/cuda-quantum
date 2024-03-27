@@ -169,7 +169,10 @@ RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
     dnf install -y --nobest --setopt=install_weak_deps=False file which
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
-        --param nvqpp_site_config=build/test/lit.site.cfg.py
+        --param nvqpp_site_config=build/test/lit.site.cfg.py && \
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
+        --param nvqpp_site_config=build/targettests/lit.site.cfg.py
+
 
 # Tests for the Python wheel are run post-installation.
 COPY --from=python_build /wheelhouse /cuda_quantum/wheelhouse

@@ -376,21 +376,13 @@ async_sample_result sample_async(const std::size_t qpu_id,
   auto shots = platform.get_shots().value_or(1000);
   auto kernelName = cudaq::getKernelName(kernel);
 
-#if CUDAQ_USE_STD20
   return details::runSamplingAsync(
-      [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                            std::forward<Args>(args)...);
-      },
+      detail::make_copyable_function(
+          [&kernel, ... args = std::forward<Args>(args)]() mutable {
+            cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                std::forward<Args>(args)...);
+          }),
       platform, kernelName, shots, qpu_id);
-#else
-  return details::runSamplingAsync(
-      [&kernel,
-       args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
-        std::apply(std::move(kernel), std::move(args));
-      },
-      platform, kernelName, shots, qpu_id);
-#endif
 }
 
 /// @brief Sample the given kernel expression asynchronously and return
@@ -428,21 +420,13 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
 
-#if CUDAQ_USE_STD20
   return details::runSamplingAsync(
-      [&kernel, ... args = std::forward<Args>(args)]() mutable {
-        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                            std::forward<Args>(args)...);
-      },
+      detail::make_copyable_function(
+          [&kernel, ... args = std::forward<Args>(args)]() mutable {
+            cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                std::forward<Args>(args)...);
+          }),
       platform, kernelName, shots, qpu_id);
-#else
-  return details::runSamplingAsync(
-      [&kernel,
-       args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
-        std::apply(std::move(kernel), std::move(args));
-      },
-      platform, kernelName, shots, qpu_id);
-#endif
 }
 
 /// @brief Sample the given kernel expression asynchronously and return
