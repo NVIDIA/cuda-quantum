@@ -77,8 +77,11 @@ public:
     // on more than 1 qubit can be <ZIII...III>
     auto numQubits = spinOp.num_qubits();
     auto termStr = term.to_string(false);
-    if (!data.has_expectation(termStr) && termStr.size() == 1 && numQubits > 1)
-      for (std::size_t i = 1; i < numQubits; i++)
+    // Expand the string representation of the term to match the number of
+    // qubits of the overall spin_op this result represents by appending
+    // identity ops.
+    if (!data.has_expectation(termStr))
+      for (std::size_t i = termStr.size(); i < numQubits; i++)
         termStr += "I";
     return data.expectation(termStr);
   }

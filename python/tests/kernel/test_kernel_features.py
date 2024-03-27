@@ -189,6 +189,7 @@ def test_2grover_compute_action():
     assert '101' in counts
     assert '011' in counts
 
+@skipIfPythonLessThan39
 def test_pauli_word_input():
 
     h2_data = [
@@ -850,6 +851,7 @@ def test_invalid_cudaq_type():
         print(test)
 
 
+@skipIfPythonLessThan39
 def test_bool_list_elements():
     @cudaq.kernel
     def kernel(var : list[bool]):
@@ -912,6 +914,7 @@ def test_aug_assign_add():
 
     assert test2() == 10
 
+@skipIfPythonLessThan39
 def test_empty_lists():
     @cudaq.kernel
     def empty(var : list[cudaq.pauli_word], varvar : list[float], varvarvar :list[bool]):
