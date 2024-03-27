@@ -111,7 +111,7 @@ void invokeWrappedKernel(std::string_view irString,
     llvm::Triple targetTriple(llvm::Twine(llvmModule->getTargetTriple()));
     // IMPORTANT: need to setAutoClaimResponsibilityForObjectSymbols to true to
     // prevent debug asserts about symbol responsibility.
-    objectLayer->setAutoClaimResponsibilityForObjectSymbols(true);
+    // objectLayer->setAutoClaimResponsibilityForObjectSymbols(true);
 
     return objectLayer;
   };
