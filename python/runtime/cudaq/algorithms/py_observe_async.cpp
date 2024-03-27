@@ -83,13 +83,14 @@ async_observe_result pyObserveAsync(py::object &kernel, spin_op &spin_operator,
 
   auto &platform = cudaq::get_platform();
   auto kernelName = kernel.attr("name").cast<std::string>();
+  auto kernelMod = kernel.attr("module").cast<MlirModule>();
+  auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
 
   // The provided kernel is a builder or MLIR kernel
   auto *argData = new cudaq::OpaqueArguments();
   args = simplifiedValidateInputArguments(args);
-  cudaq::packArgs(*argData, args,
+  cudaq::packArgs(*argData, args, kernelFunc,
                   [](OpaqueArguments &, py::object &) { return false; });
-  auto kernelMod = kernel.attr("module").cast<MlirModule>();
 
   // Launch the asynchronous execution.
   py::gil_scoped_release release;
@@ -110,7 +111,6 @@ observe_result pyObservePar(const PyParType &type, py::object &kernel,
     kernel.attr("compile")();
 
   // Ensure the user input is correct.
-  // auto validatedArgs = validateInputArguments(kernel, args);
   auto &platform = cudaq::get_platform();
   if (!platform.supports_task_distribution())
     throw std::runtime_error(
