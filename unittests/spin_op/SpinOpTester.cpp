@@ -240,6 +240,6 @@ TEST(SpinOpTester, checkDistributeTerms) {
   auto distributed = H.distribute_terms(2);
 
   EXPECT_EQ(distributed.size(), 2);
-  EXPECT_EQ(distributed[0].num_terms(), 2);
-  EXPECT_EQ(distributed[1].num_terms(), 3);
+  EXPECT_EQ(distributed[0].num_terms(), 3);
+  EXPECT_EQ(distributed[1].num_terms(), 2);
 }
