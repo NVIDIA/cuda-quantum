@@ -40,6 +40,9 @@ public:
   /// @brief Reset the state of a given qubit to zero
   virtual void resetQubit(const std::size_t qubitIdx) override;
 
+  /// @brief Device synchronization
+  virtual void synchronize() override;
+
   /// @brief Perform a measurement on a given qubit
   virtual bool measureQubit(const std::size_t qubitIdx) override;
 

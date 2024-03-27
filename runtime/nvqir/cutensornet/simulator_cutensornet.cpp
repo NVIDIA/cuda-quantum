@@ -137,6 +137,9 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
 }
 
+/// @brief Device synchronization
+void SimulatorTensorNetBase::synchronize() { cudaDeviceSynchronize(); }
+
 /// @brief Perform a measurement on a given qubit
 bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
   LOG_API_TIME();

@@ -13,6 +13,7 @@
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
+#include "common/Timing.h"
 
 #include <cstdarg>
 #include <cstddef>
@@ -61,6 +62,11 @@ public:
   virtual void setRandomSeed(std::size_t seed) {
     // do nothing
   }
+
+  /// @brief Perform any flushing or synchronization to force that all
+  /// previously applied gates have truly been applied by the underlying
+  /// simulator.
+  virtual void synchronize() {}
 
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
@@ -641,8 +647,52 @@ protected:
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
+    // Collect summary data and print upon program termination
+    struct SummaryData {
+      std::size_t gateCount = 0;
+      std::size_t controlCount = 0;
+      std::size_t targetCount = 0;
+      std::size_t svIO = 0;
+      std::size_t svFLOPs = 0;
+      bool enabled = false;
+      SummaryData() {
+        if (cudaq::isTimingTagEnabled(cudaq::TIMING_GATE_COUNT))
+          enabled = true;
+      }
+      ~SummaryData() {
+        if (enabled) {
+          cudaq::log("CircuitSimulator Total Program Metrics:");
+          cudaq::log("Gate Count = {}", gateCount);
+          cudaq::log("Control Count = {}", controlCount);
+          cudaq::log("Target Count = {}", targetCount);
+          cudaq::log("State Vector I/O (GB) = {:.6f}",
+                     static_cast<double>(svIO) / 1e9);
+          cudaq::log("State Vector GFLOPs = {:.6f}",
+                     static_cast<double>(svFLOPs) / 1e9);
+        }
+      }
+    };
+    static thread_local SummaryData summaryData;
+
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
+      if (summaryData.enabled) {
+        summaryData.gateCount++;
+        summaryData.controlCount += next.controls.size();
+        summaryData.targetCount += next.targets.size();
+        // Times 2 because operating on the state vector requires both reading
+        // and writing.
+        summaryData.svIO +=
+            (2 * stateDimension * sizeof(std::complex<ScalarType>)) /
+            (1 << next.controls.size());
+        // For each element of the state vector, 2 complex multiplies and 1
+        // complex accumulate is needed. This is reduced if there if this is a
+        // controlled operation.
+        // Each complex multiply is 6 real ops.
+        // So 2 complex multiplies and 1 complex addition is 2*6+2 = 14 ops.
+        summaryData.svFLOPs += stateDimension * (14 * next.targets.size()) /
+                               (1 << next.controls.size());
+      }
       applyGate(next);
       if (executionContext && executionContext->noiseModel) {
         std::vector<std::size_t> noiseQubits{next.controls.begin(),
@@ -653,6 +703,8 @@ protected:
       }
       gateQueue.pop();
     }
+    // For CUDA-based simulators, this calls cudaDeviceSynchronize()
+    synchronize();
   }
 
   /// @brief Set the current state to the |0> state,
@@ -739,6 +791,7 @@ public:
 
   /// @brief Allocate `count` qubits.
   std::vector<std::size_t> allocateQubits(std::size_t count) override {
+    cudaq::ScopedTrace trace("allocateQubits", count);
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());

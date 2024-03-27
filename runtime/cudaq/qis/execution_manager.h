@@ -147,6 +147,10 @@ public:
 
   /// Synchronize - run all queue-ed instructions
   virtual void synchronize() = 0;
+
+  /// Flush the gate queue (needed for accurate timing information)
+  virtual void flushGateQueue(){};
+
   virtual ~ExecutionManager() = default;
 };
 
