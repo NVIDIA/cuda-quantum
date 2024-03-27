@@ -368,16 +368,12 @@ void bindAltLaunchKernel(py::module &mod) {
 
   mod.def(
       "get_qir",
-      [](py::object kernel, py::args runtimeArgs, std::string profile) {
+      [](py::object kernel, std::string profile) {
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
         MlirModule module = kernel.attr("module").cast<MlirModule>();
         auto name = kernel.attr("name").cast<std::string>();
-        auto kernelFuncOp = getKernelFuncOp(module, name);
         cudaq::OpaqueArguments args;
-        cudaq::packArgs(
-            args, runtimeArgs, kernelFuncOp,
-            [](OpaqueArguments &, py::object &) { return false; }, false);
         return getQIRLL(name, module, args, profile);
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");

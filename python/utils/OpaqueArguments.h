@@ -184,17 +184,16 @@ inline mlir::func::FuncOp getKernelFuncOp(MlirModule module,
   return kernelFunc;
 }
 
-inline void packArgs(OpaqueArguments &argData, py::args args,
-                     mlir::func::FuncOp kernelFuncOp,
-                     const std::function<bool(OpaqueArguments &argData,
-                                              py::object &arg)> &backupHandler,
-                     bool checkNumArgs = false) {
-  if (checkNumArgs)
-    if (kernelFuncOp.getNumArguments() != args.size())
-      throw std::runtime_error("Invalid runtime arguments - kernel expected " +
-                               std::to_string(kernelFuncOp.getNumArguments()) +
-                               " but was provided " +
-                               std::to_string(args.size()) + " arguments.");
+inline void
+packArgs(OpaqueArguments &argData, py::args args,
+         mlir::func::FuncOp kernelFuncOp,
+         const std::function<bool(OpaqueArguments &argData, py::object &arg)>
+             &backupHandler) {
+  if (kernelFuncOp.getNumArguments() != args.size())
+    throw std::runtime_error("Invalid runtime arguments - kernel expected " +
+                             std::to_string(kernelFuncOp.getNumArguments()) +
+                             " but was provided " +
+                             std::to_string(args.size()) + " arguments.");
 
   for (std::size_t i = 0; i < args.size(); i++) {
     py::object arg = args[i];
