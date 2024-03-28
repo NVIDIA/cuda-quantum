@@ -1229,7 +1229,7 @@ def test_ctrl_wrong_dtype_1447():
     assert 'target operand 0 is not of quantum type' in repr(e)
 
 
-def test_math_module_pi():
+def test_math_module_pi_1448():
     import math
     @cudaq.kernel
     def test_kernel() -> float:
@@ -1237,3 +1237,16 @@ def test_math_module_pi():
         return theta
     test_kernel.compile()
     assert np.isclose(test_kernel(), math.pi, 1e-12)
+
+def test_len_qvector_1449():
+
+    @cudaq.kernel
+    def test_kernel(nCountingQubits: int) -> int:
+        qubits = cudaq.qvector(nCountingQubits)
+        # N = counting_qubits.size()
+        N = len(qubits)
+        h(qubits)
+        return N
+
+    test_kernel.compile()
+    assert test_kernel(5) == 5

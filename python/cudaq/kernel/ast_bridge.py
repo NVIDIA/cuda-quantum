@@ -1001,11 +1001,16 @@ class PyASTBridge(ast.NodeVisitor):
             [self.visit(arg) for arg in node.args]
             if node.func.id == "len":
                 listVal = self.popValue()
-                # FIXME could this be an array, anyway we need `emitFatalError` here
-                assert cc.StdvecType.isinstance(listVal.type)
-                self.pushValue(
-                    cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
-                return
+                if cc.StdvecType.isinstance(listVal.type):
+                    self.pushValue(
+                        cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
+                    return
+                if quake.VeqType.isinstance(listVal.type):
+                    self.pushValue(quake.VeqSizeOp(self.getIntegerType(),
+                                                    listVal).result)
+                    return
+                
+                self.emitFatalError("__len__ not supported on variables of this type.", node)
 
             if node.func.id == "range":
                 iTy = self.getIntegerType(64)
