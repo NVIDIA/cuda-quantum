@@ -189,6 +189,7 @@ def test_2grover_compute_action():
     assert '101' in counts
     assert '011' in counts
 
+
 @skipIfPythonLessThan39
 def test_pauli_word_input():
 
@@ -916,6 +917,7 @@ def test_aug_assign_add():
 
     assert test2() == 10
 
+
 @skipIfPythonLessThan39
 def test_empty_lists():
 
@@ -1044,3 +1046,58 @@ def test_with_docstring_2():
 
     kernel.compile()
     print(kernel)
+
+
+def test_user_error_op_attr_1446():
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # behavior is strange, applies h to 6 qubits now
+        x.control(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean x.ctrl(...)?' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # behavior is strange, applies h to 6 qubits now
+        x.adjoint(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean x.adj(...)?' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # behavior is strange, applies h to 6 qubits now
+        x.adjointBadAttr(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean x.adj(...)?' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # behavior is strange, applies h to 6 qubits now
+        x.noIdeaWhatThisIs(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean ' not in repr(e)
