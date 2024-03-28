@@ -824,6 +824,9 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             self.visit(node.value)
 
+        if len(self.valueStack) == 0:
+            self.emitFatalError("invalid assignement detected.", node)
+
         varNames = []
         varValues = []
 
@@ -894,15 +897,15 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(self.getConstantFloat(np.pi))
             return
 
-        def maybeProposeAttributeFix(attrName):
-            # TODO add more smart suggestions...
-            if 'qubit' == attrName:
-                return 'Did you mean to construct a qubit? (missing parenthesis)'
-            if 'qvector' == attrName:
-                return 'Did you mean to construct a qvector? (missing parenthesis and size)'
-            return ''
-        
-        self.emitFatalError(f'Invalid attribute detected. {maybeProposeAttributeFix(node.attr)}')
+        # def maybeProposeAttributeFix(attrName):
+        #     # TODO add more smart suggestions...
+        #     if 'qubit' == attrName:
+        #         return 'Did you mean to construct a qubit? (missing parenthesis)'
+        #     if 'qvector' == attrName:
+        #         return 'Did you mean to construct a qvector? (missing parenthesis and size)'
+        #     return ''
+
+        # self.emitFatalError(f'Invalid attribute detected. {maybeProposeAttributeFix(node.attr)}')
 
     def visit_Call(self, node):
         """
@@ -1016,11 +1019,12 @@ class PyASTBridge(ast.NodeVisitor):
                         cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
                     return
                 if quake.VeqType.isinstance(listVal.type):
-                    self.pushValue(quake.VeqSizeOp(self.getIntegerType(),
-                                                    listVal).result)
+                    self.pushValue(
+                        quake.VeqSizeOp(self.getIntegerType(), listVal).result)
                     return
-                
-                self.emitFatalError("__len__ not supported on variables of this type.", node)
+
+                self.emitFatalError(
+                    "__len__ not supported on variables of this type.", node)
 
             if node.func.id == "range":
                 iTy = self.getIntegerType(64)
@@ -1065,6 +1069,19 @@ class PyASTBridge(ast.NodeVisitor):
                 startVal = self.ifPointerThenLoad(startVal)
                 endVal = self.ifPointerThenLoad(endVal)
                 stepVal = self.ifPointerThenLoad(stepVal)
+
+                # Range expects integers
+                if F64Type.isinstance(startVal.type):
+                    startVal = arith.FPToSIOp(self.getIntegerType(),
+                                              startVal).result
+
+                if F64Type.isinstance(endVal.type):
+                    endVal = arith.FPToSIOp(self.getIntegerType(),
+                                            endVal).result
+
+                if F64Type.isinstance(stepVal.type):
+                    stepVal = arith.FPToSIOp(self.getIntegerType(),
+                                             stepVal).result
 
                 # The total number of elements in the iterable
                 # we are generating should be `N == endVal - startVal`
@@ -1737,13 +1754,14 @@ class PyASTBridge(ast.NodeVisitor):
                         self.popValue() for i in range(len(self.valueStack))
                     ]
                     param = controls[-1]
+                    controls = controls[:-1]
                     if IntegerType.isinstance(param.type):
                         param = arith.SIToFPOp(self.getFloatType(),
                                                param).result
                     opCtor = getattr(quake,
                                      '{}Op'.format(node.func.value.id.title()))
                     self.checkControlAndTargetTypes(controls, [target])
-                    opCtor([], [param], controls[:-1], [target])
+                    opCtor([], [param], controls, [target])
                     return
 
                 if node.func.attr == 'adj':

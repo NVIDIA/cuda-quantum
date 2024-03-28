@@ -1260,4 +1260,14 @@ def test_missing_paren_1450():
     
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'Invalid attribute detected. Did you mean to construct' in repr(e)
+    assert 'Invalid assignment detected.'
+
+# def test_cast_error_1451():
+#     @cudaq.kernel
+#     def test_kernel(N: int):
+#         q = cudaq.qvector(N)
+#         for i in range(0,N/2):
+#             swap(q[i], q[N-i-1])
+    
+#     # Test is that this compiles
+#     test_kernel.compile()
