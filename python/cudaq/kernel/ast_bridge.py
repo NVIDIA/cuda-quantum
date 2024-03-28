@@ -480,6 +480,10 @@ class PyASTBridge(ast.NodeVisitor):
         ]
 
     def checkControlAndTargetTypes(self, controls, targets):
+        """
+        Loop through the provided control and target qubit values and 
+        assert that they are of quantum type. Emit a fatal error if not. 
+        """
         [
             self.emitFatalError(f'control operand {i} is not of quantum type.')
             if not self.isQuantumType(control.type) else None
@@ -1659,6 +1663,12 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
             def maybeProposeOpAttrFix(opName, attrName):
+                """
+                Check the quantum operation attribute name and 
+                propose a smart fix message if possible. For example, 
+                if we have `x.control(...)` then remind the programmer the 
+                correct attribute is `x.ctrl(...)`.
+                """
                 # TODO Add more possibilities in the future...
                 if attrName in ['control'
                                ] or 'control' in attrName or 'ctrl' in attrName:
