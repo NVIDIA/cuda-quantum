@@ -775,7 +775,7 @@ public:
 
   /// @brief Deallocate the qubit with give index
   void deallocate(const std::size_t qubitIdx) override {
-    if (executionContext && executionContext->name != "tracer") {
+    if (executionContext) {
       cudaq::info("Deferring qubit {} deallocation", qubitIdx);
       deferredDeallocation.push_back(qubitIdx);
       return;
