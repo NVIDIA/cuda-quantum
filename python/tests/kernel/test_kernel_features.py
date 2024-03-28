@@ -1250,3 +1250,14 @@ def test_len_qvector_1449():
 
     test_kernel.compile()
     assert test_kernel(5) == 5
+
+def test_missing_paren_1450():
+
+    @cudaq.kernel
+    def test_kernel():
+        state_reg = cudaq.qubit
+        x(state_reg)
+    
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Invalid attribute detected. Did you mean to construct' in repr(e)
