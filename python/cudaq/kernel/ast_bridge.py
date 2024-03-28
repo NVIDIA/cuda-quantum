@@ -897,16 +897,6 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(self.getConstantFloat(np.pi))
             return
 
-        # def maybeProposeAttributeFix(attrName):
-        #     # TODO add more smart suggestions...
-        #     if 'qubit' == attrName:
-        #         return 'Did you mean to construct a qubit? (missing parenthesis)'
-        #     if 'qvector' == attrName:
-        #         return 'Did you mean to construct a qvector? (missing parenthesis and size)'
-        #     return ''
-
-        # self.emitFatalError(f'Invalid attribute detected. {maybeProposeAttributeFix(node.attr)}')
-
     def visit_Call(self, node):
         """
         Map a Python Call operation to equivalent MLIR. This method will first check 
