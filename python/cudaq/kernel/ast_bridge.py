@@ -479,6 +479,18 @@ class PyASTBridge(ast.NodeVisitor):
             for i, ty in enumerate(FunctionType(functionTy).inputs)
         ]
 
+    def checkControlAndTargetTypes(self, controls, targets):
+        [
+            self.emitFatalError(f'control operand {i} is not of quantum type.')
+            if not self.isQuantumType(control.type) else None
+            for i, control in enumerate(controls)
+        ]
+        [
+            self.emitFatalError(f'target operand {i} is not of quantum type.')
+            if not self.isQuantumType(target.type) else None
+            for i, target in enumerate(targets)
+        ]
+
     def createInvariantForLoop(self,
                                endVal,
                                bodyBuilder,
@@ -1207,6 +1219,7 @@ class PyASTBridge(ast.NodeVisitor):
                     negCtrlBool = control in self.controlNegations
                     negatedControlQubits = DenseBoolArrayAttr.get(negCtrlBool)
                     self.controlNegations.clear()
+                self.checkControlAndTargetTypes([control], [target])
                 # Map `cx` to `XOp`...
                 opCtor = getattr(
                     quake, '{}Op'.format(node.func.id.title()[1:].upper()))
@@ -1235,6 +1248,7 @@ class PyASTBridge(ast.NodeVisitor):
                         .format(node.func.id, len(node.args), MAX_ARGS))
                 target = self.popValue()
                 control = self.popValue()
+                self.checkControlAndTargetTypes([control], [target])
                 param = self.popValue()
                 if IntegerType.isinstance(param.type):
                     param = arith.SIToFPOp(self.getFloatType(), param).result
@@ -1246,6 +1260,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             if node.func.id in ["sdg", "tdg"]:
                 target = self.popValue()
+                self.checkControlAndTargetTypes([], [target])
                 # Map `sdg` to `SOp`...
                 opCtor = getattr(quake, '{}Op'.format(node.func.id.title()[0]))
                 if quake.VeqType.isinstance(target.type):
@@ -1291,6 +1306,7 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
                         registerName = userProvidedRegName.value.value
                 qubit = self.popValue()
+                self.checkControlAndTargetTypes([], [qubit])
                 opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
                 i1Ty = self.getIntegerType(1)
                 resTy = i1Ty if quake.RefType.isinstance(
@@ -1311,6 +1327,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # this is a vanilla Hadamard
                 qubitB = self.popValue()
                 qubitA = self.popValue()
+                self.checkControlAndTargetTypes([], [qubitA, qubitB])
                 opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
                 opCtor([], [], [], [qubitA, qubitB])
                 return
@@ -1349,6 +1366,7 @@ class PyASTBridge(ast.NodeVisitor):
             elif node.func.id == 'exp_pauli':
                 pauliWord = self.popValue()
                 qubits = self.popValue()
+                self.checkControlAndTargetTypes([], [qubits])
                 theta = self.popValue()
                 if IntegerType.isinstance(theta.type):
                     theta = arith.SIToFPOp(self.getFloatType(), theta).result
@@ -1533,6 +1551,7 @@ class PyASTBridge(ast.NodeVisitor):
                             f"incorrect number of runtime arguments for cudaq.control({otherFuncName},..) call.",
                             node)
                     controls = self.popValue()
+                    self.checkControlAndTargetTypes([controls], [])
                     quake.ApplyOp([], [], [controls],
                                   values,
                                   callee=FlatSymbolRefAttr.get(nvqppPrefix +
@@ -1648,12 +1667,14 @@ class PyASTBridge(ast.NodeVisitor):
 
                     opCtor = getattr(quake,
                                      '{}Op'.format(node.func.value.id.title()))
+                    self.checkControlAndTargetTypes(controls, [target])
                     opCtor([], [],
                            controls, [target],
                            negated_qubit_controls=negatedControlQubits)
                     return
                 if node.func.attr == 'adj':
                     target = self.popValue()
+                    self.checkControlAndTargetTypes([], [target])
                     opCtor = getattr(quake,
                                      '{}Op'.format(node.func.value.id.title()))
                     if quake.VeqType.isinstance(target.type):
@@ -1690,6 +1711,7 @@ class PyASTBridge(ast.NodeVisitor):
                 ]
                 opCtor = getattr(quake,
                                  '{}Op'.format(node.func.value.id.title()))
+                self.checkControlAndTargetTypes(controls, [targetA, targetB])
                 opCtor([], [], controls, [targetA, targetB])
                 return
 
@@ -1705,6 +1727,7 @@ class PyASTBridge(ast.NodeVisitor):
                                                param).result
                     opCtor = getattr(quake,
                                      '{}Op'.format(node.func.value.id.title()))
+                    self.checkControlAndTargetTypes(controls, [target])
                     opCtor([], [param], controls[:-1], [target])
                     return
 
@@ -1716,6 +1739,7 @@ class PyASTBridge(ast.NodeVisitor):
                                                param).result
                     opCtor = getattr(quake,
                                      '{}Op'.format(node.func.value.id.title()))
+                    self.checkControlAndTargetTypes([], [target])
                     if quake.VeqType.isinstance(target.type):
 
                         def bodyBuilder(iterVal):
