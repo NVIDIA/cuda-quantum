@@ -890,7 +890,7 @@ class PyASTBridge(ast.NodeVisitor):
                                     self.symbolTable[node.value.id]).result)
             return
 
-        if node.value.id in ['np', 'numpy'] and node.attr == 'pi':
+        if node.value.id in ['np', 'numpy', 'math'] and node.attr == 'pi':
             self.pushValue(self.getConstantFloat(np.pi))
             return
 

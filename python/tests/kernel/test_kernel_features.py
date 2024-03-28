@@ -1227,3 +1227,13 @@ def test_ctrl_wrong_dtype_1447():
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
     assert 'target operand 0 is not of quantum type' in repr(e)
+
+
+def test_math_module_pi():
+    import math
+    @cudaq.kernel
+    def test_kernel() -> float:
+        theta = math.pi
+        return theta
+    test_kernel.compile()
+    assert np.isclose(test_kernel(), math.pi, 1e-12)
