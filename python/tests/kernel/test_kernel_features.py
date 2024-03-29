@@ -1006,7 +1006,9 @@ def test_draw_bug_1400():
         h(q)
         ry(angle, q)
     
-       
+    
+    print(cudaq.draw(kernel, 0.59))
+    print(cudaq.draw(kernel, 0.59))
     circuit = cudaq.draw(bell_pair)
     print(circuit)
     expected_str = '''     ╭───╮     
