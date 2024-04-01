@@ -111,14 +111,6 @@ public:
     if (!executionContext)
       return;
 
-    if (isInTracerMode()) {
-      for (auto &q : contextQuditIdsForDeletion)
-        returnIndex(q.id);
-
-      contextQuditIdsForDeletion.clear();
-      return;
-    }
-
     // Do any final post-processing before
     // we deallocate the qudits
     handleExecutionContextEnded();
