@@ -691,7 +691,7 @@ class PyASTBridge(ast.NodeVisitor):
     def visit_Expr(self, node):
         """
         Implement `ast.Expr` visitation to screen out all
-        multi-line docstrings. These are differentiated from other strings
+        multi-line `docstrings`. These are differentiated from other strings
         at the node-type level. Strings we may care about will have been
         assigned to a variable (hence `ast.Assign` nodes), while other strings will exist
         as standalone expressions with no uses.
