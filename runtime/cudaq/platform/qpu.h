@@ -56,13 +56,13 @@ protected:
     // initiating the trace.
     bool execute = localContext && localContext->name == "observe";
     if (execute) {
-      cudaq::ScopedTrace trace(cudaq::TIMING_OBSERVE,
-                               "handleObservation flushGateQueue()");
+      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
+                             "handleObservation flushGateQueue()");
       getExecutionManager()->flushGateQueue();
     }
     if (execute) {
-      cudaq::ScopedTrace trace(cudaq::TIMING_OBSERVE,
-                               "QPU::handleObservation (after flush)");
+      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
+                             "QPU::handleObservation (after flush)");
       double sum = 0.0;
       if (!localContext->spin.has_value())
         throw std::runtime_error("[QPU] Observe ExecutionContext specified "

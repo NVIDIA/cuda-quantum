@@ -791,7 +791,7 @@ public:
 
   /// @brief Allocate `count` qubits.
   std::vector<std::size_t> allocateQubits(std::size_t count) override {
-    cudaq::ScopedTrace trace("allocateQubits", count);
+    ScopedTraceWithContext("allocateQubits", count);
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());

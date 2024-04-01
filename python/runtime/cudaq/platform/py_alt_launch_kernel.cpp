@@ -41,7 +41,7 @@ std::tuple<ExecutionEngine *, void *, std::size_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
                  const std::vector<std::string> &names, Type returnType) {
-  cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
   auto mod = unwrap(module);
   auto cloned = mod.clone();
   auto context = cloned.getContext();
@@ -57,8 +57,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   if (jitCache->hasJITEngine(hashKey))
     jit = jitCache->getJITEngine(hashKey);
   else {
-    cudaq::ScopedTrace trace(cudaq::TIMING_JIT,
-                             "jitAndCreateArgs - execute passes", name);
+    ScopedTraceWithContext(cudaq::TIMING_JIT,
+                           "jitAndCreateArgs - execute passes", name);
 
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(
@@ -259,7 +259,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
                             cudaq::OpaqueArguments &runtimeArgs) {
-  ScopedTraceWithContextTagAndArgs(cudaq::TIMING_JIT, "synthesizeKernel", name);
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
   auto [jit, rawArgs, size] =
@@ -292,7 +292,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
 std::string getQIRLL(const std::string &name, MlirModule module,
                      cudaq::OpaqueArguments &runtimeArgs,
                      std::string &profile) {
-  cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "getQIRLL", name);
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIRLL", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
   auto [jit, rawArgs, size] =

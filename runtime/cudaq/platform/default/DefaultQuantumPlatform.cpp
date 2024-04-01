@@ -34,14 +34,14 @@ public:
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t, std::uint64_t) override {
-    cudaq::ScopedTrace trace(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
+    ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
     kernelFunc(args);
   }
 
   /// Overrides setExecutionContext to forward it to the ExecutionManager
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-    ScopedTraceWithContextAndArgs("DefaultPlatform::setExecutionContext",
-                                  context->name);
+    ScopedTraceWithContext("DefaultPlatform::setExecutionContext",
+                           context->name);
     executionContext = context;
     if (noiseModel)
       executionContext->noiseModel = noiseModel;
@@ -52,7 +52,7 @@ public:
   /// Overrides resetExecutionContext to forward to
   /// the ExecutionManager. Also handles observe post-processing
   void resetExecutionContext() override {
-    cudaq::ScopedTrace trace(
+    ScopedTraceWithContext(
         executionContext->name == "observe" ? cudaq::TIMING_OBSERVE : 0,
         "DefaultPlatform::resetExecutionContext", executionContext->name);
     handleObservation(executionContext);

@@ -147,8 +147,8 @@ private:
 
   thread_local static inline short int globalTraceStack = -1;
 
-public:
-  /// @brief The constructor
+  /// @brief Constructor with name only. This is private because you should
+  /// probably be using ScopedTraceWithContext() instead.
   ScopedTrace(const std::string &name) {
     if (details::should_log(details::LogLevel::trace)) {
       startTime = std::chrono::system_clock::now();
@@ -157,23 +157,9 @@ public:
     }
   }
 
-  /// @brief The constructor with a timing tag.
-  /// @param tag See Timing.h
-  /// @param name String to print
-  ScopedTrace(const int tag, const std::string &name,
-              const char *funcName = __builtin_FUNCTION(),
-              const char *fileName = __builtin_FILE(),
-              int lineNo = __builtin_LINE())
-      : tag(tag), context(funcName, fileName, lineNo) {
-    tagFound = cudaq::isTimingTagEnabled(tag);
-    if (tagFound || details::should_log(details::LogLevel::trace)) {
-      startTime = std::chrono::system_clock::now();
-      traceName = name;
-      globalTraceStack++;
-    }
-  }
-
-  /// @brief Constructor, take and print user-specified critical arguments
+  /// @brief Constructor, take and print user-specified critical arguments. This
+  /// is private because you should probably be using ScopedTraceWithContext()
+  /// instead.
   template <typename... Args>
   ScopedTrace(const std::string &name, Args &&...args) {
     if (details::should_log(details::LogLevel::trace)) {
@@ -189,7 +175,9 @@ public:
     }
   }
 
-  /// @brief Constructor, take and print user-specified critical arguments
+  /// @brief Constructor, take and print user-specified critical arguments. This
+  /// is private because you should probably be using ScopedTraceWithContext()
+  /// instead.
   /// @param tag See Timing.h
   /// @param name String to print
   template <typename... Args>
@@ -220,6 +208,25 @@ public:
     }
   }
 
+  /// @brief The constructor with a timing tag. This is private because you
+  /// should probably be using ScopedTraceWithContext() instead.
+  /// @param tag See Timing.h
+  /// @param name String to print
+  ScopedTrace(const int tag, const std::string &name,
+              const char *funcName = __builtin_FUNCTION(),
+              const char *fileName = __builtin_FILE(),
+              int lineNo = __builtin_LINE())
+      : tag(tag), context(funcName, fileName, lineNo) {
+    tagFound = cudaq::isTimingTagEnabled(tag);
+    if (tagFound || details::should_log(details::LogLevel::trace)) {
+      startTime = std::chrono::system_clock::now();
+      traceName = name;
+      globalTraceStack++;
+    }
+  }
+
+public:
+  /// @brief Public constructor with a context and a timing tag.
   template <typename... Args>
   ScopedTrace(TraceContext ctx, const int tag, const std::string &name,
               Args &&...args)
@@ -227,6 +234,7 @@ public:
     context = ctx;
   }
 
+  /// @brief Public constructor with a context and no timing tag.
   template <typename... Args>
   ScopedTrace(TraceContext ctx, const std::string &name, Args &&...args)
       : ScopedTrace(name, args...) {
@@ -261,14 +269,11 @@ public:
 };
 } // namespace cudaq
 
-#define ScopedTraceWithContextAndArgs(name, ...)                               \
-  cudaq::ScopedTrace(cudaq::TraceContext(__builtin_FUNCTION(),                 \
-                                         __builtin_FILE(), __builtin_LINE()),  \
-                     name, ##__VA_ARGS__)
-#define ScopedTraceWithContextTagAndArgs(tag, name, ...)                       \
-  cudaq::ScopedTrace(cudaq::TraceContext(__builtin_FUNCTION(),                 \
-                                         __builtin_FILE(), __builtin_LINE()),  \
-                     tag, name, ##__VA_ARGS__)
+#define ScopedTraceWithContext(...)                                            \
+  cudaq::ScopedTrace trace(cudaq::TraceContext(__builtin_FUNCTION(),           \
+                                               __builtin_FILE(),               \
+                                               __builtin_LINE()),              \
+                           ##__VA_ARGS__)
 
 // Note from Alex:
 // I Want to save the below source for later, we should be able to

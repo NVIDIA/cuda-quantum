@@ -197,7 +197,7 @@ protected:
 
   /// @brief Increase the state size by the given number of qubits.
   void addQubitsToState(std::size_t count) override {
-    cudaq::ScopedTrace trace("CuStateVecCircuitSimulator::addQubitsToState", count);
+    ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitsToState", count);
     if (count == 0)
       return;
 
@@ -233,7 +233,7 @@ protected:
 
   /// @brief Increase the state size by one qubit.
   void addQubitToState() override {
-    cudaq::ScopedTrace trace("CuStateVecCircuitSimulator::addQubitToState");
+    ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitToState");
     // Update the state vector
     if (!deviceStateVector) {
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
@@ -465,7 +465,7 @@ public:
   /// @brief Compute the expected value from the observable matrix.
   cudaq::observe_result observe(const cudaq::spin_op &op) override {
     {
-      cudaq::ScopedTrace trace(
+      ScopedTraceWithContext(
           "CuStateVecCircuitSimulator::observe - flushGateQueue");
       flushGateQueue();
     }
@@ -524,7 +524,7 @@ public:
     });
     std::vector<double> expectationValues(nPauliOperatorArrays);
     {
-      cudaq::ScopedTrace trace("CuStateVecCircuitSimulator::observe - "
+      ScopedTraceWithContext("CuStateVecCircuitSimulator::observe - "
                                "custatevecComputeExpectationsOnPauliBasis");
       HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(
           handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
@@ -548,7 +548,7 @@ public:
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
-    cudaq::ScopedTrace trace(cudaq::TIMING_SAMPLE, "CuStateVecSimulator::sample");
+    ScopedTraceWithContext(cudaq::TIMING_SAMPLE, "CuStateVecSimulator::sample");
     double expVal = 0.0;
     // cudaq::CountsDictionary counts;
     std::vector<custatevecPauli_t> z_pauli;

@@ -355,7 +355,7 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
                               llvm::raw_string_ostream &output,
                               const std::string &additionalPasses, bool printIR,
                               bool printIntermediateMLIR) {
-  cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
   const uint32_t qir_major_version = 1;
   const uint32_t qir_minor_version = 0;
@@ -485,7 +485,7 @@ void registerToOpenQASMTranslation() {
       [](Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR) {
-        cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "qasm2 translation");
+        ScopedTraceWithContext(cudaq::TIMING_JIT, "qasm2 translation");
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
@@ -514,7 +514,7 @@ void registerToIQMJsonTranslation() {
       [](Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR) {
-        cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "iqm translation");
+        ScopedTraceWithContext(cudaq::TIMING_JIT, "iqm translation");
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
@@ -546,7 +546,7 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
   // setO0WantsFastISel() do not retain their values in our current version of
   // LLVM. This use of LLVM command line parameters could be changed if the LLVM
   // JIT ever supports the TargetMachine options in the future.
-  cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "createQIRJITEngine");
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "createQIRJITEngine");
   const char *argv[] = {"", "-fast-isel=0", nullptr};
   llvm::cl::ParseCommandLineOptions(2, argv);
 
@@ -557,8 +557,8 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
       [convertTo = convertTo.str()](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
-    cudaq::ScopedTrace trace(cudaq::TIMING_JIT,
-                             "createQIRJITEngine::llvmModuleBuilder");
+    ScopedTraceWithContext(cudaq::TIMING_JIT,
+                           "createQIRJITEngine::llvmModuleBuilder");
     llvmContext.setOpaquePointers(false);
 
     auto *context = module->getContext();
