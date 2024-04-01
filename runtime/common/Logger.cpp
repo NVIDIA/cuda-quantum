@@ -57,11 +57,13 @@ __attribute__((constructor)) void initializeLogger() {
     spdlog::flush_on(spdlog::get_level());
   }
 
-  // Parse comma separated integers into g_timingList
+  // Parse comma separated integers into g_timingList. Process integer values
+  // like this: "1,3,5,7-10,12".
   if (auto *val = std::getenv("CUDAQ_TIMING_TAGS")) {
     std::string valueStr(val);
     std::stringstream ss(valueStr);
     int tag = 0;
+    int priorTag = -1; // initialize invalid to invalid tag
     while (ss >> tag) {
       if (tag > cudaq::TIMING_MAX_VALUE)
         fmt::print("WARNING: value in CUDAQ_TIMING_TAGS ({}) is too high and "
@@ -69,8 +71,18 @@ __attribute__((constructor)) void initializeLogger() {
                    tag);
       else
         g_timingList().insert(tag);
-      if (ss.peek() == ',')
+
+      // Handle the A-B range (if necessary)
+      if (priorTag != -1)
+        for (int t = priorTag + 1; t < tag; t++)
+          g_timingList().insert(t);
+      if (ss.peek() == ',') {
+        priorTag = -1; // this is not a range
         ss.ignore();
+      } else if (ss.peek() == '-') {
+        priorTag = tag; // save the lower end of the range
+        ss.ignore();
+      }
     }
   }
 }
