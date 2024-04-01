@@ -189,6 +189,7 @@ def test_2grover_compute_action():
     assert '101' in counts
     assert '011' in counts
 
+
 @skipIfPythonLessThan39
 def test_pauli_word_input():
 
@@ -916,6 +917,7 @@ def test_aug_assign_add():
 
     assert test2() == 10
 
+
 @skipIfPythonLessThan39
 def test_empty_lists():
 
@@ -1044,3 +1046,224 @@ def test_with_docstring_2():
 
     kernel.compile()
     print(kernel)
+
+
+def test_user_error_op_attr_1446():
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        x.control(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean x.ctrl(...)?' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        x.adjoint(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean x.adj(...)?' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        x.adjointBadAttr(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean x.adj(...)?' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        x.noIdeaWhatThisIs(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean ' not in repr(e)
+
+
+def test_ctrl_wrong_dtype_1447():
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # should throw error for acting on ints
+        x.ctrl(0, 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # should throw error for acting on ints
+        x.ctrl(qubits[0], 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # should throw error for acting on ints
+        swap(0, 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        cx(0, 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        h(22)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'quantum operation h on incorrect quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        crx(2.2, 0, 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        mz(22)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        rx.ctrl(2.2, 2, 3)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        sdg(2)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x.adj(3)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        swap.ctrl(3, 4)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        rx.ctrl(1.1, 3, 2)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        rx.adj(2.2, 3)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+
+def test_math_module_pi_1448():
+    import math
+    @cudaq.kernel
+    def test_kernel() -> float:
+        theta = math.pi
+        return theta
+    test_kernel.compile()
+    assert np.isclose(test_kernel(), math.pi, 1e-12)
+
+def test_len_qvector_1449():
+
+    @cudaq.kernel
+    def test_kernel(nCountingQubits: int) -> int:
+        qubits = cudaq.qvector(nCountingQubits)
+        # can use N = counting_qubits.size()
+        N = len(qubits)
+        h(qubits)
+        return N
+
+    test_kernel.compile()
+    assert test_kernel(5) == 5
+
+def test_missing_paren_1450():
+
+    @cudaq.kernel
+    def test_kernel():
+        state_reg = cudaq.qubit
+        x(state_reg)
+    
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Invalid assignment detected.'
+
+def test_cast_error_1451():
+    @cudaq.kernel
+    def test_kernel(N: int):
+        q = cudaq.qvector(N)
+        for i in range(0,N/2):
+            swap(q[i], q[N-i-1])
+    
+    # Test is that this compiles
+    test_kernel.compile()
