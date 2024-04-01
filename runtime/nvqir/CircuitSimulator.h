@@ -23,6 +23,33 @@
 
 namespace nvqir {
 
+  // @brief Collect summary data and print upon simulator termination
+  struct SummaryData {
+    std::size_t gateCount = 0;
+    std::size_t controlCount = 0;
+    std::size_t targetCount = 0;
+    std::size_t svIO = 0;
+    std::size_t svFLOPs = 0;
+    bool enabled = false;
+    std::string name;
+    SummaryData() {
+      if (cudaq::isTimingTagEnabled(cudaq::TIMING_GATE_COUNT))
+        enabled = true;
+    }
+    ~SummaryData() {
+      if (enabled) {
+        cudaq::log("CircuitSimulator '{}' Total Program Metrics:", name);
+        cudaq::log("Gate Count = {}", gateCount);
+        cudaq::log("Control Count = {}", controlCount);
+        cudaq::log("Target Count = {}", targetCount);
+        cudaq::log("State Vector I/O (GB) = {:.6f}",
+                    static_cast<double>(svIO) / 1e9);
+        cudaq::log("State Vector GFLOPs = {:.6f}",
+                    static_cast<double>(svFLOPs) / 1e9);
+      }
+    }
+  };
+
 /// @brief The CircuitSimulator defines a base class for all
 /// simulators that are available to CUDAQ via the NVQIR library.
 /// This base class handles Qubit allocation and deallocation,
@@ -36,6 +63,9 @@ protected:
   /// apply them to the state. Internal and meant for
   /// subclasses to implement
   virtual void flushGateQueueImpl() = 0;
+
+  /// @brief Statistics collected over the life of the simulator.
+  SummaryData summaryData;
 
 public:
   /// @brief The constructor
@@ -647,33 +677,6 @@ protected:
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
-    // Collect summary data and print upon program termination
-    struct SummaryData {
-      std::size_t gateCount = 0;
-      std::size_t controlCount = 0;
-      std::size_t targetCount = 0;
-      std::size_t svIO = 0;
-      std::size_t svFLOPs = 0;
-      bool enabled = false;
-      SummaryData() {
-        if (cudaq::isTimingTagEnabled(cudaq::TIMING_GATE_COUNT))
-          enabled = true;
-      }
-      ~SummaryData() {
-        if (enabled) {
-          cudaq::log("CircuitSimulator Total Program Metrics:");
-          cudaq::log("Gate Count = {}", gateCount);
-          cudaq::log("Control Count = {}", controlCount);
-          cudaq::log("Target Count = {}", targetCount);
-          cudaq::log("State Vector I/O (GB) = {:.6f}",
-                     static_cast<double>(svIO) / 1e9);
-          cudaq::log("State Vector GFLOPs = {:.6f}",
-                     static_cast<double>(svFLOPs) / 1e9);
-        }
-      }
-    };
-    static thread_local SummaryData summaryData;
-
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
       if (summaryData.enabled) {

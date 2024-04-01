@@ -101,6 +101,7 @@ protected:
   using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
   using nvqir::CircuitSimulatorBase<ScalarType>::previousStateDimension;
   using nvqir::CircuitSimulatorBase<ScalarType>::shouldObserveFromSampling;
+  using nvqir::CircuitSimulatorBase<ScalarType>::summaryData;
 
   /// @brief The statevector that cuStateVec manipulates on the GPU
   void *deviceStateVector = nullptr;
@@ -325,6 +326,10 @@ public:
       cuStateVecComputeType = CUSTATEVEC_COMPUTE_32F;
       cuStateVecCudaDataType = CUDA_C_32F;
     }
+
+    // Populate the correct name so it is printed correctly during
+    // deconstructor.
+    summaryData.name = name();
 
     HANDLE_CUDA_ERROR(cudaFree(0));
     randomEngine = std::mt19937(randomDevice());
