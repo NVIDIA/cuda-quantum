@@ -470,7 +470,7 @@ public:
   /// @brief Compute the expected value from the observable matrix.
   cudaq::observe_result observe(const cudaq::spin_op &op) override {
     {
-      ScopedTraceWithContext(
+      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
           "CuStateVecCircuitSimulator::observe - flushGateQueue");
       flushGateQueue();
     }
@@ -518,6 +518,14 @@ public:
         if (p != cudaq::pauli::I) {
           paulis.emplace_back(cudaqToCustateVec(p));
           idxs.emplace_back(idx);
+          // One operation for applying the term
+          summaryData.svGateUpdate(/*nControls=*/0, /*nTargets=*/1,
+                                   stateDimension,
+                                   stateDimension * sizeof(DataType));
+          // And one operation for un-applying the term
+          summaryData.svGateUpdate(/*nControls=*/0, /*nTargets=*/1,
+                                   stateDimension,
+                                   stateDimension * sizeof(DataType));
         }
       });
       pauliOperatorsArrayHolder.emplace_back(std::move(paulis));
@@ -529,8 +537,9 @@ public:
     });
     std::vector<double> expectationValues(nPauliOperatorArrays);
     {
-      ScopedTraceWithContext("CuStateVecCircuitSimulator::observe - "
-                               "custatevecComputeExpectationsOnPauliBasis");
+      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
+                             "CuStateVecCircuitSimulator::observe - "
+                             "custatevecComputeExpectationsOnPauliBasis");
       HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(
           handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
           expectationValues.data(), pauliOperatorsArray.data(),

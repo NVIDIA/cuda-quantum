@@ -60,7 +60,8 @@ struct SummaryData {
 
   ~SummaryData() {
     if (enabled) {
-      cudaq::log("CircuitSimulator '{}' Total Program Metrics:", name);
+      cudaq::log("CircuitSimulator '{}' Total Program Metrics [tag={}]:", name,
+                 cudaq::TIMING_GATE_COUNT);
       cudaq::log("Gate Count = {}", gateCount);
       cudaq::log("Control Count = {}", controlCount);
       cudaq::log("Target Count = {}", targetCount);
