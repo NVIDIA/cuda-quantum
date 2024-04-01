@@ -37,9 +37,10 @@ struct SummaryData {
       enabled = true;
   }
 
-  void gateUpdate(const std::size_t nControls, const std::size_t nTargets,
-                  const std::size_t stateDimension,
-                  const std::size_t stateVectorSizeBytes) {
+  /// @brief Update state-vector-based statistics for a logic gate
+  void svGateUpdate(const std::size_t nControls, const std::size_t nTargets,
+                    const std::size_t stateDimension,
+                    const std::size_t stateVectorSizeBytes) {
     assert(nControls <= 63);
     if (enabled) {
       gateCount++;
@@ -205,6 +206,9 @@ public:
 
   /// @brief Return the current execution context
   virtual cudaq::ExecutionContext *getExecutionContext() = 0;
+
+  /// @brief Whether or not this is a state vector simulator
+  virtual bool isStateVectorSimulator() const { return false; }
 
   /// @brief Apply a custom operation described by a matrix of data
   /// represented as 1-D vector of elements in row-major order, as well
@@ -700,8 +704,8 @@ protected:
   void flushGateQueueImpl() override {
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
-      if (summaryData.enabled)
-        summaryData.gateUpdate(
+      if (isStateVectorSimulator() && summaryData.enabled)
+        summaryData.svGateUpdate(
             next.controls.size(), next.targets.size(), stateDimension,
             stateDimension * sizeof(std::complex<ScalarType>));
       applyGate(next);

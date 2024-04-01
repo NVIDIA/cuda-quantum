@@ -654,6 +654,8 @@ public:
     }
   }
 
+  bool isStateVectorSimulator() const override { return true; }
+
   std::string name() const override;
   NVQIR_SIMULATOR_CLONE_IMPL(CuStateVecCircuitSimulator<ScalarType>)
 };
