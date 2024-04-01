@@ -688,8 +688,21 @@ class PyASTBridge(ast.NodeVisitor):
             self.symbolTable.clear()
             self.valueStack.clear()
 
-    # [RFC]:
-    # Examine if we really want to extend Python with a dedicated syntax.
+    def visit_Expr(self, node):
+        """
+        Implement `ast.Expr` visitation to screen out all
+        multi-line `docstrings`. These are differentiated from other strings
+        at the node-type level. Strings we may care about will have been
+        assigned to a variable (hence `ast.Assign` nodes), while other strings will exist
+        as standalone expressions with no uses.
+        """
+        if hasattr(node, 'value') and isinstance(node.value, ast.Constant):
+            constant = node.value
+            if isinstance(constant.value, str):
+                return
+
+        self.visit(node.value)
+
     def visit_Lambda(self, node):
         """
         Map a lambda expression in a CUDA Quantum kernel to a CC Lambda (a Value of `cc.callable` type 

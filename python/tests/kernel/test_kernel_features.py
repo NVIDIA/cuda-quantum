@@ -1018,3 +1018,29 @@ q1 : ─────┤ x ├
           ╰───╯
 '''
     assert circuit == expected_str
+
+
+def test_with_docstring_2():
+    @cudaq.kernel
+    def simple(n:int):
+        '''
+        A docstring with triple single quote
+        '''
+        qubits = cudaq.qvector(n)
+        exp_pauli(2.2, qubits, 'YYYY')
+        """
+        A docstring in the middle of kernel
+        """
+        for q in qubits:
+            '''
+            A multi-line string.
+            Should be ignored.
+            '''
+            h(q)
+
+    @cudaq.kernel
+    def kernel():
+        simple(4)
+
+    kernel.compile()
+    print(kernel)
