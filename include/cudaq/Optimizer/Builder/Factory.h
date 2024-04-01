@@ -159,25 +159,6 @@ inline mlir::Value createF64Constant(mlir::Location loc,
   return createFloatConstant(loc, builder, value, builder.getF64Type());
 }
 
-inline mlir::Value createIntegerConstant(mlir::Location loc,
-                                         mlir::OpBuilder &builder,
-                                         std::int64_t value,
-                                         mlir::IntegerType type) {
-  return builder.create<mlir::arith::ConstantIntOp>(loc, value, type);
-}
-
-inline mlir::Value createI64Constant(mlir::Location loc,
-                                     mlir::OpBuilder &builder,
-                                     std::int64_t value) {
-  return createIntegerConstant(loc, builder, value, builder.getI64Type());
-}
-
-inline mlir::Value createI32Constant(mlir::Location loc,
-                                     mlir::OpBuilder &builder,
-                                     std::int32_t value) {
-  return createIntegerConstant(loc, builder, value, builder.getI32Type());
-}
-
 //===----------------------------------------------------------------------===//
 
 inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {

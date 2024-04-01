@@ -44,7 +44,7 @@ state pyGetState(py::object kernel, py::args args) {
   args = simplifiedValidateInputArguments(args);
 
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
-  auto *argData = toOpaqueArgs(args);
+  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
   return details::extractState([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
@@ -227,13 +227,14 @@ for more information on this programming pattern.)#")
           kernel.attr("compile")();
         auto &platform = cudaq::get_platform();
         auto kernelName = kernel.attr("name").cast<std::string>();
+        auto kernelMod = kernel.attr("module").cast<MlirModule>();
+        auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
         args = simplifiedValidateInputArguments(args);
 
         // The provided kernel is a builder or MLIR kernel
         auto *argData = new cudaq::OpaqueArguments();
-        cudaq::packArgs(*argData, args,
+        cudaq::packArgs(*argData, args, kernelFunc,
                         [](OpaqueArguments &, py::object &) { return false; });
-        auto kernelMod = kernel.attr("module").cast<MlirModule>();
 
         // Launch the asynchronous execution.
         py::gil_scoped_release release;
