@@ -1054,7 +1054,6 @@ def test_user_error_op_attr_1446():
     def test_kernel(nQubits: int):
         qubits = cudaq.qvector(nQubits)
         x(qubits)
-        # behavior is strange, applies h to 6 qubits now
         x.control(qubits[0], qubits[1])
         h(qubits)
 
@@ -1067,7 +1066,6 @@ def test_user_error_op_attr_1446():
     def test_kernel(nQubits: int):
         qubits = cudaq.qvector(nQubits)
         x(qubits)
-        # behavior is strange, applies h to 6 qubits now
         x.adjoint(qubits[0], qubits[1])
         h(qubits)
 
@@ -1080,7 +1078,6 @@ def test_user_error_op_attr_1446():
     def test_kernel(nQubits: int):
         qubits = cudaq.qvector(nQubits)
         x(qubits)
-        # behavior is strange, applies h to 6 qubits now
         x.adjointBadAttr(qubits[0], qubits[1])
         h(qubits)
 
@@ -1093,7 +1090,6 @@ def test_user_error_op_attr_1446():
     def test_kernel(nQubits: int):
         qubits = cudaq.qvector(nQubits)
         x(qubits)
-        # behavior is strange, applies h to 6 qubits now
         x.noIdeaWhatThisIs(qubits[0], qubits[1])
         h(qubits)
 
@@ -1243,7 +1239,7 @@ def test_len_qvector_1449():
     @cudaq.kernel
     def test_kernel(nCountingQubits: int) -> int:
         qubits = cudaq.qvector(nCountingQubits)
-        # N = counting_qubits.size()
+        # can use N = counting_qubits.size()
         N = len(qubits)
         h(qubits)
         return N
@@ -1262,12 +1258,12 @@ def test_missing_paren_1450():
         test_kernel.compile()
     assert 'Invalid assignment detected.'
 
-# def test_cast_error_1451():
-#     @cudaq.kernel
-#     def test_kernel(N: int):
-#         q = cudaq.qvector(N)
-#         for i in range(0,N/2):
-#             swap(q[i], q[N-i-1])
+def test_cast_error_1451():
+    @cudaq.kernel
+    def test_kernel(N: int):
+        q = cudaq.qvector(N)
+        for i in range(0,N/2):
+            swap(q[i], q[N-i-1])
     
-#     # Test is that this compiles
-#     test_kernel.compile()
+    # Test is that this compiles
+    test_kernel.compile()
