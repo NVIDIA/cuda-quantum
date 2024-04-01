@@ -88,6 +88,17 @@ void log(const std::string_view message, Args &&...args) {
              fmt::format(fmt::runtime(message), args...));
 }
 
+/// @brief Context information (function, file, and line) of a caller
+struct TraceContext {
+  const char *funcName = nullptr;
+  const char *fileName = nullptr;
+  int lineNo = 0;
+
+  TraceContext(const char *func = __builtin_FUNCTION(),
+               const char *file = __builtin_FILE(), int line = __builtin_LINE())
+      : funcName(func), fileName(file), lineNo(line) {}
+};
+
 /// @brief This type is meant to provided quick tracing
 /// of function calls. Instantiate at the beginning
 /// of a function and when it goes out of scope at function
@@ -131,6 +142,9 @@ private:
   /// @brief Whether or not timing tag is enabled
   bool tagFound = false;
 
+  /// @brief File, line, etc. of trace caller
+  TraceContext context;
+
   thread_local static inline short int globalTraceStack = -1;
 
 public:
@@ -146,7 +160,11 @@ public:
   /// @brief The constructor with a timing tag.
   /// @param tag See Timing.h
   /// @param name String to print
-  ScopedTrace(const int tag, const std::string &name) : tag(tag) {
+  ScopedTrace(const int tag, const std::string &name,
+              const char *funcName = __builtin_FUNCTION(),
+              const char *fileName = __builtin_FILE(),
+              int lineNo = __builtin_LINE())
+      : tag(tag), context(funcName, fileName, lineNo) {
     tagFound = cudaq::isTimingTagEnabled(tag);
     if (tagFound || details::should_log(details::LogLevel::trace)) {
       startTime = std::chrono::system_clock::now();
@@ -202,6 +220,19 @@ public:
     }
   }
 
+  template <typename... Args>
+  ScopedTrace(TraceContext ctx, const int tag, const std::string &name,
+              Args &&...args)
+      : ScopedTrace(tag, name, args...) {
+    context = ctx;
+  }
+
+  template <typename... Args>
+  ScopedTrace(TraceContext ctx, const std::string &name, Args &&...args)
+      : ScopedTrace(name, args...) {
+    context = ctx;
+  }
+
   /// The destructor, get the elapsed time and trace.
   ~ScopedTrace() {
     if (tagFound || details::should_log(details::LogLevel::trace)) {
@@ -212,10 +243,14 @@ public:
           1000.0);
       // If we're printing because the tag was found, then add that tag info
       std::string tagStr = tagFound ? fmt::format("[tag={}] ", tag) : "";
+      std::string sourceInfo =
+          context.fileName ? "[" + details::pathToFileName(context.fileName) +
+                                 ":" + std::to_string(context.lineNo) + "] "
+                           : "";
       auto str = fmt::format(
-          "{}{}{} executed in {} ms.{}",
+          "{}{}{}{} executed in {} ms.{}",
           globalTraceStack > 0 ? std::string(globalTraceStack, '-') + " " : "",
-          tagStr, traceName, duration, argsMsg);
+          tagStr, sourceInfo, traceName, duration, argsMsg);
       if (tagFound)
         cudaq::log(str);
       else
@@ -225,6 +260,15 @@ public:
   }
 };
 } // namespace cudaq
+
+#define ScopedTraceWithContextAndArgs(name, ...)                               \
+  cudaq::ScopedTrace(cudaq::TraceContext(__builtin_FUNCTION(),                 \
+                                         __builtin_FILE(), __builtin_LINE()),  \
+                     name, ##__VA_ARGS__)
+#define ScopedTraceWithContextTagAndArgs(tag, name, ...)                       \
+  cudaq::ScopedTrace(cudaq::TraceContext(__builtin_FUNCTION(),                 \
+                                         __builtin_FILE(), __builtin_LINE()),  \
+                     tag, name, ##__VA_ARGS__)
 
 // Note from Alex:
 // I Want to save the below source for later, we should be able to

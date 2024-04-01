@@ -40,8 +40,8 @@ public:
 
   /// Overrides setExecutionContext to forward it to the ExecutionManager
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-    cudaq::ScopedTrace trace("DefaultPlatform::setExecutionContext",
-                             context->name);
+    ScopedTraceWithContextAndArgs("DefaultPlatform::setExecutionContext",
+                                  context->name);
     executionContext = context;
     if (noiseModel)
       executionContext->noiseModel = noiseModel;

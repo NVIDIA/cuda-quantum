@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
+#include "Logger.h"
+#include "Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
@@ -353,6 +355,7 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
                               llvm::raw_string_ostream &output,
                               const std::string &additionalPasses, bool printIR,
                               bool printIntermediateMLIR) {
+  cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
   const uint32_t qir_major_version = 1;
   const uint32_t qir_minor_version = 0;
@@ -371,8 +374,13 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
   if (!additionalPasses.empty() &&
       failed(parsePassPipeline(additionalPasses, pm, errOs)))
     return failure();
+  DefaultTimingManager tm;
+  tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+  auto timingScope = tm.getRootScope(); // starts the timer
+  pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(op)))
     return failure();
+  timingScope.stop();
 
   auto llvmContext = std::make_unique<llvm::LLVMContext>();
   llvmContext->setOpaquePointers(false);
@@ -477,12 +485,18 @@ void registerToOpenQASMTranslation() {
       [](Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR) {
+        cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "qasm2 translation");
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
         cudaq::opt::addPipelineToOpenQASM(pm);
+        DefaultTimingManager tm;
+        tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+        auto timingScope = tm.getRootScope(); // starts the timer
+        pm.enableTiming(timingScope);         // do this right before pm.run
         if (failed(pm.run(op)))
           throw std::runtime_error("code generation failed.");
+        timingScope.stop();
         auto passed = cudaq::translateToOpenQASM(op, output);
         if (printIR) {
           if (succeeded(passed))
@@ -500,12 +514,18 @@ void registerToIQMJsonTranslation() {
       [](Operation *op, llvm::raw_string_ostream &output,
          const std::string &additionalPasses, bool printIR,
          bool printIntermediateMLIR) {
+        cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "iqm translation");
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
         cudaq::opt::addPipelineToIQMJson(pm);
+        DefaultTimingManager tm;
+        tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+        auto timingScope = tm.getRootScope(); // starts the timer
+        pm.enableTiming(timingScope);         // do this right before pm.run
         if (failed(pm.run(op)))
           throw std::runtime_error("code generation failed.");
+        timingScope.stop();
         auto passed = cudaq::translateToIQMJson(op, output);
         if (printIR) {
           if (succeeded(passed))
@@ -526,6 +546,7 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
   // setO0WantsFastISel() do not retain their values in our current version of
   // LLVM. This use of LLVM command line parameters could be changed if the LLVM
   // JIT ever supports the TargetMachine options in the future.
+  cudaq::ScopedTrace trace(cudaq::TIMING_JIT, "createQIRJITEngine");
   const char *argv[] = {"", "-fast-isel=0", nullptr};
   llvm::cl::ParseCommandLineOptions(2, argv);
 
@@ -536,6 +557,8 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
       [convertTo = convertTo.str()](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
+    cudaq::ScopedTrace trace(cudaq::TIMING_JIT,
+                             "createQIRJITEngine::llvmModuleBuilder");
     llvmContext.setOpaquePointers(false);
 
     auto *context = module->getContext();
@@ -546,9 +569,14 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
     // emulated path, we need to pass in the `convertTo` in order to mimic what
     // the non-emulated path would do.
     cudaq::opt::addPipelineToQIR</*QIRProfile=*/false>(pm, convertTo);
+    DefaultTimingManager tm;
+    tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+    auto timingScope = tm.getRootScope(); // starts the timer
+    pm.enableTiming(timingScope);         // do this right before pm.run
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
+    timingScope.stop();
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)
       throw std::runtime_error(

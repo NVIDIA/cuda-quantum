@@ -161,7 +161,7 @@ void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
   __quantum__rt__initialize(0, nullptr);
 
   if (ctx) {
-    cudaq::ScopedTrace trace("NVQIR::setExecutionContext", ctx->name);
+    ScopedTraceWithContextAndArgs("NVQIR::setExecutionContext", ctx->name);
     cudaq::info("Setting execution context: {}{}", ctx ? ctx->name : "basic",
                 ctx->hasConditionalsOnMeasureResults ? " with conditionals"
                                                      : "");
