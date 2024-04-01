@@ -2311,7 +2311,16 @@ bool QuakeBridgeVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
     if (x->isStdInitListInitialization() && isa<quake::VeqType>(peekType()))
       initializerIsGlobal = true;
   }
+  auto *ctor = x->getConstructor();
+  // FIXME: this implicit code visit setting is a hack to only visit a default
+  // argument value when constructing a complex value. We should always be able
+  // to visit default arguments, but we currently trip over default allocators,
+  // etc.
+  bool saveVisitImplicitCode = visitImplicitCode;
+  if (isInClassInNamespace(ctor, "complex", "std"))
+    visitImplicitCode = true;
   auto result = Base::TraverseCXXConstructExpr(x);
+  visitImplicitCode = saveVisitImplicitCode;
   initializerIsGlobal = saveInitializerIsGlobal;
   assert(typeStack.size() == typeStackDepth || raisedError);
   return result;
