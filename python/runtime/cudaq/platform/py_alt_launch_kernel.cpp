@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "JITExecutionCache.h"
+#include "common/ArgumentWrapper.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
@@ -15,6 +17,8 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "utils/OpaqueArguments.h"
+
 #include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
@@ -23,11 +27,9 @@
 #include "mlir/InitAllPasses.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
+
 #include <fmt/core.h>
 #include <pybind11/stl.h>
-
-#include "JITExecutionCache.h"
-#include "utils/OpaqueArguments.h"
 
 namespace py = pybind11;
 using namespace mlir;
@@ -106,26 +108,40 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   // We need to append the return type to the OpaqueArguments here
   // so that we get a spot in the `rawArgs` memory for the
   // altLaunchKernel function to dump the result
-  if (!isa<NoneType>(returnType)) {
-    if (returnType.isInteger(64)) {
-      py::args returnVal = py::make_tuple(py::int_(0));
-      packArgs(runtimeArgs, returnVal);
-    } else if (returnType.isInteger(1)) {
-      py::args returnVal = py::make_tuple(py::bool_(0));
-      packArgs(runtimeArgs, returnVal);
-    } else if (isa<FloatType>(returnType)) {
-      py::args returnVal = py::make_tuple(py::float_(0.0));
-      packArgs(runtimeArgs, returnVal);
-    } else {
-      std::string msg;
-      {
-        llvm::raw_string_ostream os(msg);
-        returnType.print(os);
-      }
-      throw std::runtime_error(
-          "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
-    }
-  }
+  if (!isa<NoneType>(returnType))
+    TypeSwitch<Type, void>(returnType)
+        .Case([&](IntegerType type) {
+          if (type.getIntOrFloatBitWidth() == 1) {
+            bool *ourAllocatedArg = new bool();
+            *ourAllocatedArg = 0;
+            runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+              delete static_cast<bool *>(ptr);
+            });
+            return;
+          }
+
+          long *ourAllocatedArg = new long();
+          *ourAllocatedArg = 0;
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<long *>(ptr);
+          });
+        })
+        .Case([&](Float64Type type) {
+          double *ourAllocatedArg = new double();
+          *ourAllocatedArg = 0.;
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<double *>(ptr);
+          });
+        })
+        .Default([](Type ty) {
+          std::string msg;
+          {
+            llvm::raw_string_ostream os(msg);
+            ty.print(os);
+          }
+          throw std::runtime_error(
+              "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
+        });
 
   void *rawArgs = nullptr;
   std::size_t size = 0;
@@ -182,12 +198,7 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   auto &platform = cudaq::get_platform();
   if (platform.is_remote() || platform.is_emulated()) {
-    struct ArgWrapper {
-      ModuleOp mod;
-      std::vector<std::string> callableNames;
-      void *rawArgs = nullptr;
-    };
-    auto *wrapper = new ArgWrapper{mod, names, rawArgs};
+    auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
     cudaq::altLaunchKernel(name.c_str(), thunk,
                            reinterpret_cast<void *>(wrapper), size, 0);
     delete wrapper;
@@ -322,8 +333,10 @@ void bindAltLaunchKernel(py::module &mod) {
       "pyAltLaunchKernel",
       [&](const std::string &kernelName, MlirModule module,
           py::args runtimeArgs, std::vector<std::string> callable_names) {
+        auto kernelFunc = getKernelFuncOp(module, kernelName);
+
         cudaq::OpaqueArguments args;
-        cudaq::packArgs(args, runtimeArgs, callableArgHandler);
+        cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
         pyAltLaunchKernel(kernelName, module, args, callable_names);
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
@@ -332,8 +345,10 @@ void bindAltLaunchKernel(py::module &mod) {
       "pyAltLaunchKernelR",
       [&](const std::string &kernelName, MlirModule module, MlirType returnType,
           py::args runtimeArgs, std::vector<std::string> callable_names) {
+        auto kernelFunc = getKernelFuncOp(module, kernelName);
+
         cudaq::OpaqueArguments args;
-        cudaq::packArgs(args, runtimeArgs, callableArgHandler);
+        cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
         return pyAltLaunchKernelR(kernelName, module, returnType, args,
                                   callable_names);
       },
@@ -344,20 +359,21 @@ void bindAltLaunchKernel(py::module &mod) {
   mod.def("synthesize", [](py::object kernel, py::args runtimeArgs) {
     MlirModule module = kernel.attr("module").cast<MlirModule>();
     auto name = kernel.attr("name").cast<std::string>();
+    auto kernelFuncOp = getKernelFuncOp(module, name);
     cudaq::OpaqueArguments args;
-    cudaq::packArgs(args, runtimeArgs);
+    cudaq::packArgs(args, runtimeArgs, kernelFuncOp,
+                    [](OpaqueArguments &, py::object &) { return false; });
     return synthesizeKernel(name, module, args);
   });
 
   mod.def(
       "get_qir",
-      [](py::object kernel, py::args runtimeArgs, std::string profile) {
+      [](py::object kernel, std::string profile) {
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
         MlirModule module = kernel.attr("module").cast<MlirModule>();
         auto name = kernel.attr("name").cast<std::string>();
         cudaq::OpaqueArguments args;
-        cudaq::packArgs(args, runtimeArgs);
         return getQIRLL(name, module, args, profile);
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");

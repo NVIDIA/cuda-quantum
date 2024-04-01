@@ -738,6 +738,46 @@ def test_combine_sweep():
         assert assert_close(expectedEnergy, sum, tolerance=1e-2)
 
 
+def test_batched_observe_results():
+    # Test bug #1396
+    # Seed for repeatability
+    np.random.seed(4)
+    qubit_count = 3
+    num_of_samples = 3
+    num_of_params = 3
+    theta_vals = np.random.rand(num_of_samples, num_of_params)
+    kernel, thetas = cudaq.make_kernel(list)
+    qubits = kernel.qalloc(qubit_count)
+    kernel.ry(thetas[0], qubits[0])
+    kernel.rx(thetas[1], qubits[1])
+    kernel.rz(thetas[2], qubits[2])
+
+    hamiltonian = [spin.z(0)]
+    results_1 = cudaq.observe(kernel, hamiltonian, theta_vals)
+
+    hamiltonian = [spin.z(0), spin.z(1)]
+    results_2 = cudaq.observe(kernel, hamiltonian, theta_vals)
+
+    hamiltonian = [spin.z(0), spin.z(1), spin.z(2)]
+    results_3 = cudaq.observe(kernel, hamiltonian, theta_vals)
+
+    for param_set_id in range(num_of_samples):
+        assert len(results_1[param_set_id]) == 1
+        assert len(results_2[param_set_id]) == 2
+        assert len(results_3[param_set_id]) == 3
+        # First item is <Z0>: all should be the same
+        assert assert_close(results_2[param_set_id][0].expectation(),
+                            results_1[param_set_id][0].expectation(),
+                            tolerance=1e-6)
+        assert assert_close(results_3[param_set_id][0].expectation(),
+                            results_1[param_set_id][0].expectation(),
+                            tolerance=1e-6)
+        # Second item is <Z1>: third and second should match
+        assert assert_close(results_3[param_set_id][1].expectation(),
+                            results_2[param_set_id][1].expectation(),
+                            tolerance=1e-6)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

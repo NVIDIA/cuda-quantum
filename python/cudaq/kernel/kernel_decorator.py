@@ -13,7 +13,7 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError
+from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -192,6 +192,16 @@ class PyKernelDecorator(object):
             if isinstance(arg, PyKernelDecorator):
                 arg.compile()
 
+            if isinstance(arg, str):
+                # Only allow `pauli_word` as string input
+                emitErrorIfInvalidPauli(arg)
+                arg = cudaq_runtime.pauli_word(arg)
+
+            if issubclass(type(arg), list):
+                if all(isinstance(a, str) for a in arg):
+                    [emitErrorIfInvalidPauli(a) for a in arg]
+                    arg = [cudaq_runtime.pauli_word(a) for a in arg]
+
             mlirType = mlirTypeFromPyType(type(arg),
                                           self.module.context,
                                           argInstance=arg,
@@ -206,6 +216,7 @@ class PyKernelDecorator(object):
                             argEleTy):
                         processedArgs.append([float(i) for i in arg])
                         mlirType = self.argTypes[i]
+                        continue
 
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:
