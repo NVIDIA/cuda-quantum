@@ -333,6 +333,10 @@ public:
                                   DataRecursionQueue *q = nullptr) {
     return TraverseExplicitCastExpr(x, q);
   }
+  bool TraverseCXXDefaultArgExpr(clang::CXXDefaultArgExpr *x,
+                                 DataRecursionQueue *q = nullptr) {
+    return TraverseStmt(x->getExpr());
+  }
 
   bool VisitInitListExpr(clang::InitListExpr *x);
   bool VisitIntegerLiteral(clang::IntegerLiteral *x);
