@@ -703,8 +703,6 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.visit(node.value)
 
-    # [RFC]:
-    # Examine if we really want to extend Python with a dedicated syntax.
     def visit_Lambda(self, node):
         """
         Map a lambda expression in a CUDA Quantum kernel to a CC Lambda (a Value of `cc.callable` type 
