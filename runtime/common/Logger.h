@@ -251,10 +251,12 @@ public:
           1000.0);
       // If we're printing because the tag was found, then add that tag info
       std::string tagStr = tagFound ? fmt::format("[tag={}] ", tag) : "";
-      std::string sourceInfo =
-          context.fileName ? "[" + details::pathToFileName(context.fileName) +
-                                 ":" + std::to_string(context.lineNo) + "] "
-                           : "";
+      std::string sourceInfo = "";
+      if (context.fileName) {
+        std::string fileName = details::pathToFileName(context.fileName);
+        std::string lineNoStr = std::to_string(context.lineNo);
+        sourceInfo = "[" + fileName + ":" + lineNoStr + "] ";
+      }
       auto str = fmt::format(
           "{}{}{}{} executed in {} ms.{}",
           globalTraceStack > 0 ? std::string(globalTraceStack, '-') + " " : "",
