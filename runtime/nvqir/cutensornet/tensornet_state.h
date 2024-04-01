@@ -13,14 +13,18 @@
 #include <unordered_map>
 
 namespace nvqir {
+/// This is used to track whether the tensor state is default initialized vs
+/// already has some gates applied to.
+constexpr std::int64_t InvalidTensorIndexValue = -1;
+
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
 /// simulator implementation.
 class TensorNetState {
   std::size_t m_numQubits;
   cutensornetHandle_t m_cutnHandle;
   cutensornetState_t m_quantumState;
-  // Track id of tensors that are applied to the state tensors.
-  int64_t m_tensorId = -1;
+  /// Track id of gate tensors that are applied to the state tensors.
+  std::int64_t m_tensorId = InvalidTensorIndexValue;
 
 public:
   /// @brief Constructor
