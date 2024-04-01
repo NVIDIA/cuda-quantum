@@ -988,3 +988,59 @@ def test_draw_fail():
 
     with pytest.raises(RuntimeError) as error:
         print(cudaq.draw(kernel))
+
+
+def test_draw_bug_1400():
+
+    @cudaq.kernel
+    def bell_pair():
+        q = cudaq.qvector(2)
+        h(q[0])
+        cx(q[0], q[1])
+        mz(q)
+
+
+    @cudaq.kernel
+    def kernel(angle:float):
+        q = cudaq.qubit()
+        h(q)
+        ry(angle, q)
+    
+    
+    print(cudaq.draw(kernel, 0.59))
+    print(cudaq.draw(kernel, 0.59))
+    circuit = cudaq.draw(bell_pair)
+    print(circuit)
+    expected_str = '''     ╭───╮     
+q0 : ┤ h ├──●──
+     ╰───╯╭─┴─╮
+q1 : ─────┤ x ├
+          ╰───╯
+'''
+    assert circuit == expected_str
+
+
+def test_with_docstring_2():
+    @cudaq.kernel
+    def simple(n:int):
+        '''
+        A docstring with triple single quote
+        '''
+        qubits = cudaq.qvector(n)
+        exp_pauli(2.2, qubits, 'YYYY')
+        """
+        A docstring in the middle of kernel
+        """
+        for q in qubits:
+            '''
+            A multi-line string.
+            Should be ignored.
+            '''
+            h(q)
+
+    @cudaq.kernel
+    def kernel():
+        simple(4)
+
+    kernel.compile()
+    print(kernel)
