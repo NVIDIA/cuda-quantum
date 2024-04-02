@@ -56,18 +56,22 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   if (jitCache->hasJITEngine(hashKey))
     jit = jitCache->getJITEngine(hashKey);
   else {
-
-    PassManager pm(context);
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createPySynthCallableBlockArgs(names));
-    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
-    pm.addPass(cudaq::opt::createGenerateKernelExecution());
-    pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    cudaq::opt::addPipelineToQIR<>(pm);
-    if (failed(pm.run(cloned)))
-      throw std::runtime_error(
-          "cudaq::builder failed to JIT compile the Quake representation.");
-
+    static std::mutex g_passManagerMutex;
+    {
+      // Applying passes is not thread-safe, especially in the same MLIRContext.
+      std::scoped_lock<std::mutex> lock(g_passManagerMutex);
+      PassManager pm(context);
+      pm.addNestedPass<func::FuncOp>(
+          cudaq::opt::createPySynthCallableBlockArgs(names));
+      pm.addPass(
+          cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
+      pm.addPass(cudaq::opt::createGenerateKernelExecution());
+      pm.addPass(cudaq::opt::createLambdaLiftingPass());
+      cudaq::opt::addPipelineToQIR<>(pm);
+      if (failed(pm.run(cloned)))
+        throw std::runtime_error(
+            "cudaq::builder failed to JIT compile the Quake representation.");
+    }
     // The "fast" instruction selection compilation algorithm is actually very
     // slow for large quantum circuits. Disable that here. Revisit this
     // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
