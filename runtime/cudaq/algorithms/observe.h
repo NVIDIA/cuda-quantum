@@ -493,13 +493,27 @@ auto observe_async(const std::size_t qpu_id, QuantumKernel &&kernel, spin_op &H,
   auto shots = platform.get_shots().value_or(-1);
   auto kernelName = cudaq::getKernelName(kernel);
 
+#if CUDAQ_USE_STD20
   return details::runObservationAsync(
-      detail::make_copyable_function(
-          [&kernel, ... args = std::forward<Args>(args)]() mutable {
-            cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                std::forward<Args>(args)...);
-          }),
+      [&kernel, ... args = std::forward<Args>(args)]() mutable {
+        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...);
+      },
       H, platform, shots, kernelName, qpu_id);
+#else
+  return details::runObservationAsync(
+      detail::make_copyable_function([&kernel, args = std::forward_as_tuple(
+                                                   std::forward<Args>(
+                                                       args)...)]() mutable {
+        std::apply(
+            [&kernel](Args &&...args) {
+              return cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                         std::forward<Args>(args)...);
+            },
+            std::move(args));
+      }),
+      H, platform, shots, kernelName, qpu_id);
+#endif
 }
 
 /// \brief Asynchronously compute the expected value of `H` with respect to
@@ -518,13 +532,27 @@ auto observe_async(std::size_t shots, std::size_t qpu_id,
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
 
+#if CUDAQ_USE_STD20
   return details::runObservationAsync(
-      detail::make_copyable_function(
-          [&kernel, ... args = std::forward<Args>(args)]() mutable {
-            cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                std::forward<Args>(args)...);
-          }),
+      [&kernel, ... args = std::forward<Args>(args)]() mutable {
+        cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                            std::forward<Args>(args)...);
+      },
       H, platform, shots, kernelName, qpu_id);
+#else
+  return details::runObservationAsync(
+      detail::make_copyable_function([&kernel, args = std::forward_as_tuple(
+                                                   std::forward<Args>(
+                                                       args)...)]() mutable {
+        std::apply(
+            [&kernel](Args &&...args) {
+              return cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                         std::forward<Args>(args)...);
+            },
+            std::move(args));
+      }),
+      H, platform, shots, kernelName, qpu_id);
+#endif
 }
 
 /// \brief Asynchronously compute the expected value of \p H with respect to

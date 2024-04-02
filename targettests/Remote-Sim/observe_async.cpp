@@ -12,7 +12,7 @@
 // RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t 
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t
 // Validate 'pure' C++17 compilation (enable c++20-extensions warnings and treat warnings as errors)
-// RUN: nvq++ -std=c++17 -Wc++20-extensions -Werror --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t  
+// RUN: nvq++ -std=c++17 -Wc++20-extensions -Werror -DNO_CXX20_EXTENSION --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t
 // clang-format on
 
 #include <cudaq.h>
@@ -22,7 +22,16 @@ struct ansatz {
     cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
+// Note:
+// (1) The x<cudaq::ctrl> syntax requires C++-20.
+// (2) `cnot` is not handled correctly in `--enable-mlir` mode
+// (https://github.com/NVIDIA/cuda-quantum/issues/1464). Hence, we cannot use
+// `cnot` for all RUN cases.
+#ifdef NO_CXX20_EXTENSION
+    cnot(q[1], q[0]);
+#else
     x<cudaq::ctrl>(q[1], q[0]);
+#endif
   }
 };
 
@@ -45,5 +54,11 @@ int main() {
   printf("Energy is %lf\n", energy);
   printf("Gradient is %lf\n", gradient);
   assert(std::abs(energy + 1.748794) < 1e-3);
+  // Shots-based observe async. API
+  auto energyFutureShots =
+      cudaq::observe_async(/*shots=*/8192, /*qpu_id=*/0, ansatz{}, h, .59);
+  const auto energyShots = energyFutureShots.get().expectation();
+  printf("Energy (shots) is %lf\n", energyShots);
+  assert(std::abs(energyShots + 1.748794) < 0.1);
   return 0;
 }

@@ -12,7 +12,7 @@
 // RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 4 %s -o %t && %t 
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 4 %s -o %t && %t
 // Validate 'pure' C++17 compilation (enable c++20-extensions warnings and treat warnings as errors)
-// RUN: nvq++ -std=c++17 -Wc++20-extensions -Werror --target remote-mqpu --remote-mqpu-auto-launch 4 %s -o %t  
+// RUN: nvq++ -std=c++17 -Wc++20-extensions -Werror --target remote-mqpu --remote-mqpu-auto-launch 4 %s -o %t
 // clang-format on
 
 #include <cudaq.h>
@@ -31,16 +31,25 @@ int main() {
   printf("Number of QPUs: %zu\n", num_qpus);
   assert(num_qpus == 4);
   std::vector<cudaq::async_sample_result> countFutures;
+  // sample_async API with default shots
   for (std::size_t i = 0; i < num_qpus; i++) {
     countFutures.emplace_back(cudaq::sample_async(i, simpleX{}, i + 1));
   }
+  // Shots-based sample_async API
+  std::vector<cudaq::async_sample_result> countFuturesWithShots;
+  for (std::size_t i = 0; i < num_qpus; i++) {
+    countFuturesWithShots.emplace_back(
+        cudaq::sample_async(/*shots=*/1024, /*qpu_id=*/i, simpleX{}, i + 1));
+  }
 
   for (std::size_t i = 0; i < num_qpus; i++) {
-    auto counts = countFutures[i].get();
-    counts.dump();
-    const std::string expectedBitStr(i + 1, '1');
-    assert(counts.size() == 1);
-    assert(counts.begin()->first == expectedBitStr);
+    for (auto counts :
+         {countFutures[i].get(), countFuturesWithShots[i].get()}) {
+      counts.dump();
+      const std::string expectedBitStr(i + 1, '1');
+      assert(counts.size() == 1);
+      assert(counts.begin()->first == expectedBitStr);
+    }
   }
   return 0;
 }
