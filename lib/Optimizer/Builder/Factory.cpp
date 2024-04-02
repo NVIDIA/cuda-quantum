@@ -167,11 +167,11 @@ cc::LoopOp factory::createInvariantLoop(
     OpBuilder &builder, Location loc, Value totalIterations,
     llvm::function_ref<void(OpBuilder &, Location, Region &, Block &)>
         bodyBuilder) {
-  Value zero = builder.create<arith::ConstantIndexOp>(loc, 0);
-  Value one = builder.create<arith::ConstantIndexOp>(loc, 1);
-  Type indexTy = builder.getIndexType();
+  Value zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+  Value one = builder.create<arith::ConstantIntOp>(loc, 1, 64);
+  Type i64Ty = builder.getI64Type();
   SmallVector<Value> inputs = {zero};
-  SmallVector<Type> resultTys = {indexTy};
+  SmallVector<Type> resultTys = {i64Ty};
   auto loop = builder.create<cc::LoopOp>(
       loc, resultTys, inputs, /*postCondition=*/false,
       [&](OpBuilder &builder, Location loc, Region &region) {
@@ -364,7 +364,7 @@ bool factory::structUsesTwoArguments(mlir::Type ty) {
 static bool onlyArithmeticMembers(cc::StructType structTy) {
   for (auto t : structTy.getMembers()) {
     // FIXME: check complex type
-    if (isa<IntegerType, FloatType, IndexType>(t))
+    if (isa<IntegerType, FloatType>(t))
       continue;
     return false;
   }
