@@ -19,6 +19,7 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#include <variant>
 
 namespace nvqir {
 
@@ -52,6 +53,12 @@ public:
   virtual void tearDownBeforeMPIFinalize() {
     // do nothing
   }
+
+  /// @brief Provide a mechanism for simulators to
+  /// create and return a `SimulationState` instance from
+  /// a user-specified data set.
+  virtual std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &) = 0;
 
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
@@ -391,7 +398,10 @@ protected:
 
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
-  virtual cudaq::State getStateData() { return {}; }
+  virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() {
+    throw std::runtime_error(
+        "Simulation data not available for this simulator backend.");
+  }
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in resetExecutionContext. Return true to indicate this is
@@ -686,6 +696,13 @@ public:
   /// @brief The destructor
   virtual ~CircuitSimulatorBase() = default;
 
+  /// @brief Create a simulation-specific SimulationState
+  /// instance from a user-provided data set.
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return getSimulationState()->createFromData(data);
+  }
+
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
   /// simulation strategies that support noise modeling.
@@ -775,7 +792,7 @@ public:
 
   /// @brief Deallocate the qubit with give index
   void deallocate(const std::size_t qubitIdx) override {
-    if (executionContext) {
+    if (executionContext && executionContext->name != "tracer") {
       cudaq::info("Deferring qubit {} deallocation", qubitIdx);
       deferredDeallocation.push_back(qubitIdx);
       return;
@@ -897,7 +914,7 @@ public:
     // Set the state data if requested.
     if (executionContext->name == "extract-state") {
       flushGateQueue();
-      executionContext->simulationData = getStateData();
+      executionContext->simulationState = getSimulationState();
     }
 
     // Deallocate the deferred qubits, but do so

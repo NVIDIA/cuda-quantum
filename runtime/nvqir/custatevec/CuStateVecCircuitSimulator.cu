@@ -10,7 +10,9 @@
 #pragma nv_diag_suppress = unrecognized_gcc_pragma
 
 #include "CircuitSimulator.h"
+#include "CuStateVecState.h"
 #include "Gates.h"
+
 #include "cuComplex.h"
 #include "custatevec.h"
 #include <bitset>
@@ -20,26 +22,6 @@
 #include <set>
 
 namespace {
-
-#define HANDLE_ERROR(x)                                                        \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != CUSTATEVEC_STATUS_SUCCESS) {                                    \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           custatevecGetErrorString(err),      \
-                                           __FUNCTION__, __LINE__));           \
-    }                                                                          \
-  };
-
-#define HANDLE_CUDA_ERROR(x)                                                   \
-  {                                                                            \
-    const auto err = x;                                                        \
-    if (err != cudaSuccess) {                                                  \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           cudaGetErrorString(err),            \
-                                           __FUNCTION__, __LINE__));           \
-    }                                                                          \
-  };
 
 /// @brief Initialize the device state vector to the |0...0> state
 /// @param sv
@@ -117,6 +99,7 @@ protected:
   cudaDataType_t cuStateVecCudaDataType = CUDA_C_64F;
   std::random_device randomDevice;
   std::mt19937 randomEngine;
+  bool ownsDeviceVector = true;
 
   /// @brief Generate a vector of random values
   std::vector<double> randomValues(uint64_t num_samples, double max_value) {
@@ -260,8 +243,7 @@ protected:
 
   /// @brief Reset the qubit state.
   void deallocateStateImpl() override {
-    if (deviceStateVector) {
-      HANDLE_ERROR(custatevecDestroy(handle));
+    if (deviceStateVector && ownsDeviceVector) {
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     }
     if (extraWorkspace) {
@@ -270,6 +252,8 @@ protected:
     }
     deviceStateVector = nullptr;
     extraWorkspaceSizeInBytes = 0;
+    if (handle)
+      HANDLE_ERROR(custatevecDestroy(handle));
   }
 
   /// @brief Apply the given GateApplicationTask
@@ -617,27 +601,11 @@ public:
     return counts;
   }
 
-  cudaq::State getStateData() override {
-    // Handle empty state (e.g., no qubit allocation)
-    if (stateDimension == 0)
-      return cudaq::State{{stateDimension}, {}};
-
-    std::vector<std::complex<ScalarType>> tmp(stateDimension);
-    HANDLE_CUDA_ERROR(cudaMemcpy(tmp.data(), deviceStateVector,
-               stateDimension * sizeof(std::complex<ScalarType>),
-               cudaMemcpyDeviceToHost));
-
-    if constexpr (std::is_same_v<ScalarType, float>) {
-      std::vector<std::complex<double>> data;
-      std::transform(tmp.begin(), tmp.end(), std::back_inserter(data),
-                     [](std::complex<float> &el) -> std::complex<double> {
-                       return {static_cast<double>(el.real()),
-                               static_cast<double>(el.imag())};
-                     });
-      return cudaq::State{{stateDimension}, data};
-    } else {
-      return cudaq::State{{stateDimension}, tmp};
-    }
+  std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
+    flushGateQueue();
+    ownsDeviceVector = false;
+    return std::make_unique<cudaq::CusvState<ScalarType>>(stateDimension,
+                                                          deviceStateVector);
   }
 
   std::string name() const override;

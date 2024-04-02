@@ -12,14 +12,27 @@
 #include "timing_utils.h"
 #include <unordered_map>
 
+#include "common/EigenDense.h"
+#include "common/SimulationState.h"
+
 namespace nvqir {
 /// This is used to track whether the tensor state is default initialized vs
 /// already has some gates applied to.
 constexpr std::int64_t InvalidTensorIndexValue = -1;
 
+/// @brief An MPSTensor is a representation
+/// of a MPS tensor and encapsulates the
+/// tensor device data and the tensor extents.
+struct MPSTensor {
+  void *deviceData = nullptr;
+  std::vector<int64_t> extents;
+};
+
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
 /// simulator implementation.
 class TensorNetState {
+
+protected:
   std::size_t m_numQubits;
   cutensornetHandle_t m_cutnHandle;
   cutensornetState_t m_quantumState;
@@ -42,6 +55,9 @@ public:
   /// @param qubitIdx Qubit operand
   void applyQubitProjector(void *proj_d, int32_t qubitIdx);
 
+  /// @brief Accessor to the cuTensorNet handle (context).
+  cutensornetHandle_t getInternalContext() { return m_cutnHandle; }
+
   /// @brief Accessor to the underlying `cutensornetState_t`
   cutensornetState_t getInternalState() { return m_quantumState; }
 
@@ -62,10 +78,10 @@ public:
   computeRDM(const std::vector<int32_t> &qubits);
 
   /// Factorize the `cutensornetState_t` into matrix product state form.
-  // Returns MPS tensors in GPU device memory.
-  // Note: the caller assumes the ownership of these pointers, thus needs to
-  // clean them up properly (with cudaFree).
-  std::vector<void *> factorizeMPS(
+  /// Returns MPS tensors in GPU device memory.
+  /// Note: the caller assumes the ownership of these pointers, thus needs to
+  /// clean them up properly (with cudaFree).
+  std::vector<MPSTensor> factorizeMPS(
       int64_t maxExtent, double absCutoff, double relCutoff,
       cutensornetTensorSVDAlgo_t algo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ);
 

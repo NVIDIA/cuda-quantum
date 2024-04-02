@@ -13,6 +13,7 @@ from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
 from .runtime.sample import sample
 from .runtime.observe import observe
+from .runtime.state import to_cupy
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # Add the parallel runtime types

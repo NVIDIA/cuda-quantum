@@ -1256,9 +1256,9 @@ CUDAQ_TEST(BuilderTester, checkQuakeValueOperators) {
   kernel.rx(M_PI / 8.0, q[0]);
   auto state = cudaq::get_state(kernel);
 
-  EXPECT_NEAR(state.overlap(state1), 1.0, 1e-3);
-  EXPECT_NEAR(state.overlap(state2), 1.0, 1e-3);
-  EXPECT_NEAR(state.overlap(state3), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state1).real(), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state2).real(), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state3).real(), 1.0, 1e-3);
 }
 
 #endif

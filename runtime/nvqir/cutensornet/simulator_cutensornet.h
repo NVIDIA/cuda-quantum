@@ -54,11 +54,14 @@ public:
   /// @brief Add qubits to the underlying quantum state
   virtual void addQubitsToState(std::size_t count) override;
 
-  /// @brief Return the state vector data
-  virtual cudaq::State getStateData() override;
-
   /// Clone API
   virtual nvqir::CircuitSimulator *clone() override;
+
+  virtual std::unique_ptr<cudaq::SimulationState>
+  getSimulationState() override {
+    throw std::runtime_error("[tensornet] getSimulationState not implemented");
+    return nullptr;
+  }
 
 protected:
   // Sub-type need to implement

@@ -35,8 +35,9 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   EXPECT_NEAR(1. / std::sqrt(2.), state[3].real(), 1e-3);
 #endif
 
-  EXPECT_NEAR(state.overlap(state), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state).real(), 1.0, 1e-3);
 
+#ifndef CUDAQ_BACKEND_TENSORNET
   // Demonstrate a useful use-case for get_state,
   // specifically, let's approximate another 2-qubit state with a
   // general so4 rotation. Here we'll see if we can find rotational
@@ -63,8 +64,9 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   optimizer.max_eval = 100;
   auto [opt_val, params] = optimizer.optimize(6, [&](std::vector<double> x) {
     auto testState = cudaq::get_state(so4, x);
-    return 1.0 - state.overlap(testState);
+    return 1.0 - state.overlap(testState).real();
   });
 
   EXPECT_NEAR(opt_val, 0.0, 1e-3);
+#endif
 }
