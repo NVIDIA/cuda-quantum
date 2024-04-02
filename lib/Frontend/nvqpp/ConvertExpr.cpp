@@ -1399,7 +1399,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
   if (isInNamespace(func, "cudaq")) {
     // Check and see if this quantum operation is adjoint
-    bool isAdjoint = false, isControl = false;
+    bool isAdjoint = false;
+    bool isControl = false;
     auto *functionDecl = x->getCalleeDecl()->getAsFunction();
     if (auto *templateArgs = functionDecl->getTemplateSpecializationArgs())
       if (templateArgs->size() > 0) {
@@ -1482,25 +1483,53 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     auto reportNegateError = [&]() {
       reportClangError(x, mangler, "target qubit cannot be negated");
     };
-    if (funcName.equals("h") || funcName.equals("ch"))
+    if (funcName.equals("h"))
       return buildOp<quake::HOp>(builder, loc, args, negations,
-                                 reportNegateError, false, isControl);
-    if (funcName.equals("x") || funcName.equals("cnot") ||
-        funcName.equals("cx") || funcName.equals("ccx"))
+                                 reportNegateError, /*adjoint=*/false,
+                                 isControl);
+    if (funcName.equals("ch"))
+      return buildOp<quake::HOp>(builder, loc, args, negations,
+                                 reportNegateError, /*adjoint=*/false,
+                                 /*control=*/true);
+    if (funcName.equals("x"))
       return buildOp<quake::XOp>(builder, loc, args, negations,
-                                 reportNegateError, false, isControl);
-    if (funcName.equals("y") || funcName.equals("cy"))
+                                 reportNegateError, /*adjoint=*/false,
+                                 isControl);
+    if (funcName.equals("cnot") || funcName.equals("cx") ||
+        funcName.equals("ccx"))
+      return buildOp<quake::XOp>(builder, loc, args, negations,
+                                 reportNegateError, /*adjoint=*/false,
+                                 /*control=*/true);
+    if (funcName.equals("y"))
       return buildOp<quake::YOp>(builder, loc, args, negations,
-                                 reportNegateError, false, isControl);
-    if (funcName.equals("z") || funcName.equals("cz"))
+                                 reportNegateError, /*adjoint=*/false,
+                                 isControl);
+    if (funcName.equals("cy"))
+      return buildOp<quake::YOp>(builder, loc, args, negations,
+                                 reportNegateError, /*adjoint=*/false,
+                                 /*control=*/true);
+    if (funcName.equals("z"))
       return buildOp<quake::ZOp>(builder, loc, args, negations,
-                                 reportNegateError, false, isControl);
-    if (funcName.equals("s") || funcName.equals("cs"))
+                                 reportNegateError, /*adjoint=*/false,
+                                 isControl);
+    if (funcName.equals("cz"))
+      return buildOp<quake::ZOp>(builder, loc, args, negations,
+                                 reportNegateError, /*adjoint=*/false,
+                                 /*control=*/true);
+    if (funcName.equals("s"))
       return buildOp<quake::SOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint, isControl);
-    if (funcName.equals("t") || funcName.equals("ct"))
+    if (funcName.equals("cs"))
+      return buildOp<quake::SOp>(builder, loc, args, negations,
+                                 reportNegateError, isAdjoint,
+                                 /*control=*/true);
+    if (funcName.equals("t"))
       return buildOp<quake::TOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint, isControl);
+    if (funcName.equals("ct"))
+      return buildOp<quake::TOp>(builder, loc, args, negations,
+                                 reportNegateError, isAdjoint,
+                                 /*control=*/true);
 
     if (funcName.equals("reset")) {
       if (!negations.empty())
