@@ -17,7 +17,7 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
 
 # This file implements the CUDA Quantum Python AST to MLIR conversion.
 # It provides a `PyASTBridge` class that implements the `ast.NodeVisitor` type
@@ -115,6 +115,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.loc = Location.unknown(context=self.ctx)
         else:
             self.ctx = Context()
+            register_all_dialects(self.ctx)
             quake.register_dialect(self.ctx)
             cc.register_dialect(self.ctx)
             cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
