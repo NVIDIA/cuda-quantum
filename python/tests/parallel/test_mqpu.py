@@ -43,7 +43,7 @@ def testLargeProblem():
     nLayers = 2
     cnotPairs = random.sample(range(nQubits), nQubits)
 
-    H = cudaq.SpinOperator.random(nQubits, nTerms)
+    H = cudaq.SpinOperator.random(nQubits, nTerms, seed=13)
     kernel, params = cudaq.make_kernel(list)
 
     q = kernel.qalloc(nQubits)
@@ -124,7 +124,7 @@ def testLargeProblem_kernel():
     nLayers = 2
     cnotPairs = random.sample(range(nQubits), nQubits)
 
-    H = cudaq.SpinOperator.random(nQubits, nTerms)
+    H = cudaq.SpinOperator.random(nQubits, nTerms, seed=13)
 
     execParams = np.random.uniform(low=-np.pi,
                                    high=np.pi,
