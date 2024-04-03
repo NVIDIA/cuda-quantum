@@ -171,7 +171,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
         --param nvqpp_site_config=build/test/lit.site.cfg.py && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
-        --param nvqpp_site_config=build/targettests/lit.site.cfg.py -j1
+        --param nvqpp_site_config=build/targettests/lit.site.cfg.py
 
 
 # Tests for the Python wheel are run post-installation.
