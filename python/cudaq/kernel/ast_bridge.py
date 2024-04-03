@@ -562,6 +562,61 @@ class PyASTBridge(ast.NodeVisitor):
                 )
         return
 
+    def __processRangeLoopIterationBounds(self, argumentNodes):
+        """
+        Analyze `range(...)` bounds and return the start, end, 
+        and step values, as well as whether or not this a decrementing range.
+        """
+        iTy = self.getIntegerType(64)
+        zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
+        one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
+        isDecrementing = False
+        if len(argumentNodes) == 3:
+            # Find the step val and we need to
+            # know if its decrementing
+            # can be incrementing or decrementing
+            stepVal = self.popValue()
+            if isinstance(argumentNodes[2], ast.UnaryOp):
+                if isinstance(argumentNodes[2].op, ast.USub):
+                    if isinstance(argumentNodes[2].operand, ast.Constant):
+                        if argumentNodes[2].operand.value > 0:
+                            isDecrementing = True
+                    else:
+                        self.emitFatalError(
+                            'CUDA Quantum requires step value on range() to be a constant.'
+                        )
+
+            # exclusive end
+            endVal = self.popValue()
+
+            # inclusive start
+            startVal = self.popValue()
+
+        elif len(argumentNodes) == 2:
+            stepVal = one
+            endVal = self.popValue()
+            startVal = self.popValue()
+        else:
+            stepVal = one
+            endVal = self.popValue()
+            startVal = zero
+
+        startVal = self.ifPointerThenLoad(startVal)
+        endVal = self.ifPointerThenLoad(endVal)
+        stepVal = self.ifPointerThenLoad(stepVal)
+
+        # Range expects integers
+        if F64Type.isinstance(startVal.type):
+            startVal = arith.FPToSIOp(self.getIntegerType(), startVal).result
+
+        if F64Type.isinstance(endVal.type):
+            endVal = arith.FPToSIOp(self.getIntegerType(), endVal).result
+
+        if F64Type.isinstance(stepVal.type):
+            stepVal = arith.FPToSIOp(self.getIntegerType(), stepVal).result
+
+        return startVal, endVal, stepVal, isDecrementing
+
     def needsStackSlot(self, type):
         """
         Return true if this is a type that has been "passed by value" and 
@@ -901,57 +956,6 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(self.getConstantFloat(np.pi))
             return
 
-    def __processLoopIterationBounds(self, argumentNodes):
-        iTy = self.getIntegerType(64)
-        zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
-        one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
-        isDecrementing = False
-        if len(argumentNodes) == 3:
-            # Find the step val and we need to
-            # know if its decrementing
-            # can be incrementing or decrementing
-            stepVal = self.popValue()
-            if isinstance(argumentNodes[2], ast.UnaryOp):
-                if isinstance(argumentNodes[2].op, ast.USub):
-                    if isinstance(argumentNodes[2].operand, ast.Constant):
-                        if argumentNodes[2].operand.value > 0:
-                            isDecrementing = True
-                    else:
-                        self.emitFatalError(
-                            'CUDA Quantum requires step value on range() to be a constant.'
-                        )
-
-            # exclusive end
-            endVal = self.popValue()
-
-            # inclusive start
-            startVal = self.popValue()
-
-        elif len(argumentNodes) == 2:
-            stepVal = one
-            endVal = self.popValue()
-            startVal = self.popValue()
-        else:
-            stepVal = one
-            endVal = self.popValue()
-            startVal = zero
-
-        startVal = self.ifPointerThenLoad(startVal)
-        endVal = self.ifPointerThenLoad(endVal)
-        stepVal = self.ifPointerThenLoad(stepVal)
-
-        # Range expects integers
-        if F64Type.isinstance(startVal.type):
-            startVal = arith.FPToSIOp(self.getIntegerType(), startVal).result
-
-        if F64Type.isinstance(endVal.type):
-            endVal = arith.FPToSIOp(self.getIntegerType(), endVal).result
-
-        if F64Type.isinstance(stepVal.type):
-            stepVal = arith.FPToSIOp(self.getIntegerType(), stepVal).result
-
-        return startVal, endVal, stepVal, isDecrementing
-
     def visit_Call(self, node):
         """
         Map a Python Call operation to equivalent MLIR. This method will first check 
@@ -1072,7 +1076,7 @@ class PyASTBridge(ast.NodeVisitor):
                     "__len__ not supported on variables of this type.", node)
 
             if node.func.id == "range":
-                startVal, endVal, stepVal, isDecrementing = self.__processLoopIterationBounds(
+                startVal, endVal, stepVal, isDecrementing = self.__processRangeLoopIterationBounds(
                     node.args)
 
                 iTy = self.getIntegerType(64)
@@ -2192,7 +2196,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # This is a range(N) for loop, we just need
                 # the upper bound N for this loop
                 [self.visit(arg) for arg in node.iter.args]
-                startVal, endVal, stepVal, isDecrementing = self.__processLoopIterationBounds(
+                startVal, endVal, stepVal, isDecrementing = self.__processRangeLoopIterationBounds(
                     node.iter.args)
 
                 def bodyBuilder(iterVar):
