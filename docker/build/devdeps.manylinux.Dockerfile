@@ -80,6 +80,10 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && python3 -m pip uninstall -y pytest \
     && cd / && rm -rf /pybind11-project
 
+RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -o cmake-install.sh \
+    && bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local \
+    && rm cmake-install.sh
+
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN LLVM_PROJECTS='clang;mlir' \
