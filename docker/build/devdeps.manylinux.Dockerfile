@@ -61,6 +61,9 @@ RUN if [ "$toolchain" == 'gcc11' ]; then \
 ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
+# Add a needed patch
+ADD ./tpls/customizations/pybind11/pyproject.toml.diff /pyproject.toml.diff
+
 # Build pybind11 - 
 # we should be able to use the same pybind version independent on what Python version we generate bindings for.
 ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
@@ -69,6 +72,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     && mkdir /pybind11-project && cd /pybind11-project && git init \
     && git remote add origin https://github.com/pybind/pybind11 \
     && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
+    && git apply /pyproject.toml.diff \
     && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
     && python3 -m ensurepip --upgrade && python3 -m pip install pytest \
     && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" \
