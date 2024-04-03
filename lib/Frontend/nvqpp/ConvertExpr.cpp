@@ -720,6 +720,9 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
         if (cxxExpr->getNumArgs() == 1)
           return true;
     }
+    if (isa<ComplexType>(castToTy) && isa<ComplexType>(peekValue().getType())) {
+      return true;
+    }
     if (auto funcTy = peelPointerFromFunction(castToTy))
       if (auto fromTy = dyn_cast<cc::CallableType>(peekValue().getType())) {
         auto inputs = funcTy.getInputs();
@@ -1426,7 +1429,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         } else if (auto load = v.getDefiningOp<cudaq::cc::LoadOp>()) {
           processedArgs.push_back(load.getPtrvalue());
         } else {
-          v.dump();
           reportClangError(x, mangler, "could not determine string argument");
         }
       };
@@ -2309,7 +2311,16 @@ bool QuakeBridgeVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
     if (x->isStdInitListInitialization() && isa<quake::VeqType>(peekType()))
       initializerIsGlobal = true;
   }
+  auto *ctor = x->getConstructor();
+  // FIXME: this implicit code visit setting is a hack to only visit a default
+  // argument value when constructing a complex value. We should always be able
+  // to visit default arguments, but we currently trip over default allocators,
+  // etc.
+  bool saveVisitImplicitCode = visitImplicitCode;
+  if (isInClassInNamespace(ctor, "complex", "std"))
+    visitImplicitCode = true;
   auto result = Base::TraverseCXXConstructExpr(x);
+  visitImplicitCode = saveVisitImplicitCode;
   initializerIsGlobal = saveInitializerIsGlobal;
   assert(typeStack.size() == typeStackDepth || raisedError);
   return result;
@@ -2323,7 +2334,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
   }
   // The ctor type is the class for which the ctor is a member.
   auto ctorTy = popType();
-  auto ctorName = ctor->getNameAsString();
+  // FIXME: not every constructor has a name.
+  std::string ctorName = ctor->getNameAsString();
   if (isInNamespace(ctor, "cudaq")) {
     if (x->getNumArgs() == 0) {
       if (ctorName == "qudit") {
@@ -2351,6 +2363,24 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         assert(isa<IntegerType>(sizeVal.getType()));
         return pushValue(builder.create<quake::AllocaOp>(
             loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
+      }
+      if (ctorName == "qudit") {
+        auto initials = popValue();
+        bool ok = false;
+        if (auto ptrTy = dyn_cast<cc::PointerType>(initials.getType()))
+          if (auto arrTy = dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
+            ok = isa<ComplexType>(arrTy.getElementType());
+        if (!ok) {
+          // Invalid initializer ignored, but emit an error.
+          reportClangError(x, mangler, "invalid qudit initial value");
+          return pushValue(builder.create<quake::AllocaOp>(loc));
+        }
+        auto *ctx = builder.getContext();
+        auto veqTy = quake::VeqType::get(ctx, 1);
+        auto alloc = builder.create<quake::AllocaOp>(loc, veqTy);
+        auto init = builder.create<quake::InitializeStateOp>(loc, veqTy, alloc,
+                                                             initials);
+        return pushValue(builder.create<quake::ExtractRefOp>(loc, init, 0));
       }
       if (ctorName == "qvector") {
         auto initials = popValue();
