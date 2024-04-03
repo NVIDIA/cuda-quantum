@@ -2192,7 +2192,7 @@ class PyASTBridge(ast.NodeVisitor):
         # by just building a for loop with N as the upper value,
         # no need to generate an array from the `range` call.
         if isinstance(node.iter, ast.Call):
-            if node.iter.func.id == 'range': 
+            if node.iter.func.id == 'range':
                 # This is a range(N) for loop, we just need
                 # the upper bound N for this loop
                 [self.visit(arg) for arg in node.iter.args]
