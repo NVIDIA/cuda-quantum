@@ -207,9 +207,65 @@ struct ButterPecan {
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>[%[[VAL_4]] : i64]
 // CHECK:           %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_5]] : (!quake.veq<?>, !cc.ptr<complex<f64>>) -> !quake.veq<?>
+// clang-format on
 
-// CHECK:         cc.global constant @__nvqpp__rodata_init_0 (dense<[0.0{{.*}}, 1.0{{.*}}, 1.0{{.*}}, 0.0{{.*}}]> : tensor<4xf64>) : !cc.array<f64 x 4>
+__qpu__ auto Strawberry() {
+  cudaq::qubit q = {0., 1.};
+  return mz(q);
+}
 
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_Strawberry._Z10Strawberryv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK:           %[[VAL_2:.*]] = complex.create %[[VAL_1]], %[[VAL_1]] : complex<f64>
+// CHECK:           %[[VAL_3:.*]] = complex.create %[[VAL_0]], %[[VAL_1]] : complex<f64>
+// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<complex<f64> x 2>
+// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]][0] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_8:.*]] = quake.init_state %[[VAL_7]], %[[VAL_4]] : (!quake.veq<1>, !cc.ptr<!cc.array<complex<f64> x 2>>) -> !quake.veq<1>
+// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_9]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
+// CHECK:           return %[[VAL_11]] : i1
+// CHECK:         }
+// clang-format on
+
+#if 0
+// The ket syntax is not yet provided in the headers.
+__qpu__ auto GoldRibbon() {
+  cudaq::qubit q = cudaq::ket::one;
+  return mz(q);
+}
+#endif
+
+__qpu__ bool Peppermint() { 
+  cudaq::qubit q = {M_SQRT1_2, M_SQRT1_2};
+  return mz(q);
+}
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_Peppermint._Z10Peppermintv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0.70710678118654757 : f64
+// CHECK:           %[[VAL_1:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK:           %[[VAL_2:.*]] = complex.create %[[VAL_0]], %[[VAL_1]] : complex<f64>
+// CHECK:           %[[VAL_3:.*]] = complex.create %[[VAL_0]], %[[VAL_1]] : complex<f64>
+// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<complex<f64> x 2>
+// CHECK:           %[[VAL_5:.*]] = cc.compute_ptr %[[VAL_4]][0] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_5]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_4]][1] : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<complex<f64>>
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<complex<f64>>
+// CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.veq<1>
+// CHECK:           %[[VAL_8:.*]] = quake.init_state %[[VAL_7]], %[[VAL_4]] : (!quake.veq<1>, !cc.ptr<!cc.array<complex<f64> x 2>>) -> !quake.veq<1>
+// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:           %[[VAL_10:.*]] = quake.mz %[[VAL_9]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_11:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
+// CHECK:           return %[[VAL_11]] : i1
+// CHECK:         }
+// clang-format on
 
 //===----------------------------------------------------------------------===//
 //
@@ -217,6 +273,7 @@ struct ButterPecan {
 //
 //===----------------------------------------------------------------------===//
 
+// clang-format off
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Vanilla() local_unnamed_addr {
 // QIR:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 4, i8* nonnull bitcast ([4 x double]* @__nvqpp__rodata_init_0 to i8*))
 // QIR:         %[[VAL_2:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_1]]* %[[VAL_0]])
