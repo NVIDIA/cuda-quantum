@@ -2106,10 +2106,10 @@ class PyASTBridge(ast.NodeVisitor):
         idx = self.popValue()
 
         # Support `VAR[-1]` as the last element of `VAR`
-        if quake.VeqType.isinstance(var.type) and isinstance(
-                idx.owner.opview, arith.ConstantOp):
-            if 'value' in idx.owner.attributes:
-                try:
+        if quake.VeqType.isinstance(var.type):
+            if hasattr(idx.owner, 'opview') and isinstance(
+                    idx.owner.opview, arith.ConstantOp):
+                if 'value' in idx.owner.attributes:
                     concreteIntAttr = IntegerAttr(idx.owner.attributes['value'])
                     idxConcrete = concreteIntAttr.value
                     if idxConcrete == -1:
@@ -2123,11 +2123,8 @@ class PyASTBridge(ast.NodeVisitor):
                                                -1,
                                                index=endOff).result)
                         return
-                except ValueError as e:
-                    pass
 
-        # Made it here, general VAR[idx], handle `veq` and `stdvec`
-        if quake.VeqType.isinstance(var.type):
+            # Made it here, general VAR[idx], handle `veq` and `stdvec`
             qrefTy = self.getRefType()
             if not IntegerType.isinstance(idx.type):
                 self.emitFatalError(
@@ -2136,7 +2133,9 @@ class PyASTBridge(ast.NodeVisitor):
 
             self.pushValue(
                 quake.ExtractRefOp(qrefTy, var, -1, index=idx).result)
-        elif cc.StdvecType.isinstance(var.type):
+            return
+
+        if cc.StdvecType.isinstance(var.type):
             eleTy = cc.StdvecType.getElementType(var.type)
             elePtrTy = cc.PointerType.get(self.ctx, eleTy)
             vecPtr = cc.StdvecDataOp(elePtrTy, var).result
@@ -2149,7 +2148,8 @@ class PyASTBridge(ast.NodeVisitor):
                 return
             self.pushValue(cc.LoadOp(eleAddr).result)
             return
-        elif cc.PointerType.isinstance(var.type):
+
+        if cc.PointerType.isinstance(var.type):
             ptrEleTy = cc.PointerType.getElementType(var.type)
             # Return the pointer if someone asked for it
             if self.subscriptPushPointerValue:
@@ -2166,8 +2166,8 @@ class PyASTBridge(ast.NodeVisitor):
                                           context=self.ctx)).result
                 self.pushValue(cc.LoadOp(eleAddr).result)
                 return
-        else:
-            self.emitFatalError("unhandled subscript", node)
+
+        self.emitFatalError("unhandled subscript", node)
 
     def visit_For(self, node):
         """
@@ -2181,6 +2181,25 @@ class PyASTBridge(ast.NodeVisitor):
             print('[Visit For]')
 
         self.currentNode = node
+
+        # We can simplify `for i in range(N)` MLIR code immensely
+        # by just building a for loop with N as the upper value,
+        # no need to generate an array from the `range` call.
+        if isinstance(node.iter, ast.Call):
+            if node.iter.func.id == 'range' and len(node.iter.args) == 1:
+                # This is a range(N) for loop, we just need
+                # the upper bound N for this loop
+                self.visit(node.iter.args[0])
+                totalSize = self.popValue()
+
+                def bodyBuilder(iterVar):
+                    self.symbolTable.pushScope()
+                    self.symbolTable.add(node.target.id, iterVar)
+                    [self.visit(b) for b in node.body]
+                    self.symbolTable.popScope()
+
+                self.createInvariantForLoop(totalSize, bodyBuilder)
+                return
 
         self.visit(node.iter)
         assert len(self.valueStack) > 0 and len(self.valueStack) < 3
