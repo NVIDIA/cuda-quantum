@@ -33,13 +33,13 @@ def assert_close(want, got, tolerance=1.e-5) -> bool:
 @skipIfNoMQPU
 def testLargeProblem():
 
-    # This is not large, but we don't want our CI testing
-    # to take up too much time, if you want to see more
-    # of the speedup increase the number of terms. I usually
-    # set it to 12 and 100000. Here we are just testing the
-    # mechanics.
+    # This is not large, but we don't want our CI testing take up too much time, 
+    # if you want to see more of the speedup increase the number of qubits. 
+    # Here we are just testing the mechanics.
+    # As per the changes in PR# https://github.com/NVIDIA/cuda-quantum/pull/1437,
+    # max nTerms for 4 qubits is (8 choose 4) = 70.
     nQubits = 4
-    nTerms = 1000
+    nTerms = 70
     nLayers = 2
     cnotPairs = random.sample(range(nQubits), nQubits)
 
@@ -114,13 +114,13 @@ def testLargeProblem_kernel():
         for i in range(0, len(cnot_pairs), 2):
             x.ctrl(q[cnot_pairs[i]], q[cnot_pairs[i + 1]])
 
-    # This is not large, but we don't want our CI testing
-    # to take up too much time, if you want to see more
-    # of the speedup increase the number of terms. I usually
-    # set it to 12 and 100000. Here we are just testing the
-    # mechanics.
+    # This is not large, but we don't want our CI testing take up too much time, 
+    # if you want to see more of the speedup increase the number of qubits. 
+    # Here we are just testing the mechanics.
+    # As per the changes in PR# https://github.com/NVIDIA/cuda-quantum/pull/1437,
+    # max nTerms for 4 qubits is (8 choose 4) = 70.
     nQubits = 4
-    nTerms = 1000
+    nTerms = 70
     nLayers = 2
     cnotPairs = random.sample(range(nQubits), nQubits)
 
