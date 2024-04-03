@@ -577,6 +577,21 @@ if (CUDAQ_ENABLE_PYTHON)
     message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
   endif()
   
+  # Apply specific patch to pybind11 for CMake limitations
+  # Only apply the patch if not already applied.
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pyproject.toml.diff --ignore-whitespace --reverse --check
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_PATCH_RESULT
+                  ERROR_QUIET)
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pyproject.toml.diff --ignore-whitespace
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_PATCH_RESULT)
+  endif()
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+  endif()
+  
   add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()
