@@ -502,9 +502,9 @@ auto observe_async(const std::size_t qpu_id, QuantumKernel &&kernel, spin_op &H,
       H, platform, shots, kernelName, qpu_id);
 #else
   return details::runObservationAsync(
-      detail::make_copyable_function([&kernel, args = std::forward_as_tuple(
-                                                   std::forward<Args>(
-                                                       args)...)]() mutable {
+      detail::make_copyable_function([&kernel,
+                                      args = std::make_tuple(std::forward<Args>(
+                                          args)...)]() mutable {
         std::apply(
             [&kernel](Args &&...args) {
               return cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
@@ -541,9 +541,9 @@ auto observe_async(std::size_t shots, std::size_t qpu_id,
       H, platform, shots, kernelName, qpu_id);
 #else
   return details::runObservationAsync(
-      detail::make_copyable_function([&kernel, args = std::forward_as_tuple(
-                                                   std::forward<Args>(
-                                                       args)...)]() mutable {
+      detail::make_copyable_function([&kernel,
+                                      args = std::make_tuple(std::forward<Args>(
+                                          args)...)]() mutable {
         std::apply(
             [&kernel](Args &&...args) {
               return cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
