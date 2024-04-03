@@ -901,6 +901,57 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(self.getConstantFloat(np.pi))
             return
 
+    def __processLoopIterationBounds(self, argumentNodes):
+        iTy = self.getIntegerType(64)
+        zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
+        one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
+        isDecrementing = False
+        if len(argumentNodes) == 3:
+            # Find the step val and we need to
+            # know if its decrementing
+            # can be incrementing or decrementing
+            stepVal = self.popValue()
+            if isinstance(argumentNodes[2], ast.UnaryOp):
+                if isinstance(argumentNodes[2].op, ast.USub):
+                    if isinstance(argumentNodes[2].operand, ast.Constant):
+                        if argumentNodes[2].operand.value > 0:
+                            isDecrementing = True
+                    else:
+                        self.emitFatalError(
+                            'CUDA Quantum requires step value on range() to be a constant.'
+                        )
+
+            # exclusive end
+            endVal = self.popValue()
+
+            # inclusive start
+            startVal = self.popValue()
+
+        elif len(argumentNodes) == 2:
+            stepVal = one
+            endVal = self.popValue()
+            startVal = self.popValue()
+        else:
+            stepVal = one
+            endVal = self.popValue()
+            startVal = zero
+
+        startVal = self.ifPointerThenLoad(startVal)
+        endVal = self.ifPointerThenLoad(endVal)
+        stepVal = self.ifPointerThenLoad(stepVal)
+
+        # Range expects integers
+        if F64Type.isinstance(startVal.type):
+            startVal = arith.FPToSIOp(self.getIntegerType(), startVal).result
+
+        if F64Type.isinstance(endVal.type):
+            endVal = arith.FPToSIOp(self.getIntegerType(), endVal).result
+
+        if F64Type.isinstance(stepVal.type):
+            stepVal = arith.FPToSIOp(self.getIntegerType(), stepVal).result
+
+        return startVal, endVal, stepVal, isDecrementing
+
     def visit_Call(self, node):
         """
         Map a Python Call operation to equivalent MLIR. This method will first check 
@@ -1021,61 +1072,12 @@ class PyASTBridge(ast.NodeVisitor):
                     "__len__ not supported on variables of this type.", node)
 
             if node.func.id == "range":
+                startVal, endVal, stepVal, isDecrementing = self.__processLoopIterationBounds(
+                    node.args)
+
                 iTy = self.getIntegerType(64)
                 zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
                 one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
-
-                # If this is a range(start, stop, step) call, then we
-                # need to know if the step value is incrementing or decrementing
-                # If we don't know this, we cannot compile this range statement
-                # (this is an issue with compiling a runtime interpreted language)
-                isDecrementing = False
-                if len(node.args) == 3:
-                    # Find the step val and we need to
-                    # know if its decrementing
-                    # can be incrementing or decrementing
-                    stepVal = self.popValue()
-                    if isinstance(node.args[2], ast.UnaryOp):
-                        if isinstance(node.args[2].op, ast.USub):
-                            if isinstance(node.args[2].operand, ast.Constant):
-                                if node.args[2].operand.value > 0:
-                                    isDecrementing = True
-                            else:
-                                self.emitFatalError(
-                                    'CUDA Quantum requires step value on range() to be a constant.',
-                                    node)
-
-                    # exclusive end
-                    endVal = self.popValue()
-
-                    # inclusive start
-                    startVal = self.popValue()
-
-                elif len(node.args) == 2:
-                    stepVal = one
-                    endVal = self.popValue()
-                    startVal = self.popValue()
-                else:
-                    stepVal = one
-                    endVal = self.popValue()
-                    startVal = zero
-
-                startVal = self.ifPointerThenLoad(startVal)
-                endVal = self.ifPointerThenLoad(endVal)
-                stepVal = self.ifPointerThenLoad(stepVal)
-
-                # Range expects integers
-                if F64Type.isinstance(startVal.type):
-                    startVal = arith.FPToSIOp(self.getIntegerType(),
-                                              startVal).result
-
-                if F64Type.isinstance(endVal.type):
-                    endVal = arith.FPToSIOp(self.getIntegerType(),
-                                            endVal).result
-
-                if F64Type.isinstance(stepVal.type):
-                    stepVal = arith.FPToSIOp(self.getIntegerType(),
-                                             stepVal).result
 
                 # The total number of elements in the iterable
                 # we are generating should be `N == endVal - startVal`
@@ -2186,11 +2188,12 @@ class PyASTBridge(ast.NodeVisitor):
         # by just building a for loop with N as the upper value,
         # no need to generate an array from the `range` call.
         if isinstance(node.iter, ast.Call):
-            if node.iter.func.id == 'range' and len(node.iter.args) == 1:
+            if node.iter.func.id == 'range':  # and len(node.iter.args) == 1:
                 # This is a range(N) for loop, we just need
                 # the upper bound N for this loop
-                self.visit(node.iter.args[0])
-                totalSize = self.popValue()
+                [self.visit(arg) for arg in node.iter.args]
+                startVal, endVal, stepVal, isDecrementing = self.__processLoopIterationBounds(
+                    node.iter.args)
 
                 def bodyBuilder(iterVar):
                     self.symbolTable.pushScope()
@@ -2198,7 +2201,11 @@ class PyASTBridge(ast.NodeVisitor):
                     [self.visit(b) for b in node.body]
                     self.symbolTable.popScope()
 
-                self.createInvariantForLoop(totalSize, bodyBuilder)
+                self.createInvariantForLoop(endVal,
+                                            bodyBuilder,
+                                            startVal=startVal,
+                                            stepVal=stepVal,
+                                            isDecrementing=isDecrementing)
                 return
 
         self.visit(node.iter)
