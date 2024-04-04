@@ -253,6 +253,30 @@ public:
     return {thrustCmplx.real(), thrustCmplx.imag()};
   }
 
+  std::complex<double>
+  getAmplitude(const std::vector<int> &basisState) override {
+    if (getNumQubits() != basisState.size())
+      throw std::runtime_error(
+          fmt::format("[custatevec-state] getAmplitude with an invalid number "
+                      "of bits in the "
+                      "basis state: expected {}, provided {}.",
+                      getNumQubits(), basisState.size()));
+    if (std::any_of(basisState.begin(), basisState.end(),
+                    [](int x) { return x != 0 && x != 1; }))
+      throw std::runtime_error(
+          "[custatevec-state] getAmplitude with an invalid basis state: only "
+          "qubit state (0 or 1) is supported.");
+
+    // Convert the basis state to an index value
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
+    std::complex<ScalarType> value;
+    extractValues(&value, idx, idx + 1);
+    return {value.real(), value.imag()};
+  }
+
   /// @brief Dump the state to the given output stream
   void dump(std::ostream &os) const override {
     // get state data from device to print

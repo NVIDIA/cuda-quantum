@@ -38,10 +38,16 @@ protected:
   cutensornetState_t m_quantumState;
   /// Track id of gate tensors that are applied to the state tensors.
   std::int64_t m_tensorId = InvalidTensorIndexValue;
+  // Device memory pointers to be cleaned up.
+  std::vector<void *> m_tempDevicePtrs;
 
 public:
   /// @brief Constructor
   TensorNetState(std::size_t numQubits, cutensornetHandle_t handle);
+
+  /// @brief Constructor (specific basis state)
+  TensorNetState(const std::vector<int> &basisState,
+                 cutensornetHandle_t handle);
 
   /// @brief Apply a unitary gate
   /// @param qubitIds Qubit operands

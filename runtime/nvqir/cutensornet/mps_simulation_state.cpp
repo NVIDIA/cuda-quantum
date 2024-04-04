@@ -197,6 +197,27 @@ MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   return computeOverlap(m_mpsTensors, mpsOtherTensors);
 }
 
+std::complex<double>
+MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
+  if (getNumQubits() != basisState.size())
+    throw std::runtime_error(
+        fmt::format("[tensornet-state] getAmplitude with an invalid number "
+                    "of bits in the "
+                    "basis state: expected {}, provided {}.",
+                    getNumQubits(), basisState.size()));
+  if (std::any_of(basisState.begin(), basisState.end(),
+                  [](int x) { return x != 0 && x != 1; }))
+    throw std::runtime_error(
+        "[tensornet-state] getAmplitude with an invalid basis state: only "
+        "qubit state (0 or 1) is supported.");
+  TensorNetState basisTensorNetState(basisState, state->getInternalContext());
+  // Note: this is a basis state, hence bond dim == 1
+  std::vector<MPSTensor> basisStateTensors =
+      basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
+                                       std::numeric_limits<double>::min());
+  return computeOverlap(m_mpsTensors, basisStateTensors);
+}
+
 cudaq::SimulationState::Tensor
 MPSSimulationState::getTensor(std::size_t tensorIdx) const {
   if (tensorIdx >= getNumTensors())

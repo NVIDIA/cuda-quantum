@@ -69,6 +69,10 @@ std::complex<double> state::overlap(const state &other) {
   return internal->overlap(*other.internal.get());
 }
 
+std::complex<double> state::amplitude(const std::vector<int> &basisState) {
+  return internal->getAmplitude(basisState);
+}
+
 state::~state() {
   // Make sure destroying the state is thread safe.
   std::lock_guard<std::mutex> lock(deleteStateMutex);

@@ -20,6 +20,24 @@ TensorNetState::TensorNetState(std::size_t numQubits,
       qubitDims.data(), CUDA_C_64F, &m_quantumState));
 }
 
+TensorNetState::TensorNetState(const std::vector<int> &basisState,
+                               cutensornetHandle_t handle)
+    : TensorNetState(basisState.size(), handle) {
+  constexpr std::complex<double> h_xGate[4] = {0.0, 1.0, 1.0, 0.0};
+  constexpr auto sizeBytes = 4 * sizeof(std::complex<double>);
+  void *d_gate{nullptr};
+  HANDLE_CUDA_ERROR(cudaMalloc(&d_gate, sizeBytes));
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(d_gate, h_xGate, sizeBytes, cudaMemcpyHostToDevice));
+  m_tempDevicePtrs.emplace_back(d_gate);
+  for (int32_t qId = 0; const auto &bit : basisState) {
+    if (bit == 1) {
+      applyGate({qId}, d_gate);
+    }
+    ++qId;
+  }
+}
+
 void TensorNetState::applyGate(const std::vector<int32_t> &qubitIds,
                                void *gateDeviceMem, bool adjoint) {
 
@@ -388,6 +406,8 @@ std::complex<double> TensorNetState::computeExpVal(
 TensorNetState::~TensorNetState() {
   // Destroy the quantum circuit state
   HANDLE_CUTN_ERROR(cutensornetDestroyState(m_quantumState));
+  for (auto *ptr : m_tempDevicePtrs)
+    HANDLE_CUDA_ERROR(cudaFree(ptr));
 }
 
 } // namespace nvqir

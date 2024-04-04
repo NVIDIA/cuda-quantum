@@ -47,6 +47,27 @@ struct QppState : public cudaq::SimulationState {
         other.getTensor().extents[0]));
   }
 
+  std::complex<double>
+  getAmplitude(const std::vector<int> &basisState) override {
+    if (getNumQubits() != basisState.size())
+      throw std::runtime_error(fmt::format(
+          "[qpp-state] getAmplitude with an invalid number of bits in the "
+          "basis state: expected {}, provided {}.",
+          getNumQubits(), basisState.size()));
+    if (std::any_of(basisState.begin(), basisState.end(),
+                    [](int x) { return x != 0 && x != 1; }))
+      throw std::runtime_error(
+          "[qpp-state] getAmplitude with an invalid basis state: only "
+          "qubit state (0 or 1) is supported.");
+
+    // Convert the basis state to an index value
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
+    return state[idx];
+  }
+
   Tensor getTensor(std::size_t tensorIdx = 0) const override {
     if (tensorIdx != 0)
       throw std::runtime_error("[qpp-state] invalid tensor requested.");

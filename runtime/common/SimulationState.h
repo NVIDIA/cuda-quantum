@@ -9,6 +9,7 @@
 #pragma once
 
 #include <complex>
+#include <memory>
 #include <variant>
 #include <vector>
 
@@ -143,9 +144,7 @@ public:
   /// @brief Return the amplitude of the given computational
   /// basis state.
   virtual std::complex<double>
-  getAmplitude(const std::vector<int> &basisState) {
-    throw std::runtime_error("SimulationState::getAmplitude not implemented.");
-  }
+  getAmplitude(const std::vector<int> &basisState) = 0;
 
   /// @brief Dump a representation of the state to the
   /// given output stream.
@@ -166,7 +165,7 @@ public:
   }
 
   /// @brief Return the number of elements in this state representation.
-  /// Defaults to multiplying all shape elements.
+  /// Defaults to adding all shape elements.
   virtual std::size_t getNumElements() const {
     std::size_t num = 0;
     for (auto &tensor : getTensors())

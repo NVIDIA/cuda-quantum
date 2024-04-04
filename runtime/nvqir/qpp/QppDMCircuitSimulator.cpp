@@ -50,6 +50,36 @@ struct QppDmState : public cudaq::SimulationState {
     return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
   }
 
+  std::complex<double>
+  getAmplitude(const std::vector<int> &basisState) override {
+    if (getNumQubits() != basisState.size())
+      throw std::runtime_error(
+          fmt::format("[qpp-dm-state] getAmplitude with an invalid number "
+                      "of bits in the "
+                      "basis state: expected {}, provided {}.",
+                      getNumQubits(), basisState.size()));
+    if (std::any_of(basisState.begin(), basisState.end(),
+                    [](int x) { return x != 0 && x != 1; }))
+      throw std::runtime_error(
+          "[qpp-dm-state] getAmplitude with an invalid basis state: only "
+          "qubit state (0 or 1) is supported.");
+
+    // Convert the basis state to an index value
+    const std::size_t idx = std::accumulate(
+        std::make_reverse_iterator(basisState.end()),
+        std::make_reverse_iterator(basisState.begin()), 0ull,
+        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
+    // Returns the diagonal element.
+    // Notes:
+    //  (1) This is considered a 'probability amplitude' in the (generally)
+    //  mixed state context represented by this density matrix.
+    //  (2) For pure states (i.e., Tr(rho^2) == 1), e.g., using the density
+    //  matrix simulator without noise,
+    // we can refactor the density matrix back to the state vector if needed.
+    // This is however not a common use case for the density matrix simulator.
+    return state(idx, idx);
+  }
+
   Tensor getTensor(std::size_t tensorIdx = 0) const override {
     if (tensorIdx != 0)
       throw std::runtime_error("[qpp-dm-state] invalid tensor requested.");

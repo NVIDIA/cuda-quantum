@@ -32,6 +32,9 @@ public:
   virtual ~MPSSimulationState();
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override;
+
+  std::complex<double>
+  getAmplitude(const std::vector<int> &basisState) override;
   std::size_t getNumQubits() const override;
   void dump(std::ostream &) const override {}
   cudaq::SimulationState::precision getPrecision() const override {

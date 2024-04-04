@@ -78,6 +78,10 @@ public:
   /// with the other one.
   std::complex<double> overlap(const state &other);
 
+  /// @brief Return the amplitude of the given computational
+  /// basis state
+  std::complex<double> amplitude(const std::vector<int> &basisState);
+
   /// @brief Create a new state from user-provided data.
   /// The data can be host or device data.
   static state from_data(const state_data &data);
