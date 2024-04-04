@@ -25,3 +25,9 @@ static constexpr unsigned cudaqGenPrefixLength = sizeof(cudaqGenPrefixName) - 1;
 static constexpr const char launchKernelFuncName[] = "altLaunchKernel";
 
 } // namespace cudaq::runtime
+
+extern "C" {
+/// Callback into the runtime to launch a QPU kernel.
+void altLaunchKernel(const char *kernelName, void (*kernel)(void *), void *args,
+                     std::uint64_t argsSize, std::uint64_t resultOffset);
+}
