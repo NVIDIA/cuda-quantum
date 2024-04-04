@@ -23,7 +23,7 @@ from ..mlir.passmanager import *
 from ..mlir.execution_engine import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, register_all_dialects
 
 
 ## [PYTHON_VERSION_FIX]
@@ -191,6 +191,7 @@ class PyKernel(object):
 
     def __init__(self, argTypeList):
         self.ctx = Context()
+        register_all_dialects(self.ctx)
         quake.register_dialect(self.ctx)
         cc.register_dialect(self.ctx)
         cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
