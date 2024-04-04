@@ -344,7 +344,7 @@ public:
 
   /// @brief Device synchronization
   void synchronize() override {
-    cudaDeviceSynchronize();
+    HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   }
 
   /// @brief Measure operation
