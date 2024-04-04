@@ -138,7 +138,9 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
 }
 
 /// @brief Device synchronization
-void SimulatorTensorNetBase::synchronize() { HANDLE_CUDA_ERROR(cudaDeviceSynchronize()); }
+void SimulatorTensorNetBase::synchronize() {
+  HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
+}
 
 /// @brief Perform a measurement on a given qubit
 bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
