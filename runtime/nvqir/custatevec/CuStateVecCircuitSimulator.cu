@@ -469,12 +469,6 @@ public:
 
   /// @brief Compute the expected value from the observable matrix.
   cudaq::observe_result observe(const cudaq::spin_op &op) override {
-    {
-      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
-          "CuStateVecCircuitSimulator::observe - flushGateQueue");
-      flushGateQueue();
-    }
-
     // Use batched custatevecComputeExpectationsOnPauliBasis to compute all term
     // expectation values in one go
     uint32_t nPauliOperatorArrays = op.num_terms();
@@ -536,15 +530,10 @@ public:
       termStrs.emplace_back(term.to_string(false));
     });
     std::vector<double> expectationValues(nPauliOperatorArrays);
-    {
-      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
-                             "CuStateVecCircuitSimulator::observe - "
-                             "custatevecComputeExpectationsOnPauliBasis");
-      HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(
-          handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
-          expectationValues.data(), pauliOperatorsArray.data(),
-          nPauliOperatorArrays, basisBitsArray.data(), nBasisBitsArray.data()));
-    }
+    HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(
+        handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
+        expectationValues.data(), pauliOperatorsArray.data(),
+        nPauliOperatorArrays, basisBitsArray.data(), nBasisBitsArray.data()));
     std::complex<double> expVal = 0.0;
     std::vector<cudaq::ExecutionResult> results;
     results.reserve(nPauliOperatorArrays);
