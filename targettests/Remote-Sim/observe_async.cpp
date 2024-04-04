@@ -46,6 +46,7 @@ int main() {
   printf("Gradient is %lf\n", gradient);
   assert(std::abs(energy + 1.748794) < 1e-3);
   // Shots-based observe async. API
+  cudaq::set_random_seed(13);
   auto energyFutureShots =
       cudaq::observe_async(/*shots=*/8192, /*qpu_id=*/0, ansatz{}, h, .59);
   const auto energyShots = energyFutureShots.get().expectation();
