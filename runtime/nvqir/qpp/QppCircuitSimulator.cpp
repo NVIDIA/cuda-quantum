@@ -283,9 +283,7 @@ public:
   }
 
   bool isStateVectorSimulator() const override {
-    if constexpr (std::is_same_v<StateType, qpp::ket>)
-      return true;
-    return false;
+    return std::is_same_v<StateType, qpp::ket>;
   }
 
   /// @brief Primarily used for testing.
