@@ -512,14 +512,17 @@ public:
         if (p != cudaq::pauli::I) {
           paulis.emplace_back(cudaqToCustateVec(p));
           idxs.emplace_back(idx);
-          // One operation for applying the term
-          summaryData.svGateUpdate(/*nControls=*/0, /*nTargets=*/1,
-                                   stateDimension,
-                                   stateDimension * sizeof(DataType));
-          // And one operation for un-applying the term
-          summaryData.svGateUpdate(/*nControls=*/0, /*nTargets=*/1,
-                                   stateDimension,
-                                   stateDimension * sizeof(DataType));
+          // Only X and Y pauli's translate to applied gates
+          if (p != cudaq::pauli::Z) {
+            // One operation for applying the term
+            summaryData.svGateUpdate(/*nControls=*/0, /*nTargets=*/1,
+                                     stateDimension,
+                                     stateDimension * sizeof(DataType));
+            // And one operation for un-applying the term
+            summaryData.svGateUpdate(/*nControls=*/0, /*nTargets=*/1,
+                                     stateDimension,
+                                     stateDimension * sizeof(DataType));
+          }
         }
       });
       pauliOperatorsArrayHolder.emplace_back(std::move(paulis));
