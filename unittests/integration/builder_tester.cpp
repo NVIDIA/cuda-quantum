@@ -1203,7 +1203,7 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_DM
+#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_TENSORNET)
 
 // FIXME Get other backends updated to support this
 TEST(BuilderTester, checkFromStateVector) {
