@@ -20,9 +20,9 @@ std::size_t MPSSimulationState::getNumQubits() const {
   return state->getNumQubits();
 }
 
-MPSSimulationState::MPSSimulationState(TensorNetState *inState,
+MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                                        const std::vector<MPSTensor> &mpsTensors)
-    : state(inState), m_mpsTensors(mpsTensors) {}
+    : state(std::move(inState)), m_mpsTensors(mpsTensors) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
@@ -118,15 +118,20 @@ std::complex<double> MPSSimulationState::computeOverlap(
   for (int i = 0; i < numTensors; ++i) {
     modesIn[i] = tensModes[i].data();
   }
+
+  cutensornetNetworkDescriptor_t m_tnDescr;
   HANDLE_CUTN_ERROR(cutensornetCreateNetworkDescriptor(
       cutnHandle, numTensors, numModes.data(), extentsIn.data(), NULL,
       modesIn.data(), tensAttr.data(), 0, NULL, NULL, NULL, dataType,
       computeType, &m_tnDescr));
 
+  cutensornetContractionOptimizerConfig_t m_tnConfig;
   // Determine the tensor network contraction path and create the contraction
   // plan
   HANDLE_CUTN_ERROR(
       cutensornetCreateContractionOptimizerConfig(cutnHandle, &m_tnConfig));
+
+  cutensornetContractionOptimizerInfo_t m_tnPath;
   HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(
       cutnHandle, m_tnDescr, &m_tnPath));
   assert(m_scratchPad.scratchSize > 0);
@@ -149,6 +154,7 @@ std::complex<double> MPSSimulationState::computeOverlap(
       cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
       CUTENSORNET_WORKSPACE_SCRATCH, m_scratchPad.d_scratch,
       requiredWorkspaceSize));
+  cutensornetContractionPlan_t m_tnPlan;
   HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(
       cutnHandle, m_tnDescr, m_tnPath, workDesc, &m_tnPlan));
 
@@ -158,8 +164,8 @@ std::complex<double> MPSSimulationState::computeOverlap(
     rawDataIn[i] = m_mpsTensors[i].deviceData;
     rawDataIn[mpsNumTensors + i] = mpsOtherTensors[i].deviceData;
   }
+  void *m_dOverlap{nullptr};
   HANDLE_CUDA_ERROR(cudaMalloc(&m_dOverlap, overlapSize));
-  m_allSet = true;
   HANDLE_CUTN_ERROR(cutensornetContractSlices(cutnHandle, m_tnPlan,
                                               rawDataIn.data(), m_dOverlap, 0,
                                               workDesc, NULL, 0x0));
@@ -177,6 +183,13 @@ std::complex<double> MPSSimulationState::computeOverlap(
     overlap = {cuCreal(overlapValue), cuCimag(overlapValue)};
   }
 
+  // Clean up
+  HANDLE_CUDA_ERROR(cudaFree(m_dOverlap));
+  HANDLE_CUTN_ERROR(cutensornetDestroyContractionPlan(m_tnPlan));
+  HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerInfo(m_tnPath));
+  HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(m_tnConfig));
+  HANDLE_CUTN_ERROR(cutensornetDestroyNetworkDescriptor(m_tnDescr));
+
   return overlap;
 }
 
@@ -186,10 +199,6 @@ MPSSimulationState::overlap(const cudaq::SimulationState &other) {
   if (other.getNumTensors() != getNumTensors())
     throw std::runtime_error("[tensornet-state] overlap error - other state "
                              "dimension is not equal to this state dimension.");
-
-  if (m_allSet)
-    deallocateBackendStructures(); // this may need to be removed if we decide
-                                   // to reuse those
 
   const auto &mpsOther = dynamic_cast<const MPSSimulationState &>(other);
   const auto &mpsOtherTensors = mpsOther.m_mpsTensors;
@@ -215,7 +224,11 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
   std::vector<MPSTensor> basisStateTensors =
       basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
                                        std::numeric_limits<double>::min());
-  return computeOverlap(m_mpsTensors, basisStateTensors);
+  const auto overlap = computeOverlap(m_mpsTensors, basisStateTensors);
+  for (auto &mpsTensor : basisStateTensors) {
+    HANDLE_CUDA_ERROR(cudaFree(mpsTensor.deviceData));
+  }
+  return overlap;
 }
 
 cudaq::SimulationState::Tensor
@@ -249,27 +262,15 @@ std::size_t MPSSimulationState::getNumTensors() const {
 }
 
 void MPSSimulationState::deallocate() {
-  deallocateBackendStructures();
   for (auto &tensor : m_mpsTensors)
     HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
   m_mpsTensors.clear();
+  state.reset();
 }
 
 void MPSSimulationState::destroyState() {
   cudaq::info("mps-state destroying state vector handle.");
   deallocate();
-}
-
-void MPSSimulationState::deallocateBackendStructures() {
-  if (m_allSet) {
-    HANDLE_CUDA_ERROR(cudaFree(m_dOverlap));
-    HANDLE_CUTN_ERROR(cutensornetDestroyContractionPlan(m_tnPlan));
-    HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerInfo(m_tnPath));
-    HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(m_tnConfig));
-    HANDLE_CUTN_ERROR(cutensornetDestroyNetworkDescriptor(m_tnDescr));
-    delete state;
-    m_allSet = false;
-  }
 }
 
 } // namespace nvqir

@@ -21,7 +21,7 @@ namespace nvqir {
 class MPSSimulationState : public cudaq::SimulationState {
 
 public:
-  MPSSimulationState(TensorNetState *inState,
+  MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                      const std::vector<MPSTensor> &mpsTensors);
 
   MPSSimulationState(const MPSSimulationState &) = delete;
@@ -51,20 +51,14 @@ public:
 
 protected:
   void deallocate();
-  void deallocateBackendStructures();
   std::complex<double>
   computeOverlap(const std::vector<MPSTensor> &m_mpsTensors,
                  const std::vector<MPSTensor> &mpsOtherTensors);
 
-  TensorNetState *state = nullptr;
+  // The state that this owned.
+  std::unique_ptr<TensorNetState> state;
   std::vector<MPSTensor> m_mpsTensors;
-  cutensornetNetworkDescriptor_t m_tnDescr;
-  cutensornetContractionOptimizerConfig_t m_tnConfig;
-  cutensornetContractionOptimizerInfo_t m_tnPath;
-  cutensornetContractionPlan_t m_tnPlan;
   ScratchDeviceMem m_scratchPad;
-  void *m_dOverlap{nullptr};
-  bool m_allSet{false};
 };
 
 } // namespace nvqir

@@ -113,7 +113,7 @@ public:
     LOG_API_TIME();
     std::vector<MPSTensor> tensors =
         m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
-    return std::make_unique<MPSSimulationState>(m_state.release(), tensors);
+    return std::make_unique<MPSSimulationState>(std::move(m_state), tensors);
   }
 
   virtual ~SimulatorMPS() noexcept {
