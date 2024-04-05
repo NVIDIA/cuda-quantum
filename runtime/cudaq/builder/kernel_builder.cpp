@@ -19,6 +19,7 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -101,6 +102,14 @@ KernelBuilderType mapArgToType(std::vector<std::size_t> &e) {
 KernelBuilderType mapArgToType(std::vector<float> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float32Type::get(ctx));
+  });
+}
+
+/// Map a std::vector<complex<double>> to a KernelBuilderType
+KernelBuilderType mapArgToType(std::vector<std::complex<double>> &e) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::StdvecType::get(ctx,
+                                      ComplexType::get(Float64Type::get(ctx)));
   });
 }
 
@@ -472,15 +481,34 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
   return QuakeValue(builder, qubits);
 }
 
-QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
+QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
   cudaq::info("kernel_builder allocating qubits from quake value");
-  auto value = size.getValue();
+  auto value = sizeOrVec.getValue();
   auto type = value.getType();
+  auto context = builder.getContext();
+
+  if (auto stdvecTy = dyn_cast<cc::StdvecType>(type)) {
+    // get the size
+    Value size = builder.create<cc::StdvecSizeOp>(builder.getI64Type(), value);
+    size = builder.create<arith::SIToFPOp>(builder.getF64Type(), size);
+    Value numQubits = builder.create<math::Log2Op>(builder.getF64Type(), size);
+    numQubits =
+        builder.create<arith::FPToSIOp>(builder.getI64Type(), numQubits);
+
+    auto veqTy = quake::VeqType::getUnsized(context);
+    // allocate the number of qubits we need
+    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
+
+    auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
+    Value initials = builder.create<cc::StdvecDataOp>(ptrTy, value);
+    builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
+    return QuakeValue(builder, qubits);
+  }
+
   if (!type.isIntOrIndex())
     throw std::runtime_error(
         "Invalid parameter passed to qalloc (must be integer type).");
 
-  auto context = builder.getContext();
   Value qubits = builder.create<quake::AllocaOp>(
       quake::VeqType::getUnsized(context), value);
 

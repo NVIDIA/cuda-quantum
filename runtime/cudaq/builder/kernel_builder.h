@@ -67,7 +67,7 @@ concept KernelBuilderArgTypeIsValid =
   requires(KernelBuilderArgTypeIsValid<                                        \
                Args, float, double, std::size_t, int, std::vector<int>,        \
                std::vector<float>, std::vector<std::size_t>,                   \
-               std::vector<double>, cudaq::qubit, cudaq::qvector<>> &&         \
+               std::vector<double>, std::vector<std::complex<double>>, cudaq::qubit, cudaq::qvector<>> &&         \
            ...)
 #else
 // Not C++ 2020: stub these out.
@@ -124,6 +124,9 @@ KernelBuilderType mapArgToType(std::vector<float> &e);
 
 /// Map a `vector<double>` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(std::vector<double> &e);
+
+/// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
+KernelBuilderType mapArgToType(std::vector<std::complex<double>> &e);
 
 /// Map a `qubit` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qubit &e);
@@ -461,6 +464,7 @@ public:
     stateVectorStorage.insert({hash, state.data()});
     return value;
   }
+  
   /// @brief Return a `QuakeValue` representing the constant floating-point
   /// value.
   QuakeValue constantVal(double val) {

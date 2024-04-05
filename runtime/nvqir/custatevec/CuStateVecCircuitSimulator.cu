@@ -78,6 +78,112 @@ __global__ void setFirstNElements(T *sv, const T *__restrict__ sv2, int64_t N) {
   }
 }
 
+template <typename T>
+__device__ void convert_to_row_major(T *arr, int rows, int cols) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  int stride = blockDim.x * gridDim.x;
+
+  for (int i = idx; i < rows * cols; i += stride) {
+    int row = i / cols;
+    int col = i % cols;
+    int col_major_idx = col * rows + row;
+    arr[i] = arr[col_major_idx];
+  }
+}
+
+#define THRDS_ARRAY_PRODUCT 256
+
+__global__ void kronprod_fp64(size_t tsize1, const cuDoubleComplex *arr1,
+                              size_t tsize2, const cuDoubleComplex *arr2,
+                              cuDoubleComplex *arr0) {
+  __shared__ cuDoubleComplex lbuf[THRDS_ARRAY_PRODUCT + 1],
+      rbuf[THRDS_ARRAY_PRODUCT];
+  size_t _ib, _in, _jb, _jn, _tx, _jc, _ja;
+
+  _tx = (size_t)threadIdx.x;
+  for (_jb = blockIdx.y * THRDS_ARRAY_PRODUCT; _jb < tsize2;
+       _jb += gridDim.y * THRDS_ARRAY_PRODUCT) {
+    if (_jb + THRDS_ARRAY_PRODUCT > tsize2) {
+      _jn = tsize2 - _jb;
+    } else {
+      _jn = THRDS_ARRAY_PRODUCT;
+    }
+
+    if (_tx < _jn)
+      rbuf[_tx] = arr2[_jb + _tx];
+
+    for (_ib = blockIdx.x * THRDS_ARRAY_PRODUCT; _ib < tsize1;
+         _ib += gridDim.x * THRDS_ARRAY_PRODUCT) {
+      if (_ib + THRDS_ARRAY_PRODUCT > tsize1) {
+        _in = tsize1 - _ib;
+      } else {
+        _in = THRDS_ARRAY_PRODUCT;
+      }
+
+      if (_tx < _in)
+        lbuf[_tx] = arr1[_ib + _tx];
+
+      __syncthreads();
+      for (_jc = 0; _jc < _jn; _jc++) {
+        if (_tx < _in) {
+          _ja = (_jb + _jc) * tsize1 + (_ib + _tx);
+          arr0[_ja] = cuCadd(arr0[_ja], cuCmul(lbuf[_tx], rbuf[_jc]));
+        }
+      }
+      __syncthreads();
+    }
+  }
+  convert_to_row_major(arr0, tsize1, tsize2);
+  return;
+}
+
+#pragma push
+#pragma nv_diag_suppress 177
+__global__ void kronprod_fp32(size_t tsize1, const cuFloatComplex *arr1,
+                              size_t tsize2, const cuFloatComplex *arr2,
+                              cuFloatComplex *arr0) {
+  __shared__ cuFloatComplex lbuf[THRDS_ARRAY_PRODUCT + 1],
+      rbuf[THRDS_ARRAY_PRODUCT];
+  size_t _ib, _in, _jb, _jn, _tx, _jc, _ja;
+
+  _tx = (size_t)threadIdx.x;
+  for (_jb = blockIdx.y * THRDS_ARRAY_PRODUCT; _jb < tsize2;
+       _jb += gridDim.y * THRDS_ARRAY_PRODUCT) {
+    if (_jb + THRDS_ARRAY_PRODUCT > tsize2) {
+      _jn = tsize2 - _jb;
+    } else {
+      _jn = THRDS_ARRAY_PRODUCT;
+    }
+
+    if (_tx < _jn)
+      rbuf[_tx] = arr2[_jb + _tx];
+
+    for (_ib = blockIdx.x * THRDS_ARRAY_PRODUCT; _ib < tsize1;
+         _ib += gridDim.x * THRDS_ARRAY_PRODUCT) {
+      if (_ib + THRDS_ARRAY_PRODUCT > tsize1) {
+        _in = tsize1 - _ib;
+      } else {
+        _in = THRDS_ARRAY_PRODUCT;
+      }
+
+      if (_tx < _in)
+        lbuf[_tx] = arr1[_ib + _tx];
+
+      __syncthreads();
+      for (_jc = 0; _jc < _jn; _jc++) {
+        if (_tx < _in) {
+          _ja = (_jb + _jc) * tsize1 + (_ib + _tx);
+          arr0[_ja] = cuCaddf(arr0[_ja], cuCmulf(lbuf[_tx], rbuf[_jc]));
+        }
+      }
+      __syncthreads();
+    }
+  }
+  convert_to_row_major(arr0, tsize1, tsize2);
+  return;
+}
+#pragma pop
+
 /// @brief The CuStateVecCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator that delegates to the NVIDIA CuStateVec
 /// GPU-accelerated library.
@@ -203,9 +309,6 @@ protected:
     if (count == 0)
       return;
 
-    if (state != nullptr)
-      throw std::runtime_error("init state not implemented here yet.");
-
     int dev;
     HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
     cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
@@ -216,24 +319,65 @@ protected:
       constexpr int32_t threads_per_block = 256;
       uint32_t n_blocks =
           (stateDimension + threads_per_block - 1) / threads_per_block;
-      initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
-          reinterpret_cast<CudaDataType *>(deviceStateVector), stateDimension);
       HANDLE_ERROR(custatevecCreate(&handle));
-    } else {
-      // Allocate new state..
-      void *newDeviceStateVector;
-      HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
-                                   stateDimension * sizeof(CudaDataType)));
-      constexpr int32_t threads_per_block = 256;
-      uint32_t n_blocks =
-          (stateDimension + threads_per_block - 1) / threads_per_block;
+      if (state == nullptr) {
+        initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
+            reinterpret_cast<CudaDataType *>(deviceStateVector),
+            stateDimension);
+        return;
+      }
+
+      // Potentially downcast if necessary
+      std::vector<std::complex<ScalarType>> in(state, state + stateDimension);
+
+      // fixme handle case where pointer is a device pointer
+      HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, in.data(),
+                                   stateDimension * sizeof(CudaDataType),
+                                   cudaMemcpyHostToDevice));
+      return;
+    }
+
+    // Allocate new state..
+    void *newDeviceStateVector;
+    HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
+                                 stateDimension * sizeof(CudaDataType)));
+    constexpr int32_t threads_per_block = 256;
+    uint32_t n_blocks =
+        (stateDimension + threads_per_block - 1) / threads_per_block;
+    if (state == nullptr) {
       setFirstNElements<<<n_blocks, threads_per_block>>>(
           reinterpret_cast<CudaDataType *>(newDeviceStateVector),
           reinterpret_cast<CudaDataType *>(deviceStateVector),
           previousStateDimension);
+
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
       deviceStateVector = newDeviceStateVector;
+      return;
     }
+
+    void *otherState;
+    HANDLE_CUDA_ERROR(cudaMalloc((void **)&otherState,
+                                 stateDimension * sizeof(CudaDataType)));
+    HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
+                                 (1UL << count) * sizeof(CudaDataType),
+                                 cudaMemcpyHostToDevice));
+
+    // we have a user provided state
+    if constexpr (std::is_same_v<ScalarType, double>)
+      kronprod_fp64<<<n_blocks, threads_per_block>>>(
+          previousStateDimension,
+          reinterpret_cast<CudaDataType *>(deviceStateVector), (1UL << count),
+          reinterpret_cast<CudaDataType *>(otherState),
+          reinterpret_cast<CudaDataType *>(newDeviceStateVector));
+    else
+      kronprod_fp32<<<n_blocks, threads_per_block>>>(
+          previousStateDimension,
+          reinterpret_cast<CudaDataType *>(deviceStateVector), (1UL << count),
+          reinterpret_cast<CudaDataType *>(otherState),
+          reinterpret_cast<CudaDataType *>(newDeviceStateVector));
+    HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
+    HANDLE_CUDA_ERROR(cudaFree(otherState));
+    deviceStateVector = newDeviceStateVector;
   }
 
   /// @brief Increase the state size by one qubit.
@@ -642,9 +786,10 @@ public:
       return cudaq::State{{stateDimension}, {}};
 
     std::vector<std::complex<ScalarType>> tmp(stateDimension);
-    HANDLE_CUDA_ERROR(cudaMemcpy(tmp.data(), deviceStateVector,
-               stateDimension * sizeof(std::complex<ScalarType>),
-               cudaMemcpyDeviceToHost));
+    HANDLE_CUDA_ERROR(
+        cudaMemcpy(tmp.data(), deviceStateVector,
+                   stateDimension * sizeof(std::complex<ScalarType>),
+                   cudaMemcpyDeviceToHost));
 
     if constexpr (std::is_same_v<ScalarType, float>) {
       std::vector<std::complex<double>> data;
