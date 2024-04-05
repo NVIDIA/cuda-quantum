@@ -108,5 +108,12 @@ public:
   bool isDirty() const { return m_tensorId > 0; }
   /// @brief Destructor
   ~TensorNetState();
+
+private:
+  friend class SimulatorMPS;
+  /// Internal method to contract the tensor network.
+  /// Returns device memory pointer and size (number of elements).
+  std::pair<void *, std::size_t>
+  contractStateVectorInternal(const std::vector<int32_t> &projectedModes);
 };
 } // namespace nvqir

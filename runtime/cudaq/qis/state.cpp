@@ -54,6 +54,17 @@ state::operator()(const std::initializer_list<std::size_t> &indices,
 
 std::complex<double> state::operator[](std::size_t idx) {
   std::size_t numQubits = internal->getNumQubits();
+  if (internal->getNumTensors() >= numQubits) {
+    // Multi-tensor state representation, e.g., MPS,
+    // use amplitude accessor.
+    std::vector<int> basisState(numQubits, 0);
+    for (std::size_t i = 0; i < numQubits; ++i) {
+      if (idx & (1ULL << i))
+        basisState[(numQubits - 1) - i] = 1;
+    }
+    return internal->getAmplitude(basisState);
+  }
+
   std::size_t newIdx = 0;
   for (std::size_t i = 0; i < numQubits; ++i)
     if (idx & (1ULL << i))

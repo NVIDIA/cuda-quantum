@@ -136,8 +136,8 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
   return counts;
 }
 
-std::vector<std::complex<double>>
-TensorNetState::getStateVector(const std::vector<int32_t> &projectedModes) {
+std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
+    const std::vector<int32_t> &projectedModes) {
   // Make sure that we don't overflow the memory size calculation.
   // Note: the actual limitation will depend on the system memory.
   if ((m_numQubits - projectedModes.size()) > 64 ||
@@ -190,14 +190,22 @@ TensorNetState::getStateVector(const std::vector<int32_t> &projectedModes) {
   HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
       m_cutnHandle, accessor, projectedModeValues.data(), workDesc, d_sv,
       static_cast<void *>(&stateNorm), 0));
-  std::vector<std::complex<double>> h_sv(svDim);
-  HANDLE_CUDA_ERROR(cudaMemcpy(h_sv.data(), d_sv,
-                               svDim * sizeof(std::complex<double>),
-                               cudaMemcpyDeviceToHost));
 
   // Free resources
   HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
   HANDLE_CUTN_ERROR(cutensornetDestroyAccessor(accessor));
+
+  return std::make_pair(d_sv, svDim);
+}
+
+std::vector<std::complex<double>>
+TensorNetState::getStateVector(const std::vector<int32_t> &projectedModes) {
+  auto [d_sv, svDim] = contractStateVectorInternal(projectedModes);
+  std::vector<std::complex<double>> h_sv(svDim);
+  HANDLE_CUDA_ERROR(cudaMemcpy(h_sv.data(), d_sv,
+                               svDim * sizeof(std::complex<double>),
+                               cudaMemcpyDeviceToHost));
+  // Free resources
   HANDLE_CUDA_ERROR(cudaFree(d_sv));
 
   return h_sv;

@@ -34,14 +34,10 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   EXPECT_NEAR(0.0, state.amplitude({0, 1}).real(), 1e-3);
   EXPECT_NEAR(0.5, state.amplitude({1, 1}).real(), 1e-3);
 #else
-#ifndef CUDAQ_BACKEND_TENSORNET
-  // Tensor network-based states don't support linear indexing (assuming a
-  // single tensor).
   EXPECT_NEAR(1. / std::sqrt(2.), state[0].real(), 1e-3);
   EXPECT_NEAR(0., state[1].real(), 1e-3);
   EXPECT_NEAR(0., state[2].real(), 1e-3);
   EXPECT_NEAR(1. / std::sqrt(2.), state[3].real(), 1e-3);
-#endif
   EXPECT_NEAR(1. / std::sqrt(2.), state.amplitude({0, 0}).real(), 1e-3);
   EXPECT_NEAR(0.0, state.amplitude({1, 0}).real(), 1e-3);
   EXPECT_NEAR(0.0, state.amplitude({0, 1}).real(), 1e-3);

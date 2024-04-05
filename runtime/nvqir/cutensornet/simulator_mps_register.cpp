@@ -111,9 +111,24 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
-    std::vector<MPSTensor> tensors =
-        m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
-    return std::make_unique<MPSSimulationState>(std::move(m_state), tensors);
+    if (m_state->getNumQubits() == 0)
+      return std::make_unique<MPSSimulationState>(std::move(m_state),
+                                                  std::vector<MPSTensor>{});
+
+    if (m_state->getNumQubits() > 1) {
+      std::vector<MPSTensor> tensors =
+          m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+      return std::make_unique<MPSSimulationState>(std::move(m_state), tensors);
+    }
+
+    auto [d_tensor, numElements] = m_state->contractStateVectorInternal({});
+    assert(numElements == 2);
+    MPSTensor stateTensor;
+    stateTensor.deviceData = d_tensor;
+    stateTensor.extents = {static_cast<int64_t>(numElements)};
+
+    return std::make_unique<MPSSimulationState>(
+        std::move(m_state), std::vector<MPSTensor>{stateTensor});
   }
 
   virtual ~SimulatorMPS() noexcept {

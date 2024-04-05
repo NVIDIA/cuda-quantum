@@ -219,16 +219,28 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
     throw std::runtime_error(
         "[tensornet-state] getAmplitude with an invalid basis state: only "
         "qubit state (0 or 1) is supported.");
-  TensorNetState basisTensorNetState(basisState, state->getInternalContext());
-  // Note: this is a basis state, hence bond dim == 1
-  std::vector<MPSTensor> basisStateTensors =
-      basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
-                                       std::numeric_limits<double>::min());
-  const auto overlap = computeOverlap(m_mpsTensors, basisStateTensors);
-  for (auto &mpsTensor : basisStateTensors) {
-    HANDLE_CUDA_ERROR(cudaFree(mpsTensor.deviceData));
+  if (getNumQubits() > 1) {
+    TensorNetState basisTensorNetState(basisState, state->getInternalContext());
+    // Note: this is a basis state, hence bond dim == 1
+    std::vector<MPSTensor> basisStateTensors =
+        basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
+                                         std::numeric_limits<double>::min());
+    const auto overlap = computeOverlap(m_mpsTensors, basisStateTensors);
+    for (auto &mpsTensor : basisStateTensors) {
+      HANDLE_CUDA_ERROR(cudaFree(mpsTensor.deviceData));
+    }
+    return overlap;
   }
-  return overlap;
+  // Single-qubit
+  assert(basisState.size() == 1);
+  const auto idx = basisState[0];
+  // It is just 2 complex numbers, so load them both rather than compute the
+  // exact pointer.
+  std::complex<double> amplitudes[2];
+  HANDLE_CUDA_ERROR(cudaMemcpy(amplitudes, m_mpsTensors[0].deviceData,
+                               2 * sizeof(std::complex<double>),
+                               cudaMemcpyDeviceToHost));
+  return amplitudes[idx];
 }
 
 cudaq::SimulationState::Tensor
