@@ -74,7 +74,8 @@ public:
   /// @brief Contract the tensor network representation to retrieve the state
   /// vector.
   std::vector<std::complex<double>>
-  getStateVector(const std::vector<int32_t> &projectedModes = {});
+  getStateVector(const std::vector<int32_t> &projectedModes = {},
+                 const std::vector<int64_t> &projectedModeValues = {});
 
   /// @brief Compute the reduce density matrix on a set of qubits
   ///
@@ -113,7 +114,8 @@ private:
   friend class SimulatorMPS;
   /// Internal method to contract the tensor network.
   /// Returns device memory pointer and size (number of elements).
-  std::pair<void *, std::size_t>
-  contractStateVectorInternal(const std::vector<int32_t> &projectedModes);
+  std::pair<void *, std::size_t> contractStateVectorInternal(
+      const std::vector<int32_t> &projectedModes,
+      const std::vector<int64_t> &projectedModeValues = {});
 };
 } // namespace nvqir

@@ -137,7 +137,8 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
 }
 
 std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
-    const std::vector<int32_t> &projectedModes) {
+    const std::vector<int32_t> &projectedModes,
+    const std::vector<int64_t> &in_projectedModeValues) {
   // Make sure that we don't overflow the memory size calculation.
   // Note: the actual limitation will depend on the system memory.
   if ((m_numQubits - projectedModes.size()) > 64 ||
@@ -185,8 +186,18 @@ std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
 
   // Compute the quantum state amplitudes
   std::complex<double> stateNorm{0.0, 0.0};
-  // All projected modes are assumed to be projected to 0.
-  std::vector<int64_t> projectedModeValues(projectedModes.size(), 0);
+  if (!in_projectedModeValues.empty() &&
+      in_projectedModeValues.size() != projectedModes.size())
+    throw std::invalid_argument(fmt::format(
+        "The number of projected modes ({}) must equal the number of "
+        "projected values ({}).",
+        projectedModes.size(), in_projectedModeValues.size()));
+  // All projected modes are assumed to be projected to 0 if none provided.
+  std::vector<int64_t> projectedModeValues =
+      in_projectedModeValues.empty()
+          ? std::vector<int64_t>(projectedModes.size(), 0)
+          : in_projectedModeValues;
+
   HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
       m_cutnHandle, accessor, projectedModeValues.data(), workDesc, d_sv,
       static_cast<void *>(&stateNorm), 0));
@@ -198,9 +209,11 @@ std::pair<void *, std::size_t> TensorNetState::contractStateVectorInternal(
   return std::make_pair(d_sv, svDim);
 }
 
-std::vector<std::complex<double>>
-TensorNetState::getStateVector(const std::vector<int32_t> &projectedModes) {
-  auto [d_sv, svDim] = contractStateVectorInternal(projectedModes);
+std::vector<std::complex<double>> TensorNetState::getStateVector(
+    const std::vector<int32_t> &projectedModes,
+    const std::vector<int64_t> &projectedModeValues) {
+  auto [d_sv, svDim] =
+      contractStateVectorInternal(projectedModes, projectedModeValues);
   std::vector<std::complex<double>> h_sv(svDim);
   HANDLE_CUDA_ERROR(cudaMemcpy(h_sv.data(), d_sv,
                                svDim * sizeof(std::complex<double>),

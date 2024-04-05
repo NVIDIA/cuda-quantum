@@ -73,7 +73,7 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
     install(FILES ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config DESTINATION targets)
   endmacro()
 
-  nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_register.cpp )
+  nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_register.cpp tn_simulation_state.cpp)
   nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_register.cpp mps_simulation_state.cpp)
   add_library(tensornet-mpi-util OBJECT mpi_support.cpp)
   target_include_directories(tensornet-mpi-util PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/runtime)
