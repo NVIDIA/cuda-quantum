@@ -2398,15 +2398,17 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
             if (arrTy.isUnknownSize()) {
               if (auto allocOp = initials.getDefiningOp<cc::AllocaOp>())
                 if (auto size = allocOp.getSeqSize())
-                  numQubits = size;
+                  numQubits =
+                      builder.create<math::CountTrailingZerosOp>(loc, size);
             } else {
               numQubits = builder.create<arith::ConstantIntOp>(
-                  loc, arrTy.getSize(), 64);
+                  loc, std::log2(arrTy.getSize()), 64);
             }
           }
         } else if (auto stdvecTy = dyn_cast<cc::StdvecType>(initialsTy)) {
-          numQubits = builder.create<cc::StdvecSizeOp>(
+          Value vecLen = builder.create<cc::StdvecSizeOp>(
               loc, builder.getI64Type(), initials);
+          numQubits = builder.create<math::CountTrailingZerosOp>(loc, vecLen);
           auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
           initials = builder.create<cc::StdvecDataOp>(loc, ptrTy, initials);
         }

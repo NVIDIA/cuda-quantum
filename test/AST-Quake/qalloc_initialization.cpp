@@ -27,8 +27,8 @@ struct Vanilla {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Vanilla() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
-// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_3]] : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_5:.*]] = quake.init_state %[[VAL_4]], %[[VAL_3]] : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<?>
 // clang-format on
 
 struct Cherry {
@@ -58,8 +58,8 @@ struct Cherry {
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_12]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_10]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_13]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_10]] : (!quake.veq<4>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_10]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<?>
 // clang-format on
 
 struct MooseTracks {
@@ -90,8 +90,8 @@ struct MooseTracks {
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_12]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_10]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_13]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_10]] : (!quake.veq<4>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_14:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_15:.*]] = quake.init_state %[[VAL_14]], %[[VAL_10]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<?>
 // clang-format on
 
 struct RockyRoad {
@@ -133,8 +133,8 @@ struct RockyRoad {
 // CHECK:           cc.store %[[VAL_13]], %[[VAL_20]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_18]][2] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_17]], %[[VAL_21]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_22:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_23:.*]] = quake.init_state %[[VAL_22]], %[[VAL_18]] : (!quake.veq<4>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<?>
+// CHECK:           %[[VAL_22:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[VAL_23:.*]] = quake.init_state %[[VAL_22]], %[[VAL_18]] : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f64> x 4>>) -> !quake.veq<?>
 // clang-format on
 
 std::vector<double> getTwoTimesRank();
@@ -150,7 +150,8 @@ struct Pistachio {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Pistachio() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_2:.*]] = call @_Z15getTwoTimesRankv() : () -> !cc.stdvec<f64>
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<f64>) -> i64
+// CHECK:           %[[VAL_30:.*]] = cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<f64>) -> i64
+// CHECK:           %[[VAL_3:.*]] = math.cttz %[[VAL_30]] : i64
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<f64>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<f64>) -> !quake.veq<?>
@@ -167,7 +168,8 @@ struct ChocolateMint {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ChocolateMint() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_2:.*]] = call @_Z15getTwoTimesRankv() : () -> !cc.stdvec<f64>
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<f64>) -> i64
+// CHECK:           %[[VAL_30:.*]] = cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<f64>) -> i64
+// CHECK:           %[[VAL_3:.*]] = math.cttz %[[VAL_30]] : i64
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<f64>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<f64>) -> !quake.veq<?>
@@ -186,7 +188,8 @@ struct Neapolitan {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Neapolitan() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_3:.*]] = call @_Z14getComplexInitv() : () -> !cc.stdvec<complex<f64>>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> i64
+// CHECK:           %[[VAL_30:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> i64
+// CHECK:           %[[VAL_4:.*]] = math.cttz %[[VAL_30]] : i64
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>[%[[VAL_4]] : i64]
 // CHECK:           %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_5]] : (!quake.veq<?>, !cc.ptr<complex<f64>>) -> !quake.veq<?>
@@ -203,7 +206,8 @@ struct ButterPecan {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ButterPecan() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_3:.*]] = call @_Z14getComplexInitv() : () -> !cc.stdvec<complex<f64>>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> i64
+// CHECK:           %[[VAL_30:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> i64
+// CHECK:           %[[VAL_4:.*]] = math.cttz %[[VAL_30]] : i64
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>[%[[VAL_4]] : i64]
 // CHECK:           %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_5]] : (!quake.veq<?>, !cc.ptr<complex<f64>>) -> !quake.veq<?>
