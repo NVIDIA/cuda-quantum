@@ -279,7 +279,7 @@ __qpu__ bool Peppermint() {
 
 // clang-format off
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Vanilla() local_unnamed_addr {
-// QIR:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 4, i8* nonnull bitcast ([4 x double]* @__nvqpp__rodata_init_0 to i8*))
+// QIR:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 2, i8* nonnull bitcast ([4 x double]* @__nvqpp__rodata_init_0 to i8*))
 // QIR:         %[[VAL_2:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_1]]* %[[VAL_0]])
 // QIR:       }
 
@@ -298,7 +298,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_6:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 2, i32 1
 // QIR:         %[[VAL_7:.*]] = bitcast [4 x { double, double }]* %[[VAL_0]] to i8*
 // QIR:         call void @llvm.memset
-// QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 4, i8* nonnull %[[VAL_7]])
+// QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 2, i8* nonnull %[[VAL_7]])
 // QIR:         %[[VAL_10:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_9]]* %[[VAL_8]])
 // QIR:       }
 
@@ -317,7 +317,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_6:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_0]], i64 0, i64 2, i32 1
 // QIR:         %[[VAL_7:.*]] = bitcast [4 x { double, double }]* %[[VAL_0]] to i8*
 // QIR:         call void @llvm.memset
-// QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 4, i8* nonnull %[[VAL_7]])
+// QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 2, i8* nonnull %[[VAL_7]])
 // QIR:         %[[VAL_10:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_9]]* %[[VAL_8]])
 // QIR:       }
 
@@ -362,13 +362,14 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_26:.*]] = getelementptr inbounds [4 x { double, double }], [4 x { double, double }]* %[[VAL_16]], i64 0, i64 2, i32 1
 // QIR:         store double %[[VAL_25]], double* %[[VAL_26]], align 8
 // QIR:         %[[VAL_27:.*]] = bitcast [4 x { double, double }]* %[[VAL_16]] to i8*
-// QIR:         %[[VAL_28:.*]] = call %[[VAL_29:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 4, i8* nonnull %[[VAL_27]])
+// QIR:         %[[VAL_28:.*]] = call %[[VAL_29:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 2, i8* nonnull %[[VAL_27]])
 // QIR:         %[[VAL_30:.*]] = call i64 @__quantum__rt__array_get_size_1d(%[[VAL_29]]* %[[VAL_28]])
 // QIR:       }
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__Pistachio() local_unnamed_addr {
 // QIR:         %[[VAL_0:.*]] = tail call { double*, i64 } @_Z15getTwoTimesRankv()
-// QIR:         %[[VAL_1:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 1
+// QIR:         %[[VAL_I:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 1
+// QIR: %[[VAL_1:.*]] = tail call i64 @llvm.cttz.i64(i64 %[[VAL_I]], i1 false)
 // QIR:         %[[VAL_2:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_3:.*]] = bitcast double* %[[VAL_2]] to i8*
 // QIR:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 %[[VAL_1]], i8* %[[VAL_3]])
@@ -377,7 +378,8 @@ __qpu__ bool Peppermint() {
 
 // QIR-LABEL: define i1 @__nvqpp__mlirgen__ChocolateMint() local_unnamed_addr {
 // QIR:         %[[VAL_0:.*]] = tail call { double*, i64 } @_Z15getTwoTimesRankv()
-// QIR:         %[[VAL_1:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 1
+// QIR:         %[[VAL_I:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 1
+// QIR: %[[VAL_1:.*]] = tail call i64 @llvm.cttz.i64(i64 %[[VAL_I]], i1 false)
 // QIR:         %[[VAL_2:.*]] = extractvalue { double*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_3:.*]] = bitcast double* %[[VAL_2]] to i8*
 // QIR:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 %[[VAL_1]], i8* %[[VAL_3]])
@@ -386,7 +388,8 @@ __qpu__ bool Peppermint() {
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Neapolitan() local_unnamed_addr {
 // QIR:         %[[VAL_0:.*]] = tail call { { double, double }*, i64 } @_Z14getComplexInitv()
-// QIR:         %[[VAL_1:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 1
+// QIR:         %[[VAL_I:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 1
+// QIR: %[[VAL_1:.*]] = tail call i64 @llvm.cttz.i64(i64 %[[VAL_I]], i1 false)
 // QIR:         %[[VAL_2:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_3:.*]] = bitcast { double, double }* %[[VAL_2]] to i8*
 // QIR:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 %[[VAL_1]], i8* %[[VAL_3]])
@@ -395,7 +398,8 @@ __qpu__ bool Peppermint() {
 
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__ButterPecan() local_unnamed_addr {
 // QIR:         %[[VAL_0:.*]] = tail call { { double, double }*, i64 } @_Z14getComplexInitv()
-// QIR:         %[[VAL_1:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 1
+// QIR:         %[[VAL_I:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 1
+// QIR: %[[VAL_1:.*]] = tail call i64 @llvm.cttz.i64(i64 %[[VAL_I]], i1 false)
 // QIR:         %[[VAL_2:.*]] = extractvalue { { double, double }*, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_3:.*]] = bitcast { double, double }* %[[VAL_2]] to i8*
 // QIR:         %[[VAL_4:.*]] = tail call %[[VAL_5:.*]]* @__quantum__rt__qubit_allocate_array_with_state(i64 %[[VAL_1]], i8* %[[VAL_3]])

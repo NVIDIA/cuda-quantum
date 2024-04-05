@@ -2401,8 +2401,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
                   numQubits =
                       builder.create<math::CountTrailingZerosOp>(loc, size);
             } else {
+              std::size_t arraySize = arrTy.getSize();
               numQubits = builder.create<arith::ConstantIntOp>(
-                  loc, std::log2(arrTy.getSize()), 64);
+                  loc, std::countr_zero(arraySize), 64);
             }
           }
         } else if (auto stdvecTy = dyn_cast<cc::StdvecType>(initialsTy)) {
