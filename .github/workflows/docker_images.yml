@@ -95,7 +95,7 @@ jobs:
   
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -150,7 +150,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
 
@@ -173,7 +173,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.1.1
+        uses: sigstore/cosign-installer@v3.3.0
+        with:
+          cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment && false # Signing is disabled as long as the package is private, since we can't clean up signatures in that case
@@ -184,7 +186,7 @@ jobs:
 
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ steps.build_info.outputs.tar_archive }}
           key: ${{ steps.build_info.outputs.tar_cache }}
@@ -217,7 +219,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -236,7 +238,7 @@ jobs:
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -285,7 +287,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
           driver-opts: network=host
@@ -310,6 +312,7 @@ jobs:
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
             install="CMAKE_BUILD_TYPE=Debug"
+            git_source_sha=${{ github.sha }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
@@ -318,7 +321,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.1.1
+        uses: sigstore/cosign-installer@v3.3.0
+        with:
+          cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
@@ -329,7 +334,7 @@ jobs:
 
       - name: Cache cuda-quantum-dev image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
@@ -364,7 +369,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -390,7 +395,7 @@ jobs:
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore_devdeps
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -399,7 +404,7 @@ jobs:
       - name: Restore Open MPI dependencies
         id: restore_openmpi
         if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ needs.ompi_image.outputs.tar_archive }}
           key: ${{ needs.ompi_image.outputs.tar_cache }}
@@ -483,7 +488,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
           driver-opts: network=host
@@ -511,6 +516,7 @@ jobs:
           build-args: |
             base_image=${{ steps.prereqs.outputs.devdeps_image }}
             install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}"
+            git_source_sha=${{ github.sha }}
           tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
@@ -518,7 +524,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.1.1
+        uses: sigstore/cosign-installer@v3.3.0
+        with:
+          cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
@@ -573,7 +581,7 @@ jobs:
 
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
@@ -585,6 +593,13 @@ jobs:
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
+      - name: Install NGC CLI
+        if: inputs.environment && needs.metadata.outputs.push_to_ngc == 'true'
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.31.0
+          checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
+
       - name: Sign image with NGC CLI
         if: inputs.environment && needs.metadata.outputs.push_to_ngc == 'true'
         env:
@@ -593,13 +608,6 @@ jobs:
           NGC_CLI_ORG: ${{ github.repository_owner }}
           NGC_CLI_TEAM: 'nightly'
         run: |
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends wget
-          wget -O ngccli_linux.zip --content-disposition \
-            https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/3.31.0/files/ngccli_linux.zip
-          if [ -z "$(sha256sum ngccli_linux.zip | grep -o 'b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138 ')" ]; then
-            echo "::error::NGC CLI was corrupted during download." && exit 1
-          fi
-          unzip ngccli_linux.zip && chmod u+x ngc-cli/ngc
           echo "Signing ${TAGS}"
           ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
 
@@ -612,10 +620,18 @@ jobs:
     runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
@@ -628,7 +644,7 @@ jobs:
       - name: Restore CUDA Quantum build
         id: restore_cudaqdev
         if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
           key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
@@ -637,7 +653,7 @@ jobs:
       - name: Restore CUDA Quantum image
         id: restore_cudaq
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
           key: ${{ needs.cudaq_image.outputs.tar_cache }}
@@ -715,10 +731,20 @@ jobs:
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ${{ needs.metadata.outputs.runner }}
+    permissions:
+      contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Log in to the container registry
         if: inputs.environment && vars.registry
@@ -731,7 +757,7 @@ jobs:
       - name: Load cuda-quantum image
         id: restore
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
           key: ${{ needs.cudaq_image.outputs.tar_cache }}
@@ -749,7 +775,9 @@ jobs:
 
           docker run --rm -dit --name cuda-quantum $cudaq_image
           docker cp scripts/validate_container.sh cuda-quantum:"/home/cudaq/validate_container.sh"
-          (docker exec cuda-quantum bash validate_container.sh > /tmp/validation.out) && passed=true || passed=false
+          # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
+          # Hence, don't enforce UCX when running these tests.
+          (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && bash validate_container.sh" | tee /tmp/validation.out) && passed=true || passed=false
           docker stop cuda-quantum
 
           if ! $passed; then 
@@ -780,6 +808,9 @@ jobs:
     permissions: {}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Create build info
         id: staging
         run: |
@@ -796,6 +827,7 @@ jobs:
           echo "cuda-quantum-dev-image: $cudaqdev_hash"  >> "$info_file"
           echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
           echo "platforms: ${{ inputs.platforms }}" >> "$info_file"
+          cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
         uses: actions/upload-artifact@v4

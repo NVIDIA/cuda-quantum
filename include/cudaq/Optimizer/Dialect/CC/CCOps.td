@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -658,6 +658,17 @@ def cc_UnwindReturnOp : CCOp<"unwind_return", [
 // Memory operations and initializations.
 //===----------------------------------------------------------------------===//
 
+def cc_PoisonOp : CCOp<"poison", [Pure]> {
+  let summary = "Explicit poison value";
+  let description = [{
+    A PoisonOp is used to create an LLVM poison value. A poison value occurs
+    in CC when the IR violates its own semantics, such as accessing the 10th
+    element of a constant array which only has 3 elements.
+  }];
+  let results = (outs AnyType:$inputType);
+  let assemblyFormat = "type($inputType) attr-dict";
+}
+
 def cc_UndefOp : CCOp<"undef", [Pure]> {
   let summary = "Explicit undefined value.";
   let description = [{
@@ -671,9 +682,7 @@ def cc_UndefOp : CCOp<"undef", [Pure]> {
     ```
   }];
   let results = (outs AnyType:$inputType);
-  let assemblyFormat = [{
-    type($inputType) attr-dict
-  }];
+  let assemblyFormat = "type($inputType) attr-dict";
 }
 
 def cc_AllocaOp : CCOp<"alloca", [
@@ -761,7 +770,6 @@ def cc_StoreOp : CCOp<"store",
 // Aggregate operations.
 //===----------------------------------------------------------------------===//
 
-
 def cc_AddressOfOp : CCOp<"address_of", [Pure,
     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
   // Note: should be used to get a pointer to a global object as well, but we
@@ -837,6 +845,14 @@ def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
   let assemblyFormat = [{
     $container `` $position `:` functional-type(operands, results) attr-dict
   }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "std::int64_t":$index), [{
+      return build($_builder, $_state, resultType, aggregate,
+                   mlir::ArrayRef<std::int64_t>{index});
+    }]>
+  ];
 }
 
 def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
@@ -865,6 +881,14 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
     $value `,` $container `` $position `:` functional-type(operands, results)
       attr-dict
   }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$resultType, "mlir::Value":$aggregate,
+               "mlir::Value":$newValue, "std::int64_t":$index), [{
+      return build($_builder, $_state, resultType, aggregate, newValue,
+                   mlir::ArrayRef<std::int64_t>{index});
+    }]>
+  ];
 }
 
 def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
@@ -1053,7 +1077,7 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     AnyPointerType:$buffer,
     AnyInteger:$length
   );
-  let results = (outs cc_StdVectorType:$stdvec);
+  let results = (outs SpanningType:$stdvec);
 
   let assemblyFormat = [{
     $buffer `,` $length `:` functional-type(operands, results) attr-dict
@@ -1071,7 +1095,7 @@ def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
     the data pointer is part of the aggregate value and nothing is dereferenced.
   }];
 
-  let arguments = (ins cc_StdVectorType:$stdvec);
+  let arguments = (ins SpanningType:$stdvec);
   let results = (outs AnyPointerType:$data);
 
   let hasCanonicalizer = 1;
@@ -1092,7 +1116,7 @@ def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
     is dereferenced.
   }];
 
-  let arguments = (ins cc_StdVectorType:$stdvec);
+  let arguments = (ins SpanningType:$stdvec);
   let results = (outs AnyInteger:$size);
 
   let hasCanonicalizer = 1;

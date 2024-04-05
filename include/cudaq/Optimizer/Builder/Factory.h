@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -23,7 +23,18 @@ class PointerType;
 class StructType;
 } // namespace cc
 
-namespace opt::factory {
+namespace opt {
+
+template <typename T>
+  requires std::integral<T>
+T convertBitsToBytes(T bits) {
+  return (bits + 7) / 8;
+}
+
+namespace factory {
+
+constexpr const char targetTripleAttrName[] = "llvm.triple";
+constexpr const char targetDataLayoutAttrName[] = "llvm.data_layout";
 
 //===----------------------------------------------------------------------===//
 // Type builders
@@ -61,6 +72,25 @@ inline mlir::Type getPointerType(mlir::Type ty) {
 
 cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
 
+mlir::Type genArgumentBufferType(mlir::Type ty);
+
+/// Build an LLVM struct type with all the arguments and then all the results.
+/// If the type is a std::vector, then add an i64 to the struct for the
+/// length. The actual data values will be appended to the end of the
+/// dynamically sized struct.
+///
+/// A kernel signature of
+/// ```c++
+/// i32_t operator() (i16_t, std::vector<double>, double);
+/// ```
+/// will generate the LLVM struct
+/// ```llvm
+/// { i16, i64, double, i32 }
+/// ```
+/// where the values of the vector argument are pass-by-value and appended to
+/// the end of the struct as a sequence of \i n double values.
+cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy);
+
 /// Return the LLVM-IR dialect type: `[length x i8]`.
 inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
   return mlir::LLVM::LLVMArrayType::get(mlir::IntegerType::get(ctx, 8), length);
@@ -73,12 +103,21 @@ inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
 /// \p eleTy (`T`).
 inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   auto *ctx = eleTy.getContext();
+  // Map stdvec<complex<T>> to stdvec<struct<T,T>>
+  if (auto cTy = dyn_cast<mlir::ComplexType>(eleTy)) {
+    llvm::SmallVector<mlir::Type> types = {cTy.getElementType(),
+                                           cTy.getElementType()};
+    eleTy = mlir::LLVM::LLVMStructType::getLiteral(ctx, types);
+  }
   auto elePtrTy = cudaq::opt::factory::getPointerType(eleTy);
   auto i64Ty = mlir::IntegerType::get(ctx, 64);
   llvm::SmallVector<mlir::Type> eleTys = {elePtrTy, i64Ty};
   return mlir::LLVM::LLVMStructType::getLiteral(ctx, eleTys);
 }
 
+// Host side types for std::string and std::vector
+
+cudaq::cc::StructType stlStringType(mlir::MLIRContext *ctx);
 cudaq::cc::StructType stlVectorType(mlir::Type eleTy);
 
 //===----------------------------------------------------------------------===//
@@ -120,24 +159,11 @@ inline mlir::Value createF64Constant(mlir::Location loc,
   return createFloatConstant(loc, builder, value, builder.getF64Type());
 }
 
-inline mlir::Value createIntegerConstant(mlir::Location loc,
-                                         mlir::OpBuilder &builder,
-                                         std::int64_t value,
-                                         mlir::IntegerType type) {
-  return builder.create<mlir::arith::ConstantIntOp>(loc, value, type);
-}
+/// Return the integer value if \p v is an integer constant.
+std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
 
-inline mlir::Value createI64Constant(mlir::Location loc,
-                                     mlir::OpBuilder &builder,
-                                     std::int64_t value) {
-  return createIntegerConstant(loc, builder, value, builder.getI64Type());
-}
-
-inline mlir::Value createI32Constant(mlir::Location loc,
-                                     mlir::OpBuilder &builder,
-                                     std::int32_t value) {
-  return createIntegerConstant(loc, builder, value, builder.getI32Type());
-}
+/// Return the floating point value if \p v is a floating-point constant.
+std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
 
 /// Return the integer value if \p v is an integer constant.
 std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
@@ -186,15 +212,23 @@ createInvariantLoop(mlir::OpBuilder &builder, mlir::Location loc,
 bool hasHiddenSRet(mlir::FunctionType funcTy);
 
 /// Convert the function type \p funcTy to a signature compatible with the code
-/// on the CPU side. This will add hidden arguments, such as the `this` pointer,
-/// convert some results to `sret` pointers, etc.
-mlir::FunctionType toCpuSideFuncType(mlir::FunctionType funcTy,
-                                     bool addThisPtr);
+/// on the host side. This will add hidden arguments, such as the `this`
+/// pointer, convert some results to `sret` pointers, etc.
+mlir::FunctionType toHostSideFuncType(mlir::FunctionType funcTy,
+                                      bool addThisPtr, mlir::ModuleOp module);
 
-/// @brief Return true if the given type corresponds to a
-/// std-vector type according to our convention. The convention
-/// is a `ptr<struct<ptr<T>, ptr<T>, ptr<T>>>`.
+// Return `true` if the given type corresponds to a standard vector type
+// according to our convention.
+// The convention is a `ptr<struct<ptr<T>, ptr<T>, ptr<T>>>`.
 bool isStdVecArg(mlir::Type type);
 
-} // namespace opt::factory
+bool isX86_64(mlir::ModuleOp);
+bool isAArch64(mlir::ModuleOp);
+
+/// A small structure may be passed as two arguments on the host side. (e.g., on
+/// the X86-64 ABI.) If \p ty is not a `struct`, this returns `false`.
+bool structUsesTwoArguments(mlir::Type ty);
+
+} // namespace factory
+} // namespace opt
 } // namespace cudaq

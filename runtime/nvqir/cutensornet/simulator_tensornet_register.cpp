@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -31,6 +31,10 @@ public:
   // Nothing to do for state preparation
   virtual void prepareQubitTensorState() override {}
   virtual std::string name() const override { return "tensornet"; }
+  CircuitSimulator *clone() override {
+    thread_local static auto simulator = std::make_unique<SimulatorTensorNet>();
+    return simulator.get();
+  }
   // Add a hook to reset the cutensornet MPI Comm before MPI finalization
   // to make sure we have a clean shutdown.
   virtual void tearDownBeforeMPIFinalize() override {

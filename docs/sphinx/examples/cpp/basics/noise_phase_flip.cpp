@@ -20,11 +20,11 @@ int main() {
   // our phase flip channel to.
   cudaq::noise_model noise;
 
-  // Phase flip channel with `1.0` probability of the qubit
-  // undergoing a phase rotation of 180 degrees (π).
+  // We define a phase-flip channel setting the probability of the
+  // qubit undergoing a phase rotation of 180 degrees (π) to `1.0`.
   cudaq::phase_flip_channel pf(1.);
   // We will apply this channel to any Z gate on the qubit.
-  // Meaning, after each Z gate on qubit 0, there will be a
+  // In other words, after each Z gate on qubit 0, there will be a
   // probability of `1.0` that the qubit undergoes an extra
   // Z rotation.
   noise.add_channel<cudaq::types::z>({0}, pf);
@@ -44,7 +44,7 @@ int main() {
   cudaq::set_noise(noise);
 
   // With noise, our Z-gate will effectively cancel out due
-  // to the presence of a phase flip error on the gate with a
+  // to the presence of a phase-flip error on the gate with a
   // probability of `1.0`. This will put us back in the |0> state.
   auto noisy_counts = cudaq::sample(kernel);
   noisy_counts.dump();

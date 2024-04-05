@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -400,25 +400,86 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
   auto params = adaptor.getOperands();
   if (params.size() < 2)
     return nullptr;
-  if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[1])) {
-    auto offset = intAttr.getInt();
-    auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
-    if (!conArr)
-      return nullptr;
-    cc::ArrayType arrTy = conArr.getType();
-    if (arrTy.isUnknownSize())
-      return nullptr;
-    auto arrSize = arrTy.getSize();
-    OpBuilder builder(getContext());
-    builder.setInsertionPoint(getOperation());
-    if (offset < arrSize) {
-      auto fc = cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
-      auto f64Ty = builder.getF64Type();
-      Value val = builder.create<arith::ConstantFloatOp>(getLoc(), fc, f64Ty);
-      return val;
+  auto intAttr = dyn_cast_or_null<IntegerAttr>(params[1]);
+  if (!intAttr)
+    return nullptr;
+  auto offset = intAttr.getInt();
+  auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
+  if (!conArr)
+    return nullptr;
+  cc::ArrayType arrTy = conArr.getType();
+  if (arrTy.isUnknownSize())
+    return nullptr;
+  auto eleTy = arrTy.getElementType();
+  auto arrSize = arrTy.getSize();
+  OpBuilder builder(getContext());
+  builder.setInsertionPoint(getOperation());
+  auto loc = getLoc();
+  if (offset < arrSize) {
+    if (auto fltTy = dyn_cast<FloatType>(eleTy)) {
+      auto floatConstVal =
+          cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
+      return builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy)
+          .getResult();
     }
+    auto intConstVal =
+        cast<IntegerAttr>(conArr.getConstantValues()[offset]).getInt();
+    auto intTy = cast<IntegerType>(eleTy);
+    return builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy)
+        .getResult();
   }
-  return nullptr;
+  return builder.create<cc::PoisonOp>(loc, eleTy).getResult();
+}
+
+//===----------------------------------------------------------------------===//
+// GlobalOp
+//===----------------------------------------------------------------------===//
+
+ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  // Check for the `constant` optional keyword first.
+  if (succeeded(parser.parseOptionalKeyword("constant")))
+    result.addAttribute(getConstantAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Parse the rest of the global.
+  //   @<symbol> ( <initializer-attr> ) : <result-type>
+  StringAttr name;
+  if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
+                             result.attributes))
+    return failure();
+  if (succeeded(parser.parseOptionalLParen())) {
+    Attribute value;
+    if (parser.parseAttribute(value, getValueAttrName(result.name),
+                              result.attributes) ||
+        parser.parseRParen())
+      return failure();
+  }
+  SmallVector<Type, 1> types;
+  if (parser.parseOptionalColonTypeList(types) ||
+      parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  if (types.size() > 1)
+    return parser.emitError(parser.getNameLoc(), "expected zero or one type");
+  result.addAttribute(getGlobalTypeAttrName(result.name),
+                      TypeAttr::get(types[0]));
+  return success();
+}
+
+void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
+  p << ' ';
+  if (getConstant())
+    p << "constant ";
+  p.printSymbolName(getSymName());
+  if (auto value = getValue()) {
+    p << " (";
+    p.printAttribute(*value);
+    p << ")";
+  }
+  p << " : " << getGlobalType();
+  p.printOptionalAttrDictWithKeyword(
+      (*this)->getAttrs(), {getSymNameAttrName(), getValueAttrName(),
+                            getGlobalTypeAttrName(), getConstantAttrName()});
 }
 
 //===----------------------------------------------------------------------===//

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -75,7 +75,9 @@ build_include_dir="$repo_root/build/include"
 python3 -c "import cudaq" 2>/dev/null
 if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" = "python" ] || [ "${force_update,,}" = "py" ]; then
     echo "Building cudaq package."
-    CUDAQ_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" bash "$repo_root/scripts/build_cudaq.sh"
+    CUDAQ_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
+    CUDAQ_BUILD_TESTS=OFF \
+    bash "$repo_root/scripts/build_cudaq.sh"
     cudaq_build_exit_code=$?
 
     python3 -c "import cudaq" 2>/dev/null

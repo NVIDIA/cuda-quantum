@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -45,6 +45,17 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
     Option<"computeActionOptimization", "compute-action-opt", "bool",
       /*default=*/"true", "Enable the compute-action control optimization.">
   ];
+}
+
+def PySynthCallableBlockArgs : Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
+  let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
+  let description = [{
+    This pass is leveraged by the Python bindings to synthesize any 
+    cc.callable block arguments. By synthesis we mean replace all uses of the 
+    callable block argument with a specific in-Module function call (func.call) 
+    retrieved at runtime (the name of the function passed to the kernel at the 
+    cc.callable block argument index).
+  }];
 }
 
 def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
@@ -378,9 +389,15 @@ def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
     performs mapping of the qubits by inserting the necessary swap operations
     into the Quake IR.
 
-    Note: this pass requires strictly value semantics for any quantum
+    Note 1: this pass requires strictly value semantics for any quantum
     operations. It will throw an error if any memory reference semantics are
     present on quantum operations.
+
+    Note 2: this pass can introduce ancilla qubits.
+
+    Note 3: as a result of note 2, if the IR contains no measurements, this pass
+    will inject measurements so that the post-mapping measurements correspond
+    to all of the input (user) qubits.
   }];
 
   let options = [

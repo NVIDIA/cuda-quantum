@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -23,6 +23,13 @@ namespace {
 } // namespace
 
 namespace cudaq {
+bool MPIPlugin::isValidInterfaceLib(
+    const std::string &distributedInterfaceLib) {
+  const bool dlOpenOk =
+      dlopen(distributedInterfaceLib.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  return dlOpenOk;
+}
+
 MPIPlugin::MPIPlugin(const std::string &distributedInterfaceLib) {
   if (!dlopen(distributedInterfaceLib.c_str(), RTLD_GLOBAL | RTLD_NOW)) {
     const std::string errorMsg(dlerror());

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,6 +11,8 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Todo.h"
+#include "clang/Basic/TargetInfo.h"
+#include "llvm/TargetParser/Triple.h"
 
 #define DEBUG_TYPE "lower-ast-type"
 
@@ -18,11 +20,13 @@ using namespace mlir;
 
 static bool isArithmeticType(Type t) { return isa<IntegerType, FloatType>(t); }
 
+/// Is \p t a quantum reference type. In the bridge, quantum types are always
+/// reference types.
 static bool isQuantumType(Type t) {
   return isa<quake::VeqType, quake::RefType>(t);
 }
 
-// Allow array of [array of]* T, where T is arithmetic.
+/// Allow `array of [array of]* T`, where `T` is arithmetic.
 static bool isStaticArithmeticSequenceType(Type t) {
   if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t)) {
     auto eleTy = vec.getElementType();
@@ -31,29 +35,81 @@ static bool isStaticArithmeticSequenceType(Type t) {
   return false;
 }
 
-// Allow vector of [vector of]* [array of]* T or
-//       array of [array of]* T, where T is arithmetic.
-static bool isArithmeticSequenceType(Type t) {
-  if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t)) {
-    auto eleTy = vec.getElementType();
-    return isArithmeticType(eleTy) || isArithmeticSequenceType(eleTy);
-  }
-  return isStaticArithmeticSequenceType(t);
-}
-
-// Returns true if and only if \p t is a struct of arithmetic, static sequence
-// of arithmetic, or (recursive) struct of arithmetic on all members.
-static bool isArithmeticProductType(Type t) {
+/// Returns true if and only if \p t is a struct of arithmetic, static sequence
+/// of arithmetic (i.e., it has a constant length), or (recursive) struct of
+/// arithmetic on all members.
+static bool isStaticArithmeticProductType(Type t) {
   if (auto structTy = dyn_cast<cudaq::cc::StructType>(t)) {
     for (auto memTy : structTy.getMembers()) {
       if (isArithmeticType(memTy) || isStaticArithmeticSequenceType(memTy) ||
-          isArithmeticProductType(memTy))
+          isStaticArithmeticProductType(memTy))
         continue;
       return false;
     }
     return true;
   }
   return false;
+}
+
+/// Is \p t a recursive sequence of arithmetic types? The outer types are
+/// allowed to be dynamic (vector), but the inner types must be static. An outer
+/// type can only be a vector.
+///
+/// Return true if and only if \p t is
+///    - `vector of [vector of]* [array of]* T` or
+///    - `array of [array of]* T`,
+/// where `T` is an arithmetic type or static product type of arithmetic types.
+static bool isArithmeticSequenceType(Type t) {
+  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t)) {
+    auto eleTy = vec.getElementType();
+    return isArithmeticType(eleTy) || isStaticArithmeticProductType(eleTy) ||
+           isArithmeticSequenceType(eleTy);
+  }
+  return isStaticArithmeticSequenceType(t);
+}
+
+static bool isRecursiveArithmeticProductType(Type t);
+
+/// Is \p t a recursive sequence of arithmetic types? This is a similar but more
+/// relaxed test than isArithmeticSequenceType in that the outer types may
+/// include product types and are not restricted to vectors. Only ArrayType is
+/// considered an inner type.
+static bool isRecursiveArithmeticSequenceType(Type t) {
+  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t)) {
+    auto eleTy = vec.getElementType();
+    return isArithmeticType(eleTy) || isRecursiveArithmeticProductType(eleTy) ||
+           isRecursiveArithmeticSequenceType(eleTy);
+  }
+  return isStaticArithmeticSequenceType(t);
+}
+
+/// Is \p t a recursive product of possibly dynamic arithmetic types? Returns
+/// true if and only if \p t is a struct with members that are arithmetic,
+/// dynamic sequences of arithmetic, or (recursively) products of possible
+/// dynamic products of arithmetic types.
+static bool isRecursiveArithmeticProductType(Type t) {
+  if (auto structTy = dyn_cast<cudaq::cc::StructType>(t)) {
+    for (auto memTy : structTy.getMembers()) {
+      if (isArithmeticType(memTy) || isRecursiveArithmeticSequenceType(memTy) ||
+          isRecursiveArithmeticProductType(memTy))
+        continue;
+      return false;
+    }
+    return true;
+  }
+  return isStaticArithmeticProductType(t);
+}
+
+/// Is \p t a recursively arithmetic type? This tests either for struct of
+/// vector or vector of struct like arithmetic composed types.
+///
+/// Returns true if and only if \p t is
+///    - a sequence of `T` such that `T` is composed of AT
+///    - a product of `T`, `U`, ... such that all types are composed of AT
+/// where AT is a recursively built type with leaves that are arithmetic.
+static bool isComposedArithmeticType(Type t) {
+  return isRecursiveArithmeticProductType(t) ||
+         isRecursiveArithmeticSequenceType(t);
 }
 
 static bool isKernelSignatureType(FunctionType t);
@@ -70,21 +126,40 @@ static bool isFunctionCallable(Type t) {
   return false;
 }
 
+/// Return true if and only if \p t is a (simple) arithmetic type, an arithmetic
+/// sequence type (possibly dynamic in length), or a static product type of
+/// arithmetic types. Note that this means a product type with a dynamic
+/// sequence of arithmetic types is \em disallowed.
+static bool isKernelResultType(Type t) {
+  return isArithmeticType(t) || isArithmeticSequenceType(t) ||
+         isStaticArithmeticProductType(t);
+}
+
+/// Is \p t a std::string type?
+static bool isStringType(Type t) { return isa<cudaq::cc::CharspanType>(t); }
+
+/// Return true if and only if \p t is a (simple) arithmetic type, an possibly
+/// dynamic type composed of arithmetic types, a quantum type, a callable
+/// (function), or a string.
+static bool isKernelArgumentType(Type t) {
+  return isArithmeticType(t) || isComposedArithmeticType(t) ||
+         isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
+         isStringType(t) ||
+         // TODO: move from pointers to a builtin string type.
+         cudaq::isCharPointerType(t);
+}
+
 static bool isKernelSignatureType(FunctionType t) {
   for (auto t : t.getInputs()) {
-    if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
-        isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-        isa<cudaq::cc::StructType>(t)) {
-      // Assume a class (LLVMStructType) is callable.
-      continue;
-    }
-    return false;
-  }
-  for (auto t : t.getResults()) {
-    if (isArithmeticType(t) || isArithmeticSequenceType(t))
+    // Assumes a class (cc::StructType) is callable. Must pass in the AST
+    // parameter to verify the assumption.
+    if (isKernelArgumentType(t) || isa<cudaq::cc::StructType>(t))
       continue;
     return false;
   }
+  for (auto t : t.getResults())
+    if (!isKernelResultType(t))
+      return false;
   return true;
 }
 
@@ -151,15 +226,24 @@ bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
 bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   assert(!x->isLambda() && "expected lambda to be handled in traverse");
   // Note that we're generating a Type on the type stack.
-  SmallVector<Type> fieldTys =
-      lastTypes(std::distance(x->field_begin(), x->field_end()));
   StringRef name;
   if (auto ident = x->getIdentifier())
     name = ident->getName();
   auto *ctx = builder.getContext();
+  if (!x->getDefinition())
+    return pushType(cc::StructType::get(ctx, name, /*isOpaque=*/true));
+  SmallVector<Type> fieldTys =
+      lastTypes(std::distance(x->field_begin(), x->field_end()));
+  auto [width, alignInBytes] = [&]() -> std::pair<std::uint64_t, unsigned> {
+    auto *defn = x->getDefinition();
+    assert(defn && "struct must be defined here");
+    auto ti = getContext()->getTypeInfo(defn->getTypeForDecl());
+    return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
+  }();
   if (name.empty())
-    return pushType(cc::StructType::get(ctx, fieldTys));
-  return pushType(cc::StructType::get(ctx, name, fieldTys));
+    return pushType(cc::StructType::get(ctx, fieldTys, width, alignInBytes));
+  return pushType(
+      cc::StructType::get(ctx, name, fieldTys, width, alignInBytes));
 }
 
 bool QuakeBridgeVisitor::VisitFunctionProtoType(clang::FunctionProtoType *t) {
@@ -239,9 +323,15 @@ Type QuakeBridgeVisitor::builtinTypeToType(const clang::BuiltinType *t) {
     return builder.getF32Type();
   case BuiltinType::Double:
     return builder.getF64Type();
-  case BuiltinType::LongDouble:
-    return astContext->getTypeSize(t) == 64 ? builder.getF64Type()
-                                            : builder.getF128Type();
+  case BuiltinType::LongDouble: {
+    auto bitWidth = astContext->getTargetInfo().getLongDoubleWidth();
+    if (bitWidth == 64)
+      return builder.getF64Type();
+    llvm::Triple triple(astContext->getTargetInfo().getTargetOpts().Triple);
+    if (triple.isX86())
+      return builder.getF80Type();
+    return builder.getF128Type();
+  }
   case BuiltinType::Float128:
   case BuiltinType::Ibm128: /* double double format -> {double, double} */
     return builder.getF128Type();
@@ -271,7 +361,7 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
   if (t->getPointeeType()->isUndeducedAutoType())
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
-  if (isa<cc::CallableType, cc::StdvecType, quake::VeqType, quake::RefType>(
+  if (isa<cc::CallableType, cc::SpanLikeType, quake::VeqType, quake::RefType>(
           eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
@@ -283,7 +373,7 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   // FIXME: LLVMStructType is promoted as a temporary workaround.
-  if (isa<cc::CallableType, cc::StdvecType, cc::ArrayType, cc::StructType,
+  if (isa<cc::CallableType, cc::SpanLikeType, cc::ArrayType, cc::StructType,
           quake::VeqType, quake::RefType, LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
@@ -342,16 +432,13 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
     // Structs, lambdas, functions are valid callable objects. Also pure
     // device kernels may take veq and/or ref arguments.
-    if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
-        isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-        isCharPointerType(t) || isReferenceToCallableRecord(t, p))
+    if (isKernelArgumentType(t) || isReferenceToCallableRecord(t, p))
       continue;
     reportClangError(p, mangler, "kernel argument type not supported");
     return false;
   }
   for (auto t : funcTy.getResults()) {
-    if (isArithmeticType(t) || isArithmeticSequenceType(t) ||
-        isArithmeticProductType(t))
+    if (isKernelResultType(t))
       continue;
     reportClangError(x, mangler, "kernel result type not supported");
     return false;

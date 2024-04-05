@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -19,7 +19,9 @@ def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
     QIR qubits.
   }];
 
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+  let dependentDialects = [
+    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
+  ];
   let constructor = "cudaq::opt::createConvertToQIRPass()";
 }
 
@@ -112,5 +114,21 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
   let constructor = "cudaq::opt::createRemoveMeasurementsPass()";
 }
 
+def VerifyNVQIRCallOps : Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
+  let summary =
+    "Verify that all LLVM CallOps' callees are NVQIR compliant";
+  let description = [{
+    This is a function pass to verify that all function calls within the function body are 
+    referring to pre-defined allowed functions or QIR functions, i.e., 
+    starting with a __quantum prefix, or NVQIR runtime functions.
+  }];
+  
+  let options = [
+    ListOption<"allowedFuncs", "allowed-funcs", "llvm::StringRef",
+               "Allowed list of functions in addition to NVQIR-defined function.">
+  ];
+
+  let constructor = "cudaq::opt::createVerifyNVQIRCallOpsPass({})";
+}
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

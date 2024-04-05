@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -94,7 +94,7 @@ bool quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, SinkOp>(op);
 }
 
-mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
+ValueRange quake::getQuantumTypesFromRange(ValueRange range) {
 
   // Skip over classical types at the beginning
   int numClassical = 0;
@@ -105,7 +105,7 @@ mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
       break;
   }
 
-  mlir::ValueRange retVals = range.drop_front(numClassical);
+  ValueRange retVals = range.drop_front(numClassical);
 
   // Make sure all remaining operands are quantum
   for (auto operand : retVals)
@@ -115,17 +115,16 @@ mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
   return retVals;
 }
 
-mlir::ValueRange quake::getQuantumResults(Operation *op) {
+ValueRange quake::getQuantumResults(Operation *op) {
   return getQuantumTypesFromRange(op->getResults());
 }
 
-mlir::ValueRange quake::getQuantumOperands(Operation *op) {
+ValueRange quake::getQuantumOperands(Operation *op) {
   return getQuantumTypesFromRange(op->getOperands());
 }
 
 LogicalResult quake::setQuantumOperands(Operation *op, ValueRange quantumVals) {
-  mlir::ValueRange quantumOperands =
-      getQuantumTypesFromRange(op->getOperands());
+  ValueRange quantumOperands = getQuantumTypesFromRange(op->getOperands());
 
   if (quantumOperands.size() != quantumVals.size())
     return failure();
@@ -183,6 +182,14 @@ LogicalResult quake::AllocaOp::verify() {
       }
     }
   }
+
+  // Check the uses. If any use is a InitializeStateOp, then it must be the only
+  // use.
+  Operation *self = getOperation();
+  if (!self->getUsers().empty() && !self->hasOneUse())
+    for (auto *op : self->getUsers())
+      if (isa<quake::InitializeStateOp>(op))
+        return emitOpError("init_state must be the only use");
   return success();
 }
 
@@ -192,6 +199,15 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   // changes the type. Uses may still expect a veq with unspecified size.
   // Folding is strictly reductive and doesn't allow the creation of ops.
   patterns.add<FuseConstantToAllocaPattern>(context);
+}
+
+quake::InitializeStateOp quake::AllocaOp::getInitializedState() {
+  auto *self = getOperation();
+  if (self->hasOneUse()) {
+    auto x = self->getUsers().begin();
+    return dyn_cast<quake::InitializeStateOp>(*x);
+  }
+  return {};
 }
 
 //===----------------------------------------------------------------------===//
@@ -683,9 +699,9 @@ LogicalResult quake::DiscriminateOp::verify() {
 //===----------------------------------------------------------------------===//
 
 // The following methods return to the operator's unitary matrix as a
-// column-major array. For parametrizable operations, the matrix can only be
+// column-major array. For parameterizable operations, the matrix can only be
 // built if the parameter can be computed at compilation time. These methods
-// populate an empty array taken as a input. If the matrix was not successfuly
+// populate an empty array taken as a input. If the matrix was not successfully
 // computed, the array will be left empty.
 
 /// If the parameter is known at compilation-time, set the result value and
@@ -694,8 +710,8 @@ static LogicalResult getParameterAsDouble(Value parameter, double &result) {
   auto paramDefOp = parameter.getDefiningOp();
   if (!paramDefOp)
     return failure();
-  if (auto constOp = mlir::dyn_cast<mlir::arith::ConstantOp>(paramDefOp)) {
-    if (auto value = dyn_cast<mlir::FloatAttr>(constOp.getValue())) {
+  if (auto constOp = dyn_cast<arith::ConstantOp>(paramDefOp)) {
+    if (auto value = dyn_cast<FloatAttr>(constOp.getValue())) {
       result = value.getValueAsDouble();
       return success();
     }

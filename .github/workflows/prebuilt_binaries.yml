@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -118,7 +118,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
           driver-opts: network=host
@@ -159,7 +159,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.1.1
+        uses: sigstore/cosign-installer@v3.3.0
+        with:
+          cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
@@ -174,7 +176,6 @@ jobs:
           context: .
           file: ./docker/release/installer.Dockerfile
           build-args: |
-            release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ steps.config.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
           platforms: ${{ inputs.platform }}
           outputs: type=local,dest=/tmp/install
@@ -199,7 +200,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure build
         id: cache
@@ -214,7 +215,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
 
@@ -256,7 +257,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - id: config
         run: |
@@ -279,7 +280,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -298,16 +299,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ needs.build_installer.outputs.artifact_name }}
+          path: /tmp/install
 
       - name: Install in clean environment
         run: |
           config='${{ needs.create_test_config.outputs.json }}'
           system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
           additional_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
+          mv /tmp/install/* .
 
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
             --build-arg cuda_quantum_installer=install_cuda_quantum.$(uname -m) \
+            --build-arg cuda_quantum_wheel=cuda_quantum*$(uname -m).whl \
             --build-arg base_image=${{ matrix.os_image }} \
             --build-arg base_image_mpibuild=${{ inputs.platform_base_image }} \
             $(echo $additional_build_args | xargs | sed "s/[^ ]*/--build-arg &/g")
@@ -315,7 +319,7 @@ jobs:
       - name: Sanity checks
         run: |
           docker run --rm -dit --name cuda-quantum validation:local
-          (docker exec cuda-quantum bash -l validate.sh > /tmp/validation.out) && passed=true || passed=false
+          (docker exec cuda-quantum bash -l validate.sh | tee /tmp/validation.out) && passed=true || passed=false
           docker stop cuda-quantum
 
           if ! $passed; then 
@@ -323,15 +327,72 @@ jobs:
             exit 1
           fi
 
-      - name: MPI validation
+      - name: Side-by-side installation of Python support
         uses: ./.github/actions/run-in-docker
         with:
           image: validation:local
           user: cudaq
           shell: bash -l
           run: |
+            PYTHON="python3.$(ls cuda_quantum*.whl | grep -o cp3[0-9]* | cut -c 4- | head -1)"
+            if [ -x "$(command -v apt-get)" ]; then
+              sudo apt-get update && sudo apt-get install -y --no-install-recommends $PYTHON $PYTHON-venv
+              $PYTHON -m venv "$HOME/.venv" && PATH="$HOME/.venv/bin:$PATH"
+            elif [ -x "$(command -v dnf)" ]; then
+              sudo dnf install -y --nobest --setopt=install_weak_deps=False $(echo $PYTHON | tr -d .)
+              $PYTHON -m ensurepip --upgrade
+            elif [ -x "$(command -v zypper)" ]; then
+              sudo zypper --non-interactive up --no-recommends
+              sudo zypper --non-interactive in --no-recommends $(echo $PYTHON | tr -d .)
+              $PYTHON -m ensurepip --upgrade            
+            fi
+            
+            ${PYTHON} -m pip install cuda_quantum*.whl
+            ${PYTHON} -m pip install pytest numpy
+            ${PYTHON} -m pytest -v /home/cudaq/python \
+              --ignore /home/cudaq/python/backends \
+              --ignore /home/cudaq/python/domains
+            if [ ! $? -eq 0 ]; then
+              echo "::error file=prebuilt_binaries.yml::Sanity tests failed for side-by-side Python support."
+              exit 1
+            fi
+
+      - name: Additional validation (MPI and uninstall)
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: validation:local
+          user: cudaq
+          shell: bash -l
+          run: |
+            # Uninstall CUDA Quantum
+            install_dir="$CUDA_QUANTUM_PATH"
+            sudo bash ${CUDA_QUANTUM_PATH}/uninstall.sh -y
+            llvm_dir=`bash -c 'source configure_build.sh && echo $LLVM_INSTALL_PREFIX'`
+            cuquantum_dir=`bash -c 'source configure_build.sh && echo $CUQUANTUM_INSTALL_PREFIX'`
+            cutensor_dir=`bash -c 'source configure_build.sh && echo $CUTENSOR_INSTALL_PREFIX'`
+            if [ -d "$llvm_dir" ] || [ -d "$cuquantum_dir" ] || [ -d "$cutensor_dir" ] ||  [ -d "$CUDA_QUANTUM_PATH" ]; then
+              echo "::error::Some CUDA Quantum artifacts still exist after uninstalling."
+              exit 100
+            fi
+
+            unset CUDA_QUANTUM_PATH && PATH=$(getconf PATH) && . /etc/profile
+            if [ -n "$(bash -lc "echo $CUDA_QUANTUM_PATH")" ] || [ -n "$(bash -lc "echo $PATH | grep $install_dir")" ]; then 
+              echo "::error::CUDA Quantum related settings are still contained in shell profile."
+              exit 101
+            fi
+
+            # Re-install CUDA Quantum
+            MPI_PATH=/usr/local/openmpi \
+            sudo -E bash install_cuda_quantum.* --accept | tee install_log.txt
+            if [ -n "$(cat install_log.txt | grep -i warning)" ]; then
+              echo "::error::Re-installation produced a warning. Check the log for more detail."
+              exit 102
+            fi
+
+            . /etc/profile
             set +e # Allow script to keep going through errors
             sudo bash /install_sshclient.sh
+            status_sum=0
 
             if ${{ contains(matrix.os_image, 'redhat' ) }}; then
               sudo dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-12
@@ -364,6 +425,29 @@ jobs:
                 status_sum=$((status_sum+1))
               fi
             done
+            
+            # Execute simple remote simulator tests with the installer 
+            # because this target was skipped in validate.sh due to 
+            # incomplete MPI installation (need install_sshclient.sh).
+            for ex in `find examples/other/remote_sim/ -name '*.cpp'`; do
+              nvq++ --target remote-mqpu $ex
+              status=$?
+              filename=$(basename -- "$ex")
+              if [ $status -eq 0 ]; then
+                ./a.out
+                status=$?
+                if [ $status -eq 0 ]; then
+                  echo "Successfully ran $filename."
+                else
+                  echo "Failed to execute $filename."
+                  status_sum=$((status_sum+1))
+                fi
+              else
+                echo "Compilation failed for $filename."
+                status_sum=$((status_sum+1))
+              fi
+            done
+
             set -e # Re-enable exit code error checking
             if [ ! $status_sum -eq 0 ]; then
               echo "::error::$status_sum examples failed; see the log for more detail."
@@ -383,12 +467,15 @@ jobs:
 
   staging:
     name: Staging
-    needs: [build_installer, validation]
+    needs: [build_installer, build_openmpi, validation]
     if: inputs.environment
     runs-on: ubuntu-latest
     permissions: {}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Create build info
         id: staging
         run: |
@@ -402,8 +489,11 @@ jobs:
 
           mkdir -p "$(dirname "$info_file")" && rm -rf "$info_file"
           echo "source-sha: ${{ github.sha }}" >> "$info_file"
-          echo "cuda-quantum-installer-image: $image_hash" >> "$info_file"
+          echo "cuda-quantum-assets-image: $image_hash" >> "$info_file"
+          echo "platform-base-image: ${{ inputs.platform_base_image }}" >> "$info_file"
+          echo "openmpi-build-cache: ${{ needs.build_openmpi.outputs.build_cache }}" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
+          cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
         uses: actions/upload-artifact@v4
@@ -422,7 +512,7 @@ jobs:
 
     steps:
       - name: Delete artifacts
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const res = await github.rest.actions.listArtifactsForRepo({

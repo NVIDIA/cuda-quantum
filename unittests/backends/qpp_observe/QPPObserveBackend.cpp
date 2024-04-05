@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -19,7 +19,7 @@ class QppObserveTester : public nvqir::QppCircuitSimulator<qpp::ket> {
 public:
   NVQIR_SIMULATOR_CLONE_IMPL(QppObserveTester)
   bool canHandleObserve() override { return true; }
-  cudaq::ExecutionResult observe(const cudaq::spin_op &op) override {
+  cudaq::observe_result observe(const cudaq::spin_op &op) override {
     flushGateQueue();
 
     ::qpp::cmat X = ::qpp::Gates::get_instance().X;
@@ -38,11 +38,11 @@ public:
         auto [bsf, coeffs] = term.get_raw_data();
         for (std::size_t i = 0; i < nQ; i++) {
           if (bsf[0][i] && bsf[0][i + nQ])
-            cached = ::qpp::apply(cached, Y, {i});
+            cached = ::qpp::apply(cached, Y, {convertQubitIndex(i)});
           else if (bsf[0][i])
-            cached = ::qpp::apply(cached, X, {i});
+            cached = ::qpp::apply(cached, X, {convertQubitIndex(i)});
           else if (bsf[0][i + nQ])
-            cached = ::qpp::apply(cached, Z, {i});
+            cached = ::qpp::apply(cached, Z, {convertQubitIndex(i)});
         }
 
         sum += coeffs[0].real() * state.transpose().dot(cached).real();
@@ -51,7 +51,9 @@ public:
       }
     }
 
-    return cudaq::ExecutionResult({}, sum);
+    return cudaq::observe_result(sum, op,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, op.to_string(false), sum)));
   }
 
   std::string name() const override { return "qpp-test"; }

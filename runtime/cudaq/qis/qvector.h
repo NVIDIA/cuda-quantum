@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -38,6 +38,26 @@ public:
             "Invalid state vector passed to qvector initialization - number of "
             "elements must be power of 2.");
     }
+
+    auto norm = std::inner_product(
+        vector.begin(), vector.end(), vector.begin(), complex{0., 0.},
+        [](auto a, auto b) { return a + b; },
+        [](auto a, auto b) { return std::conj(a) * b; });
+    if (std::fabs(1.0 - norm) > 1e-12)
+      throw std::runtime_error("Invalid vector norm for qudit allocation.");
+
+    std::vector<QuditInfo> targets;
+    for (auto &q : qudits)
+      targets.emplace_back(QuditInfo{Levels, q.id()});
+    getExecutionManager()->initializeState(targets, vector.data());
+  }
+
+  qvector(const std::vector<double> &vector)
+      : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}
+  qvector(const std::initializer_list<double> &list)
+      : qvector(std::vector<complex>{list.begin(), list.end()}) {}
+  qvector(const std::initializer_list<complex> &list)
+      : qvector(std::vector<complex>{list.begin(), list.end()}) {}
 
     auto norm = std::inner_product(
         vector.begin(), vector.end(), vector.begin(), complex{0., 0.},

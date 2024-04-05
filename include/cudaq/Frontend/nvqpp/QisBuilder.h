@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -20,6 +20,7 @@ public:
   buildInstruction(mlir::OpBuilder &builder, mlir::Location loc,
                    mlir::ValueRange general_operands) = 0;
 };
+
 using QISBuilderRegistry = llvm::Registry<nvqpp::QISBuilder>;
 
 } // namespace nvqpp

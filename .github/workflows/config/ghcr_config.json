@@ -41,6 +41,22 @@
             ]
         },
         {
+            "source": "amd64/almalinux",
+            "platforms": "linux/amd64",
+            "tags": 
+            [
+                "8"
+            ]
+        },
+        {
+            "source": "arm64v8/almalinux",
+            "platforms": "linux/arm64",
+            "tags": 
+            [
+                "8"
+            ]
+        },
+        {
             "source": "ubuntu",
             "platforms": "linux/amd64,linux/arm64",
             "tags": 

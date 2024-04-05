@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,6 +11,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 add_cudaq_library(OptCodeGen
+  CodeGenDialect.cpp
+  CodeGenOps.cpp
+  CodeGenTypes.cpp
   LowerToQIRProfile.cpp
   LowerToQIR.cpp
   Passes.cpp
@@ -19,6 +22,9 @@ add_cudaq_library(OptCodeGen
 
   DEPENDS
     CCDialect
+    CodeGenDialectIncGen
+    CodeGenOpsIncGen
+    CodeGenTypesIncGen
     OptCodeGenPassIncGen
     OptPeepholeIncGen
     OptTransformsPassIncGen

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -22,6 +22,9 @@ public:
       "getMpiCommunicator";
   static constexpr std::string_view DISTRIBUTED_INTERFACE_GETTER_SYMBOL_NAME =
       "getDistributedInterface";
+  // Static method to safely check whether a path contains an usable MPI
+  // inteface library.
+  static bool isValidInterfaceLib(const std::string &distributedInterfaceLib);
   MPIPlugin(const std::string &distributedInterfaceLib);
   cudaqDistributedInterface_t *get() { return m_distributedInterface; }
   cudaqDistributedCommunicator_t *getComm() { return m_comm; }

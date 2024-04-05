@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   std::string line;
   std::vector<std::string> funcs;
   {
-    std::regex mapRegex{"quake\\.mangled_name_map[^\"]*"};
+    std::regex mapRegex{"quake\\.mangled_name_map = [{]"};
     std::regex stringRegex{"\"(.*?)\""};
     while (std::getline(modFile, line) && funcs.empty()) {
       auto funcsBegin =

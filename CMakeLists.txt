@@ -79,6 +79,20 @@ if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
   set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
 endif()
 
+# Enable the REST code by default.
+if (NOT DEFINED CUDAQ_ENABLE_REST)
+  set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
+endif()
+
+# Enable the remote simulator by default.
+if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
+  set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building cudaq-qpud.")
+  # Optionally enable the tests that use cudaq-qpud.
+  if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
+    set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
+  endif()
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -98,19 +112,6 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
                     RESULT_VARIABLE GIT_SUBMOD_RESULT)
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
         message(FATAL_ERROR "Cloning git submodules failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually")
-    endif()
-    # Apply patches; check if patch is already applied first, and apply it if not
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT
-                    ERROR_QUIET)
-    if(NOT GIT_PATCH_RESULT EQUAL "0")
-      execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                      RESULT_VARIABLE GIT_PATCH_RESULT)
-    endif()
-    if(NOT GIT_PATCH_RESULT EQUAL "0")
-        message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
     endif()
   endif()
 endif()
@@ -158,6 +159,7 @@ if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
   SET(CURL_INCLUDE_DIR "$ENV{CURL_INSTALL_PREFIX}/include")
   SET(CURL_CONFIG_EXECUTABLE "$ENV{CURL_INSTALL_PREFIX}/bin/curl-config")
   SET(CMAKE_USE_SYSTEM_CURL TRUE)
+  SET(CURL_NO_CURL_CMAKE ON)
 endif()
 if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
   SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
@@ -404,6 +406,27 @@ configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
 install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
   DESTINATION include/nvqpp)
 
+# Version
+# ==============================================================================
+if (DEFINED ENV{CUDA_QUANTUM_VERSION})
+  # The version was defined by the user (likely a bot performing the build), so
+  # use the value provided as is.
+  set(CUDA_QUANTUM_VERSION "$ENV{CUDA_QUANTUM_VERSION}")
+else()
+  # Otherwise, create a version based on the nearest tag in the git repo.
+  execute_process(COMMAND git describe --tags --abbrev=0 --dirty=-developer
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE CUDA_QUANTUM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+
+# Retrieve the commit SHA for full revision description
+execute_process(COMMAND git rev-parse --verify HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE CUDA_QUANTUM_COMMIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in" 
+               "${CUDAQ_BINARY_DIR}/include/cudaq/Support/Version.h" @ONLY)
+
 # Check optional dependencies
 # ==============================================================================
 find_package(OpenMP)
@@ -440,6 +463,30 @@ set(SPDLOG_SYSTEM_INCLUDES ON)
 add_subdirectory(tpls/spdlog)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
+  # Look for CURL
+  set(CURL_STATICLIB ON)
+  set(CURL_USE_STATIC_LIBS TRUE)
+  find_package(CURL COMPONENTS HTTP HTTPS)
+
+  if (CURL_FOUND)
+    message(STATUS "Using system curl for CPR.")
+    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+  elseif (CMAKE_USE_SYSTEM_CURL)
+    message(FATAL_ERROR "CMAKE_USE_SYSTEM_CURL defined but a suitable package was not found. Make sure that `curl-config --protocols` lists HTTP and HTTPS.")
+  else()
+    message(STATUS "Curl not found. Building curl for CPR.")
+    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
+  endif()
+
+  # Now, build CPR as needed
+  set(BUILD_SHARED_LIBS OFF)
+  set(CPR_ENABLE_SSL ON) # needed for https requests
+  set(CPR_FORCE_OPENSSL_BACKEND ON)
+  add_subdirectory(tpls/cpr)
+  target_compile_options(cpr PRIVATE -Wno-covered-switch-default -w)
+endif()
+
 # QPP simulator
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(tpls/qpp EXCLUDE_FROM_ALL)
@@ -452,6 +499,12 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
   if (OpenMP_CXX_FOUND)
     target_compile_definitions(libqpp INTERFACE HAS_OPENMP)
   endif()
+endif()
+
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
+  # The asio submodule doesn't use cmake, so use find_path for it.
+  find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
+  add_subdirectory(tpls/Crow)
 endif()
 
 
@@ -503,20 +556,33 @@ add_subdirectory(lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-if (NOT CUDAQ_DISABLE_TOOLS)
-  add_subdirectory(tools)
-endif()
+add_subdirectory(tools)
 add_subdirectory(utils)
 
 if (CUDAQ_ENABLE_PYTHON)
-  set(PYBIND11_FINDPYTHON ON)
-  # Manually call find_package due to https://github.com/pybind/pybind11/pull/4805.
-  find_package(Python 3 COMPONENTS Interpreter Development.Module REQUIRED)
+  find_package(Python 3 COMPONENTS Interpreter Development)
+  
+  # Apply specific patch to pybind11 for our documentation.
+  # Only apply the patch if not already applied.
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_PATCH_RESULT
+                  ERROR_QUIET)
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_PATCH_RESULT)
+  endif()
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+  endif()
+  
   add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()
 
 if(CUDAQ_BUILD_TESTS)
+  umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
   # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
@@ -531,11 +597,13 @@ if(CUDAQ_BUILD_TESTS)
   endif()
   include(GoogleTest)
   include(CTest)
+  add_subdirectory(test)
   if (NOT CUDAQ_DISABLE_RUNTIME)
+    add_subdirectory(targettests)
     add_subdirectory(unittests)
     add_subdirectory(docs)
   endif()
-  add_subdirectory(test)
+  umbrella_lit_testsuite_end(check-all)
 endif()
 
 if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND) 

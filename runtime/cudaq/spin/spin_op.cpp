@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -23,6 +23,7 @@
 #include <iostream>
 #include <map>
 #include <random>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -295,11 +296,43 @@ spin_op spin_op::random(std::size_t nQubits, std::size_t nTerms,
   std::mt19937 gen(seed);
   std::vector<std::complex<double>> coeffs(nTerms, 1.0);
   std::vector<spin_op_term> randomTerms;
+  // Make sure we don't put duplicates into randomTerms by using dupCheckSet
+  std::set<std::vector<bool>> dupCheckSet;
+  if (nQubits <= 30) {
+    // For the given algorithm below that sets bool=true for 1/2 of the the
+    // termData, the maximum number of unique terms is n choose k, where n =
+    // 2*nQubits, and k=nQubits. For up to 30 qubits, we can calculate n choose
+    // k without overflows (i.e. 60 choose 30 = 118264581564861424) to validate
+    // that nTerms is reasonable. For anything larger, the user can't set nTerms
+    // large enough to run into actual problems because they would encounter
+    // memory limitations long before anything else.
+    // Note: use the multiplicative formula to evaluate n-choose-k. The
+    // arrangement of multiplications and divisions do not truncate any division
+    // remainders.
+    std::size_t maxTerms = 1;
+    for (std::size_t i = 1; i <= nQubits; i++) {
+      maxTerms *= 2 * nQubits + 1 - i;
+      maxTerms /= i;
+    }
+    if (nTerms > maxTerms)
+      throw std::runtime_error(
+          fmt::format("Unable to produce {} unique random terms for {} qubits",
+                      nTerms, nQubits));
+  }
   for (std::size_t i = 0; i < nTerms; i++) {
     std::vector<bool> termData(2 * nQubits);
-    std::fill_n(termData.begin(), termData.size() * (1 - .5), 1);
-    std::shuffle(termData.begin(), termData.end(), gen);
-    randomTerms.push_back(termData);
+    while (true) {
+      std::fill_n(termData.begin(), nQubits, true);
+      std::shuffle(termData.begin(), termData.end(), gen);
+      if (dupCheckSet.contains(termData)) {
+        // Prepare to loop again
+        std::fill(termData.begin(), termData.end(), false);
+      } else {
+        dupCheckSet.insert(termData);
+        break;
+      }
+    }
+    randomTerms.push_back(std::move(termData));
   }
 
   return spin_op(randomTerms, coeffs);
@@ -488,29 +521,24 @@ std::size_t spin_op::num_terms() const { return terms.size(); }
 std::vector<spin_op> spin_op::distribute_terms(std::size_t numChunks) const {
   // Calculate how many terms we can equally divide amongst the chunks
   auto nTermsPerChunk = num_terms() / numChunks;
+  auto leftover = num_terms() % numChunks;
 
   // Slice the given spin_op into subsets for each chunk
   std::vector<spin_op> spins;
-  for (auto i : cudaq::range(numChunks)) {
-    // lowerBound here is the start index
-    auto lowerBound = i * nTermsPerChunk;
-
-    // Get the iterator and advance to lowerBound
-    auto start = terms.begin();
-    std::advance(start, lowerBound);
-
-    // The number of terms we want is nTermsPerChunk, but if
-    // this is the last iteration of this loop, we'll add
-    // any run-over terms to the final chunk
-    auto count =
-        nTermsPerChunk + (i == numChunks - 1 ? (num_terms() % numChunks) : 0);
+  auto termIt = terms.begin();
+  for (std::size_t chunkIx = 0; chunkIx < numChunks; chunkIx++) {
+    // Evenly distribute any leftovers across the early chunks
+    auto count = nTermsPerChunk + (chunkIx < leftover ? 1 : 0);
 
     // Get the chunk from the terms list.
     std::unordered_map<spin_op_term, std::complex<double>> sliced;
-    std::copy_n(start, count, std::inserter(sliced, sliced.end()));
+    std::copy_n(termIt, count, std::inserter(sliced, sliced.end()));
 
     // Add to the return vector
     spins.emplace_back(sliced);
+
+    // Get ready for the next loop
+    std::advance(termIt, count);
   }
 
   // return the terms.
@@ -554,7 +582,7 @@ void spin_op::dump() const {
 
 spin_op::spin_op(std::vector<double> &input_vec, std::size_t nQubits) {
   auto n_terms = (int)input_vec.back();
-  if (nQubits != ((input_vec.size() - 2 * n_terms) / n_terms))
+  if (nQubits != (((input_vec.size() - 1) - 2 * n_terms) / n_terms))
     throw std::runtime_error("Invalid data representation for construction "
                              "spin_op. Number of data elements is incorrect.");
 
@@ -652,7 +680,7 @@ spin_op binary_spin_op_reader::read(const std::string &data_filename) {
   std::vector<double> input_vec(size / sizeof(double));
   input.read((char *)&input_vec[0], size);
   auto n_terms = (int)input_vec.back();
-  auto nQubits = (input_vec.size() - 2 * n_terms) / n_terms;
+  auto nQubits = (input_vec.size() - 1 - 2 * n_terms) / n_terms;
   spin_op s(input_vec, nQubits);
   return s;
 }

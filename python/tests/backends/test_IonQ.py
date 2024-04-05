@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -29,7 +29,7 @@ def startUpMockServer():
 
     # Set the targeted QPU
     cudaq.set_target("ionq", url="http://localhost:{}".format(port))
-    
+
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
@@ -46,7 +46,6 @@ def configureTarget():
 
     # Set the targeted QPU
     cudaq.set_target("ionq", url="http://localhost:{}".format(port))
-
     yield "Running the test."
     cudaq.reset_target()
 

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,8 +7,7 @@
 # ============================================================================ #
 
 # This file builds the development environment that contains the necessary development 
-# dependencies for building a CUDA Quantum Python wheel. It does not include the CUDA,
-# OpenMPI and other dependencies that some of the simulator backends require.
+# dependencies for building a CUDA Quantum Python wheel.
 #
 # Usage:
 # Must be built from the repo root with:

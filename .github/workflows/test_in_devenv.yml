@@ -33,12 +33,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Restore environment
         id: restore_devdeps
         if: inputs.devdeps_image == ''
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -49,7 +49,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
 
@@ -79,13 +79,18 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install iqm-client
-            ctest --output-on-failure --test-dir build -E ctest-nvqpp
+            python3 -m pip install iqm-client==16.1
+            ctest --output-on-failure --test-dir build -E ctest-nvqpp -E ctest-targettests
             ctest_status=$?
             /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/test/lit.site.cfg.py build/test
             lit_status=$?
-            if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ]; then
-              echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status)."
+            /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/targettests/lit.site.cfg.py build/targettests
+            targ_status=$?
+            /opt/llvm/bin/llvm-lit -v --param nvqpp_site_config=build/python/tests/mlir/lit.site.cfg.py build/python/tests/mlir
+            pymlir_status=$?
+            if [ ! $ctest_status -eq 0 ] || [ ! $lit_status -eq 0 ] || [ $targ_status -ne 0 ] || [ $pymlir_status -ne 0 ]; then
+              echo "::error file=test_in_devenv.yml::C++ tests failed (ctest status $ctest_status, llvm-lit status $lit_status, \
+              target tests status $targ_status, Python MLIR status $pymlir_status)."
               exit 1
             fi
 
@@ -166,12 +171,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Restore environment
         id: restore_devdeps
         if: inputs.devdeps_image == ''
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -182,7 +187,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
 
@@ -210,8 +215,13 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            pip install iqm_client --user -vvv
+            pip install iqm_client==16.1 --user -vvv
             pip install . --user -vvv
+            pyinstall_status=$?
+            if [ ! $pyinstall_status -eq 0 ]; then
+              echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
+              exit 1
+            fi
             python3 -m pytest -v python/tests/ \
               --ignore python/tests/backends
             pytest_status=$?
@@ -219,7 +229,6 @@ jobs:
               echo "::error file=test_in_devenv.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-
             for backendTest in python/tests/backends/*.py; do
               python3 -m pytest -v $backendTest
               pytest_status=$?

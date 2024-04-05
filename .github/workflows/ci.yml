@@ -39,14 +39,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - id: config
         run: |
           platforms="{}"
           for platform_id in amd64 arm64; do
-            if [ "$platform_id" == "amd64" ]; then minimal_base_image=amd64/almalinux:8
-            elif [ "$platform_id" == "arm64" ]; then minimal_base_image=arm64v8/almalinux:8
+            if [ "$platform_id" == "amd64" ]; then minimal_base_image=ghcr.io/nvidia/amd64/almalinux:8
+            elif [ "$platform_id" == "arm64" ]; then minimal_base_image=ghcr.io/nvidia/arm64v8/almalinux:8
             fi
             platform={\"$platform_id\":{\"minimal_base_image\":\"$minimal_base_image\"}}
             platforms=`echo $platforms | jq ". |= . + $platform"`
@@ -155,7 +155,7 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@0.1.1
+      - uses: cloudposse/github-action-matrix-outputs-read@0.1.2
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -206,7 +206,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        python_version: ['3.9', '3.11']
+        python_version: ['3.8', '3.11']
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:

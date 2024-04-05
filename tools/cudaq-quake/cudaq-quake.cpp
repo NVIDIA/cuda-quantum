@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -80,10 +80,6 @@ static cl::opt<bool> noSimplify(
 
 static cl::opt<bool> astDump("ast-dump", cl::desc("Dump the ast."),
                              cl::init(false));
-
-static cl::opt<bool> showVersion("nvqpp-version",
-                                 cl::desc("Print the version."),
-                                 cl::init(false));
 
 static cl::opt<bool> verboseClang("v",
                                   cl::desc("Add -v to clang tool arguments."),
@@ -304,8 +300,6 @@ int main(int argc, char **argv) {
   // Process the command-line options, including reading in a file.
   [[maybe_unused]] llvm::InitLLVM unused(argc, argv);
   cl::ParseCommandLineOptions(argc, argv, toolName);
-  if (showVersion)
-    llvm::errs() << "nvq++ Version " << cudaq::getVersion() << '\n';
   ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrError =
       MemoryBuffer::getFileOrSTDIN(inputFilename);
   if (auto ec = fileOrError.getError()) {
@@ -349,8 +343,8 @@ int main(int argc, char **argv) {
   });
 
   // Process arguments.
-  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-resource-dir",
-                                     resourceDirPath.string()};
+  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-Wno-c++20-extensions",
+                                     "-resource-dir", resourceDirPath.string()};
   if (verboseClang)
     clArgs.push_back("-v");
 

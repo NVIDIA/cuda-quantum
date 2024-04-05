@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -59,8 +59,6 @@ public:
     auto ty = c.initialValue.getType();
     rewriter.startRootUpdate(loop);
     auto createConstantOp = [&](std::int64_t val) -> Value {
-      if (ty == rewriter.getIndexType())
-        return rewriter.create<arith::ConstantIndexOp>(loc, val);
       return rewriter.create<arith::ConstantIntOp>(loc, val, ty);
     };
     auto zero = createConstantOp(0);

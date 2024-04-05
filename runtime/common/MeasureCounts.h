@@ -117,6 +117,9 @@ public:
   sample_result() = default;
 
   /// @brief The constructor, sets the __global__ sample result.
+  sample_result(ExecutionResult &&result);
+
+  /// @brief The constructor, sets the __global__ sample result.
   /// @param result
   sample_result(ExecutionResult &result);
 
@@ -158,7 +161,7 @@ public:
   /// Merge when necessary.
   /// @param other
   /// @return
-  sample_result &operator+=(sample_result &other);
+  sample_result &operator+=(const sample_result &other);
 
   /// @brief Serialize this sample_result. See
   /// `ExecutionResult::serialize()` documentation for information

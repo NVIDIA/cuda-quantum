@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -31,10 +31,6 @@ RUN echo "Building MLIR bindings for python${python_version}" \
     && LLVM_PROJECTS='clang;mlir;python-bindings' \
         bash /scripts/build_llvm.sh -s /llvm-project -c Release -v 
 
-# Install additional dependencies
-# They might be optionally pulled in during auditwheel if necessary.
-RUN dnf install -y cuda-nvtx-11-8 cuda-profiler-api-11-8 openblas-devel
-
 # Build the wheel
 RUN echo "Building wheel for python${python_version}." \
     && cd cuda-quantum && python=python${python_version} \
@@ -51,7 +47,6 @@ RUN echo "Building wheel for python${python_version}." \
     && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so \
     && ln -s $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so.1 $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
-        CUDAQ_ENABLE_STATIC_LINKING=ON \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
     && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -82,12 +82,15 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
         // The mpi4py-based plugin
         const auto pyPluginLibFile =
             pluginsPath / fmt::format("libcudaq-py-comm-plugin.{}", libSuffix);
-        if (std::filesystem::exists(pluginLibFile)) {
-          cudaq::info("Load builtin MPI comm plugin from  at '{}'",
+        if (std::filesystem::exists(pluginLibFile) &&
+            cudaq::MPIPlugin::isValidInterfaceLib(pluginLibFile.c_str())) {
+          cudaq::info("Load builtin MPI comm plugin at '{}'",
                       pluginLibFile.c_str());
           g_plugin = std::make_unique<cudaq::MPIPlugin>(pluginLibFile.c_str());
-        } else if (std::filesystem::exists(pyPluginLibFile)) {
-          cudaq::info("Try loading mpi4py MPI comm plugin from  at '{}'",
+        } else if (std::filesystem::exists(pyPluginLibFile) &&
+                   cudaq::MPIPlugin::isValidInterfaceLib(
+                       pyPluginLibFile.c_str())) {
+          cudaq::info("Try loading mpi4py MPI comm plugin at '{}'",
                       pyPluginLibFile.c_str());
           g_plugin =
               std::make_unique<cudaq::MPIPlugin>(pyPluginLibFile.c_str());
@@ -115,6 +118,11 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
 
   return g_plugin.get();
 };
+
+bool available() {
+  auto *commPlugin = getMpiPlugin(/*unsafe=*/true);
+  return commPlugin != nullptr;
+}
 
 void initialize() {
   auto *commPlugin = getMpiPlugin();
@@ -232,6 +240,13 @@ static std::vector<std::pair<std::string, std::string>> quakeRegistry;
 
 void cudaq::registry::deviceCodeHolderAdd(const char *key, const char *code) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
+  for (auto &pair : quakeRegistry) {
+    if (pair.first == key) {
+      cudaq::info("Replacing code for kernel {}", key);
+      pair.second = code;
+      return;
+    }
+  }
   quakeRegistry.emplace_back(key, code);
 }
 
@@ -376,6 +391,9 @@ thread_local static std::size_t cudaq_random_seed = 0;
 void set_random_seed(std::size_t seed) {
   cudaq_random_seed = seed;
   nvqir::setRandomSeed(seed);
+  auto &platform = cudaq::get_platform();
+  // Notify the platform that a new random seed value is set.
+  platform.onRandomSeedSet(seed);
 }
 
 std::size_t get_random_seed() { return cudaq_random_seed; }
@@ -420,6 +438,27 @@ void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
     result.push_back(static_cast<bool>(*p));
   // Free the initialization list, which was heap allocated.
   free(initList);
+}
+
+/// Construct a block of 0 and 1 bytes that corresponds to the `vector<bool>`
+/// values. This gets rid of the bit packing implementation of the
+/// `std::vector<bool>` overload. The conversion turns the `std::vector<bool>`
+/// into a mock vector structure that looks like `std::vector<char>`. The
+/// calling routine must cleanup the buffer allocated by this code.
+void __nvqpp_vector_bool_to_initializer_list(void *outData,
+                                             const std::vector<bool> &inVec) {
+  // The MockVector must be allocated by the caller.
+  struct MockVector {
+    char *start;
+    char *end;
+  };
+  MockVector *mockVec = reinterpret_cast<MockVector *>(outData);
+  auto outSize = inVec.size();
+  // The buffer allocated here must be freed by the caller.
+  mockVec->start = static_cast<char *>(malloc(outSize));
+  mockVec->end = mockVec->start + outSize;
+  for (unsigned i = 0; i < outSize; ++i)
+    (mockVec->start)[i] = static_cast<char>(inVec[i]);
 }
 }
 } // namespace cudaq::support

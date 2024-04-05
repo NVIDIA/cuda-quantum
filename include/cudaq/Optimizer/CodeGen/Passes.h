@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -33,6 +33,11 @@ void registerConvertToQIRPass();
 /// cudaq-translate command line `--convert-to` parameter)
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
+/// @brief Verify that all `CallOp` targets are QIR- or NVQIR-defined functions
+/// or in the provided allowed list.
+std::unique_ptr<mlir::Pass>
+createVerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &allowedFuncs);
+
 // Use the addQIRProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass>
 createQIRToQIRProfilePass(llvm::StringRef convertTo);
@@ -46,6 +51,9 @@ std::unique_ptr<mlir::Pass> createRemoveMeasurementsPass();
 
 /// Register target pipelines.
 void registerTargetPipelines();
+
+/// Register CodeGenDialect with the provided DialectRegistry.
+void registerCodeGenDialect(mlir::DialectRegistry &registry);
 
 // declarative passes
 #define GEN_PASS_DECL

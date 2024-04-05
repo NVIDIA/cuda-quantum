@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -90,7 +90,7 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (isa<FunctionType, cc::CallableType, cc::PointerType, cc::StdvecType,
+      if (isa<FunctionType, cc::CallableType, cc::PointerType, cc::SpanLikeType,
               LLVM::LLVMStructType, quake::ControlType, quake::RefType,
               quake::VeqType, quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
@@ -175,10 +175,12 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
   }
   if (isInNamespace(x, "std")) {
+    if (name.equals("basic_string"))
+      return pushType(cc::CharspanType::get(ctx));
     if (name.equals("vector")) {
-      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the vector's element type.
-      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
+      if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
         return false;
       return pushType(cc::StdvecType::get(ctx, popType()));
     }
@@ -189,6 +191,22 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     }
     if (name.equals("_Bit_type"))
       return pushType(builder.getI64Type());
+    if (name.equals("complex")) {
+      auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
+      // Traverse template argument 0 to get the complex's element type.
+      if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
+      auto memTy = popType();
+      return pushType(ComplexType::get(memTy));
+    }
+    if (name.equals("initializer_list")) {
+      auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
+      // Traverse template argument 0, the initializer list's element type.
+      if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
+        return false;
+      auto memTy = popType();
+      return pushType(cc::ArrayType::get(memTy));
+    }
     if (name.equals("function")) {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the function's signature.
@@ -483,7 +501,7 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
 bool QuakeBridgeVisitor::VisitNamedDecl(clang::NamedDecl *x) {
   if (!builder.getBlock() || inRecType) {
     // This decl was reached walking a record type. We don't need to look up
-    // the symbol, it's just a field name in the type.
+    // the symbol, it's just a member name in the type.
     return true;
   }
   if (x->getIdentifier()) {

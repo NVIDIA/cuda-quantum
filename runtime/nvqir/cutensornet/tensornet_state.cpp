@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -23,19 +23,17 @@ TensorNetState::TensorNetState(std::size_t numQubits,
 void TensorNetState::applyGate(const std::vector<int32_t> &qubitIds,
                                void *gateDeviceMem, bool adjoint) {
 
-  int64_t id = 0;
   HANDLE_CUTN_ERROR(cutensornetStateApplyTensor(
       m_cutnHandle, m_quantumState, qubitIds.size(), qubitIds.data(),
       gateDeviceMem, nullptr, /*immutable*/ 1,
-      /*adjoint*/ static_cast<int32_t>(adjoint), /*unitary*/ 1, &id));
+      /*adjoint*/ static_cast<int32_t>(adjoint), /*unitary*/ 1, &m_tensorId));
 }
 
 void TensorNetState::applyQubitProjector(void *proj_d, int32_t qubitIdx) {
-  int64_t id = 0;
   HANDLE_CUTN_ERROR(
       cutensornetStateApplyTensor(m_cutnHandle, m_quantumState, 1, &qubitIdx,
                                   proj_d, nullptr, /*immutable*/ 1,
-                                  /*adjoint*/ 0, /*unitary*/ 0, &id));
+                                  /*adjoint*/ 0, /*unitary*/ 0, &m_tensorId));
 }
 
 std::unordered_map<std::string, size_t>
@@ -120,29 +118,26 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
   return counts;
 }
 
-std::vector<std::complex<double>> TensorNetState::getStateVector() {
+std::vector<std::complex<double>>
+TensorNetState::getStateVector(const std::vector<int32_t> &projectedModes) {
   // Make sure that we don't overflow the memory size calculation.
   // Note: the actual limitation will depend on the system memory.
-  if (m_numQubits > 64 ||
-      (1ull << m_numQubits) >
+  if ((m_numQubits - projectedModes.size()) > 64 ||
+      (1ull << (m_numQubits - projectedModes.size())) >
           std::numeric_limits<uint64_t>::max() / sizeof(std::complex<double>))
     throw std::runtime_error(
         "Too many qubits are requested for full state vector contraction.");
   LOG_API_TIME();
   void *d_sv{nullptr};
-  const uint64_t svDim = 1ull << m_numQubits;
+  const uint64_t svDim = 1ull << (m_numQubits - projectedModes.size());
   HANDLE_CUDA_ERROR(cudaMalloc(&d_sv, svDim * sizeof(std::complex<double>)));
   ScratchDeviceMem scratchPad;
 
   // Create the quantum state amplitudes accessor
   cutensornetStateAccessor_t accessor;
-  // Revert the bit-ordering
-  std::vector<int64_t> strides;
-  for (std::size_t bitIdx = 0; bitIdx < m_numQubits; ++bitIdx)
-    strides.emplace_back(1LL << (m_numQubits - bitIdx - 1));
-
   HANDLE_CUTN_ERROR(cutensornetCreateAccessor(
-      m_cutnHandle, m_quantumState, 0, nullptr, strides.data(), &accessor));
+      m_cutnHandle, m_quantumState, projectedModes.size(),
+      projectedModes.data(), nullptr, &accessor));
 
   const int32_t numHyperSamples =
       8; // desired number of hyper samples used in the tensor network
@@ -172,9 +167,11 @@ std::vector<std::complex<double>> TensorNetState::getStateVector() {
 
   // Compute the quantum state amplitudes
   std::complex<double> stateNorm{0.0, 0.0};
-  HANDLE_CUTN_ERROR(
-      cutensornetAccessorCompute(m_cutnHandle, accessor, nullptr, workDesc,
-                                 d_sv, static_cast<void *>(&stateNorm), 0));
+  // All projected modes are assumed to be projected to 0.
+  std::vector<int64_t> projectedModeValues(projectedModes.size(), 0);
+  HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
+      m_cutnHandle, accessor, projectedModeValues.data(), workDesc, d_sv,
+      static_cast<void *>(&stateNorm), 0));
   std::vector<std::complex<double>> h_sv(svDim);
   HANDLE_CUDA_ERROR(cudaMemcpy(h_sv.data(), d_sv,
                                svDim * sizeof(std::complex<double>),

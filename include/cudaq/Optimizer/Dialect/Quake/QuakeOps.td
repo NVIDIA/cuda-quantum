@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -71,8 +71,12 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     See DeallocOp.
   }];
 
-  let arguments = (ins Optional<AnySignlessInteger>:$size);
-  let results = (outs AnyRefType:$ref_or_vec);
+  let arguments = (ins
+    Optional<AnySignlessInteger>:$size
+  );
+  let results = (outs
+    AnyRefType:$ref_or_vec
+  );
 
   let builders = [
     OpBuilder<(ins ), [{
@@ -92,6 +96,16 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
 
   let hasCanonicalizer = 1;
   let hasVerifier = 1;
+
+  let extraClassDeclaration = [{
+    bool hasInitializedState() {
+      auto *self = getOperation();
+      return self->hasOneUse() &&
+        mlir::isa<quake::InitializeStateOp>(*self->getUsers().begin());
+    }
+
+    quake::InitializeStateOp getInitializedState();
+  }];
 }
 
 def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
@@ -281,7 +295,8 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
   }];
 }
 
-def InitializeStateOp : QuakeOp<"qinit"> {
+def quake_InitializeStateOp : QuakeOp<"init_state", [MemoryEffects<[MemAlloc,
+    MemWrite]>]> {
   let summary = "Initialize the quantum state to a specific complex vector.";
   let description = [{
     Given a !cc.ptr pointing to a complex data array of size 2**N, where N is
@@ -293,13 +308,13 @@ def InitializeStateOp : QuakeOp<"qinit"> {
   }];
 
   let arguments = (ins
-    VeqType:$targets, 
+    VeqType:$targets,
     cc_PointerType:$state
   );
-  let results = (outs VeqType:$initializedState);
+  let results = (outs VeqType);
 
   let assemblyFormat = [{
-    `(` $targets `,` $state `)` `:` functional-type(operands, results) attr-dict
+    $targets `,` $state `:` functional-type(operands, results) attr-dict
   }];
 }
 
@@ -855,13 +870,14 @@ def ExpPauliOp : QuakeOp<"exp_pauli"> {
   let arguments = (ins
     AnyFloat:$parameter,
     VeqType:$qubits,
-    cc_PointerType:$pauli
+    Optional<AnyTypeOf<[cc_PointerType, cc_StdVectorType, cc_CharSpanType]>>:$pauli,
+    OptionalAttr<StrAttr>:$constantPauli
   );
   let results = (outs);
 
   let assemblyFormat = [{
-    `(` $parameter `)` $qubits `,` $pauli `:` functional-type(operands,
-      results) attr-dict
+    $parameter `,` $qubits `,` $pauli `:` functional-type(operands, results)
+      attr-dict
   }];
 }
 

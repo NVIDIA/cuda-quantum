@@ -20,12 +20,12 @@ int main() {
   // our damping channel to.
   cudaq::noise_model noise;
 
-  // Amplitude damping channel with `1.0` probability of the qubit
-  // decaying to the ground state.
+  // We define an amplitude damping channel setting the probability of
+  // the qubit decaying to the ground state to `1.0`.
   cudaq::amplitude_damping_channel ad(1.);
 
   // We will apply this channel to any Hadamard gate on the qubit.
-  // Meaning, after each Hadamard on the qubit, there will be a
+  // In other words, after each Hadamard on the qubit, there will be a
   // probability of `1.0` that the qubit decays back to ground.
   noise.add_channel<cudaq::types::h>({0}, ad);
 

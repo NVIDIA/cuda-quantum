@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -139,6 +139,9 @@ std::size_t qubitToSizeT(Qubit *q) {
 using namespace nvqir;
 
 extern "C" {
+
+void print_i64(const char *msg, std::size_t i) { printf(msg, i); }
+void print_f64(const char *msg, double f) { printf(msg, f); }
 
 /// @brief QIR Initialization function
 void __quantum__rt__initialize(int argc, int8_t **argv) {
@@ -387,7 +390,12 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
 }
 
 void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
-  std::string pauliWordStr(pauliWord);
+  struct CLikeString {
+    char *ptr = nullptr;
+    int64_t length = 0;
+  };
+  auto *castedString = reinterpret_cast<CLikeString *>(pauliWord);
+  std::string pauliWordStr(castedString->ptr, castedString->length);
   auto qubitsVec = arrayToVectorSizeT(qubits);
   nvqir::getCircuitSimulatorInternal()->applyExpPauli(
       theta, {}, qubitsVec, cudaq::spin_op::from_word(pauliWordStr));
@@ -427,8 +435,8 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   if (currentContext->canHandleObserve) {
     circuitSimulator->flushGateQueue();
     auto result = circuitSimulator->observe(*currentContext->spin.value());
-    currentContext->expectationValue = result.expectationValue;
-    currentContext->result = cudaq::sample_result(result);
+    currentContext->expectationValue = result.expectation();
+    currentContext->result = result.raw_data();
     return ResultZero;
   }
 
