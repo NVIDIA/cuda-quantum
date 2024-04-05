@@ -11,6 +11,7 @@
 
 #include "CircuitSimulator.h"
 #include "Gates.h"
+#include "Timing.h"
 #include "cuComplex.h"
 #include "custatevec.h"
 #include <bitset>
@@ -100,6 +101,7 @@ protected:
   using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
   using nvqir::CircuitSimulatorBase<ScalarType>::previousStateDimension;
   using nvqir::CircuitSimulatorBase<ScalarType>::shouldObserveFromSampling;
+  using nvqir::CircuitSimulatorBase<ScalarType>::summaryData;
 
   /// @brief The statevector that cuStateVec manipulates on the GPU
   void *deviceStateVector = nullptr;
@@ -196,6 +198,7 @@ protected:
 
   /// @brief Increase the state size by the given number of qubits.
   void addQubitsToState(std::size_t count) override {
+    ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitsToState", count);
     if (count == 0)
       return;
 
@@ -231,6 +234,7 @@ protected:
 
   /// @brief Increase the state size by one qubit.
   void addQubitToState() override {
+    ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitToState");
     // Update the state vector
     if (!deviceStateVector) {
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
@@ -323,6 +327,10 @@ public:
       cuStateVecCudaDataType = CUDA_C_32F;
     }
 
+    // Populate the correct name so it is printed correctly during
+    // deconstructor.
+    summaryData.name = name();
+
     HANDLE_CUDA_ERROR(cudaFree(0));
     randomEngine = std::mt19937(randomDevice());
   }
@@ -332,6 +340,11 @@ public:
 
   void setRandomSeed(std::size_t randomSeed) override {
     randomEngine = std::mt19937(randomSeed);
+  }
+
+  /// @brief Device synchronization
+  void synchronize() override {
+    HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   }
 
   /// @brief Measure operation
@@ -456,12 +469,6 @@ public:
 
   /// @brief Compute the expected value from the observable matrix.
   cudaq::observe_result observe(const cudaq::spin_op &op) override {
-    {
-      cudaq::ScopedTrace trace(
-          "CuStateVecCircuitSimulator::observe - flushGateQueue");
-      flushGateQueue();
-    }
-
     // Use batched custatevecComputeExpectationsOnPauliBasis to compute all term
     // expectation values in one go
     uint32_t nPauliOperatorArrays = op.num_terms();
@@ -505,6 +512,17 @@ public:
         if (p != cudaq::pauli::I) {
           paulis.emplace_back(cudaqToCustateVec(p));
           idxs.emplace_back(idx);
+          // Only X and Y pauli's translate to applied gates
+          if (p != cudaq::pauli::Z) {
+            // One operation for applying the term
+            summaryData.svGateUpdate(/*nControls=*/0, /*nTargets=*/1,
+                                     stateDimension,
+                                     stateDimension * sizeof(DataType));
+            // And one operation for un-applying the term
+            summaryData.svGateUpdate(/*nControls=*/0, /*nTargets=*/1,
+                                     stateDimension,
+                                     stateDimension * sizeof(DataType));
+          }
         }
       });
       pauliOperatorsArrayHolder.emplace_back(std::move(paulis));
@@ -515,14 +533,10 @@ public:
       termStrs.emplace_back(term.to_string(false));
     });
     std::vector<double> expectationValues(nPauliOperatorArrays);
-    {
-      cudaq::ScopedTrace trace("CuStateVecCircuitSimulator::observe - "
-                               "custatevecComputeExpectationsOnPauliBasis");
-      HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(
-          handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
-          expectationValues.data(), pauliOperatorsArray.data(),
-          nPauliOperatorArrays, basisBitsArray.data(), nBasisBitsArray.data()));
-    }
+    HANDLE_ERROR(custatevecComputeExpectationsOnPauliBasis(
+        handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
+        expectationValues.data(), pauliOperatorsArray.data(),
+        nPauliOperatorArrays, basisBitsArray.data(), nBasisBitsArray.data()));
     std::complex<double> expVal = 0.0;
     std::vector<cudaq::ExecutionResult> results;
     results.reserve(nPauliOperatorArrays);
@@ -540,6 +554,7 @@ public:
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
+    ScopedTraceWithContext(cudaq::TIMING_SAMPLE, "CuStateVecSimulator::sample");
     double expVal = 0.0;
     // cudaq::CountsDictionary counts;
     std::vector<custatevecPauli_t> z_pauli;
@@ -639,6 +654,8 @@ public:
       return cudaq::State{{stateDimension}, tmp};
     }
   }
+
+  bool isStateVectorSimulator() const override { return true; }
 
   std::string name() const override;
   NVQIR_SIMULATOR_CLONE_IMPL(CuStateVecCircuitSimulator<ScalarType>)

@@ -156,6 +156,12 @@ protected:
     return simulator()->mz(q.id, registerName);
   }
 
+  void flushGateQueue() override {
+    synchronize();
+    flushRequestedAllocations();
+    simulator()->flushGateQueue();
+  }
+
   void measureSpinOp(const cudaq::spin_op &op) override {
     flushRequestedAllocations();
     simulator()->flushGateQueue();

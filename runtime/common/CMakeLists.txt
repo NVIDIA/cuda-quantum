@@ -83,12 +83,15 @@ endif()
 get_property(dialect_libs GLOBAL PROPERTY MLIR_DIALECT_LIBS)
 get_property(conversion_libs GLOBAL PROPERTY MLIR_CONVERSION_LIBS)
 
-add_library(cudaq-mlir-runtime SHARED RuntimeMLIR.cpp JIT.cpp)
+add_library(cudaq-mlir-runtime SHARED RuntimeMLIR.cpp JIT.cpp Logger.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 set_source_files_properties(JIT.cpp PROPERTIES COMPILE_FLAGS -fno-rtti)
 
 target_include_directories(cudaq-mlir-runtime
-  PRIVATE . ${CMAKE_SOURCE_DIR}/runtime)
+  PRIVATE .
+    ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
+    ${CMAKE_SOURCE_DIR}/tpls/fmt/include
+    ${CMAKE_SOURCE_DIR}/runtime)
 
 target_link_libraries(cudaq-mlir-runtime 
   PUBLIC
@@ -109,6 +112,8 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRTransforms
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
-    MLIRLLVMToLLVMIRTranslation)
+    MLIRLLVMToLLVMIRTranslation
+  PRIVATE
+    spdlog::spdlog)
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)

@@ -164,7 +164,11 @@ protected:
   }
 
 public:
-  QppCircuitSimulator() = default;
+  QppCircuitSimulator() {
+    // Populate the correct name so it is printed correctly during
+    // deconstructor.
+    summaryData.name = name();
+  }
   virtual ~QppCircuitSimulator() = default;
 
   void setRandomSeed(std::size_t seed) override {
@@ -276,6 +280,10 @@ public:
     // There has to be at least one copy
     return cudaq::State{{stateDimension},
                         {state.data(), state.data() + state.size()}};
+  }
+
+  bool isStateVectorSimulator() const override {
+    return std::is_same_v<StateType, qpp::ket>;
   }
 
   /// @brief Primarily used for testing.
