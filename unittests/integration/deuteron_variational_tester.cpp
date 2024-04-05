@@ -58,18 +58,13 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
   cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                      .21829 * z(0) - 6.125 * z(1);
 
+#if defined CUDAQ_BACKEND_TENSORNET
+  // Reduce test time by reducing the broadcast size.
+  std::vector<double> params{-M_PI, -M_PI + 2. * M_PI / 49.,
+                             -M_PI + 4. * M_PI / 49.};
+  std::vector<double> expected{12.250290, 12.746370, 13.130148};
+#else
   auto params = cudaq::linspace(-M_PI, M_PI, 50);
-
-  auto ansatz = [](double theta, int size) __qpu__ {
-    cudaq::qvector q(size);
-    x(q[0]);
-    ry(theta, q[1]);
-    x<cudaq::ctrl>(q[1], q[0]);
-  };
-
-  auto results = cudaq::observe(
-      ansatz, h, cudaq::make_argset(params, std::vector(params.size(), 2)));
-
   std::vector<double> expected{
       12.250290, 12.746370, 13.130148, 13.395321, 13.537537, 13.554460,
       13.445811, 13.213375, 12.860969, 12.394379, 11.821267, 11.151042,
@@ -80,6 +75,17 @@ CUDAQ_TEST(D2VariationalTester, checkBroadcast) {
       1.031106,  1.825915,  2.687735,  3.602415,  4.554937,  5.529659,
       6.510578,  7.481585,  8.426738,  9.330517,  10.178082, 10.955516,
       11.650053, 12.250290};
+#endif
+
+  auto ansatz = [](double theta, int size) __qpu__ {
+    cudaq::qvector q(size);
+    x(q[0]);
+    ry(theta, q[1]);
+    x<cudaq::ctrl>(q[1], q[0]);
+  };
+
+  auto results = cudaq::observe(
+      ansatz, h, cudaq::make_argset(params, std::vector(params.size(), 2)));
 
   for (std::size_t counter = 0; auto &el : expected)
     printf("results[%lu] = %.16lf\n", counter++, el);

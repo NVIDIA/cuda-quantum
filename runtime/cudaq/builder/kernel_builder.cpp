@@ -391,14 +391,12 @@ void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
 
 void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
              std::function<void(QuakeValue &)> &body) {
-  auto idxTy = builder.getIndexType();
-  Value castEnd = isa<IndexType>(end.getType())
-                      ? end
-                      : builder.create<arith::IndexCastOp>(idxTy, end);
-  Value castStart = isa<IndexType>(startVal.getType())
-                        ? startVal
-                        : builder.create<arith::IndexCastOp>(idxTy, startVal);
-  Value totalIters = builder.create<arith::SubIOp>(idxTy, castEnd, castStart);
+  auto i64Ty = builder.getI64Type();
+  Value castEnd = builder.create<cudaq::cc::CastOp>(
+      i64Ty, end, cudaq::cc::CastOpMode::Unsigned);
+  Value castStart = builder.create<cudaq::cc::CastOp>(
+      i64Ty, startVal, cudaq::cc::CastOpMode::Unsigned);
+  Value totalIters = builder.create<arith::SubIOp>(i64Ty, castEnd, castStart);
   cudaq::opt::factory::createInvariantLoop(
       builder, builder.getLoc(), totalIters,
       [&](OpBuilder &nestedBuilder, Location nestedLoc, Region &,
@@ -421,21 +419,21 @@ void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &startVal,
 
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, std::size_t end,
              std::function<void(QuakeValue &)> &body) {
-  Value startVal = builder.create<arith::ConstantIndexOp>(start);
-  Value endVal = builder.create<arith::ConstantIndexOp>(end);
+  Value startVal = builder.create<arith::ConstantIntOp>(start, 64);
+  Value endVal = builder.create<arith::ConstantIntOp>(end, 64);
   forLoop(builder, startVal, endVal, body);
 }
 
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, QuakeValue &end,
              std::function<void(QuakeValue &)> &body) {
-  Value startVal = builder.create<arith::ConstantIndexOp>(start);
+  Value startVal = builder.create<arith::ConstantIntOp>(start, 64);
   auto e = end.getValue();
   forLoop(builder, startVal, e, body);
 }
 
 void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, std::size_t end,
              std::function<void(QuakeValue &)> &body) {
-  Value e = builder.create<arith::ConstantIndexOp>(end);
+  Value e = builder.create<arith::ConstantIntOp>(end, 64);
   auto s = start.getValue();
   forLoop(builder, s, e, body);
 }
@@ -490,9 +488,7 @@ void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, auto param,
   cudaq::info("kernel_builder handling operation broadcast on qvector.");
 
   auto loc = builder.getLoc();
-  auto indexTy = builder.getIndexType();
-  auto size = builder.create<quake::VeqSizeOp>(builder.getIntegerType(64), veq);
-  Value rank = builder.create<arith::IndexCastOp>(indexTy, size);
+  Value rank = builder.create<quake::VeqSizeOp>(builder.getI64Type(), veq);
   auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                          Block &block) {
     Value ref =
@@ -584,10 +580,10 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   }
 
   // This must be a veq.
-  Value vecSize = builder.template create<quake::VeqSizeOp>(
-      builder.getIntegerType(64), value);
-  Value size = builder.template create<arith::IndexCastOp>(
-      builder.getIndexType(), vecSize);
+  auto i64Ty = builder.getIntegerType(64);
+  Value vecSize = builder.template create<quake::VeqSizeOp>(i64Ty, value);
+  Value size = builder.template create<cudaq::cc::CastOp>(
+      i64Ty, vecSize, cudaq::cc::CastOpMode::Unsigned);
   auto buff = builder.template create<cc::AllocaOp>(i1Ty, vecSize);
   cudaq::opt::factory::createInvariantLoop(
       builder, builder.getLoc(), size,
@@ -603,12 +599,9 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
         Value bit =
             nestedBuilder.create<quake::DiscriminateOp>(nestedLoc, i1Ty, meas);
 
-        auto i64Ty = nestedBuilder.getIntegerType(64);
-        auto intIv =
-            nestedBuilder.create<arith::IndexCastOp>(nestedLoc, i64Ty, iv);
         auto i1PtrTy = cudaq::cc::PointerType::get(i1Ty);
         auto addr = nestedBuilder.create<cc::ComputePtrOp>(
-            nestedLoc, i1PtrTy, buff, ValueRange{intIv});
+            nestedLoc, i1PtrTy, buff, ValueRange{iv});
         nestedBuilder.create<cc::StoreOp>(nestedLoc, bit, addr);
       });
   Value ret = builder.template create<cc::StdvecInitOp>(
@@ -640,10 +633,7 @@ void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
 
   if (isa<quake::VeqType>(value.getType())) {
     auto target = value;
-    Type indexTy = builder.getIndexType();
-    auto size =
-        builder.create<quake::VeqSizeOp>(builder.getIntegerType(64), target);
-    Value rank = builder.create<arith::IndexCastOp>(indexTy, size);
+    Value rank = builder.create<quake::VeqSizeOp>(builder.getI64Type(), target);
     auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                            Block &block) {
       Value ref = builder.create<quake::ExtractRefOp>(loc, target,

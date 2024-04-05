@@ -13,12 +13,18 @@
 #include <unordered_map>
 
 namespace nvqir {
+/// This is used to track whether the tensor state is default initialized vs
+/// already has some gates applied to.
+constexpr std::int64_t InvalidTensorIndexValue = -1;
+
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
 /// simulator implementation.
 class TensorNetState {
   std::size_t m_numQubits;
   cutensornetHandle_t m_cutnHandle;
   cutensornetState_t m_quantumState;
+  /// Track id of gate tensors that are applied to the state tensors.
+  std::int64_t m_tensorId = InvalidTensorIndexValue;
 
 public:
   /// @brief Constructor
@@ -45,7 +51,8 @@ public:
 
   /// @brief Contract the tensor network representation to retrieve the state
   /// vector.
-  std::vector<std::complex<double>> getStateVector();
+  std::vector<std::complex<double>>
+  getStateVector(const std::vector<int32_t> &projectedModes = {});
 
   /// @brief Compute the reduce density matrix on a set of qubits
   ///
@@ -74,6 +81,9 @@ public:
   /// @brief Number of qubits that this state represents.
   std::size_t getNumQubits() const { return m_numQubits; }
 
+  /// @brief True if the state contains gate tensors (not just initial qubit
+  /// tensors)
+  bool isDirty() const { return m_tensorId > 0; }
   /// @brief Destructor
   ~TensorNetState();
 };
