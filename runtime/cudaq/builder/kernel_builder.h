@@ -38,6 +38,12 @@ class PassManager;
 namespace cudaq {
 std::string get_quake_by_name(const std::string &);
 
+#ifdef CUDAQ_SIMULATION_SCALAR_FP64
+using simulation_scalar = std::complex<double>;
+#else
+using simulation_scalar = std::complex<float>;
+#endif
+
 #if CUDAQ_USE_STD20
 /// @brief Define a floating point concept
 template <typename T>
@@ -64,12 +70,14 @@ concept KernelBuilderArgTypeIsValid =
 // If you want to add to the list of valid kernel argument types first add it
 // here, then add `details::mapArgToType()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
-  requires(KernelBuilderArgTypeIsValid<                                        \
-               Args, float, double, std::size_t, int, std::vector<int>,        \
-               std::vector<float>, std::vector<std::size_t>,                   \
-               std::vector<double>, std::vector<std::complex<double>>,         \
-               cudaq::qubit, cudaq::qvector<>> &&                              \
-           ...)
+  requires(                                                                    \
+      KernelBuilderArgTypeIsValid<                                             \
+          Args, float, double, std::size_t, int, std::vector<int>,             \
+          std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
+          std::vector<std::complex<float>>, std::vector<std::complex<double>>, \
+          std::vector<cudaq::simulation_scalar>, cudaq::qubit,                 \
+          cudaq::qvector<>> &&                                                 \
+      ...)
 #else
 // Not C++ 2020: stub these out.
 #define QuakeValueOrNumericType typename
@@ -78,9 +86,15 @@ concept KernelBuilderArgTypeIsValid =
 
 namespace details {
 
+enum class simulation_precision { fp32, fp64 };
+
 /// @brief Type describing user-provided state vector data.
 /// This maps the state vector unique hash to the vector data.
-using StateVectorStorage = std::map<std::size_t, cudaq::complex *>;
+struct StateVectorData {
+  void *data = nullptr;
+  simulation_precision precision = simulation_precision::fp32;
+};
+using StateVectorStorage = std::map<std::size_t, StateVectorData>;
 
 // Define a `mlir::Type` generator in the `cudaq` namespace, this helps us keep
 // MLIR out of this public header
@@ -172,7 +186,7 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
 
 /// @brief Allocate a `qvector` from a user provided state vector.
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, std::size_t hash,
-                  std::size_t size);
+                  std::size_t size, details::simulation_precision precision);
 
 /// @brief Create a QuakeValue representing a constant floating-point number
 QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
@@ -404,11 +418,14 @@ private:
   }
 
   /// @brief Compute a unique hash code for the given state vector data.
-  std::size_t hashStateVector(const std::vector<cudaq::complex> &vec) const {
+  template <typename ScalarType>
+  std::size_t
+  hashStateVector(const std::vector<std::complex<ScalarType>> &vec) const {
     auto seed = vec.size();
     for (auto &v : vec)
-      seed ^= std::hash<double>()(v.real()) + std::hash<double>()(v.imag()) +
-              0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= std::hash<ScalarType>()(v.real()) +
+              std::hash<ScalarType>()(v.imag()) + 0x9e3779b9 + (seed << 6) +
+              (seed >> 2);
     return seed;
   }
 
@@ -462,10 +479,18 @@ public:
   // @brief Return a `QuakeValue` representing the allocated
   // quantum register, initialized to the given state vector.
   // Note - input argument is not const here, user has to own the data.
-  QuakeValue qalloc(std::vector<cudaq::complex> &state) {
+  template <typename ScalarType>
+  QuakeValue qalloc(const std::vector<std::complex<ScalarType>> &state) {
     auto hash = hashStateVector(state);
-    auto value = details::qalloc(*opBuilder.get(), hash, state.size());
-    stateVectorStorage.insert({hash, state.data()});
+    details::simulation_precision precision =
+        std::is_same_v<ScalarType, float> ? details::simulation_precision::fp32
+                                          : details::simulation_precision::fp64;
+    auto value =
+        details::qalloc(*opBuilder.get(), hash, state.size(), precision);
+    stateVectorStorage.insert(
+        {hash,
+         details::StateVectorData{
+             const_cast<std::complex<ScalarType> *>(state.data()), precision}});
     return value;
   }
 

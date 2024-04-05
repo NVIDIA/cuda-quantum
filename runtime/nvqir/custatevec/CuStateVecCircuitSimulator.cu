@@ -78,19 +78,6 @@ __global__ void setFirstNElements(T *sv, const T *__restrict__ sv2, int64_t N) {
   }
 }
 
-template <typename T>
-__device__ void convert_to_row_major(T *arr, int rows, int cols) {
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int stride = blockDim.x * gridDim.x;
-
-  for (int i = idx; i < rows * cols; i += stride) {
-    int row = i / cols;
-    int col = i % cols;
-    int col_major_idx = col * rows + row;
-    arr[i] = arr[col_major_idx];
-  }
-}
-
 // kronprod functions adapted from
 // https://github.com/DmitryLyakh/TAL_SH/blob/3cefc2133a68b67c515f4b68a0ed9e3c66e4b4b2/tensor_algebra_gpu_nvidia.cu#L745
 
@@ -136,7 +123,6 @@ __global__ void kronprod_fp64(size_t tsize1, const cuDoubleComplex *arr1,
       __syncthreads();
     }
   }
-  convert_to_row_major(arr0, tsize1, tsize2);
   return;
 }
 
@@ -182,7 +168,6 @@ __global__ void kronprod_fp32(size_t tsize1, const cuFloatComplex *arr1,
       __syncthreads();
     }
   }
-  convert_to_row_major(arr0, tsize1, tsize2);
   return;
 }
 #pragma pop
@@ -305,24 +290,47 @@ protected:
         controls32.size()));
   }
 
+  /// @brief Nice utility function to have to print the state vector contents on
+  /// GPU.
+  void printStateFromGPU(const std::string &name, void *ptr, std::size_t size) {
+    std::vector<std::complex<ScalarType>> tmp(size);
+    cudaMemcpy(tmp.data(), ptr, size * sizeof(std::complex<ScalarType>),
+               cudaMemcpyDeviceToHost);
+    for (auto &r : tmp)
+      printf("%s: %.12lf\n", name.c_str(), r.real());
+    printf("\n");
+  }
+
   /// @brief Increase the state size by the given number of qubits.
-  void addQubitsToState(std::size_t count,
-                        const std::complex<double> *state = nullptr) override {
-    ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitsToState", count);
+  void addQubitsToState(std::size_t count, const void *stateIn) override {
+    ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitsToState",
+                           count);
     if (count == 0)
       return;
+
+    // Cast the state, at this point an error would
+    // have been thrown if it is not of the right floating point type
+    std::complex<ScalarType> *state =
+        reinterpret_cast<std::complex<ScalarType> *>(
+            const_cast<void *>(stateIn));
 
     int dev;
     HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
     cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
 
+    constexpr int32_t threads_per_block = 256;
+    uint32_t n_blocks =
+        (stateDimension + threads_per_block - 1) / threads_per_block;
+
+    // Check if this is the first time to allocate, if so
+    // the allocation is much easier
     if (!deviceStateVector) {
+      // Create the memory and the handle
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
                                    stateDimension * sizeof(CudaDataType)));
-      constexpr int32_t threads_per_block = 256;
-      uint32_t n_blocks =
-          (stateDimension + threads_per_block - 1) / threads_per_block;
       HANDLE_ERROR(custatevecCreate(&handle));
+
+      // If no state provided, initialize to the zero state
       if (state == nullptr) {
         initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
             reinterpret_cast<CudaDataType *>(deviceStateVector),
@@ -330,42 +338,43 @@ protected:
         return;
       }
 
-      // Potentially downcast if necessary
-      std::vector<std::complex<ScalarType>> in(state, state + stateDimension);
+      // User state provided...
 
-      // fixme handle case where pointer is a device pointer
-      HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, in.data(),
+      // FIXME handle case where pointer is a device pointer
+
+      // First allocation, so just set the user provided data here
+      HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
                                    stateDimension * sizeof(CudaDataType),
                                    cudaMemcpyHostToDevice));
       return;
     }
 
-    // Allocate new state..
+    // State already exists, need to allocate new state and compute
+    // kronecker product with existing state
+
+    // Allocate new vector to place the kron prod result
     void *newDeviceStateVector;
     HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
                                  stateDimension * sizeof(CudaDataType)));
-    constexpr int32_t threads_per_block = 256;
-    uint32_t n_blocks =
-        (stateDimension + threads_per_block - 1) / threads_per_block;
-    if (state == nullptr) {
-      setFirstNElements<<<n_blocks, threads_per_block>>>(
-          reinterpret_cast<CudaDataType *>(newDeviceStateVector),
-          reinterpret_cast<CudaDataType *>(deviceStateVector),
-          previousStateDimension);
 
-      HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
-      deviceStateVector = newDeviceStateVector;
-      return;
-    }
-
+    // Place the state data on device. Could be that
+    // we just need the zero state, or the user could have provided one
     void *otherState;
     HANDLE_CUDA_ERROR(cudaMalloc((void **)&otherState,
                                  stateDimension * sizeof(CudaDataType)));
-    HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
-                                 (1UL << count) * sizeof(CudaDataType),
-                                 cudaMemcpyHostToDevice));
+    if (state == nullptr) {
+      initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
+          reinterpret_cast<CudaDataType *>(otherState), (1UL << count));
+    } else {
 
-    // we have a user provided state
+      // FIXME Handle case where data is already on GPU
+      std::vector<std::complex<ScalarType>> in(state, state + stateDimension);
+      HANDLE_CUDA_ERROR(cudaMemcpy(otherState, in.data(),
+                                   (1UL << count) * sizeof(CudaDataType),
+                                   cudaMemcpyHostToDevice));
+    }
+
+    // Compute the kronecker product
     if constexpr (std::is_same_v<ScalarType, double>)
       kronprod_fp64<<<n_blocks, threads_per_block>>>(
           previousStateDimension,
@@ -378,6 +387,8 @@ protected:
           reinterpret_cast<CudaDataType *>(deviceStateVector), (1UL << count),
           reinterpret_cast<CudaDataType *>(otherState),
           reinterpret_cast<CudaDataType *>(newDeviceStateVector));
+
+    // Free the old vectors we don't need anymore.
     HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     HANDLE_CUDA_ERROR(cudaFree(otherState));
     deviceStateVector = newDeviceStateVector;
@@ -494,9 +505,7 @@ public:
   }
 
   /// @brief Device synchronization
-  void synchronize() override {
-    HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
-  }
+  void synchronize() override { HANDLE_CUDA_ERROR(cudaDeviceSynchronize()); }
 
   /// @brief Measure operation
   /// @param qubitIdx

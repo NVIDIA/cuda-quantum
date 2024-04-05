@@ -274,8 +274,7 @@ cudaq::State SimulatorTensorNetBase::getStateData() {
 
 nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
 
-void SimulatorTensorNetBase::addQubitsToState(std::size_t count,
-                                              const std::complex<double> *) {
+void SimulatorTensorNetBase::addQubitsToState(std::size_t count, const void *) {
   LOG_API_TIME();
   if (!m_state)
     m_state = std::make_unique<TensorNetState>(count, m_cutnHandle);

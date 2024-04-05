@@ -48,7 +48,8 @@ static std::size_t regCounter = 0;
 
 /// @brief Return a code instrinsic for describing a function allowing clients
 /// to set the user-provided state vector data.
-static std::string getSetStateInstrinsic(std::size_t hashValue) {
+static std::string getSetStateInstrinsic(std::size_t hashValue,
+                                         simulation_precision precision) {
   return fmt::format(fmt::runtime(R"#(
   func.func @nvqpp.set.state.{0}(%arg0: !cc.ptr<complex<f64>>) {
     %0 = cc.address_of @nvqpp.state.{0} : !cc.ptr<!cc.struct<{!cc.ptr<complex<f64>>, i32}>>
@@ -57,7 +58,8 @@ static std::string getSetStateInstrinsic(std::size_t hashValue) {
     return
   }
 )#"),
-                     hashValue);
+                     hashValue,
+                     precision == simulation_precision::fp32 ? "f32" : "f64");
 }
 
 KernelBuilderType mapArgToType(double &e) {
@@ -498,11 +500,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
   if (auto stdvecTy = dyn_cast<cc::StdvecType>(type)) {
     // get the size
     Value size = builder.create<cc::StdvecSizeOp>(builder.getI64Type(), value);
-    size = builder.create<arith::SIToFPOp>(builder.getF64Type(), size);
-    Value numQubits = builder.create<math::Log2Op>(builder.getF64Type(), size);
-    numQubits =
-        builder.create<arith::FPToSIOp>(builder.getI64Type(), numQubits);
-
+    Value numQubits = builder.create<math::CountTrailingZerosOp>(size);
     auto veqTy = quake::VeqType::getUnsized(context);
     // allocate the number of qubits we need
     Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
@@ -524,14 +522,16 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
 }
 
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
-                  std::size_t size) {
+                  std::size_t size, simulation_precision precision) {
   auto *context = builder.getContext();
   auto parentModule =
       builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
 
   // Add the global for the state data to the module
-  auto f64Ty = builder.getF64Type();
-  auto complexTy = ComplexType::get(f64Ty);
+  auto floatType = precision == simulation_precision::fp64
+                       ? builder.getF64Type()
+                       : builder.getF32Type();
+  auto complexTy = ComplexType::get(floatType);
   auto ptrComplex = cc::PointerType::get(complexTy);
   auto i32Ty = builder.getI32Type();
   auto globalTy =
@@ -545,7 +545,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
   }
 
   // Add the function allowing one to set the state vector data to the module
-  if (failed(parseSourceString(getSetStateInstrinsic(hash),
+  if (failed(parseSourceString(getSetStateInstrinsic(hash, precision),
                                parentModule.getBody(),
                                ParserConfig{context, false})))
     throw std::runtime_error(
@@ -1009,17 +1009,24 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
 
-  // If we have any state vector data, we need to
-  // extract the function pointer to set that data, and then set it.
-  for (auto &[stateHash, data] : storage) {
+  // If we have any state vector data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, svdata] : storage) {
     auto setStateFPtr =
         jit->lookup("nvqpp.set.state." + std::to_string(stateHash));
     if (!setStateFPtr)
       throw std::runtime_error(
           "cudaq::builder failed to get set state function.");
 
-    auto setStateFunc = reinterpret_cast<void (*)(complex *)>(*setStateFPtr);
-    setStateFunc(data);
+    if (svdata.precision == details::simulation_precision::fp64) {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
+    } else {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+    }
   }
 
   // Incoming Args... have been converted to void **,

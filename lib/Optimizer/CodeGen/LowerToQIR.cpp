@@ -138,6 +138,18 @@ public:
     // Get the CC Pointer for the state
     auto ccState = adaptor.getInitState();
 
+    // Inspect the element type of the complex data, need to
+    // know if its f32 or f64
+    Type eleTy = rewriter.getF64Type();
+    if (auto llvmPtrTy = dyn_cast<LLVM::LLVMPointerType>(ccState.getType())) {
+      auto ptrEleTy = llvmPtrTy.getElementType();
+      if (auto llvmStructTy = dyn_cast<LLVM::LLVMStructType>(ptrEleTy))
+        if (llvmStructTy.getBody().size() == 2 &&
+            llvmStructTy.getBody()[0] == llvmStructTy.getBody()[1] &&
+            llvmStructTy.getBody()[0].isF32())
+          eleTy = rewriter.getF32Type();
+    }
+
     // Get the size of the qubit register
     Type allocTy = adaptor.getAllocType();
     auto allocSize = adaptor.getAllocSize();
@@ -160,10 +172,12 @@ public:
     // Create QIR allocation with initializer function.
     auto *ctx = rewriter.getContext();
     auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
+    StringRef functionName =
+        eleTy.isF64() ? cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64
+                      : cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32;
     FlatSymbolRefAttr raiiSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
-            cudaq::opt::QIRArrayQubitAllocateArrayWithState, array_qbit_type,
-            {i64Ty, ptrTy}, parentModule);
+            functionName, array_qbit_type, {i64Ty, ptrTy}, parentModule);
 
     // Call the allocation function
     Value castedInitState =

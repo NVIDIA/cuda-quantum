@@ -1205,9 +1205,8 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
 
 #if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_TENSORNET)
 
-// FIXME Get other backends updated to support this
 TEST(BuilderTester, checkFromStateVector) {
-  std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+  std::vector<cudaq::simulation_scalar> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
   {
     auto kernel = cudaq::make_kernel();
     auto qubits = kernel.qalloc(vec);
@@ -1225,7 +1224,7 @@ TEST(BuilderTester, checkFromStateVector) {
 
   {
     auto [kernel, initState] =
-        cudaq::make_kernel<std::vector<std::complex<double>>>();
+        cudaq::make_kernel<std::vector<cudaq::simulation_scalar>>();
     auto qubits = kernel.qalloc(initState);
     std::cout << kernel << "\n";
     auto counts = cudaq::sample(kernel, vec);
@@ -1237,6 +1236,38 @@ TEST(BuilderTester, checkFromStateVector) {
       EXPECT_TRUE(k == "00" || k == "11");
     }
     EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    // 2 qubit 11 state
+    std::vector<cudaq::simulation_scalar> vec{0., 0., 0., 1.};
+    auto [kernel, initState] =
+        cudaq::make_kernel<std::vector<cudaq::simulation_scalar>>();
+    auto qubits = kernel.qalloc(initState);
+    // induce the need for a kron prod between
+    // [0,0,0,1] and [1, 0, 0, 0]
+    auto anotherOne = kernel.qalloc(2);
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel, vec);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.count("1100"), 1000);
+  }
+
+  {
+    // 2 qubit 11 state
+    std::vector<cudaq::simulation_scalar> vec{0., 0., 0., 1.};
+    auto [kernel, initState] =
+        cudaq::make_kernel<std::vector<cudaq::simulation_scalar>>();
+    auto qubits = kernel.qalloc(initState);
+    // induce the need for a kron prod between
+    // [0,0,0,1] and [1, 0]
+    auto anotherOne = kernel.qalloc();
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel, vec);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.count("110"), 1000);
   }
 }
 
