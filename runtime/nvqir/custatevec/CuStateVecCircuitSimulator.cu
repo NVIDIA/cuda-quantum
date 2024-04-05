@@ -83,56 +83,29 @@ __global__ void setFirstNElements(T *sv, const T *__restrict__ sv2, int64_t N) {
 
 #define THRDS_ARRAY_PRODUCT 256
 
-__global__ void kronprod_fp64(size_t tsize1, const cuDoubleComplex *arr1,
-                              size_t tsize2, const cuDoubleComplex *arr2,
-                              cuDoubleComplex *arr0) {
-  __shared__ cuDoubleComplex lbuf[THRDS_ARRAY_PRODUCT + 1],
-      rbuf[THRDS_ARRAY_PRODUCT];
-  size_t _ib, _in, _jb, _jn, _tx, _jc, _ja;
-
-  _tx = (size_t)threadIdx.x;
-  for (_jb = blockIdx.y * THRDS_ARRAY_PRODUCT; _jb < tsize2;
-       _jb += gridDim.y * THRDS_ARRAY_PRODUCT) {
-    if (_jb + THRDS_ARRAY_PRODUCT > tsize2) {
-      _jn = tsize2 - _jb;
-    } else {
-      _jn = THRDS_ARRAY_PRODUCT;
-    }
-
-    if (_tx < _jn)
-      rbuf[_tx] = arr2[_jb + _tx];
-
-    for (_ib = blockIdx.x * THRDS_ARRAY_PRODUCT; _ib < tsize1;
-         _ib += gridDim.x * THRDS_ARRAY_PRODUCT) {
-      if (_ib + THRDS_ARRAY_PRODUCT > tsize1) {
-        _in = tsize1 - _ib;
-      } else {
-        _in = THRDS_ARRAY_PRODUCT;
-      }
-
-      if (_tx < _in)
-        lbuf[_tx] = arr1[_ib + _tx];
-
-      __syncthreads();
-      for (_jc = 0; _jc < _jn; _jc++) {
-        if (_tx < _in) {
-          _ja = (_jb + _jc) * tsize1 + (_ib + _tx);
-          arr0[_ja] = cuCadd(arr0[_ja], cuCmul(lbuf[_tx], rbuf[_jc]));
-        }
-      }
-      __syncthreads();
-    }
-  }
-  return;
-}
-
 #pragma push
 #pragma nv_diag_suppress 177
-__global__ void kronprod_fp32(size_t tsize1, const cuFloatComplex *arr1,
-                              size_t tsize2, const cuFloatComplex *arr2,
-                              cuFloatComplex *arr0) {
-  __shared__ cuFloatComplex lbuf[THRDS_ARRAY_PRODUCT + 1],
-      rbuf[THRDS_ARRAY_PRODUCT];
+__device__ __host__ cuDoubleComplex operator*(cuDoubleComplex a,
+                                              cuDoubleComplex b) {
+  return cuCmul(a, b);
+}
+__device__ __host__ cuDoubleComplex operator+(cuDoubleComplex a,
+                                              cuDoubleComplex b) {
+  return cuCadd(a, b);
+}
+__device__ __host__ cuFloatComplex operator*(cuFloatComplex a,
+                                             cuFloatComplex b) {
+  return cuCmulf(a, b);
+}
+__device__ __host__ cuFloatComplex operator+(cuFloatComplex a,
+                                             cuFloatComplex b) {
+  return cuCaddf(a, b);
+}
+
+template <typename T>
+__global__ void kronprod(size_t tsize1, const T *arr1, size_t tsize2,
+                         const T *arr2, T *arr0) {
+  __shared__ T lbuf[THRDS_ARRAY_PRODUCT + 1], rbuf[THRDS_ARRAY_PRODUCT];
   size_t _ib, _in, _jb, _jn, _tx, _jc, _ja;
 
   _tx = (size_t)threadIdx.x;
@@ -162,7 +135,7 @@ __global__ void kronprod_fp32(size_t tsize1, const cuFloatComplex *arr1,
       for (_jc = 0; _jc < _jn; _jc++) {
         if (_tx < _in) {
           _ja = (_jb + _jc) * tsize1 + (_ib + _tx);
-          arr0[_ja] = cuCaddf(arr0[_ja], cuCmulf(lbuf[_tx], rbuf[_jc]));
+          arr0[_ja] = arr0[_ja] + lbuf[_tx] * rbuf[_jc];
         }
       }
       __syncthreads();
@@ -375,18 +348,11 @@ protected:
     }
 
     // Compute the kronecker product
-    if constexpr (std::is_same_v<ScalarType, double>)
-      kronprod_fp64<<<n_blocks, threads_per_block>>>(
-          previousStateDimension,
-          reinterpret_cast<CudaDataType *>(deviceStateVector), (1UL << count),
-          reinterpret_cast<CudaDataType *>(otherState),
-          reinterpret_cast<CudaDataType *>(newDeviceStateVector));
-    else
-      kronprod_fp32<<<n_blocks, threads_per_block>>>(
-          previousStateDimension,
-          reinterpret_cast<CudaDataType *>(deviceStateVector), (1UL << count),
-          reinterpret_cast<CudaDataType *>(otherState),
-          reinterpret_cast<CudaDataType *>(newDeviceStateVector));
+    kronprod<CudaDataType><<<n_blocks, threads_per_block>>>(
+        previousStateDimension,
+        reinterpret_cast<CudaDataType *>(deviceStateVector), (1UL << count),
+        reinterpret_cast<CudaDataType *>(otherState),
+        reinterpret_cast<CudaDataType *>(newDeviceStateVector));
 
     // Free the old vectors we don't need anymore.
     HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
