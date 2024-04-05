@@ -91,6 +91,9 @@ __device__ void convert_to_row_major(T *arr, int rows, int cols) {
   }
 }
 
+// kronprod functions adapted from
+// https://github.com/DmitryLyakh/TAL_SH/blob/3cefc2133a68b67c515f4b68a0ed9e3c66e4b4b2/tensor_algebra_gpu_nvidia.cu#L745
+
 #define THRDS_ARRAY_PRODUCT 256
 
 __global__ void kronprod_fp64(size_t tsize1, const cuDoubleComplex *arr1,
