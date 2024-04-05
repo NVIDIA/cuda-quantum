@@ -126,7 +126,7 @@ public:
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
-  virtual cudaq::ExecutionResult observe(const cudaq::spin_op &term) = 0;
+  virtual cudaq::observe_result observe(const cudaq::spin_op &term) = 0;
 
   /// @brief Allocate a single qubit, return the qubit as a logical index
   virtual std::size_t allocateQubit() = 0;
@@ -601,6 +601,26 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
+    if (executionContext && executionContext->name == "tracer") {
+      std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
+      for (auto &c : controls)
+        controlsInfo.emplace_back(2, c);
+      for (auto &t : targets)
+        targetsInfo.emplace_back(2, t);
+
+      std::vector<double> anglesProcessed;
+      if constexpr (std::is_same_v<ScalarType, double>)
+        anglesProcessed = params;
+      else {
+        for (auto &a : params)
+          anglesProcessed.push_back(static_cast<ScalarType>(a));
+      }
+
+      executionContext->kernelTrace.appendInstruction(
+          name, anglesProcessed, controlsInfo, targetsInfo);
+      return;
+    }
+
     gateQueue.emplace(name, matrix, controls, targets, params);
   }
 
@@ -641,16 +661,23 @@ protected:
 
   /// @brief Return true if expectation values should be computed from
   /// sampling + parity of bit strings.
-  bool shouldObserveFromSampling() {
+  /// Default is to enable observe from sampling, i.e., simulating the
+  /// change-of-basis circuit for each term.
+  ///
+  /// The environment variable "CUDAQ_OBSERVE_FROM_SAMPLING" can be used to turn
+  /// on or off this setting.
+  bool shouldObserveFromSampling(bool defaultConfig = true) {
     if (auto envVar = std::getenv(observeSamplingEnvVar); envVar) {
       std::string asString = envVar;
       std::transform(asString.begin(), asString.end(), asString.begin(),
                      [](auto c) { return std::tolower(c); });
       if (asString == "false" || asString == "off" || asString == "0")
         return false;
+      if (asString == "true" || asString == "on" || asString == "1")
+        return true;
     }
 
-    return true;
+    return defaultConfig;
   }
 
 public:
@@ -670,7 +697,7 @@ public:
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
-  cudaq::ExecutionResult observe(const cudaq::spin_op &term) override {
+  cudaq::observe_result observe(const cudaq::spin_op &term) override {
     throw std::runtime_error("This CircuitSimulator does not implement "
                              "observe(const cudaq::spin_op &).");
   }
@@ -926,6 +953,7 @@ public:
                                                        element.imag());
                      }
                    });
+    cudaq::info(gateToString("custom_unitary", controls, {}, targets));
     enqueueGate("custom", actual, controls, targets, {});
   }
 

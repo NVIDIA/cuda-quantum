@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -240,6 +240,6 @@ TEST(SpinOpTester, checkDistributeTerms) {
   auto distributed = H.distribute_terms(2);
 
   EXPECT_EQ(distributed.size(), 2);
-  EXPECT_EQ(distributed[0].num_terms(), 2);
-  EXPECT_EQ(distributed[1].num_terms(), 3);
+  EXPECT_EQ(distributed[0].num_terms(), 3);
+  EXPECT_EQ(distributed[1].num_terms(), 2);
 }

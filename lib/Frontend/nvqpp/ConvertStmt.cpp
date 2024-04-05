@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -130,8 +130,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   auto *body = x->getBody();
   auto *loopVar = x->getLoopVariable();
   auto i64Ty = builder.getI64Type();
-  auto idxTy = builder.getIndexType();
-  if (auto stdvecTy = dyn_cast<cc::StdvecType>(buffer.getType())) {
+  if (auto stdvecTy = dyn_cast<cc::SpanLikeType>(buffer.getType())) {
     auto eleTy = stdvecTy.getElementType();
     auto dataPtrTy = cc::PointerType::get(eleTy);
     auto dataArrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
@@ -160,8 +159,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
-      auto iterIdx = block.getArgument(0);
-      Value index = builder.create<arith::IndexCastOp>(loc, i64Ty, iterIdx);
+      Value index = block.getArgument(0);
       // May need to create a temporary for the loop variable. Create a new
       // scope.
       auto scopeBuilder = [&](OpBuilder &builder, Location loc) {
@@ -198,7 +196,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
       builder.create<cc::ScopeOp>(loc, scopeBuilder);
     };
 
-    auto idxIters = builder.create<arith::IndexCastOp>(loc, idxTy, iters);
+    auto idxIters = builder.create<cudaq::cc::CastOp>(
+        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
     opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
   } else if (auto veqTy = dyn_cast<quake::VeqType>(buffer.getType());
              veqTy && veqTy.hasSpecifiedSize()) {
@@ -208,14 +207,14 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
-      auto iterIdx = block.getArgument(0);
-      Value index = builder.create<arith::IndexCastOp>(loc, i64Ty, iterIdx);
+      Value index = block.getArgument(0);
       Value ref = builder.create<quake::ExtractRefOp>(loc, buffer, index);
       symbolTable.insert(loopVar->getName(), ref);
       if (!TraverseStmt(static_cast<clang::Stmt *>(body)))
         result = false;
     };
-    auto idxIters = builder.create<arith::IndexCastOp>(loc, idxTy, iters);
+    auto idxIters = builder.create<cudaq::cc::CastOp>(
+        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
     opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
   } else {
     TODO_x(toLocation(x), x, mangler, "ranged for statement");
@@ -283,7 +282,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
       // necessarily an explicit cast or promotion node in the AST.)
       result = builder.create<cc::LoadOp>(loc, result);
     }
-    if (auto vecTy = dyn_cast<cc::StdvecType>(resTy)) {
+    if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {
       // Returning vector data that was allocated on the stack is not valid.
       // Allocate space on the heap and make a copy of the vector instead. It
       // will be the responsibility of the calling side to free this memory.
@@ -444,6 +443,19 @@ bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
     // If there is no initialization expression, skip creating an `if` scope.
     if (!TraverseStmt(cond))
       return false;
+
+    // For something like an `operator[]` the TOS value (likely) is a
+    // pointer to the indexed element in a vector. Since there may not be a cast
+    // node in the AST to make that a RHS value, we must explicitly check here
+    // and add the required a load and cast.
+    if (auto ptrTy = dyn_cast<cc::PointerType>(peekValue().getType())) {
+      Value v = popValue();
+      pushValue(builder.create<cc::LoadOp>(loc, v));
+      if (ptrTy != builder.getI1Type()) {
+        reportClangError(x, mangler,
+                         "expression in condition not yet supported");
+      }
+    }
     if (x->getElse())
       builder.create<cc::IfOp>(loc, TypeRange{}, popValue(),
                                stmtBuilder(x->getThen()),

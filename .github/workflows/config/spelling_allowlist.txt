@@ -90,6 +90,7 @@ TCP
 TableGen
 Toffoli
 Toshiko
+UCCSD
 VQE
 Vazirani
 WSL
@@ -97,6 +98,7 @@ accessor
 acknowledgement
 adjoint
 al
+amongst
 ancilla
 ansatz
 ansatzes
@@ -108,6 +110,7 @@ bitcode
 bitstring
 bitstrings
 boolean
+broadcasted
 buildable
 callable
 callables
@@ -163,10 +166,13 @@ et
 excitations
 executables
 exponentiated
+expressibility
 expressivity
 extensibility
 extremal
 fermionic
+frontend
+frontends
 homogenous
 iff
 increment
@@ -184,6 +190,7 @@ linker
 linkers
 lookup
 lookups
+lossy
 lvalue
 makefiles
 merchantability
@@ -212,9 +219,13 @@ qudits
 reStructuredText
 runtime
 rvalue
+scalability
+scalable
 sexualized
 struct
 structs
+subcircuit
+subcircuits
 subclass
 subclassed
 subclasses

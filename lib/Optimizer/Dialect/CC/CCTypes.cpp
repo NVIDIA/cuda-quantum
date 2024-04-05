@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -152,12 +152,33 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 
 namespace cudaq {
 
+Type cc::SpanLikeType::getElementType() const {
+  return llvm::TypeSwitch<Type, Type>(*this).Case<StdvecType, CharspanType>(
+      [](auto type) { return type.getElementType(); });
+}
+
+bool cc::isDynamicType(Type ty) {
+  if (isa<cc::StdvecType>(ty))
+    return true;
+  if (auto strTy = dyn_cast<cc::StructType>(ty)) {
+    for (auto memTy : strTy.getMembers())
+      if (isDynamicType(memTy))
+        return true;
+    return false;
+  }
+  if (auto arrTy = dyn_cast<cc::ArrayType>(ty))
+    return arrTy.isUnknownSize() || isDynamicType(arrTy.getElementType());
+  // Note: this isn't considering quake, builtin, etc. types.
+  return false;
+}
+
 cc::CallableType cc::CallableType::getNoSignature(MLIRContext *ctx) {
   return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
 }
 
 void cc::CCDialect::registerTypes() {
-  addTypes<ArrayType, CallableType, PointerType, StdvecType, StructType>();
+  addTypes<ArrayType, CallableType, CharspanType, PointerType, StdvecType,
+           StructType>();
 }
 
 } // namespace cudaq

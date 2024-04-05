@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -48,8 +48,6 @@ struct oracle {
   }
 };
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(GroverTester, checkNISQ) {
   using namespace cudaq;
   auto counts = cudaq::sample(1000, run_grover{}, 3, 1, oracle{});
@@ -62,4 +60,3 @@ CUDAQ_TEST(GroverTester, checkNISQ) {
   }
   EXPECT_EQ(counter, 1000);
 }
-#endif

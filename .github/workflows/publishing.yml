@@ -176,7 +176,7 @@ jobs:
             echo "asset-name: $1.txt" >> "$1.txt"
             echo "release-id: $release_id" >> "$1.txt"
             echo "artifacts-url: $artifacts_url" >> "$1.txt"
-            mkdir -p "$staging_folder" && mv "$1.txt" "$staging_folder/$file_id"
+            mkdir -p "$staging_folder" && mv -v "$1.txt" "$staging_folder/$file_id"
 
             echo "Pushing $1 to $staging_branch"
             git add "$staging_folder" && git commit -m "$image_hash"
@@ -331,7 +331,7 @@ jobs:
           assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
           cp -r /tmp/assets/${{ matrix.info_file }}/. "$(pwd)"
           if ${{ github.event_name == 'workflow_dispatch' && inputs.include_docs }}; then
-            mkdir documentation && mv /tmp/assets/documentation/* documentation
+            mkdir documentation && mv -v /tmp/assets/documentation/* documentation
           fi
 
           build_info=${{ matrix.info_file }}*
@@ -412,7 +412,9 @@ jobs:
           push: true
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.1.1
+        uses: sigstore/cosign-installer@v3.3.0
+        with:
+          cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
         if: steps.release_info.outputs.push_to_ngc != 'true'
@@ -875,7 +877,7 @@ jobs:
 
   create_release:
     name: CUDA Quantum Release
-    needs: [assets, cudaq_hpc, cudaq_wheels, image_validation]
+    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels]
     if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.assets_from_run == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
@@ -905,11 +907,11 @@ jobs:
       # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
       - name: Create release
         run: |
-          for installer in `ls installers/`; do 
-            mv "installers/$installer" "$installer"
+          for installer in `find installers/ -type f -not -name '*.whl'`; do 
+            mv -v "$installer" "$(basename -- "$installer")"
           done
           for dir in `ls wheelhouse/`; do 
-            mv "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
+            mv -v "wheelhouse/$dir"/* wheelhouse/ && rmdir "wheelhouse/$dir"
           done
           zip -r wheelhouse.zip wheelhouse
 
@@ -935,7 +937,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_hpc, cudaq_wheels, create_release, image_validation]
+    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels, create_release, installer_validation, image_validation]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest

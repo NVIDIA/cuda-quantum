@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -19,27 +19,26 @@ struct T {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__T(
 // CHECK-SAME:         %[[VAL_0:.*]]: i32) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : index
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : index
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_5:.*]] = arith.extsi %[[VAL_4]] : i32 to i64
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
-// CHECK:           %[[VAL_8:.*]] = arith.index_cast %[[VAL_7]] : i64 to index
-// CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (index)) {
-// CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_8]] : index
-// CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : index)
+// CHECK:           %[[VAL_9:.*]] = cc.loop while ((%[[VAL_10:.*]] = %[[VAL_2]]) -> (i64)) {
+// CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_10]], %[[VAL_7]] : i64
+// CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_12:.*]]: index):
-// CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_12]]] : (!quake.veq<?>, index) -> !quake.ref
+// CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
+// CHECK:             %[[VAL_13:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_12]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:             quake.x %[[VAL_13]] : (!quake.ref) -> ()
-// CHECK:             cc.continue %[[VAL_12]] : index
+// CHECK:             cc.continue %[[VAL_12]] : i64
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_14:.*]]: index):
-// CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_1]] : index
-// CHECK:             cc.continue %[[VAL_15]] : index
+// CHECK:           ^bb0(%[[VAL_14:.*]]: i64):
+// CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_15]] : i64
 // CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }

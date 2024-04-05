@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,18 +12,15 @@
 // RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void bar(cudaq::qubit& q) {
-  x(q);
-}
+__qpu__ void bar(cudaq::qubit &q) { x(q); }
 
 struct baz {
-  __qpu__ void operator()(cudaq::qubit& q) {
-    x(q);
-  }
+  __qpu__ void operator()(cudaq::qubit &q) { x(q); }
 };
 
 struct foo {

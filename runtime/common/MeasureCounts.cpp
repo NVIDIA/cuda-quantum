@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -226,7 +226,7 @@ bool sample_result::operator==(const sample_result &counts) const {
   return sampleResults == counts.sampleResults;
 }
 
-sample_result &sample_result::operator+=(sample_result &other) {
+sample_result &sample_result::operator+=(const sample_result &other) {
 
   for (auto &otherResults : other.sampleResults) {
     auto regName = otherResults.first;

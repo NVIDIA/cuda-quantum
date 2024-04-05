@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,8 +10,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 message(STATUS "Building REST QPU.")
 add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp 
-   ../../common/QuantumExecutionQueue.cpp
-   Executor.cpp)
+   ../../common/QuantumExecutionQueue.cpp)
 
 add_subdirectory(helpers)
 

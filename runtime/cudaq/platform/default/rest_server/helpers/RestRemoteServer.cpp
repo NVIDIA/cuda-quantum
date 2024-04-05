@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "JsonConvert.h"
 #include "common/JIT.h"
+#include "common/JsonConvert.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "common/RemoteKernelExecutor.h"
@@ -22,6 +22,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "nvqir/CircuitSimulator.h"
 #include "server_impl/RestServer.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/Base64.h"
@@ -93,6 +94,17 @@ class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   static constexpr const char *DEFAULT_NVQIR_SIMULATION_BACKEND = "qpp";
 
 protected:
+  // Server to exit after each job request.
+  // Note: this doesn't apply to ping ("/") endpoint.
+  bool exitAfterJob = false;
+  // Time-point data
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
+      requestStart;
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
+      simulationStart;
+  std::optional<std::chrono::time_point<std::chrono::high_resolution_clock>>
+      simulationEnd;
+
   // Method to filter incoming request.
   // The request is only handled iff this returns true.
   // When returning false, `outValidationMessage` can be used to report the
@@ -108,6 +120,10 @@ public:
       : cudaq::RemoteRuntimeServer(),
         m_simHandle(DEFAULT_NVQIR_SIMULATION_BACKEND,
                     loadNvqirSimLib(DEFAULT_NVQIR_SIMULATION_BACKEND)) {}
+
+  virtual int version() const override {
+    return cudaq::RestRequest::REST_PAYLOAD_VERSION;
+  }
   virtual void
   init(const std::unordered_map<std::string, std::string> &configs) override {
     const auto portIter = configs.find("port");
@@ -133,6 +149,12 @@ public:
         cudaq::RestServer::Method::POST, "/job",
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
+          requestStart = std::chrono::high_resolution_clock::now();
+          auto shutdownAfterHandlingRequest = llvm::make_scope_exit([&] {
+            if (this->exitAfterJob)
+              m_server->stop();
+          });
+
           std::string mutableReq;
           for (const auto &[k, v] : headers)
             cudaq::info("Request Header: {} : {}", k, v);
@@ -220,6 +242,9 @@ public:
         cudaq::mpi::broadcast(jsonRequestBody, 0);
         // All ranks need to join, e.g., MPI-capable backends.
         processRequest(jsonRequestBody);
+        // Break the loop if the server is operating in one-shot mode.
+        if (exitAfterJob)
+          break;
       }
     }
   }
@@ -320,9 +345,10 @@ public:
       }
     }
     platform.reset_exec_ctx();
+    simulationEnd = std::chrono::high_resolution_clock::now();
   }
 
-private:
+protected:
   std::unique_ptr<ExecutionEngine>
   jitMlirCode(ModuleOp currentModule, const std::vector<std::string> &passes,
               const std::vector<std::string> &extraLibPaths = {}) {
@@ -370,15 +396,9 @@ private:
           auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(op);
           if (!funcOp)
             continue;
-          if (!funcOp.getName().startswith(
-                  cudaq::runtime::cudaqGenPrefixName)) {
-            // Looks like this is not something from the nvq++ frontend.
-            cudaq::info("Unexpected MLIR function name encountered: '{}'.",
-                        funcOp.getName().str());
-            continue;
+          if (funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName)) {
+            allFuncs.emplace_back(funcOp.getName());
           }
-
-          allFuncs.emplace_back(funcOp.getName());
         }
         return allFuncs;
       }();
@@ -441,6 +461,7 @@ private:
       throw std::runtime_error("Failed to get entry function");
 
     auto fn = reinterpret_cast<void (*)()>(fnPtr);
+    simulationStart = std::chrono::high_resolution_clock::now();
     for (std::size_t i = 0; i < numTimes; ++i) {
       // Invoke the kernel
       fn();
@@ -476,16 +497,69 @@ private:
     return simLibHandle;
   }
 
-  json processRequest(const std::string &reqBody) {
+  virtual json processRequest(const std::string &reqBody,
+                              bool forceLog = false) {
+    // Create a watchdog thread to kill the process if the request is taking too
+    // long.
+    std::mutex watchdogMutex;
+    std::condition_variable watchdogCV;
+    bool processingComplete = false;
+    std::future<void> watchdogResult = std::async(std::launch::async, [&]() {
+      std::unique_lock<std::mutex> lock(watchdogMutex);
+      std::chrono::seconds timeout(60 * 60 * 24 * 30); // default to 30 days
+      if (auto timeoutStr = getenv("WATCHDOG_TIMEOUT_SEC"))
+        timeout = std::chrono::seconds(atoi(timeoutStr));
+
+      if (watchdogCV.wait_for(lock, timeout,
+                              [&]() { return processingComplete; })) {
+        // Succeeded. Gracefully return from the async.
+        return;
+      } else {
+        // Timed out. Perform abort.
+        fmt::print("Processing timed out after {} seconds! Aborting!\n",
+                   timeout.count());
+        exit(-1);
+      }
+    });
+
+    // Notify watchdog thread of graceful completion at scope exit
+    auto notifyWatchdog = llvm::make_scope_exit([&] {
+      std::unique_lock<std::mutex> lock(watchdogMutex);
+      processingComplete = true;
+      lock.unlock();
+      watchdogCV.notify_one();
+      watchdogResult.get();
+    });
+
     try {
       // IMPORTANT: This assumes the REST server handles incoming requests
       // sequentially.
       static std::size_t g_requestCounter = 0;
       auto requestJson = json::parse(reqBody);
       cudaq::RestRequest request(requestJson);
-      cudaq::info(
-          "[RemoteRestRuntimeServer] Incoming job request from client {}",
-          request.clientVersion);
+
+      std::ostringstream os;
+      os << "[RemoteRestRuntimeServer] Incoming job request from client "
+         << request.clientVersion;
+      if (forceLog) {
+        // Force the request to appear in the logs regardless of server log
+        // level.
+        cudaq::log(os.str());
+      } else {
+        cudaq::info(os.str());
+      }
+
+      // Verify REST API version of the incoming request
+      // If the incoming JSON payload has a different version than the one this
+      // server is expecting, throw an error. Note: we don't support
+      // automatically versioning the payload (converting payload between
+      // different versions) at the moment.
+      if (static_cast<int>(request.version) != version())
+        throw std::runtime_error(fmt::format(
+            "Incompatible REST payload version detected: supported version {}, "
+            "got version {}.",
+            version(), request.version));
+
       std::string validationMsg;
       const bool shouldHandle = filterRequest(request, validationMsg);
       if (!shouldHandle) {
@@ -523,6 +597,9 @@ private:
 
 // Runtime server for NVCF
 class NvcfRuntimeServer : public RemoteRestRuntimeServer {
+public:
+  NvcfRuntimeServer() : RemoteRestRuntimeServer() { exitAfterJob = true; }
+
 protected:
   virtual bool filterRequest(const cudaq::RestRequest &in_request,
                              std::string &outValidationMessage) const override {
@@ -534,6 +611,39 @@ protected:
     }
 
     return true;
+  }
+
+protected:
+  virtual json processRequest(const std::string &reqBody,
+                              bool forceLog = false) override {
+    // When calling RemoteRestRuntimeServer::processRequest, set forceLog=true
+    // so that incoming requests are always logged, regardless of what log level
+    // we're running the server at.
+    auto executionResult =
+        RemoteRestRuntimeServer::processRequest(reqBody, /*forceLog=*/true);
+    // Amend execution information
+    executionResult["executionInfo"] = constructExecutionInfo();
+    return executionResult;
+  }
+
+private:
+  cudaq::NvcfExecutionInfo constructExecutionInfo() {
+    cudaq::NvcfExecutionInfo info;
+    const auto optionalTimePointToInt =
+        [](const auto &optionalTimePoint) -> std::size_t {
+      return optionalTimePoint.has_value()
+                 ? std::chrono::duration_cast<std::chrono::milliseconds>(
+                       optionalTimePoint.value().time_since_epoch())
+                       .count()
+                 : 0;
+    };
+    info.requestStart = optionalTimePointToInt(requestStart);
+    info.simulationStart = optionalTimePointToInt(simulationStart);
+    info.simulationEnd = optionalTimePointToInt(simulationEnd);
+    const auto deviceProps = cudaq::getCudaProperties();
+    if (deviceProps.has_value())
+      info.deviceProps = deviceProps.value();
+    return info;
   }
 };
 } // namespace

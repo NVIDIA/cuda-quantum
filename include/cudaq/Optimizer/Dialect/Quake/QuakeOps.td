@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -833,13 +833,14 @@ def ExpPauliOp : QuakeOp<"exp_pauli"> {
   let arguments = (ins
     AnyFloat:$parameter,
     VeqType:$qubits,
-    cc_PointerType:$pauli
+    Optional<AnyTypeOf<[cc_PointerType, cc_StdVectorType, cc_CharSpanType]>>:$pauli,
+    OptionalAttr<StrAttr>:$constantPauli
   );
   let results = (outs);
 
   let assemblyFormat = [{
-    `(` $parameter `)` $qubits `,` $pauli `:` functional-type(operands,
-      results) attr-dict
+    $parameter `,` $qubits `,` $pauli `:` functional-type(operands, results)
+      attr-dict
   }];
 }
 

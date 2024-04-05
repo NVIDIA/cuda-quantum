@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -58,7 +58,7 @@ static bool isStaticArithmeticProductType(Type t) {
 ///    - `array of [array of]* T`,
 /// where `T` is an arithmetic type or static product type of arithmetic types.
 static bool isArithmeticSequenceType(Type t) {
-  if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t)) {
+  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t)) {
     auto eleTy = vec.getElementType();
     return isArithmeticType(eleTy) || isStaticArithmeticProductType(eleTy) ||
            isArithmeticSequenceType(eleTy);
@@ -73,7 +73,7 @@ static bool isRecursiveArithmeticProductType(Type t);
 /// include product types and are not restricted to vectors. Only ArrayType is
 /// considered an inner type.
 static bool isRecursiveArithmeticSequenceType(Type t) {
-  if (auto vec = dyn_cast<cudaq::cc::StdvecType>(t)) {
+  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t)) {
     auto eleTy = vec.getElementType();
     return isArithmeticType(eleTy) || isRecursiveArithmeticProductType(eleTy) ||
            isRecursiveArithmeticSequenceType(eleTy);
@@ -133,12 +133,16 @@ static bool isKernelResultType(Type t) {
          isStaticArithmeticProductType(t);
 }
 
+/// Is \p t a std::string type?
+static bool isStringType(Type t) { return isa<cudaq::cc::CharspanType>(t); }
+
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
 /// dynamic type composed of arithmetic types, a quantum type, a callable
 /// (function), or a string.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
          isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
+         isStringType(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
@@ -349,7 +353,7 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
   if (t->getPointeeType()->isUndeducedAutoType())
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
-  if (isa<cc::CallableType, cc::StdvecType, quake::VeqType, quake::RefType>(
+  if (isa<cc::CallableType, cc::SpanLikeType, quake::VeqType, quake::RefType>(
           eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
@@ -361,7 +365,7 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   // FIXME: LLVMStructType is promoted as a temporary workaround.
-  if (isa<cc::CallableType, cc::StdvecType, cc::ArrayType, cc::StructType,
+  if (isa<cc::CallableType, cc::SpanLikeType, cc::ArrayType, cc::StructType,
           quake::VeqType, quake::RefType, LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));

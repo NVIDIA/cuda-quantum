@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,8 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
+
 CUDAQ_TEST(NegativeControlsTester, checkSimple) {
 
   auto kernel = []() __qpu__ {
@@ -63,4 +62,3 @@ CUDAQ_TEST(NegativeControlsTester, checkSimple) {
 
   EXPECT_EQ(counter, 1000);
 }
-#endif

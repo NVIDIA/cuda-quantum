@@ -161,7 +161,7 @@ public:
   /// Merge when necessary.
   /// @param other
   /// @return
-  sample_result &operator+=(sample_result &other);
+  sample_result &operator+=(const sample_result &other);
 
   /// @brief Serialize this sample_result. See
   /// `ExecutionResult::serialize()` documentation for information

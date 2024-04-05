@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -24,9 +24,18 @@ struct QuditInfo {
   std::size_t levels = 0;
   std::size_t id = 0;
   QuditInfo(std::size_t _levels, std::size_t _id) : levels(_levels), id(_id) {}
-  bool operator==(const QuditInfo &other) {
+  bool operator==(const QuditInfo &other) const {
     return levels == other.levels && id == other.id;
   }
+};
+
+struct QuantumOperation {
+  const std::string &opName;
+  const std::vector<double> &params;
+  const std::vector<QuditInfo> &controls;
+  const std::vector<QuditInfo> &targets;
+  bool isAdjoint = false;
+  const spin_op op = spin_op();
 };
 
 extern "C" {
@@ -129,7 +138,8 @@ public:
 
   // Measure the qudit and return the observed state \f$(0,1,2,3,...)\f$; e.g.,
   // for qubits this can return 0 or 1.
-  virtual int measure(const QuditInfo &target) = 0;
+  virtual int measure(const QuditInfo &target,
+                      const std::string registerName = "") = 0;
 
   /// Measure the current state in the given Pauli basis, return the expectation
   /// value <term>.

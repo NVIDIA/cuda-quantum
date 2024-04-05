@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -28,11 +28,11 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-spin 
     cudaq-common 
   PRIVATE 
+    cudaq
     mqpu_util
     pthread
     spdlog::spdlog 
     fmt::fmt-header-only 
-    remote-simulator-qpu
 )
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)

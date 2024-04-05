@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -65,9 +65,8 @@ protected:
       // and computing <ZZ..ZZZ>
       if (localContext->canHandleObserve) {
         auto [exp, data] = cudaq::measure(H);
-        results.emplace_back(data.to_map(), H.to_string(false), exp);
         localContext->expectationValue = exp;
-        localContext->result = cudaq::sample_result(results);
+        localContext->result = data;
       } else {
 
         // Loop over each term and compute coeff * <term>
@@ -147,5 +146,9 @@ public:
   /// as a struct-packed void pointer and its corresponding size.
   virtual void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                             void *args, std::uint64_t, std::uint64_t) = 0;
+
+  /// @brief Notify the QPU that a new random seed value is set.
+  /// By default do nothing, let subclasses override.
+  virtual void onRandomSeedSet(std::size_t seed) {}
 };
 } // namespace cudaq

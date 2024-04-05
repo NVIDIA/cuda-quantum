@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -401,25 +401,37 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
   auto params = adaptor.getOperands();
   if (params.size() < 2)
     return nullptr;
-  if (auto intAttr = dyn_cast_or_null<IntegerAttr>(params[1])) {
-    auto offset = intAttr.getInt();
-    auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
-    if (!conArr)
-      return nullptr;
-    cudaq::cc::ArrayType arrTy = conArr.getType();
-    if (arrTy.isUnknownSize())
-      return nullptr;
-    auto arrSize = arrTy.getSize();
-    OpBuilder builder(getContext());
-    builder.setInsertionPoint(getOperation());
-    if (offset < arrSize) {
-      auto fc = cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
-      auto f64Ty = builder.getF64Type();
-      Value val = builder.create<arith::ConstantFloatOp>(getLoc(), fc, f64Ty);
+  auto intAttr = dyn_cast_or_null<IntegerAttr>(params[1]);
+  if (!intAttr)
+    return nullptr;
+  auto offset = intAttr.getInt();
+  auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
+  if (!conArr)
+    return nullptr;
+  cudaq::cc::ArrayType arrTy = conArr.getType();
+  if (arrTy.isUnknownSize())
+    return nullptr;
+  auto eleTy = arrTy.getElementType();
+  auto arrSize = arrTy.getSize();
+  OpBuilder builder(getContext());
+  builder.setInsertionPoint(getOperation());
+  auto loc = getLoc();
+  if (offset < arrSize) {
+    if (auto fltTy = dyn_cast<FloatType>(eleTy)) {
+      auto floatConstVal =
+          cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
+      Value val =
+          builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy);
       return val;
     }
+    auto intConstVal =
+        cast<IntegerAttr>(conArr.getConstantValues()[offset]).getInt();
+    auto intTy = cast<IntegerType>(eleTy);
+    Value val = builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy);
+    return val;
   }
-  return nullptr;
+  Value val = builder.create<cc::PoisonOp>(loc, eleTy);
+  return val;
 }
 
 //===----------------------------------------------------------------------===//

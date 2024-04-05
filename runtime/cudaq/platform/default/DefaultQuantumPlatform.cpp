@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -19,8 +19,6 @@
 /// This file defines the default, library mode, quantum platform.
 /// Its goal is to create a single QPU that is added to the quantum_platform
 /// which delegates kernel execution to the current Execution Manager.
-
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace {
 /// The DefaultQPU models a simulated QPU by specifically
@@ -84,9 +82,13 @@ public:
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
     cudaq::info("Backend string is {}", backend);
+    std::map<std::string, std::string> configMap;
     auto mutableBackend = backend;
     if (mutableBackend.find(";") != std::string::npos) {
-      mutableBackend = cudaq::split(mutableBackend, ';')[0];
+      auto keyVals = cudaq::split(mutableBackend, ';');
+      mutableBackend = keyVals[0];
+      for (std::size_t i = 1; i < keyVals.size(); i += 2)
+        configMap.insert({keyVals[i], keyVals[i + 1]});
     }
 
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};

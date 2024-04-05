@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -117,6 +117,11 @@ def cc_StructType : CCType<"Struct", "struct",
                    isPacked, size, align);
     }]>
   ];
+
+  let extraClassDeclaration = [{
+    bool isEmpty() const { return getMembers().empty(); }
+    Type getMember(unsigned position) { return getMembers()[position]; }
+  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -193,7 +198,8 @@ def cc_CallableType : CCType<"Callable", "callable"> {
 // StdVectorType
 //===----------------------------------------------------------------------===//
 
-def cc_StdVectorType : CCType<"Stdvec", "stdvec"> {
+def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
+    "cudaq::cc::SpanLikeType"> {
   let summary = "Proxy for a std::vector<T> in cc";
   let description = [{
     This captures a C++ std::vector<T> template type as an abstract CC
@@ -220,5 +226,32 @@ def cc_StdVectorType : CCType<"Stdvec", "stdvec"> {
     }]>
   ];
 }
+
+def cc_CharSpanType
+    : CCType<"Charspan", "charspan", [], "cudaq::cc::SpanLikeType"> {
+  let summary = "Proxy for a span over a std::string in cc";
+  let description = [{
+    This captures a C++ std::string(of char) type as an abstract CC type. The
+    intention is to allow us to reason about std::string at the CC level before
+    decomposing these into more refined data structures.
+
+    ```c++
+    void foo(std::string aString)...
+    ```
+    will be lowered from the AST to CC as
+    ```mlir
+    func.func @foo(%arg0 : !cc.charspan)...
+    ```
+  }];
+
+  let extraClassDeclaration = [{
+    mlir::IntegerType getElementType() const {
+      return mlir::IntegerType::get(getContext(), 8);
+    }
+  }];
+}
+
+def IsSpanLikePred : CPred<"$_self.isa<cudaq::cc::SpanLikeType>()">;
+def SpanningType : Type<IsSpanLikePred, "dynamic length type">;
 
 #endif // CUDAQ_DIALECT_CC_TYPES_TD

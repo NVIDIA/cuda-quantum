@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -30,7 +30,7 @@ inline Value createConstant(Location loc, double value, Type type,
 
 inline Value createConstant(Location loc, std::size_t value,
                             PatternRewriter &rewriter) {
-  return cudaq::opt::factory::createI64Constant(loc, rewriter, value);
+  return rewriter.create<arith::ConstantIntOp>(loc, value, 64);
 }
 
 inline Value createDivF(Location loc, Value numerator, double denominator,
