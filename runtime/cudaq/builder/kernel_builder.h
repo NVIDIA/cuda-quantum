@@ -129,6 +129,9 @@ KernelBuilderType mapArgToType(std::vector<double> &e);
 /// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(std::vector<std::complex<double>> &e);
 
+/// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
+KernelBuilderType mapArgToType(std::vector<std::complex<float>> &e);
+
 /// Map a `qubit` to a `KernelBuilderType`
 KernelBuilderType mapArgToType(cudaq::qubit &e);
 

@@ -113,6 +113,14 @@ KernelBuilderType mapArgToType(std::vector<std::complex<double>> &e) {
   });
 }
 
+/// Map a std::vector<complex<float>> to a KernelBuilderType
+KernelBuilderType mapArgToType(std::vector<std::complex<float>> &e) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::StdvecType::get(ctx,
+                                      ComplexType::get(Float32Type::get(ctx)));
+  });
+}
+
 KernelBuilderType mapArgToType(cudaq::qubit &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return quake::RefType::get(ctx); });
