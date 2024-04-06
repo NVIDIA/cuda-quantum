@@ -1002,7 +1002,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                 std::vector<std::string> extraLibPaths,
                 StateVectorStorage &storage) {
 
-  assert(jit != nullptr && "JIT ExecutionEngine was null.");
+assert(jit != nullptr && "JIT ExecutionEngine was null.");
   cudaq::info("kernel_builder invoke kernel with args.");
 
   // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR for the following we
@@ -1018,7 +1018,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
       throw std::runtime_error(
           "cudaq::builder failed to get set state function.");
 
-    if (svdata.precision == details::simulation_precision::fp64) {
+    if (svdata.precision == simulation_precision::fp64) {
       auto setStateFunc =
           reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
       setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));

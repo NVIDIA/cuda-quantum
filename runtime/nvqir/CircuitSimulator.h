@@ -14,6 +14,7 @@
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
 #include "common/Timing.h"
+#include "cudaq/host_config.h"
 #include <cstdarg>
 #include <cstddef>
 #include <queue>
@@ -90,8 +91,6 @@ protected:
   SummaryData summaryData;
 
 public:
-  enum class precision { fp32, fp64 };
-
   /// @brief The constructor
   CircuitSimulator() = default;
   /// @brief The destructor
@@ -194,7 +193,8 @@ public:
   /// @brief Allocate `count` qubits.
   virtual std::vector<std::size_t>
   allocateQubits(std::size_t count, const void *state = nullptr,
-                 precision precision = precision::fp32) = 0;
+                 cudaq::simulation_precision precision =
+                     cudaq::simulation_precision::fp32) = 0;
 
   /// @brief Deallocate the qubit with give unique index
   virtual void deallocate(const std::size_t qubitIdx) = 0;
@@ -815,17 +815,18 @@ public:
   /// @brief Allocate `count` qubits.
   std::vector<std::size_t>
   allocateQubits(std::size_t count, const void *state = nullptr,
-                 precision precision = precision::fp32) override {
+                 cudaq::simulation_precision precision =
+                     cudaq::simulation_precision::fp32) override {
     // Make sure if someone gives us state data, that the precision
     // is correct for this simulation.
     if (state != nullptr) {
       if constexpr (std::is_same_v<ScalarType, float>) {
-        if (precision == precision::fp64)
+        if (precision == cudaq::simulation_precision::fp64)
           throw std::runtime_error(
               "Invalid user-provided state data. Simulator "
               "is FP32 but state data is FP64.");
       } else {
-        if (precision == precision::fp32)
+        if (precision == cudaq::simulation_precision::fp32)
           throw std::runtime_error(
               "Invalid user-provided state data. Simulator "
               "is FP64 but state data is FP32.");

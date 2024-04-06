@@ -12,7 +12,7 @@
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "host_config.h"
+#include "cudaq/host_config.h"
 #include <cstring>
 #include <functional>
 #include <map>
@@ -37,12 +37,6 @@ class PassManager;
 
 namespace cudaq {
 std::string get_quake_by_name(const std::string &);
-
-#ifdef CUDAQ_SIMULATION_SCALAR_FP64
-using simulation_scalar = std::complex<double>;
-#else
-using simulation_scalar = std::complex<float>;
-#endif
 
 #if CUDAQ_USE_STD20
 /// @brief Define a floating point concept
@@ -85,8 +79,6 @@ concept KernelBuilderArgTypeIsValid =
 #endif
 
 namespace details {
-
-enum class simulation_precision { fp32, fp64 };
 
 /// @brief Type describing user-provided state vector data.
 /// This maps the state vector unique hash to the vector data.
@@ -186,7 +178,7 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
 
 /// @brief Allocate a `qvector` from a user provided state vector.
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, std::size_t hash,
-                  std::size_t size, details::simulation_precision precision);
+                  std::size_t size, simulation_precision precision);
 
 /// @brief Create a QuakeValue representing a constant floating-point number
 QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
@@ -482,9 +474,9 @@ public:
   template <typename ScalarType>
   QuakeValue qalloc(const std::vector<std::complex<ScalarType>> &state) {
     auto hash = hashStateVector(state);
-    details::simulation_precision precision =
-        std::is_same_v<ScalarType, float> ? details::simulation_precision::fp32
-                                          : details::simulation_precision::fp64;
+    simulation_precision precision =
+        std::is_same_v<ScalarType, float> ? simulation_precision::fp32
+                                          : simulation_precision::fp64;
     auto value =
         details::qalloc(*opBuilder.get(), hash, state.size(), precision);
     stateVectorStorage.insert(

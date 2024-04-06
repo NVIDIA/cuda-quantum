@@ -10,6 +10,7 @@
 
 #include "common/QuditIdTracker.h"
 #include "cudaq/spin_op.h"
+#include "cudaq/host_config.h"
 #include <deque>
 #include <string_view>
 #include <vector>
@@ -115,7 +116,7 @@ public:
   /// @brief Initialize the state of the given qudits to the provided
   /// state vector.
   virtual void initializeState(const std::vector<QuditInfo> &targets,
-                               const complex *state) = 0;
+                               const void *state, simulation_precision precision) = 0;
 
   /// Apply the quantum instruction with the given name, on the provided target
   /// qudits. Supports input of control qudits and rotational parameters. Can

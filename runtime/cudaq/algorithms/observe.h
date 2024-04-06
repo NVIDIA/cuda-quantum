@@ -14,7 +14,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/spin_op.h"
-#include "host_config.h"
+#include "cudaq/host_config.h"
 #include <functional>
 #if CUDAQ_USE_STD20
 #include <ranges>

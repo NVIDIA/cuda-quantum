@@ -15,7 +15,7 @@
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
-#include "host_config.h"
+#include "cudaq/host_config.h"
 #include <cstring>
 #include <functional>
 
