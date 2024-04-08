@@ -87,16 +87,16 @@ excitations get_uccsd_excitations(std::size_t numElectrons,
   std::make_signed_t<std::size_t> numVirtBeta = virtualBeta.size();
 
   for (auto p : cudaq::range(numOccAlpha - 1))
-    for (std::size_t q = p + 1; q < numOccAlpha; q++)
+    for (auto q = p + 1; q < numOccAlpha; q++)
       for (auto r : cudaq::range(numVirtAlpha - 1))
-        for (std::size_t s = r + 1; s < numVirtAlpha; s++)
+        for (auto s = r + 1; s < numVirtAlpha; s++)
           doublesAlpha.push_back({occupiedAlpha[p], occupiedAlpha[q],
                                   virtualAlpha[r], virtualAlpha[s]});
 
   for (auto p : cudaq::range(numOccBeta - 1))
-    for (std::size_t q = p + 1; q < numOccBeta; q++)
+    for (auto q = p + 1; q < numOccBeta; q++)
       for (auto r : cudaq::range(numVirtBeta - 1))
-        for (std::size_t s = r + 1; s < numVirtBeta; s++)
+        for (auto s = r + 1; s < numVirtBeta; s++)
           doublesBeta.push_back({occupiedBeta[p], occupiedBeta[q],
                                  virtualBeta[r], virtualBeta[s]});
 
