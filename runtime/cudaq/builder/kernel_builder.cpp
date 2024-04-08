@@ -49,35 +49,22 @@ static std::size_t regCounter = 0;
 /// user-provided state vector data.
 static std::string getStateDataGlobalIntrinsic(std::size_t hashValue,
                                                std::size_t size) {
-  return fmt::format(
-      fmt::runtime(
-          R"#(llvm.mlir.global external local_unnamed_addr @nvqpp.state.{}() {{addr_space = 0 : i32, alignment = 8 : i64, dso_local}} : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> {{
-    %0 = llvm.mlir.null : !llvm.ptr<struct<(f64,f64)>>
-    %1 = llvm.mlir.constant({} : i32) : i32
-    %2 = llvm.mlir.undef : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)>
-    %3 = llvm.insertvalue %0, %2[0] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
-    %4 = llvm.insertvalue %1, %3[1] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
-    llvm.return %4 : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)>
-  }})#"),
-      hashValue, size);
+  return fmt::format(fmt::runtime(R"#(
+  cc.global extern @nvqpp.state.{} : !cc.struct<{!cc.ptr<!cc.struct<{f64,f64}>>, i32}> 
+)#"),
+                     hashValue, size);
 }
 
 /// @brief Return a code instrinsic for describing a function allowing clients
 /// to set the user-provided state vector data.
 static std::string getSetStateInstrinsic(std::size_t hashValue) {
   return fmt::format(fmt::runtime(R"#(
-  llvm.func @nvqpp.set.state.{0}(%arg0: !llvm.ptr<struct<(f64,f64)>>) {{
-    %0 = llvm.mlir.null : !llvm.ptr<struct<(f64,f64)>>
-    %1 = llvm.mlir.constant(0 : i32) : i32
-    %2 = llvm.mlir.undef : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)>
-    %3 = llvm.insertvalue %0, %2[0] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
-    %4 = llvm.insertvalue %1, %3[1] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
-    %5 = llvm.mlir.addressof @nvqpp.state.{0} : !llvm.ptr<struct<(ptr<struct<(f64, f64)>>, i32)>>
-    %6 = llvm.mlir.constant(0 : i64) : i64
-    %7 = llvm.getelementptr inbounds %5[%6, 0] : (!llvm.ptr<struct<(ptr<struct<(f64, f64)>>, i32)>>, i64) -> !llvm.ptr<ptr<struct<(f64, f64)>>>
-    llvm.store %arg0, %7 : !llvm.ptr<ptr<struct<(f64, f64)>>>
-    llvm.return
-  }}
+  func.func @nvqpp.set.state.{0}(%arg0: !cc.ptr<!cc.struct<{f64, f64}>>) {
+    %0 = cc.address_of @nvqpp.state.{0} : !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{f64, f64}>>, i32}>>
+    %1 = cc.compute_ptr %0[0, 0] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{f64, f64}>>, i32}>>) -> !cc.ptr<!cc.ptr<!cc.struct<{f64, f64}>>>
+    cc.store %arg0, %1 : !cc.ptr<!cc.ptr<!cc.struct<{f64, f64}>>>
+    return
+  }
 )#"),
                      hashValue);
 }
