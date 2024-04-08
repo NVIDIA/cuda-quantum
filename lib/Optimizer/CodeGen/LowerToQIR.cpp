@@ -150,6 +150,8 @@ public:
           eleTy = rewriter.getF32Type();
     }
 
+    // FIXME Error if not f32/f64
+
     // Get the size of the qubit register
     Type allocTy = adaptor.getAllocType();
     auto allocSize = adaptor.getAllocSize();
