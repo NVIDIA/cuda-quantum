@@ -244,7 +244,14 @@ std::vector<double> random_vector(const double l_range, const double r_range,
 /// user-specified `start` value. The remaining values are all values
 /// incremented by `step` (defaults to 1) until the `stop` value is reached
 /// (exclusive).
+#if CUDAQ_USE_STD20
 template <typename ElementType>
+  requires(std::signed_integral<ElementType>)
+#else
+template <typename ElementType,
+          typename = std::enable_if_t<std::integral<ElementType> &&
+                                      std::is_signed_v<ElementType>>>
+#endif
 inline std::vector<ElementType> range(ElementType start, ElementType stop,
                                       ElementType step = 1) {
   std::vector<ElementType> vec;
@@ -259,7 +266,14 @@ inline std::vector<ElementType> range(ElementType start, ElementType stop,
 /// @brief Return a vector of integers. The first element is zero, and
 /// the remaining elements are all values incremented by 1 to the total
 /// size value provided (exclusive).
+#if CUDAQ_USE_STD20
 template <typename ElementType>
+  requires(std::signed_integral<ElementType>)
+#else
+template <typename ElementType,
+          typename = std::enable_if_t<std::integral<ElementType> &&
+                                      std::is_signed_v<ElementType>>>
+#endif
 inline std::vector<ElementType> range(ElementType N) {
   return range(ElementType(0), N);
 }
