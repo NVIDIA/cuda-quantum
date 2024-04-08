@@ -10,9 +10,10 @@
 
 #include <complex>
 
-namespace cudaq {
 #define CUDAQ_USE_STD20 (__cplusplus >= 202002L)
 #define CUDAQ_APPLE_CLANG (defined(__apple_build_version__))
+
+namespace cudaq {
 
 /// @brief Define an enumeration of possible simulation
 /// floating point precision types.
