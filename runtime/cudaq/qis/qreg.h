@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/qis/qspan.h"
 #include "cudaq/host_config.h"
+#include "cudaq/qis/qspan.h"
 
 #if defined(__clang__)
 #pragma clang diagnostic push

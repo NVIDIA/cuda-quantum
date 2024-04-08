@@ -61,7 +61,8 @@ protected:
   }
 
   void initializeState(const std::vector<cudaq::QuditInfo> &targets,
-                       const void *state, cudaq::simulation_precision precision) override {
+                       const void *state,
+                       cudaq::simulation_precision precision) override {
     // Here we have qubits in requestedAllocations
     // want to allocate and set state
     simulator()->allocateQubits(requestedAllocations.size(), state, precision);

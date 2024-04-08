@@ -9,10 +9,10 @@
 #pragma once
 
 #include "cudaq/builder/QuakeValue.h"
+#include "cudaq/host_config.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "cudaq/host_config.h"
 #include <cstring>
 #include <functional>
 #include <map>
@@ -474,9 +474,9 @@ public:
   template <typename ScalarType>
   QuakeValue qalloc(const std::vector<std::complex<ScalarType>> &state) {
     auto hash = hashStateVector(state);
-    simulation_precision precision =
-        std::is_same_v<ScalarType, float> ? simulation_precision::fp32
-                                          : simulation_precision::fp64;
+    simulation_precision precision = std::is_same_v<ScalarType, float>
+                                         ? simulation_precision::fp32
+                                         : simulation_precision::fp64;
     auto value =
         details::qalloc(*opBuilder.get(), hash, state.size(), precision);
     stateVectorStorage.insert(

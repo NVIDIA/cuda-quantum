@@ -1002,7 +1002,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                 std::vector<std::string> extraLibPaths,
                 StateVectorStorage &storage) {
 
-assert(jit != nullptr && "JIT ExecutionEngine was null.");
+  assert(jit != nullptr && "JIT ExecutionEngine was null.");
   cudaq::info("kernel_builder invoke kernel with args.");
 
   // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR for the following we

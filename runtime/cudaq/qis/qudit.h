@@ -43,8 +43,7 @@ public:
           std::to_string(state.size()) + ").");
 
     auto norm = std::inner_product(
-        state.begin(), state.end(), state.begin(),
-        simulation_scalar{0., 0.},
+        state.begin(), state.end(), state.begin(), simulation_scalar{0., 0.},
         [](auto a, auto b) { return a + b; },
         [](auto a, auto b) { return std::conj(a) * b; });
     if (std::fabs(1.0 - norm) > 1e-4)
