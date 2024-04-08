@@ -46,6 +46,26 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
 
   EXPECT_NEAR(state.overlap(state).real(), 1.0, 1e-3);
 
+  auto kernelNoop = []() __qpu__ {
+    cudaq::qubit q, r;
+    x(q);
+    x(q);
+  };
+
+  // Check <00|Bell> = 1/sqrt(2)
+  EXPECT_NEAR(state.overlap(cudaq::get_state(kernelNoop)).real(),
+              1. / std::sqrt(2.), 1e-3);
+
+  auto kernelX = []() __qpu__ {
+    cudaq::qubit q, r;
+    x(q);
+    x(r);
+  };
+
+  // Check <11|Bell> = 1/sqrt(2)
+  EXPECT_NEAR(state.overlap(cudaq::get_state(kernelX)).real(),
+              1. / std::sqrt(2.), 1e-3);
+
   // Check endianess of basis state
   auto kernel1 = []() __qpu__ {
     cudaq::qvector qvec(5);
