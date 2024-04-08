@@ -249,7 +249,7 @@ template <typename ElementType>
   requires(std::signed_integral<ElementType>)
 #else
 template <typename ElementType,
-          typename = std::enable_if_t<std::integral<ElementType> &&
+          typename = std::enable_if_t<std::is_integral_v<ElementType> &&
                                       std::is_signed_v<ElementType>>>
 #endif
 inline std::vector<ElementType> range(ElementType start, ElementType stop,
@@ -271,7 +271,7 @@ template <typename ElementType>
   requires(std::signed_integral<ElementType>)
 #else
 template <typename ElementType,
-          typename = std::enable_if_t<std::integral<ElementType> &&
+          typename = std::enable_if_t<std::is_integral_v<ElementType> &&
                                       std::is_signed_v<ElementType>>>
 #endif
 inline std::vector<ElementType> range(ElementType N) {

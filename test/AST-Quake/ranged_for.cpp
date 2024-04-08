@@ -278,7 +278,7 @@ struct Nesting {
 
 struct FreeRange {
   void operator()(cudaq::qvector<> r, unsigned N) __qpu__ {
-    for (auto i : cudaq::range(N)) {
+    for (auto i : cudaq::range(static_cast<int>(N))) {
       h(r[i]);
     }
   }

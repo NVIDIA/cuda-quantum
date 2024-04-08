@@ -30,9 +30,9 @@ struct excitations {
 /// system, return the single and double excitation indices.
 excitations get_uccsd_excitations(std::size_t numElectrons,
                                   std::size_t numQubits) {
-  auto numSpatialOrbs = numQubits / 2;
+  std::make_signed_t<std::size_t> numSpatialOrbs = numQubits / 2;
   // check rounding
-  auto numOccupied = static_cast<std::size_t>(std::ceil(numElectrons / 2));
+  std::make_signed_t<std::size_t> numOccupied = std::ceil(numElectrons / 2);
   auto numVirtual = numSpatialOrbs - numOccupied;
   excitation_list singlesAlpha, singlesBeta, doublesMixed, doublesAlpha,
       doublesBeta;
