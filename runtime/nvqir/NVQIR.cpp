@@ -187,7 +187,7 @@ Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
 Array *
 __quantum__rt__qubit_allocate_array_with_state(uint64_t size,
                                                std::complex<double> *data) {
-  cudaq::ScopedTrace trace("NVQIR::qubit_allocate_array_with_data", size);
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data", size);
   __quantum__rt__initialize(0, nullptr);
   auto qubitIdxs =
       nvqir::getCircuitSimulatorInternal()->allocateQubits(size, data);
