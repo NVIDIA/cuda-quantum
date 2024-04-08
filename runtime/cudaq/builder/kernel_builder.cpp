@@ -30,15 +30,9 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/Passes.h"
-
 #include <numeric>
 
 using namespace mlir;
-
-extern "C" {
-void altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
-                     void *kernelArgs, std::uint64_t argsSize);
-}
 
 namespace cudaq::details {
 
@@ -110,13 +104,13 @@ KernelBuilderType mapArgToType(std::size_t &e) {
 
 KernelBuilderType mapArgToType(std::vector<int> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 32));
+    return cudaq::cc::StdvecType::get(ctx, IntegerType::get(ctx, 32));
   });
 }
 
 KernelBuilderType mapArgToType(std::vector<std::size_t> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 64));
+    return cudaq::cc::StdvecType::get(ctx, IntegerType::get(ctx, 64));
   });
 }
 
@@ -156,7 +150,7 @@ initializeBuilder(MLIRContext *context,
   auto moduleOp = opBuilder->create<ModuleOp>();
   opBuilder->setInsertionPointToEnd(moduleOp.getBody());
 
-  // Convert our cudaq builder Types into mlir::Types
+  // Convert our cudaq builder Types into Types
   std::vector<Type> types;
   std::transform(inputTypes.begin(), inputTypes.end(),
                  std::back_inserter(types),
@@ -231,9 +225,9 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
 /// If found, see if the called function is in the current `ModuleOp` for this
 /// `kernel_builder`, if so do nothing. If it is not found, then find it in the
 /// other `ModuleOp`, clone it, and add it to this `ModuleOp`.
-void addAllCalledFunctionRecursively(
-    func::FuncOp &function, ModuleOp &currentModule,
-    mlir::OwningOpRef<mlir::ModuleOp> &otherModule) {
+void addAllCalledFunctionRecursively(func::FuncOp &function,
+                                     ModuleOp &currentModule,
+                                     OwningOpRef<ModuleOp> &otherModule) {
 
   std::function<void(func::FuncOp func)> visitAllCallOps;
   visitAllCallOps = [&](func::FuncOp func) {
@@ -283,9 +277,8 @@ void addAllCalledFunctionRecursively(
 /// `ModuleOp` for this `kernel_builder`, if found return it as is. If not
 /// found, find it in the other `kernel_builder` `ModuleOp` and return a clone
 /// of it. Throw an exception if no kernel with the given name is found
-func::FuncOp
-cloneOrGetFunction(StringRef name, ModuleOp &currentModule,
-                   mlir::OwningOpRef<mlir::ModuleOp> &otherModule) {
+func::FuncOp cloneOrGetFunction(StringRef name, ModuleOp &currentModule,
+                                OwningOpRef<ModuleOp> &otherModule) {
   if (auto func = currentModule.lookupSymbol<func::FuncOp>(name))
     return func;
 
@@ -300,11 +293,11 @@ cloneOrGetFunction(StringRef name, ModuleOp &currentModule,
   throw std::runtime_error("Could not find function with name " + name.str());
 }
 
-void call(ImplicitLocOpBuilder &builder, std::string &name,
-          std::string &quakeCode, std::vector<QuakeValue> &values) {
+void call(ImplicitLocOpBuilder &builder, const std::string &name,
+          const std::string &quakeCode, const std::vector<QuakeValue> &values) {
   // Create a ModuleOp from the other kernel's quake code
   auto otherModule =
-      mlir::parseSourceString<mlir::ModuleOp>(quakeCode, builder.getContext());
+      parseSourceString<ModuleOp>(quakeCode, builder.getContext());
 
   // Get our current module
   auto block = builder.getBlock();
@@ -356,13 +349,14 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
   builder.create<func::CallOp>(otherFuncCloned, mlirValues);
 }
 
-void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
-                           std::string &quakeCode, bool isAdjoint,
-                           ValueRange controls,
-                           std::vector<QuakeValue> &values) {
+static void applyControlOrAdjoint(ImplicitLocOpBuilder &builder,
+                                  const std::string &name,
+                                  const std::string &quakeCode, bool isAdjoint,
+                                  ValueRange controls,
+                                  const std::vector<QuakeValue> &values) {
   // Create a ModuleOp from the other kernel's quake code
   auto otherModule =
-      mlir::parseSourceString<mlir::ModuleOp>(quakeCode, builder.getContext());
+      parseSourceString<ModuleOp>(quakeCode, builder.getContext());
 
   // Get our current module
   auto block = builder.getBlock();
@@ -411,21 +405,22 @@ void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
       isAdjoint, controls, mlirValues);
 }
 
-void control(ImplicitLocOpBuilder &builder, std::string &name,
-             std::string &quakeCode, QuakeValue &control,
-             std::vector<QuakeValue> &values) {
-  applyControlOrAdjoint(builder, name, quakeCode, /*isAdjoint*/ false,
+void control(ImplicitLocOpBuilder &builder, const std::string &name,
+             const std::string &quakeCode, QuakeValue &control,
+             const std::vector<QuakeValue> &values) {
+  applyControlOrAdjoint(builder, name, quakeCode, /*isAdjoint=*/false,
                         control.getValue(), values);
 }
 
-void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
-             std::string &quakeCode, std::vector<QuakeValue> &values) {
-  applyControlOrAdjoint(builder, name, quakeCode, /*isAdjoint*/ true, {},
+void adjoint(ImplicitLocOpBuilder &builder, const std::string &name,
+             const std::string &quakeCode,
+             const std::vector<QuakeValue> &values) {
+  applyControlOrAdjoint(builder, name, quakeCode, /*isAdjoint=*/true, {},
                         values);
 }
 
-void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
-             std::function<void(QuakeValue &)> &body) {
+static void forLoop(ImplicitLocOpBuilder &builder, Value startVal, Value end,
+                    std::function<void(QuakeValue &)> &&body) {
   auto i64Ty = builder.getI64Type();
   Value castEnd = builder.create<cudaq::cc::CastOp>(
       i64Ty, end, cudaq::cc::CastOpMode::Unsigned);
@@ -446,36 +441,35 @@ void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
 }
 
 void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &startVal,
-             QuakeValue &end, std::function<void(QuakeValue &)> &body) {
+             QuakeValue &end, std::function<void(QuakeValue &)> &&body) {
   auto s = startVal.getValue();
   auto e = startVal.getValue();
-  forLoop(builder, s, e, body);
+  forLoop(builder, s, e, std::move(body));
 }
 
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, std::size_t end,
-             std::function<void(QuakeValue &)> &body) {
+             std::function<void(QuakeValue &)> &&body) {
   Value startVal = builder.create<arith::ConstantIntOp>(start, 64);
   Value endVal = builder.create<arith::ConstantIntOp>(end, 64);
-  forLoop(builder, startVal, endVal, body);
+  forLoop(builder, startVal, endVal, std::move(body));
 }
 
 void forLoop(ImplicitLocOpBuilder &builder, std::size_t start, QuakeValue &end,
-             std::function<void(QuakeValue &)> &body) {
+             std::function<void(QuakeValue &)> &&body) {
   Value startVal = builder.create<arith::ConstantIntOp>(start, 64);
   auto e = end.getValue();
-  forLoop(builder, startVal, e, body);
+  forLoop(builder, startVal, e, std::move(body));
 }
 
 void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, std::size_t end,
-             std::function<void(QuakeValue &)> &body) {
+             std::function<void(QuakeValue &)> &&body) {
   Value e = builder.create<arith::ConstantIntOp>(end, 64);
   auto s = start.getValue();
-  forLoop(builder, s, e, body);
+  forLoop(builder, s, e, std::move(body));
 }
 
-KernelBuilderType::KernelBuilderType(
-    std::function<mlir::Type(MLIRContext *ctx)> &&f)
-    : creator(f) {}
+KernelBuilderType::KernelBuilderType(std::function<Type(MLIRContext *ctx)> &&f)
+    : creator(std::move(f)) {}
 
 Type KernelBuilderType::create(MLIRContext *ctx) { return creator(ctx); }
 
@@ -563,7 +557,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
 }
 
 QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val) {
-  llvm::APFloat d(val);
+  APFloat d(val);
   Value constant =
       builder.create<arith::ConstantFloatOp>(d, builder.getF64Type());
   return QuakeValue(builder, constant);
@@ -768,7 +762,7 @@ void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
       checkAndUpdateRegName(measureOp);
 
   auto type = value.getType();
-  if (!type.isa<mlir::IntegerType>() || type.getIntOrFloatBitWidth() != 1)
+  if (!type.isa<IntegerType>() || type.getIntOrFloatBitWidth() != 1)
     throw std::runtime_error("Invalid result type passed to c_if.");
 
   builder.create<cc::IfOp>(TypeRange{}, value,
@@ -828,8 +822,9 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
 std::tuple<bool, ExecutionEngine *>
 jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
         std::unordered_map<ExecutionEngine *, std::size_t> &jitHash,
-        std::string kernelName, std::vector<std::string> extraLibPaths,
-        StateVectorStorage &stateVectorStorage) {
+        const std::string &kernelName,
+        const std::vector<std::string> &extraLibPaths,
+        const StateVectorStorage &stateVectorStorage) {
 
   // Start of by getting the current ModuleOp
   auto *block = builder.getBlock();
@@ -859,10 +854,10 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   auto module = currentModule.clone();
   auto ctx = module.getContext();
-  SmallVector<mlir::NamedAttribute> names;
-  names.emplace_back(mlir::StringAttr::get(ctx, kernelName),
-                     mlir::StringAttr::get(ctx, "BuilderKernel.EntryPoint"));
-  auto mapAttr = mlir::DictionaryAttr::get(ctx, names);
+  SmallVector<NamedAttribute> names;
+  names.emplace_back(StringAttr::get(ctx, kernelName),
+                     StringAttr::get(ctx, "BuilderKernel.EntryPoint"));
+  auto mapAttr = DictionaryAttr::get(ctx, names);
   module->setAttr("quake.mangled_name_map", mapAttr);
 
   // Tag as an entrypoint if it is one
@@ -982,9 +977,9 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 }
 
 void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
-                std::string kernelName, void **argsArray,
-                std::vector<std::string> extraLibPaths,
-                StateVectorStorage &storage) {
+                const std::string &kernelName, void **argsArray,
+                const std::vector<std::string> &extraLibPaths,
+                const StateVectorStorage &storage) {
 
   assert(jit != nullptr && "JIT ExecutionEngine was null.");
   cudaq::info("kernel_builder invoke kernel with args.");
@@ -1029,7 +1024,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // Invoke and free the args memory.
   auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
 
-  altLaunchKernel(properName.data(), thunk, rawArgs, size);
+  altLaunchKernel(properName.data(), thunk, rawArgs, size, 0);
   std::free(rawArgs);
   // TODO: any return values are dropped on the floor here.
 }
@@ -1047,8 +1042,8 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
   // out string will be invalid (verifier failed)).
   auto clonedModule = module.clone();
 
-  func::FuncOp unwrappedParentFunc = llvm::cast<func::FuncOp>(parentFunc);
-  llvm::StringRef symName = unwrappedParentFunc.getSymName();
+  func::FuncOp unwrappedParentFunc = cast<func::FuncOp>(parentFunc);
+  StringRef symName = unwrappedParentFunc.getSymName();
   tagEntryPoint(builder, clonedModule, symName);
 
   // Clean up the code for print out

@@ -228,55 +228,57 @@ void applyPasses(mlir::PassManager &);
 /// wrap in a `unique_ptr`
 std::tuple<bool, mlir::ExecutionEngine *>
 jitCode(mlir::ImplicitLocOpBuilder &, mlir::ExecutionEngine *,
-        std::unordered_map<mlir::ExecutionEngine *, std::size_t> &, std::string,
-        std::vector<std::string>, StateVectorStorage &);
+        std::unordered_map<mlir::ExecutionEngine *, std::size_t> &,
+        const std::string &, const std::vector<std::string> &,
+        const StateVectorStorage &);
 
 /// @brief Invoke the function with the given kernel name.
 void invokeCode(mlir::ImplicitLocOpBuilder &builder, mlir::ExecutionEngine *jit,
-                std::string kernelName, void **argsArray,
-                std::vector<std::string> extraLibPaths,
-                StateVectorStorage &storage);
+                const std::string &kernelName, void **argsArray,
+                const std::vector<std::string> &extraLibPaths,
+                const StateVectorStorage &storage);
 
 /// @brief Invoke the provided kernel function.
-void call(mlir::ImplicitLocOpBuilder &builder, std::string &name,
-          std::string &quakeCode, std::vector<QuakeValue> &values);
+void call(mlir::ImplicitLocOpBuilder &builder, const std::string &name,
+          const std::string &quakeCode, const std::vector<QuakeValue> &values);
 
 /// @brief Apply the given kernel controlled on the provided qubit value.
-void control(mlir::ImplicitLocOpBuilder &builder, std::string &name,
-             std::string &quakeCode, QuakeValue &control,
-             std::vector<QuakeValue> &values);
+void control(mlir::ImplicitLocOpBuilder &builder, const std::string &name,
+             const std::string &quakeCode, QuakeValue &control,
+             const std::vector<QuakeValue> &values);
 
 /// @brief Apply the adjoint of the given kernel
-void adjoint(mlir::ImplicitLocOpBuilder &builder, std::string &name,
-             std::string &quakeCode, std::vector<QuakeValue> &values);
+void adjoint(mlir::ImplicitLocOpBuilder &builder, const std::string &name,
+             const std::string &quakeCode,
+             const std::vector<QuakeValue> &values);
 
 /// @brief Add a for loop that starts from the given `start` integer index, ends
 /// at the given `end` integer index, and applies the given `body` as a callable
 /// function. This callable function must take as input an index variable that
 /// can be used within the body.
 void forLoop(mlir::ImplicitLocOpBuilder &builder, std::size_t start,
-             std::size_t end, std::function<void(QuakeValue &)> &body);
+             std::size_t end, std::function<void(QuakeValue &)> &&body);
 
 /// @brief Add a for loop that starts from the given `start` integer index, ends
 /// at the given `end` index, and applies the given `body` as a callable
 /// function. This callable function must take as input an index variable that
 /// can be used within the body.
 void forLoop(mlir::ImplicitLocOpBuilder &builder, std::size_t start,
-             QuakeValue &end, std::function<void(QuakeValue &)> &body);
+             QuakeValue &end, std::function<void(QuakeValue &)> &&body);
 
 /// @brief Add a for loop that starts from the given `start` index, ends at the
 /// given `end` integer index, and applies the given `body` as a callable
 /// function. This callable function must take as input an index variable that
 /// can be used within the body.
 void forLoop(mlir::ImplicitLocOpBuilder &builder, QuakeValue &start,
-             std::size_t end, std::function<void(QuakeValue &)> &body);
+             std::size_t end, std::function<void(QuakeValue &)> &&body);
 
 /// @brief Add a for loop that starts from the given `start` index, ends at the
 /// given `end` index, and applies the given `body` as a callable function. This
 /// callable function must take as input an index variable that can be used
 /// within the body.
 void forLoop(mlir::ImplicitLocOpBuilder &builder, QuakeValue &start,
-             QuakeValue &end, std::function<void(QuakeValue &)> &body);
+             QuakeValue &end, std::function<void(QuakeValue &)> &&body);
 
 /// @brief Return the quake representation as a string
 std::string to_quake(mlir::ImplicitLocOpBuilder &builder);
@@ -812,7 +814,7 @@ public:
   template <typename StartType, typename EndType>
   void for_loop(StartType &&start, EndType &&end,
                 std::function<void(QuakeValue &)> &&body) {
-    details::forLoop(*opBuilder, start, end, body);
+    details::forLoop(*opBuilder, start, end, std::move(body));
   }
 
   /// @brief Return the string representation of the quake code.
