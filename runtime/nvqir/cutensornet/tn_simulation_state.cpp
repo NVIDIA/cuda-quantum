@@ -135,19 +135,35 @@ TensorNetSimulationState::getAmplitude(const std::vector<int> &basisState) {
 
 cudaq::SimulationState::Tensor
 TensorNetSimulationState::getTensor(std::size_t tensorIdx) const {
-  // TODO:
-  return cudaq::SimulationState::Tensor();
+  if (tensorIdx >= getNumTensors())
+    throw std::out_of_range("Invalid tensor index");
+  cudaq::SimulationState::Tensor tensor;
+  auto &opTensor = m_state->m_tensorOps[tensorIdx];
+  tensor.data = opTensor.deviceData;
+  std::vector<std::size_t> extents(2 * opTensor.qubitIds.size(), 2);
+  tensor.extents = extents;
+  tensor.fp_precision = getPrecision();
+  return tensor;
 }
 
 std::vector<cudaq::SimulationState::Tensor>
 TensorNetSimulationState::getTensors() const {
-  // TODO
-  return {};
+  std::vector<cudaq::SimulationState::Tensor> tensors;
+  tensors.reserve(m_state->m_tensorOps.size());
+
+  for (auto &op : m_state->m_tensorOps) {
+    cudaq::SimulationState::Tensor tensor;
+    tensor.data = op.deviceData;
+    std::vector<std::size_t> extents(2 * op.qubitIds.size(), 2);
+    tensor.extents = extents;
+    tensor.fp_precision = getPrecision();
+    tensors.emplace_back(std::move(tensor));
+  }
+  return tensors;
 }
 
 std::size_t TensorNetSimulationState::getNumTensors() const {
-  // TODO:
-  return m_state->getNumQubits();
+  return m_state->m_tensorOps.size();
 }
 
 void TensorNetSimulationState::destroyState() {

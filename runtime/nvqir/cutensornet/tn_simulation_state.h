@@ -44,6 +44,10 @@ public:
 
   Tensor getTensor(std::size_t tensorIdx = 0) const override;
 
+  /// Component tensor getter
+  // Note: for the full tensor network state, we return the gate tensors in the
+  // full tensor network. The root tensor of this network is not computed and
+  // may require lots of memory. Thus, we don't use it as the 'tensor' object.
   std::vector<Tensor> getTensors() const override;
 
   std::size_t getNumTensors() const override;
