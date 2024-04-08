@@ -497,6 +497,19 @@ LogicalResult quake::ExtractRefOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// InitializeStateOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::InitializeStateOp::verify() {
+  auto veqTy = cast<quake::VeqType>(getTargets().getType());
+  if (veqTy.hasSpecifiedSize())
+    if (!std::has_single_bit(veqTy.getSize()))
+      return emitOpError("initialize state vector must be power of 2, but is " +
+                         std::to_string(veqTy.getSize()) + " instead.");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // RelaxSizeOp
 //===----------------------------------------------------------------------===//
 
