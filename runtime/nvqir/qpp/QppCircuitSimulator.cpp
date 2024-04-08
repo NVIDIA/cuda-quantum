@@ -261,7 +261,11 @@ protected:
   }
 
 public:
-  QppCircuitSimulator() = default;
+  QppCircuitSimulator() {
+    // Populate the correct name so it is printed correctly during
+    // deconstructor.
+    summaryData.name = name();
+  }
   virtual ~QppCircuitSimulator() = default;
 
   void setRandomSeed(std::size_t seed) override {
@@ -371,6 +375,10 @@ public:
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     flushGateQueue();
     return std::make_unique<QppState>(std::move(state));
+  }
+
+  bool isStateVectorSimulator() const override {
+    return std::is_same_v<StateType, qpp::ket>;
   }
 
   /// @brief Primarily used for testing.

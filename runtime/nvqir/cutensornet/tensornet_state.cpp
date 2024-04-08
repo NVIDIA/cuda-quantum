@@ -78,8 +78,7 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    cudaq::ScopedTrace trace(
-        "TensorNetState::sample::cutensornetSamplerPrepare");
+    ScopedTraceWithContext("TensorNetState::sample::cutensornetSamplerPrepare");
     HANDLE_CUTN_ERROR(cutensornetSamplerPrepare(m_cutnHandle, sampler,
                                                 scratchPad.scratchSize,
                                                 workDesc, /*cudaStream*/ 0));
@@ -111,7 +110,7 @@ TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
     const int numShots = std::min(shotsToRun, MAX_SHOTS_PER_RUNS);
     std::vector<int64_t> samples(measuredBitIds.size() * numShots);
     {
-      cudaq::ScopedTrace trace(
+      ScopedTraceWithContext(
           "TensorNetState::sample::cutensornetSamplerSample");
       HANDLE_CUTN_ERROR(cutensornetSamplerSample(
           m_cutnHandle, sampler, numShots, workDesc, samples.data(),
@@ -387,7 +386,7 @@ std::complex<double> TensorNetState::computeExpVal(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    cudaq::ScopedTrace trace(
+    ScopedTraceWithContext(
         "TensorNetState::computeExpVal::cutensornetExpectationPrepare");
     HANDLE_CUTN_ERROR(cutensornetExpectationPrepare(
         m_cutnHandle, tensorNetworkExpectation, scratchPad.scratchSize,
@@ -411,7 +410,7 @@ std::complex<double> TensorNetState::computeExpVal(
   std::complex<double> expVal;
   std::complex<double> stateNorm{0.0, 0.0};
   {
-    cudaq::ScopedTrace trace(
+    ScopedTraceWithContext(
         "TensorNetState::computeExpVal::cutensornetExpectationCompute");
     HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
         m_cutnHandle, tensorNetworkExpectation, workDesc, &expVal,
