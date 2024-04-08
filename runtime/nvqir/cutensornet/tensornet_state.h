@@ -28,6 +28,14 @@ struct MPSTensor {
   std::vector<int64_t> extents;
 };
 
+/// Track gate tensors that were appended to the tensor network.
+struct AppliedTensorOp {
+  void *deviceData = nullptr;
+  std::vector<int32_t> qubitIds;
+  bool isAdjoint;
+  bool isUnitary;
+};
+
 /// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
 /// simulator implementation.
 class TensorNetState {
@@ -40,6 +48,8 @@ protected:
   std::int64_t m_tensorId = InvalidTensorIndexValue;
   // Device memory pointers to be cleaned up.
   std::vector<void *> m_tempDevicePtrs;
+  // Tensor ops that have been applied to the state.
+  std::vector<AppliedTensorOp> m_tensorOps;
 
 public:
   /// @brief Constructor
@@ -112,6 +122,7 @@ public:
 
 private:
   friend class SimulatorMPS;
+  friend class TensorNetSimulationState;
   /// Internal method to contract the tensor network.
   /// Returns device memory pointer and size (number of elements).
   std::pair<void *, std::size_t> contractStateVectorInternal(

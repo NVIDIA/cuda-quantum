@@ -45,6 +45,8 @@ void TensorNetState::applyGate(const std::vector<int32_t> &qubitIds,
       m_cutnHandle, m_quantumState, qubitIds.size(), qubitIds.data(),
       gateDeviceMem, nullptr, /*immutable*/ 1,
       /*adjoint*/ static_cast<int32_t>(adjoint), /*unitary*/ 1, &m_tensorId));
+  m_tensorOps.emplace_back(
+      AppliedTensorOp{gateDeviceMem, qubitIds, adjoint, true});
 }
 
 void TensorNetState::applyQubitProjector(void *proj_d, int32_t qubitIdx) {
@@ -52,6 +54,7 @@ void TensorNetState::applyQubitProjector(void *proj_d, int32_t qubitIdx) {
       cutensornetStateApplyTensor(m_cutnHandle, m_quantumState, 1, &qubitIdx,
                                   proj_d, nullptr, /*immutable*/ 1,
                                   /*adjoint*/ 0, /*unitary*/ 0, &m_tensorId));
+  m_tensorOps.emplace_back(AppliedTensorOp{proj_d, {qubitIdx}, false, false});
 }
 
 std::unordered_map<std::string, size_t>
