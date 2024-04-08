@@ -11,6 +11,7 @@ import random
 import re
 import string
 import sys
+import numpy as np
 from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
@@ -22,7 +23,7 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.execution_engine import *
 from ..mlir.dialects import quake, cc
-from ..mlir.dialects import builtin, func, arith
+from ..mlir.dialects import builtin, func, arith, math
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, register_all_dialects
 
 
@@ -175,6 +176,14 @@ def __singleTargetSingleParameterControlOperation(self,
                            context=self.ctx)
 
 
+def supportCommonCast(mlirType, otherTy, arg, FromType, ToType, PyType):
+    argEleTy = cc.StdvecType.getElementType(mlirType)
+    eleTy = cc.StdvecType.getElementType(otherTy)
+    if ToType.isinstance(eleTy) and FromType.isinstance(argEleTy):
+        return [PyType(i) for i in arg]
+    return None
+
+
 class PyKernel(object):
     """
     The :class:`Kernel` provides an API for dynamically constructing quantum 
@@ -248,6 +257,7 @@ class PyKernel(object):
                     'int': int,
                     'bool': bool,
                     'float': float,
+                    'complex': complex,
                     'pauli_word': cudaq_runtime.pauli_word
                 }
                 # Infer the slice type
@@ -517,13 +527,13 @@ class PyKernel(object):
             return str(cloned)
         return str(self.module)
 
-    def qalloc(self, size=None):
+    def qalloc(self, initializer=None):
         """
         Allocate a register of qubits of size `qubit_count` and return a 
         handle to them as a :class:`QuakeValue`.
 
         Args:
-            qubit_count (Union[`int`,`QuakeValue`): The number of qubits to allocate.
+            initializer (Union[`int`,`QuakeValue`, `list[T]`): The number of qubits to allocate or a concrete state to allocate and initialize the qubits.
         Returns:
             :class:`QuakeValue`: A handle to the allocated qubits in the MLIR.
 
@@ -534,18 +544,47 @@ class PyKernel(object):
         ```
         """
         with self.insertPoint, self.loc:
-            if size == None:
+            # If no initializer, create a single qubit
+            if initializer == None:
                 qubitTy = quake.RefType.get(self.ctx)
                 return self.__createQuakeValue(quake.AllocaOp(qubitTy).result)
-            else:
-                if isinstance(size, QuakeValue):
-                    veqTy = quake.VeqType.get(self.ctx)
-                    sizeVal = size.mlirValue
+
+            # If the initializer is an integer, create `veq<N>`
+            if isinstance(initializer, int):
+                veqTy = quake.VeqType.get(self.ctx, initializer)
+                return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
+
+            if isinstance(initializer, np.ndarray):
+                if len(initializer.shape) != 1:
+                    raise RuntimeError(
+                        "invalid initializer for qalloc (np.ndarray must be 1D, vector-like)"
+                    )
+
+            # If the initializer is a QuakeValue, see if it is
+            # a integer or a `stdvec` type
+            if isinstance(initializer, QuakeValue):
+                veqTy = quake.VeqType.get(self.ctx)
+                if IntegerType.isinstance(initializer.mlirValue.type):
+                    # This is an integer size
                     return self.__createQuakeValue(
-                        quake.AllocaOp(veqTy, size=sizeVal).result)
-                else:
-                    veqTy = quake.VeqType.get(self.ctx, size)
-                    return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
+                        quake.AllocaOp(veqTy,
+                                       size=initializer.mlirValue).result)
+
+                if cc.StdvecType.isinstance(initializer.mlirValue.type):
+                    # This is a state to initialize to
+                    size = cc.StdvecSizeOp(self.getIntegerType(),
+                                           initializer.mlirValue).result
+                    numQubits = math.CountTrailingZerosOp(size).result
+                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                    ptrTy = cc.PointerType.get(
+                        self.ctx,
+                        cc.StdvecType.getElementType(
+                            initializer.mlirValue.type))
+                    initials = cc.StdvecDataOp(ptrTy, initializer.mlirValue)
+                    quake.InitializeStateOp(veqTy, qubits, initials)
+                    return self.__createQuakeValue(qubits)
+
+            raise RuntimeError("invalid initializer argument for qalloc.")
 
     def __isPauliWordType(self, ty):
         """
@@ -1133,6 +1172,26 @@ class PyKernel(object):
                     continue
                 listType = getListType(type(arg[0]))
             mlirType = mlirTypeFromPyType(argType, self.ctx)
+
+            if cc.StdvecType.isinstance(mlirType):
+                # Support passing `list[int]` to a `list[float]` argument
+                if cc.StdvecType.isinstance(self.mlirArgTypes[i]):
+                    maybeCasted = supportCommonCast(mlirType,
+                                                    self.mlirArgTypes[i], arg,
+                                                    IntegerType, F64Type, float)
+                    if maybeCasted != None:
+                        processedArgs.append(maybeCasted)
+                        continue
+
+                    # Support passing `list[float]` to a `list[complex]` argument
+                    maybeCasted = supportCommonCast(mlirType,
+                                                    self.mlirArgTypes[i], arg,
+                                                    F64Type, ComplexType,
+                                                    complex)
+                    if maybeCasted != None:
+                        processedArgs.append(maybeCasted)
+                        continue
+
             if mlirType != self.mlirArgTypes[
                     i] and listType != mlirTypeToPyType(self.mlirArgTypes[i]):
                 emitFatalError(
