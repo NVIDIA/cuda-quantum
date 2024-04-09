@@ -11,9 +11,9 @@
 #include "common/ExecutionContext.h"
 #include "common/KernelWrapper.h"
 #include "cudaq/concepts.h"
+#include "cudaq/host_config.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
-#include "host_config.h"
 #include <complex>
 #include <vector>
 

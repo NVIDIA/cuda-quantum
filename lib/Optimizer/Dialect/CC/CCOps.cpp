@@ -485,8 +485,9 @@ void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
   }
   p << " : " << getGlobalType();
   p.printOptionalAttrDictWithKeyword(
-      (*this)->getAttrs(), {getSymNameAttrName(), getValueAttrName(),
-                            getGlobalTypeAttrName(), getConstantAttrName()});
+      (*this)->getAttrs(),
+      {getSymNameAttrName(), getValueAttrName(), getGlobalTypeAttrName(),
+       getConstantAttrName(), getExternalAttrName()});
 }
 
 //===----------------------------------------------------------------------===//

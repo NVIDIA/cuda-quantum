@@ -14,6 +14,7 @@
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
 #include "common/Timing.h"
+#include "cudaq/host_config.h"
 #include <cstdarg>
 #include <cstddef>
 #include <queue>
@@ -191,8 +192,9 @@ public:
 
   /// @brief Allocate `count` qubits.
   virtual std::vector<std::size_t>
-  allocateQubits(std::size_t count,
-                 const std::complex<double> *state = nullptr) = 0;
+  allocateQubits(std::size_t count, const void *state = nullptr,
+                 cudaq::simulation_precision precision =
+                     cudaq::simulation_precision::fp32) = 0;
 
   /// @brief Deallocate the qubit with give unique index
   virtual void deallocate(const std::size_t qubitIdx) = 0;
@@ -596,7 +598,7 @@ protected:
 
   /// @brief Add the given number of qubits to the state.
   virtual void addQubitsToState(std::size_t count,
-                                const std::complex<double> *state = nullptr) {
+                                const void *state = nullptr) {
     if (state != nullptr)
       throw std::runtime_error("State initialization must be handled by "
                                "subclasses, override addQubitsToState.");
@@ -812,9 +814,25 @@ public:
 
   /// @brief Allocate `count` qubits.
   std::vector<std::size_t>
-  allocateQubits(std::size_t count,
-                 const std::complex<double> *state = nullptr) override {
-    ScopedTraceWithContext("allocateQubits", count);
+  allocateQubits(std::size_t count, const void *state = nullptr,
+                 cudaq::simulation_precision precision =
+                     cudaq::simulation_precision::fp32) override {
+    // Make sure if someone gives us state data, that the precision
+    // is correct for this simulation.
+    if (state != nullptr) {
+      if constexpr (std::is_same_v<ScalarType, float>) {
+        if (precision == cudaq::simulation_precision::fp64)
+          throw std::runtime_error(
+              "Invalid user-provided state data. Simulator "
+              "is FP32 but state data is FP64.");
+      } else {
+        if (precision == cudaq::simulation_precision::fp32)
+          throw std::runtime_error(
+              "Invalid user-provided state data. Simulator "
+              "is FP64 but state data is FP32.");
+      }
+    }
+
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());

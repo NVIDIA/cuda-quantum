@@ -9,10 +9,10 @@
 #pragma once
 
 #include "cudaq/builder/QuakeValue.h"
+#include "cudaq/host_config.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "host_config.h"
 #include <cstring>
 #include <functional>
 #include <map>
@@ -62,13 +62,16 @@ concept KernelBuilderArgTypeIsValid =
     std::disjunction_v<std::is_same<T, Ts>...>;
 
 // If you want to add to the list of valid kernel argument types first add it
-// here, then add `details::mapArgToType()` function
+// here, then add `details::convertArgumentTypeToMLIR()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
-  requires(KernelBuilderArgTypeIsValid<                                        \
-               Args, float, double, std::size_t, int, std::vector<int>,        \
-               std::vector<float>, std::vector<std::size_t>,                   \
-               std::vector<double>, cudaq::qubit, cudaq::qvector<>> &&         \
-           ...)
+  requires(                                                                    \
+      KernelBuilderArgTypeIsValid<                                             \
+          Args, float, double, std::size_t, int, std::vector<int>,             \
+          std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
+          std::vector<std::complex<float>>, std::vector<std::complex<double>>, \
+          std::vector<cudaq::simulation_scalar>, cudaq::qubit,                 \
+          cudaq::qvector<>> &&                                                 \
+      ...)
 #else
 // Not C++ 2020: stub these out.
 #define QuakeValueOrNumericType typename
@@ -79,7 +82,11 @@ namespace details {
 
 /// @brief Type describing user-provided state vector data.
 /// This maps the state vector unique hash to the vector data.
-using StateVectorStorage = std::map<std::size_t, cudaq::complex *>;
+struct StateVectorData {
+  void *data = nullptr;
+  simulation_precision precision = simulation_precision::fp32;
+};
+using StateVectorStorage = std::map<std::size_t, StateVectorData>;
 
 // Define a `mlir::Type` generator in the `cudaq` namespace, this helps us keep
 // MLIR out of this public header
@@ -102,34 +109,42 @@ public:
 };
 
 /// Map a `double` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(double &e);
+KernelBuilderType convertArgumentTypeToMLIR(double &e);
 
 /// Map a `float` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(float &e);
+KernelBuilderType convertArgumentTypeToMLIR(float &e);
 
 /// Map a `int` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(int &e);
+KernelBuilderType convertArgumentTypeToMLIR(int &e);
 
 /// Map a `size_t` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::size_t &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::size_t &e);
 
 /// Map a `std::vector<int>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<int> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<int> &e);
 
 /// Map a `std::vector<std::size_t>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<std::size_t> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<std::size_t> &e);
 
 /// Map a `std::vector<float>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<float> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e);
 
 /// Map a `vector<double>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<double> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<double> &e);
+
+/// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e);
+
+/// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e);
 
 /// Map a `qubit` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(cudaq::qubit &e);
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e);
 
 /// @brief  Map a `qvector` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(cudaq::qvector<> &e);
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e);
 
 /// @brief Initialize the `MLIRContext`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
@@ -165,7 +180,7 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
 
 /// @brief Allocate a `qvector` from a user provided state vector.
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, std::size_t hash,
-                  std::size_t size);
+                  std::size_t size, simulation_precision precision);
 
 /// @brief Create a QuakeValue representing a constant floating-point number
 QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
@@ -397,11 +412,14 @@ private:
   }
 
   /// @brief Compute a unique hash code for the given state vector data.
-  std::size_t hashStateVector(const std::vector<cudaq::complex> &vec) const {
+  template <typename ScalarType>
+  std::size_t
+  hashStateVector(const std::vector<std::complex<ScalarType>> &vec) const {
     auto seed = vec.size();
     for (auto &v : vec)
-      seed ^= std::hash<double>()(v.real()) + std::hash<double>()(v.imag()) +
-              0x9e3779b9 + (seed << 6) + (seed >> 2);
+      seed ^= std::hash<ScalarType>()(v.real()) +
+              std::hash<ScalarType>()(v.imag()) + 0x9e3779b9 + (seed << 6) +
+              (seed >> 2);
     return seed;
   }
 
@@ -455,12 +473,21 @@ public:
   // @brief Return a `QuakeValue` representing the allocated
   // quantum register, initialized to the given state vector.
   // Note - input argument is not const here, user has to own the data.
-  QuakeValue qalloc(std::vector<cudaq::complex> &state) {
+  template <typename ScalarType>
+  QuakeValue qalloc(const std::vector<std::complex<ScalarType>> &state) {
     auto hash = hashStateVector(state);
-    auto value = details::qalloc(*opBuilder.get(), hash, state.size());
-    stateVectorStorage.insert({hash, state.data()});
+    simulation_precision precision = std::is_same_v<ScalarType, float>
+                                         ? simulation_precision::fp32
+                                         : simulation_precision::fp64;
+    auto value =
+        details::qalloc(*opBuilder.get(), hash, state.size(), precision);
+    stateVectorStorage.insert(
+        {hash,
+         details::StateVectorData{
+             const_cast<std::complex<ScalarType> *>(state.data()), precision}});
     return value;
   }
+
   /// @brief Return a `QuakeValue` representing the constant floating-point
   /// value.
   QuakeValue constantVal(double val) {
@@ -912,7 +939,7 @@ CUDAQ_VALID_BUILDER_ARGS_FOLD()
 auto make_kernel() {
   std::vector<details::KernelBuilderType> types;
   cudaq::tuple_for_each(std::tuple<Args...>(), [&](auto &&el) {
-    types.push_back(details::mapArgToType(el));
+    types.push_back(details::convertArgumentTypeToMLIR(el));
   });
   return kernel_builder<Args...>(types);
 }

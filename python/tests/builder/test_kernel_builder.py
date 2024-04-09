@@ -877,41 +877,65 @@ def test_recursive_calls():
     print(kernel3)
 
 
-## [SKIP_TEST]
-@pytest.mark.skip(
-    reason="AttributeError: module 'cudaq' has no attribute 'from_state'")
 def test_from_state():
     cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+
+    kernel, initState = cudaq.make_kernel(list[complex])
+    qubits = kernel.qalloc(initState)
+    
+    # Test float list
+    state = [.70710678, 0., 0., 0.70710678]
+    counts = cudaq.sample(kernel, state)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+    # Test complex list
+    state = [.70710678j, 0., 0., 0.70710678]
+    counts = cudaq.sample(kernel, state)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+    # Test Numpy array 
     state = np.asarray([.70710678, 0., 0., 0.70710678])
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(2)
-
-    cudaq.from_state(kernel, qubits, state)
-
-    print(kernel)
-    counts = cudaq.sample(kernel)
+    counts = cudaq.sample(kernel, state)
     print(counts)
     assert '11' in counts
     assert '00' in counts
+    cudaq.reset_target()
 
-    kernel = cudaq.from_state(state)
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
+    # state = np.asarray([.70710678, 0., 0., 0.70710678])
+    # kernel = cudaq.make_kernel()
+    # qubits = kernel.qalloc(state)
 
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
-    state = np.asarray([0., .292786, .956178, 0.])
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(2)
-    cudaq.from_state(kernel, qubits, state)
-    energy = cudaq.observe(kernel, hamiltonian).expectation()
-    assert np.isclose(-1.748, energy, 1e-3)
+    # cudaq.from_state(kernel, qubits, state)
 
-    ss = cudaq.get_state(kernel)
-    for i in range(4):
-        assert np.isclose(ss[i], state[i], 1e-3)
+    # print(kernel)
+    # counts = cudaq.sample(kernel)
+    # print(counts)
+    # assert '11' in counts
+    # assert '00' in counts
+
+    # kernel = cudaq.from_state(state)
+    # counts = cudaq.sample(kernel)
+    # print(counts)
+    # assert '11' in counts
+    # assert '00' in counts
+
+    # hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+    #     0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+    # state = np.asarray([0., .292786, .956178, 0.])
+    # kernel = cudaq.make_kernel()
+    # qubits = kernel.qalloc(2)
+    # cudaq.from_state(kernel, qubits, state)
+    # energy = cudaq.observe(kernel, hamiltonian).expectation()
+    # assert np.isclose(-1.748, energy, 1e-3)
+
+    # ss = cudaq.get_state(kernel)
+    # for i in range(4):
+    #     assert np.isclose(ss[i], state[i], 1e-3)
 
 
 @skipIfPythonLessThan39

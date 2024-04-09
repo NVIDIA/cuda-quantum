@@ -9,8 +9,8 @@
 #pragma once
 
 #include "common/NoiseModel.h"
+#include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
-#include "host_config.h"
 #include <string>
 #include <type_traits>
 

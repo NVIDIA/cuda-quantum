@@ -184,13 +184,22 @@ Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
   return vectorSizetToArray(qubitIdxs);
 }
 
-Array *
-__quantum__rt__qubit_allocate_array_with_state(uint64_t size,
-                                               std::complex<double> *data) {
-  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data", size);
+Array *__quantum__rt__qubit_allocate_array_with_state_fp64(
+    uint64_t size, std::complex<double> *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp64", size);
   __quantum__rt__initialize(0, nullptr);
-  auto qubitIdxs =
-      nvqir::getCircuitSimulatorInternal()->allocateQubits(size, data);
+  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+      size, data, cudaq::simulation_precision::fp64);
+  return vectorSizetToArray(qubitIdxs);
+}
+
+Array *
+__quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t size,
+                                                    std::complex<float> *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp32", size);
+  __quantum__rt__initialize(0, nullptr);
+  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+      size, data, cudaq::simulation_precision::fp32);
   return vectorSizetToArray(qubitIdxs);
 }
 

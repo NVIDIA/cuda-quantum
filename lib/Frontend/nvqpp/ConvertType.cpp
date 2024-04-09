@@ -18,7 +18,9 @@
 
 using namespace mlir;
 
-static bool isArithmeticType(Type t) { return isa<IntegerType, FloatType>(t); }
+static bool isArithmeticType(Type t) {
+  return isa<IntegerType, FloatType, ComplexType>(t);
+}
 
 /// Is \p t a quantum reference type. In the bridge, quantum types are always
 /// reference types.

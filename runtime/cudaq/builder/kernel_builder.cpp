@@ -19,6 +19,7 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -45,71 +46,75 @@ namespace cudaq::details {
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
 
-/// @brief Return a code instrinsic for describing a function allowing clients
-/// to set the user-provided state vector data.
-static std::string getSetStateInstrinsic(std::size_t hashValue) {
-  return fmt::format(fmt::runtime(R"#(
-  func.func @nvqpp.set.state.{0}(%arg0: !cc.ptr<complex<f64>>) {
-    %0 = cc.address_of @nvqpp.state.{0} : !cc.ptr<!cc.struct<{!cc.ptr<complex<f64>>, i32}>>
-    %1 = cc.compute_ptr %0[0, 0] : (!cc.ptr<!cc.struct<{!cc.ptr<complex<f64>>, i32}>>) -> !cc.ptr<!cc.ptr<complex<f64>>>
-    cc.store %arg0, %1 : !cc.ptr<!cc.ptr<complex<f64>>>
-    return
-  }
-)#"),
-                     hashValue);
-}
-
-KernelBuilderType mapArgToType(double &e) {
+KernelBuilderType convertArgumentTypeToMLIR(double &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float64Type::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(float &e) {
+KernelBuilderType convertArgumentTypeToMLIR(float &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float32Type::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(int &e) {
+KernelBuilderType convertArgumentTypeToMLIR(int &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return IntegerType::get(ctx, 32); });
 }
 
-KernelBuilderType mapArgToType(std::vector<double> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<double> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float64Type::get(ctx));
   });
 }
 
-KernelBuilderType mapArgToType(std::size_t &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::size_t &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return IntegerType::get(ctx, 64); });
 }
 
-KernelBuilderType mapArgToType(std::vector<int> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<int> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 32));
   });
 }
 
-KernelBuilderType mapArgToType(std::vector<std::size_t> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<std::size_t> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 64));
   });
 }
 
 /// Map a std::vector<float> to a KernelBuilderType
-KernelBuilderType mapArgToType(std::vector<float> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float32Type::get(ctx));
   });
 }
 
-KernelBuilderType mapArgToType(cudaq::qubit &e) {
+/// Map a std::vector<complex<double>> to a KernelBuilderType
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::StdvecType::get(ctx,
+                                      ComplexType::get(Float64Type::get(ctx)));
+  });
+}
+
+/// Map a std::vector<complex<float>> to a KernelBuilderType
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::StdvecType::get(ctx,
+                                      ComplexType::get(Float32Type::get(ctx)));
+  });
+}
+
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return quake::RefType::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(cudaq::qvector<> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
 }
@@ -472,15 +477,30 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
   return QuakeValue(builder, qubits);
 }
 
-QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
+QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
   cudaq::info("kernel_builder allocating qubits from quake value");
-  auto value = size.getValue();
+  auto value = sizeOrVec.getValue();
   auto type = value.getType();
+  auto context = builder.getContext();
+
+  if (auto stdvecTy = dyn_cast<cc::StdvecType>(type)) {
+    // get the size
+    Value size = builder.create<cc::StdvecSizeOp>(builder.getI64Type(), value);
+    Value numQubits = builder.create<math::CountTrailingZerosOp>(size);
+    auto veqTy = quake::VeqType::getUnsized(context);
+    // allocate the number of qubits we need
+    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
+
+    auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
+    Value initials = builder.create<cc::StdvecDataOp>(ptrTy, value);
+    builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
+    return QuakeValue(builder, qubits);
+  }
+
   if (!type.isIntOrIndex())
     throw std::runtime_error(
         "Invalid parameter passed to qalloc (must be integer type).");
 
-  auto context = builder.getContext();
   Value qubits = builder.create<quake::AllocaOp>(
       quake::VeqType::getUnsized(context), value);
 
@@ -488,49 +508,66 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
 }
 
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
-                  std::size_t size) {
+                  std::size_t size, simulation_precision precision) {
+  // Drop out early if the vector size is not correct
+  if (!std::has_single_bit(size))
+    throw std::runtime_error("state vector must be a power of 2 in length");
+
+  // Get the context and the parent module op.
   auto *context = builder.getContext();
   auto parentModule =
       builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
 
-  // Add the global for the state data to the module
-  auto f64Ty = builder.getF64Type();
-  auto complexTy = ComplexType::get(f64Ty);
+  // Get the types we'll need
+  auto floatType = precision == simulation_precision::fp64
+                       ? builder.getF64Type()
+                       : builder.getF32Type();
+  auto complexTy = ComplexType::get(floatType);
   auto ptrComplex = cc::PointerType::get(complexTy);
   auto i32Ty = builder.getI32Type();
   auto globalTy =
       cc::StructType::get(context, ArrayRef<Type>{ptrComplex, i32Ty});
+
+  // Create a global pointer to a complex array of data
   {
     OpBuilder::InsertionGuard guard(builder);
-    builder.setInsertionPointToEnd(parentModule.getBody());
+    builder.setInsertionPointToStart(parentModule.getBody());
     auto globalName = "nvqpp.state." + std::to_string(hash);
     builder.create<cc::GlobalOp>(globalTy, globalName, /*value=*/Attribute{},
                                  /*constant=*/false, /*extern=*/true);
   }
 
-  // Add the function allowing one to set the state vector data to the module
-  if (failed(parseSourceString(getSetStateInstrinsic(hash),
-                               parentModule.getBody(),
-                               ParserConfig{context, false})))
-    throw std::runtime_error(
-        "Could not create code for setting the state global data.");
-
-  if (!std::has_single_bit(size))
-    throw std::runtime_error("state vector must be a power of 2 in length");
+  // Create a setter function for that global array pointer
+  {
+    OpBuilder::InsertionGuard guard(builder);
+    builder.setInsertionPointToEnd(parentModule.getBody());
+    auto funcName = "nvqpp.set.state." + std::to_string(hash);
+    FunctionType funcTy = builder.getFunctionType({ptrComplex}, std::nullopt);
+    auto setStateFuncOp = builder.create<func::FuncOp>(funcName, funcTy);
+    auto *entryBlock = setStateFuncOp.addEntryBlock();
+    builder.setInsertionPointToStart(entryBlock);
+    Value address = builder.create<cc::AddressOfOp>(
+        cc::PointerType::get(globalTy), "nvqpp.state." + std::to_string(hash));
+    Value ptr = builder.create<cc::ComputePtrOp>(
+        cc::PointerType::get(ptrComplex), address,
+        ArrayRef<cc::ComputePtrArg>{cc::ComputePtrArg(0),
+                                    cc::ComputePtrArg(0)});
+    builder.create<cc::StoreOp>(entryBlock->getArgument(0), ptr);
+    builder.create<func::ReturnOp>();
+  }
 
   // Allocate the qubits
   Value qubits = builder.create<quake::AllocaOp>(
       quake::VeqType::get(context, std::countr_zero(size)));
 
   // Get the pointer to the global
-  auto resTy = cc::PointerType::get(globalTy);
   auto globalData = parentModule.lookupSymbol<cc::GlobalOp>(
       fmt::format("nvqpp.state.{}", hash));
-  auto addr = builder.create<cc::AddressOfOp>(cc::PointerType::get(resTy),
+  auto addr = builder.create<cc::AddressOfOp>(cc::PointerType::get(globalTy),
                                               globalData.getSymName());
-  auto zero = builder.create<arith::ConstantIntOp>(0, 64);
   auto dataPtr = builder.create<cc::ComputePtrOp>(
-      cc::PointerType::get(complexTy), addr, ValueRange{zero, zero});
+      cc::PointerType::get(ptrComplex), addr,
+      ArrayRef<cc::ComputePtrArg>{cc::ComputePtrArg(0), cc::ComputePtrArg(0)});
 
   // Load the data pointer.
   auto loaded = builder.create<cc::LoadOp>(dataPtr);
@@ -874,10 +911,11 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
   pm.addPass(cudaq::opt::createGenerateKernelExecution());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  // We want quantum allocations to stay where they are if we are simulating and
-  // have user-provided state vectors. This check could be better / smarter
-  // probably, in tandem with some synth strategy to rewrite initState with
-  // circuit synthesis result
+  // We want quantum allocations to stay where they are if
+  // we are simulating and have user-provided state vectors.
+  // This check could be better / smarter probably, in tandem
+  // with some synth strategy to rewrite initState with circuit
+  // synthesis result
   if (stateVectorStorage.empty())
     optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
@@ -974,19 +1012,26 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   // If we have any state vector data, we need to extract the function pointer
   // to set that data, and then set it.
-  for (auto &[stateHash, data] : storage) {
+  for (auto &[stateHash, svdata] : storage) {
     auto setStateFPtr =
         jit->lookup("nvqpp.set.state." + std::to_string(stateHash));
     if (!setStateFPtr)
       throw std::runtime_error(
           "cudaq::builder failed to get set state function.");
 
-    auto setStateFunc = reinterpret_cast<void (*)(complex *)>(*setStateFPtr);
-    setStateFunc(data);
+    if (svdata.precision == simulation_precision::fp64) {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
+    } else {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+    }
   }
 
-  // Incoming Args... have been converted to void **, now we convert to void *
-  // altLaunchKernel args.
+  // Incoming Args... have been converted to void **,
+  // now we convert to void * altLaunchKernel args.
   auto argCreatorName = properName + ".argsCreator";
   auto expectedPtr = jit->lookup(argCreatorName);
   if (!expectedPtr) {
@@ -1019,11 +1064,11 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
   auto parentFunc = block->getParentOp();
   auto module = parentFunc->getParentOfType<ModuleOp>();
 
-  // Strategy - we want to clone this ModuleOp because we have to add a valid
-  // terminator (func.return), but it is not gauranteed that the programmer is
-  // done building up the kernel even though they've asked to look at the quake
-  // code. So we'll clone here, and add the return op (we have to or the print
-  // out string will be invalid (verifier failed)).
+  // Strategy - we want to clone this ModuleOp because we have to
+  // add a valid terminator (func.return), but it is not gauranteed that
+  // the programmer is done building up the kernel even though they've asked
+  // to look at the quake code. So we'll clone here, and add the return op
+  // (we have to or the print out string will be invalid (verifier failed)).
   auto clonedModule = module.clone();
 
   func::FuncOp unwrappedParentFunc = llvm::cast<func::FuncOp>(parentFunc);
