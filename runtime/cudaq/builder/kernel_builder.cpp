@@ -494,15 +494,16 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
       builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
 
   // Add the global for the state data to the module
+  auto f64Ty = builder.getF64Type();
+  auto complexTy = ComplexType::get(f64Ty);
+  auto ptrComplex = cc::PointerType::get(complexTy);
+  auto i32Ty = builder.getI32Type();
+  auto globalTy =
+      cc::StructType::get(context, ArrayRef<Type>{ptrComplex, i32Ty});
   {
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToEnd(parentModule.getBody());
     auto globalName = "nvqpp.state." + std::to_string(hash);
-    auto complexTy = ComplexType::get(builder.getF64Type());
-    auto ptrComplex = cudaq::cc::PointerType::get(complexTy);
-    auto i32Ty = builder.getI32Type();
-    auto globalTy =
-        cudaq::cc::StructType::get(context, ArrayRef<Type>{ptrComplex, i32Ty});
     builder.create<cc::GlobalOp>(globalTy, globalName, /*value=*/Attribute{},
                                  /*constant=*/false, /*extern=*/true);
   }
@@ -522,31 +523,21 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
       quake::VeqType::get(context, std::countr_zero(size)));
 
   // Get the pointer to the global
-  auto f64Ty = builder.getF64Type();
-  auto llvmComplexTy = LLVM::LLVMStructType::getLiteral(
-      context, SmallVector<Type>{f64Ty, f64Ty});
-  auto llvmComplexPtrTy = LLVM::LLVMPointerType::get(llvmComplexTy);
-  auto resTy = LLVM::LLVMStructType::getLiteral(
-      context, SmallVector<Type>{llvmComplexPtrTy, builder.getI32Type()});
-  auto globalData = parentModule.lookupSymbol<LLVM::GlobalOp>(
+  auto resTy = cc::PointerType::get(globalTy);
+  auto globalData = parentModule.lookupSymbol<cc::GlobalOp>(
       fmt::format("nvqpp.state.{}", hash));
-  auto addr = builder.create<LLVM::AddressOfOp>(
-      LLVM::LLVMPointerType::get(resTy), globalData.getSymName());
-  auto zero = builder.create<LLVM::ConstantOp>(builder.getI64Type(), 0);
-  auto dataPtr =
-      builder.create<LLVM::GEPOp>(LLVM::LLVMPointerType::get(llvmComplexPtrTy),
-                                  addr, SmallVector<Value>{zero, zero});
+  auto addr = builder.create<cc::AddressOfOp>(cc::PointerType::get(resTy),
+                                              globalData.getSymName());
+  auto zero = builder.create<arith::ConstantIntOp>(0, 64);
+  auto dataPtr = builder.create<cc::ComputePtrOp>(
+      cc::PointerType::get(complexTy), addr, ValueRange{zero, zero});
 
-  // Load it but cast to a CC data type equivalent
-  auto loaded = builder.create<LLVM::LoadOp>(llvmComplexPtrTy, dataPtr);
-  auto casted = builder.create<cudaq::cc::CastOp>(
-      cudaq::cc::PointerType::get(
-          cudaq::cc::StructType::get(context, SmallVector<Type>{f64Ty, f64Ty})),
-      loaded);
+  // Load the data pointer.
+  auto loaded = builder.create<cc::LoadOp>(dataPtr);
 
   // Add the initialize state op
   qubits = builder.create<quake::InitializeStateOp>(qubits.getType(), qubits,
-                                                    casted);
+                                                    loaded);
   return QuakeValue(builder, qubits);
 }
 
