@@ -46,22 +46,6 @@ namespace cudaq::details {
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
 
-/// @brief Return a code instrinsic for describing a function allowing clients
-/// to set the user-provided state vector data.
-static std::string getSetStateInstrinsic(std::size_t hashValue,
-                                         simulation_precision precision) {
-  return fmt::format(fmt::runtime(R"#(
-  func.func @nvqpp.set.state.{0}(%arg0: !cc.ptr<complex<f64>>) {
-    %0 = cc.address_of @nvqpp.state.{0} : !cc.ptr<!cc.struct<{!cc.ptr<complex<{1}>>, i32}>>
-    %1 = cc.compute_ptr %0[0, 0] : (!cc.ptr<!cc.struct<{!cc.ptr<complex<{1}}>>, i32}>>) -> !cc.ptr<!cc.ptr<complex<{1}}>>>
-    cc.store %arg0, %1 : !cc.ptr<!cc.ptr<complex<{1}}>>>
-    return
-  }
-)#"),
-                     hashValue,
-                     precision == simulation_precision::fp32 ? "f32" : "f64");
-}
-
 KernelBuilderType mapArgToType(double &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float64Type::get(ctx); });
@@ -538,18 +522,29 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
       cc::StructType::get(context, ArrayRef<Type>{ptrComplex, i32Ty});
   {
     OpBuilder::InsertionGuard guard(builder);
-    builder.setInsertionPointToEnd(parentModule.getBody());
+    builder.setInsertionPointToStart(parentModule.getBody());
     auto globalName = "nvqpp.state." + std::to_string(hash);
     builder.create<cc::GlobalOp>(globalTy, globalName, /*value=*/Attribute{},
                                  /*constant=*/false, /*extern=*/true);
   }
 
-  // Add the function allowing one to set the state vector data to the module
-  if (failed(parseSourceString(getSetStateInstrinsic(hash, precision),
-                               parentModule.getBody(),
-                               ParserConfig{context, false})))
-    throw std::runtime_error(
-        "Could not create code for setting the state global data.");
+  {
+    OpBuilder::InsertionGuard guard(builder);
+    builder.setInsertionPointToEnd(parentModule.getBody());
+    auto funcName = "nvqpp.set.state." + std::to_string(hash);
+    FunctionType funcTy = builder.getFunctionType({ptrComplex}, std::nullopt);
+    auto setStateFuncOp = builder.create<func::FuncOp>(funcName, funcTy);
+    auto *entryBlock = setStateFuncOp.addEntryBlock();
+    builder.setInsertionPointToStart(entryBlock);
+    Value address = builder.create<cc::AddressOfOp>(
+        cc::PointerType::get(globalTy), "nvqpp.state." + std::to_string(hash));
+    Value ptr = builder.create<cc::ComputePtrOp>(
+        cc::PointerType::get(ptrComplex), address,
+        ArrayRef<cc::ComputePtrArg>{cc::ComputePtrArg(0),
+                                    cc::ComputePtrArg(0)});
+    builder.create<cc::StoreOp>(entryBlock->getArgument(0), ptr);
+    builder.create<func::ReturnOp>();
+  }
 
   if (!std::has_single_bit(size))
     throw std::runtime_error("state vector must be a power of 2 in length");
@@ -559,14 +554,13 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
       quake::VeqType::get(context, std::countr_zero(size)));
 
   // Get the pointer to the global
-  auto resTy = cc::PointerType::get(globalTy);
   auto globalData = parentModule.lookupSymbol<cc::GlobalOp>(
       fmt::format("nvqpp.state.{}", hash));
-  auto addr = builder.create<cc::AddressOfOp>(cc::PointerType::get(resTy),
+  auto addr = builder.create<cc::AddressOfOp>(cc::PointerType::get(globalTy),
                                               globalData.getSymName());
-  auto zero = builder.create<arith::ConstantIntOp>(0, 64);
   auto dataPtr = builder.create<cc::ComputePtrOp>(
-      cc::PointerType::get(complexTy), addr, ValueRange{zero, zero});
+      cc::PointerType::get(ptrComplex), addr,
+      ArrayRef<cc::ComputePtrArg>{cc::ComputePtrArg(0), cc::ComputePtrArg(0)});
 
   // Load the data pointer.
   auto loaded = builder.create<cc::LoadOp>(dataPtr);

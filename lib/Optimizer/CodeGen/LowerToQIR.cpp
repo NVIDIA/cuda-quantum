@@ -1376,7 +1376,7 @@ public:
     bool isReadOnly = global.getConstant();
     Attribute initializer = global.getValue().value_or(Attribute{});
     auto linkage =
-        global.getExternal() ? LLVM::Linkage::External : LLVM::Linkage::Private;
+        global.getExternal() ? LLVM::Linkage::Linkonce : LLVM::Linkage::Private;
     rewriter.create<LLVM::GlobalOp>(loc, type, isReadOnly, linkage, name,
                                     initializer, /*alignment=*/0);
     rewriter.eraseOp(global);
