@@ -270,7 +270,7 @@ protected:
     cudaMemcpy(tmp.data(), ptr, size * sizeof(std::complex<ScalarType>),
                cudaMemcpyDeviceToHost);
     for (auto &r : tmp)
-      printf("%s: %.12lf\n", name.c_str(), r.real());
+      printf("%s: (%.12lf, %.12lf)\n", name.c_str(), r.real(), r.imag());
     printf("\n");
   }
 
@@ -334,15 +334,14 @@ protected:
     // we just need the zero state, or the user could have provided one
     void *otherState;
     HANDLE_CUDA_ERROR(cudaMalloc((void **)&otherState,
-                                 stateDimension * sizeof(CudaDataType)));
+                                 (1UL << count) * sizeof(CudaDataType)));
     if (state == nullptr) {
       initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
           reinterpret_cast<CudaDataType *>(otherState), (1UL << count));
     } else {
 
       // FIXME Handle case where data is already on GPU
-      std::vector<std::complex<ScalarType>> in(state, state + stateDimension);
-      HANDLE_CUDA_ERROR(cudaMemcpy(otherState, in.data(),
+      HANDLE_CUDA_ERROR(cudaMemcpy(otherState, state,
                                    (1UL << count) * sizeof(CudaDataType),
                                    cudaMemcpyHostToDevice));
     }
@@ -353,7 +352,8 @@ protected:
         reinterpret_cast<CudaDataType *>(deviceStateVector), (1UL << count),
         reinterpret_cast<CudaDataType *>(otherState),
         reinterpret_cast<CudaDataType *>(newDeviceStateVector));
-
+    HANDLE_CUDA_ERROR(cudaGetLastError());
+    
     // Free the old vectors we don't need anymore.
     HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     HANDLE_CUDA_ERROR(cudaFree(otherState));

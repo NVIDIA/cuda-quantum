@@ -150,7 +150,9 @@ public:
           eleTy = rewriter.getF32Type();
     }
 
-    // FIXME Error if not f32/f64
+    if (!isa<FloatType>(eleTy))
+      return raii.emitOpError("invalid type on initialize state operation, "
+                              "must be complex floating point.");
 
     // Get the size of the qubit register
     Type allocTy = adaptor.getAllocType();

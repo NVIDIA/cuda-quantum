@@ -46,53 +46,54 @@ namespace cudaq::details {
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
 
-KernelBuilderType mapArgToType(double &e) {
+KernelBuilderType convertArgumentTypeToMLIR(double &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float64Type::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(float &e) {
+KernelBuilderType convertArgumentTypeToMLIR(float &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float32Type::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(int &e) {
+KernelBuilderType convertArgumentTypeToMLIR(int &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return IntegerType::get(ctx, 32); });
 }
 
-KernelBuilderType mapArgToType(std::vector<double> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<double> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float64Type::get(ctx));
   });
 }
 
-KernelBuilderType mapArgToType(std::size_t &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::size_t &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return IntegerType::get(ctx, 64); });
 }
 
-KernelBuilderType mapArgToType(std::vector<int> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<int> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 32));
   });
 }
 
-KernelBuilderType mapArgToType(std::vector<std::size_t> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<std::size_t> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 64));
   });
 }
 
 /// Map a std::vector<float> to a KernelBuilderType
-KernelBuilderType mapArgToType(std::vector<float> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float32Type::get(ctx));
   });
 }
 
 /// Map a std::vector<complex<double>> to a KernelBuilderType
-KernelBuilderType mapArgToType(std::vector<std::complex<double>> &e) {
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx,
                                       ComplexType::get(Float64Type::get(ctx)));
@@ -100,19 +101,20 @@ KernelBuilderType mapArgToType(std::vector<std::complex<double>> &e) {
 }
 
 /// Map a std::vector<complex<float>> to a KernelBuilderType
-KernelBuilderType mapArgToType(std::vector<std::complex<float>> &e) {
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx,
                                       ComplexType::get(Float32Type::get(ctx)));
   });
 }
 
-KernelBuilderType mapArgToType(cudaq::qubit &e) {
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return quake::RefType::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(cudaq::qvector<> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
 }
@@ -507,11 +509,16 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
 
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
                   std::size_t size, simulation_precision precision) {
+  // Drop out early if the vector size is not correct
+  if (!std::has_single_bit(size))
+    throw std::runtime_error("state vector must be a power of 2 in length");
+
+  // Get the context and the parent module op.
   auto *context = builder.getContext();
   auto parentModule =
       builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
 
-  // Add the global for the state data to the module
+  // Get the types we'll need
   auto floatType = precision == simulation_precision::fp64
                        ? builder.getF64Type()
                        : builder.getF32Type();
@@ -520,6 +527,8 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
   auto i32Ty = builder.getI32Type();
   auto globalTy =
       cc::StructType::get(context, ArrayRef<Type>{ptrComplex, i32Ty});
+
+  // Create a global pointer to a complex array of data
   {
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(parentModule.getBody());
@@ -528,6 +537,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
                                  /*constant=*/false, /*extern=*/true);
   }
 
+  // Create a setter function for that global array pointer
   {
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToEnd(parentModule.getBody());
@@ -545,9 +555,6 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
     builder.create<cc::StoreOp>(entryBlock->getArgument(0), ptr);
     builder.create<func::ReturnOp>();
   }
-
-  if (!std::has_single_bit(size))
-    throw std::runtime_error("state vector must be a power of 2 in length");
 
   // Allocate the qubits
   Value qubits = builder.create<quake::AllocaOp>(

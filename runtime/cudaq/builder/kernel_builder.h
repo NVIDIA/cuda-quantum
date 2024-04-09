@@ -62,7 +62,7 @@ concept KernelBuilderArgTypeIsValid =
     std::disjunction_v<std::is_same<T, Ts>...>;
 
 // If you want to add to the list of valid kernel argument types first add it
-// here, then add `details::mapArgToType()` function
+// here, then add `details::convertArgumentTypeToMLIR()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
   requires(                                                                    \
       KernelBuilderArgTypeIsValid<                                             \
@@ -109,40 +109,42 @@ public:
 };
 
 /// Map a `double` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(double &e);
+KernelBuilderType convertArgumentTypeToMLIR(double &e);
 
 /// Map a `float` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(float &e);
+KernelBuilderType convertArgumentTypeToMLIR(float &e);
 
 /// Map a `int` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(int &e);
+KernelBuilderType convertArgumentTypeToMLIR(int &e);
 
 /// Map a `size_t` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::size_t &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::size_t &e);
 
 /// Map a `std::vector<int>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<int> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<int> &e);
 
 /// Map a `std::vector<std::size_t>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<std::size_t> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<std::size_t> &e);
 
 /// Map a `std::vector<float>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<float> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e);
 
 /// Map a `vector<double>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<double> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<double> &e);
 
 /// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<std::complex<double>> &e);
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e);
 
 /// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<std::complex<float>> &e);
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e);
 
 /// Map a `qubit` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(cudaq::qubit &e);
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e);
 
 /// @brief  Map a `qvector` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(cudaq::qvector<> &e);
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e);
 
 /// @brief Initialize the `MLIRContext`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
@@ -937,7 +939,7 @@ CUDAQ_VALID_BUILDER_ARGS_FOLD()
 auto make_kernel() {
   std::vector<details::KernelBuilderType> types;
   cudaq::tuple_for_each(std::tuple<Args...>(), [&](auto &&el) {
-    types.push_back(details::mapArgToType(el));
+    types.push_back(details::convertArgumentTypeToMLIR(el));
   });
   return kernel_builder<Args...>(types);
 }
