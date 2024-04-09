@@ -205,6 +205,7 @@ class PyKernel(object):
         cc.register_dialect(self.ctx)
         cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
 
+        self.stateVectorStorage = {}
         self.metadata = {'conditionalOnMeasure': False}
         self.regCounter = 0
         self.loc = Location.unknown(context=self.ctx)
@@ -544,21 +545,56 @@ class PyKernel(object):
         ```
         """
         with self.insertPoint, self.loc:
-            # If no initializer, create a single qubit
-            if initializer == None:
-                qubitTy = quake.RefType.get(self.ctx)
-                return self.__createQuakeValue(quake.AllocaOp(qubitTy).result)
-
             # If the initializer is an integer, create `veq<N>`
             if isinstance(initializer, int):
                 veqTy = quake.VeqType.get(self.ctx, initializer)
                 return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
 
-            if isinstance(initializer, np.ndarray):
-                if len(initializer.shape) != 1:
+            if isinstance(initializer, (list, np.ndarray)):
+                if hasattr(initializer, 'shape') and len(initializer.shape) != 1:
                     raise RuntimeError(
                         "invalid initializer for qalloc (np.ndarray must be 1D, vector-like)"
                     )
+                
+                def hashStateVector(state):
+                    seed = len(state)
+                    for el in state: 
+                        seed ^= hash(el.real) + hash(el.imag) + 0x9e3779b9 + (seed << 6) + (seed >> 2)
+                    return seed 
+                
+                hashValue = hashStateVector(initializer)
+                size = len(initializer)
+
+                # FIXME How to handle floating point precision here?
+                floatType = F64Type.get(self.ctx)
+                complexType = ComplexType.get(floatType)
+                ptrComplex = cc.PointerType.get(self.ctx, complexType)
+                i32Ty = self.getIntegerType(32)
+                globalTy = cc.StructType.get(self.ctx, [ptrComplex, i32Ty])
+                globalName = f'nvqpp.state.{hashValue}'
+                setStateName = f'nvqpp.set.state.{hashValue}'
+                with InsertionPoint.at_block_begin(self.module.body):
+                    cc.GlobalOp(TypeAttr.get(globalTy), globalName, external=True)
+                    setStateFunc = func.FuncOp(setStateName, FunctionType.get(inputs=[ptrComplex], results=[]), loc=self.loc)
+                    entry = setStateFunc.add_entry_block()
+                    kDynamicPtrIndex: int = -2147483648
+                    with InsertionPoint(entry):
+                        zero = self.getConstantInt(0)
+                        address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy), FlatSymbolRefAttr.get(globalName))
+                        ptr =  cc.ComputePtrOp(cc.PointerType.get(self.ctx, ptrComplex), address, [zero, zero], DenseI32ArrayAttr.get([kDynamicPtrIndex, kDynamicPtrIndex], context=self.ctx))
+                        cc.StoreOp(entry.arguments[0], ptr)
+                        func.ReturnOp([])
+                
+                zero = self.getConstantInt(0)
+                veqTy = quake.VeqType.get(self.ctx, int(np.log2(size))) # fixme check size
+                qubits = quake.AllocaOp(veqTy).result
+                address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy), FlatSymbolRefAttr.get(globalName))
+                ptr = cc.ComputePtrOp(cc.PointerType.get(self.ctx, ptrComplex), address, [zero, zero], DenseI32ArrayAttr.get([kDynamicPtrIndex, kDynamicPtrIndex], context=self.ctx))
+                loaded = cc.LoadOp(ptr)
+                qubits = quake.InitializeStateOp(qubits.type, qubits, loaded).result
+
+                self.stateVectorStorage[hashValue] = initializer
+                return self.__createQuakeValue(qubits)
 
             # If the initializer is a QuakeValue, see if it is
             # a integer or a `stdvec` type
@@ -584,6 +620,11 @@ class PyKernel(object):
                     quake.InitializeStateOp(veqTy, qubits, initials)
                     return self.__createQuakeValue(qubits)
 
+            # If no initializer, create a single qubit
+            if initializer == None:
+                qubitTy = quake.RefType.get(self.ctx)
+                return self.__createQuakeValue(quake.AllocaOp(qubitTy).result)
+            
             raise RuntimeError("invalid initializer argument for qalloc.")
 
     def __isPauliWordType(self, ty):
@@ -1214,6 +1255,10 @@ class PyKernel(object):
             else:
                 processedArgs.append(arg)
 
+        if len(self.stateVectorStorage):
+            cudaq_runtime.pyAltLaunchKernelWithStateData(self.name, self.module, *processedArgs, stateVectorStorage=self.stateVectorStorage)
+            return 
+        
         cudaq_runtime.pyAltLaunchKernel(self.name, self.module, *processedArgs)
 
 

@@ -30,6 +30,7 @@
 
 #include <fmt/core.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
 
 namespace py = pybind11;
 using namespace mlir;
@@ -362,6 +363,7 @@ void bindAltLaunchKernel(py::module &mod) {
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
       py::arg("callable_names") = std::vector<std::string>{}, "DOC STRING");
+
   mod.def(
       "pyAltLaunchKernelR",
       [&](const std::string &kernelName, MlirModule module, MlirType returnType,
@@ -398,5 +400,100 @@ void bindAltLaunchKernel(py::module &mod) {
         return getQIRLL(name, module, args, profile);
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");
+
+  mod.def(
+      "pyAltLaunchKernelWithStateData",
+      [&](const std::string &kernelName, MlirModule module,
+          py::args runtimeArgs, py::dict &data) {
+        auto kernelFunc = getKernelFuncOp(module, kernelName);
+
+        cudaq::OpaqueArguments args;
+        cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
+        auto noneType = mlir::NoneType::get(unwrap(module).getContext());
+        auto [jit, rawArgs, size] =
+            jitAndCreateArgs(kernelName, module, args, {}, noneType);
+
+        auto mod = unwrap(module);
+        auto thunkName = kernelName + ".thunk";
+        auto thunkPtr = jit->lookup(thunkName);
+        if (!thunkPtr)
+          throw std::runtime_error(
+              "cudaq::builder failed to get thunk function");
+
+        auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
+
+        std::string properName = kernelName;
+
+        // If we have any state vector data, we need to extract the function
+        // pointer to set that data, and then set it.
+        for (auto &[stateHashK, svdata] : data) {
+          std::int64_t stateHash = stateHashK.cast<py::int_>();
+          auto svdataV  = svdata.cast<py::array>();
+          auto info = svdataV.request();
+          auto format = info.format;
+          void *ptr = nullptr;
+          simulation_precision precision = simulation_precision::fp32;
+          if (py::hasattr(svdataV, "shape")) {
+            // numpy array
+            if (py::format_descriptor<std::complex<double>>::format() == format)
+              precision = simulation_precision::fp64;
+
+            ptr = info.ptr;
+          } else
+            throw std::runtime_error("List input not supported yet.");
+
+          if (precision == simulation_precision::fp64)
+            throw std::runtime_error("FP32 not yet supported.");
+
+          auto setStateFPtr =
+              jit->lookup("nvqpp.set.state." + std::to_string(stateHash));
+          if (!setStateFPtr)
+            throw std::runtime_error(
+                "cudaq::builder failed to get set state function.");
+
+          if (precision == simulation_precision::fp64) {
+            auto setStateFunc =
+                reinterpret_cast<void (*)(std::complex<double> *)>(
+                    *setStateFPtr);
+            setStateFunc(reinterpret_cast<std::complex<double> *>(ptr));
+          } else {
+            auto setStateFunc =
+                reinterpret_cast<void (*)(std::complex<float> *)>(
+                    *setStateFPtr);
+            setStateFunc(reinterpret_cast<std::complex<float> *>(ptr));
+          }
+        }
+
+        // Need to first invoke the init_func()
+        auto kernelInitFunc = properName + ".init_func";
+        auto initFuncPtr = jit->lookup(kernelInitFunc);
+        if (!initFuncPtr) {
+          throw std::runtime_error(
+              "cudaq::builder failed to get kernelReg function.");
+        }
+        auto kernelInit = reinterpret_cast<void (*)()>(*initFuncPtr);
+        kernelInit();
+
+        // Need to first invoke the kernelRegFunc()
+        auto kernelRegFunc = properName + ".kernelRegFunc";
+        auto regFuncPtr = jit->lookup(kernelRegFunc);
+        if (!regFuncPtr) {
+          throw std::runtime_error(
+              "cudaq::builder failed to get kernelReg function.");
+        }
+        auto kernelReg = reinterpret_cast<void (*)()>(*regFuncPtr);
+        kernelReg();
+
+        auto &platform = cudaq::get_platform();
+        if (platform.is_remote() || platform.is_emulated()) {
+          auto *wrapper = new cudaq::ArgWrapper{mod, {}, rawArgs};
+          cudaq::altLaunchKernel(kernelName.c_str(), thunk,
+                                 reinterpret_cast<void *>(wrapper), size, 0);
+          delete wrapper;
+        } else
+          cudaq::altLaunchKernel(kernelName.c_str(), thunk, rawArgs, size, 0);
+      },
+      py::arg("kernelName"), py::arg("module"), py::kw_only(),
+      py::arg("stateVectorStorage"), "DOC STRING");
 }
 } // namespace cudaq
