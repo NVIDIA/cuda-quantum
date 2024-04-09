@@ -45,16 +45,6 @@ namespace cudaq::details {
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
 
-/// @brief Return a code intrinsic for describing a global pointer to
-/// user-provided state vector data.
-static std::string getStateDataGlobalIntrinsic(std::size_t hashValue,
-                                               std::size_t size) {
-  return fmt::format(fmt::runtime(R"#(
-  cc.global extern @nvqpp.state.{} : !cc.struct<{!cc.ptr<!cc.struct<{f64,f64}>>, i32}> 
-)#"),
-                     hashValue, size);
-}
-
 /// @brief Return a code instrinsic for describing a function allowing clients
 /// to set the user-provided state vector data.
 static std::string getSetStateInstrinsic(std::size_t hashValue) {
@@ -504,10 +494,18 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
       builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
 
   // Add the global for the state data to the module
-  if (failed(parseSourceString(getStateDataGlobalIntrinsic(hash, size),
-                               parentModule.getBody(),
-                               ParserConfig{context, false})))
-    throw std::runtime_error("Could not create code for state global data.");
+  {
+    OpBuilder::InsertionGuard guard(builder);
+    builder.setInsertionPointToEnd(parentModule.getBody());
+    auto globalName = "nvqpp.state." + std::to_string(hash);
+    auto complexTy = ComplexType::get(builder.getF64Type());
+    auto ptrComplex = cudaq::cc::PointerType::get(complexTy);
+    auto i32Ty = builder.getI32Type();
+    auto globalTy =
+        cudaq::cc::StructType::get(context, ArrayRef<Type>{ptrComplex, i32Ty});
+    builder.create<cc::GlobalOp>(globalTy, globalName, /*value=*/Attribute{},
+                                 /*constant=*/false, /*extern=*/true);
+  }
 
   // Add the function allowing one to set the state vector data to the module
   if (failed(parseSourceString(getSetStateInstrinsic(hash),
