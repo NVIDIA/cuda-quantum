@@ -553,7 +553,7 @@ class PyKernel(object):
             if isinstance(initializer, list):
                 initializer = np.array(initializer, dtype=type(initializer[0]))
 
-            if isinstance(initializer, (list, np.ndarray)):
+            if isinstance(initializer, np.ndarray):
                 hashValue = None
                 if len(initializer.shape) != 1:
                     raise RuntimeError(
@@ -604,8 +604,11 @@ class PyKernel(object):
                         func.ReturnOp([])
 
                 zero = self.getConstantInt(0)
-                veqTy = quake.VeqType.get(self.ctx, int(
-                    np.log2(size)))  # fixme check size
+                numQubits = np.log2(size)
+                if not numQubits.is_integer():
+                    raise RuntimeError("invalid input state size for qalloc (not a power of 2)")
+                # Fixme check state is normalized
+                veqTy = quake.VeqType.get(self.ctx, int(numQubits)) 
                 qubits = quake.AllocaOp(veqTy).result
                 address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
                                          FlatSymbolRefAttr.get(globalName))

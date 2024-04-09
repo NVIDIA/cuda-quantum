@@ -934,6 +934,9 @@ def test_from_state():
         # Wrong precision for fp64 simulator
         qubits = kernel.qalloc(state)
 
+    with pytest.raises(RuntimeError) as e:
+        qubits = kernel.qalloc(np.array([1., 0., 0.], dtype=complex))
+
     cudaq.reset_target()
 
     # FIXME Handle FP32 simulation backend case.
