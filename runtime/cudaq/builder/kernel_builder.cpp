@@ -49,10 +49,10 @@ static std::size_t regCounter = 0;
 /// to set the user-provided state vector data.
 static std::string getSetStateInstrinsic(std::size_t hashValue) {
   return fmt::format(fmt::runtime(R"#(
-  func.func @nvqpp.set.state.{0}(%arg0: !cc.ptr<!cc.struct<{f64, f64}>>) {
-    %0 = cc.address_of @nvqpp.state.{0} : !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{f64, f64}>>, i32}>>
-    %1 = cc.compute_ptr %0[0, 0] : (!cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{f64, f64}>>, i32}>>) -> !cc.ptr<!cc.ptr<!cc.struct<{f64, f64}>>>
-    cc.store %arg0, %1 : !cc.ptr<!cc.ptr<!cc.struct<{f64, f64}>>>
+  func.func @nvqpp.set.state.{0}(%arg0: !cc.ptr<complex<f64>>) {
+    %0 = cc.address_of @nvqpp.state.{0} : !cc.ptr<!cc.struct<{!cc.ptr<complex<f64>>, i32}>>
+    %1 = cc.compute_ptr %0[0, 0] : (!cc.ptr<!cc.struct<{!cc.ptr<complex<f64>>, i32}>>) -> !cc.ptr<!cc.ptr<complex<f64>>>
+    cc.store %arg0, %1 : !cc.ptr<!cc.ptr<complex<f64>>>
     return
   }
 )#"),
