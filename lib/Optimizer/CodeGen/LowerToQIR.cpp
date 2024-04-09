@@ -1359,9 +1359,10 @@ public:
     auto name = global.getSymName();
     bool isReadOnly = global.getConstant();
     Attribute initializer = global.getValue().value_or(Attribute{});
-    rewriter.create<LLVM::GlobalOp>(loc, type, isReadOnly,
-                                    LLVM::Linkage::Private, name, initializer,
-                                    /*alignment=*/0);
+    auto linkage =
+        global.getExternal() ? LLVM::Linkage::External : LLVM::Linkage::Private;
+    rewriter.create<LLVM::GlobalOp>(loc, type, isReadOnly, linkage, name,
+                                    initializer, /*alignment=*/0);
     rewriter.eraseOp(global);
     return success();
   }

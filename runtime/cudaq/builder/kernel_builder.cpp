@@ -45,39 +45,16 @@ namespace cudaq::details {
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
 
-/// @brief Return a code intrinsic for describing a global pointer to
-/// user-provided state vector data.
-static std::string getStateDataGlobalIntrinsic(std::size_t hashValue,
-                                               std::size_t size) {
-  return fmt::format(
-      fmt::runtime(
-          R"#(llvm.mlir.global external local_unnamed_addr @nvqpp.state.{}() {{addr_space = 0 : i32, alignment = 8 : i64, dso_local}} : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> {{
-    %0 = llvm.mlir.null : !llvm.ptr<struct<(f64,f64)>>
-    %1 = llvm.mlir.constant({} : i32) : i32
-    %2 = llvm.mlir.undef : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)>
-    %3 = llvm.insertvalue %0, %2[0] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
-    %4 = llvm.insertvalue %1, %3[1] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
-    llvm.return %4 : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)>
-  }})#"),
-      hashValue, size);
-}
-
 /// @brief Return a code instrinsic for describing a function allowing clients
 /// to set the user-provided state vector data.
 static std::string getSetStateInstrinsic(std::size_t hashValue) {
   return fmt::format(fmt::runtime(R"#(
-  llvm.func @nvqpp.set.state.{0}(%arg0: !llvm.ptr<struct<(f64,f64)>>) {{
-    %0 = llvm.mlir.null : !llvm.ptr<struct<(f64,f64)>>
-    %1 = llvm.mlir.constant(0 : i32) : i32
-    %2 = llvm.mlir.undef : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)>
-    %3 = llvm.insertvalue %0, %2[0] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
-    %4 = llvm.insertvalue %1, %3[1] : !llvm.struct<(ptr<struct<(f64,f64)>>, i32)> 
-    %5 = llvm.mlir.addressof @nvqpp.state.{0} : !llvm.ptr<struct<(ptr<struct<(f64, f64)>>, i32)>>
-    %6 = llvm.mlir.constant(0 : i64) : i64
-    %7 = llvm.getelementptr inbounds %5[%6, 0] : (!llvm.ptr<struct<(ptr<struct<(f64, f64)>>, i32)>>, i64) -> !llvm.ptr<ptr<struct<(f64, f64)>>>
-    llvm.store %arg0, %7 : !llvm.ptr<ptr<struct<(f64, f64)>>>
-    llvm.return
-  }}
+  func.func @nvqpp.set.state.{0}(%arg0: !cc.ptr<complex<f64>>) {
+    %0 = cc.address_of @nvqpp.state.{0} : !cc.ptr<!cc.struct<{!cc.ptr<complex<f64>>, i32}>>
+    %1 = cc.compute_ptr %0[0, 0] : (!cc.ptr<!cc.struct<{!cc.ptr<complex<f64>>, i32}>>) -> !cc.ptr<!cc.ptr<complex<f64>>>
+    cc.store %arg0, %1 : !cc.ptr<!cc.ptr<complex<f64>>>
+    return
+  }
 )#"),
                      hashValue);
 }
@@ -517,10 +494,19 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
       builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
 
   // Add the global for the state data to the module
-  if (failed(parseSourceString(getStateDataGlobalIntrinsic(hash, size),
-                               parentModule.getBody(),
-                               ParserConfig{context, false})))
-    throw std::runtime_error("Could not create code for state global data.");
+  auto f64Ty = builder.getF64Type();
+  auto complexTy = ComplexType::get(f64Ty);
+  auto ptrComplex = cc::PointerType::get(complexTy);
+  auto i32Ty = builder.getI32Type();
+  auto globalTy =
+      cc::StructType::get(context, ArrayRef<Type>{ptrComplex, i32Ty});
+  {
+    OpBuilder::InsertionGuard guard(builder);
+    builder.setInsertionPointToEnd(parentModule.getBody());
+    auto globalName = "nvqpp.state." + std::to_string(hash);
+    builder.create<cc::GlobalOp>(globalTy, globalName, /*value=*/Attribute{},
+                                 /*constant=*/false, /*extern=*/true);
+  }
 
   // Add the function allowing one to set the state vector data to the module
   if (failed(parseSourceString(getSetStateInstrinsic(hash),
@@ -537,31 +523,21 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
       quake::VeqType::get(context, std::countr_zero(size)));
 
   // Get the pointer to the global
-  auto f64Ty = builder.getF64Type();
-  auto llvmComplexTy = LLVM::LLVMStructType::getLiteral(
-      context, SmallVector<Type>{f64Ty, f64Ty});
-  auto llvmComplexPtrTy = LLVM::LLVMPointerType::get(llvmComplexTy);
-  auto resTy = LLVM::LLVMStructType::getLiteral(
-      context, SmallVector<Type>{llvmComplexPtrTy, builder.getI32Type()});
-  auto globalData = parentModule.lookupSymbol<LLVM::GlobalOp>(
+  auto resTy = cc::PointerType::get(globalTy);
+  auto globalData = parentModule.lookupSymbol<cc::GlobalOp>(
       fmt::format("nvqpp.state.{}", hash));
-  auto addr = builder.create<LLVM::AddressOfOp>(
-      LLVM::LLVMPointerType::get(resTy), globalData.getSymName());
-  auto zero = builder.create<LLVM::ConstantOp>(builder.getI64Type(), 0);
-  auto dataPtr =
-      builder.create<LLVM::GEPOp>(LLVM::LLVMPointerType::get(llvmComplexPtrTy),
-                                  addr, SmallVector<Value>{zero, zero});
+  auto addr = builder.create<cc::AddressOfOp>(cc::PointerType::get(resTy),
+                                              globalData.getSymName());
+  auto zero = builder.create<arith::ConstantIntOp>(0, 64);
+  auto dataPtr = builder.create<cc::ComputePtrOp>(
+      cc::PointerType::get(complexTy), addr, ValueRange{zero, zero});
 
-  // Load it but cast to a CC data type equivalent
-  auto loaded = builder.create<LLVM::LoadOp>(llvmComplexPtrTy, dataPtr);
-  auto casted = builder.create<cudaq::cc::CastOp>(
-      cudaq::cc::PointerType::get(
-          cudaq::cc::StructType::get(context, SmallVector<Type>{f64Ty, f64Ty})),
-      loaded);
+  // Load the data pointer.
+  auto loaded = builder.create<cc::LoadOp>(dataPtr);
 
   // Add the initialize state op
   qubits = builder.create<quake::InitializeStateOp>(qubits.getType(), qubits,
-                                                    casted);
+                                                    loaded);
   return QuakeValue(builder, qubits);
 }
 

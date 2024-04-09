@@ -437,7 +437,12 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
 
 ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
                                        OperationState &result) {
-  // Check for the `constant` optional keyword first.
+  // Check for the `extern` optional keyword first.
+  if (succeeded(parser.parseOptionalKeyword("extern")))
+    result.addAttribute(getExternalAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Check for the `constant` optional keyword second.
   if (succeeded(parser.parseOptionalKeyword("constant")))
     result.addAttribute(getConstantAttrName(result.name),
                         parser.getBuilder().getUnitAttr());
@@ -468,6 +473,8 @@ ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
 
 void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
   p << ' ';
+  if (getExternal())
+    p << "extern ";
   if (getConstant())
     p << "constant ";
   p.printSymbolName(getSymName());
