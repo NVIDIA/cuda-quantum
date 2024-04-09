@@ -2402,6 +2402,10 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
                       builder.create<math::CountTrailingZerosOp>(loc, size);
             } else {
               std::size_t arraySize = arrTy.getSize();
+              if (!std::has_single_bit(arraySize)) {
+                reportClangError(x, mangler,
+                                 "state vector must be a power of 2 in length");
+              }
               numQubits = builder.create<arith::ConstantIntOp>(
                   loc, std::countr_zero(arraySize), 64);
             }

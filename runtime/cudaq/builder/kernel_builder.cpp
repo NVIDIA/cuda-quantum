@@ -529,9 +529,12 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
     throw std::runtime_error(
         "Could not create code for setting the state global data.");
 
+  if (!std::has_single_bit(size))
+    throw std::runtime_error("state vector must be a power of 2 in length");
+
   // Allocate the qubits
   Value qubits = builder.create<quake::AllocaOp>(
-      quake::VeqType::get(context, std::log2(size)));
+      quake::VeqType::get(context, std::countr_zero(size)));
 
   // Get the pointer to the global
   auto f64Ty = builder.getF64Type();
