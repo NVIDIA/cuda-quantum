@@ -90,7 +90,7 @@ def synthesize(kernel, *args):
 def simulation_dtype():
     """
     Return the data type for the current simulation backend, 
-    either `complex128` or `complex64`.
+    either `numpy.complex128` or `numpy.complex64`.
     """
     target = get_target()
     precision = target.get_precision()
