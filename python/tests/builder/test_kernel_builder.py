@@ -984,6 +984,14 @@ def test_from_state():
     assert '11' in counts
     assert '00' in counts
 
+    kernel, initState = cudaq.make_kernel(list[np.complex64])
+    qubits = kernel.qalloc(initState)
+    state = cudaq.create_state([.70710678, 0., 0., 0.70710678])
+    counts = cudaq.sample(kernel, state)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
 
 @skipIfPythonLessThan39
 def test_pauli_word_input():

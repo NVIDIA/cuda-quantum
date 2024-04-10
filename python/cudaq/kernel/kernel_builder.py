@@ -267,6 +267,7 @@ class PyKernel(object):
                     'bool': bool,
                     'float': float,
                     'complex': complex,
+                    'numpy.complex64': np.complex64,
                     'pauli_word': cudaq_runtime.pauli_word
                 }
                 # Infer the slice type
@@ -562,7 +563,6 @@ class PyKernel(object):
                 initializer = np.array(initializer, dtype=type(initializer[0]))
 
             if isinstance(initializer, np.ndarray):
-                hashValue = None
                 if len(initializer.shape) != 1:
                     raise RuntimeError(
                         "invalid initializer for qalloc (np.ndarray must be 1D, vector-like)"
