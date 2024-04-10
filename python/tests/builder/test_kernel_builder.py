@@ -883,7 +883,7 @@ def test_from_state():
 
     kernel, initState = cudaq.make_kernel(list[complex])
     qubits = kernel.qalloc(initState)
-    
+
     # Test float64 list, casts to complex
     state = [.70710678, 0., 0., 0.70710678]
     counts = cudaq.sample(kernel, state)
@@ -898,7 +898,7 @@ def test_from_state():
     assert '11' in counts
     assert '00' in counts
 
-    # Test Numpy array 
+    # Test Numpy array
     state = np.asarray([.70710678, 0., 0., 0.70710678])
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -914,20 +914,20 @@ def test_from_state():
     assert '11' in counts
     assert '00' in counts
 
-    state = [.70710678+0j, 0., 0., 0.70710678]
+    state = [.70710678 + 0j, 0., 0., 0.70710678]
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(state)
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
     assert '00' in counts
-    
+
     state = np.array([.70710678, 0., 0., 0.70710678])
     kernel = cudaq.make_kernel()
     with pytest.raises(RuntimeError) as e:
-        # float data and not complex data 
+        # float data and not complex data
         qubits = kernel.qalloc(state)
-    
+
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
     kernel = cudaq.make_kernel()
     with pytest.raises(RuntimeError) as e:
@@ -939,7 +939,50 @@ def test_from_state():
 
     cudaq.reset_target()
 
-    # FIXME Handle FP32 simulation backend case.
+    # Handle FP32 simulation backend case.
+    cudaq.set_target('nvidia')
+
+    state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex128)
+    kernel = cudaq.make_kernel()
+    with pytest.raises(RuntimeError) as e:
+        qubits = kernel.qalloc(state)
+
+    state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
+    kernel2 = cudaq.make_kernel()
+    qubits = kernel2.qalloc(state)
+    counts = cudaq.sample(kernel2)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+    cudaq.reset_target()
+
+    # Regardless of the target precision, use
+    # cudaq.simulation_dtype() or cudaq.create_state()
+    state = np.array([.70710678, 0., 0., 0.70710678],
+                     dtype=cudaq.simulation_dtype())
+    kernel2 = cudaq.make_kernel()
+    qubits = kernel2.qalloc(state)
+    counts = cudaq.sample(kernel2)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+    state = cudaq.create_state([.70710678, 0., 0., 0.70710678])
+    kernel2 = cudaq.make_kernel()
+    qubits = kernel2.qalloc(state)
+    counts = cudaq.sample(kernel2)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+    state = cudaq.create_state(np.array([.70710678, 0., 0., 0.70710678]))
+    kernel2 = cudaq.make_kernel()
+    qubits = kernel2.qalloc(state)
+    counts = cudaq.sample(kernel2)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
 
 
 @skipIfPythonLessThan39
@@ -953,12 +996,13 @@ def test_pauli_word_input():
         1, 3, 3, -0.0454063, -0, 15
     ]
     h = cudaq.SpinOperator(h2_data, 4)
-    
+
     kernel, theta, paulis = cudaq.make_kernel(float, list[cudaq.pauli_word])
     q = kernel.qalloc(4)
     kernel.x(q[0])
     kernel.x(q[1])
-    kernel.for_loop(0, paulis.size(), lambda idx : kernel.exp_pauli(theta, q, paulis[idx]))
+    kernel.for_loop(0, paulis.size(),
+                    lambda idx: kernel.exp_pauli(theta, q, paulis[idx]))
 
     print(kernel)
     want_exp = cudaq.observe(kernel, h, .11, ['XXXY']).expectation()

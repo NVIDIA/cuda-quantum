@@ -206,6 +206,7 @@ class PyKernel(object):
         cc.register_dialect(self.ctx)
         cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
 
+        self.stateHashes = []
         self.metadata = {'conditionalOnMeasure': False}
         self.regCounter = 0
         self.loc = Location.unknown(context=self.ctx)
@@ -244,6 +245,13 @@ class PyKernel(object):
                 func.ReturnOp([])
 
             self.insertPoint = InsertionPoint.at_block_begin(e)
+
+    def __del__(self):
+        """
+        When a kernel builder is deleted we need to clean up 
+        any state data if there is any.
+        """
+        cudaq_runtime.deletePointersToStateData(self.stateHashes)
 
     def __processArgType(self, ty):
         """
@@ -559,19 +567,39 @@ class PyKernel(object):
                     raise RuntimeError(
                         "invalid initializer for qalloc (np.ndarray must be 1D, vector-like)"
                     )
-                
-                if initializer.dtype not in [complex, np.complex128, np.complex64]:
-                    raise RuntimeError("qalloc state data must be of complex dtype.")
 
-                # FIXME check dtype vs simulator backend dtype
+                if initializer.dtype not in [
+                        complex, np.complex128, np.complex64
+                ]:
+                    raise RuntimeError(
+                        "qalloc state data must be of complex dtype.")
+
+                # Get the current simulation precision
+                currentTarget = cudaq_runtime.get_target()
+                simulationPrecision = currentTarget.get_precision()
+                if initializer.dtype in [np.complex128, complex]:
+                    if simulationPrecision == cudaq_runtime.SimulationPrecision.fp32:
+                        raise RuntimeError(
+                            "qalloc input state is complex128 but simulator is on complex64 floating point type."
+                        )
+
                 if initializer.dtype == np.complex64:
-                    raise RuntimeError("qalloc complex64 support coming soon.")
-                
-                hashValue = hashlib.sha1(initializer).hexdigest() 
+                    if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
+                        raise RuntimeError(
+                            "qalloc input state is complex64 but simulator is on complex128 floating point type."
+                        )
+
+                # Compute a unique hash string for the state data
+                hashValue = hashlib.sha1(initializer).hexdigest(
+                )[:10] + self.name.removeprefix('__nvqppBuilderKernel_')
+
+                # Get the size of the array
                 size = len(initializer)
 
-                # FIXME How to handle floating point precision here?
-                floatType = F64Type.get(self.ctx)
+                floatType = F64Type.get(
+                    self.ctx
+                ) if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64 else F32Type.get(
+                    self.ctx)
                 complexType = ComplexType.get(floatType)
                 ptrComplex = cc.PointerType.get(self.ctx, complexType)
                 i32Ty = self.getIntegerType(32)
@@ -606,9 +634,11 @@ class PyKernel(object):
                 zero = self.getConstantInt(0)
                 numQubits = np.log2(size)
                 if not numQubits.is_integer():
-                    raise RuntimeError("invalid input state size for qalloc (not a power of 2)")
+                    raise RuntimeError(
+                        "invalid input state size for qalloc (not a power of 2)"
+                    )
                 # Fixme check state is normalized
-                veqTy = quake.VeqType.get(self.ctx, int(numQubits)) 
+                veqTy = quake.VeqType.get(self.ctx, int(numQubits))
                 qubits = quake.AllocaOp(veqTy).result
                 address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
                                          FlatSymbolRefAttr.get(globalName))
@@ -621,8 +651,13 @@ class PyKernel(object):
                 qubits = quake.InitializeStateOp(qubits.type, qubits,
                                                  loaded).result
 
+                # Record the unique hash value
+                if hashValue not in self.stateHashes:
+                    self.stateHashes.append(hashValue)
+
+                # Store the pointer to the array data
                 cudaq_runtime.storePointerToStateData(
-                    hashValue, initializer,
+                    self.name, hashValue, initializer,
                     cudaq_runtime.SimulationPrecision.fp64)
 
                 return self.__createQuakeValue(qubits)

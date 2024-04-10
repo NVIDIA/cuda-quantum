@@ -41,6 +41,7 @@ static std::unique_ptr<JITExecutionCache> jitCache;
 struct PyStateVectorData {
   void *data = nullptr;
   simulation_precision precision = simulation_precision::fp32;
+  std::string kernelName;
 };
 using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
 
@@ -198,10 +199,12 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   // If we have any state vector data, we need to extract the function pointer
   // to set that data, and then set it.
   for (auto &[stateHash, svdata] : *stateStorage) {
-    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
-    // Only operate if we have the data setter
-    if (!setStateFPtr)
+    if (svdata.kernelName != name)
       continue;
+    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
+    if (!setStateFPtr)
+      throw std::runtime_error(
+          "python alt_launch_kernel failed to get set state function.");
 
     if (svdata.precision == simulation_precision::fp64) {
       auto setStateFunc =
@@ -430,15 +433,27 @@ void bindAltLaunchKernel(py::module &mod) {
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");
 
-  py::enum_<simulation_precision>(mod, "SimulationPrecision")
-      .value("fp32", simulation_precision::fp32)
-      .value("fp64", simulation_precision::fp64);
+  mod.def(
+      "storePointerToStateData",
+      [](const std::string &name, const std::string &hash, py::buffer data,
+         simulation_precision precision) {
+        auto ptr = data.request().ptr;
+        stateStorage->insert({hash, PyStateVectorData{ptr, precision, name}});
+      },
+      "Store qalloc state initialization array data.");
 
-  mod.def("storePointerToStateData",
-          [](const std::string &hash, py::buffer data,
-             simulation_precision precision) {
-            auto ptr = data.request().ptr;
-            stateStorage->insert({hash, PyStateVectorData{ptr, precision}});
-          });
+  mod.def(
+      "deletePointersToStateData",
+      [](const std::vector<std::string> &hashes) {
+        for (auto iter = stateStorage->cbegin(); iter != stateStorage->end();) {
+          if (std::find(hashes.begin(), hashes.end(), iter->first) !=
+              hashes.end()) {
+            stateStorage->erase(iter++);
+            continue;
+          }
+          iter++;
+        }
+      },
+      "Remove our pointers to the qalloc array data.");
 }
 } // namespace cudaq
