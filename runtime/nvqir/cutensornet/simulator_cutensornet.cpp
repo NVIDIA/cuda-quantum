@@ -138,6 +138,11 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
 }
 
+/// @brief Device synchronization
+void SimulatorTensorNetBase::synchronize() {
+  HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
+}
+
 /// @brief Perform a measurement on a given qubit
 bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
   LOG_API_TIME();
@@ -269,8 +274,7 @@ cudaq::State SimulatorTensorNetBase::getStateData() {
 
 nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
 
-void SimulatorTensorNetBase::addQubitsToState(std::size_t count,
-                                              const std::complex<double> *) {
+void SimulatorTensorNetBase::addQubitsToState(std::size_t count, const void *) {
   LOG_API_TIME();
   if (!m_state)
     m_state = std::make_unique<TensorNetState>(count, m_cutnHandle);

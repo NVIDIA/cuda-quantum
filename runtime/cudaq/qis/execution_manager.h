@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/QuditIdTracker.h"
+#include "cudaq/host_config.h"
 #include "cudaq/spin_op.h"
 #include <deque>
 #include <string_view>
@@ -115,7 +116,8 @@ public:
   /// @brief Initialize the state of the given qudits to the provided
   /// state vector.
   virtual void initializeState(const std::vector<QuditInfo> &targets,
-                               const complex *state) = 0;
+                               const void *state,
+                               simulation_precision precision) = 0;
 
   /// Apply the quantum instruction with the given name, on the provided target
   /// qudits. Supports input of control qudits and rotational parameters. Can
@@ -153,6 +155,10 @@ public:
 
   /// Synchronize - run all queue-ed instructions
   virtual void synchronize() = 0;
+
+  /// Flush the gate queue (needed for accurate timing information)
+  virtual void flushGateQueue(){};
+
   virtual ~ExecutionManager() = default;
 };
 

@@ -56,7 +56,8 @@ protected:
   }
 
   void initializeState(const std::vector<cudaq::QuditInfo> &targets,
-                       const cudaq::complex *state) override {
+                       const void *state,
+                       simulation_precision precision) override {
     throw std::runtime_error("initializeState not implemented.");
   }
 

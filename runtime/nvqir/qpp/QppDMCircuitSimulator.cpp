@@ -69,7 +69,7 @@ protected:
   void addQubitToState() override { addQubitsToState(1); }
 
   void addQubitsToState(std::size_t count,
-                        const std::complex<double> *data = nullptr) override {
+                        const void *data = nullptr) override {
     if (count == 0)
       return;
 

@@ -105,6 +105,7 @@ public:
   }
 
   void resetExecutionContext() override {
+    ScopedTraceWithContext("BasicExecutionManager::resetExecutionContext");
     synchronize();
 
     if (!executionContext)

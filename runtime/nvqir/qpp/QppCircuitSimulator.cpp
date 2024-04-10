@@ -88,11 +88,13 @@ protected:
 
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
-  void
-  addQubitsToState(std::size_t count,
-                   const std::complex<double> *stateData = nullptr) override {
+  void addQubitsToState(std::size_t count,
+                        const void *stateDataIn = nullptr) override {
     if (count == 0)
       return;
+
+    auto *stateData = reinterpret_cast<std::complex<double> *>(
+        const_cast<void *>(stateDataIn));
 
     if (state.size() == 0) {
       // If this is the first time, allocate the state
@@ -100,8 +102,7 @@ protected:
         state = qpp::ket::Zero(stateDimension);
         state(0) = 1.0;
       } else
-        state = qpp::ket::Map(const_cast<std::complex<double> *>(stateData),
-                              stateDimension);
+        state = qpp::ket::Map(stateData, stateDimension);
       return;
     }
 
@@ -113,8 +114,7 @@ protected:
       zero_state(0) = 1.0;
       state = qpp::kron(zero_state, state);
     } else {
-      qpp::ket initState =
-          qpp::ket::Map(const_cast<std::complex<double> *>(stateData), count);
+      qpp::ket initState = qpp::ket::Map(stateData, count);
       state = qpp::kron(initState, state);
     }
     return;
@@ -175,7 +175,11 @@ protected:
   }
 
 public:
-  QppCircuitSimulator() = default;
+  QppCircuitSimulator() {
+    // Populate the correct name so it is printed correctly during
+    // deconstructor.
+    summaryData.name = name();
+  }
   virtual ~QppCircuitSimulator() = default;
 
   void setRandomSeed(std::size_t seed) override {
@@ -287,6 +291,10 @@ public:
     // There has to be at least one copy
     return cudaq::State{{stateDimension},
                         {state.data(), state.data() + state.size()}};
+  }
+
+  bool isStateVectorSimulator() const override {
+    return std::is_same_v<StateType, qpp::ket>;
   }
 
   /// @brief Primarily used for testing.

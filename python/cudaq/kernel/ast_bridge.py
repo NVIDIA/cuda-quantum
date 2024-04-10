@@ -563,6 +563,61 @@ class PyASTBridge(ast.NodeVisitor):
                 )
         return
 
+    def __processRangeLoopIterationBounds(self, argumentNodes):
+        """
+        Analyze `range(...)` bounds and return the start, end, 
+        and step values, as well as whether or not this a decrementing range.
+        """
+        iTy = self.getIntegerType(64)
+        zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
+        one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
+        isDecrementing = False
+        if len(argumentNodes) == 3:
+            # Find the step val and we need to
+            # know if its decrementing
+            # can be incrementing or decrementing
+            stepVal = self.popValue()
+            if isinstance(argumentNodes[2], ast.UnaryOp):
+                if isinstance(argumentNodes[2].op, ast.USub):
+                    if isinstance(argumentNodes[2].operand, ast.Constant):
+                        if argumentNodes[2].operand.value > 0:
+                            isDecrementing = True
+                    else:
+                        self.emitFatalError(
+                            'CUDA Quantum requires step value on range() to be a constant.'
+                        )
+
+            # exclusive end
+            endVal = self.popValue()
+
+            # inclusive start
+            startVal = self.popValue()
+
+        elif len(argumentNodes) == 2:
+            stepVal = one
+            endVal = self.popValue()
+            startVal = self.popValue()
+        else:
+            stepVal = one
+            endVal = self.popValue()
+            startVal = zero
+
+        startVal = self.ifPointerThenLoad(startVal)
+        endVal = self.ifPointerThenLoad(endVal)
+        stepVal = self.ifPointerThenLoad(stepVal)
+
+        # Range expects integers
+        if F64Type.isinstance(startVal.type):
+            startVal = arith.FPToSIOp(self.getIntegerType(), startVal).result
+
+        if F64Type.isinstance(endVal.type):
+            endVal = arith.FPToSIOp(self.getIntegerType(), endVal).result
+
+        if F64Type.isinstance(stepVal.type):
+            stepVal = arith.FPToSIOp(self.getIntegerType(), stepVal).result
+
+        return startVal, endVal, stepVal, isDecrementing
+
     def needsStackSlot(self, type):
         """
         Return true if this is a type that has been "passed by value" and 
@@ -1022,61 +1077,12 @@ class PyASTBridge(ast.NodeVisitor):
                     "__len__ not supported on variables of this type.", node)
 
             if node.func.id == "range":
+                startVal, endVal, stepVal, isDecrementing = self.__processRangeLoopIterationBounds(
+                    node.args)
+
                 iTy = self.getIntegerType(64)
                 zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
                 one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
-
-                # If this is a range(start, stop, step) call, then we
-                # need to know if the step value is incrementing or decrementing
-                # If we don't know this, we cannot compile this range statement
-                # (this is an issue with compiling a runtime interpreted language)
-                isDecrementing = False
-                if len(node.args) == 3:
-                    # Find the step val and we need to
-                    # know if its decrementing
-                    # can be incrementing or decrementing
-                    stepVal = self.popValue()
-                    if isinstance(node.args[2], ast.UnaryOp):
-                        if isinstance(node.args[2].op, ast.USub):
-                            if isinstance(node.args[2].operand, ast.Constant):
-                                if node.args[2].operand.value > 0:
-                                    isDecrementing = True
-                            else:
-                                self.emitFatalError(
-                                    'CUDA Quantum requires step value on range() to be a constant.',
-                                    node)
-
-                    # exclusive end
-                    endVal = self.popValue()
-
-                    # inclusive start
-                    startVal = self.popValue()
-
-                elif len(node.args) == 2:
-                    stepVal = one
-                    endVal = self.popValue()
-                    startVal = self.popValue()
-                else:
-                    stepVal = one
-                    endVal = self.popValue()
-                    startVal = zero
-
-                startVal = self.ifPointerThenLoad(startVal)
-                endVal = self.ifPointerThenLoad(endVal)
-                stepVal = self.ifPointerThenLoad(stepVal)
-
-                # Range expects integers
-                if F64Type.isinstance(startVal.type):
-                    startVal = arith.FPToSIOp(self.getIntegerType(),
-                                              startVal).result
-
-                if F64Type.isinstance(endVal.type):
-                    endVal = arith.FPToSIOp(self.getIntegerType(),
-                                            endVal).result
-
-                if F64Type.isinstance(stepVal.type):
-                    stepVal = arith.FPToSIOp(self.getIntegerType(),
-                                             stepVal).result
 
                 # The total number of elements in the iterable
                 # we are generating should be `N == endVal - startVal`
@@ -2107,10 +2113,10 @@ class PyASTBridge(ast.NodeVisitor):
         idx = self.popValue()
 
         # Support `VAR[-1]` as the last element of `VAR`
-        if quake.VeqType.isinstance(var.type) and isinstance(
-                idx.owner.opview, arith.ConstantOp):
-            if 'value' in idx.owner.attributes:
-                try:
+        if quake.VeqType.isinstance(var.type):
+            if hasattr(idx.owner, 'opview') and isinstance(
+                    idx.owner.opview, arith.ConstantOp):
+                if 'value' in idx.owner.attributes:
                     concreteIntAttr = IntegerAttr(idx.owner.attributes['value'])
                     idxConcrete = concreteIntAttr.value
                     if idxConcrete == -1:
@@ -2124,11 +2130,8 @@ class PyASTBridge(ast.NodeVisitor):
                                                -1,
                                                index=endOff).result)
                         return
-                except ValueError as e:
-                    pass
 
-        # Made it here, general VAR[idx], handle `veq` and `stdvec`
-        if quake.VeqType.isinstance(var.type):
+            # Made it here, general VAR[idx], handle `veq` and `stdvec`
             qrefTy = self.getRefType()
             if not IntegerType.isinstance(idx.type):
                 self.emitFatalError(
@@ -2137,7 +2140,9 @@ class PyASTBridge(ast.NodeVisitor):
 
             self.pushValue(
                 quake.ExtractRefOp(qrefTy, var, -1, index=idx).result)
-        elif cc.StdvecType.isinstance(var.type):
+            return
+
+        if cc.StdvecType.isinstance(var.type):
             eleTy = cc.StdvecType.getElementType(var.type)
             elePtrTy = cc.PointerType.get(self.ctx, eleTy)
             vecPtr = cc.StdvecDataOp(elePtrTy, var).result
@@ -2150,7 +2155,8 @@ class PyASTBridge(ast.NodeVisitor):
                 return
             self.pushValue(cc.LoadOp(eleAddr).result)
             return
-        elif cc.PointerType.isinstance(var.type):
+
+        if cc.PointerType.isinstance(var.type):
             ptrEleTy = cc.PointerType.getElementType(var.type)
             # Return the pointer if someone asked for it
             if self.subscriptPushPointerValue:
@@ -2167,8 +2173,8 @@ class PyASTBridge(ast.NodeVisitor):
                                           context=self.ctx)).result
                 self.pushValue(cc.LoadOp(eleAddr).result)
                 return
-        else:
-            self.emitFatalError("unhandled subscript", node)
+
+        self.emitFatalError("unhandled subscript", node)
 
     def visit_For(self, node):
         """
@@ -2182,6 +2188,30 @@ class PyASTBridge(ast.NodeVisitor):
             print('[Visit For]')
 
         self.currentNode = node
+
+        # We can simplify `for i in range(N)` MLIR code immensely
+        # by just building a for loop with N as the upper value,
+        # no need to generate an array from the `range` call.
+        if isinstance(node.iter, ast.Call):
+            if node.iter.func.id == 'range':
+                # This is a range(N) for loop, we just need
+                # the upper bound N for this loop
+                [self.visit(arg) for arg in node.iter.args]
+                startVal, endVal, stepVal, isDecrementing = self.__processRangeLoopIterationBounds(
+                    node.iter.args)
+
+                def bodyBuilder(iterVar):
+                    self.symbolTable.pushScope()
+                    self.symbolTable.add(node.target.id, iterVar)
+                    [self.visit(b) for b in node.body]
+                    self.symbolTable.popScope()
+
+                self.createInvariantForLoop(endVal,
+                                            bodyBuilder,
+                                            startVal=startVal,
+                                            stepVal=stepVal,
+                                            isDecrementing=isDecrementing)
+                return
 
         self.visit(node.iter)
         assert len(self.valueStack) > 0 and len(self.valueStack) < 3

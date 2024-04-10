@@ -61,10 +61,11 @@ protected:
   }
 
   void initializeState(const std::vector<cudaq::QuditInfo> &targets,
-                       const cudaq::complex *state) override {
+                       const void *state,
+                       cudaq::simulation_precision precision) override {
     // Here we have qubits in requestedAllocations
     // want to allocate and set state
-    simulator()->allocateQubits(requestedAllocations.size(), state);
+    simulator()->allocateQubits(requestedAllocations.size(), state, precision);
     requestedAllocations.clear();
   }
 
@@ -162,6 +163,12 @@ protected:
                    const std::string &registerName) override {
     flushRequestedAllocations();
     return simulator()->mz(q.id, registerName);
+  }
+
+  void flushGateQueue() override {
+    synchronize();
+    flushRequestedAllocations();
+    simulator()->flushGateQueue();
   }
 
   void measureSpinOp(const cudaq::spin_op &op) override {

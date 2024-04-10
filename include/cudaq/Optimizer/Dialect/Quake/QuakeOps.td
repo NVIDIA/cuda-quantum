@@ -316,6 +316,8 @@ def quake_InitializeStateOp : QuakeOp<"init_state", [MemoryEffects<[MemAlloc,
   let assemblyFormat = [{
     $targets `,` $state `:` functional-type(operands, results) attr-dict
   }];
+
+  let hasVerifier = 1;
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {

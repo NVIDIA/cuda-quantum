@@ -41,6 +41,7 @@ std::tuple<ExecutionEngine *, void *, std::size_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
                  const std::vector<std::string> &names, Type returnType) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
   auto mod = unwrap(module);
   auto cloned = mod.clone();
   auto context = cloned.getContext();
@@ -56,6 +57,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   if (jitCache->hasJITEngine(hashKey))
     jit = jitCache->getJITEngine(hashKey);
   else {
+    ScopedTraceWithContext(cudaq::TIMING_JIT,
+                           "jitAndCreateArgs - execute passes", name);
 
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(
@@ -64,9 +67,15 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
     cudaq::opt::addPipelineToQIR<>(pm);
+
+    DefaultTimingManager tm;
+    tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+    auto timingScope = tm.getRootScope(); // starts the timer
+    pm.enableTiming(timingScope);         // do this right before pm.run
     if (failed(pm.run(cloned)))
       throw std::runtime_error(
           "cudaq::builder failed to JIT compile the Quake representation.");
+    timingScope.stop();
 
     // The "fast" instruction selection compilation algorithm is actually very
     // slow for large quantum circuits. Disable that here. Revisit this
@@ -250,6 +259,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
                             cudaq::OpaqueArguments &runtimeArgs) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
   auto [jit, rawArgs, size] =
@@ -267,9 +277,14 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   pm.addPass(cudaq::opt::createLoopNormalize());
   pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
+  DefaultTimingManager tm;
+  tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+  auto timingScope = tm.getRootScope(); // starts the timer
+  pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
+  timingScope.stop();
   std::free(rawArgs);
   return wrap(cloned);
 }
@@ -277,6 +292,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
 std::string getQIRLL(const std::string &name, MlirModule module,
                      cudaq::OpaqueArguments &runtimeArgs,
                      std::string &profile) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIRLL", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
   auto [jit, rawArgs, size] =
@@ -289,9 +305,14 @@ std::string getQIRLL(const std::string &name, MlirModule module,
     cudaq::opt::addPipelineToQIR<>(pm);
   else
     cudaq::opt::addPipelineToQIR<true>(pm, profile);
+  DefaultTimingManager tm;
+  tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+  auto timingScope = tm.getRootScope(); // starts the timer
+  pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
+  timingScope.stop();
   std::free(rawArgs);
 
   llvm::LLVMContext llvmContext;

@@ -8,21 +8,18 @@
 
 #pragma once
 
-#include "cudaq/host_config.h"
-#include <type_traits>
+// The intent of this file is to have no other header dependencies so that it
+// can always be included everywhere without inheriting any additional
+// dependencies.
 
-#if CUDAQ_USE_STD20
 namespace cudaq {
-
-/// @brief Sample or observe calls need to have valid trailing runtime arguments
-/// Define a concept that ensures the given kernel can be called with
-/// the provided runtime arguments types.
-template <typename QuantumKernel, typename... Args>
-concept ValidArgumentsPassed = std::is_invocable_v<QuantumKernel, Args...>;
-
-/// @brief All kernels passed to sample or observe must have a void return type.
-template <typename ReturnType>
-concept HasVoidReturnType = std::is_void_v<ReturnType>;
-
+static constexpr int TIMING_OBSERVE = 1;
+static constexpr int TIMING_ALLOCATE = 2;
+static constexpr int TIMING_LAUNCH = 3;
+static constexpr int TIMING_SAMPLE = 4;
+static constexpr int TIMING_GATE_COUNT = 5;
+static constexpr int TIMING_JIT = 6;
+static constexpr int TIMING_JIT_PASSES = 7;
+static constexpr int TIMING_MAX_VALUE = 7;
+bool isTimingTagEnabled(int tag);
 } // namespace cudaq
-#endif
