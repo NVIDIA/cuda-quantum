@@ -637,7 +637,13 @@ class PyKernel(object):
                     raise RuntimeError(
                         "invalid input state size for qalloc (not a power of 2)"
                     )
-                # Fixme check state is normalized
+
+                # check state is normalized
+                norm = sum([np.conj(a) * a for a in initializer])
+                if np.abs(norm.imag) > 1e-4 or np.abs(1. - norm.real) > 1e-4:
+                    raise RuntimeError(
+                        "invalid input state for qalloc (not normalized)")
+
                 veqTy = quake.VeqType.get(self.ctx, int(numQubits))
                 qubits = quake.AllocaOp(veqTy).result
                 address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),

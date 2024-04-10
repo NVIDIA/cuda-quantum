@@ -976,7 +976,7 @@ def test_from_state():
     assert '11' in counts
     assert '00' in counts
 
-    state = cudaq.create_state(np.array([.70710678]*4))
+    state = cudaq.create_state(np.array([.5]*4))
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
     counts = cudaq.sample(kernel2)
