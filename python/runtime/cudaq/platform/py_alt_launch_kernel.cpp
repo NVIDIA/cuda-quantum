@@ -29,6 +29,7 @@
 #include "mlir/Target/LLVMIR/Export.h"
 
 #include <fmt/core.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
@@ -36,6 +37,16 @@ using namespace mlir;
 
 namespace cudaq {
 static std::unique_ptr<JITExecutionCache> jitCache;
+
+struct PyStateVectorData {
+  void *data = nullptr;
+  simulation_precision precision = simulation_precision::fp32;
+  std::string kernelName;
+};
+using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
+
+static std::unique_ptr<PyStateVectorStorage> stateStorage =
+    std::make_unique<PyStateVectorStorage>();
 
 std::tuple<ExecutionEngine *, void *, std::size_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
@@ -184,6 +195,28 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
 
   std::string properName = name;
+
+  // If we have any state vector data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, svdata] : *stateStorage) {
+    if (svdata.kernelName != name)
+      continue;
+    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
+    if (!setStateFPtr)
+      throw std::runtime_error(
+          "python alt_launch_kernel failed to get set state function.");
+
+    if (svdata.precision == simulation_precision::fp64) {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
+      continue;
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
+    setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+  }
 
   // Need to first invoke the init_func()
   auto kernelInitFunc = properName + ".init_func";
@@ -362,6 +395,7 @@ void bindAltLaunchKernel(py::module &mod) {
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
       py::arg("callable_names") = std::vector<std::string>{}, "DOC STRING");
+
   mod.def(
       "pyAltLaunchKernelR",
       [&](const std::string &kernelName, MlirModule module, MlirType returnType,
@@ -398,5 +432,28 @@ void bindAltLaunchKernel(py::module &mod) {
         return getQIRLL(name, module, args, profile);
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");
+
+  mod.def(
+      "storePointerToStateData",
+      [](const std::string &name, const std::string &hash, py::buffer data,
+         simulation_precision precision) {
+        auto ptr = data.request().ptr;
+        stateStorage->insert({hash, PyStateVectorData{ptr, precision, name}});
+      },
+      "Store qalloc state initialization array data.");
+
+  mod.def(
+      "deletePointersToStateData",
+      [](const std::vector<std::string> &hashes) {
+        for (auto iter = stateStorage->cbegin(); iter != stateStorage->end();) {
+          if (std::find(hashes.begin(), hashes.end(), iter->first) !=
+              hashes.end()) {
+            stateStorage->erase(iter++);
+            continue;
+          }
+          iter++;
+        }
+      },
+      "Remove our pointers to the qalloc array data.");
 }
 } // namespace cudaq

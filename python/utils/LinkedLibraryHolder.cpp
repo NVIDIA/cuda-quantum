@@ -29,6 +29,8 @@ constexpr static const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
 constexpr static const char NVQIR_SIMULATION_BACKEND[] =
     "NVQIR_SIMULATION_BACKEND=";
 constexpr static const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
+constexpr static const char IS_FP64_SIMULATION[] =
+    "CUDAQ_SIMULATION_SCALAR_FP64";
 
 /// @brief A utility function to check availability of Nvidia GPUs and return
 /// their count
@@ -75,6 +77,8 @@ bool RuntimeTarget::is_emulated() {
   return platform.is_emulated();
 }
 
+simulation_precision RuntimeTarget::get_precision() { return precision; }
+
 /// @brief Search the targets folder in the install for available targets.
 void findAvailableTargets(
     const std::filesystem::path &targetPath,
@@ -89,6 +93,7 @@ void findAvailableTargets(
     if (path.extension().string() == ".config") {
       bool isSimulationTarget = false;
       // Extract the target name from the file name
+      simulation_precision precision = simulation_precision::fp32;
       auto fileName = path.filename().string();
       auto targetName = std::regex_replace(fileName, std::regex(".config"), "");
       std::string platformName = "default", simulatorName = "qpp",
@@ -124,6 +129,8 @@ void findAvailableTargets(
             description.erase(
                 std::remove(description.begin(), description.end(), '\"'),
                 description.end());
+          } else if (line.find(IS_FP64_SIMULATION) != std::string::npos) {
+            precision = simulation_precision::fp64;
           }
         }
       }
@@ -131,14 +138,15 @@ void findAvailableTargets(
       cudaq::info("Found Target: {} -> (sim={}, platform={})", targetName,
                   simulatorName, platformName);
       // Add the target.
-      targets.emplace(targetName, RuntimeTarget{targetName, simulatorName,
-                                                platformName, description});
+      targets.emplace(targetName,
+                      RuntimeTarget{targetName, simulatorName, platformName,
+                                    description, precision});
       if (isSimulationTarget) {
         cudaq::info("Found Simulation target: {} -> (sim={}, platform={})",
                     targetName, simulatorName, platformName);
-        simulationTargets.emplace(targetName,
-                                  RuntimeTarget{targetName, simulatorName,
-                                                platformName, description});
+        simulationTargets.emplace(
+            targetName, RuntimeTarget{targetName, simulatorName, platformName,
+                                      description, precision});
         isSimulationTarget = false;
       }
     }

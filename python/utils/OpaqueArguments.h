@@ -323,17 +323,31 @@ packArgs(OpaqueArguments &argData, py::args args,
                 return;
               })
               .Case([&](ComplexType type) {
-                genericVecAllocator.template operator()<std::complex<double>>(
-                    [](py::handle element) -> std::complex<double> {
-                      if (!py::hasattr(element, "real"))
-                        throw std::runtime_error(
-                            "invalid complex element type");
-                      if (!py::hasattr(element, "imag"))
-                        throw std::runtime_error(
-                            "invalid complex element type");
-                      return {PyFloat_AsDouble(element.attr("real").ptr()),
-                              PyFloat_AsDouble(element.attr("imag").ptr())};
-                    });
+                if (isa<Float64Type>(type.getElementType())) {
+                  genericVecAllocator.template operator()<std::complex<double>>(
+                      [](py::handle element) -> std::complex<double> {
+                        if (!py::hasattr(element, "real"))
+                          throw std::runtime_error(
+                              "invalid complex element type");
+                        if (!py::hasattr(element, "imag"))
+                          throw std::runtime_error(
+                              "invalid complex element type");
+                        return {PyFloat_AsDouble(element.attr("real").ptr()),
+                                PyFloat_AsDouble(element.attr("imag").ptr())};
+                      });
+                } else {
+                  genericVecAllocator.template operator()<std::complex<float>>(
+                      [](py::handle element) -> std::complex<float> {
+                        if (!py::hasattr(element, "real"))
+                          throw std::runtime_error(
+                              "invalid complex element type");
+                        if (!py::hasattr(element, "imag"))
+                          throw std::runtime_error(
+                              "invalid complex element type");
+                        return {element.attr("real").cast<float>(),
+                                element.attr("imag").cast<float>()};
+                      });
+                }
                 return;
               })
               .Default([](Type ty) {
