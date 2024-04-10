@@ -19,7 +19,7 @@ Check out our `documentation <https://nvidia.github.io/cuda-quantum/latest/using
 to get started with the new Python syntax support we have added, and `follow our blog <https://developer.nvidia.com/cuda-q>`__
 to learn more about the new setup and its performance benefits.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__ (use tag 0.7.0)
 - `Python wheel <https://pypi.org/project/cuda-quantum/>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.7.0>`__
