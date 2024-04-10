@@ -79,10 +79,13 @@ concept KernelBuilderArgTypeIsValid =
 #endif
 
 namespace details {
+/// Use parametric type: initializations must be vectors of complex float or
+/// double. No other type is allowed.
 using StateVectorVariant = std::variant<std::vector<std::complex<float>> *,
                                         std::vector<std::complex<double>> *>;
 /// Type describing user-provided state vector data. This is a list of the state
-/// vector variables used in a kernel with qvector's with initial state.
+/// vector variables used in a kernel with at least one `qvector` with initial
+/// state.
 using StateVectorStorage = std::vector<StateVectorVariant>;
 
 // Define a `mlir::Type` generator in the `cudaq` namespace, this helps us keep
