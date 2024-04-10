@@ -113,9 +113,11 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
   if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
     echo "Installing toolchain ${toolchain}..."
     if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
-      llvm_stage1_tmpdir="$(mktemp -d)" && LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir"
+      llvm_stage1_tmpdir="$(mktemp -d)"
+      LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir/llvm"
+      LLVM_STAGE1_SOURCE="${LLVM_SOURCE:-$llvm_stage1_tmpdir/llvm_source}"
     fi
-    LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" \
+    LLVM_SOURCE="$LLVM_STAGE1_SOURCE" LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" \
     source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
   fi
   if [ ! -x "$(command -v cmake)" ]; then
@@ -123,6 +125,7 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     temp_install_if_command_unknown wget wget
     wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
     bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
+    rm cmake-install.sh 
   fi
   if [ ! -x "$(command -v ninja)" ]; then
     echo "Installing Ninja..."
@@ -135,7 +138,7 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     tar -xzvf v1.11.1.tar.gz && cd ninja-1.11.1
     cmake -B build && cmake --build build
     mv build/ninja /usr/local/bin/
-    rm -rf v1.11.1.tar.gz ninja-1.11.1
+    rm -rf v1.11.1.tar.gz ninja-1.11.1 v1.11.1.tar.gz
   fi
 fi
 
@@ -174,7 +177,7 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     LLVM_PROJECTS="$LLVM_PROJECTS" \
     PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
-    LD_LIBRARY_PATH="$(dirname $CC)/../lib/$(uname -m)-unknown-linux-gnu"
+    LD_LIBRARY_PATH="$(dirname $CC)/../lib/$(uname -m)-unknown-linux-gnu" \
     bash "$this_file_dir/build_llvm.sh" -v
   else 
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."

@@ -120,6 +120,7 @@ elif [ "$toolchain" = "llvm" ]; then
             # since using a different compiler tends to cause issues with a customized llvm build.
             source "$(readlink -f "${BASH_SOURCE[0]}")" -t clang16 || \
             echo -e "\e[01;31mError: Failed to install clang compiler for bootstrapping.\e[0m" >&2
+            toolchain=llvm
             if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
                 echo -e "\e[01;31mError: No clang compiler set for bootstrapping. Please define the environment variables CC and CXX.\e[0m" >&2
                 (return 0 2>/dev/null) && return 2 || exit 2
@@ -137,8 +138,10 @@ elif [ "$toolchain" = "llvm" ]; then
         fi
 
         if [ -d "$llvm_tmp_dir" ]; then
-            echo "The build logs have been moved to $LLVM_INSTALL_PREFIX/logs."
-            mkdir -p "$LLVM_INSTALL_PREFIX/logs" && mv "$llvm_tmp_dir/build/logs"/* "$LLVM_INSTALL_PREFIX/logs/"
+            if [ -n "$(ls -A "$llvm_tmp_dir/build/logs"/* 2> /dev/null)" ]; then
+                echo "The build logs have been moved to $LLVM_INSTALL_PREFIX/logs."
+                mkdir -p "$LLVM_INSTALL_PREFIX/logs" && mv "$llvm_tmp_dir/build/logs"/* "$LLVM_INSTALL_PREFIX/logs/"
+            fi
             rm -rf "$llvm_tmp_dir"
         fi
     fi

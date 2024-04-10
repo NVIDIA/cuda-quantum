@@ -186,7 +186,7 @@ cmake_args=" \
 #  -DLLVM_ENABLE_LIBCXX=ON \
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
-  LLVM_CMAKE_CACHE=`find ../cmake -path '*/caches/*' -name LLVM.cmake`
+  LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
 fi
 if [ -f "$LLVM_CMAKE_CACHE" ]; then 
   echo "Using CMake cache in $LLVM_CMAKE_CACHE."
@@ -226,17 +226,19 @@ if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
   cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
-  if [ -n "$llvm_runtimes" ]; then
-    echo "Building runtime components..."
-    ninja runtimes
-    ninja install-runtimes
-    status=$?
-    if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
-      echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
-      cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
-    else
-      echo "Successfully added runtime components $(echo $llvm_runtimes | sed 's/;/, /g')."
-    fi
-  fi
-  cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
 fi
+
+if [ -n "$llvm_runtimes" ]; then
+  echo "Building runtime components..."
+  ninja runtimes
+  ninja install-runtimes
+  status=$?
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
+    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+  else
+    echo "Successfully added runtime components $(echo $llvm_runtimes | sed 's/;/, /g')."
+  fi
+fi
+
+cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
