@@ -79,14 +79,11 @@ concept KernelBuilderArgTypeIsValid =
 #endif
 
 namespace details {
-
-/// @brief Type describing user-provided state vector data.
-/// This maps the state vector unique hash to the vector data.
-struct StateVectorData {
-  void *data = nullptr;
-  simulation_precision precision = simulation_precision::fp32;
-};
-using StateVectorStorage = std::map<std::size_t, StateVectorData>;
+using StateVectorVariant = std::variant<std::vector<std::complex<float>> *,
+                                        std::vector<std::complex<double>> *>;
+/// Type describing user-provided state vector data. This is a list of the state
+/// vector variables used in a kernel with qvector's with initial state.
+using StateVectorStorage = std::vector<StateVectorVariant>;
 
 // Define a `mlir::Type` generator in the `cudaq` namespace, this helps us keep
 // MLIR out of this public header
@@ -179,8 +176,9 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
 
 /// @brief Allocate a `qvector` from a user provided state vector.
-QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, std::size_t hash,
-                  std::size_t size, simulation_precision precision);
+QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
+                  StateVectorStorage &stateVectorData,
+                  StateVectorVariant &&state, simulation_precision precision);
 
 /// @brief Create a QuakeValue representing a constant floating-point number
 QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
@@ -350,10 +348,7 @@ public:
   /// @brief Write the kernel_builder to the given output stream. This outputs
   /// the Quake representation.
   friend std::ostream &operator<<(std::ostream &stream,
-                                  const kernel_builder_base &builder) {
-    stream << builder.to_quake();
-    return stream;
-  }
+                                  const kernel_builder_base &builder);
 };
 
 } // namespace details
@@ -411,18 +406,6 @@ private:
     return std::get<std::string>(term);
   }
 
-  /// @brief Compute a unique hash code for the given state vector data.
-  template <typename ScalarType>
-  std::size_t
-  hashStateVector(const std::vector<std::complex<ScalarType>> &vec) const {
-    auto seed = vec.size();
-    for (auto &v : vec)
-      seed ^= std::hash<ScalarType>()(v.real()) +
-              std::hash<ScalarType>()(v.imag()) + 0x9e3779b9 + (seed << 6) +
-              (seed >> 2);
-    return seed;
-  }
-
   /// @brief Storage for any user-provided state-vector data.
   details::StateVectorStorage stateVectorStorage;
 
@@ -473,19 +456,15 @@ public:
   // @brief Return a `QuakeValue` representing the allocated
   // quantum register, initialized to the given state vector.
   // Note - input argument is not const here, user has to own the data.
-  template <typename ScalarType>
-  QuakeValue qalloc(const std::vector<std::complex<ScalarType>> &state) {
-    auto hash = hashStateVector(state);
-    simulation_precision precision = std::is_same_v<ScalarType, float>
-                                         ? simulation_precision::fp32
-                                         : simulation_precision::fp64;
-    auto value =
-        details::qalloc(*opBuilder.get(), hash, state.size(), precision);
-    stateVectorStorage.insert(
-        {hash,
-         details::StateVectorData{
-             const_cast<std::complex<ScalarType> *>(state.data()), precision}});
-    return value;
+  QuakeValue qalloc(std::vector<std::complex<double>> &state) {
+    return details::qalloc(*opBuilder.get(), stateVectorStorage,
+                           details::StateVectorVariant{&state},
+                           simulation_precision::fp64);
+  }
+  QuakeValue qalloc(std::vector<std::complex<float>> &state) {
+    return details::qalloc(*opBuilder.get(), stateVectorStorage,
+                           details::StateVectorVariant{&state},
+                           simulation_precision::fp32);
   }
 
   /// @brief Return a `QuakeValue` representing the constant floating-point
