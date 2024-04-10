@@ -171,4 +171,9 @@ void TensorNetSimulationState::destroyState() {
   m_state.reset();
 }
 
+void TensorNetSimulationState::dump(std::ostream &os) const {
+  const auto tmp = m_state->getStateVector();
+  for (auto &t : tmp)
+    os << t << "\n";
+}
 } // namespace nvqir

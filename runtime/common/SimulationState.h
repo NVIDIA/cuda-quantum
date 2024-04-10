@@ -160,8 +160,12 @@ public:
   /// given tensor index and at the given indices.
   virtual std::complex<double>
   operator()(std::size_t tensorIdx, const std::vector<std::size_t> &indices) {
-    throw std::runtime_error(
-        "element extraction not enabled for this SimulationState.");
+    if (!isArrayLike())
+      throw std::runtime_error(
+          "Element extraction by linear indexing not supported by this "
+          "SimulationState. Please use getAmplitude.");
+    throw std::runtime_error("Internal error: Failed to implement linear "
+                             "indexing for array-like SimulationState.");
   }
 
   /// @brief Return the number of elements in this state representation.
@@ -175,6 +179,13 @@ public:
 
   /// @brief Return true if this `SimulationState` wraps data on the GPU.
   virtual bool isDeviceData() const { return false; }
+
+  /// @brief Return true if this `SimulationState` wraps contiguous memory
+  /// (array-like).
+  //  If true, `operator()` can be used to index elements in a multi-dimensional
+  //  array manner.
+  // Otherwise, `getAmplitude()` must be used.
+  virtual bool isArrayLike() const { return true; }
 
   /// @brief Transfer data from device to host, return the data
   /// to the pointer provided by the client. Clients must specify the number of

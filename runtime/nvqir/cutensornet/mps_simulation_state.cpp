@@ -17,12 +17,15 @@ int deviceFromPointer(void *ptr) {
   return attributes.device;
 }
 std::size_t MPSSimulationState::getNumQubits() const {
-  return state->getNumQubits();
+  return state->getNumQubits() - m_auxTensorIds.size();
 }
 
-MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
-                                       const std::vector<MPSTensor> &mpsTensors)
-    : state(std::move(inState)), m_mpsTensors(mpsTensors) {}
+MPSSimulationState::MPSSimulationState(
+    std::unique_ptr<TensorNetState> inState,
+    const std::vector<MPSTensor> &mpsTensors,
+    const std::vector<std::size_t> &auxTensorIds)
+    : state(std::move(inState)), m_mpsTensors(mpsTensors),
+      m_auxTensorIds(auxTensorIds) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
@@ -59,14 +62,19 @@ std::complex<double> MPSSimulationState::computeOverlap(
     tensExtents[i] = m_mpsTensors[i].extents;
     tensExtents[mpsNumTensors + i] = mpsOtherTensors[i].extents;
     tensAttr[i] = cutensornetTensorQualifiers_t{0, 0, 0};
-    tensAttr[mpsNumTensors + i] = cutensornetTensorQualifiers_t{0, 0, 0};
+    tensAttr[mpsNumTensors + i] = cutensornetTensorQualifiers_t{1, 0, 0};
   }
   std::vector<std::vector<int32_t>> tensModes(numTensors);
   int32_t umode = 0;
   for (int i = 0; i < mpsNumTensors; ++i) {
     if (i == 0) {
-      tensModes[i] = std::initializer_list<int32_t>{umode, umode + 1};
-      umode += 2;
+      if (mpsNumTensors > 1) {
+        tensModes[i] = std::initializer_list<int32_t>{umode, umode + 1};
+        umode += 2;
+      } else {
+        tensModes[i] = std::initializer_list<int32_t>{umode};
+        umode += 1;
+      }
     } else if (i == (mpsNumTensors - 1)) {
       tensModes[i] = std::initializer_list<int32_t>{umode - 1, umode};
       umode += 1;
@@ -80,10 +88,15 @@ std::complex<double> MPSSimulationState::computeOverlap(
   umode = 0;
   for (int i = 0; i < mpsNumTensors; ++i) {
     if (i == 0) {
-      tensModes[mpsNumTensors + i] =
-          std::initializer_list<int32_t>{umode, lmode};
-      umode += 2;
-      lmode += 1;
+      if (mpsNumTensors > 1) {
+        tensModes[mpsNumTensors + i] =
+            std::initializer_list<int32_t>{umode, lmode};
+        umode += 2;
+        lmode += 1;
+      } else {
+        tensModes[mpsNumTensors + i] = std::initializer_list<int32_t>{umode};
+        umode += 1;
+      }
     } else if (i == (mpsNumTensors - 1)) {
       tensModes[mpsNumTensors + i] =
           std::initializer_list<int32_t>{lmode - 1, umode};
@@ -220,7 +233,12 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
         "[tensornet-state] getAmplitude with an invalid basis state: only "
         "qubit state (0 or 1) is supported.");
   if (getNumQubits() > 1) {
-    TensorNetState basisTensorNetState(basisState, state->getInternalContext());
+    auto extendedBasisState = basisState;
+    for (std::size_t i = 0; i < m_auxTensorIds.size(); ++i)
+      extendedBasisState.emplace_back(0);
+
+    TensorNetState basisTensorNetState(extendedBasisState,
+                                       state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors =
         basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
@@ -285,4 +303,9 @@ void MPSSimulationState::destroyState() {
   deallocate();
 }
 
+void MPSSimulationState::dump(std::ostream &os) const {
+  const auto tmp = state->getStateVector();
+  for (auto &t : tmp)
+    os << t << "\n";
+}
 } // namespace nvqir

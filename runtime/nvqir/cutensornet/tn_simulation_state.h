@@ -37,10 +37,14 @@ public:
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override;
   std::size_t getNumQubits() const override;
-  void dump(std::ostream &) const override {}
+  void dump(std::ostream &) const override;
   cudaq::SimulationState::precision getPrecision() const override {
     return cudaq::SimulationState::precision::fp64;
   }
+
+  bool isDeviceData() const override { return true; }
+
+  bool isArrayLike() const override { return false; }
 
   Tensor getTensor(std::size_t tensorIdx = 0) const override;
 

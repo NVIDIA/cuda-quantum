@@ -22,7 +22,8 @@ class MPSSimulationState : public cudaq::SimulationState {
 
 public:
   MPSSimulationState(std::unique_ptr<TensorNetState> inState,
-                     const std::vector<MPSTensor> &mpsTensors);
+                     const std::vector<MPSTensor> &mpsTensors,
+                     const std::vector<std::size_t> &auxTensorIds);
 
   MPSSimulationState(const MPSSimulationState &) = delete;
   MPSSimulationState &operator=(const MPSSimulationState &) = delete;
@@ -36,7 +37,7 @@ public:
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override;
   std::size_t getNumQubits() const override;
-  void dump(std::ostream &) const override {}
+  void dump(std::ostream &) const override;
   cudaq::SimulationState::precision getPrecision() const override {
     return cudaq::SimulationState::precision::fp64;
   }
@@ -49,6 +50,10 @@ public:
 
   void destroyState() override;
 
+  bool isDeviceData() const override { return true; }
+
+  bool isArrayLike() const override { return false; }
+
 protected:
   void deallocate();
   std::complex<double>
@@ -59,6 +64,7 @@ protected:
   std::unique_ptr<TensorNetState> state;
   std::vector<MPSTensor> m_mpsTensors;
   ScratchDeviceMem m_scratchPad;
+  std::vector<std::size_t> m_auxTensorIds;
 };
 
 } // namespace nvqir

@@ -113,12 +113,14 @@ public:
     LOG_API_TIME();
     if (m_state->getNumQubits() == 0)
       return std::make_unique<MPSSimulationState>(std::move(m_state),
-                                                  std::vector<MPSTensor>{});
+                                                  std::vector<MPSTensor>{},
+                                                  std::vector<std::size_t>{});
 
     if (m_state->getNumQubits() > 1) {
       std::vector<MPSTensor> tensors =
           m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
-      return std::make_unique<MPSSimulationState>(std::move(m_state), tensors);
+      return std::make_unique<MPSSimulationState>(std::move(m_state), tensors,
+                                                  m_auxQubitsForGateDecomp);
     }
 
     auto [d_tensor, numElements] = m_state->contractStateVectorInternal({});
@@ -128,7 +130,8 @@ public:
     stateTensor.extents = {static_cast<int64_t>(numElements)};
 
     return std::make_unique<MPSSimulationState>(
-        std::move(m_state), std::vector<MPSTensor>{stateTensor});
+        std::move(m_state), std::vector<MPSTensor>{stateTensor},
+        m_auxQubitsForGateDecomp);
   }
 
   virtual ~SimulatorMPS() noexcept {

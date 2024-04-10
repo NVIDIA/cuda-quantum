@@ -297,9 +297,7 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
                              cutensornetTensorSVDAlgo_t algo) {
   LOG_API_TIME();
   std::vector<MPSTensor> mpsTensors(m_numQubits);
-  // std::vector<std::vector<int64_t>> extents;
   std::vector<int64_t *> extentsPtr(m_numQubits);
-  // std::vector<void *> d_mpsTensors(m_numQubits, nullptr);
   for (std::size_t i = 0; i < m_numQubits; ++i) {
     if (i == 0) {
       mpsTensors[i].extents = {2, maxExtent};
