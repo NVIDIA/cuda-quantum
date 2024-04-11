@@ -83,6 +83,7 @@ namespace details {
 /// double. No other type is allowed.
 using StateVectorVariant = std::variant<std::vector<std::complex<float>> *,
                                         std::vector<std::complex<double>> *>;
+
 /// Type describing user-provided state vector data. This is a list of the state
 /// vector variables used in a kernel with at least one `qvector` with initial
 /// state.
@@ -456,14 +457,22 @@ public:
     return details::qalloc(*opBuilder.get(), size);
   }
 
-  // @brief Return a `QuakeValue` representing the allocated
-  // quantum register, initialized to the given state vector.
-  // Note - input argument is not const here, user has to own the data.
+  /// Return a `QuakeValue` representing the allocated quantum register,
+  /// initialized to the given state vector, \p state.
+  ///
+  /// Note: input argument is a \e true reference here, the calling context has
+  /// to own the data. Specifically, the builder object will capture variables
+  /// by reference (implemented as a container of pointers for simplicity) but
+  /// the builder does not create, own, or copy these vectors. This implies that
+  /// if the captured vector goes out of scope before the kernel is invoked, the
+  /// reference may contain garbage. This behavior is identical to a C++ lambda
+  /// capture by reference.
   QuakeValue qalloc(std::vector<std::complex<double>> &state) {
     return details::qalloc(*opBuilder.get(), stateVectorStorage,
                            details::StateVectorVariant{&state},
                            simulation_precision::fp64);
   }
+  // Overload for complex<float> vector.
   QuakeValue qalloc(std::vector<std::complex<float>> &state) {
     return details::qalloc(*opBuilder.get(), stateVectorStorage,
                            details::StateVectorVariant{&state},
