@@ -107,10 +107,14 @@ elif [ "$toolchain" = "llvm" ]; then
     LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-"$HOME/.llvm"}
     if [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang++" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
 
-        this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-        if [ ! -d "$LLVM_SOURCE" ]; then
+        if [ -z "$LLVM_SOURCE" ]; then 
             mkdir -p "$HOME/.llvm_project"
-            llvm_tmp_dir=`mktemp -d -p "$HOME/.llvm_project"` && LLVM_SOURCE="$llvm_tmp_dir"
+            llvm_tmp_dir=`mktemp -d -p "$HOME/.llvm_project"` 
+            LLVM_SOURCE="$llvm_tmp_dir"
+        else
+            mkdir -p "$LLVM_SOURCE"
+        fi
+        if [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; then
             temp_install_if_command_unknown git git
             git clone -b main --single-branch --depth 1 https://github.com/llvm/llvm-project "$LLVM_SOURCE"
         fi
@@ -129,6 +133,7 @@ elif [ "$toolchain" = "llvm" ]; then
 
         temp_install_if_command_unknown ninja ninja-build
         temp_install_if_command_unknown cmake cmake
+        this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
         LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
         LLVM_PROJECTS='clang;flang;lld;compiler-rt' \
         CC="$CC" CXX="$CXX" bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v

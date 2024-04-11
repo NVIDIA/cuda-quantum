@@ -117,6 +117,8 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir/llvm"
       LLVM_STAGE1_SOURCE="${LLVM_SOURCE:-$llvm_stage1_tmpdir/llvm_source}"
     fi
+
+    # FIXME: NEED TO MAKE SURE THAT THE RUNTIME LIB IS THE SAME COMMIT AS CLANG/MLIR LATER
     LLVM_SOURCE="$LLVM_STAGE1_SOURCE" LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" \
     source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
   fi
