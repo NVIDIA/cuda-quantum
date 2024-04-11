@@ -381,6 +381,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#algorithms">Algorithms</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#platform">Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#namespaces">Namespaces</a></li>
 </ul>
 </li>
@@ -3105,6 +3106,15 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq19KernelExecutionTaskE">
 <span class="target" id="quantum__platform_8h_1a2126c891aff3a4b8d4e49df0bdac3a78"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">KernelExecutionTask</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq19KernelExecutionTaskE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>A sampling tasks takes no input arguments and returns a <a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref">sample_result</span></a> instance. </p>
+</dd></dl>
+
+</section>
+<section id="utilities">
+<h2>Utilities<a class="headerlink" href="#utilities" title="Permalink to this heading">¶</a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5rangeENSt6size_tE">
+<span class="target" id="cudaq__utils_8h_1afba25b385ea0f6fa692a7c4baad5f4bc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">range</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">N</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5rangeENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return a vector of unsigned integers. The first element is zero, and the remaining elements are all values incremented by 1 to the total size value provided (exclusive). </p>
 </dd></dl>
 
 </section>
