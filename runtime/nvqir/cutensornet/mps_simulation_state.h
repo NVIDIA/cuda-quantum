@@ -18,7 +18,8 @@
 
 namespace nvqir {
 
-class MPSSimulationState : public cudaq::SimulationState {
+class MPSSimulationState : public cudaq::SimulationState,
+                           public cudaq::TensorNetworkState {
 
 public:
   MPSSimulationState(std::unique_ptr<TensorNetState> inState,
@@ -53,6 +54,17 @@ public:
   bool isDeviceData() const override { return true; }
 
   bool isArrayLike() const override { return false; }
+  // Note: this API is intended for a simulate-observe-reinit use case on single
+  // state. For example, run a circuit, get the state to perform some
+  // computation (e.g., overlap, expectation), then reinit the state to continue
+  // the simulation. The resulting nvqir::TensorNetState should be able to be
+  // fed to the appropriate tensor network based simulator to continue the
+  // simulation.
+  // In this case (MPS), the initial state is set to the MPS tensor train, which
+  // has been factorized when the previous get_state was called (to get a handle
+  // to this MPSSimulationState).
+  std::unique_ptr<nvqir::TensorNetState> reconstructBackendState() override;
+  std::unique_ptr<cudaq::SimulationState> toSimulationState() override;
 
 protected:
   void deallocate();

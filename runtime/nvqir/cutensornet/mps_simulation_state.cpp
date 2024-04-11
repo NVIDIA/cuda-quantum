@@ -308,4 +308,21 @@ void MPSSimulationState::dump(std::ostream &os) const {
   for (auto &t : tmp)
     os << t << "\n";
 }
+
+std::unique_ptr<nvqir::TensorNetState>
+MPSSimulationState::reconstructBackendState() {
+  [[maybe_unused]] std::vector<MPSTensor> tensors;
+  return nvqir::TensorNetState::createFromMpsTensors(
+      m_mpsTensors, state->getInternalContext(), tensors);
+}
+
+std::unique_ptr<cudaq::SimulationState>
+MPSSimulationState::toSimulationState() {
+  std::vector<MPSTensor> tensors;
+  auto cloneState = nvqir::TensorNetState::createFromMpsTensors(
+      m_mpsTensors, state->getInternalContext(), tensors);
+
+  return std::make_unique<MPSSimulationState>(std::move(cloneState), tensors,
+                                              m_auxTensorIds);
+}
 } // namespace nvqir

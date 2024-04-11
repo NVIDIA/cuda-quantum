@@ -176,4 +176,14 @@ void TensorNetSimulationState::dump(std::ostream &os) const {
   for (auto &t : tmp)
     os << t << "\n";
 }
+
+std::unique_ptr<nvqir::TensorNetState>
+TensorNetSimulationState::reconstructBackendState() {
+  return m_state->clone();
+}
+
+std::unique_ptr<cudaq::SimulationState>
+TensorNetSimulationState::toSimulationState() {
+  return std::make_unique<TensorNetSimulationState>(m_state->clone());
+}
 } // namespace nvqir

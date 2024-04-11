@@ -18,7 +18,8 @@
 
 namespace nvqir {
 
-class TensorNetSimulationState : public cudaq::SimulationState {
+class TensorNetSimulationState : public cudaq::SimulationState,
+                                 public cudaq::TensorNetworkState {
 
 public:
   TensorNetSimulationState(std::unique_ptr<TensorNetState> inState);
@@ -57,10 +58,18 @@ public:
   std::size_t getNumTensors() const override;
 
   void destroyState() override;
+  // Note: this API is intended for a simulate-observe-reinit use case on single
+  // state. For example, run a circuit, get the state to perform some
+  // computation (e.g., overlap, expectation), then reinit the state to continue
+  // the simulation. The resulting nvqir::TensorNetState should be able to be
+  // fed to the appropriate tensor network based simulator to continue the
+  // simulation.
+  std::unique_ptr<nvqir::TensorNetState> reconstructBackendState() override;
+
+  std::unique_ptr<cudaq::SimulationState> toSimulationState() override;
 
 protected:
   std::unique_ptr<TensorNetState> m_state;
   ScratchDeviceMem m_scratchPad;
 };
-
 } // namespace nvqir

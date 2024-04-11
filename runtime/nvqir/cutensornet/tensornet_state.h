@@ -59,6 +59,21 @@ public:
   TensorNetState(const std::vector<int> &basisState,
                  cutensornetHandle_t handle);
 
+  std::unique_ptr<TensorNetState> clone() const;
+
+  /// Reconstruct/initialize a state from MPS tensors
+  static std::unique_ptr<TensorNetState>
+  createFromMpsTensors(const std::vector<MPSTensor> &mpsTensors,
+                       cutensornetHandle_t handle,
+                       std::vector<MPSTensor> &outTensors);
+
+  /// Reconstruct/initialize a tensor network state from a list of tensor
+  /// operators.
+  static std::unique_ptr<TensorNetState>
+  createFromOpTensors(std::size_t numQubits,
+                      const std::vector<AppliedTensorOp> &opTensors,
+                      cutensornetHandle_t handle);
+
   /// @brief Apply a unitary gate
   /// @param qubitIds Qubit operands
   /// @param gateDeviceMem Gate unitary matrix in device memory
