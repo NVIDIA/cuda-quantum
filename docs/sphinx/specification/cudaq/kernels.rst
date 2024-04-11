@@ -74,6 +74,8 @@ The allowed types are as follows:
   * :code:`std::span<T>` such that :code:`std::is_arithmetic_v<T> == true`
   * :code:`std::vector<V>` such that type :code:`V` is a valid :code:`std::vector<T>` (possibly recursively)
   * :code:`struct` types composed of any valid CUDA Quantum type.
+  * :code:`std::tuple<Ts...>` such that T is any allowed type.
+  * :code:`std::pair<T,U>` such that T is any allowed type.
 
 .. tab:: C++ 
 
