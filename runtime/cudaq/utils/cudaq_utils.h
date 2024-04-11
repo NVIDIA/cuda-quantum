@@ -278,6 +278,15 @@ inline std::vector<ElementType> range(ElementType N) {
   return range(ElementType(0), N);
 }
 
+/// @brief Return a vector of unsigned integers. The first element is zero, and
+/// the remaining elements are all values incremented by 1 to the total
+/// size value provided (exclusive).
+inline std::vector<std::size_t> range(std::size_t N) {
+  std::vector<std::size_t> vec(N);
+  std::iota(vec.begin(), vec.end(), 0);
+  return vec;
+}
+
 inline std::vector<std::string> split(const std::string &s, char delim) {
   std::vector<std::string> elems;
   auto internal_split = [](const std::string &s, char delim, auto op) {

@@ -35,4 +35,15 @@ TEST(UtilsTester, checkRange) {
     std::vector<int> expected{10, 9, 8, 7, 6, 5, 4, 3};
     EXPECT_EQ(expected, v);
   }
+
+  {
+    std::vector<std::size_t> nothing(10);
+    // Common pattern, implement size_t overload to
+    // avoid user static_casts.
+    auto v = cudaq::range(nothing.size());
+    std::cout << fmt::format("{}", fmt::join(v, ",")) << "\n";
+    EXPECT_EQ(10, v.size());
+    std::vector<std::size_t> expected{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    EXPECT_EQ(expected, v);
+  }
 }
