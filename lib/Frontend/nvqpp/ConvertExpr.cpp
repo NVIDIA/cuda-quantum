@@ -1582,6 +1582,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                          reportNegateError, isAdjoint,
                                          /*control=*/true);
 
+    if (funcName.equals("u3")) {
+      const auto size = args.size();
+      assert(size == 4);
+      SmallVector<Value> params(args.begin(), args.end() - 1);
+      builder.create<quake::U3Op>(loc, params, args.back());
+    }
+
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to
       // construct the name of the operator() call to make here.

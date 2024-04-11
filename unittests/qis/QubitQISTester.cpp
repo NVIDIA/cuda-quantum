@@ -367,4 +367,29 @@ CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
   }
 }
 
+CUDAQ_TEST(QubitQISTester, checkU3Op) {
+  auto check_x = []() {
+    cudaq::qubit q;
+    // mimic Pauli-X gate
+    cudaq::u3(M_PI, M_PI, M_PI_2, q);
+  };
+  auto counts = cudaq::sample(check_x);
+  counts.dump();
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "1");
+  }
+
+  auto bell_pair = []() {
+    cudaq::qvector qubits(2);
+    // mimic Hadamard gate
+    cudaq::u3(M_PI_2, 0., M_PI, qubits[0]);
+    x<cudaq::ctrl>(qubits[0], qubits[1]);
+  };
+  counts = cudaq::sample(bell_pair);
+  counts.dump();
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "00" || bits == "11");
+  }
+}
+
 #endif

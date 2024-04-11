@@ -723,7 +723,7 @@ public:
 };
 
 /// Lower single target Quantum ops with two parameters to QIR:
-/// u2, u3
+/// u2
 template <typename OP>
 class OneTargetTwoParamRewrite : public ConvertOpToLLVMPattern<OP> {
 public:
@@ -772,6 +772,68 @@ public:
                               " ctrl qubits");
 
     funcArgs.push_back(adaptor.getOperands()[numControls + 2]);
+
+    // Create the CallOp for this quantum instruction
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
+                                              funcArgs);
+    return success();
+  }
+};
+
+/// Lower single target Quantum ops with three parameters to QIR:
+/// u3
+template <typename OP>
+class OneTargetThreeParamRewrite : public ConvertOpToLLVMPattern<OP> {
+public:
+  using Base = ConvertOpToLLVMPattern<OP>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(OP instOp, typename Base::OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto instName = instOp->getName().stripDialect().str();
+    auto numControls = instOp.getControls().size();
+    auto loc = instOp->getLoc();
+    ModuleOp parentModule = instOp->template getParentOfType<ModuleOp>();
+    auto *context = instOp.getContext();
+    auto qirFunctionName = std::string(cudaq::opt::QIRQISPrefix) + instName;
+
+    SmallVector<Type> tmpArgTypes;
+    auto qubitIndexType = cudaq::opt::getQubitType(context);
+
+    auto paramType = FloatType::getF64(context);
+    tmpArgTypes.push_back(paramType);
+    tmpArgTypes.push_back(paramType);
+    tmpArgTypes.push_back(paramType);
+    tmpArgTypes.push_back(qubitIndexType);
+
+    FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
+        qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
+        std::move(tmpArgTypes), parentModule);
+
+    SmallVector<Value> funcArgs;
+    auto castToDouble = [&](Value v) {
+      if (v.getType().getIntOrFloatBitWidth() < 64)
+        v = rewriter.create<arith::ExtFOp>(loc, rewriter.getF64Type(), v);
+      return v;
+    };
+    Value v = adaptor.getOperands()[0];
+    v = instOp.getIsAdj() ? rewriter.create<arith::NegFOp>(loc, v) : v;
+    funcArgs.push_back(castToDouble(v));
+    v = adaptor.getOperands()[1];
+    v = instOp.getIsAdj() ? rewriter.create<arith::NegFOp>(loc, v) : v;
+    funcArgs.push_back(castToDouble(v));
+    v = adaptor.getOperands()[2];
+    v = instOp.getIsAdj() ? rewriter.create<arith::NegFOp>(loc, v) : v;
+    funcArgs.push_back(castToDouble(v));
+
+    // TODO: What about the control qubits?
+    if (numControls != 0)
+      return instOp.emitError("unsupported controlled op " + instName +
+                              " with " + std::to_string(numControls) +
+                              " ctrl qubits");
+
+    funcArgs.push_back(adaptor.getOperands()[numControls + 3]);
 
     // Create the CallOp for this quantum instruction
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
@@ -1696,7 +1758,7 @@ public:
         OneTargetOneParamRewrite<quake::RyOp>,
         OneTargetOneParamRewrite<quake::RzOp>,
         OneTargetTwoParamRewrite<quake::U2Op>,
-        OneTargetTwoParamRewrite<quake::U3Op>, PoisonOpPattern, ResetRewrite,
+        OneTargetThreeParamRewrite<quake::U3Op>, PoisonOpPattern, ResetRewrite,
         StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
         StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
         UndefOpPattern>(typeConverter);

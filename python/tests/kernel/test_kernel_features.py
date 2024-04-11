@@ -1310,3 +1310,14 @@ def test_measure_variadic_qubits():
     
     counts = cudaq.sample(test)
     assert len(counts) == 1 and '101' in counts
+
+
+
+def test_u3_op():
+    @cudaq.kernel
+    def check_x():
+        q = cudaq.qubit()
+        u3(np.pi, np.pi, np.pi / 2, q)
+
+    counts = cudaq.sample(check_x)
+    assert counts["1"] == 1000

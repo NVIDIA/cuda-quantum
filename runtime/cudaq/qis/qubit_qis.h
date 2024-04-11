@@ -36,6 +36,7 @@ namespace qubit_op {
 ConcreteQubitOp(h) ConcreteQubitOp(x) ConcreteQubitOp(y) ConcreteQubitOp(z)
     ConcreteQubitOp(s) ConcreteQubitOp(t) ConcreteQubitOp(rx)
         ConcreteQubitOp(ry) ConcreteQubitOp(rz) ConcreteQubitOp(r1)
+            ConcreteQubitOp(u3)
 
 } // namespace qubit_op
 
@@ -336,8 +337,6 @@ CUDAQ_QIS_ONE_TARGET_QUBIT_(z)
 CUDAQ_QIS_ONE_TARGET_QUBIT_(t)
 CUDAQ_QIS_ONE_TARGET_QUBIT_(s)
 
-#if CUDAQ_USE_STD20
-
 template <typename QuantumOp, typename mod = base, typename ScalarAngle,
           typename... QubitArgs>
 void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
@@ -369,6 +368,7 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
                                std::is_same_v<mod, adj>);
 }
 
+#if CUDAQ_USE_STD20
 template <typename QuantumOp, typename mod = ctrl, typename ScalarAngle,
           typename QubitRange>
   requires(std::ranges::range<QubitRange>)
@@ -486,6 +486,25 @@ CUDAQ_QIS_PARAM_ONE_TARGET_(rx)
 CUDAQ_QIS_PARAM_ONE_TARGET_(ry)
 CUDAQ_QIS_PARAM_ONE_TARGET_(rz)
 CUDAQ_QIS_PARAM_ONE_TARGET_(r1)
+
+namespace types {
+struct u3 {
+  inline static const std::string name{"u3"};
+};
+} // namespace types
+template <typename mod = base, typename ScalarAngle, typename... QubitArgs>
+void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda, QubitArgs &...args) {
+  static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
+                "Cannot operate on a qudit with Levels != 2");
+
+  std::vector<ScalarAngle> parameters{theta, phi, lambda};
+
+  // Map the qubits to their unique ids and pack them into a std::array
+  std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
+
+  // Apply the gate
+  getExecutionManager()->apply("u3", {parameters}, {}, {targets});
+}
 
 // Define the swap gate instruction and control versions of it
 namespace types {

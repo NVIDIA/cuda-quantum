@@ -1365,6 +1365,18 @@ class PyASTBridge(ast.NodeVisitor):
                 opCtor([], [], [], [qubitA, qubitB])
                 return
 
+            if node.func.id == 'u3':
+                # Single target, three parameters `u3(θ,φ,λ)`
+                numValues = len(self.valueStack)
+                target = self.popValue()
+                params = [self.popValue() for _ in range(numValues - 1)]
+                params.reverse()
+                for idx, val in enumerate(params):
+                    if IntegerType.isinstance(val.type):
+                        params[idx] = arith.SIToFPOp(self.getFloatType(), val).result
+                self.__applyQuantumOperation(node.func.id, params, [target])
+                return
+            
             if node.func.id in globalKernelRegistry:
                 # If in `globalKernelRegistry`, it has to be in this Module
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
