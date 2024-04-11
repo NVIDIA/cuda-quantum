@@ -98,6 +98,17 @@ mkdir -p logs && rm -rf logs/*
 # To get a list of install targets, check the output of the following command in the build folder:
 #   ninja -t targets | grep -Po 'install-\K.*(?=-stripped:)'
 echo "Preparing LLVM build..."
+if [ -z "${llvm_projects##*compiler-rt;*}" ]; then
+  echo "- including runtime components"
+  llvm_runtimes+="libcxx;libcxxabi;libunwind;compiler-rt;"
+  projects=("${projects[@]/compiler-rt}")
+fi
+if [ -z "${llvm_projects##*openmp;*}" ]; then
+  echo "- including OpenMP support"
+  llvm_runtimes+="openmp;"
+  projects=("${projects[@]/openmp}")
+fi
+
 llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*clang;*}" ]; then
   echo "- including Clang components"
@@ -123,18 +134,6 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
   llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
   llvm_components+="lld;"
   projects=("${projects[@]/lld}")
-fi
-if [ -z "${llvm_projects##*openmp;*}" ]; then
-  echo "- including OpenMP support"
-  llvm_runtimes+="openmp;"
-  llvm_projects=`echo $llvm_projects | sed 's|openmp||g;s|;;|;|g;s|^;||'`
-  projects=("${projects[@]/openmp}")
-fi
-if [ -z "${llvm_projects##*compiler-rt;*}" ]; then
-  echo "- including runtime components"
-  llvm_runtimes+="libcxx;libcxxabi;libunwind;"
-  llvm_components+="compiler-rt;compiler-rt-headers;"
-  projects=("${projects[@]/compiler-rt}")
 fi
 echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"

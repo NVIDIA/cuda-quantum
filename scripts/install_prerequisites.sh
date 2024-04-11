@@ -127,7 +127,7 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     temp_install_if_command_unknown wget wget
     wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
     bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
-    rm cmake-install.sh 
+    rm -rf cmake-install.sh 
   fi
   if [ ! -x "$(command -v ninja)" ]; then
     echo "Installing Ninja..."
@@ -277,7 +277,7 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
     wget https://curl.se/ca/cacert.pem.sha256
     if [ "$(sha256sum cacert.pem)" != "$(cat cacert.pem.sha256)" ]; then 
       echo -e "\e[01;31mWarning: Incorrect sha256sum of cacert.pem. The file cacert.pem has been removed. The file can be downloaded manually from https://curl.se/docs/sslcerts.html.\e[0m" >&2
-      rm cacert.pem cacert.pem.sha256
+      rm -rf cacert.pem cacert.pem.sha256
     else
       mkdir -p "$CURL_INSTALL_PREFIX" && mv cacert.pem "$CURL_INSTALL_PREFIX"
     fi
