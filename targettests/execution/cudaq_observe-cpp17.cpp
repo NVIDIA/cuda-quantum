@@ -6,14 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
+// REQUIRES: c++17
 // clang-format off
-// RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
 // 2 different IQM machines for 2 different topologies
-// RUN: nvq++ --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -27,7 +27,7 @@ struct ansatz {
     cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
-    x<cudaq::ctrl>(q[1], q[0]);
+    cx(q[1], q[0]);
   }
 };
 

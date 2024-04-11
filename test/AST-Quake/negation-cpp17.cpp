@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
-// RUN: cudaq-quake %s | FileCheck %s
+// REQUIRES: c++17
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 #include <cudaq.h>
 
 struct NegationOperatorTest {
   void operator()() __qpu__ {
     cudaq::qvector qr(3);
-    x<cudaq::ctrl>(!qr[0], qr[1], qr[2]);
+    ccx(!qr[0], qr[1], qr[2]);
   }
 };
 

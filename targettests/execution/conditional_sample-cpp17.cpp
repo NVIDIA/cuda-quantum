@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
-// RUN: nvq++ --enable-mlir %s -o %t && %t
+// REQUIRES: c++17
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t
+// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t
 
 // The test here is the assert statement.
 
@@ -22,9 +22,9 @@ struct kernel {
 
     // create bell pair
     h(q[1]);
-    x<cudaq::ctrl>(q[1], q[2]);
+    cx(q[1], q[2]);
 
-    x<cudaq::ctrl>(q[0], q[1]);
+    cx(q[0], q[1]);
     h(q[0]);
 
     auto b0 = mz(q[0]);
