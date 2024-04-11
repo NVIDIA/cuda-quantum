@@ -156,7 +156,7 @@ public:
       else if (type == cudaq::pauli::X)
         basisChange.emplace_back([&, qubitIdx](bool) {
           if (qubitIdx >= qubitIds.size())
-            cudaq::info("qubitIdx out of range: {}");
+            cudaq::info("qubitIdx out of range: {}", qubitIdx);
           h(qubitIds[qubitIdx]);
         });
     });
