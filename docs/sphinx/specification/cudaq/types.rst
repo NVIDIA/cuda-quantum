@@ -115,44 +115,43 @@ The :code:`cudaq::qview` should take on the following structure:
 
 .. code-block:: cpp
     
-  namespace cudaq { 
-    template <std::size_t Levels = 2>
-    class qview {
-      private:
-        std::span<qudit<Levels>> qudits;
-      public:
-        // Construct a span that refers to the qudits in `other`.
-        template <typename R>
-        requires(std::ranges::range<R>)
-        qview(R&& other);
-        qview(const qview& other);
+    namespace cudaq { 
+      template <std::size_t Levels = 2>
+      class qview {
+        private:
+          std::span<qudit<Levels>> qudits;
+        public:
+          // Construct a span that refers to the qudits in `other`.
+          template <typename R>
+          requires(std::ranges::range<R>)
+          qview(R&& other);
+          qview(const qview& other);
 
-        // Iterator interface.
-        auto begin();
-        auto end();
+          // Iterator interface.
+          auto begin();
+          auto end();
 
-        // Returns the qudit at `idx`.
-        qudit<Levels>& operator[](const std::size_t idx);
+          // Returns the qudit at `idx`.
+          qudit<Levels>& operator[](const std::size_t idx);
 
-        // Returns the `[0, count)` qudits.
-        qview<Levels> front(std::size_t count);
-        // Returns the first qudit.
-        qudit<Levels>& front();
-        // Returns the `[count, size())` qudits.
-        qview<Levels> back(std::size_t count);
-        // Returns the last qudit.
-        qudit<Levels>& back();
-
-
-        // Returns the `[start, start+count)` qudits.
-        qview<Levels>
-        slice(std::size_t start, std::size_t count);
+          // Returns the `[0, count)` qudits.
+          qview<Levels> front(std::size_t count);
+          // Returns the first qudit.
+          qudit<Levels>& front();
+          // Returns the `[count, size())` qudits.
+          qview<Levels> back(std::size_t count);
+          // Returns the last qudit.
+          qudit<Levels>& back();
 
 
-        // Returns the number of contained qudits.
-        std::size_t size() const;
-    };
-  }
+          // Returns the `[start, start+count)` qudits.
+          qview<Levels>
+          slice(std::size_t start, std::size_t count);
+
+          // Returns the number of contained qudits.
+          std::size_t size() const;
+      };
+    }
 
 :code:`cudaq::qvector<Levels = 2>`
 ++++++++++++++++++++++++++++++++++
@@ -176,49 +175,48 @@ The :code:`cudaq::qview` should take on the following structure:
 
 .. code-block:: cpp
     
-  namespace cudaq { 
-    template <std::size_t Levels = 2>
-    class qvector {
-      private:
-        std::vector<qudit<Levels>> qudits;
+    namespace cudaq { 
+      template <std::size_t Levels = 2>
+      class qvector {
+        private:
+          std::vector<qudit<Levels>> qudits;
 
-      public:
-        // Construct a qreg with `size` qudits in the |0> state.
-        qvector(std::size_t size);
-        qvector(const qvector&) = delete;
+        public:
+          // Construct a qreg with `size` qudits in the |0> state.
+          qvector(std::size_t size);
+          qvector(const qvector&) = delete;
 
-        // Iterator interface.
-        auto begin();
-        auto end();
+          // Iterator interface.
+          auto begin();
+          auto end();
 
-        // Returns the qudit at `idx`.
-        qudit<Levels>& operator[](const std::size_t idx);
+          // Returns the qudit at `idx`.
+          qudit<Levels>& operator[](const std::size_t idx);
 
-        // Returns the `[0, count)` qudits.
-        qview<Levels> front(std::size_t count);
-        // Returns the first qudit.
-        qudit<Levels>& front();
-        // Returns the `[count, size())` qudits.
-        qview<Levels> back(std::size_t count);
-        // Returns the last qudit.
-        qudit<Levels>& back();
+          // Returns the `[0, count)` qudits.
+          qview<Levels> front(std::size_t count);
+          // Returns the first qudit.
+          qudit<Levels>& front();
+          // Returns the `[count, size())` qudits.
+          qview<Levels> back(std::size_t count);
+          // Returns the last qudit.
+          qudit<Levels>& back();
+ 
+          // Returns the `[start, start+count)` qudits.
+          qview<Levels>
+          slice(std::size_t start, std::size_t count);
 
-        // Returns the `[start, start+count)` qudits.
-        qview<Levels>
-        slice(std::size_t start, std::size_t count);
+          // Returns the `{start, start + stride, ...}` qudits.
+          qview<Levels>
+          slice(std::size_t start, std::size_t stride, std::size_t end);
 
-        // Returns the `{start, start + stride, ...}` qudits.
-        qview<Levels>
-        slice(std::size_t start, std::size_t stride, std::size_t end);
+          // Returns the number of contained qudits.
+          std::size_t size() const;
 
-        // Returns the number of contained qudits.
-        std::size_t size() const;
-
-
-        // Destroys all contained qudits. Postcondition: `size() == 0`.
-        void clear();
-    };
-  }
+          // Destroys all contained qudits. Postcondition: `size() == 0`.
+          void clear();
+      };
+    }
 
 .. tab:: C++ 
 
@@ -284,51 +282,51 @@ The :code:`cudaq::qarray` should take on the following structure:
 
 .. code-block:: cpp 
 
-  namespace cudaq {
-    template <std::size_t N, std::size_t Levels = 2>
-    class qarray {
-      private:
-        std::array<qudit<Levels>, N> qudits;
+    namespace cudaq {
+      template <std::size_t N, std::size_t Levels = 2>
+      class qarray {
+        private:
+          std::array<qudit<Levels>, N> qudits;
 
-      public:
-        // Construct a qreg with `size` qudits in the |0> state.
-        qarray();
-        qarray(const qvector&) = delete;
-        qarray(qarray &&) = delete;
+        public:
+          // Construct a qreg with `size` qudits in the |0> state.
+          qarray();
+          qarray(const qvector&) = delete;
+          qarray(qarray &&) = delete;
 
-        qarray& operator=(const qarray &) = delete;
+          qarray& operator=(const qarray &) = delete;
 
-        // Iterator interface.
-        auto begin();
-        auto end();
+          // Iterator interface.
+          auto begin();
+          auto end();
 
-        // Returns the qudit at `idx`.
-        qudit<Levels>& operator[](const std::size_t idx);
+          // Returns the qudit at `idx`.
+          qudit<Levels>& operator[](const std::size_t idx);
 
-        // Returns the `[0, count)` qudits.
-        qview<Levels> front(std::size_t count);
-        // Returns the first qudit.
-        qudit<Levels>& front();
-        // Returns the `[count, size())` qudits.
-        qview<Levels> back(std::size_t count);
-        // Returns the last qudit.
-        qudit<Levels>& back();
+          // Returns the `[0, count)` qudits.
+          qview<Levels> front(std::size_t count);
+          // Returns the first qudit.
+          qudit<Levels>& front();
+          // Returns the `[count, size())` qudits.
+          qview<Levels> back(std::size_t count);
+          // Returns the last qudit.
+          qudit<Levels>& back();
 
-        // Returns the `[start, start+count)` qudits.
-        qview<Levels>
-        slice(std::size_t start, std::size_t count);
+          // Returns the `[start, start+count)` qudits.
+          qview<Levels>
+          slice(std::size_t start, std::size_t count);
 
-        // Returns the `{start, start + stride, ...}` qudits.
-        qview<Levels>
-        slice(std::size_t start, std::size_t stride, std::size_t end);
+          // Returns the `{start, start + stride, ...}` qudits.
+          qview<Levels>
+          slice(std::size_t start, std::size_t stride, std::size_t end);
 
-        // Returns the number of contained qudits.
-        std::size_t size() const;
+          // Returns the number of contained qudits.
+          std::size_t size() const;
 
-        // Destroys all contained qudits. Postcondition: `size() == 0`.
-        void clear();
-    };
-  }
+          // Destroys all contained qudits. Postcondition: `size() == 0`.
+          void clear();
+      };
+    }
 
 :code:`cudaq::qspan<N, Levels>` (Deprecated. Use :code:`cudaq::qview<Levels>` instead.)
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

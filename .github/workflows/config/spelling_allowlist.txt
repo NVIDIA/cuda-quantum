@@ -111,7 +111,6 @@ backends
 bitcode
 bitstring
 bitstrings
-bool
 boolean
 broadcasted
 buildable
@@ -126,7 +125,6 @@ comparator
 comparators
 composability
 composable
-const
 constructible
 controlled
 coprocessing
@@ -205,12 +203,10 @@ namespace
 namespaces
 natively
 nullary
-num
 optimizer
 optimizers
 parallelization
 parameterization
-pauli
 performant
 precompute
 precomputed
@@ -218,15 +214,12 @@ prepend
 preprocessor
 programmatically
 pybind
-qarray
 quantize
 quantized
 qubit
 qubits
 qudit
 qudits
-qvector
-qview
 reStructuredText
 runtime
 runtimes

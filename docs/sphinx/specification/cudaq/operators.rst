@@ -51,32 +51,31 @@ The :code:`spin_op` should take on the following structure:
 
 .. code-block:: cpp
 
-  namespace cudaq {
-  class spin_op {
-    public:
-      spin_op();
-      spin_op(const spin_op&);
-      bool empty() const;
-      std::size_t num_qubits() const;
-      std::size_t num_terms() const;
-      std::complex<double> get_coefficient();
-      bool is_identity() const;
-      void for_each_term(std::function<void(spin_op &)> &&) const;
-      void for_each_pauli(std::function<void(pauli, std::size_t)> &&) const;
-      spin_op& operator=(const spin_op&);
-      spin_op& operator+=(const spin_op&);
-      spin_op& operator-=(const spin_op&);
-      spin_op& operator*=(const spin_op&);
-      bool operator==(const spin_op&);
-      spin_op& operator*=(const double);
-      spin_op& operator*=(const std::complex<double>)
-  };
+    namespace cudaq {
+    class spin_op {
+      public:
+        spin_op();
+        spin_op(const spin_op&);
+        bool empty() const;
+        std::size_t num_qubits() const;
+        std::size_t num_terms() const;
+        std::complex<double> get_coefficient();
+        bool is_identity() const;
+        void for_each_term(std::function<void(spin_op &)> &&) const;
+        void for_each_pauli(std::function<void(pauli, std::size_t)> &&) const;
+        spin_op& operator=(const spin_op&);
+        spin_op& operator+=(const spin_op&);
+        spin_op& operator-=(const spin_op&);
+        spin_op& operator*=(const spin_op&);
+        bool operator==(const spin_op&);
+        spin_op& operator*=(const double);
+        spin_op& operator*=(const std::complex<double>)
+    };
 
-
-  namespace spin {
-    spin_op x(const std::size_t);
-    spin_op y(const std::size_t);
-    spin_op z(const std::size_t);
-  }
+    namespace spin {
+      spin_op x(const std::size_t);
+      spin_op y(const std::size_t);
+      spin_op z(const std::size_t);
+    }
   }
 
