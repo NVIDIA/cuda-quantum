@@ -1256,7 +1256,7 @@ def test_missing_paren_1450():
     
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'Invalid assignment detected.'
+    assert 'Invalid assignment detected.' in repr(e)
 
 def test_cast_error_1451():
     @cudaq.kernel
@@ -1267,3 +1267,15 @@ def test_cast_error_1451():
     
     # Test is that this compiles
     test_kernel.compile()
+
+
+def test_bad_attr_call_error():
+    @cudaq.kernel
+    def test_state(N: int):
+        q = cudaq.qvector(N)
+        h(q[0])
+        kernel.h(q[0])
+    
+    with pytest.raises(RuntimeError) as e:
+        test_state.compile()
+    assert "Invalid function call - 'kernel' is unknown." in repr(e)
