@@ -79,7 +79,7 @@ concept KernelBuilderArgTypeIsValid =
 #endif
 
 namespace details {
-/// Use parametric type: initializations must be vectors of complex float or
+/// Use parametric type: `initializations` must be vectors of complex float or
 /// double. No other type is allowed.
 using StateVectorVariant = std::variant<std::vector<std::complex<float>> *,
                                         std::vector<std::complex<double>> *>;
