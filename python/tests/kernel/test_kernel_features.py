@@ -1256,7 +1256,7 @@ def test_missing_paren_1450():
     
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'Invalid assignment detected.' in repr(e)
+    assert 'invalid assignment detected.' in repr(e)
 
 def test_cast_error_1451():
     @cudaq.kernel

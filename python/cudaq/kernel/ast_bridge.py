@@ -884,7 +884,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.visit(node.value)
 
         if len(self.valueStack) == 0:
-            self.emitFatalError("invalid assignement detected.", node)
+            self.emitFatalError("invalid assignment detected.", node)
 
         varNames = []
         varValues = []
