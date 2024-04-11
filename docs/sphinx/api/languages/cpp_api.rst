@@ -159,7 +159,7 @@ Platform
 Utilities
 =========
 
-.. doxygenfunction:: cudaq::range 
+.. doxygenfunction:: cudaq::range(std::size_t)
     
 Namespaces 
 ===========
