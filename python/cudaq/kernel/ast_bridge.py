@@ -1631,8 +1631,8 @@ class PyASTBridge(ast.NodeVisitor):
                 if quake.VeqType.isinstance(var.type):
                     if node.func.attr == 'size':
                         # Handled already in the Attribute visit
-                        return 
-                    
+                        return
+
                     # `qreg` or `qview` method call
                     if node.func.attr == 'back':
                         qrSize = quake.VeqSizeOp(self.getIntegerType(),
@@ -1808,8 +1808,8 @@ class PyASTBridge(ast.NodeVisitor):
                     f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                 )
 
-            self.emitFatalError(f"Invalid function call - '{node.func.value.id}' is unknown.")
-
+            self.emitFatalError(
+                f"Invalid function call - '{node.func.value.id}' is unknown.")
 
     def visit_ListComp(self, node):
         """
