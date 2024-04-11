@@ -884,7 +884,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.visit(node.value)
 
         if len(self.valueStack) == 0:
-            self.emitFatalError("invalid assignement detected.", node)
+            self.emitFatalError("invalid assignment detected.", node)
 
         varNames = []
         varValues = []
@@ -1629,6 +1629,10 @@ class PyASTBridge(ast.NodeVisitor):
                 # Method call on one of our variables
                 var = self.symbolTable[node.func.value.id]
                 if quake.VeqType.isinstance(var.type):
+                    if node.func.attr == 'size':
+                        # Handled already in the Attribute visit
+                        return
+
                     # `qreg` or `qview` method call
                     if node.func.attr == 'back':
                         qrSize = quake.VeqSizeOp(self.getIntegerType(),
@@ -1803,6 +1807,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(
                     f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                 )
+
+            self.emitFatalError(
+                f"Invalid function call - '{node.func.value.id}' is unknown.")
 
     def visit_ListComp(self, node):
         """
