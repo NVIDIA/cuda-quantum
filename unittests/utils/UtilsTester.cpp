@@ -40,6 +40,7 @@ TEST(UtilsTester, checkRange) {
     std::vector<std::size_t> nothing(10);
     // Common pattern, implement size_t overload to
     // avoid user static_casts.
+    EXPECT_ANY_THROW({ auto v = cudaq::range((std::size_t)-1); });
     auto v = cudaq::range(nothing.size());
     std::cout << fmt::format("{}", fmt::join(v, ",")) << "\n";
     EXPECT_EQ(10, v.size());
