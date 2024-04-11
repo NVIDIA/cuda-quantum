@@ -508,57 +508,56 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
   return QuakeValue(builder, qubits);
 }
 
-extern "C" {
-/// Runtime callback to get the log2(size) of a captured state vector.
-std::size_t
-__nvqpp_getStateVectorLength_fp64(StateVectorStorage &stateVectorStorage,
-                                  std::int64_t index) {
+template <typename A>
+std::size_t getStateVectorLength(StateVectorStorage &stateVectorStorage,
+                                 std::int64_t index) {
   if (index >= static_cast<std::int64_t>(stateVectorStorage.size()))
     throw std::runtime_error("index to state initializer is out of range");
-  if (!std::get<std::vector<std::complex<double>> *>(stateVectorStorage[index]))
+  if (!std::get<std::vector<std::complex<A>> *>(stateVectorStorage[index]))
     throw std::runtime_error("state vector cannot be null");
   auto length =
-      std::get<std::vector<std::complex<double>> *>(stateVectorStorage[index])
+      std::get<std::vector<std::complex<A>> *>(stateVectorStorage[index])
           ->size();
   if (!std::has_single_bit(length))
     throw std::runtime_error("state initializer must be a power of 2");
   return std::countr_zero(length);
 }
 
+template <typename A>
+std::complex<A> *getStateVectorData(StateVectorStorage &stateVectorStorage,
+                                    std::intptr_t index) {
+  // This foregoes all the checks found in getStateVectorLength because these
+  // two functions are called in tandem, this one second.
+  return std::get<std::vector<std::complex<A>> *>(stateVectorStorage[index])
+      ->data();
+}
+
+extern "C" {
+/// Runtime callback to get the log2(size) of a captured state vector.
+std::size_t
+__nvqpp_getStateVectorLength_fp64(StateVectorStorage &stateVectorStorage,
+                                  std::int64_t index) {
+  return getStateVectorLength<double>(stateVectorStorage, index);
+}
+
 std::size_t
 __nvqpp_getStateVectorLength_fp32(StateVectorStorage &stateVectorStorage,
                                   std::int64_t index) {
-  if (index >= static_cast<std::int64_t>(stateVectorStorage.size()))
-    throw std::runtime_error("index to state initializer is out of range");
-  if (!std::get<std::vector<std::complex<float>> *>(stateVectorStorage[index]))
-    throw std::runtime_error("state vector cannot be null");
-  auto length =
-      std::get<std::vector<std::complex<float>> *>(stateVectorStorage[index])
-          ->size();
-  if (!std::has_single_bit(length))
-    throw std::runtime_error("state initializer must be a power of 2");
-  return std::countr_zero(length);
+  return getStateVectorLength<float>(stateVectorStorage, index);
 }
 
 /// Runtime callback to get the data array of a captured state vector.
 std::complex<double> *
 __nvqpp_getStateVectorData_fp64(StateVectorStorage &stateVectorStorage,
                                 std::intptr_t index) {
-  // This foregoes all the checks found in __nvqpp_getStateVectorLength because
-  // these two functions are called in tandem, this one second.
-  return std::get<std::vector<std::complex<double>> *>(
-             stateVectorStorage[index])
-      ->data();
+  return getStateVectorData<double>(stateVectorStorage, index);
 }
 
 /// Runtime callback to get the data array of a captured state vector.
 std::complex<float> *
 __nvqpp_getStateVectorData_fp32(StateVectorStorage &stateVectorStorage,
                                 std::intptr_t index) {
-  // This foregoes all the checks found in __nvqpp_getStateVectorLength because
-  // these two functions are called in tandem, this one second.
-  return std::get<std::vector<std::complex<float>> *>(stateVectorStorage[index])
-      ->data();
+  return getStateVectorData<float>(stateVectorStorage, index);
 }
 }
 
