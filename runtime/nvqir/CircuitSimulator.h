@@ -154,8 +154,11 @@ public:
           rx(!reverse ? M_PI_2 : -M_PI_2, qubitIds[qubitIdx]);
         });
       else if (type == cudaq::pauli::X)
-        basisChange.emplace_back(
-            [&, qubitIdx](bool) { h(qubitIds[qubitIdx]); });
+        basisChange.emplace_back([&, qubitIdx](bool) {
+          if (qubitIdx >= qubitIds.size())
+            cudaq::info("qubitIdx out of range: {}");
+          h(qubitIds[qubitIdx]);
+        });
     });
 
     if (!basisChange.empty())
