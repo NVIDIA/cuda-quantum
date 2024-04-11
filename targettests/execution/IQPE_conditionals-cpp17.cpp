@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// REQUIRES: c++17
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 
@@ -18,7 +18,7 @@ struct iqpe {
     h(q[0]);
     x(q[1]);
     for (int i = 0; i < 8; i++)
-      r1<cudaq::ctrl>(-5 * M_PI / 8., q[0], q[1]);
+      cr1(-5 * M_PI / 8., q[0], q[1]);
 
     h(q[0]);
     auto cr0 = mz(q[0]);
@@ -26,35 +26,35 @@ struct iqpe {
 
     h(q[0]);
     for (int i = 0; i < 4; i++)
-      r1<cudaq::ctrl>(-5 * M_PI / 8., q[0], q[1]);
+      cr1(-5 * M_PI / 8., q[0], q[1]);
 
     if (cr0)
       rz(-M_PI / 2., q[0]);
 
     h(q[0]);
-    auto cr1 = mz(q[0]);
+    auto _cr1 = mz(q[0]);
     reset(q[0]);
 
     h(q[0]);
     for (int i = 0; i < 2; i++)
-      r1<cudaq::ctrl>(-5 * M_PI / 8., q[0], q[1]);
+      cr1(-5 * M_PI / 8., q[0], q[1]);
 
     if (cr0)
       rz(-M_PI / 4., q[0]);
 
-    if (cr1)
+    if (_cr1)
       rz(-M_PI / 2., q[0]);
 
     h(q[0]);
     auto cr2 = mz(q[0]);
     reset(q[0]);
     h(q[0]);
-    r1<cudaq::ctrl>(-5 * M_PI / 8., q[0], q[1]);
+    cr1(-5 * M_PI / 8., q[0], q[1]);
 
     if (cr0)
       rz(-M_PI / 8., q[0]);
 
-    if (cr1)
+    if (_cr1)
       rz(-M_PI_4, q[0]);
 
     if (cr2)
@@ -73,7 +73,6 @@ struct iqpe {
 // CHECK: }
 
 int main() {
-
   int nShots = 10;
   auto &platform = cudaq::get_platform();
   auto counts = cudaq::sample(nShots, iqpe{});

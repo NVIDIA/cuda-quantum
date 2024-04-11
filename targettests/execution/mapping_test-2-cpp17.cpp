@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
+// REQUIRES: c++17
 // clang-format off
-// RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck %s
+// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -18,8 +18,8 @@ __qpu__ void foo() {
   cudaq::qvector q(3);
   x(q[0]);
   x(q[1]);
-  x<cudaq::ctrl>(q[0], q[1]);
-  x<cudaq::ctrl>(q[0], q[2]); // requires a swap(q0,q1)
+  cx(q[0], q[1]);
+  cx(q[0], q[2]); // requires a swap(q0,q1)
   auto result = mz(q);
 }
 
