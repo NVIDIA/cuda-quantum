@@ -130,7 +130,7 @@ int main() {
     // In this example, we create a kernel template `sim_kernel` that captures
     // the variable `init_state` by reference.
     auto sim_builder = cudaq::make_kernel();
-    std::vector<std::complex<double>> init_state;
+    std::vector<cudaq::simulation_scalar> init_state;
     auto q = sim_builder.qalloc(init_state);
     // Build the quantum circuit template here.
     sim_builder.mz(q);
@@ -138,12 +138,15 @@ int main() {
     // Now we are ready to instantiate the kernel and invoke it. So we can set
     // the init_state vector to a vector with 2 complex values (1 qubit) and get
     // the results.
-    init_state = {{0.0, 1.0}, {1.0, 0.0}};
+    init_state = {cudaq::simulation_scalar{0.0, 1.0},
+                  cudaq::simulation_scalar{1.0, 0.0}};
     auto counts0 = cudaq::sample(sim_builder);
 
     // Now suppose we have a different initial state with 4 complex values (2
     // qubits). Let's rerun the kernel with the new init state.
-    init_state = {{1.0, 0.0}, {0.0, 1.0}, {0.0, 1.0}, {1.0, 0.0}};
+    init_state = {
+        cudaq::simulation_scalar{1.0, 0.0}, cudaq::simulation_scalar{0.0, 1.0},
+        cudaq::simulation_scalar{0.0, 1.0}, cudaq::simulation_scalar{1.0, 0.0}};
     auto counts1 = cudaq::sample(sim_builder);
 
     // Finally in this wholly contrived example, we test the results to make
