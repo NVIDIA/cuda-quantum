@@ -215,10 +215,10 @@ public:
   size(const std::string_view registerName = GlobalRegisterName) noexcept;
 
   /// @brief Dump this sample_result to standard out.
-  void dump();
+  void dump() const;
 
   /// @brief Dump this sample_result to the given output stream
-  void dump(std::ostream &os);
+  void dump(std::ostream &os) const;
 
   /// @brief Clear this sample_result.
   void clear();

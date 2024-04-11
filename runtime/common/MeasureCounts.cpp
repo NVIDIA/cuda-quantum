@@ -455,7 +455,7 @@ void sample_result::clear() {
   totalShots = 0;
 }
 
-void sample_result::dump(std::ostream &os) {
+void sample_result::dump(std::ostream &os) const {
   os << "{ ";
   if (sampleResults.size() > 1) {
     os << "\n  ";
@@ -492,7 +492,7 @@ void sample_result::dump(std::ostream &os) {
   os << "}\n";
 }
 
-void sample_result::dump() { dump(std::cout); }
+void sample_result::dump() const { dump(std::cout); }
 
 bool sample_result::has_even_parity(std::string_view bitString) {
   int c = std::count(bitString.begin(), bitString.end(), '1');

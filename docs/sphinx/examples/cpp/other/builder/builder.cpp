@@ -17,8 +17,8 @@
 #include <cudaq/gradients.h>
 #include <cudaq/optimizers.h>
 
-static bool results_are_close(cudaq::sample_result &f1,
-                              cudaq::sample_result &f2) {
+static bool results_are_close(const cudaq::sample_result &f1,
+                              const cudaq::sample_result &f2) {
   // Stub for a fancy comparison.
   f1.dump();
   f2.dump();
