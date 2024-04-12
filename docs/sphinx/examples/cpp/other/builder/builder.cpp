@@ -136,7 +136,7 @@ int main() {
     sim_builder.mz(q);
 
     // Now we are ready to instantiate the kernel and invoke it. So we can set
-    // the `init_state` vector to a vector with 2 complex values (1 qubit) and
+    // the `init_state` to a vector with 2 complex values (1 qubit) and
     // get the results.
     init_state = {{0.0, 1.0}, {1.0, 0.0}};
     auto counts0 = cudaq::sample(sim_builder);
