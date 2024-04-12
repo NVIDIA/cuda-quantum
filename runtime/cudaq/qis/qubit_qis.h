@@ -337,6 +337,8 @@ CUDAQ_QIS_ONE_TARGET_QUBIT_(z)
 CUDAQ_QIS_ONE_TARGET_QUBIT_(t)
 CUDAQ_QIS_ONE_TARGET_QUBIT_(s)
 
+#if CUDAQ_USE_STD20
+
 template <typename QuantumOp, typename mod = base, typename ScalarAngle,
           typename... QubitArgs>
 void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
@@ -368,7 +370,6 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
                                std::is_same_v<mod, adj>);
 }
 
-#if CUDAQ_USE_STD20
 template <typename QuantumOp, typename mod = ctrl, typename ScalarAngle,
           typename QubitRange>
   requires(std::ranges::range<QubitRange>)
