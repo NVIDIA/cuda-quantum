@@ -827,12 +827,8 @@ jobs:
           ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
           ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
           ln -s $GITHUB_WORKSPACE/python/README.md .
-          # Run the script
-          # FIXME - should we pass in "-q" to make it a quick test?
-          set +e # Allow script to keep going through errors (needed for skipped tests)
-          export OMPI_MCA_opal_cuda_support=true OMPI_MCA_btl='^openib' # FIXME - temp
-          source validate_wheel.sh -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
-          set -e # Re-enable exit code error checking
+          # Run the script w/ -q to run a shortened test
+          source validate_wheel.sh -q -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
   
   image_validation:
     name: Docker image validation

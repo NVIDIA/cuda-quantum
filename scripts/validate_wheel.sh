@@ -97,14 +97,6 @@ for tgt in nvidia nvidia-fp64 nvidia-mgpu tensornet; do
     fi
 done
 
-# If this is a quick test, we return here.
-if $quick_test; then
-    if [ ! $status_sum -eq 0 ]; then
-        echo -e "\e[01;31mValidation produced errors.\e[0m" >&2
-    fi
-    (return 0 2>/dev/null) && return $status_sum || exit $status_sum
-fi
-
 # Run core tests
 echo "Running core tests."
 python3 -m pip install pytest numpy
@@ -116,6 +108,15 @@ if [ ! $? -eq 0 ]; then
     echo -e "\e[01;31mPython tests failed.\e[0m" >&2
     status_sum=$((status_sum+1))
 fi
+
+# If this is a quick test, we return here.
+if $quick_test; then
+    if [ ! $status_sum -eq 0 ]; then
+        echo -e "\e[01;31mValidation produced errors.\e[0m" >&2
+    fi
+    (return 0 2>/dev/null) && return $status_sum || exit $status_sum
+fi
+
 
 # Run backend tests
 echo "Running backend tests."
