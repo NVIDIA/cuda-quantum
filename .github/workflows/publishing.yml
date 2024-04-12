@@ -829,7 +829,7 @@ jobs:
           ln -s $GITHUB_WORKSPACE/python/README.md .
           # Run the script w/ -q to run a shortened test
           set +e # Allow script to keep going through errors (needed for skipped tests)
-          source validate_wheel.sh -q -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
+          source validate_wheel.sh -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
             echo "Error running validation script"
