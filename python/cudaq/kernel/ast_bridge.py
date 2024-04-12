@@ -231,25 +231,67 @@ class PyASTBridge(ast.NodeVisitor):
         """
         return IntegerAttr.get(type, value)
 
-    def getFloatType(self):
+    def getFloatType(self, width=64):
         """
-        Return an MLIR float type (double precision).
+        Return an MLIR float type (single or double precision).
         """
-        return F64Type.get()
+        return F64Type.get() if width == 64 else F32Type.get()
 
     def getFloatAttr(self, type, value):
         """
-        Return an MLIR float attribute (double precision).
+        Return an MLIR float attribute (single or double precision).
         """
         return FloatAttr.get(type, value)
 
-    def getConstantFloat(self, value):
+    def getConstantFloat(self, value, width=64):
         """
         Create a constant float operation and return its MLIR result Value.
-        Takes as input the concrete float value. 
+        Takes as input the concrete float value.
         """
-        ty = self.getFloatType()
+        ty = self.getFloatType(width=width)
+        return self.getConstantFloatWithType(value, ty)
+
+    def getConstantFloatWithType(self, value, ty):
+        """
+        Create a constant float operation and return its MLIR result Value.
+        Takes as input the concrete float value.
+        """
         return arith.ConstantOp(ty, self.getFloatAttr(ty, value)).result
+
+    def getComplexType(self, width=64):
+        """
+        Return an MLIR complex type (single or double precision).
+        """
+        return self.getComplexTypeWithElementType(
+            self.getFloatType(width=width))
+
+    def getComplexTypeWithElementType(self, eTy):
+        """
+        Return an MLIR complex type (single or double precision).
+        """
+        return ComplexType.get(eTy)
+
+    def getConstantComplex(self, value, width=64):
+        """
+        Create a constant complex operation and return its MLIR result Value.
+        Takes as input the concrete complex value.
+        """
+        ty = self.getComplexType(width=width)
+        return complex.CreateOp(ty,
+                                self.getConstantFloat(value.real, width=width),
+                                self.getConstantFloat(value.imag,
+                                                      width=width)).result
+
+    def getConstantComplexWithElementType(self, value, eTy):
+        """
+        Create a constant complex operation and return its MLIR result Value.
+        Takes as input the concrete complex value.
+        """
+        ty = self.getComplexTypeWithElementType(eTy)
+        return complex.CreateOp(ty,
+                                self.getConstantFloatWithType(value.real, eTy),
+                                self.getConstantFloatWithType(value.imag,
+                                                              eTy)).result
 
     def getConstantInt(self, value, width=64):
         """
@@ -258,6 +300,21 @@ class PyASTBridge(ast.NodeVisitor):
         """
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
+
+    def promote_operand_type(self, ty, operand):
+        if ComplexType.isinstance(ty):
+            if not ComplexType.isinstance(operand.type):
+                complexType = ComplexType(ty)
+                floatType = complexType.element_type
+                operand = self.promote_operand_type(floatType, operand)
+                imag = self.getConstantFloatWithType(0.0, floatType)
+                operand = complex.CreateOp(complexType, operand, imag).result
+
+        if F64Type.isinstance(ty) or F32Type.isinstance(ty):
+            if IntegerType.isinstance(operand.type):
+                operand = arith.SIToFPOp(ty, operand).result
+
+        return operand
 
     def pushValue(self, value):
         """
@@ -931,11 +988,12 @@ class PyASTBridge(ast.NodeVisitor):
         see from ubiquitous external modules like `numpy`.
         """
         if self.verbose:
-            print('[Visit Attribute]')
+            print(f'[Visit Attribute {node.attr} on {node.value}]')
 
         self.currentNode = node
         # Disallow list.append since we don't do dynamic memory allocation
-        if node.value.id in self.symbolTable:
+        if isinstance(node.value,
+                      ast.Name) and node.value.id in self.symbolTable:
             value = self.symbolTable[node.value.id]
             if node.attr == 'append':
                 type = value.type
@@ -946,16 +1004,44 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         "CUDA Quantum does not allow dynamic list resizing.",
                         node)
+                return
 
             if node.attr == 'size' and quake.VeqType.isinstance(value.type):
                 self.pushValue(
                     quake.VeqSizeOp(self.getIntegerType(64),
                                     self.symbolTable[node.value.id]).result)
-            return
+                return
 
-        if node.value.id in ['np', 'numpy', 'math'] and node.attr == 'pi':
+        if node.attr in ['imag', 'real']:
+            if isinstance(node.value,
+                          ast.Name) and node.value.id in self.symbolTable:
+                value = self.symbolTable[node.value.id]
+            else:
+                self.visit(node.value)
+                value = self.popValue()
+
+            value = self.ifPointerThenLoad(value)
+
+            if ComplexType.isinstance(value.type):
+                if (node.attr == 'real'):
+                    self.pushValue(complex.ReOp(value).result)
+                    return
+
+                if (node.attr == 'imag'):
+                    self.pushValue(complex.ImOp(value).result)
+                    return
+
+        if isinstance(node.value, ast.Name) and node.value.id in [
+                'np', 'numpy', 'math'
+        ] and node.attr == 'pi':
             self.pushValue(self.getConstantFloat(np.pi))
             return
+
+        # Function attributes are handled in `visit_Call`, report error for others.
+        if not isinstance(node.value,
+                          ast.Name) or node.value.id in self.symbolTable:
+            self.emitFatalError(
+                f"unsupported attribute ({node.attr}) on {node.value}", node)
 
     def visit_Call(self, node):
         """
@@ -1062,6 +1148,12 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.func, ast.Name):
             # Just visit the arguments, we know the name
             [self.visit(arg) for arg in node.args]
+
+            namedArgs = {}
+            for keyword in node.keywords:
+                self.visit(keyword.value)
+                namedArgs[keyword.arg] = self.popValue()
+
             if node.func.id == "len":
                 listVal = self.popValue()
                 if cc.StdvecType.isinstance(listVal.type):
@@ -1226,6 +1318,19 @@ class PyASTBridge(ast.NodeVisitor):
                 self.createInvariantForLoop(totalSize, bodyBuilder)
                 self.pushValue(enumIterable)
                 self.pushValue(totalSize)
+                return
+
+            if node.func.id == 'complex':
+                if len(namedArgs) == 0:
+                    imag = self.popValue()
+                    real = self.popValue()
+                else:
+                    imag = namedArgs['imag']
+                    real = namedArgs['real']
+                imag = self.promote_operand_type(self.getFloatType(), imag)
+                real = self.promote_operand_type(self.getFloatType(), real)
+                self.pushValue(
+                    complex.CreateOp(self.getComplexType(), real, imag).result)
                 return
 
             if node.func.id in ["h", "x", "y", "z", "s", "t"]:
@@ -1458,43 +1563,61 @@ class PyASTBridge(ast.NodeVisitor):
                 if node.func.attr == 'array':
                     return
 
+                if node.func.attr == 'complex128':
+                    value = self.popValue()
+                    value = self.promote_operand_type(self.getComplexType(),
+                                                      value)
+                    real = complex.ReOp(value).result
+                    imag = complex.ImOp(value).result
+                    self.pushValue(
+                        complex.CreateOp(self.getComplexType(), real,
+                                         imag).result)
+                    return
+                if node.func.attr == 'complex64':
+                    value = self.popValue()
+                    value = self.promote_operand_type(
+                        self.getComplexType(width=32), value)
+                    real = complex.ReOp(value).result
+                    imag = complex.ImOp(value).result
+                    self.pushValue(
+                        complex.CreateOp(self.getComplexType(width=32), real,
+                                         imag).result)
+                    return
                 if node.func.attr == 'cos':
                     value = self.popValue()
-                    if F64Type.isinstance(value.type):
-                        value = complex.CreateOp(
-                            ComplexType.get(value.type), value,
-                            self.getConstantFloat(0.0)).result
-
-                    self.pushValue(complex.CosOp(value).result)
+                    if ComplexType.isinstance(value.type):
+                        self.pushValue(complex.SinOp(value).result)
+                        return
+                    value = self.promote_operand_type(self.getFloatType(),
+                                                      value)
+                    self.pushValue(math.CosOp(value).result)
                     return
                 if node.func.attr == 'sin':
                     value = self.popValue()
-                    if IntegerType.isinstance(value.type):
-                        value = arith.SIToFPOp(self.getFloatType(),
-                                               value).result
-
-                    value = complex.CreateOp(ComplexType.get(value.type), value,
-                                             self.getConstantFloat(0.0)).result
-
-                    self.pushValue(complex.SinOp(value).result)
+                    if ComplexType.isinstance(value.type):
+                        self.pushValue(complex.SinOp(value).result)
+                        return
+                    value = self.promote_operand_type(self.getFloatType(),
+                                                      value)
+                    self.pushValue(math.SinOp(value).result)
                     return
                 if node.func.attr == 'sqrt':
                     value = self.popValue()
-                    if IntegerType.isinstance(value.type):
-                        value = arith.SIToFPOp(self.getFloatType(),
-                                               value).result
-
-                    value = complex.CreateOp(ComplexType.get(value.type), value,
-                                             self.getConstantFloat(0.0)).result
-                    self.pushValue(complex.SqrtOp(value).result)
+                    if ComplexType.isinstance(value.type):
+                        self.pushValue(complex.SqrtOp(value).result)
+                        return
+                    value = self.promote_operand_type(self.getFloatType(),
+                                                      value)
+                    self.pushValue(math.SqrtOp(value).result)
                     return
                 if node.func.attr == 'ceil':
                     value = self.popValue()
-                    if IntegerType.isinstance(value.type):
-                        value = arith.SIToFPOp(self.getFloatType(),
-                                               value).result
-                    self.pushValue(math.CeilOp(value).result)
-                    return
+                    if IntegerType.isinstance(value.type) or F64Type.isinstance(
+                            value.type):
+                        value = self.promote_operand_type(
+                            self.getFloatType(), value)
+                        self.pushValue(math.CeilOp(value).result)
+                        return
 
                 self.emitFatalError(
                     f"unsupported NumPy call ({node.func.attr})", node)
@@ -2765,15 +2888,21 @@ class PyASTBridge(ast.NodeVisitor):
             raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
                 type(node.op), right, right))
 
-        # Basedon the op type and the leaf types, create the MLIR operator
+        # Type promotion for addition, subtraction, multiplication, or division
+        if isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
+            right = self.promote_operand_type(left.type, right)
+            left = self.promote_operand_type(right.type, left)
+
+        # Based on the op type and the leaf types, create the MLIR operator
         if isinstance(node.op, ast.Add):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.AddIOp(left, right).result)
                 return
             elif F64Type.isinstance(left.type):
-                if IntegerType.isinstance(right.type):
-                    right = arith.SIToFPOp(left.type, right).result
                 self.pushValue(arith.AddFOp(left, right).result)
+                return
+            elif ComplexType.isinstance(left.type):
+                self.pushValue(complex.AddOp(left, right).result)
                 return
             else:
                 self.emitFatalError("unhandled BinOp.Add types.", node)
@@ -2782,6 +2911,11 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.SubIOp(left, right).result)
                 return
+            if F64Type.isinstance(left.type):
+                self.pushValue(arith.SubFOp(left, right).result)
+                return
+            if ComplexType.isinstance(left.type):
+                self.pushValue(complex.SubOp(left, right).result)
             else:
                 self.emitFatalError("unhandled BinOp.Sub types.", node)
         if isinstance(node.op, ast.FloorDiv):
@@ -2792,17 +2926,6 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("unhandled BinOp.FloorDiv types.", node)
         if isinstance(node.op, ast.Div):
             if ComplexType.isinstance(left.type):
-                if not ComplexType.isinstance(right.type):
-                    right = complex.CreateOp(
-                        ComplexType.get(self.getFloatType()), right,
-                        self.getConstantFloat(0.0)).result
-                self.pushValue(complex.DivOp(left, right).result)
-                return
-            if ComplexType.isinstance(right.type):
-                if not ComplexType.isinstance(left.type):
-                    left = complex.CreateOp(
-                        ComplexType.get(self.getFloatType()), left,
-                        self.getConstantFloat(0.0)).result
                 self.pushValue(complex.DivOp(left, right).result)
                 return
 
@@ -2836,26 +2959,16 @@ class PyASTBridge(ast.NodeVisitor):
             return
         if isinstance(node.op, ast.Mult):
             if ComplexType.isinstance(left.type):
-                if not ComplexType.isinstance(right.type):
-                    if IntegerType.isinstance(right.type):
-                        right = arith.SIToFPOp(self.getFloatType(),
-                                               right).result
-                    right = complex.CreateOp(left.type, right,
-                                             self.getConstantFloat(0.)).result
                 self.pushValue(complex.MulOp(left, right).result)
                 return
 
             if F64Type.isinstance(left.type):
-                if not F64Type.isinstance(right.type):
-                    right = arith.SIToFPOp(self.getFloatType(), right).result
-
-            if IntegerType.isinstance(left.type):
-                if not IntegerType.isinstance(right.type):
-                    right = arith.FPToSIOp(left.type, right).result
-                self.pushValue(arith.MulIOp(left, right).result)
+                self.pushValue(arith.MulFOp(left, right).result)
                 return
 
-            self.pushValue(arith.MulFOp(left, right).result)
+            if IntegerType.isinstance(left.type):
+                self.pushValue(arith.MulIOp(left, right).result)
+                return
             return
         if isinstance(node.op, ast.Mod):
             if F64Type.isinstance(left.type):
@@ -2903,9 +3016,11 @@ class PyASTBridge(ast.NodeVisitor):
 
         if node.id in self.capturedVars:
             # Only support a small subset of types here
+            complexType = type(1j)
             value = self.capturedVars[node.id]
-            if isinstance(value, list) and isinstance(value[0],
-                                                      (int, bool, float)):
+            if isinstance(value, list) and isinstance(
+                    value[0],
+                (int, bool, float, complexType, np.complex64, np.complex128)):
                 elementValues = None
                 if isinstance(value[0], float):
                     elementValues = [self.getConstantFloat(el) for el in value]
@@ -2913,6 +3028,15 @@ class PyASTBridge(ast.NodeVisitor):
                     elementValues = [self.getConstantInt(el) for el in value]
                 elif isinstance(value[0], bool):
                     elementValues = [self.getConstantInt(el, 1) for el in value]
+                elif isinstance(value[0], complexType) or isinstance(
+                        value[0], np.complex128):
+                    elementValues = [
+                        self.getConstantComplex(el, width=64) for el in value
+                    ]
+                elif isinstance(value[0], np.complex64):
+                    elementValues = [
+                        self.getConstantComplex(el, width=32) for el in value
+                    ]
 
                 if elementValues != None:
                     self.dependentCaptureVars[node.id] = value
@@ -2930,6 +3054,13 @@ class PyASTBridge(ast.NodeVisitor):
                 mlirValCreator = lambda: self.getConstantInt(value, 1)
             elif isinstance(value, float):
                 mlirValCreator = lambda: self.getConstantFloat(value)
+            elif isinstance(value, complexType) or isinstance(
+                    value, np.complex128):
+                mlirValCreator = lambda: self.getConstantComplex(value,
+                                                                 width=64)
+            elif isinstance(value, np.complex64):
+                mlirValCreator = lambda: self.getConstantComplex(value,
+                                                                 width=32)
 
             if mlirValCreator != None:
                 with InsertionPoint.at_block_begin(self.entry):
@@ -2943,8 +3074,12 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(stackSlot)
                     return
 
+            errorType = type(value).__name__
+            if (isinstance(value, list)):
+                errorType = f"{errorType}[{type(value[0]).__name__}]"
+
             self.emitFatalError(
-                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, and list[int|bool|float] accepted, type was {type(value)}).",
+                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, and list[int|bool|float|complex] accepted, type was {errorType}).",
                 node)
 
         # Throw an exception for the case that the name is not
