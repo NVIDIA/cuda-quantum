@@ -1523,6 +1523,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::SOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint,
                                  /*control=*/true);
+    if (funcName.equals("sdg"))
+      return buildOp<quake::SOp>(builder, loc, args, negations,
+                                 reportNegateError, /*adjoint=*/true,
+                                 isControl);
     if (funcName.equals("t"))
       return buildOp<quake::TOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint, isControl);
@@ -1530,6 +1534,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::TOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint,
                                  /*control=*/true);
+    if (funcName.equals("tdg"))
+      return buildOp<quake::TOp>(builder, loc, args, negations,
+                                 reportNegateError, /*adjoint=*/true,
+                                 isControl);
 
     if (funcName.equals("reset")) {
       if (!negations.empty())
@@ -1555,18 +1563,34 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
+    if (funcName.equals("cr1"))
+      return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         /*control=*/true);
     if (funcName.equals("rx"))
       return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
+    if (funcName.equals("crx"))
+      return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         /*control=*/true);
     if (funcName.equals("ry"))
       return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
+    if (funcName.equals("cry"))
+      return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         /*control=*/true);
     if (funcName.equals("rz"))
       return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
+    if (funcName.equals("crz"))
+      return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         /*control=*/true);
 
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to
@@ -1873,17 +1897,38 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       auto *block = builder.getBlock();
       IRBuilder irBuilder(builder.getContext());
       auto mod = block->getParentOp()->getParentOfType<ModuleOp>();
-      [[maybe_unused]] auto result =
-          irBuilder.loadIntrinsic(mod, setCudaqRangeVector);
-      assert(succeeded(result) && "loading intrinsic should never fail");
-      auto upVal = args[0];
       auto i64Ty = builder.getI64Type(); // element type
-      auto upper = builder.create<cc::CastOp>(loc, i64Ty, upVal,
-                                              cc::CastOpMode::Unsigned);
-      auto buffer = builder.create<cc::AllocaOp>(loc, i64Ty, upper);
+      if (funcArity == 1) {
+        [[maybe_unused]] auto result =
+            irBuilder.loadIntrinsic(mod, setCudaqRangeVector);
+        assert(succeeded(result) && "loading intrinsic should never fail");
+        auto upVal = args[0];
+        auto upper = builder.create<cc::CastOp>(loc, i64Ty, upVal,
+                                                cc::CastOpMode::Unsigned);
+        auto buffer = builder.create<cc::AllocaOp>(loc, i64Ty, upper);
+        auto stdvecTy = cc::StdvecType::get(i64Ty);
+        auto call = builder.create<func::CallOp>(
+            loc, stdvecTy, setCudaqRangeVector, ValueRange{buffer, upper});
+        return pushValue(call.getResult(0));
+      }
+      assert(funcArity == 3);
+      [[maybe_unused]] auto result =
+          irBuilder.loadIntrinsic(mod, setCudaqRangeVectorTriple);
+      assert(succeeded(result) && "loading intrinsic should never fail");
+      Value start = builder.create<cc::CastOp>(loc, i64Ty, args[0],
+                                               cc::CastOpMode::Signed);
+      Value stop = builder.create<cc::CastOp>(loc, i64Ty, args[1],
+                                              cc::CastOpMode::Signed);
+      Value step = builder.create<cc::CastOp>(loc, i64Ty, args[2],
+                                              cc::CastOpMode::Signed);
+      auto lengthCall = builder.create<func::CallOp>(
+          loc, i64Ty, getCudaqSizeFromTriple, ValueRange{start, stop, step});
+      Value length = lengthCall.getResult(0);
+      auto buffer = builder.create<cc::AllocaOp>(loc, i64Ty, length);
       auto stdvecTy = cc::StdvecType::get(i64Ty);
-      auto call = builder.create<func::CallOp>(
-          loc, stdvecTy, setCudaqRangeVector, ValueRange{buffer, upper});
+      auto call =
+          builder.create<func::CallOp>(loc, stdvecTy, setCudaqRangeVectorTriple,
+                                       ValueRange{buffer, start, stop, step});
       return pushValue(call.getResult(0));
     }
 

@@ -152,7 +152,7 @@ extern "C" {
 /// MPI_Comm_size wrapper
 int cutensornetMpiCommSize(const cutensornetDistributedCommunicator_t *comm,
                            int32_t *numRanks) {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->getNumRanks(&cudaqComm, numRanks);
 }
@@ -160,7 +160,7 @@ int cutensornetMpiCommSize(const cutensornetDistributedCommunicator_t *comm,
 /// Returns the size of the local subgroup of processes sharing node memory
 int cutensornetMpiCommSizeShared(
     const cutensornetDistributedCommunicator_t *comm, int32_t *numRanks) {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->getCommSizeShared(&cudaqComm, numRanks);
 }
@@ -168,14 +168,14 @@ int cutensornetMpiCommSizeShared(
 /// MPI_Comm_rank wrapper
 int cutensornetMpiCommRank(const cutensornetDistributedCommunicator_t *comm,
                            int32_t *procRank) {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->getProcRank(&cudaqComm, procRank);
 }
 
 /// MPI_Barrier wrapper
 int cutensornetMpiBarrier(const cutensornetDistributedCommunicator_t *comm) {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Barrier(&cudaqComm);
 }
@@ -184,7 +184,7 @@ int cutensornetMpiBarrier(const cutensornetDistributedCommunicator_t *comm) {
 int cutensornetMpiBcast(const cutensornetDistributedCommunicator_t *comm,
                         void *buffer, int32_t count, cudaDataType_t datatype,
                         int32_t root) {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Bcast(
       &cudaqComm, buffer, count, convertCudaToMpiDataType(datatype), root);
@@ -194,7 +194,7 @@ int cutensornetMpiBcast(const cutensornetDistributedCommunicator_t *comm,
 int cutensornetMpiAllreduce(const cutensornetDistributedCommunicator_t *comm,
                             const void *bufferIn, void *bufferOut,
                             int32_t count, cudaDataType_t datatype) {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   // cutensornet expects MPI_SUM in this API
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Allreduce(
@@ -206,7 +206,7 @@ int cutensornetMpiAllreduce(const cutensornetDistributedCommunicator_t *comm,
 int cutensornetMpiAllreduceInPlace(
     const cutensornetDistributedCommunicator_t *comm, void *buffer,
     int32_t count, cudaDataType_t datatype) {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   // cutensornet expects MPI_SUM in this API
   return getMpiPluginInterface()->AllreduceInPlace(
@@ -217,7 +217,7 @@ int cutensornetMpiAllreduceInPlace(
 int cutensornetMpiAllreduceInPlaceMin(
     const cutensornetDistributedCommunicator_t *comm, void *buffer,
     int32_t count, cudaDataType_t datatype) {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   // cutensornet expects MPI_SUM in this API
   return getMpiPluginInterface()->AllreduceInPlace(
@@ -230,7 +230,7 @@ int cutensornetMpiAllreduceDoubleIntMinloc(
     const void *bufferIn, // *struct {double; int;}
     void *bufferOut)      // *struct {double; int;}
 {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Allreduce(&cudaqComm, bufferIn, bufferOut, 1,
                                             FLOAT_64, MIN_LOC);
@@ -240,7 +240,7 @@ int cutensornetMpiAllreduceDoubleIntMinloc(
 int cutensornetMpiAllgather(const cutensornetDistributedCommunicator_t *comm,
                             const void *bufferIn, void *bufferOut,
                             int32_t count, cudaDataType_t datatype) {
-  cudaq::ScopedTrace trace(__FUNCTION__);
+  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Allgather(&cudaqComm, bufferIn, bufferOut,
                                             count,

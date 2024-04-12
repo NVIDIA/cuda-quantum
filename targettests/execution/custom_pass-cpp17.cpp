@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
+// REQUIRES: c++17
 // clang-format off
-// RUN: nvq++ --enable-mlir --opt-plugin %cudaq_lib_dir/CustomPassPlugin.so --opt-pass 'func.func(cudaq-custom-pass)'  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --enable-mlir --opt-plugin %cudaq_lib_dir/CustomPassPlugin.so --opt-pass 'func.func(cudaq-custom-pass)'  %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -17,7 +17,7 @@
 void kernel() __qpu__ {
   cudaq::qarray<2> q;
   h(q[0]);
-  x<cudaq::ctrl>(q[0], q[1]);
+  cx(q[0], q[1]);
   mz(q);
 }
 
