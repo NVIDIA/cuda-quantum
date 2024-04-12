@@ -83,8 +83,8 @@ inline void to_json(json &j, const ExecutionContext &context) {
     j["expectationValue"] = context.expectationValue.value();
   }
 
-  j["simulationData"] = json();
   if (context.simulationState) {
+    j["simulationData"] = json();
     j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
     std::vector<std::complex<double>> hostData(
         context.simulationState->getNumElements());
@@ -97,10 +97,6 @@ inline void to_json(json &j, const ExecutionContext &context) {
       j["simulationData"]["data"] = std::vector<std::complex<double>>(
           ptr, ptr + context.simulationState->getNumElements());
     }
-
-  } else {
-    j["simulationData"]["dim"] = std::vector<std::size_t>{};
-    j["simulationData"]["data"] = std::vector<std::complex<double>>{};
   }
 
   if (context.spin.has_value() && context.spin.value() != nullptr) {
