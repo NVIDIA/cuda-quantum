@@ -879,81 +879,95 @@ def test_recursive_calls():
 
 def test_from_state():
     cudaq.reset_target()
-    cudaq.set_target('nvidia-fp64')
+    target_installed = True
+    # This backend may not be installed depending on the configuration
+    try:
+        cudaq.set_target('nvidia-fp64')
+    except RuntimeError:
+        target_installed = False
+        print('Could not find nvidia-fp64 in installation')
 
-    kernel, initState = cudaq.make_kernel(list[complex])
-    qubits = kernel.qalloc(initState)
+    if target_installed:
+        kernel, initState = cudaq.make_kernel(list[complex])
+        qubits = kernel.qalloc(initState)
 
-    # Test float64 list, casts to complex
-    state = [.70710678, 0., 0., 0.70710678]
-    counts = cudaq.sample(kernel, state)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
+        # Test float64 list, casts to complex
+        state = [.70710678, 0., 0., 0.70710678]
+        counts = cudaq.sample(kernel, state)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
 
-    # Test complex list
-    state = [.70710678j, 0., 0., 0.70710678]
-    counts = cudaq.sample(kernel, state)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
+        # Test complex list
+        state = [.70710678j, 0., 0., 0.70710678]
+        counts = cudaq.sample(kernel, state)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
 
-    # Test Numpy array
-    state = np.asarray([.70710678, 0., 0., 0.70710678])
-    counts = cudaq.sample(kernel, state)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
+        # Test Numpy array
+        state = np.asarray([.70710678, 0., 0., 0.70710678])
+        counts = cudaq.sample(kernel, state)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
 
-    # Now test constant array data, not kernel input
-    state = np.array([.70710678, 0., 0., 0.70710678], dtype=complex)
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(state)
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-    state = [.70710678 + 0j, 0., 0., 0.70710678]
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(state)
-    counts = cudaq.sample(kernel)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-    state = np.array([.70710678, 0., 0., 0.70710678])
-    kernel = cudaq.make_kernel()
-    with pytest.raises(RuntimeError) as e:
-        # float data and not complex data
+        # Now test constant array data, not kernel input
+        state = np.array([.70710678, 0., 0., 0.70710678], dtype=complex)
+        kernel = cudaq.make_kernel()
         qubits = kernel.qalloc(state)
+        counts = cudaq.sample(kernel)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
 
-    state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
-    kernel = cudaq.make_kernel()
-    with pytest.raises(RuntimeError) as e:
-        # Wrong precision for fp64 simulator
+        state = [.70710678 + 0j, 0., 0., 0.70710678]
+        kernel = cudaq.make_kernel()
         qubits = kernel.qalloc(state)
+        counts = cudaq.sample(kernel)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
 
-    with pytest.raises(RuntimeError) as e:
-        qubits = kernel.qalloc(np.array([1., 0., 0.], dtype=complex))
+        state = np.array([.70710678, 0., 0., 0.70710678])
+        kernel = cudaq.make_kernel()
+        with pytest.raises(RuntimeError) as e:
+            # float data and not complex data
+            qubits = kernel.qalloc(state)
+
+        state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
+        kernel = cudaq.make_kernel()
+        with pytest.raises(RuntimeError) as e:
+            # Wrong precision for fp64 simulator
+            qubits = kernel.qalloc(state)
+
+        with pytest.raises(RuntimeError) as e:
+            qubits = kernel.qalloc(np.array([1., 0., 0.], dtype=complex))
 
     cudaq.reset_target()
 
     # Handle FP32 simulation backend case.
-    cudaq.set_target('nvidia')
+    # This backend may not be installed depending on the configuration
+    target_installed = True
+    try:
+        cudaq.set_target('nvidia')
+    except RuntimeError:
+        target_installed = False
+        print('Could not find nvidia in installation')
 
-    state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex128)
-    kernel = cudaq.make_kernel()
-    with pytest.raises(RuntimeError) as e:
-        qubits = kernel.qalloc(state)
+    if target_installed:
+        state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex128)
+        kernel = cudaq.make_kernel()
+        with pytest.raises(RuntimeError) as e:
+            qubits = kernel.qalloc(state)
 
-    state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
-    kernel2 = cudaq.make_kernel()
-    qubits = kernel2.qalloc(state)
-    counts = cudaq.sample(kernel2)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
+        state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
+        kernel2 = cudaq.make_kernel()
+        qubits = kernel2.qalloc(state)
+        counts = cudaq.sample(kernel2)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
 
     cudaq.reset_target()
 
