@@ -162,6 +162,16 @@ for ex in `find "$root_folder/examples" -name '*.py' -not -path '*/providers/*'`
 done
 
 # Run remote-mqpu platform test
+# First determine the location of the cuquantum libraries (the [^, ] is to catch a suffix like "-cu11")
+CUQUANTUM_PACKAGE=$(python3 -m pip show --files cuda-quantum | grep Requires: | grep -o -P "cuquantum[^, ]*")
+CUQUANTUM_DEPS=$(python3 -m pip show --files $CUQUANTUM_PACKAGE | grep Requires: | cut -d' ' -f2- | tr -d ,)
+CUQUANTUM_LIB_PATH=$(for PACKAGE in $CUQUANTUM_DEPS; do
+  package_loc=$(python3 -m pip show --files $PACKAGE | grep Location: | cut -d' ' -f2)
+  package_so_dir=$(python3 -m pip show --files $PACKAGE | grep "\.so" | sed -re "s/ +//" | xargs dirname | head -1)
+  echo $package_loc/$package_so_dir
+done | sort | uniq | paste -d':')
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CUQUANTUM_LIB_PATH}
+# Now continue with cudaq-qpud location
 cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
 qpud_exe="${cudaq_location#Location: }/bin/cudaq-qpud"
 if [ -x "$(command -v nvidia-smi)" ]; 
