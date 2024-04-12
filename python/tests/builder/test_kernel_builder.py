@@ -969,44 +969,44 @@ def test_from_state():
         assert '11' in counts
         assert '00' in counts
 
-    cudaq.reset_target()
+        cudaq.reset_target()
 
-    # Regardless of the target precision, use
-    # cudaq.simulation_dtype() or cudaq.create_state()
-    state = np.array([.70710678, 0., 0., 0.70710678],
-                     dtype=cudaq.simulation_dtype())
-    kernel2 = cudaq.make_kernel()
-    qubits = kernel2.qalloc(state)
-    counts = cudaq.sample(kernel2)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
+        # Regardless of the target precision, use
+        # cudaq.simulation_dtype() or cudaq.create_state()
+        state = np.array([.70710678, 0., 0., 0.70710678],
+                         dtype=cudaq.simulation_dtype())
+        kernel2 = cudaq.make_kernel()
+        qubits = kernel2.qalloc(state)
+        counts = cudaq.sample(kernel2)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
 
-    state = cudaq.create_state([.70710678, 0., 0., 0.70710678])
-    kernel2 = cudaq.make_kernel()
-    qubits = kernel2.qalloc(state)
-    counts = cudaq.sample(kernel2)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
+        state = cudaq.create_state([.70710678, 0., 0., 0.70710678])
+        kernel2 = cudaq.make_kernel()
+        qubits = kernel2.qalloc(state)
+        counts = cudaq.sample(kernel2)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
 
-    state = cudaq.create_state(np.array([.5]*4))
-    kernel2 = cudaq.make_kernel()
-    qubits = kernel2.qalloc(state)
-    counts = cudaq.sample(kernel2)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-    assert '01' in counts
-    assert '10' in counts
+        state = cudaq.create_state(np.array([.5]*4))
+        kernel2 = cudaq.make_kernel()
+        qubits = kernel2.qalloc(state)
+        counts = cudaq.sample(kernel2)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
+        assert '01' in counts
+        assert '10' in counts
 
-    kernel, initState = cudaq.make_kernel(list[np.complex64])
-    qubits = kernel.qalloc(initState)
-    state = cudaq.create_state([.70710678, 0., 0., 0.70710678])
-    counts = cudaq.sample(kernel, state)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
+        kernel, initState = cudaq.make_kernel(list[np.complex64])
+        qubits = kernel.qalloc(initState)
+        state = cudaq.create_state([.70710678, 0., 0., 0.70710678])
+        counts = cudaq.sample(kernel, state)
+        print(counts)
+        assert '11' in counts
+        assert '00' in counts
 
 
 @skipIfPythonLessThan39
