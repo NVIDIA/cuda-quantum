@@ -90,10 +90,7 @@ protected:
   /// new SimulationState instances. Create from the size
   /// and data pointer, which may be on GPU device.
   virtual std::unique_ptr<SimulationState>
-  createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) {
-    throw std::runtime_error(
-        "SimulationState::createFromSizeAndPtr not implemented.");
-  }
+  createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) = 0;
 
 public:
   /// @brief Runtime-known precision for the simulation data

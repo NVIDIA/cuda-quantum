@@ -22,7 +22,8 @@ class TensorNetSimulationState : public cudaq::SimulationState,
                                  public cudaq::TensorNetworkState {
 
 public:
-  TensorNetSimulationState(std::unique_ptr<TensorNetState> inState);
+  TensorNetSimulationState(std::unique_ptr<TensorNetState> inState,
+                           cutensornetHandle_t cutnHandle);
 
   TensorNetSimulationState(const TensorNetSimulationState &) = delete;
   TensorNetSimulationState &
@@ -48,7 +49,18 @@ public:
   bool isArrayLike() const override { return false; }
 
   Tensor getTensor(std::size_t tensorIdx = 0) const override;
+  virtual std::unique_ptr<cudaq::SimulationState>
+  createFromSizeAndPtr(std::size_t size, void *ptr,
+                       std::size_t dataType) override {
+    std::vector<std::complex<double>> vec(
+        reinterpret_cast<std::complex<double> *>(ptr),
+        reinterpret_cast<std::complex<double> *>(ptr) + size);
+    auto tensorNetState =
+        TensorNetState::createFromStateVector(vec, m_cutnHandle);
 
+    return std::make_unique<TensorNetSimulationState>(std::move(tensorNetState),
+                                                      m_cutnHandle);
+  }
   /// Get component tensors
   // Note: for the full tensor network state, we return the gate tensors in the
   // full tensor network. The root tensor of this network is not computed and
@@ -70,6 +82,7 @@ public:
 
 protected:
   std::unique_ptr<TensorNetState> m_state;
+  cutensornetHandle_t m_cutnHandle;
   ScratchDeviceMem m_scratchPad;
 };
 } // namespace nvqir

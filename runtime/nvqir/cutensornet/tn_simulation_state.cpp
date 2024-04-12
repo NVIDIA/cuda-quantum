@@ -20,8 +20,8 @@ std::size_t TensorNetSimulationState::getNumQubits() const {
 }
 
 TensorNetSimulationState::TensorNetSimulationState(
-    std::unique_ptr<TensorNetState> inState)
-    : m_state(std::move(inState)) {}
+    std::unique_ptr<TensorNetState> inState, cutensornetHandle_t cutnHandle)
+    : m_state(std::move(inState)), m_cutnHandle(cutnHandle) {}
 
 TensorNetSimulationState::~TensorNetSimulationState() {}
 
@@ -38,9 +38,23 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   // Compute <bra|ket> by conjugating the entire |bra> tensor network.
   // Reverse them
   std::reverse(tensorOps.begin(), tensorOps.end());
-  for (auto &op : tensorOps)
+  for (auto &op : tensorOps) {
     op.isAdjoint = !op.isAdjoint;
-
+    if (!op.isUnitary) {
+      // For non-unitary ops, i.e., projectors, we need to do a transpose to
+      // reverse the leg connection.
+      const auto dim = (1 << op.qubitIds.size());
+      // FIXME: perform this in device memory.
+      Eigen::MatrixXcd mat(dim, dim);
+      HANDLE_CUDA_ERROR(cudaMemcpy(mat.data(), op.deviceData,
+                                   mat.size() * sizeof(std::complex<double>),
+                                   cudaMemcpyDeviceToHost));
+      mat.transposeInPlace();
+      HANDLE_CUDA_ERROR(cudaMemcpy(op.deviceData, mat.data(),
+                                   mat.size() * sizeof(std::complex<double>),
+                                   cudaMemcpyHostToDevice));
+    }
+  }
   // Append them to ket
   // Note: we clone a new ket tensor network to keep this ket as-is.
   const auto nbQubits = std::max(getNumQubits(), other.getNumQubits());
@@ -184,6 +198,7 @@ TensorNetSimulationState::reconstructBackendState() {
 
 std::unique_ptr<cudaq::SimulationState>
 TensorNetSimulationState::toSimulationState() {
-  return std::make_unique<TensorNetSimulationState>(m_state->clone());
+  return std::make_unique<TensorNetSimulationState>(
+      m_state->clone(), m_state->getInternalContext());
 }
 } // namespace nvqir

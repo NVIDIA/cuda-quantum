@@ -74,6 +74,14 @@ public:
                       const std::vector<AppliedTensorOp> &opTensors,
                       cutensornetHandle_t handle);
 
+  // Create a tensor network state from the input state vector.
+  // Note: this is not the most efficient mode of initialization. However, this
+  // is required if users have a state vector that they want to initialize the
+  // tensor network simulator with.
+  static std::unique_ptr<TensorNetState>
+  createFromStateVector(const std::vector<std::complex<double>> &stateVec,
+                        cutensornetHandle_t handle);
+
   /// @brief Apply a unitary gate
   /// @param qubitIds Qubit operands
   /// @param gateDeviceMem Gate unitary matrix in device memory
@@ -84,7 +92,7 @@ public:
   /// @brief Apply a projector matrix (non-unitary)
   /// @param proj_d Projector matrix (expected a 2x2 matrix in column major)
   /// @param qubitIdx Qubit operand
-  void applyQubitProjector(void *proj_d, int32_t qubitIdx);
+  void applyQubitProjector(void *proj_d, const std::vector<int32_t> &qubitIdx);
 
   /// @brief Accessor to the cuTensorNet handle (context).
   cutensornetHandle_t getInternalContext() { return m_cutnHandle; }

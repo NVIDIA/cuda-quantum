@@ -109,3 +109,21 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   EXPECT_NEAR(opt_val, 0.0, 1e-3);
 #endif
 }
+
+#ifdef CUDAQ_BACKEND_TENSORNET
+__qpu__ void bell() {
+  cudaq::qubit q, r;
+  h(q);
+  cx(q, r);
+}
+
+CUDAQ_TEST(GetStateTester, checkOverlapFromHostVector) {
+  auto state = cudaq::get_state(bell);
+  state.dump();
+  std::vector<std::complex<double>> hostStateData{M_SQRT1_2, 0, 0, M_SQRT1_2};
+  auto hostState = cudaq::state::from_data(hostStateData);
+  hostState.dump();
+  // Check overlap with host vector
+  EXPECT_NEAR(1.0, state.overlap(hostState).real(), 1e-3);
+}
+#endif

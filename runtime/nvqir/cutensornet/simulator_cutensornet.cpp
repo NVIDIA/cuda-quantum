@@ -134,7 +134,8 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
 
-  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
+  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
+                               {static_cast<int32_t>(qubitIdx)});
 }
 
 /// @brief Device synchronization
@@ -172,7 +173,8 @@ bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
         4 * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
-  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
+  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
+                               {static_cast<int32_t>(qubitIdx)});
   return resultBool;
 }
 

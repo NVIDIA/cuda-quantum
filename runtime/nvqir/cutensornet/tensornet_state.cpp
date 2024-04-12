@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "tensornet_state.h"
+#include "common/EigenDense.h"
 #include <cassert>
 
 namespace nvqir {
@@ -53,12 +54,13 @@ void TensorNetState::applyGate(const std::vector<int32_t> &qubitIds,
       AppliedTensorOp{gateDeviceMem, qubitIds, adjoint, true});
 }
 
-void TensorNetState::applyQubitProjector(void *proj_d, int32_t qubitIdx) {
-  HANDLE_CUTN_ERROR(
-      cutensornetStateApplyTensor(m_cutnHandle, m_quantumState, 1, &qubitIdx,
-                                  proj_d, nullptr, /*immutable*/ 1,
-                                  /*adjoint*/ 0, /*unitary*/ 0, &m_tensorId));
-  m_tensorOps.emplace_back(AppliedTensorOp{proj_d, {qubitIdx}, false, false});
+void TensorNetState::applyQubitProjector(void *proj_d,
+                                         const std::vector<int32_t> &qubitIdx) {
+  HANDLE_CUTN_ERROR(cutensornetStateApplyTensor(
+      m_cutnHandle, m_quantumState, qubitIdx.size(), qubitIdx.data(), proj_d,
+      nullptr, /*immutable*/ 1,
+      /*adjoint*/ 0, /*unitary*/ 0, &m_tensorId));
+  m_tensorOps.emplace_back(AppliedTensorOp{proj_d, qubitIdx, false, false});
 }
 
 std::unordered_map<std::string, size_t>
@@ -450,7 +452,7 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
                                  cudaMemcpyHostToDevice));
     state->m_tempDevicePtrs.emplace_back(d_proj);
 
-    state->applyQubitProjector(d_proj, 0);
+    state->applyQubitProjector(d_proj, {0});
     return state;
   }
   const auto maxExtent = in_mpsTensors[0].extents[1];
@@ -484,13 +486,46 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
   for (const auto &op : opTensors)
     if (op.isUnitary)
       state->applyGate(op.qubitIds, op.deviceData, op.isAdjoint);
-    else {
-      if (op.qubitIds.size() != 1)
-        throw std::invalid_argument(
-            "Projector operators (non-unitary operators) "
-            "must be single-qubit tensors.");
-      state->applyQubitProjector(op.deviceData, op.qubitIds[0]);
-    }
+    else
+      state->applyQubitProjector(op.deviceData, op.qubitIds);
+
+  return state;
+}
+
+std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
+    const std::vector<std::complex<double>> &stateVec,
+    cutensornetHandle_t handle) {
+  const std::size_t numQubits = std::log2(stateVec.size());
+  auto state = std::make_unique<TensorNetState>(numQubits, handle);
+
+  // Support initializing the tensor network in a specific state vector state.
+  // Note: this is not intended for large state vector but for relatively small
+  // number of qubits. The purpose is to support sub-state (e.g., a portion of
+  // the qubit register) initialization. For full state re-initialization, the
+  // previous state should be in the tensor network form. Construct the state
+  // projector matrix
+  // FIXME: use CUDA toolkit, e.g., cuBlas, to construct this projector matrix.
+  auto ket =
+      Eigen::Map<const Eigen::VectorXcd>(stateVec.data(), stateVec.size());
+  Eigen::VectorXcd initState = Eigen::VectorXcd::Zero(stateVec.size());
+  initState(0) = std::complex<double>{1.0, 0.0};
+  Eigen::MatrixXcd stateVecProj = ket * initState.transpose();
+  assert(static_cast<std::size_t>(stateVecProj.size()) ==
+         stateVec.size() * stateVec.size());
+  stateVecProj.transposeInPlace();
+  void *d_proj{nullptr};
+  HANDLE_CUDA_ERROR(
+      cudaMalloc(&d_proj, stateVecProj.size() * sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(d_proj, stateVecProj.data(),
+                 stateVecProj.size() * sizeof(std::complex<double>),
+                 cudaMemcpyHostToDevice));
+
+  std::vector<int32_t> qubitIdx(numQubits);
+  std::iota(qubitIdx.begin(), qubitIdx.end(), 0);
+  // Project the state to the input state.
+  state->applyQubitProjector(d_proj, qubitIdx);
+  state->m_tempDevicePtrs.emplace_back(d_proj);
   return state;
 }
 

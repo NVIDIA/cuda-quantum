@@ -54,6 +54,15 @@ public:
   bool isDeviceData() const override { return true; }
 
   bool isArrayLike() const override { return false; }
+
+  virtual std::unique_ptr<cudaq::SimulationState>
+  createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override {
+    // TODO
+    throw std::runtime_error(
+        "SimulationState::createFromSizeAndPtr not implemented.");
+    return nullptr;
+  }
+
   // Note: this API is intended for a simulate-observe-reinit use case on single
   // state. For example, run a circuit, get the state to perform some
   // computation (e.g., overlap, expectation), then reinit the state to continue

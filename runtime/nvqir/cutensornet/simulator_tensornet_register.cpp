@@ -47,7 +47,8 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
-    return std::make_unique<TensorNetSimulationState>(std::move(m_state));
+    return std::make_unique<TensorNetSimulationState>(std::move(m_state),
+                                                      m_cutnHandle);
   }
 
 private:
