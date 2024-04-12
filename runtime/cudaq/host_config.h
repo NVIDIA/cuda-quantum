@@ -21,7 +21,7 @@ enum class simulation_precision { fp32, fp64 };
 
 #if defined(CUDAQ_SIMULATION_SCALAR_FP64) &&                                   \
     defined(CUDAQ_SIMULATION_SCALAR_FP32)
-#error "Both CUDAQ_SIMULATION_SCALAR_FP64 and CUDAQ_SIMULATION_SCALAR_FP32"
+#error "Simulation precision cannot be both double and float"
 #elif defined(CUDAQ_SIMULATION_SCALAR_FP32)
 using simulation_scalar = std::complex<float>;
 #elif defined(CUDAQ_SIMULATION_SCALAR_FP64)
