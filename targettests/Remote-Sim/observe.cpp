@@ -24,7 +24,11 @@ struct ansatz {
     cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
+#if CUDAQ_USE_STD20
     x<cudaq::ctrl>(q[1], q[0]);
+#else
+    cx(q[1], q[0]);
+#endif
   }
 };
 

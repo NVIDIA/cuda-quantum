@@ -96,7 +96,11 @@ void kernel_cnot(int control, int target) __qpu__ {
   h(q[0]); // warm-up operation
   timer_start(KERNEL_CNOT);
   for (int j = 0; j < RUN_AVG; j++)
+#if CUDAQ_USE_STD20
     cudaq::x<cudaq::ctrl>(q[control], q[target]);
+#else
+    cx(q[control], q[target]);
+#endif
   timer_stop(KERNEL_CNOT, RUN_AVG);
 }
 

@@ -16,7 +16,11 @@ template <std::size_t N>
 struct kernel_with_z {
   auto operator()() __qpu__ {
     cudaq::qarray<N> q;
+#if CUDAQ_USE_STD20
     z<cudaq::ctrl>(q[0], q[1]);
+#else
+    cz(q[0], q[1]);
+#endif
     auto result = mz(q[0]);
   }
 };

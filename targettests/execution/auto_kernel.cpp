@@ -20,8 +20,13 @@ struct ak2 {
     cudaq::qarray<3> q;
     x(q[0]);
     h(q[1]);
+#if CUDAQ_USE_STD20
     x<cudaq::ctrl>(q[1], q[2]);
     x<cudaq::ctrl>(q[0], q[1]);
+#else
+    cx(q[1], q[2]);
+    cx(q[0], q[1]);
+#endif
     h(q[0]);
     x(q[1]);
     y(q[2]);

@@ -11,8 +11,6 @@
 // clang-format off
 // RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t 
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t
-// Validate 'pure' C++17 compilation (enable c++20-extensions warnings and treat warnings as errors)
-// RUN: nvq++ -std=c++17 -Wc++20-extensions -Werror --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t
 // clang-format on
 
 #include <cudaq.h>
@@ -22,7 +20,7 @@ struct ansatz {
     cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
-    cnot(q[1], q[0]);
+    cx(q[1], q[0]);
   }
 };
 

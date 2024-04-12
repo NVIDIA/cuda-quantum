@@ -19,7 +19,11 @@ void ghz(std::size_t N) __qpu__ {
   cudaq::qvector q(N);
   h(q[0]);
   for (int i = 0; i < N - 1; i++) {
+#if CUDAQ_USE_STD20
     x<cudaq::ctrl>(q[i], q[i + 1]);
+#else
+    cx(q[i], q[i + 1]);
+#endif
   }
   mz(q);
 }
@@ -28,7 +32,11 @@ void ansatz(double theta) __qpu__ {
   cudaq::qvector q(2);
   x(q[0]);
   ry(theta, q[1]);
+#if CUDAQ_USE_STD20
   x<cudaq::ctrl>(q[1], q[0]);
+#else
+  cx(q[1], q[0]);
+#endif
 }
 
 int main() {

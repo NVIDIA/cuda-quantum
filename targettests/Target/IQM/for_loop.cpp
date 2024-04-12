@@ -18,7 +18,11 @@ struct ghz {
     cudaq::qarray<N> q;
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
+#if CUDAQ_USE_STD20
       x<cudaq::ctrl>(q[i], q[i + 1]);
+#else
+      cx(q[i], q[i + 1]);
+#endif
     }
     auto result = mz(q[0]);
   }
