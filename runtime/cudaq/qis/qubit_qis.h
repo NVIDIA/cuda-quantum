@@ -494,7 +494,8 @@ struct u3 {
 };
 } // namespace types
 template <typename mod = base, typename ScalarAngle, typename... QubitArgs>
-void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda, QubitArgs &...args) {
+void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
+        QubitArgs &...args) {
   static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
                 "Cannot operate on a qudit with Levels != 2");
 

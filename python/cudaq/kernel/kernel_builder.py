@@ -619,6 +619,32 @@ class PyKernel(object):
     def from_state(self, qubits, state):
         emitFatalError("from_state not implemented.")
 
+    def u3(self, theta, phi, delta, target):
+        """
+        Apply the universal three-parameters operator to target qubit.
+        The three parameters are Euler angles - θ, φ, and λ.
+
+        ```python
+            # Example
+            kernel = cudaq.make_kernel()
+            q = cudaq.qubit()
+            kernel.u3(np.pi, np.pi, np.pi / 2, q)
+        ```
+        """
+
+        def get_parameter_value(param):
+            if isinstance(param, float):
+                fty = mlirTypeFromPyType(float, self.ctx)
+                paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, param))
+            else:
+                paramVal = param.mlirValue
+            return paramVal
+
+        with self.insertPoint, self.loc:
+            quake.U3Op([],
+                       [get_parameter_value(p) for p in [theta, phi, delta]],
+                       [], [target.mlirValue])
+
     def cswap(self, controls, qubitA, qubitB):
         """
         Controlled swap of the states of the provided qubits. 

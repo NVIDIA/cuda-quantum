@@ -326,6 +326,16 @@ void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
   nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
 }
 
+void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q) {
+  auto qI = qubitToSizeT(q);
+  std::complex<double> i(0, 1.);
+  std::vector<std::complex<double>> matrix{
+      std::cos(theta / 2.), -std::exp(i * lambda) * std::sin(theta / 2.),
+      std::exp(i * phi) * std::sin(theta / 2),
+      std::exp(i * (lambda + phi)) * std::cos(theta / 2.)};
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
+}
+
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);

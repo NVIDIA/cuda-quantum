@@ -722,8 +722,7 @@ public:
   }
 };
 
-/// Lower single target Quantum ops with two parameters to QIR:
-/// u2
+/// Lower single target Quantum ops with two parameters to QIR: u2
 template <typename OP>
 class OneTargetTwoParamRewrite : public ConvertOpToLLVMPattern<OP> {
 public:
@@ -780,8 +779,7 @@ public:
   }
 };
 
-/// Lower single target Quantum ops with three parameters to QIR:
-/// u3
+/// Lower single target Quantum ops with three parameters to QIR: u3
 template <typename OP>
 class OneTargetThreeParamRewrite : public ConvertOpToLLVMPattern<OP> {
 public:
@@ -817,15 +815,12 @@ public:
         v = rewriter.create<arith::ExtFOp>(loc, rewriter.getF64Type(), v);
       return v;
     };
-    Value v = adaptor.getOperands()[0];
-    v = instOp.getIsAdj() ? rewriter.create<arith::NegFOp>(loc, v) : v;
-    funcArgs.push_back(castToDouble(v));
-    v = adaptor.getOperands()[1];
-    v = instOp.getIsAdj() ? rewriter.create<arith::NegFOp>(loc, v) : v;
-    funcArgs.push_back(castToDouble(v));
-    v = adaptor.getOperands()[2];
-    v = instOp.getIsAdj() ? rewriter.create<arith::NegFOp>(loc, v) : v;
-    funcArgs.push_back(castToDouble(v));
+
+    for (size_t i = 0; i < 3; i++) {
+      Value v = adaptor.getOperands()[i];
+      v = instOp.getIsAdj() ? rewriter.create<arith::NegFOp>(loc, v) : v;
+      funcArgs.push_back(castToDouble(v));
+    }
 
     // TODO: What about the control qubits?
     if (numControls != 0)

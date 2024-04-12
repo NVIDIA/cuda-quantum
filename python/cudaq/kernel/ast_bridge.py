@@ -1373,10 +1373,11 @@ class PyASTBridge(ast.NodeVisitor):
                 params.reverse()
                 for idx, val in enumerate(params):
                     if IntegerType.isinstance(val.type):
-                        params[idx] = arith.SIToFPOp(self.getFloatType(), val).result
+                        params[idx] = arith.SIToFPOp(self.getFloatType(),
+                                                     val).result
                 self.__applyQuantumOperation(node.func.id, params, [target])
                 return
-            
+
             if node.func.id in globalKernelRegistry:
                 # If in `globalKernelRegistry`, it has to be in this Module
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +

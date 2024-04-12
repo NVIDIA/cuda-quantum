@@ -895,7 +895,8 @@ void quake::U3Op::getOperatorMatrix(Matrix &matrix) {
     phi *= -1;
     lambda *= -1;
   }
-
+  // ASKME: Is this column-major representation? Or is that in
+  // `runtime/nvqir/NVQIR.cpp` - `__quantum__qis__u3` wrong?
   matrix.assign({std::cos(theta / 2.),
                  std::exp(phi * 1i) * std::sin(theta / 2.),
                  -std::exp(lambda * 1i) * std::sin(theta / 2.),

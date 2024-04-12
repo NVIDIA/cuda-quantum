@@ -114,6 +114,7 @@ getGateByName(GateName name, const std::vector<Scalar> angles = {}) {
     auto theta = angles[0];
     auto phi = angles[1];
     auto lambda = angles[2];
+    // TODO: Confirm matrix representation
     return {{std::cos(theta / 2), 0.},
             std::exp(nvqir::im<Scalar> * phi) * std::sin(theta / 2),
             -std::exp(nvqir::im<Scalar> * lambda) * std::sin(theta / 2),

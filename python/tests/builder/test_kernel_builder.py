@@ -925,12 +925,13 @@ def test_pauli_word_input():
         1, 3, 3, -0.0454063, -0, 15
     ]
     h = cudaq.SpinOperator(h2_data, 4)
-    
+
     kernel, theta, paulis = cudaq.make_kernel(float, list[cudaq.pauli_word])
     q = kernel.qalloc(4)
     kernel.x(q[0])
     kernel.x(q[1])
-    kernel.for_loop(0, paulis.size(), lambda idx : kernel.exp_pauli(theta, q, paulis[idx]))
+    kernel.for_loop(0, paulis.size(),
+                    lambda idx: kernel.exp_pauli(theta, q, paulis[idx]))
 
     print(kernel)
     want_exp = cudaq.observe(kernel, h, .11, ['XXXY']).expectation()
@@ -1241,6 +1242,16 @@ def test_list_subscript():
 
     # Test can call with empty list
     cudaq.sample(kernelAndArgs[0], False, [], [], [])
+
+
+def test_u3_op():
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(1)
+    # TODO: Allow use of only `q`
+    kernel.u3(np.pi, np.pi, np.pi / 2, q[0])
+
+    counts = cudaq.sample(kernel)
+    assert counts["1"] == 1000
 
 
 # leave for gdb debugging
