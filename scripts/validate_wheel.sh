@@ -89,7 +89,7 @@ done <<< "$ompi_script"
 status_sum=0
 
 # Verify that the necessary GPU targets are installed and usable
-for tgt in nvidia nvidia-fp64 nvidia-mgpu tensornet; do
+for tgt in nvidia nvidia-fp64 nvidia-mgpu tensornet badtarget; do
     python3 -c "import cudaq; cudaq.set_target('${tgt}')"
     if [ $? -ne 0 ]; then 
         echo -e "\e[01;31mPython trivial test for target ${tgt} failed.\e[0m" >&2
