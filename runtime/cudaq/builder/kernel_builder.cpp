@@ -9,6 +9,7 @@
 #include "kernel_builder.h"
 #include "common/Logger.h"
 #include "common/RuntimeMLIR.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -507,74 +508,114 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
   return QuakeValue(builder, qubits);
 }
 
-QuakeValue qalloc(ImplicitLocOpBuilder &builder, std::size_t hash,
-                  std::size_t size, simulation_precision precision) {
-  // Drop out early if the vector size is not correct
-  if (!std::has_single_bit(size))
-    throw std::runtime_error("state vector must be a power of 2 in length");
+template <typename A>
+std::size_t getStateVectorLength(StateVectorStorage &stateVectorStorage,
+                                 std::int64_t index) {
+  if (index >= static_cast<std::int64_t>(stateVectorStorage.size()))
+    throw std::runtime_error("index to state initializer is out of range");
+  if (!std::get<std::vector<std::complex<A>> *>(stateVectorStorage[index]))
+    throw std::runtime_error("state vector cannot be null");
+  auto length =
+      std::get<std::vector<std::complex<A>> *>(stateVectorStorage[index])
+          ->size();
+  if (!std::has_single_bit(length))
+    throw std::runtime_error("state initializer must be a power of 2");
+  return std::countr_zero(length);
+}
 
-  // Get the context and the parent module op.
+template <typename A>
+std::complex<A> *getStateVectorData(StateVectorStorage &stateVectorStorage,
+                                    std::intptr_t index) {
+  // This foregoes all the checks found in getStateVectorLength because these
+  // two functions are called in tandem, this one second.
+  return std::get<std::vector<std::complex<A>> *>(stateVectorStorage[index])
+      ->data();
+}
+
+extern "C" {
+/// Runtime callback to get the log2(size) of a captured state vector.
+std::size_t
+__nvqpp_getStateVectorLength_fp64(StateVectorStorage &stateVectorStorage,
+                                  std::int64_t index) {
+  return getStateVectorLength<double>(stateVectorStorage, index);
+}
+
+std::size_t
+__nvqpp_getStateVectorLength_fp32(StateVectorStorage &stateVectorStorage,
+                                  std::int64_t index) {
+  return getStateVectorLength<float>(stateVectorStorage, index);
+}
+
+/// Runtime callback to get the data array of a captured state vector.
+std::complex<double> *
+__nvqpp_getStateVectorData_fp64(StateVectorStorage &stateVectorStorage,
+                                std::intptr_t index) {
+  return getStateVectorData<double>(stateVectorStorage, index);
+}
+
+/// Runtime callback to get the data array of a captured state vector.
+std::complex<float> *
+__nvqpp_getStateVectorData_fp32(StateVectorStorage &stateVectorStorage,
+                                std::intptr_t index) {
+  return getStateVectorData<float>(stateVectorStorage, index);
+}
+}
+
+QuakeValue qalloc(ImplicitLocOpBuilder &builder,
+                  StateVectorStorage &stateVectorStorage,
+                  StateVectorVariant &&state, simulation_precision precision) {
   auto *context = builder.getContext();
-  auto parentModule =
-      builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+  auto index = stateVectorStorage.size();
+  stateVectorStorage.emplace_back(std::move(state));
 
-  // Get the types we'll need
-  auto floatType = precision == simulation_precision::fp64
-                       ? builder.getF64Type()
-                       : builder.getF32Type();
-  auto complexTy = ComplexType::get(floatType);
-  auto ptrComplex = cc::PointerType::get(complexTy);
-  auto i32Ty = builder.getI32Type();
-  auto globalTy =
-      cc::StructType::get(context, ArrayRef<Type>{ptrComplex, i32Ty});
-
-  // Create a global pointer to a complex array of data
+  // Deal with the single/double precision differences here.
+  const char *getLengthCallBack;
+  const char *getDataCallBack;
+  Type componentTy;
   {
-    OpBuilder::InsertionGuard guard(builder);
-    builder.setInsertionPointToStart(parentModule.getBody());
-    auto globalName = "nvqpp.state." + std::to_string(hash);
-    builder.create<cc::GlobalOp>(globalTy, globalName, /*value=*/Attribute{},
-                                 /*constant=*/false, /*extern=*/true);
+    auto parentModule =
+        builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+    IRBuilder irb(context);
+    if (precision == simulation_precision::fp64) {
+      getLengthCallBack = "__nvqpp_getStateVectorLength_fp64";
+      getDataCallBack = "__nvqpp_getStateVectorData_fp64";
+      componentTy = irb.getF64Type();
+    } else {
+      getLengthCallBack = "__nvqpp_getStateVectorLength_fp32";
+      getDataCallBack = "__nvqpp_getStateVectorData_fp32";
+      componentTy = irb.getF32Type();
+    }
+    if (failed(irb.loadIntrinsic(parentModule, getLengthCallBack)) ||
+        failed(irb.loadIntrinsic(parentModule, getDataCallBack)))
+      throw std::runtime_error("loading callbacks should never fail");
   }
 
-  // Create a setter function for that global array pointer
-  {
-    OpBuilder::InsertionGuard guard(builder);
-    builder.setInsertionPointToEnd(parentModule.getBody());
-    auto funcName = "nvqpp.set.state." + std::to_string(hash);
-    FunctionType funcTy = builder.getFunctionType({ptrComplex}, std::nullopt);
-    auto setStateFuncOp = builder.create<func::FuncOp>(funcName, funcTy);
-    auto *entryBlock = setStateFuncOp.addEntryBlock();
-    builder.setInsertionPointToStart(entryBlock);
-    Value address = builder.create<cc::AddressOfOp>(
-        cc::PointerType::get(globalTy), "nvqpp.state." + std::to_string(hash));
-    Value ptr = builder.create<cc::ComputePtrOp>(
-        cc::PointerType::get(ptrComplex), address,
-        ArrayRef<cc::ComputePtrArg>{cc::ComputePtrArg(0),
-                                    cc::ComputePtrArg(0)});
-    builder.create<cc::StoreOp>(entryBlock->getArgument(0), ptr);
-    builder.create<func::ReturnOp>();
-  }
+  static_assert(sizeof(std::intptr_t) * 8 == 64);
+  std::intptr_t vecStor = reinterpret_cast<std::intptr_t>(&stateVectorStorage);
+
+  auto vecPtr = builder.create<arith::ConstantIntOp>(vecStor, 64);
+  auto idxOp = builder.create<arith::ConstantIntOp>(index, 64);
+
+  // Use callback to determine the size of the captured vector `state` at
+  // runtime.
+  auto i64Ty = builder.getI64Type();
+  auto size = builder.create<func::CallOp>(i64Ty, getLengthCallBack,
+                                           ValueRange{vecPtr, idxOp});
 
   // Allocate the qubits
   Value qubits = builder.create<quake::AllocaOp>(
-      quake::VeqType::get(context, std::countr_zero(size)));
+      quake::VeqType::getUnsized(context), size.getResult(0));
 
-  // Get the pointer to the global
-  auto globalData = parentModule.lookupSymbol<cc::GlobalOp>(
-      fmt::format("nvqpp.state.{}", hash));
-  auto addr = builder.create<cc::AddressOfOp>(cc::PointerType::get(globalTy),
-                                              globalData.getSymName());
-  auto dataPtr = builder.create<cc::ComputePtrOp>(
-      cc::PointerType::get(ptrComplex), addr,
-      ArrayRef<cc::ComputePtrArg>{cc::ComputePtrArg(0), cc::ComputePtrArg(0)});
-
-  // Load the data pointer.
-  auto loaded = builder.create<cc::LoadOp>(dataPtr);
+  // Use callback to retrieve the data pointer of the captured vector `state` at
+  // runtime.
+  auto complexTy = ComplexType::get(componentTy);
+  auto ptrComplexTy = cc::PointerType::get(complexTy);
+  auto dataPtr = builder.create<func::CallOp>(ptrComplexTy, getDataCallBack,
+                                              ValueRange{vecPtr, idxOp});
 
   // Add the initialize state op
   qubits = builder.create<quake::InitializeStateOp>(qubits.getType(), qubits,
-                                                    loaded);
+                                                    dataPtr.getResult(0));
   return QuakeValue(builder, qubits);
 }
 
@@ -1010,28 +1051,8 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
 
-  // If we have any state vector data, we need to extract the function pointer
-  // to set that data, and then set it.
-  for (auto &[stateHash, svdata] : storage) {
-    auto setStateFPtr =
-        jit->lookup("nvqpp.set.state." + std::to_string(stateHash));
-    if (!setStateFPtr)
-      throw std::runtime_error(
-          "cudaq::builder failed to get set state function.");
-
-    if (svdata.precision == simulation_precision::fp64) {
-      auto setStateFunc =
-          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
-      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
-    } else {
-      auto setStateFunc =
-          reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
-      setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
-    }
-  }
-
-  // Incoming Args... have been converted to void **,
-  // now we convert to void * altLaunchKernel args.
+  // Incoming Args... have been converted to void **, now we convert to void *
+  // altLaunchKernel args.
   auto argCreatorName = properName + ".argsCreator";
   auto expectedPtr = jit->lookup(argCreatorName);
   if (!expectedPtr) {
@@ -1087,6 +1108,11 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
   llvm::raw_string_ostream os(printOut);
   clonedModule->print(os);
   return printOut;
+}
+
+std::ostream &operator<<(std::ostream &stream,
+                         const kernel_builder_base &builder) {
+  return stream << builder.to_quake();
 }
 
 } // namespace cudaq::details

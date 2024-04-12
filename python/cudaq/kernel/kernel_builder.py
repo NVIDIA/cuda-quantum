@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from functools import partialmethod
+import hashlib
 import random
 import re
 import string
@@ -205,6 +206,7 @@ class PyKernel(object):
         cc.register_dialect(self.ctx)
         cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
 
+        self.stateHashes = []
         self.metadata = {'conditionalOnMeasure': False}
         self.regCounter = 0
         self.loc = Location.unknown(context=self.ctx)
@@ -244,6 +246,13 @@ class PyKernel(object):
 
             self.insertPoint = InsertionPoint.at_block_begin(e)
 
+    def __del__(self):
+        """
+        When a kernel builder is deleted we need to clean up 
+        any state data if there is any.
+        """
+        cudaq_runtime.deletePointersToStateData(self.stateHashes)
+
     def __processArgType(self, ty):
         """
         Process input argument type. Specifically, try to infer the 
@@ -258,6 +267,7 @@ class PyKernel(object):
                     'bool': bool,
                     'float': float,
                     'complex': complex,
+                    'numpy.complex64': np.complex64,
                     'pauli_word': cudaq_runtime.pauli_word
                 }
                 # Infer the slice type
@@ -544,21 +554,119 @@ class PyKernel(object):
         ```
         """
         with self.insertPoint, self.loc:
-            # If no initializer, create a single qubit
-            if initializer == None:
-                qubitTy = quake.RefType.get(self.ctx)
-                return self.__createQuakeValue(quake.AllocaOp(qubitTy).result)
-
             # If the initializer is an integer, create `veq<N>`
             if isinstance(initializer, int):
                 veqTy = quake.VeqType.get(self.ctx, initializer)
                 return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
+
+            if isinstance(initializer, list):
+                initializer = np.array(initializer, dtype=type(initializer[0]))
 
             if isinstance(initializer, np.ndarray):
                 if len(initializer.shape) != 1:
                     raise RuntimeError(
                         "invalid initializer for qalloc (np.ndarray must be 1D, vector-like)"
                     )
+
+                if initializer.dtype not in [
+                        complex, np.complex128, np.complex64
+                ]:
+                    raise RuntimeError(
+                        "qalloc state data must be of complex dtype.")
+
+                # Get the current simulation precision
+                currentTarget = cudaq_runtime.get_target()
+                simulationPrecision = currentTarget.get_precision()
+                if initializer.dtype in [np.complex128, complex]:
+                    if simulationPrecision == cudaq_runtime.SimulationPrecision.fp32:
+                        raise RuntimeError(
+                            "qalloc input state is complex128 but simulator is on complex64 floating point type."
+                        )
+
+                if initializer.dtype == np.complex64:
+                    if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
+                        raise RuntimeError(
+                            "qalloc input state is complex64 but simulator is on complex128 floating point type."
+                        )
+
+                # Compute a unique hash string for the state data
+                hashValue = hashlib.sha1(initializer).hexdigest(
+                )[:10] + self.name.removeprefix('__nvqppBuilderKernel_')
+
+                # Get the size of the array
+                size = len(initializer)
+
+                floatType = F64Type.get(
+                    self.ctx
+                ) if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64 else F32Type.get(
+                    self.ctx)
+                complexType = ComplexType.get(floatType)
+                ptrComplex = cc.PointerType.get(self.ctx, complexType)
+                i32Ty = self.getIntegerType(32)
+                globalTy = cc.StructType.get(self.ctx, [ptrComplex, i32Ty])
+                globalName = f'nvqpp.state.{hashValue}'
+                setStateName = f'nvqpp.set.state.{hashValue}'
+                with InsertionPoint.at_block_begin(self.module.body):
+                    cc.GlobalOp(TypeAttr.get(globalTy),
+                                globalName,
+                                external=True)
+                    setStateFunc = func.FuncOp(setStateName,
+                                               FunctionType.get(
+                                                   inputs=[ptrComplex],
+                                                   results=[]),
+                                               loc=self.loc)
+                    entry = setStateFunc.add_entry_block()
+                    kDynamicPtrIndex: int = -2147483648
+                    with InsertionPoint(entry):
+                        zero = self.getConstantInt(0)
+                        address = cc.AddressOfOp(
+                            cc.PointerType.get(self.ctx, globalTy),
+                            FlatSymbolRefAttr.get(globalName))
+                        ptr = cc.ComputePtrOp(
+                            cc.PointerType.get(self.ctx, ptrComplex), address,
+                            [zero, zero],
+                            DenseI32ArrayAttr.get(
+                                [kDynamicPtrIndex, kDynamicPtrIndex],
+                                context=self.ctx))
+                        cc.StoreOp(entry.arguments[0], ptr)
+                        func.ReturnOp([])
+
+                zero = self.getConstantInt(0)
+                numQubits = np.log2(size)
+                if not numQubits.is_integer():
+                    raise RuntimeError(
+                        "invalid input state size for qalloc (not a power of 2)"
+                    )
+
+                # check state is normalized
+                norm = sum([np.conj(a) * a for a in initializer])
+                if np.abs(norm.imag) > 1e-4 or np.abs(1. - norm.real) > 1e-4:
+                    raise RuntimeError(
+                        "invalid input state for qalloc (not normalized)")
+
+                veqTy = quake.VeqType.get(self.ctx, int(numQubits))
+                qubits = quake.AllocaOp(veqTy).result
+                address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
+                                         FlatSymbolRefAttr.get(globalName))
+                ptr = cc.ComputePtrOp(
+                    cc.PointerType.get(self.ctx, ptrComplex), address,
+                    [zero, zero],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex, kDynamicPtrIndex],
+                                          context=self.ctx))
+                loaded = cc.LoadOp(ptr)
+                qubits = quake.InitializeStateOp(qubits.type, qubits,
+                                                 loaded).result
+
+                # Record the unique hash value
+                if hashValue not in self.stateHashes:
+                    self.stateHashes.append(hashValue)
+
+                # Store the pointer to the array data
+                cudaq_runtime.storePointerToStateData(
+                    self.name, hashValue, initializer,
+                    cudaq_runtime.SimulationPrecision.fp64)
+
+                return self.__createQuakeValue(qubits)
 
             # If the initializer is a QuakeValue, see if it is
             # a integer or a `stdvec` type
@@ -583,6 +691,11 @@ class PyKernel(object):
                     initials = cc.StdvecDataOp(ptrTy, initializer.mlirValue)
                     quake.InitializeStateOp(veqTy, qubits, initials)
                     return self.__createQuakeValue(qubits)
+
+            # If no initializer, create a single qubit
+            if initializer == None:
+                qubitTy = quake.RefType.get(self.ctx)
+                return self.__createQuakeValue(quake.AllocaOp(qubitTy).result)
 
             raise RuntimeError("invalid initializer argument for qalloc.")
 

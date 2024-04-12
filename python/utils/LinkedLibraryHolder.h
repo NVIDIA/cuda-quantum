@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/host_config.h"
 #include <filesystem>
 #include <map>
 #include <string>
@@ -30,11 +31,13 @@ struct RuntimeTarget {
   std::string simulatorName;
   std::string platformName;
   std::string description;
+  simulation_precision precision;
 
   /// @brief Return the number of QPUs this target exposes.
   std::size_t num_qpus();
   bool is_remote();
   bool is_emulated();
+  simulation_precision get_precision();
 };
 
 /// @brief The LinkedLibraryHolder provides a mechanism for
