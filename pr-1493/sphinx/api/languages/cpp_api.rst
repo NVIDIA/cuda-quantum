@@ -156,6 +156,11 @@ Platform
 
 .. doxygentypedef:: cudaq::KernelExecutionTask
 
+Utilities
+=========
+
+.. doxygenfunction:: cudaq::range(std::size_t)
+    
 Namespaces 
 ===========
 
