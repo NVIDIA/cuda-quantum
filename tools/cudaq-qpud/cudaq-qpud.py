@@ -1,0 +1,17 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+import cudaq
+import os
+import subprocess
+import sys
+
+# This script uses the library search logic embedded in the cuda-quantum wheels
+# to help facilitate starting cudaq-qpud in a wheels-only environment.
+cudaq_qpud = os.path.dirname(cudaq.__file__) + "/../bin/cudaq-qpud"
+result = subprocess.run([cudaq_qpud] + sys.argv[1:], text=True)
