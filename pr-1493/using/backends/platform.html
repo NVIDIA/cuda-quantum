@@ -322,7 +322,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../specification/index.html">   Specifications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../specification/cudaq.html">   Language Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/machine_model.html">1. Machine Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/namespace.html">2. Namespace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/namespace.html">2. Namespace and Standard</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/types.html">3. Quantum Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
@@ -333,12 +333,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/operations.html">5. Quantum Operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/operations.html">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -350,8 +349,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-quantum-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-quantum-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -882,11 +881,27 @@ manually launching each server instance. How to do that is explained in the rest
 <p id="custom-remote-qpud-launch">To customize how many and which GPUs are used for simulating each virtual QPU, one can launch each server manually.
 For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
 4 virtual QPU instances, each manages 2 GPUs. To do so, first launch a <code class="code docutils literal notranslate"><span class="pre">cudaq-qpud</span></code> server for each virtual QPU:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 cudaq-qpud --port &lt;QPU 1 TCP/IP port number&gt;</span>
-<span class="go">CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 cudaq-qpud --port &lt;QPU 2 TCP/IP port number&gt;</span>
-<span class="go">CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 cudaq-qpud --port &lt;QPU 3 TCP/IP port number&gt;</span>
-<span class="go">CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 cudaq-qpud --port &lt;QPU 4 TCP/IP port number&gt;</span>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.</span>
+<span class="nv">cudaq_location</span><span class="o">=</span><span class="sb">`</span>python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>show<span class="w"> </span>cuda-quantum<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-e<span class="w"> </span><span class="s1">&#39;Location: .*$&#39;</span><span class="sb">`</span>
+<span class="nv">qpud_py</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cudaq_location</span><span class="p">#Location: </span><span class="si">}</span><span class="s2">/bin/cudaq-qpud.py&quot;</span>
+<span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span>,1<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$qpud_py</span><span class="s2">&quot;</span><span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">1</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
+<span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">2</span>,3<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$qpud_py</span><span class="s2">&quot;</span><span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">2</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
+<span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">4</span>,5<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$qpud_py</span><span class="s2">&quot;</span><span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">3</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
+<span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">6</span>,7<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$qpud_py</span><span class="s2">&quot;</span><span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">4</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
 </pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># It is assumed that your $LD_LIBRARY_PATH is able to find all the necessary dependencies.</span>
+<span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span>,1<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>cudaq-qpud<span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">1</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
+<span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">2</span>,3<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>cudaq-qpud<span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">2</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
+<span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">4</span>,5<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>cudaq-qpud<span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">3</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
+<span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">6</span>,7<span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>cudaq-qpud<span class="w"> </span>--port<span class="w"> </span>&lt;QPU<span class="w"> </span><span class="m">4</span><span class="w"> </span>TCP/IP<span class="w"> </span>port<span class="w"> </span>number&gt;
+</pre></div>
+</div>
+</div>
 </div>
 <p>In the above code snippet, four <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> daemons are started in MPI context via the <code class="code docutils literal notranslate"><span class="pre">mpiexec</span></code> launcher.
 This activates MPI runtime environment required by the <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend. Each QPU daemon is assigned a unique
@@ -901,12 +916,12 @@ Hence, please make sure to either (1) use a non-public TCP/IP port for internal 
 </div>
 <p>User code can then target these QPUs for multi-QPU workloads, such as asynchronous sample or observe shown above for the <code class="code docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> platform.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;remote-mqpu&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;localhost:&lt;port1&gt;,localhost:&lt;port2&gt;,localhost:&lt;port3&gt;,localhost:&lt;port4&gt;&quot;</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;nvidia-mgpu&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ distributed.cpp --target remote-mqpu --remote-mqpu-url localhost:&lt;port1&gt;,localhost:&lt;port2&gt;,localhost:&lt;port3&gt;,localhost:&lt;port4&gt; --remote-mqpu-backend nvidia-mgpu</span>
 </pre></div>
 </div>
