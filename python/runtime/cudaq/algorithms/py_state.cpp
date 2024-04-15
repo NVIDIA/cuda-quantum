@@ -155,6 +155,53 @@ void bindPyState(py::module &mod) {
                 reinterpret_cast<std::complex<double> *>(info.ptr), info.size));
           },
           "Return a state from data.")
+      .def_static(
+          "from_data",
+          [](py::object opaqueData) {
+            // Make sure this is a CuPy array
+            if (!py::hasattr(opaqueData, "data"))
+              throw std::runtime_error(
+                  "invalid from_data operation on py::object - "
+                  "only cupy array supported.");
+            auto data = opaqueData.attr("data");
+            if (!py::hasattr(data, "ptr"))
+              throw std::runtime_error(
+                  "invalid from_data operation on py::object - "
+                  "only cupy array supported.");
+
+            // We know this is a cupy device pointer.
+            // Start by ensuring it is of complex type
+            auto typeStr =
+                py::str(opaqueData.attr("dtype")).cast<std::string>();
+            if (typeStr.find("float") != std::string::npos)
+              throw std::runtime_error(
+                  "CuPy array with only floating point elements passed to "
+                  "state.from_data. input must be of complex float type, "
+                  "please "
+                  "add to your cupy array creation `dtype=cupy.complex64` if "
+                  "simulation is FP32 and `dtype=cupy.complex128` if "
+                  "simulation if FP64.");
+
+            // Compute the number of elements in the array
+            auto numElements = [&]() {
+              auto shape = opaqueData.attr("shape").cast<py::tuple>();
+              std::size_t numElements = 1;
+              for (auto el : shape)
+                numElements *= el.cast<std::size_t>();
+              return numElements;
+            }();
+
+            long ptr = data.attr("ptr").cast<long>();
+            if (typeStr == "complex64")
+              return cudaq::state::from_data(std::make_pair(
+                  reinterpret_cast<std::complex<float> *>(ptr), numElements));
+            else if (typeStr == "complex128")
+              return cudaq::state::from_data(std::make_pair(
+                  reinterpret_cast<std::complex<double> *>(ptr), numElements));
+            else
+              throw std::runtime_error("invalid cupy element type " + typeStr);
+          },
+          "Return a state from CuPy device array.")
       .def("is_on_gpu", &cudaq::state::is_on_gpu,
            "Return True if this state is on the GPU.")
       .def(
