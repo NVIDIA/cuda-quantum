@@ -322,7 +322,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">   Specifications</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../cudaq.html">   Language Specification</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="machine_model.html">1. Machine Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="namespace.html">2. Namespace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="namespace.html">2. Namespace and Standard</a></li>
 <li class="toctree-l3"><a class="reference internal" href="types.html">3. Quantum Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
@@ -333,12 +333,11 @@
 <li class="toctree-l4"><a class="reference internal" href="operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">5. Quantum Operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kernels.html">6. Quantum Kernels</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
-<li class="toctree-l4"><a class="reference internal" href="kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html">6. Quantum Kernels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -350,8 +349,8 @@
 <li class="toctree-l3"><a class="reference internal" href="algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-quantum-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-quantum-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="examples.html">13. Example Programs</a><ul>
@@ -514,33 +513,68 @@
              
   <section id="quantum-intrinsic-operations">
 <h1><span class="section-number">5. </span>Quantum Intrinsic Operations<a class="headerlink" href="#quantum-intrinsic-operations" title="Permalink to this heading">¶</a></h1>
-<p>In an effort to support low-level quantum programming and build foundational
-quantum kernels for large-scale applications, CUDA Quantum defines the quantum
-intrinsic operation as an abstraction
-for device-specific single-qudit unitary operations. A quantum intrinsic
-operation is modeled via a standard C++ function with a unique instruction name and
-general function operands. These operands can model classical rotation
-parameters or units of quantum information (e.g. the <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>).
+<p><strong>[1]</strong> To support low-level quantum programming and build foundational
+quantum kernels for large-scale applications, CUDA Quantum specifies the <em>quantum
+intrinsic operation</em> abstraction for device-specific single-qudit unitary operations.</p>
+<p><strong>[2]</strong> A quantum intrinsic operation is modeled via a standard free function in the native classical language. It
+has a unique instruction name and general specified function operands.</p>
+<p><strong>[3]</strong> These operands can model classical rotation parameters or units of quantum information (e.g. the <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>).
 The syntax for these operations is</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">INST_NAME</span><span class="p">(</span><span class="w"> </span><span class="n">PARAM</span><span class="p">...</span><span class="o">?</span><span class="p">,</span><span class="w"> </span><span class="n">qudit</span><span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;&amp;</span><span class="p">...);</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">INST_NAME</span><span class="p">(</span><span class="w"> </span><span class="n">PARAM</span><span class="p">...</span><span class="o">?</span><span class="p">,</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qudit</span><span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;&amp;</span><span class="p">...);</span>
 </pre></div>
 </div>
 <p>where <code class="code docutils literal notranslate"><span class="pre">INST_NAME</span></code> is the name of the instruction, <code class="code docutils literal notranslate"><span class="pre">qudit&lt;N&gt;&amp;...</span></code> indicates one many
 <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code> instances, and <code class="code docutils literal notranslate"><span class="pre">PARAM...?</span></code> indicates optional parameters of
-floating point type (e.g. <code class="code docutils literal notranslate"><span class="pre">double</span></code>, <code class="code docutils literal notranslate"><span class="pre">float</span></code>). All intrinsic operations should
-start with a base declaration targeting a single <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>, and overloads
+floating point type (e.g. <code class="code docutils literal notranslate"><span class="pre">double</span></code>, <code class="code docutils literal notranslate"><span class="pre">float</span></code>). Quantum intrinsic operations return <code class="code docutils literal notranslate"><span class="pre">void</span></code>.</p>
+<p><strong>[4]</strong> All intrinsic operations should start with a base declaration targeting a single <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>, and overloads
 should be provided that take more than one <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code> instances to model the application
 of that instruction on all provided <code class="code docutils literal notranslate"><span class="pre">cudaq::qudits</span></code>, e.g. <code class="code docutils literal notranslate"><span class="pre">void</span> <span class="pre">x(cudaq::qubit&amp;)</span></code> and
 <code class="code docutils literal notranslate"><span class="pre">x(cudaq::qubit&amp;,</span> <span class="pre">cudaq::qubit&amp;,</span> <span class="pre">cudaq::qubit&amp;)</span></code>, modeling the NOT operation on a single
 <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> or on multiple <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code>.</p>
-<p>Implementations should provide overloads to support broadcasting of single-qubit
-intrinsic operations across a register of <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>.  For example,
+<p><strong>[5]</strong> The specific set of quantum intrinsic operations available to the programmer can
+be platform specific and provided via platform specific header files.</p>
+<p><strong>[6]</strong> Implementations should provide overloads to support broadcasting of single-qubit
+intrinsic operations across containers of <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit</span></code>. For example,
 <code class="code docutils literal notranslate"><span class="pre">x(cudaq::qvector&lt;&gt;&amp;)</span></code> should apply a NOT operation on all
-<code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> in the provided <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>. A set of quantum
-intrinsic operations for the <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> then for example looks as
-follows, where <code class="code docutils literal notranslate"><span class="pre">NAME</span></code>, <code class="code docutils literal notranslate"><span class="pre">ROTATION_NAME</span></code>, and <code class="code docutils literal notranslate"><span class="pre">MEASURE_OP</span></code> stand
-for the names of single-qubit operations, single-qubit rotations, and
-measurement operations respectively:</p>
+<code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> in the provided <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>.</p>
+<p><strong>[7]</strong> Programmers can further modify quantum intrinsic operations via
+an extra specified template parameter, and CUDA Quantum leverages this syntax
+for synthesizing control and adjoint variants of the operation. Specifically CUDA Quantum
+provides the <code class="code docutils literal notranslate"><span class="pre">cudaq::ctrl</span></code>, and <code class="code docutils literal notranslate"><span class="pre">cudaq::adj</span></code> type modifiers for synthesizing control and
+adjoint forms of the operation. For language bindings that do not support template
+parameterization, implementations may rely on static method calls (e.g. <code class="code docutils literal notranslate"><span class="pre">x.ctrl(q,</span> <span class="pre">r)</span></code>)</p>
+<p>Here is an example of how one might modify an intrinsic operation for multi-control and adjoint operations.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">;</span>
+<span class="c1">// Apply T operation</span>
+<span class="n">t</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="c1">// Apply Tdg operation</span>
+<span class="n">t</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">adj</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="c1">// Apply control hadamard operation</span>
+<span class="n">h</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">s</span><span class="p">);</span>
+<span class="c1">// Error, ctrl requires &gt; 1 qubit operands</span>
+<span class="c1">// h&lt;cudaq::ctrl&gt;(r);</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">q</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">(),</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">(),</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+<span class="c1"># Apply T operation</span>
+<span class="n">t</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+<span class="c1"># Apply Tdg operation</span>
+<span class="n">t</span><span class="o">.</span><span class="n">adj</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+<span class="c1"># Apply control hadamard operation</span>
+<span class="n">h</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">q</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">s</span><span class="p">)</span>
+<span class="c1"># Error, ctrl requires &gt; 1 qubit operands</span>
+<span class="c1"># h.ctrl(r);</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="operations-on-cudaq-qubit">
+<h2><span class="section-number">5.1. </span>Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code><a class="headerlink" href="#operations-on-cudaq-qubit" title="Permalink to this heading">¶</a></h2>
+<p>The default set of quantum intrinsic operations for the cudaq::qubit type is as follows:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">base</span><span class="p">;</span>
 <span class="w">    </span><span class="k">struct</span><span class="w"> </span><span class="nc">ctrl</span><span class="p">;</span>
@@ -566,7 +600,31 @@ measurement operations respectively:</p>
 <span class="p">}</span>
 </pre></div>
 </div>
+<p><strong>[1]</strong> For the default implementation of the <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> intrinsic operations, we let
+NAME be any operation name in the set <code class="code docutils literal notranslate"><span class="pre">{h,</span> <span class="pre">x,</span> <span class="pre">y,</span> <span class="pre">z,</span> <span class="pre">t,</span> <span class="pre">s}</span></code> and <code class="code docutils literal notranslate"><span class="pre">ROTATION_NAME</span></code> be any
+operation in <code class="code docutils literal notranslate"><span class="pre">{rx,</span> <span class="pre">ry,</span> <span class="pre">rz,</span> <span class="pre">r1</span> <span class="pre">(phase)}</span></code>. Implementations may provide appropriate
+function implementations using the above foundational functions to enable other
+common operations (e.g. <code class="code docutils literal notranslate"><span class="pre">cnot</span> <span class="pre">-&gt;</span> <span class="pre">x&lt;cudaq::ctrl&gt;</span></code>).</p>
+<p><strong>[2]</strong> Control qubits can be specified with positive or negative polarity.
+By this we mean that a control qubit can specify that a target operation is
+applied if the control qubit state is a <code class="code docutils literal notranslate"><span class="pre">|0&gt;</span></code> (positive polarity) or <code class="code docutils literal notranslate"><span class="pre">|1&gt;</span></code> (negative polarity).
+By default all control qubits are assumed to convey positive polarity. The
+syntax for negating the polarity is the not operator preceding the control
+qubit</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="o">!</span><span class="n">q</span><span class="p">,</span><span class="w"> </span><span class="n">r</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="o">~</span><span class="n">q</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
 <p>The set of gates that the official CUDA Quantum implementation supports can be found in the <a class="reference internal" href="../../api/api.html"><span class="doc">API documentation</span></a>.</p>
+</section>
 </section>
 
 
