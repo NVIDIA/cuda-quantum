@@ -876,8 +876,20 @@ def test_recursive_calls():
 
     print(kernel3)
 
+def can_set_target(name):
+    target_installed = True
+    try:
+        cudaq.set_target(name)
+    except RuntimeError:
+        target_installed = False
+    return target_installed
+  
+skipIfNvidiaFP64NotInstalled = pytest.make.skipif(
+  can_set_target('nvidia-fp64'),
+  reason='Could not find nvidia-fp64 in installation')
 
-def test_from_state():
+@skipIfNvidiaFP64NotInstalled
+def test_from_state0():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
@@ -937,9 +949,13 @@ def test_from_state():
     with pytest.raises(RuntimeError) as e:
         qubits = kernel.qalloc(np.array([1., 0., 0.], dtype=complex))
 
+skipIfNvidiaNotInstalled = pytest.make.skipif(
+  can_set_target('nvidia'),
+  reason='Could not find nvidia in installation')
+  
+@skipIfNvidiaNotInstalled
+def test_from_state1():
     cudaq.reset_target()
-
-    # Handle FP32 simulation backend case.
     cudaq.set_target('nvidia')
 
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex128)
