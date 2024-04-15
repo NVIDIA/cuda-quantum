@@ -51,8 +51,7 @@ public:
   /// @brief Return the number of tensors that represent this state.
   std::size_t get_num_tensors() const;
 
-  /// @brief Return the underlying floating point precision for
-  /// this state.
+  /// @brief Return the underlying floating point precision for this state.
   SimulationState::precision get_precision() const;
 
   /// @brief Return true if this a state on the GPU.
@@ -74,12 +73,10 @@ public:
   /// @brief Dump the state to given output stream
   void dump(std::ostream &os);
 
-  /// @brief Compute the overlap of this state
-  /// with the other one.
+  /// @brief Compute the overlap of this state with the other one.
   std::complex<double> overlap(const state &other);
 
-  /// @brief Return the amplitude of the given computational
-  /// basis state
+  /// @brief Return the amplitude of the given computational basis state
   std::complex<double> amplitude(const std::vector<int> &basisState);
 
   /// @brief Create a new state from user-provided data.
