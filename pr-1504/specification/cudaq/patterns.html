@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>10. Quantum Programming Patterns &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>10. Common Quantum Programming Patterns &mdash; NVIDIA CUDA Quantum  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -324,7 +324,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">   Specifications</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../cudaq.html">   Language Specification</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="machine_model.html">1. Machine Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="namespace.html">2. Namespace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="namespace.html">2. Namespace and Standard</a></li>
 <li class="toctree-l3"><a class="reference internal" href="types.html">3. Quantum Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
@@ -335,12 +335,11 @@
 <li class="toctree-l4"><a class="reference internal" href="operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="operations.html">5. Quantum Operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kernels.html">6. Quantum Kernels</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
-<li class="toctree-l4"><a class="reference internal" href="kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="operations.html">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html">6. Quantum Kernels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -352,8 +351,8 @@
 <li class="toctree-l3"><a class="reference internal" href="algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-quantum-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-quantum-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="examples.html">13. Example Programs</a><ul>
@@ -501,7 +500,7 @@
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Specifications</a></li>
           <li class="breadcrumb-item"><a href="../cudaq.html">Language Specification</a></li>
-      <li class="breadcrumb-item active"><span class="section-number">10. </span>Quantum Programming Patterns</li>
+      <li class="breadcrumb-item active"><span class="section-number">10. </span>Common Quantum Programming Patterns</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/specification/cudaq/patterns.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -514,35 +513,49 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="quantum-programming-patterns">
-<h1><span class="section-number">10. </span>Quantum Programming Patterns<a class="headerlink" href="#quantum-programming-patterns" title="Permalink to this heading">¶</a></h1>
-<p>Within quantum kernels, the CUDA Quantum programming model provides simplified
-syntax for common quantum programming patterns. The collection of patterns
-in this section will grow over time, but we start with two basic features
-providing simplified syntax and semantics for common quantum programming
-tasks. These tasks may also enable the expressivity of programmer intent
-that directly influences compile-time circuit optimizations.</p>
+  <section id="common-quantum-programming-patterns">
+<h1><span class="section-number">10. </span>Common Quantum Programming Patterns<a class="headerlink" href="#common-quantum-programming-patterns" title="Permalink to this heading">¶</a></h1>
 <section id="compute-action-uncompute">
 <h2><span class="section-number">10.1. </span>Compute-Action-Uncompute<a class="headerlink" href="#compute-action-uncompute" title="Permalink to this heading">¶</a></h2>
-<p>We require syntax and semantics to support the compute-action-uncompute
-pattern, <span class="math notranslate nohighlight">\(W = U V U \dagger\)</span> (here <span class="math notranslate nohighlight">\(U\)</span> is the compute block, and <span class="math notranslate nohighlight">\(V\)</span> is the action block).
-This is a very common pattern, and by expressing this pattern with specific
-programmer intent, the compiler is able to apply critical resource
-optimizations. Specifically, controlled versions of W do not produce controlled
+<p><strong>[1]</strong> CUDA Quantum specifies syntax and semantics to support the compute-action-uncompute
+pattern, <span class="math notranslate nohighlight">\(W = U V U \dagger\)</span> (here <span class="math notranslate nohighlight">\(U\)</span> is the compute block, and <span class="math notranslate nohighlight">\(V\)</span> is the action block).</p>
+<p><strong>[2]</strong> Via special syntax for this pattern CUDA Quantum enables compiler implementations to
+key on circuit optimizations via programmer intent. Specifically, controlled versions of <span class="math notranslate nohighlight">\(W\)</span> do not produce controlled
 operations of all instructions in <span class="math notranslate nohighlight">\(U\)</span>, <span class="math notranslate nohighlight">\(V\)</span>, and <span class="math notranslate nohighlight">\(U \dagger\)</span>, but instead we are free to only
-control <span class="math notranslate nohighlight">\(V\)</span>. The CUDA Quantum specification requires the following syntax for this pattern:</p>
+control <span class="math notranslate nohighlight">\(V\)</span>.</p>
+<p><strong>[3]</strong> The CUDA Quantum specification requires the following syntax for this pattern:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Will invoke U V U^dag</span>
 <span class="n">cudaq</span><span class="o">::</span><span class="n">compute_action</span><span class="w"> </span><span class="p">(</span>
-<span class="w">     </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](){</span>
-<span class="w">       </span><span class="cm">/*U_code*/</span>
-<span class="w">     </span><span class="p">},</span>
-<span class="w">     </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">       </span><span class="cm">/*V_code*/</span>
-<span class="w">     </span><span class="p">}</span>
+<span class="w">    </span><span class="p">[</span><span class="o">&amp;</span><span class="p">](){</span>
+<span class="w">      </span><span class="cm">/*U_code*/</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">[</span><span class="o">&amp;</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="cm">/*V_code*/</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="p">);</span>
 </pre></div>
 </div>
-<p>Compiler implementations must add the uncompute segment
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">computeF</span><span class="p">():</span>
+   <span class="o">...</span>
+
+<span class="k">def</span> <span class="nf">actionF</span><span class="p">():</span>
+   <span class="o">...</span>
+
+<span class="c1"># Can take user-defined functions</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">compute_action</span><span class="p">(</span><span class="n">computeF</span><span class="p">,</span> <span class="n">actionF</span><span class="p">)</span>
+
+<span class="c1"># Can take Pythonic CUDA Quantum lambda kernels</span>
+<span class="n">computeL</span> <span class="o">=</span> <span class="k">lambda</span> <span class="p">:</span> <span class="p">(</span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">x</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">ry</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">compute_action</span><span class="p">(</span><span class="n">computeL</span><span class="p">,</span> <span class="n">actionF</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><strong>[4]</strong> Compiler implementations must add the uncompute segment
 and optimize on any controlled versions of this block of code.</p>
 </section>
 </section>
