@@ -882,7 +882,7 @@ def can_set_target(name):
         cudaq.set_target(name)
     except RuntimeError:
         target_installed = False
-    target_installed
+    return target_installed
   
 skipIfNvidiaFP64NotInstalled = pytest.make.skipif(
   can_set_target('nvidia-fp64'),
