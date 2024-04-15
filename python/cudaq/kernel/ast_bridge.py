@@ -236,6 +236,14 @@ class PyASTBridge(ast.NodeVisitor):
         Return an MLIR float type (double precision).
         """
         return F64Type.get()
+    
+    def getSimulationFloatType(self):
+        currentTarget = cudaq_runtime.get_target()
+        simulationPrecision = currentTarget.get_precision()
+        
+        if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
+            return F64Type.get(self.ctx)
+        return F32Type.get(self.ctx)
 
     def getFloatAttr(self, type, value):
         """
