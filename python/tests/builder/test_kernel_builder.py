@@ -891,6 +891,7 @@ skipIfNvidiaFP64NotInstalled = pytest.make.skipif(
 @skipIfNvidiaFP64NotInstalled
 def test_from_state0():
     cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
 
     kernel, initState = cudaq.make_kernel(list[complex])
     qubits = kernel.qalloc(initState)
@@ -955,6 +956,7 @@ skipIfNvidiaNotInstalled = pytest.make.skipif(
 @skipIfNvidiaNotInstalled
 def test_from_state1():
     cudaq.reset_target()
+    cudaq.set_target('nvidia')
 
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex128)
     kernel = cudaq.make_kernel()
