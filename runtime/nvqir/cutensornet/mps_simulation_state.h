@@ -24,7 +24,8 @@ class MPSSimulationState : public cudaq::SimulationState,
 public:
   MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                      const std::vector<MPSTensor> &mpsTensors,
-                     const std::vector<std::size_t> &auxTensorIds);
+                     const std::vector<std::size_t> &auxTensorIds,
+                     cutensornetHandle_t cutnHandle);
 
   MPSSimulationState(const MPSSimulationState &) = delete;
   MPSSimulationState &operator=(const MPSSimulationState &) = delete;
@@ -56,12 +57,7 @@ public:
   bool isArrayLike() const override { return false; }
 
   virtual std::unique_ptr<cudaq::SimulationState>
-  createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override {
-    // TODO
-    throw std::runtime_error(
-        "SimulationState::createFromSizeAndPtr not implemented.");
-    return nullptr;
-  }
+  createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override;
 
   // Note: this API is intended for a simulate-observe-reinit use case on single
   // state. For example, run a circuit, get the state to perform some
@@ -82,6 +78,7 @@ protected:
                  const std::vector<MPSTensor> &mpsOtherTensors);
 
   // The state that this owned.
+  cutensornetHandle_t m_cutnHandle;
   std::unique_ptr<TensorNetState> state;
   std::vector<MPSTensor> m_mpsTensors;
   ScratchDeviceMem m_scratchPad;

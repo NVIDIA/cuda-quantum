@@ -7,8 +7,9 @@
  ******************************************************************************/
 
 #include "mps_simulation_state.h"
-
+#include "common/EigenDense.h"
 #include <cuComplex.h>
+#include <iostream>
 
 namespace nvqir {
 int deviceFromPointer(void *ptr) {
@@ -23,9 +24,10 @@ std::size_t MPSSimulationState::getNumQubits() const {
 MPSSimulationState::MPSSimulationState(
     std::unique_ptr<TensorNetState> inState,
     const std::vector<MPSTensor> &mpsTensors,
-    const std::vector<std::size_t> &auxTensorIds)
-    : state(std::move(inState)), m_mpsTensors(mpsTensors),
-      m_auxTensorIds(auxTensorIds) {}
+    const std::vector<std::size_t> &auxTensorIds,
+    cutensornetHandle_t cutnHandle)
+    : m_cutnHandle(cutnHandle), state(std::move(inState)),
+      m_mpsTensors(mpsTensors), m_auxTensorIds(auxTensorIds) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
@@ -304,7 +306,115 @@ void MPSSimulationState::destroyState() {
 }
 
 void MPSSimulationState::dump(std::ostream &os) const {
-  const auto tmp = state->getStateVector();
+  const int32_t numTensors = m_mpsTensors.size();
+  std::vector<int32_t> numModes(numTensors);
+  std::vector<std::vector<int64_t>> tensExtents(numTensors);
+  std::vector<int64_t> outExtents(numTensors, 2);
+  std::vector<cutensornetTensorQualifiers_t> tensAttr(numTensors);
+  std::vector<int32_t> outModes(numTensors);
+  for (int i = 0; i < numTensors; ++i) {
+    numModes[i] = m_mpsTensors[i].extents.size();
+    tensExtents[i] = m_mpsTensors[i].extents;
+    tensAttr[i] = cutensornetTensorQualifiers_t{0, 0, 0};
+  }
+  std::vector<std::vector<int32_t>> tensModes(numTensors);
+  int32_t umode = 0;
+  for (int i = 0; i < numTensors; ++i) {
+    if (i == 0) {
+      if (numTensors > 1) {
+        tensModes[i] = std::initializer_list<int32_t>{umode, umode + 1};
+        outModes[i] = umode;
+        umode += 2;
+      } else {
+        tensModes[i] = std::initializer_list<int32_t>{umode};
+        outModes[i] = umode;
+        umode += 1;
+      }
+    } else if (i == (numTensors - 1)) {
+      tensModes[i] = std::initializer_list<int32_t>{umode - 1, umode};
+      outModes[i] = umode;
+      umode += 1;
+    } else {
+      tensModes[i] =
+          std::initializer_list<int32_t>{umode - 1, umode, umode + 1};
+      outModes[i] = umode;
+      umode += 2;
+    }
+  }
+
+  cutensornetComputeType_t computeType = CUTENSORNET_COMPUTE_64F;
+  cudaDataType_t dataType = CUDA_C_64F;
+
+  std::vector<const int64_t *> extentsIn(numTensors);
+  for (int i = 0; i < numTensors; ++i) {
+    extentsIn[i] = tensExtents[i].data();
+  }
+  std::vector<const int32_t *> modesIn(numTensors);
+  for (int i = 0; i < numTensors; ++i) {
+    modesIn[i] = tensModes[i].data();
+  }
+
+  cutensornetNetworkDescriptor_t tnDescr;
+  HANDLE_CUTN_ERROR(cutensornetCreateNetworkDescriptor(
+      m_cutnHandle, numTensors, numModes.data(), extentsIn.data(), NULL,
+      modesIn.data(), tensAttr.data(), outExtents.size(), outExtents.data(),
+      NULL, outModes.data(), dataType, computeType, &tnDescr));
+
+  cutensornetContractionOptimizerConfig_t tnConfig;
+  // Determine the tensor network contraction path and create the contraction
+  // plan
+  HANDLE_CUTN_ERROR(
+      cutensornetCreateContractionOptimizerConfig(m_cutnHandle, &tnConfig));
+
+  cutensornetContractionOptimizerInfo_t tnPath;
+  HANDLE_CUTN_ERROR(cutensornetCreateContractionOptimizerInfo(
+      m_cutnHandle, tnDescr, &tnPath));
+  assert(m_scratchPad.scratchSize > 0);
+  HANDLE_CUTN_ERROR(cutensornetContractionOptimize(
+      m_cutnHandle, tnDescr, tnConfig, m_scratchPad.scratchSize, tnPath));
+  cutensornetWorkspaceDescriptor_t workDesc;
+  HANDLE_CUTN_ERROR(
+      cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
+  int64_t requiredWorkspaceSize = 0;
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceComputeContractionSizes(
+      m_cutnHandle, tnDescr, tnPath, workDesc));
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
+      m_cutnHandle, workDesc, CUTENSORNET_WORKSIZE_PREF_RECOMMENDED,
+      CUTENSORNET_MEMSPACE_DEVICE, CUTENSORNET_WORKSPACE_SCRATCH,
+      &requiredWorkspaceSize));
+  assert(requiredWorkspaceSize > 0);
+  assert(static_cast<std::size_t>(requiredWorkspaceSize) <=
+         m_scratchPad.scratchSize);
+  HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
+      m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
+      CUTENSORNET_WORKSPACE_SCRATCH, m_scratchPad.d_scratch,
+      requiredWorkspaceSize));
+  cutensornetContractionPlan_t tnPlan;
+  HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(
+      m_cutnHandle, tnDescr, tnPath, workDesc, &tnPlan));
+
+  // Contract the MPS network
+  std::vector<const void *> rawDataIn(numTensors);
+  for (int i = 0; i < numTensors; ++i) {
+    rawDataIn[i] = m_mpsTensors[i].deviceData;
+  }
+  void *dState{nullptr};
+  const auto stateVecSize = (1ULL << numTensors) * sizeof(std::complex<double>);
+  HANDLE_CUDA_ERROR(cudaMalloc(&dState, stateVecSize));
+  HANDLE_CUTN_ERROR(cutensornetContractSlices(
+      m_cutnHandle, tnPlan, rawDataIn.data(), dState, 0, workDesc, NULL, 0x0));
+  std::vector<std::complex<double>> tmp(1ULL << numTensors);
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(tmp.data(), dState, stateVecSize, cudaMemcpyDeviceToHost));
+
+  // Clean up
+  HANDLE_CUDA_ERROR(cudaFree(dState));
+  HANDLE_CUTN_ERROR(cutensornetDestroyContractionPlan(tnPlan));
+  HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerInfo(tnPath));
+  HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(tnConfig));
+  HANDLE_CUTN_ERROR(cutensornetDestroyNetworkDescriptor(tnDescr));
+
+  // Print
   for (auto &t : tmp)
     os << t << "\n";
 }
@@ -323,6 +433,99 @@ MPSSimulationState::toSimulationState() {
       m_mpsTensors, state->getInternalContext(), tensors);
 
   return std::make_unique<MPSSimulationState>(std::move(cloneState), tensors,
-                                              m_auxTensorIds);
+                                              m_auxTensorIds, m_cutnHandle);
+}
+
+static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
+  Eigen::MatrixXcd A = stateVec;
+  A.transposeInPlace();
+  Eigen::MatrixXcd B, C;
+  const std::size_t rows = A.rows();
+  const std::size_t cols = A.cols();
+  B.resize(rows, cols / 2);
+  C.resize(rows, cols / 2);
+  for (std::size_t i = 0; i < rows; ++i) {
+    for (std::size_t j = 0; j < cols / 2; ++j) {
+      B(i, j) = A(i, j);
+      C(i, j) = A(i, j + cols / 2);
+    }
+  }
+  Eigen::MatrixXcd stacked(B.rows() + C.rows(), C.cols());
+  stacked << B, C;
+  return stacked;
+}
+
+std::unique_ptr<cudaq::SimulationState>
+MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
+                                         std::size_t dataType) {
+  Eigen::VectorXcd stateVec = Eigen::Map<Eigen::VectorXcd>(
+      reinterpret_cast<std::complex<double> *>(ptr), size);
+  const std::size_t numQubits = std::log2(size);
+  auto state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
+  if (numQubits == 1) {
+    // Easy case: construct the the tensor
+    void *d_tensor = nullptr;
+    HANDLE_CUDA_ERROR(cudaMalloc(&d_tensor, 2 * sizeof(std::complex<double>)));
+    HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, ptr,
+                                 2 * sizeof(std::complex<double>),
+                                 cudaMemcpyHostToDevice));
+    MPSTensor stateTensor;
+    stateTensor.deviceData = d_tensor;
+    stateTensor.extents = std::vector<int64_t>{2};
+
+    return std::make_unique<MPSSimulationState>(
+        std::move(state), std::vector<MPSTensor>{stateTensor},
+        std::vector<std::size_t>{}, m_cutnHandle);
+  }
+
+  // Recursively factor the state vector from left to right.
+  //  - reshape the vector to a (2 * M) matrix (M = dim / 2)
+  //  - perform SVD on this matrix yields: (MPS tensor) * Singular Values *
+  //  Remaining Matrix.
+  //  - Continue to do SVD of (Singular Values * Remaining
+  // Matrix) till we reach the last qubit.
+  // Note: currently, no truncation is implemented (exact).
+  Eigen::MatrixXcd reshapedMat = reshapeStateVec(stateVec);
+  std::vector<MPSTensor> mpsTensors;
+  std::vector<int64_t> numSingularValues;
+  for (std::size_t i = 0; i < numQubits - 1; ++i) {
+    Eigen::BDCSVD<Eigen::MatrixXcd, Eigen::ComputeThinU | Eigen::ComputeThinV>
+        svd(reshapedMat);
+    const Eigen::MatrixXcd U = svd.matrixU();
+    const Eigen::MatrixXcd V = svd.matrixV();
+    const Eigen::VectorXd S = svd.singularValues();
+    numSingularValues.emplace_back(S.size());
+    reshapedMat = S.asDiagonal() * V;
+    void *d_tensor = nullptr;
+    HANDLE_CUDA_ERROR(
+        cudaMalloc(&d_tensor, U.size() * sizeof(std::complex<double>)));
+    HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, U.data(),
+                                 U.size() * sizeof(std::complex<double>),
+                                 cudaMemcpyHostToDevice));
+    MPSTensor stateTensor;
+    stateTensor.deviceData = d_tensor;
+    // Note: this loop doesn't cover the last MPS tensor
+    stateTensor.extents = (i == 0)
+                              ? std::vector<int64_t>{2, numSingularValues[i]}
+                              : std::vector<int64_t>{numSingularValues[i - 1],
+                                                     2, numSingularValues[i]};
+    mpsTensors.emplace_back(stateTensor);
+  }
+
+  // Last tensor (right most)
+  void *d_tensor = nullptr;
+  HANDLE_CUDA_ERROR(
+      cudaMalloc(&d_tensor, reshapedMat.size() * sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(d_tensor, reshapedMat.data(),
+                 reshapedMat.size() * sizeof(std::complex<double>),
+                 cudaMemcpyHostToDevice));
+  MPSTensor stateTensor;
+  stateTensor.deviceData = d_tensor;
+  stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
+  mpsTensors.emplace_back(stateTensor);
+  assert(mpsTensors.size() == numQubits);
+  return std::make_unique<MPSSimulationState>(
+      std::move(state), mpsTensors, std::vector<std::size_t>{}, m_cutnHandle);
 }
 } // namespace nvqir
