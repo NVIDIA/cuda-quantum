@@ -29,7 +29,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="10. Quantum Programming Patterns" href="patterns.html" />
+    <link rel="next" title="10. Common Quantum Programming Patterns" href="patterns.html" />
     <link rel="prev" title="8. Control Flow" href="control_flow.html" /> 
 </head>
 
@@ -322,7 +322,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">   Specifications</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../cudaq.html">   Language Specification</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="machine_model.html">1. Machine Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="namespace.html">2. Namespace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="namespace.html">2. Namespace and Standard</a></li>
 <li class="toctree-l3"><a class="reference internal" href="types.html">3. Quantum Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
@@ -333,12 +333,11 @@
 <li class="toctree-l4"><a class="reference internal" href="operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="operations.html">5. Quantum Operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="kernels.html">6. Quantum Kernels</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
-<li class="toctree-l4"><a class="reference internal" href="kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="operations.html">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="kernels.html">6. Quantum Kernels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">9. Just-in-Time Kernel Creation</a></li>
@@ -350,8 +349,8 @@
 <li class="toctree-l3"><a class="reference internal" href="algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-quantum-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-quantum-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="examples.html">13. Example Programs</a><ul>
@@ -381,6 +380,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#algorithms">Algorithms</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
 </ul>
 </li>
@@ -504,7 +504,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="control_flow.html" class="btn btn-neutral float-left" title="8. Control Flow" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="patterns.html" class="btn btn-neutral float-right" title="10. Quantum Programming Patterns" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="patterns.html" class="btn btn-neutral float-right" title="10. Common Quantum Programming Patterns" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -513,12 +513,12 @@
              
   <section id="just-in-time-kernel-creation">
 <h1><span class="section-number">9. </span>Just-in-Time Kernel Creation<a class="headerlink" href="#just-in-time-kernel-creation" title="Permalink to this heading">¶</a></h1>
-<p>CUDA Quantum provides a set of programming abstractions for dynamically constructing
-quantum kernel code at runtime. The callable <code class="code docutils literal notranslate"><span class="pre">cudaq::kernel_builder</span></code> abstraction
+<p><strong>[1]</strong> CUDA Quantum provides a set of programming abstractions for dynamically constructing
+quantum kernel code at runtime.</p>
+<p><strong>[2]</strong> The callable <code class="code docutils literal notranslate"><span class="pre">cudaq::kernel_builder</span></code> abstraction
 facilitates the dynamic definition of quantum kernels that can optionally
-be parameterized by user-defined input arguments. The builder enables an
-API for constructing parameterized quantum kernels but is also itself
-callable. The <code class="code docutils literal notranslate"><span class="pre">kernel_builder</span></code> takes the following structure</p>
+be parameterized by user-defined input arguments.</p>
+<p>The <code class="code docutils literal notranslate"><span class="pre">kernel_builder</span></code> takes the following structure</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Type wrapping a value in the kernel IR</span>
 <span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">Value</span><span class="p">;</span>
@@ -573,7 +573,7 @@ callable. The <code class="code docutils literal notranslate"><span class="pre">
 <span class="c1">/// Enable structured bindings on the kernel_builder type.</span>
 <span class="c1">/// auto [kernel, theta, phi] = std::make_kernel&lt;double,double&gt;();</span>
 <span class="k">namespace</span><span class="w"> </span><span class="nn">std</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">Args</span><span class="o">&gt;</span><span class="w"> </span><span class="c1">// std::size_t NArgs&gt;</span>
+<span class="w">  </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="p">...</span><span class="w"> </span><span class="n">Args</span><span class="o">&gt;</span>
 <span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">tuple_size</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">kernel_builder</span><span class="o">&lt;</span><span class="n">Args</span><span class="p">...</span><span class="o">&gt;&gt;</span>
 <span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">integral_constant</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">...(</span><span class="n">Args</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{};</span>
 
@@ -591,17 +591,19 @@ callable. The <code class="code docutils literal notranslate"><span class="pre">
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>The structure above allows one to leverage the provided factory functions (<code class="code docutils literal notranslate"><span class="pre">make_kernel</span></code>)
+<p><strong>[3]</strong> The structure above allows one to leverage the provided factory functions (<code class="code docutils literal notranslate"><span class="pre">make_kernel</span></code>)
 to construct an empty CUDA Quantum kernel with defined argument signature.</p>
-<p>For each type in the signature, the programmer is returned a new <code class="code docutils literal notranslate"><span class="pre">Value</span></code> instance which
+<p><strong>[4]</strong> For each type in the signature, the programmer is returned a new <code class="code docutils literal notranslate"><span class="pre">Value</span></code> instance which
 can be leveraged in the construction of the kernel. The intended mechanism for
 kernel creation and argument value extraction is via standard C++
 <a class="reference external" href="https://en.cppreference.com/w/cpp/language/structured_binding">structured bindings</a>.</p>
-<p>Once the kernel is created, the programmer is free to build up the kernel expression
+<p><strong>[5]</strong> Once the kernel is created, the programmer is free to build up the kernel expression
 using the exposed API. There are methods for qubit allocation, quantum operation
 invocation, control and adjoint synthesis, and conditional branching based on
 <code class="code docutils literal notranslate"><span class="pre">boolean</span></code> values.</p>
 <p>Here is a simple example how one might build a CUDA Quantum kernel dynamically.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="p">();</span>
 <span class="k">auto</span><span class="w"> </span><span class="n">qubits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernel</span><span class="p">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
 <span class="n">kernel</span><span class="p">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
@@ -612,8 +614,21 @@ invocation, control and adjoint synthesis, and conditional branching based on
 <span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">);</span>
 </pre></div>
 </div>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kernel</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">qubits</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">kernel</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
 <p>Here is an example demonstrating how one may build a dynamic set of
 CUDA Quantum kernels for executing the standard Hadamard test.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">xPrep</span><span class="p">,</span><span class="w"> </span><span class="n">qubitIn</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="n">xPrep</span><span class="p">.</span><span class="n">x</span><span class="p">(</span><span class="n">qubitIn</span><span class="p">);</span>
 
@@ -631,6 +646,25 @@ CUDA Quantum kernels for executing the standard Hadamard test.</p>
 <span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">hadamardTest</span><span class="p">);</span>
 </pre></div>
 </div>
+</div>
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">xPrep</span><span class="p">,</span> <span class="n">qubitIn</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">)</span>
+
+<span class="c1"># Compute &lt;1|X|1&gt; = 0</span>
+<span class="n">hadamardTest</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">make_kernel</span><span class="p">()</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">hadamardTest</span><span class="o">.</span><span class="n">qalloc</span><span class="p">()</span>
+<span class="n">hadamardTest</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">xPrep</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+<span class="n">hadamardTest</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+<span class="n">hadamardTest</span><span class="o">.</span><span class="n">control</span><span class="p">(</span><span class="n">xPrep</span><span class="p">,</span> <span class="n">ancilla</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+<span class="n">hadamardTest</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+<span class="n">hadamardTest</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
+
+<span class="c1"># See algorithmic primitives section for more on sample</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">hadamardTest</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
 </section>
 
 
@@ -638,7 +672,7 @@ CUDA Quantum kernels for executing the standard Hadamard test.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="control_flow.html" class="btn btn-neutral float-left" title="8. Control Flow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="patterns.html" class="btn btn-neutral float-right" title="10. Quantum Programming Patterns" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="patterns.html" class="btn btn-neutral float-right" title="10. Common Quantum Programming Patterns" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
