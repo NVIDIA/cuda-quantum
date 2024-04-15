@@ -68,10 +68,10 @@ public:
   }
 
   /// @brief Dump the state to standard out
-  void dump();
+  void dump() const;
 
   /// @brief Dump the state to given output stream
-  void dump(std::ostream &os);
+  void dump(std::ostream &os) const;
 
   /// @brief Compute the overlap of this state with the other one.
   std::complex<double> overlap(const state &other);

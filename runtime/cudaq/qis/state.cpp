@@ -42,8 +42,8 @@ std::vector<SimulationState::Tensor> state::get_tensors() const {
 
 std::size_t state::get_num_tensors() const { return internal->getNumTensors(); }
 
-void state::dump() { dump(std::cout); }
-void state::dump(std::ostream &os) { internal->dump(os); }
+void state::dump() const { dump(std::cout); }
+void state::dump(std::ostream &os) const { internal->dump(os); }
 
 std::complex<double>
 state::operator()(const std::initializer_list<std::size_t> &indices,
