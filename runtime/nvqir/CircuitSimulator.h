@@ -119,6 +119,9 @@ public:
   /// simulation strategies that support noise modeling.
   virtual void setNoiseModel(cudaq::noise_model &noise) = 0;
 
+  /// @brief Return the precision of the underlying simulator's data.
+  virtual cudaq::SimulationState::precision getPrecision() const = 0;
+
   virtual void setRandomSeed(std::size_t seed) {
     // do nothing
   }
@@ -763,6 +766,16 @@ public:
   CircuitSimulatorBase() = default;
   /// @brief The destructor
   virtual ~CircuitSimulatorBase() = default;
+
+  /// @brief Return the precision of the underlying simulator's data.
+  virtual cudaq::SimulationState::precision getPrecision() const override {
+    static_assert(
+        std::is_same_v<ScalarType, float> || std::is_same_v<ScalarType, double>,
+        "Unknown ScalarType in CircuitSimulatorBase template instantiation.");
+    return std::is_same_v<ScalarType, float>
+               ? cudaq::SimulationState::precision::fp32
+               : cudaq::SimulationState::precision::fp64;
+  }
 
   /// @brief Create a simulation-specific SimulationState
   /// instance from a user-provided data set.

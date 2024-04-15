@@ -86,6 +86,10 @@ inline void to_json(json &j, const ExecutionContext &context) {
   if (context.simulationState) {
     j["simulationData"] = json();
     j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
+    // Note: we normalize the state vector to double-precision before sending it
+    // down the wire.
+    // FIXME: sending the raw state vector isn't a mode that we optimize the
+    // remote qpud for. This is mainly for backward compatibility.
     std::vector<std::complex<double>> hostData(
         context.simulationState->getNumElements());
     if (context.simulationState->isDeviceData()) {
@@ -143,8 +147,18 @@ inline void from_json(const json &j, ExecutionContext &context) {
 
     // Create the simulation specific SimulationState
     auto *simulator = cudaq::get_simulator();
-    context.simulationState = simulator->createStateFromData(
-        std::make_pair(stateData.data(), stateDim[0]));
+    // The local simulator here may use different precision than the remote
+    // simulation data (normalized to double precision). Perform conversion if
+    // necessary.
+    if (simulator->getPrecision() == cudaq::SimulationState::precision::fp32) {
+      std::vector<std::complex<float>> convertedStateData(stateData.begin(),
+                                                          stateData.end());
+      context.simulationState = simulator->createStateFromData(
+          std::make_pair(convertedStateData.data(), stateDim[0]));
+    } else {
+      context.simulationState = simulator->createStateFromData(
+          std::make_pair(stateData.data(), stateDim[0]));
+    }
   }
 
   if (j.contains("registerNames"))

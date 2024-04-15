@@ -340,10 +340,17 @@ public:
   /// @brief Copy the state device data to the user-provided host data pointer.
   void toHost(std::complex<double> *userData,
               std::size_t numElements) const override {
-    // Must have the correct precision
-    if constexpr (std::is_same_v<ScalarType, float>)
-      throw std::runtime_error("simulation precision is FP32 but overlap "
-                               "requested with FP64 state data.");
+    if constexpr (std::is_same_v<ScalarType, float>) {
+      // Support auto float -> double auto conversion
+      std::vector<std::complex<ScalarType>> temp(numElements);
+      if (numElements != size)
+        throw std::runtime_error(
+            "[custatevec-state] provided toHost pointer has "
+            "invalid number of elements specified.");
+      extractValues(temp.data(), 0, size);
+      std::copy(temp.begin(), temp.end(), userData);
+      return;
+    }
 
     // Must have the correct number of elements.
     if (numElements != size)
@@ -358,10 +365,17 @@ public:
   /// @brief Copy the state device data to the user-provided host data pointer.
   void toHost(std::complex<float> *userData,
               std::size_t numElements) const override {
-    // Must have the correct precision
-    if constexpr (std::is_same_v<ScalarType, double>)
-      throw std::runtime_error("simulation precision is FP32 but overlap "
-                               "requested with FP64 state data.");
+    if constexpr (std::is_same_v<ScalarType, double>) {
+      // Support auto double -> float auto conversion
+      std::vector<std::complex<ScalarType>> temp(numElements);
+      if (numElements != size)
+        throw std::runtime_error(
+            "[custatevec-state] provided toHost pointer has "
+            "invalid number of elements specified.");
+      extractValues(temp.data(), 0, size);
+      std::copy(temp.begin(), temp.end(), userData);
+      return;
+    }
 
     // Must have the correct number of elements.
     if (numElements != size)
