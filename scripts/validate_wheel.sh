@@ -162,7 +162,10 @@ for ex in `find "$root_folder/examples" -name '*.py' -not -path '*/providers/*'`
 done
 
 # Run remote-mqpu platform test
-# Use cudaq-qpud.py wrapper script for cudaq-qpud.
+# Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
+# Note that a derivative of this code is in
+# docs/sphinx/using/backends/platform.rst, so if you update it here, you need to
+# check if any docs updates are needed.
 cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
 qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
 if [ -x "$(command -v nvidia-smi)" ]; 
