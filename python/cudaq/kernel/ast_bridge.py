@@ -236,14 +236,6 @@ class PyASTBridge(ast.NodeVisitor):
         Return an MLIR float type (double precision).
         """
         return F64Type.get()
-    
-    def getSimulationFloatType(self):
-        currentTarget = cudaq_runtime.get_target()
-        simulationPrecision = currentTarget.get_precision()
-        
-        if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
-            return F64Type.get(self.ctx)
-        return F32Type.get(self.ctx)
 
     def getFloatAttr(self, type, value):
         """
@@ -254,21 +246,21 @@ class PyASTBridge(ast.NodeVisitor):
     def getConstantFloat(self, value):
         """
         Create a constant float operation and return its MLIR result Value.
-        Takes as input the concrete float value. 
+        Takes as input the concrete float value.
         """
         ty = self.getFloatType()
         return arith.ConstantOp(ty, self.getFloatAttr(ty, value)).result
-        
+
     def getComplexType(self):
         """
         Return an MLIR complex type (double precision).
         """
         return ComplexType.get(self.getFloatType())
-    
+
     def getConstantComplex(self, value):
         """
         Create a constant complex operation and return its MLIR result Value.
-        Takes as input the concrete float value. 
+        Takes as input the concrete float value.
         """
         ty = self.getComplexType()
         return complex.CreateOp(ty,
@@ -1477,7 +1469,6 @@ class PyASTBridge(ast.NodeVisitor):
                         node.func.id, globalKernelRegistry.keys()), node)
 
         elif isinstance(node.func, ast.Attribute):
-            print(f"visiting attribute")
             self.generic_visit(node)
             if node.func.value.id in ['numpy', 'np']:
                 if node.func.attr == 'array':
@@ -1526,52 +1517,16 @@ class PyASTBridge(ast.NodeVisitor):
 
             if node.func.value.id == 'cudaq':
                 if node.func.attr in ['qvector']:
-                    print('popping vector arg')
-                    value = self.popValue()
-                    if hasattr(value, "literal_value"):
-                        value = value.literal_value
-                        if (isinstance(value, int)):
-                            print('integer literal')
-                            # Handle `cudaq.qvector(N)`
-                            ty = self.getVeqType(value)
-                            qubits = quake.AllocaOp(ty)
-                            self.pushValue(qubits.results[0]) 
-                        else:
-                             print('non-integer literal')
-                             self.emitFatalError(
-                                    f"unsupported qvector argument: {value} (expected integer)", node)
+                    # Handle `cudaq.qvector(N)`
+                    size = self.popValue()
+                    if hasattr(size, "literal_value"):
+                        ty = self.getVeqType(size.literal_value)
+                        qubits = quake.AllocaOp(ty)
                     else:
-                        value = self.ifPointerThenLoad(value)
-                        print(f'non-literal: {value.type}')
-                        if (isinstance(value, int)):
-                            # handle `cudaq.qvector(n)`
-                            print('integer non-literal')
-                            ty = self.getVeqType()
-                            qubits = quake.AllocaOp(ty, size=value)
-                            self.pushValue(qubits.results[0]) 
-                        elif cc.StdvecType.isinstance(value.type):
-                            # handle `cudaq.qvector([1.0+1j, ...])`
-                            size = cc.StdvecSizeOp(self.getIntegerType(), value).result
-                            print(f'stdvec of size {size}: {value}')
-                            
-                            
-
-                            numQubits =  math.CountTrailingZerosOp(size).result
-                            eleTy = cc.StdvecType.getElementType(value.type)
-                            ptrTy = cc.PointerType.get(self.ctx, eleTy)
-                            vecTy = quake.VeqType.get(self.ctx)
-                            qubits = quake.AllocaOp(vecTy, size=numQubits)
-                            initials = cc.StdvecDataOp(ptrTy, value).result
-                            initState = quake.InitializeStateOp(vecTy, qubits, initials)
-                            self.pushValue(qubits.results[0])    
-                            
-                            
-                            if (numQubits == None):
-                                self.emitFatalError(
-                                    "internal error: could not determine the number of qubits")
-                        else:
-                            self.emitFatalError(
-                                f"unsupported qvector argument type: {value} (unknown)", node)
+                        ty = self.getVeqType()
+                        size = self.ifPointerThenLoad(size)
+                        qubits = quake.AllocaOp(ty, size=size)
+                    self.pushValue(qubits.results[0])
                     return
 
                 if node.func.attr == "qubit":
@@ -2787,6 +2742,21 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             cc.ContinueOp([])
 
+    def promote_operand_type(self, ty, operand):
+        if ComplexType.isinstance(ty):
+            if not ComplexType.isinstance(operand.type):
+                if IntegerType.isinstance(operand.type):
+                    operand = arith.SIToFPOp(self.getFloatType(), operand).result
+                operand = complex.CreateOp(
+                    ComplexType.get(self.getFloatType()), operand,
+                        self.getConstantFloat(0.0)).result
+
+        if F64Type.isinstance(ty):
+            if IntegerType.isinstance(operand.type):
+                operand = arith.SIToFPOp(ty, operand).result
+
+        return operand
+
     def visit_BinOp(self, node):
         """
         Visit binary operation nodes in the AST and map them to equivalents in the 
@@ -2808,7 +2778,7 @@ class PyASTBridge(ast.NodeVisitor):
             left = cc.LoadOp(left).result
         if cc.PointerType.isinstance(right.type):
             right = cc.LoadOp(right).result
-    
+
         if not IntegerType.isinstance(left.type) and not F64Type.isinstance(
                 left.type) and not ComplexType.isinstance(left.type):
             raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
@@ -2818,32 +2788,11 @@ class PyASTBridge(ast.NodeVisitor):
                 right.type) and not ComplexType.isinstance(right.type):
             raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
                 type(node.op), right, right))
-        
+
         # Type promotion for Add, Sub, Div, Mult operations
         if isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
-            if ComplexType.isinstance(left.type):
-                if not ComplexType.isinstance(right.type):
-                    if IntegerType.isinstance(right.type):
-                        right = arith.SIToFPOp(self.getFloatType(), right).result
-                    right = complex.CreateOp(
-                        ComplexType.get(self.getFloatType()), right,
-                        self.getConstantFloat(0.0)).result
-                    
-            if ComplexType.isinstance(right.type):
-                if not ComplexType.isinstance(left.type):
-                    if IntegerType.isinstance(left.type):
-                        left = arith.SIToFPOp(self.getFloatType(), left).result
-                    left = complex.CreateOp(
-                        ComplexType.get(self.getFloatType()), left,
-                        self.getConstantFloat(0.0)).result
-            
-            if F64Type.isinstance(left.type):
-                if IntegerType.isinstance(right.type):
-                    right = arith.SIToFPOp(left.type, right).result
-
-            if F64Type.isinstance(right.type):
-                if IntegerType.isinstance(left.type):
-                    left = arith.SIToFPOp(right.type, left).result
+            right = self.promote_operand_type(left.type, right)
+            left = self.promote_operand_type(right.type, left)
 
         # Based on the op type and the leaf types, create the MLIR operator
         if isinstance(node.op, ast.Add):
@@ -2917,7 +2866,7 @@ class PyASTBridge(ast.NodeVisitor):
             if F64Type.isinstance(left.type):
                 self.pushValue(arith.MulFOp(left, right).result)
                 return
-            
+
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.MulIOp(left, right).result)
                 return
@@ -2971,7 +2920,7 @@ class PyASTBridge(ast.NodeVisitor):
             complexType = type(1j)
             value = self.capturedVars[node.id]
             if isinstance(value, list) and isinstance(value[0],
-                                                      (int, bool, float, complexType)):
+                                                     (int, bool, float, complexType)):
                 elementValues = None
                 if isinstance(value[0], float):
                     elementValues = [self.getConstantFloat(el) for el in value]
