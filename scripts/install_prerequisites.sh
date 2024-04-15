@@ -100,7 +100,6 @@ working_dir=`pwd`
 read __errexit__ < <(echo $SHELLOPTS | egrep -o '(^|:)errexit(:|$)' || echo)
 function prepare_exit {
   cd "$working_dir" && remove_temp_installs
-  rm -rf "$llvm_stage1_tmpdir"
   if [ -z "$__errexit__" ]; then set +e; fi
 }
 
@@ -187,6 +186,7 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
 
   if [ "$toolchain" = "llvm" ]; then
     cp -rv "$(dirname $CC)/../lib/$(uname -m)-unknown-linux-gnu" "$LLVM_INSTALL_PREFIX/lib"
+    rm -rf "$llvm_stage1_tmpdir"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang" 
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     export FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
