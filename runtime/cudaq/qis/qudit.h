@@ -12,17 +12,34 @@
 
 namespace cudaq {
 
-/// The qudit models a general d-level quantum system.
-/// This type is templated on the number of levels d.
+/// A handle to a qudit in the underlying quantum system.
+///
+/// `Qudit` objects do not carry quantum state. Instead, they encapsulate a
+/// logical index that identifies a qubit in the underlying quantum system.
+/// The `ExecutionManager` provides this index, which acts as a qudit unique
+/// identifier through the objects' lifetimes in a kernel execution.
+///
+/// Note: Users of this class should _not_ write code that rely on a qudit
+/// having a particular identifier. Also, the uniqueness of the identifier is
+/// only guaranteed within the execution of the kernel and _not_ across
+/// multiple executions of the same kernel. For example:
+///
+/// ```cpp
+/// __qpu__ void bar() {
+///   cudaq::qudit x;
+/// }
+///
+/// __qpu__ void foo() {
+///   bar();           // Here qudit `x` (in bar) could have index 0.
+///   cudaq::qudit y;
+///   bar();           // Here qudit `x` (in bar) could have index 1.
+/// }
+/// ```
 template <std::size_t Levels>
 class qudit {
-  /// Every qudit has a logical index in the global qudit register,
-  /// `idx` is this logical index, it must be
-  /// provided at construction and is immutable.
   const std::size_t idx = 0;
 
-  // Bool to indicate if we are currently negated
-  // as a control qudit.
+  // Indicates whether this qudit is currently used as a negated control.
   bool isNegativeControl = false;
 
 public:
@@ -31,10 +48,10 @@ public:
 
   // Qudits cannot be copied
   qudit(const qudit &q) = delete;
-  // qudits cannot be moved
+  // Qudits cannot be moved
   qudit(qudit &&) = delete;
 
-  // Return the unique id / index for this qudit
+  /// Returns the id for this qudit.
   std::size_t id() const { return idx; }
 
   // Return this qudit's dimension
