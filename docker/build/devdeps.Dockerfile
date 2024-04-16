@@ -187,6 +187,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certifi
     && apt-get remove -y wget ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="${PATH}:/usr/local/cmake-3.26/bin"
+# We must use h5py<3.11 because 3.11 doesn't include aarch64 Linux wheels.
+# https://github.com/h5py/h5py/issues/2408
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git ninja-build file \
         python3 python3-pip libpython3-dev \
@@ -194,5 +196,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         lit pytest numpy \
         fastapi uvicorn pydantic requests llvmlite \
         pyspelling pymdown-extensions \
-        scipy==1.10.1 openfermionpyscf==0.5 \
+        scipy==1.10.1 openfermionpyscf==0.5 'h5py<3.11' \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
