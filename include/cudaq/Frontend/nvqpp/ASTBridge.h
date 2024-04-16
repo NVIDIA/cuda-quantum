@@ -742,4 +742,11 @@ inline bool isCharPointerType(mlir::Type t) {
   return false;
 }
 
+inline bool isCudaqStateType(mlir::Type t) {
+  if (auto ptrTy = dyn_cast<cc::PointerType>(t))
+    if (auto strTy = dyn_cast<cc::StructType>(ptrTy.getElementType()))
+      return strTy.getName().getValue().equals("cudaq.state");
+  return false;
+}
+
 } // namespace cudaq

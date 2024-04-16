@@ -70,6 +70,9 @@ inline mlir::Type getPointerType(mlir::Type ty) {
   return mlir::LLVM::LLVMPointerType::get(ty);
 }
 
+/// Get the Quake type translation of a `cudaq::state` type.
+cc::StructType getCudaqStateType(mlir::MLIRContext *ctx);
+
 cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
 
 mlir::Type genArgumentBufferType(mlir::Type ty);

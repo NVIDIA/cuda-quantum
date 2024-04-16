@@ -424,7 +424,8 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
     // Structs, lambdas, functions are valid callable objects. Also pure
     // device kernels may take veq and/or ref arguments.
-    if (isKernelArgumentType(t) || isReferenceToCallableRecord(t, p))
+    if (isKernelArgumentType(t) || isReferenceToCallableRecord(t, p) ||
+        isCudaqStateType(t))
       continue;
     reportClangError(p, mangler, "kernel argument type not supported");
     return false;

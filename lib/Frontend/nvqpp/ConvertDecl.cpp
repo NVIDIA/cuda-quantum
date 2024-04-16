@@ -171,6 +171,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     // qvector<LEVEL>, qview<LEVEL>
     if (name.equals("qvector") || name.equals("qview"))
       return pushType(quake::VeqType::getUnsized(ctx));
+    if (name.equals("state"))
+      return pushType(opt::factory::getCudaqStateType(ctx));
     auto loc = toLocation(x);
     TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
   }

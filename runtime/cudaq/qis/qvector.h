@@ -13,6 +13,8 @@
 
 namespace cudaq {
 
+class state;
+
 /// @brief A `qvector` is an owning, dynamically sized container for qudits.
 /// The semantics of the `qvector` follows that of a `std::vector` for qudits.
 /// It is templated on the number of levels for the held qudits.
@@ -35,6 +37,10 @@ public:
   /// meant to be used with `kernel_builder<cudaq::qvector<>>`
   qvector() : qudits(1) {}
   /// @endcond
+
+  // TODO: merge with ctors existing code in features/qalloc.
+  qvector(const state *);
+  qvector(const state &);
 
   /// @brief `qvectors` cannot be copied
   qvector(qvector const &) = delete;

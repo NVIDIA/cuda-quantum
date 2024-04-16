@@ -2371,6 +2371,13 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       if (ctorName == "qreg" || ctorName == "qvector") {
         // This is a cudaq::qreg(std::size_t).
         auto sizeVal = popValue();
+        if (isCudaqStateType(sizeVal.getType())) {
+          // TODO: call an intrinsic in the runtime to convert the data captured
+          // in the object of type state into input to a InitializeStateOp.
+          // This branch needs to be rebased though...
+          return pushValue(builder.create<quake::AllocaOp>(
+              loc, quake::VeqType::get(builder.getContext(), 0)));
+        }
         assert(isa<IntegerType>(sizeVal.getType()));
         return pushValue(builder.create<quake::AllocaOp>(
             loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
