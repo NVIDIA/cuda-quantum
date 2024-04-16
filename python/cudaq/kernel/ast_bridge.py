@@ -263,9 +263,8 @@ class PyASTBridge(ast.NodeVisitor):
         Takes as input the concrete float value.
         """
         ty = self.getComplexType()
-        return complex.CreateOp(ty,
-                                 self.getConstantFloat(value.real),
-                                 self.getConstantFloat(value.imag)).result
+        return complex.CreateOp(ty, self.getConstantFloat(value.real),
+                                self.getConstantFloat(value.imag)).result
 
     def getConstantInt(self, value, width=64):
         """
@@ -2746,10 +2745,11 @@ class PyASTBridge(ast.NodeVisitor):
         if ComplexType.isinstance(ty):
             if not ComplexType.isinstance(operand.type):
                 if IntegerType.isinstance(operand.type):
-                    operand = arith.SIToFPOp(self.getFloatType(), operand).result
-                operand = complex.CreateOp(
-                    ComplexType.get(self.getFloatType()), operand,
-                        self.getConstantFloat(0.0)).result
+                    operand = arith.SIToFPOp(self.getFloatType(),
+                                             operand).result
+                operand = complex.CreateOp(ComplexType.get(self.getFloatType()),
+                                           operand,
+                                           self.getConstantFloat(0.0)).result
 
         if F64Type.isinstance(ty):
             if IntegerType.isinstance(operand.type):
@@ -2789,7 +2789,7 @@ class PyASTBridge(ast.NodeVisitor):
             raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
                 type(node.op), right, right))
 
-        # Type promotion for Add, Sub, Div, Mult operations
+        # Type promotion for addition, subtraction, multiplication, or division
         if isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
             right = self.promote_operand_type(left.type, right)
             left = self.promote_operand_type(right.type, left)
@@ -2919,8 +2919,8 @@ class PyASTBridge(ast.NodeVisitor):
             # Only support a small subset of types here
             complexType = type(1j)
             value = self.capturedVars[node.id]
-            if isinstance(value, list) and isinstance(value[0],
-                                                     (int, bool, float, complexType)):
+            if isinstance(value, list) and isinstance(
+                    value[0], (int, bool, float, complexType)):
                 elementValues = None
                 if isinstance(value[0], float):
                     elementValues = [self.getConstantFloat(el) for el in value]
@@ -2929,7 +2929,9 @@ class PyASTBridge(ast.NodeVisitor):
                 elif isinstance(value[0], bool):
                     elementValues = [self.getConstantInt(el, 1) for el in value]
                 elif isinstance(value[0], complexType):
-                    elementValues = [self.getConstantComplex(el) for el in value]
+                    elementValues = [
+                        self.getConstantComplex(el) for el in value
+                    ]
 
                 if elementValues != None:
                     self.dependentCaptureVars[node.id] = value
