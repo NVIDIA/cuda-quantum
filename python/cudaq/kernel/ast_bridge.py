@@ -1475,23 +1475,28 @@ class PyASTBridge(ast.NodeVisitor):
 
                 if node.func.attr == 'cos':
                     value = self.popValue()
-                    value = self.promote_operand_type(self.getComplexType(), value)
+                    value = self.promote_operand_type(self.getComplexType(),
+                                                      value)
                     self.pushValue(complex.CosOp(value).result)
                     return
                 if node.func.attr == 'sin':
                     value = self.popValue()
-                    value = self.promote_operand_type(self.getComplexType(), value)
+                    value = self.promote_operand_type(self.getComplexType(),
+                                                      value)
                     self.pushValue(complex.SinOp(value).result)
                     return
                 if node.func.attr == 'sqrt':
                     value = self.popValue()
-                    value = self.promote_operand_type(self.getComplexType(), value)
+                    value = self.promote_operand_type(self.getComplexType(),
+                                                      value)
                     self.pushValue(complex.SqrtOp(value).result)
                     return
                 if node.func.attr == 'ceil':
                     value = self.popValue()
-                    if IntegerType.isinstance(value.type) or F64Type.isinstance(value.type):
-                        value = self.promote_operand_type(self.getFloatType(), value)
+                    if IntegerType.isinstance(value.type) or F64Type.isinstance(
+                            value.type):
+                        value = self.promote_operand_type(
+                            self.getFloatType(), value)
                         self.pushValue(math.CeilOp(value).result)
                         return
 
