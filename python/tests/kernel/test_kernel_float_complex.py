@@ -10,6 +10,7 @@ import os, sys
 
 import pytest
 import numpy as np
+import math
 from typing import List 
 
 import cudaq
@@ -20,7 +21,7 @@ skipIfPythonLessThan39 = pytest.mark.skipif(
     sys.version_info < (3, 9),
     reason="built-in collection types such as `list` not supported")
 
-def test_float_lists():
+def test_float():
     """Test that we can use float numbers inside kernel functions."""
 
     cudaq.reset_target()
@@ -28,7 +29,7 @@ def test_float_lists():
 
     f = [0., 1., 1., 0.]
 
-    # Pass list of float as a parameter
+    # Pass a list of float as a parameter
     @cudaq.kernel
     def test_float_vec_param(vec : list[float]):
         f1 = vec
@@ -37,7 +38,7 @@ def test_float_lists():
     assert len(counts) == 0
 
 
-    # Capture list of float
+    # Capture a list of float
     @cudaq.kernel
     def test_float_vec_capture():
         f1 = f
@@ -46,7 +47,7 @@ def test_float_lists():
     assert len(counts) == 0
 
 
-    # Define list of float inside kernel
+    # Define a list of float inside a kernel
     @cudaq.kernel
     def test_float_vec_definition():
         f1 = [1.0, 0., 0., 1.]
@@ -54,11 +55,26 @@ def test_float_lists():
     counts = cudaq.sample(test_float_vec_definition)
     assert len(counts) == 0
 
+    # Use a float inside a kernel
+    @cudaq.kernel
+    def test_float_use():
+        f1 = math.sin(0)
 
-def test_float_lists():
+    counts = cudaq.sample(test_float_use)
+    assert len(counts) == 0
+
+    # Use a float inside np in a kernel
+    @cudaq.kernel
+    def test_float_np_use():
+        f1 = np.sin(0)
+
+    counts = cudaq.sample(test_float_np_use)
+    assert len(counts) == 0
+
+def test_complex():
     """Test that we can use complex numbers inside kernel functions."""
 
-    # Pass list of complex as a parameter
+    # Pass a list of complex as a parameter
     c = [.70710678 + 0j, 0., 0., 0.70710678]
 
     @cudaq.kernel
@@ -69,7 +85,7 @@ def test_float_lists():
     assert len(counts) == 0
 
 
-    # Capture list of complex
+    # Capture a list of complex
     @cudaq.kernel
     def test_complex_vec_capture():
         f1 = c
@@ -77,11 +93,26 @@ def test_float_lists():
     counts = cudaq.sample(test_complex_vec_capture)
     assert len(counts) == 0
 
-    # Define list of complex inside kernel
+    # Define a list of complex inside a kernel
     @cudaq.kernel
     def test_complex_vec_definition():
         f1 = [1.0 + 0j, 0., 0., 1.]
 
-
     counts = cudaq.sample(test_complex_vec_definition)
+    assert len(counts) == 0
+
+    # Use a complex inside a kernel
+    @cudaq.kernel
+    def test_complex_use():
+        f1 = math.sin(0j)
+
+    counts = cudaq.sample(test_complex_use)
+    assert len(counts) == 0
+
+    # Use a complex inside np in a kernel
+    @cudaq.kernel
+    def test_complex_np_use():
+        f1 = np.sin(0j)
+
+    counts = cudaq.sample(test_complex_np_use)
     assert len(counts) == 0

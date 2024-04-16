@@ -1475,41 +1475,25 @@ class PyASTBridge(ast.NodeVisitor):
 
                 if node.func.attr == 'cos':
                     value = self.popValue()
-                    if F64Type.isinstance(value.type):
-                        value = complex.CreateOp(
-                            ComplexType.get(value.type), value,
-                            self.getConstantFloat(0.0)).result
-
+                    value = self.promote_operand_type(self.getComplexType(), value)
                     self.pushValue(complex.CosOp(value).result)
                     return
                 if node.func.attr == 'sin':
                     value = self.popValue()
-                    if IntegerType.isinstance(value.type):
-                        value = arith.SIToFPOp(self.getFloatType(),
-                                               value).result
-
-                    value = complex.CreateOp(ComplexType.get(value.type), value,
-                                             self.getConstantFloat(0.0)).result
-
+                    value = self.promote_operand_type(self.getComplexType(), value)
                     self.pushValue(complex.SinOp(value).result)
                     return
                 if node.func.attr == 'sqrt':
                     value = self.popValue()
-                    if IntegerType.isinstance(value.type):
-                        value = arith.SIToFPOp(self.getFloatType(),
-                                               value).result
-
-                    value = complex.CreateOp(ComplexType.get(value.type), value,
-                                             self.getConstantFloat(0.0)).result
+                    value = self.promote_operand_type(self.getComplexType(), value)
                     self.pushValue(complex.SqrtOp(value).result)
                     return
                 if node.func.attr == 'ceil':
                     value = self.popValue()
-                    if IntegerType.isinstance(value.type):
-                        value = arith.SIToFPOp(self.getFloatType(),
-                                               value).result
-                    self.pushValue(math.CeilOp(value).result)
-                    return
+                    if IntegerType.isinstance(value.type) or F64Type.isinstance(value.type):
+                        value = self.promote_operand_type(self.getFloatType(), value)
+                        self.pushValue(math.CeilOp(value).result)
+                        return
 
                 self.emitFatalError(
                     f"unsupported NumPy call ({node.func.attr})", node)
