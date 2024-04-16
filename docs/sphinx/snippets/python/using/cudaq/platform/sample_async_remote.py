@@ -40,16 +40,11 @@ if __name__ == '__main__':
         mz(targets)
 
     # Set the target to execute on and query the number of QPUs in the system;
-    if servers.isdigit():
-        # The number of QPUs is equal to the number of (auto-)launched server instances.
-        cudaq.set_target("remote-mqpu",
-                        backend=backend,
-                        auto_launch=str(servers))
-    else:
-        # The number of QPUs is equal to the number of provided servers
-        cudaq.set_target("remote-mqpu",
-                        backend=backend,
-                        url=servers)
+    # The number of QPUs is equal to the number of (auto-)launched server instances.
+    cudaq.set_target("remote-mqpu",
+                     backend=backend,
+                     auto_launch=str(servers) if servers.isdigit() else "",
+                     url="" if servers.isdigit() else servers)
     qpu_count = cudaq.get_target().num_qpus()
     print("Number of virtual QPUs:", qpu_count)
 
