@@ -11,9 +11,9 @@
 # Usage:
 # bash scripts/generate_cc.sh -c
 # -or-
-# bash scripts/build_cudaq.sh -p
+# bash scripts/generate_cc.sh -p
 # -or-
-# bash scripts/build_cudaq.sh -c -p
+# bash scripts/generate_cc.sh -c -p
 # -c flag generates coverage information for C and C++ codes.
 # -p flag generates coverage information for Python codes.
 # C and C++ coverage reports are generated in the directory 'build/ccoverage'
