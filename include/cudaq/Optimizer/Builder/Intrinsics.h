@@ -34,6 +34,16 @@ static constexpr const char stdvecBoolCtorFromInitList[] =
 static constexpr const char stdvecBoolUnpackToInitList[] =
     "__nvqpp_vector_bool_to_initializer_list";
 
+// Returns the internal data of the cudaq::state object to a std::vector<double>
+// for use with InitializeStateOp.
+static constexpr const char getCudaqStateAsVector[] =
+    "__nvqpp_cudaq_state_vectorData";
+// The internal data, as returned by the `getCudaqStateAsVector` function, of
+// the cudaq::state object must be `2**n` in length. This function returns the
+// value `n`.
+static constexpr const char getNumQubitsFromCudaqState[] =
+    "__nvqpp_cudaq_state_numberOfQubits";
+
 /// Builder for lowering the clang AST to an IR for CUDA Quantum. Lowering
 /// includes the transformation of both quantum and classical computation.
 /// Different features of the CUDA Quantum programming model are lowered into
