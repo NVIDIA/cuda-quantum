@@ -40,12 +40,11 @@ public:
             "elements must be power of 2.");
     }
 
-    auto norm =
-        std::inner_product(
-            vector.begin(), vector.end(), vector.begin(),
-            complex{0., 0.}, [](auto a, auto b) { return a + b; },
-            [](auto a, auto b) { return std::conj(a) * b; })
-            .real();
+    auto norm = std::inner_product(
+                    vector.begin(), vector.end(), vector.begin(),
+                    complex{0., 0.}, [](auto a, auto b) { return a + b; },
+                    [](auto a, auto b) { return std::conj(a) * b; })
+                    .real();
     if (std::fabs(1.0 - norm) > 1e-4)
       throw std::runtime_error("Invalid vector norm for qudit allocation.");
 
