@@ -8,8 +8,9 @@
 // attain NVQC API key.
 
 // This example demonstrates the simulation of large parameterized quantum
-// circuits with NVQC. These circuits can be applied to quantum machine learning
-// to classify data points.
+// circuits with NVQC. These parameterized circuits can be applied to quantum
+// machine learning to classify data points, e.g. see
+// https://arxiv.org/pdf/1906.07682.pdf.
 
 #include <ctime>
 #include <cudaq.h>
