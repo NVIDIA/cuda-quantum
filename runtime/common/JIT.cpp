@@ -28,6 +28,8 @@
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <cxxabi.h>
 
+#define DEBUG_TYPE "cudaq-qpud"
+
 namespace cudaq {
 
 void invokeWrappedKernel(std::string_view irString,
@@ -79,14 +81,14 @@ void invokeWrappedKernel(std::string_view irString,
         std::string demangledName(demangledPtr);
         if (demangledName.rfind(wrappedKernelSymbol, 0) == 0 &&
             demangledName.find(templatedTypeName) != std::string::npos) {
-          llvm::dbgs() << "Found symbol " << func.getName() << " for "
-                       << wrappedKernelSymbol;
+          LLVM_DEBUG(llvm::dbgs() << "Found symbol " << func.getName()
+                                  << " for " << wrappedKernelSymbol);
           mangledWrapper = func.getName().str();
           fixUpLinkage(func);
         }
         if (demangledName.rfind(funcName, 0) == 0) {
-          llvm::dbgs() << "Found symbol " << func.getName() << " for "
-                       << funcName;
+          LLVM_DEBUG(llvm::dbgs() << "Found symbol " << func.getName()
+                                  << " for " << funcName);
           mangledKernel = func.getName().str();
           fixUpLinkage(func);
         }
@@ -109,10 +111,6 @@ void invokeWrappedKernel(std::string_view irString,
           return std::make_unique<llvm::SectionMemoryManager>();
         });
     llvm::Triple targetTriple(llvm::Twine(llvmModule->getTargetTriple()));
-    // IMPORTANT: need to setAutoClaimResponsibilityForObjectSymbols to true to
-    // prevent debug asserts about symbol responsibility.
-    objectLayer->setAutoClaimResponsibilityForObjectSymbols(true);
-
     return objectLayer;
   };
 

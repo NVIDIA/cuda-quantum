@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
+// REQUIRES: c++17
 // RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.code | FileCheck %s && FileCheck --check-prefix=QUAKE %s < %t.code && rm %t.code
 // RUN: nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Adonis --mapping-file "%p/../Supplemental/Adonis Variant.txt" --emulate && %t
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t
@@ -18,8 +18,8 @@ __qpu__ void foo() {
   cudaq::qubit q0, q1, q2;
   x(q0);
   x(q1);
-  x<cudaq::ctrl>(q0, q1);
-  x<cudaq::ctrl>(q0, q2); // requires a swap(q0,q1)
+  cx(q0, q1);
+  cx(q0, q2); // requires a swap(q0,q1)
   mz(q0);
   mz(q1);
   mz(q2);

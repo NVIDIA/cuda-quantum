@@ -6,29 +6,36 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++17
+// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+
 #include <cudaq.h>
 
-// REQUIRES: c++20
-// RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine Apollo -o %t.x && %t.x | FileCheck %s
+// CHECK: size 3
+// CHECK: 0: {{[tf]}}
+// CHECK: 1: {{[tf]}}
+// CHECK: 2: {{[tf]}}
 
-// CHECK: { 0:{{[0-9]+}} 1:{{[0-9]+}} }
-
-template <std::size_t N>
-struct ghz {
+struct ak2 {
   auto operator()() __qpu__ {
-    cudaq::qarray<N> q;
+    cudaq::qarray<3> q;
+    x(q[0]);
+    h(q[1]);
+    cx(q[1], q[2]);
+    cx(q[0], q[1]);
     h(q[0]);
-    for (int i = 0; i < N - 1; i++) {
-      x<cudaq::ctrl>(q[i], q[i + 1]);
-    }
-    auto result = mz(q[0]);
+    x(q[1]);
+    y(q[2]);
+    return mz(q);
   }
 };
 
 int main() {
+  auto counts = ak2{}();
 
-  auto kernel = ghz<2>{};
-  auto counts = cudaq::sample(kernel);
-  counts.dump();
+  printf("size %zu\n", counts.size());
+  for (std::size_t i = 0, I = counts.size(); i < I; i++) {
+    printf("%zu: %s\n", i, (counts[i] ? "true" : "false"));
+  }
   return 0;
 }

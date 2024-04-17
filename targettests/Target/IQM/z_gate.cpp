@@ -8,6 +8,7 @@
 
 #include <cudaq.h>
 
+// REQUIRES: c++20
 // RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine Apollo -o %t.x && %t.x | FileCheck %s
 // RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine=Apollo -o %t.x && %t.x | FileCheck %s
 // CHECK: { 0:1000 }
