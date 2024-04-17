@@ -45,7 +45,7 @@ RUN echo "Building wheel for python${python_version}." \
     && export CUTENSOR_INSTALL_PREFIX="${cutensor_location#Location: }/cutensor" \
     && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so.1 $CUQUANTUM_INSTALL_PREFIX/lib/libcustatevec.so \
     && ln -s $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so.2 $CUQUANTUM_INSTALL_PREFIX/lib/libcutensornet.so \
-    && ln -s $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so.1 $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so \
+    && ln -s $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so.2 $CUTENSOR_INSTALL_PREFIX/lib/libcutensor.so \
     &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
         CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
         $python -m build --wheel \
@@ -56,7 +56,7 @@ RUN echo "Building wheel for python${python_version}." \
             --exclude libcublas.so.11 \
             --exclude libcublasLt.so.11 \
             --exclude libcusolver.so.11 \
-            --exclude libcutensor.so.1 \
+            --exclude libcutensor.so.2 \
             --exclude libnvToolsExt.so.1 \ 
             --exclude libcudart.so.11.0 
 
