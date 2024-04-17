@@ -111,6 +111,7 @@ ADD "python" /cuda-quantum/python
 ADD "cmake" /cuda-quantum/cmake
 ADD "include" /cuda-quantum/include
 ADD "lib" /cuda-quantum/lib
+ADD "python/tests/mlir" /cuda-quantum/python/tests/mlir
 ADD "runtime" /cuda-quantum/runtime
 ADD "tools" /cuda-quantum/tools
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
@@ -165,7 +166,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
     # FIXME: Disabled nlopt doesn't seem to work properly
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1103
     excludes+=" --exclude-regex NloptTester|ctest-nvqpp|ctest-targettests" && \
-    ctest --output-on-failure --test-dir build $excludes
+    ctest --output-on-failure --test-dir build $excludes 
 
 ENV CUDAQ_CPP_STD="c++17"
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
@@ -178,6 +179,12 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py
 
+FROM python_build
+RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
+    dnf install -y --nobest --setopt=install_weak_deps=False file which
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \ 
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v _skbuild/python/tests/mlir \
+        --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 
 # Tests for the Python wheel are run post-installation.
 COPY --from=python_build /wheelhouse /cuda_quantum/wheelhouse
