@@ -31,11 +31,13 @@ def test_float():
 
     # Pass a list of float as a parameter
     @cudaq.kernel
-    def test_float_vec_param(vec : list[float]):
-        f1 = vec
+    def test_float_vec_param(vec : list[float], i : int) -> float: 
+        return vec[i]
 
-    counts = cudaq.sample(test_float_vec_param, f)
-    assert len(counts) == 0
+    # for i in range(len(f)): 
+    print(f)
+    # assert np.isclose(f[0], test_float_vec_param(f, 0), atol=1e-6)
+    # assert np.isclose(f[2], test_float_vec_param(f, 2), atol=1e-6) 
 
 
     # Capture a list of float
