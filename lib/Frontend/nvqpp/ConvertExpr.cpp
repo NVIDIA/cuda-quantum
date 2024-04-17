@@ -2409,8 +2409,20 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         return pushValue(builder.create<quake::AllocaOp>(
             loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
       }
+
+      // lambda determines: is `t` a cudaq::state or cudaq::state* ?
+      auto isStateType = [&](Type t) {
+        auto ptrTy = dyn_cast<cc::PointerType>(t);
+        return isCudaqStateType(t) ||
+               (ptrTy && isCudaqStateType(ptrTy.getElementType()));
+      };
+
       if (ctorName == "qudit") {
         auto initials = popValue();
+        if (isStateType(initials.getType())) {
+          TODO_x(loc, x, mangler, "qudit(state) ctor");
+          return false;
+        }
         bool ok = false;
         if (auto ptrTy = dyn_cast<cc::PointerType>(initials.getType()))
           if (auto arrTy = dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
@@ -2434,6 +2446,39 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           // This is the cudaq::qvector(std::size_t) ctor.
           return pushValue(builder.create<quake::AllocaOp>(
               loc, quake::VeqType::getUnsized(ctx), initials));
+        }
+        if (isStateType(initials.getType())) {
+          IRBuilder irBuilder(builder.getContext());
+          auto mod =
+              builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+          auto result = irBuilder.loadIntrinsic(mod, getCudaqStateAsVector);
+          assert(succeeded(result) && "loading intrinsic should never fail");
+          result = irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
+          assert(succeeded(result) && "loading intrinsic should never fail");
+          Value state = initials;
+          if (!isa<cc::PointerType>(initials.getType())) {
+            // There must be a LoadOp in the middle. Eliminate it.
+            auto load = initials.getDefiningOp<cc::LoadOp>();
+            if (!load) {
+              reportClangError(
+                  x, mangler,
+                  "could not recover address of cudaq::state object");
+              return false;
+            }
+            state = load.getPtrvalue();
+          }
+          auto i64Ty = builder.getI64Type();
+          auto numQubits = builder.create<func::CallOp>(
+              loc, i64Ty, getNumQubitsFromCudaqState, ValueRange{state});
+          // FIXME: Do we need to consider f32?
+          auto stdvecTy = cc::PointerType::get(builder.getF64Type());
+          auto dataVec = builder.create<func::CallOp>(
+              loc, stdvecTy, getCudaqStateAsVector, ValueRange{state});
+          auto veqTy = quake::VeqType::getUnsized(ctx);
+          auto alloc = builder.create<quake::AllocaOp>(loc, veqTy,
+                                                       numQubits.getResult(0));
+          return pushValue(builder.create<quake::InitializeStateOp>(
+              loc, veqTy, alloc, dataVec.getResult(0)));
         }
         // Otherwise, it is the cudaq::qvector(std::vector<complex>) ctor.
         Value numQubits;
