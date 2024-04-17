@@ -1523,10 +1523,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::SOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint,
                                  /*control=*/true);
-    if (funcName.equals("sdg"))
-      return buildOp<quake::SOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/true,
-                                 isControl);
     if (funcName.equals("t"))
       return buildOp<quake::TOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint, isControl);
@@ -1534,10 +1530,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::TOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint,
                                  /*control=*/true);
-    if (funcName.equals("tdg"))
-      return buildOp<quake::TOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/true,
-                                 isControl);
 
     if (funcName.equals("reset")) {
       if (!negations.empty())
@@ -1563,34 +1555,18 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
-    if (funcName.equals("cr1"))
-      return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         /*control=*/true);
     if (funcName.equals("rx"))
       return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
-    if (funcName.equals("crx"))
-      return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         /*control=*/true);
     if (funcName.equals("ry"))
       return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
-    if (funcName.equals("cry"))
-      return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         /*control=*/true);
     if (funcName.equals("rz"))
       return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
-    if (funcName.equals("crz"))
-      return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         /*control=*/true);
 
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to

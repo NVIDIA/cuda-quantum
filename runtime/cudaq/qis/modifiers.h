@@ -9,7 +9,6 @@
 #pragma once
 
 namespace cudaq {
-
 // Default instruction modifier
 struct base;
 
@@ -18,5 +17,4 @@ struct ctrl;
 
 // Adjoint gate modifier
 struct adj;
-
 } // namespace cudaq

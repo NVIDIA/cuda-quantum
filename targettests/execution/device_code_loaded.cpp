@@ -6,7 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
+// RUN:   nvq++ --enable-mlir %s -o %t && %t | FileCheck %s; \
+// RUN: fi
 
 #include <cudaq.h>
 
@@ -19,7 +22,7 @@ struct ghz {
     cudaq::qvector q(N);
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
-      cx(q[i], q[i + 1]);
+      x<cudaq::ctrl>(q[i], q[i + 1]);
     }
     mz(q);
   }
