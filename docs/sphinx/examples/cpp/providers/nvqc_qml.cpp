@@ -6,6 +6,11 @@
 // Assumes a valid NVQC API key has been set in the `NVQC_API_KEY` environment
 // variable. Please refer to the documentations for information about how to
 // attain NVQC API key.
+
+// This example demonstrates the simulation of large parameterized quantum
+// circuits with NVQC. These circuits can be applied to quantum machine learning
+// to classify data points.
+
 #include <ctime>
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
