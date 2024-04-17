@@ -30,7 +30,7 @@ public:
   /// @brief Construct a `qvector` with `size` qudits in the |0> state.
   qvector(std::size_t size) : qudits(size) {}
 
-  qvector(const std::vector<simulation_scalar> &vector)
+  qvector(const std::vector<complex> &vector)
       : qudits(std::log2(vector.size())) {
     if (Levels == 2) {
       auto numElements = std::log2(vector.size());
@@ -43,7 +43,7 @@ public:
     auto norm =
         std::inner_product(
             vector.begin(), vector.end(), vector.begin(),
-            simulation_scalar{0., 0.}, [](auto a, auto b) { return a + b; },
+            complex{0., 0.}, [](auto a, auto b) { return a + b; },
             [](auto a, auto b) { return std::conj(a) * b; })
             .real();
     if (std::fabs(1.0 - norm) > 1e-4)
@@ -53,19 +53,19 @@ public:
     for (auto &q : qudits)
       targets.emplace_back(QuditInfo{Levels, q.id()});
 
-    auto precision = std::is_same_v<simulation_scalar::value_type, float>
+    auto precision = std::is_same_v<complex::value_type, float>
                          ? simulation_precision::fp32
                          : simulation_precision::fp64;
     getExecutionManager()->initializeState(targets, vector.data(), precision);
   }
 
-  // FIXME do we need float versions?
+  // // FIXME do we need float versions?
   qvector(const std::vector<double> &vector)
-      : qvector(std::vector<simulation_scalar>{vector.begin(), vector.end()}) {}
+      : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}
   qvector(const std::initializer_list<double> &list)
-      : qvector(std::vector<simulation_scalar>{list.begin(), list.end()}) {}
+      : qvector(std::vector<complex>{list.begin(), list.end()}) {}
   qvector(const std::initializer_list<complex> &list)
-      : qvector(std::vector<simulation_scalar>{list.begin(), list.end()}) {}
+      : qvector(std::vector<complex>{list.begin(), list.end()}) {}
 
   /// @cond
   /// Nullary constructor
