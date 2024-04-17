@@ -914,29 +914,6 @@ def test_from_state():
         assert np.isclose(ss[i], state[i], 1e-3)
 
 
-@skipIfPythonLessThan39
-def test_pauli_word_input():
-    h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
-    ]
-    h = cudaq.SpinOperator(h2_data, 4)
-    
-    kernel, theta, paulis = cudaq.make_kernel(float, list[cudaq.pauli_word])
-    q = kernel.qalloc(4)
-    kernel.x(q[0])
-    kernel.x(q[1])
-    kernel.for_loop(0, paulis.size(), lambda idx : kernel.exp_pauli(theta, q, paulis[idx]))
-
-    print(kernel)
-    want_exp = cudaq.observe(kernel, h, .11, ['XXXY']).expectation()
-    assert np.isclose(want_exp, -1.13, atol=1e-2)
-
-
 def test_exp_pauli():
     cudaq.reset_target()
     kernel = cudaq.make_kernel()
@@ -1238,9 +1215,6 @@ def test_list_subscript():
     print(kernelAndArgs[0])
     assert len(kernelAndArgs) == 5 and len(kernelAndArgs[0].arguments) == 4
     cudaq.sample(kernelAndArgs[0], False, [False], [3], [3.5])
-
-    # Test can call with empty list
-    cudaq.sample(kernelAndArgs[0], False, [], [], [])
 
 
 # leave for gdb debugging

@@ -11,8 +11,6 @@
 #include "common/FmtCore.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/builder/kernel_builder.h"
-#include "cudaq/qis/pauli_word.h"
-
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -238,14 +236,6 @@ packArgs(OpaqueArguments &argData, py::args args,
             delete static_cast<long *>(ptr);
           });
         })
-        .Case([&](cudaq::cc::CharspanType ty) {
-          // pauli word
-          cudaq::pauli_word *ourAllocatedArg =
-              new cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str());
-          argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<cudaq::pauli_word *>(ptr);
-          });
-        })
         .Case([&](cudaq::cc::StdvecType ty) {
           if (!py::isinstance<py::list>(arg))
             throw std::runtime_error("kernel argument type is `list` but "
@@ -311,14 +301,6 @@ packArgs(OpaqueArguments &argData, py::args args,
                 genericVecAllocator.template operator()<double>(
                     [](py::handle element) {
                       return PyFloat_AsDouble(element.ptr());
-                    });
-                return;
-              })
-              .Case([&](cudaq::cc::CharspanType type) {
-                genericVecAllocator.template operator()<cudaq::pauli_word>(
-                    [](py::handle element) {
-                      auto pw = element.cast<cudaq::pauli_word>();
-                      return cudaq::pauli_word(pw.str());
                     });
                 return;
               })

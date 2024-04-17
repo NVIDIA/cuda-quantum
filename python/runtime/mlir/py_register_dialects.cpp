@@ -109,12 +109,6 @@ void registerCCDialectAndTypes(py::module &m) {
       },
       py::arg("context") = py::none(), py::arg("load") = true);
 
-  mlir_type_subclass(ccMod, "CharspanType", [](MlirType type) {
-    return unwrap(type).isa<cudaq::cc::CharspanType>();
-  }).def_classmethod("get", [](py::object cls, MlirContext ctx) {
-    return wrap(cudaq::cc::CharspanType::get(unwrap(ctx)));
-  });
-
   mlir_type_subclass(
       ccMod, "PointerType",
       [](MlirType type) { return unwrap(type).isa<cudaq::cc::PointerType>(); })

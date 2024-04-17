@@ -24,7 +24,7 @@ def __isBroadcast(kernel, *args):
         if len(argTypes) == 0 or len(args) == 0:
             return False
 
-        # Quick check, if we have a 2d array anywhere, we know this is a broadcast
+    # Quick check, if we have a 2d array anywhere, we know this is a broadcast
         isDefinitelyBroadcast = True in [
             hasattr(arg, "shape") and len(arg.shape) == 2 for arg in args
         ]
@@ -79,8 +79,7 @@ def __isBroadcast(kernel, *args):
         ]
         ## [PYTHON_VERSION_FIX]
         if sys.version_info >= (3, 9):
-            checkList.extend(
-                [list[float], list[complex], list[int], list[bool]])
+            checkList.extend([list[float], list[complex], list[int]])
         firstArgTypeIsStdvec = argTypes[firstArgType] in checkList
         if (isinstance(firstArg, list) or
                 isinstance(firstArg, List)) and not firstArgTypeIsStdvec:

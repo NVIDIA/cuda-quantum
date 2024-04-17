@@ -8,8 +8,9 @@
 
 // RUN: cudaq-opt %s --canonicalize --add-dealloc | cudaq-translate --convert-to=qir | FileCheck %s
 
-module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_ZZ4mainENK3$_0clEd"}} {
-  func.func @__nvqpp__mlirgen__Z4mainE3$_0(%arg0: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_ZZ4mainENK3$_0clEdNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE"}} {
+  func.func @__nvqpp__mlirgen__Z4mainE3$_0(%arg0: f64, %arg1: !cc.ptr<i8>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = cc.alloca f64
     cc.store %arg0, %0 : !cc.ptr<f64>
     %1 = quake.alloca !quake.veq<4>
@@ -18,8 +19,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
     %3 = quake.extract_ref %1[1] : (!quake.veq<4>) -> !quake.ref
     quake.x %3 : (!quake.ref) -> ()
     %4 = cc.load %0 : !cc.ptr<f64>
-    %5 = cc.string_literal "XXXY" : !cc.ptr<!cc.array<i8 x 5>>
-    quake.exp_pauli %4, %1, %5 : (f64, !quake.veq<4>, !cc.ptr<!cc.array<i8 x 5>>) -> ()
+    quake.exp_pauli %4, %1, %arg1 : (f64, !quake.veq<4>, !cc.ptr<i8>) -> ()
     return
   }
 }
@@ -34,6 +34,6 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
 // CHECK:         %[[VAL_7:.*]] = bitcast i8* %[[VAL_6]] to %[[VAL_4]]**
 // CHECK:         %[[VAL_8:.*]] = load %[[VAL_4]]*, %[[VAL_4]]** %[[VAL_7]], align 8
 // CHECK:         tail call void @__quantum__qis__x(%[[VAL_4]]* %[[VAL_8]])
-// CHECK:         tail call void @__quantum__qis__exp_pauli(double %[[VAL_9:.*]], %[[VAL_1]]* %[[VAL_0]], i8* nonnull getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.5858585900, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__qis__exp_pauli(double %[[VAL_9:.*]], %[[VAL_1]]* %[[VAL_0]], i8* %[[VAL_10:.*]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void
