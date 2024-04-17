@@ -307,7 +307,7 @@ if (CUDAQ_ENABLE_PYTHON)
     PRIVATE 
     cudaq
     cudaq-platform-default
-    nvqir nvqir-custatevec-fp32
+    nvqir nvqir-qpp
     cudaq-spin
     cudaq-chemistry
     cudaq-pyscf
