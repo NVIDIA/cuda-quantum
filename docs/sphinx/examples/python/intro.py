@@ -8,8 +8,7 @@ def kernel():
     '''
     This is our first CUDA Quantum kernel.
     '''
-    # Next, we can allocate qubits to the kernel via `qalloc(qubit_count)`.
-    # An empty call to `qalloc` will return a single qubit.
+    # Allocates qubit to |0> state
     qubit = cudaq.qubit()
 
     # Now we can begin adding instructions to apply to this qubit!
