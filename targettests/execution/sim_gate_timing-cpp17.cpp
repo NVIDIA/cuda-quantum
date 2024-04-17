@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
+// REQUIRES: c++17
 // clang-format off
 // RUN: nvq++ %cpp_std --target qpp-cpu --enable-mlir %s -o %t && CUDAQ_TIMING_TAGS=5 %t | FileCheck %s
 // clang-format on
@@ -97,7 +97,7 @@ void kernel_cnot(int control, int target) __qpu__ {
   h(q[0]); // warm-up operation
   timer_start(KERNEL_CNOT);
   for (int j = 0; j < RUN_AVG; j++)
-    cudaq::x<cudaq::ctrl>(q[control], q[target]);
+    cx(q[control], q[target]);
 
   timer_stop(KERNEL_CNOT, RUN_AVG);
 }
