@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 
   if (printRestPayloadVersion) {
     // IMPORTANT: Don't change this message without updating
-    // `cudaq.nvqc.Dockerfile`, which relies on the this information to perform
+    // `cudaq.Dockerfile`, which relies on the this information to perform
     // deployment sanity check.
     printf("\nCUDA Quantum REST API version: %d\n", restServer->version());
     return 0;
