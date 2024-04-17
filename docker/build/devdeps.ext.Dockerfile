@@ -125,7 +125,7 @@ ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-ENV CUQUANTUM_VERSION=23.10.0.6_cuda11
+ENV CUQUANTUM_VERSION=24.03.0.4_cuda11
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && wget -q "https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum/linux-$arch_folder/cuquantum-linux-$arch_folder-$CUQUANTUM_VERSION-archive.tar.xz" \
@@ -142,7 +142,7 @@ ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUTENSOR_INSTALL_PREFIX/include:$CPATH"
 
-ENV CUTENSOR_VERSION=1.7.0.1
+ENV CUTENSOR_VERSION=2.0.1.2
 RUN apt-get update && apt-get install -y --no-install-recommends xz-utils \
     && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && wget -q "https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor/linux-$arch_folder/libcutensor-linux-$arch_folder-$CUTENSOR_VERSION-archive.tar.xz" \
