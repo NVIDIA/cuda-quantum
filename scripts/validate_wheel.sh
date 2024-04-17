@@ -183,6 +183,7 @@ if [ -n "$server2_devices" ]; then
     CUDA_VISIBLE_DEVICES=$server2_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12002 &
 fi
 
+sleep 5 # wait for servers to launch
 python3 "$root_folder/snippets/using/cudaq/platform/sample_async_remote.py" \
     --backend nvidia-mgpu --servers "$servers"
 if [ ! $? -eq 0 ]; then
