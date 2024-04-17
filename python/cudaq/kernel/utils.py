@@ -183,6 +183,13 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         argTypeToCompareTo = kwargs[
             'argTypeToCompareTo'] if 'argTypeToCompareTo' in kwargs else None
 
+        if len(argInstance) == 0:
+            if argTypeToCompareTo == None:
+                emitFatalError('Cannot infer runtime argument type')
+
+            eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
+            return cc.StdvecType.get(ctx, eleTy)
+
         if isinstance(argInstance[0], bool):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
 
@@ -257,4 +264,4 @@ def mlirTypeToPyType(argType):
             return getListType(complex)
 
     emitFatalError(
-        f"Cannot infer CUDA QUantum type from provided Python type ({argType})")
+        f"Cannot infer CUDA Quantum type from provided Python type ({argType})")

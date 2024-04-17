@@ -1216,6 +1216,8 @@ def test_list_subscript():
     assert len(kernelAndArgs) == 5 and len(kernelAndArgs[0].arguments) == 4
     cudaq.sample(kernelAndArgs[0], False, [False], [3], [3.5])
 
+    # Test can call with empty list
+    cudaq.sample(kernelAndArgs[0], False, [], [], [])
 
 # leave for gdb debugging
 if __name__ == "__main__":

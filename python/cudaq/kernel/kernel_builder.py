@@ -249,7 +249,7 @@ class PyKernel(object):
                 eleTyName = result.group(1)
                 pyType = allowedTypeMap[eleTyName]
                 if eleTyName != None and eleTyName in allowedTypeMap:
-                    return list, [allowedTypeMap[eleTyName]()]
+                    return list, [pyType()]
                 emitFatalError(f'Invalid type for kernel builder {ty}')
         return ty, None
 
@@ -1095,6 +1095,9 @@ class PyKernel(object):
             argType = type(arg)
             listType = None
             if argType == list:
+                if len(arg) == 0:
+                    processedArgs.append(arg)
+                    continue
                 listType = getListType(type(arg[0]))
             mlirType = mlirTypeFromPyType(argType, self.ctx)
             if mlirType != self.mlirArgTypes[

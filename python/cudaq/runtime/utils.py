@@ -79,7 +79,8 @@ def __isBroadcast(kernel, *args):
         ]
         ## [PYTHON_VERSION_FIX]
         if sys.version_info >= (3, 9):
-            checkList.extend([list[float], list[complex], list[int]])
+            checkList.extend(
+                [list[float], list[complex], list[int], list[bool]])
         firstArgTypeIsStdvec = argTypes[firstArgType] in checkList
         if (isinstance(firstArg, list) or
                 isinstance(firstArg, List)) and not firstArgTypeIsStdvec:
