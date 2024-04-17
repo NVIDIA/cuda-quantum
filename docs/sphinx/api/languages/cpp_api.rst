@@ -61,6 +61,9 @@ Common
 
 .. doxygenclass:: cudaq::Trace
 
+.. doxygenfunction:: cudaq::range(ElementType total)
+.. doxygenfunction:: cudaq::range(ElementType begin, ElementType end, ElementType step)
+
 .. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenclass:: cudaq::Resources
