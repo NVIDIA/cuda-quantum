@@ -249,13 +249,8 @@ public:
   bool TraverseConditionalOperator(clang::ConditionalOperator *x,
                                    DataRecursionQueue *q = nullptr);
   bool VisitReturnStmt(clang::ReturnStmt *x);
-  bool VisitCXXFunctionalCastExpr(clang::CXXFunctionalCastExpr *x) {
-    return true;
-  }
   bool TraverseInitListExpr(clang::InitListExpr *x,
                             DataRecursionQueue *q = nullptr);
-  bool TraverseCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x,
-                                      DataRecursionQueue *q = nullptr);
 
   // These misc. statements are not (yet) handled by lowering.
   bool TraverseAsmStmt(clang::AsmStmt *x, DataRecursionQueue *q = nullptr);
@@ -287,16 +282,58 @@ public:
   bool TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
                                 DataRecursionQueue *q = nullptr);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);
-  bool VisitCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x);
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool WalkUpFromCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool TraverseDeclRefExpr(clang::DeclRefExpr *x,
                            DataRecursionQueue *q = nullptr);
   bool VisitDeclRefExpr(clang::DeclRefExpr *x);
   bool VisitFloatingLiteral(clang::FloatingLiteral *x);
+
+  // Cast operations.
+  bool TraverseCastExpr(clang::CastExpr *x, DataRecursionQueue *q = nullptr);
+  bool VisitCastExpr(clang::CastExpr *x);
+
   bool TraverseImplicitCastExpr(clang::ImplicitCastExpr *x,
-                                DataRecursionQueue *q = nullptr);
-  bool VisitImplicitCastExpr(clang::ImplicitCastExpr *x);
+                                DataRecursionQueue *q = nullptr) {
+    return TraverseCastExpr(x, q);
+  }
+  bool TraverseExplicitCastExpr(clang::ExplicitCastExpr *x,
+                                DataRecursionQueue *q = nullptr) {
+    return TraverseCastExpr(x, q);
+  }
+  bool TraverseCStyleCastExpr(clang::CStyleCastExpr *x,
+                              DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXFunctionalCastExpr(clang::CXXFunctionalCastExpr *x,
+                                     DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXAddrspaceCastExpr(clang::CXXAddrspaceCastExpr *x,
+                                    DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXConstCastExpr(clang::CXXConstCastExpr *x,
+                                DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXDynamicCastExpr(clang::CXXDynamicCastExpr *x,
+                                  DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXReinterpretCastExpr(clang::CXXReinterpretCastExpr *x,
+                                      DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseCXXStaticCastExpr(clang::CXXStaticCastExpr *x,
+                                 DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+  bool TraverseBuiltinBitCastExpr(clang::BuiltinBitCastExpr *x,
+                                  DataRecursionQueue *q = nullptr) {
+    return TraverseExplicitCastExpr(x, q);
+  }
+
   bool VisitInitListExpr(clang::InitListExpr *x);
   bool VisitIntegerLiteral(clang::IntegerLiteral *x);
   bool VisitCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr *x);
@@ -579,7 +616,6 @@ private:
   llvm::DenseMap<clang::RecordType *, mlir::Type> records;
 
   // State Flags
-
   bool skipCompoundScope : 1 = false;
   bool isEntry : 1 = false;
   /// If there is a catastrophic error in the bridge (there is no rational way
@@ -589,6 +625,7 @@ private:
   bool visitImplicitCode : 1 = false;
   bool inRecType : 1 = false;
   bool allowUnknownRecordType : 1 = false;
+  bool initializerIsGlobal : 1 = false;
 };
 } // namespace details
 

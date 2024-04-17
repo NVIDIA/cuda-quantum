@@ -794,6 +794,35 @@ def cc_AddressOfOp : CCOp<"address_of", [Pure,
   }];
 }
 
+def cc_GlobalOp : CCOp<"global", [IsolatedFromAbove, Symbol]> {
+  let summary = "Create a global constant or variable";
+  let description = [{
+    A GlobalOp is used to create a global variable or constant that can be
+    referenced by symbol using the AddressOfOp. The type of this op is always
+    implicitly a cc::PointerType.
+
+    For example, this op may be used to define arrays of doubles, which may in
+    turn be used as initial state vectors for quantum memory (VeqType).
+  }];
+
+  let arguments = (ins
+    TypeAttr:$global_type,
+    StrAttr:$sym_name,
+    OptionalAttr<AnyAttr>:$value,
+    UnitAttr:$constant,
+    UnitAttr:$external
+  );
+
+  let hasCustomAssemblyFormat = 1;
+
+  let extraClassDeclaration = [{
+    cudaq::cc::PointerType getType() {
+      auto globalTy = getGlobalType();
+      return cudaq::cc::PointerType::get(globalTy);
+    }
+  }];
+}
+
 def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
   let summary = "Extract a value from an aggregate value.";
   let description = [{

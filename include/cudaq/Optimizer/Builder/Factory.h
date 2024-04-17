@@ -159,6 +159,12 @@ inline mlir::Value createF64Constant(mlir::Location loc,
   return createFloatConstant(loc, builder, value, builder.getF64Type());
 }
 
+/// Return the integer value if \p v is an integer constant.
+std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
+
+/// Return the floating point value if \p v is a floating-point constant.
+std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
+
 //===----------------------------------------------------------------------===//
 
 inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {

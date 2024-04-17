@@ -11,12 +11,15 @@
 #include "common/PluginUtils.h"
 #include "nvqir/CircuitSimulator.h"
 
+namespace nvqir {
+extern CircuitSimulator *getCircuitSimulatorInternal();
+}
+
 namespace cudaq {
 
 /// @brief Return the quantum circuit simulator for qubits.
 nvqir::CircuitSimulator *get_simulator() {
-  return getUniquePluginInstance<nvqir::CircuitSimulator>(
-      "getCircuitSimulator");
+  return nvqir::getCircuitSimulatorInternal();
 }
 
 } // namespace cudaq

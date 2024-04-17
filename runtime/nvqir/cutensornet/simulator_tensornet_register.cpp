@@ -8,6 +8,7 @@
 
 #include "cudaq.h"
 #include "simulator_cutensornet.h"
+#include "tn_simulation_state.h"
 
 // Forward declaration
 extern "C" nvqir::CircuitSimulator *getCircuitSimulator_tensornet();
@@ -42,6 +43,12 @@ public:
       resetCuTensornetComm(m_cutnHandle);
       m_cutnMpiInitialized = false;
     }
+  }
+
+  std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
+    LOG_API_TIME();
+    return std::make_unique<TensorNetSimulationState>(std::move(m_state),
+                                                      m_cutnHandle);
   }
 
 private:

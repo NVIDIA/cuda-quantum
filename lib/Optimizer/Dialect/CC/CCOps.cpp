@@ -40,8 +40,7 @@ cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
       getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
 
   // TODO: add globals?
-  auto function = dyn_cast_or_null<func::FuncOp>(op);
-  if (!function)
+  if (!isa_and_nonnull<func::FuncOp, GlobalOp>(op))
     return emitOpError("must reference a global defined by 'func.func'");
   return success();
 }
@@ -408,7 +407,7 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
   auto conArr = getConstantArray().getDefiningOp<ConstantArrayOp>();
   if (!conArr)
     return nullptr;
-  cudaq::cc::ArrayType arrTy = conArr.getType();
+  cc::ArrayType arrTy = conArr.getType();
   if (arrTy.isUnknownSize())
     return nullptr;
   auto eleTy = arrTy.getElementType();
@@ -420,18 +419,75 @@ OpFoldResult cudaq::cc::GetConstantElementOp::fold(FoldAdaptor adaptor) {
     if (auto fltTy = dyn_cast<FloatType>(eleTy)) {
       auto floatConstVal =
           cast<FloatAttr>(conArr.getConstantValues()[offset]).getValue();
-      Value val =
-          builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy);
-      return val;
+      return builder.create<arith::ConstantFloatOp>(loc, floatConstVal, fltTy)
+          .getResult();
     }
     auto intConstVal =
         cast<IntegerAttr>(conArr.getConstantValues()[offset]).getInt();
     auto intTy = cast<IntegerType>(eleTy);
-    Value val = builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy);
-    return val;
+    return builder.create<arith::ConstantIntOp>(loc, intConstVal, intTy)
+        .getResult();
   }
-  Value val = builder.create<cc::PoisonOp>(loc, eleTy);
-  return val;
+  return builder.create<cc::PoisonOp>(loc, eleTy).getResult();
+}
+
+//===----------------------------------------------------------------------===//
+// GlobalOp
+//===----------------------------------------------------------------------===//
+
+ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  // Check for the `extern` optional keyword first.
+  if (succeeded(parser.parseOptionalKeyword("extern")))
+    result.addAttribute(getExternalAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Check for the `constant` optional keyword second.
+  if (succeeded(parser.parseOptionalKeyword("constant")))
+    result.addAttribute(getConstantAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Parse the rest of the global.
+  //   @<symbol> ( <initializer-attr> ) : <result-type>
+  StringAttr name;
+  if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
+                             result.attributes))
+    return failure();
+  if (succeeded(parser.parseOptionalLParen())) {
+    Attribute value;
+    if (parser.parseAttribute(value, getValueAttrName(result.name),
+                              result.attributes) ||
+        parser.parseRParen())
+      return failure();
+  }
+  SmallVector<Type, 1> types;
+  if (parser.parseOptionalColonTypeList(types) ||
+      parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  if (types.size() > 1)
+    return parser.emitError(parser.getNameLoc(), "expected zero or one type");
+  result.addAttribute(getGlobalTypeAttrName(result.name),
+                      TypeAttr::get(types[0]));
+  return success();
+}
+
+void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
+  p << ' ';
+  if (getExternal())
+    p << "extern ";
+  if (getConstant())
+    p << "constant ";
+  p.printSymbolName(getSymName());
+  if (auto value = getValue()) {
+    p << " (";
+    p.printAttribute(*value);
+    p << ")";
+  }
+  p << " : " << getGlobalType();
+  p.printOptionalAttrDictWithKeyword(
+      (*this)->getAttrs(),
+      {getSymNameAttrName(), getValueAttrName(), getGlobalTypeAttrName(),
+       getConstantAttrName(), getExternalAttrName()});
 }
 
 //===----------------------------------------------------------------------===//
@@ -557,8 +613,8 @@ LogicalResult cudaq::cc::LoopOp::verify() {
     return emitOpError("size of init args and outputs must be equal");
   if (getWhileRegion().front().getArguments().size() != initArgsSize)
     return emitOpError("size of init args and while region args must be equal");
-  if (auto condOp = dyn_cast<cudaq::cc::ConditionOp>(
-          getWhileRegion().front().getTerminator())) {
+  if (auto condOp =
+          dyn_cast<ConditionOp>(getWhileRegion().front().getTerminator())) {
     if (condOp.getResults().size() != initArgsSize)
       return emitOpError("size of init args and condition op must be equal");
   } else {
@@ -570,8 +626,8 @@ LogicalResult cudaq::cc::LoopOp::verify() {
     if (getStepRegion().front().getArguments().size() != initArgsSize)
       return emitOpError(
           "size of init args and step region args must be equal");
-    if (auto contOp = dyn_cast<cudaq::cc::ContinueOp>(
-            getStepRegion().front().getTerminator())) {
+    if (auto contOp =
+            dyn_cast<ContinueOp>(getStepRegion().front().getTerminator())) {
       if (contOp.getOperands().size() != initArgsSize)
         return emitOpError("size of init args and continue op must be equal");
     } else {
@@ -1168,7 +1224,7 @@ ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
 LogicalResult cudaq::cc::CallCallableOp::verify() {
   FunctionType funcTy;
   auto ty = getCallee().getType();
-  if (auto lambdaTy = dyn_cast<cudaq::cc::CallableType>(ty))
+  if (auto lambdaTy = dyn_cast<CallableType>(ty))
     funcTy = lambdaTy.getSignature();
   else if (auto fTy = dyn_cast<FunctionType>(ty))
     funcTy = fTy;
@@ -1246,7 +1302,7 @@ struct ReplaceInFunc : public OpRewritePattern<FROM> {
 
 void cudaq::cc::ReturnOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ReplaceInFunc<cudaq::cc::ReturnOp, func::ReturnOp>>(context);
+  patterns.add<ReplaceInFunc<ReturnOp, func::ReturnOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1316,8 +1372,7 @@ struct ReplaceInLoop : public OpRewritePattern<FROM> {
 
 void cudaq::cc::UnwindBreakOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ReplaceInLoop<cudaq::cc::UnwindBreakOp, cudaq::cc::BreakOp>>(
-      context);
+  patterns.add<ReplaceInLoop<UnwindBreakOp, BreakOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1346,9 +1401,7 @@ LogicalResult cudaq::cc::UnwindContinueOp::verify() {
 
 void cudaq::cc::UnwindContinueOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns
-      .add<ReplaceInLoop<cudaq::cc::UnwindContinueOp, cudaq::cc::ContinueOp>>(
-          context);
+  patterns.add<ReplaceInLoop<UnwindContinueOp, ContinueOp>>(context);
 }
 
 //===----------------------------------------------------------------------===//

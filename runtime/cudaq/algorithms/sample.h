@@ -13,7 +13,7 @@
 #include "common/MeasureCounts.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
-#include "host_config.h"
+#include "cudaq/host_config.h"
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);

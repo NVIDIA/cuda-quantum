@@ -9,6 +9,7 @@
 #include "kernel_builder.h"
 #include "common/Logger.h"
 #include "common/RuntimeMLIR.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -19,6 +20,7 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -45,57 +47,75 @@ namespace cudaq::details {
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
 
-KernelBuilderType mapArgToType(double &e) {
+KernelBuilderType convertArgumentTypeToMLIR(double &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float64Type::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(float &e) {
+KernelBuilderType convertArgumentTypeToMLIR(float &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return Float32Type::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(int &e) {
+KernelBuilderType convertArgumentTypeToMLIR(int &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return IntegerType::get(ctx, 32); });
 }
 
-KernelBuilderType mapArgToType(std::vector<double> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<double> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float64Type::get(ctx));
   });
 }
 
-KernelBuilderType mapArgToType(std::size_t &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::size_t &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return IntegerType::get(ctx, 64); });
 }
 
-KernelBuilderType mapArgToType(std::vector<int> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<int> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 32));
   });
 }
 
-KernelBuilderType mapArgToType(std::vector<std::size_t> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<std::size_t> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 64));
   });
 }
 
 /// Map a std::vector<float> to a KernelBuilderType
-KernelBuilderType mapArgToType(std::vector<float> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float32Type::get(ctx));
   });
 }
 
-KernelBuilderType mapArgToType(cudaq::qubit &e) {
+/// Map a std::vector<complex<double>> to a KernelBuilderType
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::StdvecType::get(ctx,
+                                      ComplexType::get(Float64Type::get(ctx)));
+  });
+}
+
+/// Map a std::vector<complex<float>> to a KernelBuilderType
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e) {
+  return KernelBuilderType([](MLIRContext *ctx) {
+    return cudaq::cc::StdvecType::get(ctx,
+                                      ComplexType::get(Float32Type::get(ctx)));
+  });
+}
+
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return quake::RefType::get(ctx); });
 }
 
-KernelBuilderType mapArgToType(cudaq::qvector<> &e) {
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e) {
   return KernelBuilderType(
       [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
 }
@@ -144,9 +164,8 @@ initializeBuilder(MLIRContext *context,
 
   cudaq::info("kernel_builder has {} arguments", arguments.size());
 
-  // Every Kernel should have a ReturnOp terminator,
-  // then we'll set the insertion point to right
-  // before it.
+  // Every Kernel should have a ReturnOp terminator, then we'll set the
+  // insertion point to right before it.
   opBuilder->setInsertionPointToStart(entryBlock);
   auto terminator = opBuilder->create<func::ReturnOp>();
   opBuilder->setInsertionPoint(terminator);
@@ -192,10 +211,9 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
 }
 
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
-/// If found, see if the called function is in the current `ModuleOp`
-/// for this `kernel_builder`, if so do nothing. If it is not found,
-/// then find it in the other `ModuleOp`, clone it, and add it to this
-/// `ModuleOp`.
+/// If found, see if the called function is in the current `ModuleOp` for this
+/// `kernel_builder`, if so do nothing. If it is not found, then find it in the
+/// other `ModuleOp`, clone it, and add it to this `ModuleOp`.
 void addAllCalledFunctionRecursively(
     func::FuncOp &function, ModuleOp &currentModule,
     mlir::OwningOpRef<mlir::ModuleOp> &otherModule) {
@@ -244,10 +262,10 @@ void addAllCalledFunctionRecursively(
   visitAllCallOps(function);
 }
 
-/// @brief Get a the function with the given name. First look in the
-/// current `ModuleOp` for this `kernel_builder`, if found return it as is. If
-/// not found, find it in the other `kernel_builder` `ModuleOp` and return a
-/// clone of it. Throw an exception if no kernel with the given name is found
+/// @brief Get a the function with the given name. First look in the current
+/// `ModuleOp` for this `kernel_builder`, if found return it as is. If not
+/// found, find it in the other `kernel_builder` `ModuleOp` and return a clone
+/// of it. Throw an exception if no kernel with the given name is found
 func::FuncOp
 cloneOrGetFunction(StringRef name, ModuleOp &currentModule,
                    mlir::OwningOpRef<mlir::ModuleOp> &otherModule) {
@@ -276,8 +294,8 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
   auto function = block->getParentOp();
   auto currentModule = function->getParentOfType<ModuleOp>();
 
-  // We need to clone the function we care about, we need
-  // any other functions it calls, so store it in a vector
+  // We need to clone the function we care about, we need any other functions it
+  // calls, so store it in a vector
   std::vector<func::FuncOp> functions;
 
   // Get the function with the kernel name we care about.
@@ -285,8 +303,8 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
   auto otherFuncCloned =
       cloneOrGetFunction(properName, currentModule, otherModule);
 
-  // We need to recursively find all CallOps and
-  // add their Callee FuncOps to the current Module
+  // We need to recursively find all CallOps and add their Callee FuncOps to the
+  // current Module
   addAllCalledFunctionRecursively(otherFuncCloned, currentModule, otherModule);
 
   // Map the QuakeValues to MLIR Values
@@ -339,8 +357,8 @@ void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
   auto otherFuncCloned =
       cloneOrGetFunction(properName, currentModule, otherModule);
 
-  // We need to recursively find all CallOps and
-  // add their Callee FuncOps to the current Module
+  // We need to recursively find all CallOps and add their Callee FuncOps to the
+  // current Module
   addAllCalledFunctionRecursively(otherFuncCloned, currentModule, otherModule);
 
   SmallVector<Value> mlirValues;
@@ -460,18 +478,144 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
   return QuakeValue(builder, qubits);
 }
 
-QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &size) {
+QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
   cudaq::info("kernel_builder allocating qubits from quake value");
-  auto value = size.getValue();
+  auto value = sizeOrVec.getValue();
   auto type = value.getType();
+  auto context = builder.getContext();
+
+  if (auto stdvecTy = dyn_cast<cc::StdvecType>(type)) {
+    // get the size
+    Value size = builder.create<cc::StdvecSizeOp>(builder.getI64Type(), value);
+    Value numQubits = builder.create<math::CountTrailingZerosOp>(size);
+    auto veqTy = quake::VeqType::getUnsized(context);
+    // allocate the number of qubits we need
+    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
+
+    auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
+    Value initials = builder.create<cc::StdvecDataOp>(ptrTy, value);
+    builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
+    return QuakeValue(builder, qubits);
+  }
+
   if (!type.isIntOrIndex())
     throw std::runtime_error(
         "Invalid parameter passed to qalloc (must be integer type).");
 
-  auto context = builder.getContext();
   Value qubits = builder.create<quake::AllocaOp>(
       quake::VeqType::getUnsized(context), value);
 
+  return QuakeValue(builder, qubits);
+}
+
+template <typename A>
+std::size_t getStateVectorLength(StateVectorStorage &stateVectorStorage,
+                                 std::int64_t index) {
+  if (index >= static_cast<std::int64_t>(stateVectorStorage.size()))
+    throw std::runtime_error("index to state initializer is out of range");
+  if (!std::get<std::vector<std::complex<A>> *>(stateVectorStorage[index]))
+    throw std::runtime_error("state vector cannot be null");
+  auto length =
+      std::get<std::vector<std::complex<A>> *>(stateVectorStorage[index])
+          ->size();
+  if (!std::has_single_bit(length))
+    throw std::runtime_error("state initializer must be a power of 2");
+  return std::countr_zero(length);
+}
+
+template <typename A>
+std::complex<A> *getStateVectorData(StateVectorStorage &stateVectorStorage,
+                                    std::intptr_t index) {
+  // This foregoes all the checks found in getStateVectorLength because these
+  // two functions are called in tandem, this one second.
+  return std::get<std::vector<std::complex<A>> *>(stateVectorStorage[index])
+      ->data();
+}
+
+extern "C" {
+/// Runtime callback to get the log2(size) of a captured state vector.
+std::size_t
+__nvqpp_getStateVectorLength_fp64(StateVectorStorage &stateVectorStorage,
+                                  std::int64_t index) {
+  return getStateVectorLength<double>(stateVectorStorage, index);
+}
+
+std::size_t
+__nvqpp_getStateVectorLength_fp32(StateVectorStorage &stateVectorStorage,
+                                  std::int64_t index) {
+  return getStateVectorLength<float>(stateVectorStorage, index);
+}
+
+/// Runtime callback to get the data array of a captured state vector.
+std::complex<double> *
+__nvqpp_getStateVectorData_fp64(StateVectorStorage &stateVectorStorage,
+                                std::intptr_t index) {
+  return getStateVectorData<double>(stateVectorStorage, index);
+}
+
+/// Runtime callback to get the data array of a captured state vector.
+std::complex<float> *
+__nvqpp_getStateVectorData_fp32(StateVectorStorage &stateVectorStorage,
+                                std::intptr_t index) {
+  return getStateVectorData<float>(stateVectorStorage, index);
+}
+}
+
+QuakeValue qalloc(ImplicitLocOpBuilder &builder,
+                  StateVectorStorage &stateVectorStorage,
+                  StateVectorVariant &&state, simulation_precision precision) {
+  auto *context = builder.getContext();
+  auto index = stateVectorStorage.size();
+  stateVectorStorage.emplace_back(std::move(state));
+
+  // Deal with the single/double precision differences here.
+  const char *getLengthCallBack;
+  const char *getDataCallBack;
+  Type componentTy;
+  {
+    auto parentModule =
+        builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+    IRBuilder irb(context);
+    if (precision == simulation_precision::fp64) {
+      getLengthCallBack = "__nvqpp_getStateVectorLength_fp64";
+      getDataCallBack = "__nvqpp_getStateVectorData_fp64";
+      componentTy = irb.getF64Type();
+    } else {
+      getLengthCallBack = "__nvqpp_getStateVectorLength_fp32";
+      getDataCallBack = "__nvqpp_getStateVectorData_fp32";
+      componentTy = irb.getF32Type();
+    }
+    if (failed(irb.loadIntrinsic(parentModule, getLengthCallBack)) ||
+        failed(irb.loadIntrinsic(parentModule, getDataCallBack)))
+      throw std::runtime_error("loading callbacks should never fail");
+  }
+
+  static_assert(sizeof(std::intptr_t) * 8 == 64);
+  std::intptr_t vecStor = reinterpret_cast<std::intptr_t>(&stateVectorStorage);
+
+  auto vecPtr = builder.create<arith::ConstantIntOp>(vecStor, 64);
+  auto idxOp = builder.create<arith::ConstantIntOp>(index, 64);
+
+  // Use callback to determine the size of the captured vector `state` at
+  // runtime.
+  auto i64Ty = builder.getI64Type();
+  auto size = builder.create<func::CallOp>(i64Ty, getLengthCallBack,
+                                           ValueRange{vecPtr, idxOp});
+
+  // Allocate the qubits
+  Value qubits = builder.create<quake::AllocaOp>(
+      quake::VeqType::getUnsized(context), size.getResult(0));
+
+  // Use callback to retrieve the data pointer of the captured vector `state` at
+  // runtime.
+  auto complexTy = ComplexType::get(componentTy);
+  auto ptrComplexTy = cc::PointerType::get(complexTy);
+  auto dataPtr = builder.create<func::CallOp>(ptrComplexTy, getDataCallBack,
+                                              ValueRange{vecPtr, idxOp});
+
+  // Add the initialize state op
+  qubits = builder.create<quake::InitializeStateOp>(qubits.getType(), qubits,
+                                                    dataPtr.getResult(0));
   return QuakeValue(builder, qubits);
 }
 
@@ -741,7 +885,8 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
 std::tuple<bool, ExecutionEngine *>
 jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
         std::unordered_map<ExecutionEngine *, std::size_t> &jitHash,
-        std::string kernelName, std::vector<std::string> extraLibPaths) {
+        std::string kernelName, std::vector<std::string> extraLibPaths,
+        StateVectorStorage &stateVectorStorage) {
 
   // Start of by getting the current ModuleOp
   auto *block = builder.getBlock();
@@ -757,10 +902,8 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto moduleHash = static_cast<size_t>(hash);
 
   if (jit) {
-    // Have we added more instructions
-    // since the last time we jit the code?
-    // If so, we need to delete this JIT engine
-    // and create a new one.
+    // Have we added more instructions since the last time we jit the code? If
+    // so, we need to delete this JIT engine and create a new one.
     if (moduleHash == jitHash[jit])
       return std::make_tuple(false, jit);
     else {
@@ -799,9 +942,8 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 
-  // For some reason I get CFG ops from the LowerToCFGPass
-  // instead of the unrolled cc loop if I don't run
-  // the above manually.
+  // For some reason I get CFG ops from the LowerToCFGPass instead of the
+  // unrolled cc loop if I don't run the above manually.
   if (failed(pm.run(module)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
@@ -810,10 +952,17 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
   pm.addPass(cudaq::opt::createGenerateKernelExecution());
   optPM.addPass(cudaq::opt::createLowerToCFGPass());
-  optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
+  // We want quantum allocations to stay where they are if
+  // we are simulating and have user-provided state vectors.
+  // This check could be better / smarter probably, in tandem
+  // with some synth strategy to rewrite initState with circuit
+  // synthesis result
+  if (stateVectorStorage.empty())
+    optPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   pm.addPass(cudaq::opt::createConvertToQIRPass());
+  pm.addPass(createCanonicalizerPass());
 
   if (failed(pm.run(module)))
     throw std::runtime_error(
@@ -861,8 +1010,8 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   cudaq::info("- JIT Engine created successfully.");
 
-  // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR
-  // for the following we want the proper name, BuilderKernelPTRST
+  // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR for the following we
+  // want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
 
   // Need to first invoke the init_func()
@@ -892,17 +1041,18 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
 void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                 std::string kernelName, void **argsArray,
-                std::vector<std::string> extraLibPaths) {
+                std::vector<std::string> extraLibPaths,
+                StateVectorStorage &storage) {
 
   assert(jit != nullptr && "JIT ExecutionEngine was null.");
   cudaq::info("kernel_builder invoke kernel with args.");
 
-  // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR
-  // for the following we want the proper name, BuilderKernelPTRST
+  // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR for the following we
+  // want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
 
-  // Incoming Args... have been converted to void **,
-  // now we convert to void * altLaunchKernel args.
+  // Incoming Args... have been converted to void **, now we convert to void *
+  // altLaunchKernel args.
   auto argCreatorName = properName + ".argsCreator";
   auto expectedPtr = jit->lookup(argCreatorName);
   if (!expectedPtr) {
@@ -937,9 +1087,9 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
 
   // Strategy - we want to clone this ModuleOp because we have to
   // add a valid terminator (func.return), but it is not gauranteed that
-  // the programmer is done building up the kernel even though they've asked to
-  // look at the quake code. So we'll clone here, and add the return op (we have
-  // to or the print out string will be invalid (verifier failed)).
+  // the programmer is done building up the kernel even though they've asked
+  // to look at the quake code. So we'll clone here, and add the return op
+  // (we have to or the print out string will be invalid (verifier failed)).
   auto clonedModule = module.clone();
 
   func::FuncOp unwrappedParentFunc = llvm::cast<func::FuncOp>(parentFunc);
@@ -958,6 +1108,11 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
   llvm::raw_string_ostream os(printOut);
   clonedModule->print(os);
   return printOut;
+}
+
+std::ostream &operator<<(std::ostream &stream,
+                         const kernel_builder_base &builder) {
+  return stream << builder.to_quake();
 }
 
 } // namespace cudaq::details

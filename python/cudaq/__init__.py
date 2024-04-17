@@ -6,13 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys, os
+import sys, os, numpy
 from ._packages import *
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
 from .runtime.sample import sample
 from .runtime.observe import observe
+from .runtime.state import to_cupy
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # Add the parallel runtime types
@@ -85,6 +86,26 @@ def synthesize(kernel, *args):
     return PyKernelDecorator(None,
                              module=cudaq_runtime.synthesize(kernel, *args),
                              kernelName=kernel.name)
+
+
+def simulation_dtype():
+    """
+    Return the data type for the current simulation backend, 
+    either `numpy.complex128` or `numpy.complex64`.
+    """
+    target = get_target()
+    precision = target.get_precision()
+    if precision == cudaq_runtime.SimulationPrecision.fp64:
+        return complex
+    return numpy.complex64
+
+
+def create_state(array_data):
+    """
+    Create a state array with the appropriate data type for the 
+    current simulation backend target. 
+    """
+    return numpy.array(array_data, dtype=simulation_dtype())
 
 
 def __clearKernelRegistries():

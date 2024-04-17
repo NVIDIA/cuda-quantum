@@ -43,6 +43,10 @@ constexpr static const char QIRArrayGetElementPtr1d[] =
     "__quantum__rt__array_get_element_ptr_1d";
 constexpr static const char QIRArrayQubitAllocateArray[] =
     "__quantum__rt__qubit_allocate_array";
+constexpr static const char QIRArrayQubitAllocateArrayWithStateFP64[] =
+    "__quantum__rt__qubit_allocate_array_with_state_fp64";
+constexpr static const char QIRArrayQubitAllocateArrayWithStateFP32[] =
+    "__quantum__rt__qubit_allocate_array_with_state_fp32";
 constexpr static const char QIRQubitAllocate[] =
     "__quantum__rt__qubit_allocate";
 constexpr static const char QIRArrayQubitReleaseArray[] =

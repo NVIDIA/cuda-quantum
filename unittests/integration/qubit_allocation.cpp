@@ -49,20 +49,22 @@ CUDAQ_TEST(AllocationTester, checkSimple) {
   EXPECT_EQ(c, 1000);
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET
+
+#ifdef CUDAQ_BACKEND_DM
 // Tests for a previous bug in the density simulator, where
 // the qubit ordering flipped after resizing the density matrix
 // with new qubits.
 CUDAQ_TEST(AllocationTester, checkDensityOrderingBug) {
   test_resizing{}();
 
-  auto counts = cudaq::sample(test_resizing{});
+  auto counts = cudaq::sample(100, test_resizing{});
+  counts.dump();
   EXPECT_EQ(1, counts.size());
   int c = 0;
   for (auto &[bits, count] : counts) {
     c += count;
     EXPECT_TRUE(bits == "1100");
   }
-  EXPECT_EQ(c, 1000);
+  EXPECT_EQ(c, 100);
 }
 #endif

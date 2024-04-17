@@ -60,6 +60,15 @@ protected:
     simulator()->allocateQubits(qudits.size());
   }
 
+  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                       const void *state,
+                       cudaq::simulation_precision precision) override {
+    // Here we have qubits in requestedAllocations
+    // want to allocate and set state
+    simulator()->allocateQubits(requestedAllocations.size(), state, precision);
+    requestedAllocations.clear();
+  }
+
   void deallocateQudit(const cudaq::QuditInfo &q) override {
 
     // Before trying to deallocate, make sure the qudit hasn't

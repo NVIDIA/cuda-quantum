@@ -94,7 +94,7 @@ bool quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, SinkOp>(op);
 }
 
-mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
+ValueRange quake::getQuantumTypesFromRange(ValueRange range) {
 
   // Skip over classical types at the beginning
   int numClassical = 0;
@@ -105,7 +105,7 @@ mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
       break;
   }
 
-  mlir::ValueRange retVals = range.drop_front(numClassical);
+  ValueRange retVals = range.drop_front(numClassical);
 
   // Make sure all remaining operands are quantum
   for (auto operand : retVals)
@@ -115,17 +115,16 @@ mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
   return retVals;
 }
 
-mlir::ValueRange quake::getQuantumResults(Operation *op) {
+ValueRange quake::getQuantumResults(Operation *op) {
   return getQuantumTypesFromRange(op->getResults());
 }
 
-mlir::ValueRange quake::getQuantumOperands(Operation *op) {
+ValueRange quake::getQuantumOperands(Operation *op) {
   return getQuantumTypesFromRange(op->getOperands());
 }
 
 LogicalResult quake::setQuantumOperands(Operation *op, ValueRange quantumVals) {
-  mlir::ValueRange quantumOperands =
-      getQuantumTypesFromRange(op->getOperands());
+  ValueRange quantumOperands = getQuantumTypesFromRange(op->getOperands());
 
   if (quantumOperands.size() != quantumVals.size())
     return failure();
@@ -183,6 +182,14 @@ LogicalResult quake::AllocaOp::verify() {
       }
     }
   }
+
+  // Check the uses. If any use is a InitializeStateOp, then it must be the only
+  // use.
+  Operation *self = getOperation();
+  if (!self->getUsers().empty() && !self->hasOneUse())
+    for (auto *op : self->getUsers())
+      if (isa<quake::InitializeStateOp>(op))
+        return emitOpError("init_state must be the only use");
   return success();
 }
 
@@ -192,6 +199,15 @@ void quake::AllocaOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
   // changes the type. Uses may still expect a veq with unspecified size.
   // Folding is strictly reductive and doesn't allow the creation of ops.
   patterns.add<FuseConstantToAllocaPattern>(context);
+}
+
+quake::InitializeStateOp quake::AllocaOp::getInitializedState() {
+  auto *self = getOperation();
+  if (self->hasOneUse()) {
+    auto x = self->getUsers().begin();
+    return dyn_cast<quake::InitializeStateOp>(*x);
+  }
+  return {};
 }
 
 //===----------------------------------------------------------------------===//
@@ -481,6 +497,19 @@ LogicalResult quake::ExtractRefOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// InitializeStateOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult quake::InitializeStateOp::verify() {
+  auto veqTy = cast<quake::VeqType>(getTargets().getType());
+  if (veqTy.hasSpecifiedSize())
+    if (!std::has_single_bit(veqTy.getSize()))
+      return emitOpError("initialize state vector must be power of 2, but is " +
+                         std::to_string(veqTy.getSize()) + " instead.");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // RelaxSizeOp
 //===----------------------------------------------------------------------===//
 
@@ -694,8 +723,8 @@ static LogicalResult getParameterAsDouble(Value parameter, double &result) {
   auto paramDefOp = parameter.getDefiningOp();
   if (!paramDefOp)
     return failure();
-  if (auto constOp = mlir::dyn_cast<mlir::arith::ConstantOp>(paramDefOp)) {
-    if (auto value = dyn_cast<mlir::FloatAttr>(constOp.getValue())) {
+  if (auto constOp = dyn_cast<arith::ConstantOp>(paramDefOp)) {
+    if (auto value = dyn_cast<FloatAttr>(constOp.getValue())) {
       result = value.getValueAsDouble();
       return success();
     }

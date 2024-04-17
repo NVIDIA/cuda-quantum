@@ -209,8 +209,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                     )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
 
-        if isinstance(argInstance[0], complex):
+        if isinstance(argInstance[0], (complex, np.complex128)):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
+
+        if isinstance(argInstance[0], np.complex64):
+            return cc.StdvecType.get(ctx, ComplexType.get(F32Type.get(ctx)))
 
         if isinstance(argInstance[0], pauli_word):
             return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))

@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "cudaq/host_config.h"
 #include "cudaq/qis/qview.h"
-#include "host_config.h"
 
 namespace cudaq {
 
@@ -29,6 +29,43 @@ private:
 public:
   /// @brief Construct a `qvector` with `size` qudits in the |0> state.
   qvector(std::size_t size) : qudits(size) {}
+
+  qvector(const std::vector<simulation_scalar> &vector)
+      : qudits(std::log2(vector.size())) {
+    if (Levels == 2) {
+      auto numElements = std::log2(vector.size());
+      if (std::floor(numElements) != numElements)
+        throw std::runtime_error(
+            "Invalid state vector passed to qvector initialization - number of "
+            "elements must be power of 2.");
+    }
+
+    auto norm =
+        std::inner_product(
+            vector.begin(), vector.end(), vector.begin(),
+            simulation_scalar{0., 0.}, [](auto a, auto b) { return a + b; },
+            [](auto a, auto b) { return std::conj(a) * b; })
+            .real();
+    if (std::fabs(1.0 - norm) > 1e-4)
+      throw std::runtime_error("Invalid vector norm for qudit allocation.");
+
+    std::vector<QuditInfo> targets;
+    for (auto &q : qudits)
+      targets.emplace_back(QuditInfo{Levels, q.id()});
+
+    auto precision = std::is_same_v<simulation_scalar::value_type, float>
+                         ? simulation_precision::fp32
+                         : simulation_precision::fp64;
+    getExecutionManager()->initializeState(targets, vector.data(), precision);
+  }
+
+  // FIXME do we need float versions?
+  qvector(const std::vector<double> &vector)
+      : qvector(std::vector<simulation_scalar>{vector.begin(), vector.end()}) {}
+  qvector(const std::initializer_list<double> &list)
+      : qvector(std::vector<simulation_scalar>{list.begin(), list.end()}) {}
+  qvector(const std::initializer_list<complex> &list)
+      : qvector(std::vector<simulation_scalar>{list.begin(), list.end()}) {}
 
   /// @cond
   /// Nullary constructor

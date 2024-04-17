@@ -19,7 +19,9 @@ def QuakeToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
     QIR qubits.
   }];
 
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+  let dependentDialects = [
+    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
+  ];
   let constructor = "cudaq::opt::createConvertToQIRPass()";
 }
 

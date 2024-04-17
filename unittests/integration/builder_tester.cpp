@@ -1203,7 +1203,73 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_DM
+#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_TENSORNET)
+
+TEST(BuilderTester, checkFromStateVector) {
+  std::vector<cudaq::simulation_scalar> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+  {
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(vec);
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 2);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00" || k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    auto [kernel, initState] =
+        cudaq::make_kernel<std::vector<cudaq::simulation_scalar>>();
+    auto qubits = kernel.qalloc(initState);
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel, vec);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 2);
+    std::size_t counter = 0;
+    for (auto &[k, v] : counts) {
+      counter += v;
+      EXPECT_TRUE(k == "00" || k == "11");
+    }
+    EXPECT_EQ(counter, 1000);
+  }
+
+  {
+    // 2 qubit 11 state
+    std::vector<cudaq::simulation_scalar> vec{0., 0., 0., 1.};
+    auto [kernel, initState] =
+        cudaq::make_kernel<std::vector<cudaq::simulation_scalar>>();
+    auto qubits = kernel.qalloc(initState);
+    // induce the need for a kron prod between
+    // [0,0,0,1] and [1, 0, 0, 0]
+    auto anotherOne = kernel.qalloc(2);
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel, vec);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.count("1100"), 1000);
+  }
+
+  {
+    // 2 qubit 11 state
+    std::vector<cudaq::simulation_scalar> vec{0., 0., 0., 1.};
+    auto [kernel, initState] =
+        cudaq::make_kernel<std::vector<cudaq::simulation_scalar>>();
+    auto qubits = kernel.qalloc(initState);
+    // induce the need for a kron prod between
+    // [0,0,0,1] and [1, 0]
+    auto anotherOne = kernel.qalloc();
+    std::cout << kernel << "\n";
+    auto counts = cudaq::sample(kernel, vec);
+    counts.dump();
+    EXPECT_EQ(counts.size(), 1);
+    EXPECT_EQ(counts.count("110"), 1000);
+  }
+}
 
 CUDAQ_TEST(BuilderTester, checkCanProgressivelyBuild) {
   auto kernel = cudaq::make_kernel();
@@ -1256,9 +1322,9 @@ CUDAQ_TEST(BuilderTester, checkQuakeValueOperators) {
   kernel.rx(M_PI / 8.0, q[0]);
   auto state = cudaq::get_state(kernel);
 
-  EXPECT_NEAR(state.overlap(state1), 1.0, 1e-3);
-  EXPECT_NEAR(state.overlap(state2), 1.0, 1e-3);
-  EXPECT_NEAR(state.overlap(state3), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state1).real(), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state2).real(), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state3).real(), 1.0, 1e-3);
 }
 
 #endif

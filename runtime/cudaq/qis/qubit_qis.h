@@ -9,13 +9,13 @@
 #pragma once
 
 #include "common/MeasureCounts.h"
+#include "cudaq/host_config.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/spin_op.h"
-#include "host_config.h"
 #include <cstring>
 #include <functional>
 
@@ -414,12 +414,12 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
   auto gateName = QuantumOp::name();
 
   // Map the qubits to their unique ids and pack them into a std::array
-  constexpr std::size_t nArgs = sizeof...(QubitArgs);
   std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
 
   // We just want to apply the same gate to all qubits provided
   for (auto &targetId : targets)
-    getExecutionManager()->apply(gateName, {angle}, {}, {targetId});
+    getExecutionManager()->apply(gateName, std::vector<ScalarAngle>{angle}, {},
+                                 {targetId});
 }
 
 template <typename QuantumOp, typename ScalarAngle, typename... QubitArgs>

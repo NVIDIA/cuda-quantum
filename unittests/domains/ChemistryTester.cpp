@@ -131,15 +131,14 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
     auto eigenVectors = matrix.eigenvectors();
 
     // Map it to a cudaq::state
-    std::vector<std::complex<double>> expectedData(eigenVectors.rows());
+    std::vector<std::complex<float>> expectedData(eigenVectors.rows());
     for (std::size_t i = 0; i < eigenVectors.rows(); i++)
       expectedData[i] = eigenVectors(i, 0);
     auto groundState = cudaq::get_state(ansatz, std::get<1>(res));
-    cudaq::state expectedState(std::make_tuple(
-        std::vector<std::size_t>{eigenVectors.rows()}, expectedData));
 
     // Make sure our UCCSD state at the optimal parameters is the ground state
-    EXPECT_NEAR(1.0, groundState.overlap(expectedState), 1e-6);
+    auto expectedState = cudaq::state::from_data(expectedData);
+    EXPECT_NEAR(1.0, groundState.overlap(expectedState).real(), 1e-6);
   }
 
   {

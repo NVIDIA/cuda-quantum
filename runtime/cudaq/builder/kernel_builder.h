@@ -9,10 +9,10 @@
 #pragma once
 
 #include "cudaq/builder/QuakeValue.h"
+#include "cudaq/host_config.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "host_config.h"
 #include <cstring>
 #include <functional>
 #include <map>
@@ -62,13 +62,16 @@ concept KernelBuilderArgTypeIsValid =
     std::disjunction_v<std::is_same<T, Ts>...>;
 
 // If you want to add to the list of valid kernel argument types first add it
-// here, then add `details::mapArgToType()` function
+// here, then add `details::convertArgumentTypeToMLIR()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
-  requires(KernelBuilderArgTypeIsValid<                                        \
-               Args, float, double, std::size_t, int, std::vector<int>,        \
-               std::vector<float>, std::vector<std::size_t>,                   \
-               std::vector<double>, cudaq::qubit, cudaq::qvector<>> &&         \
-           ...)
+  requires(                                                                    \
+      KernelBuilderArgTypeIsValid<                                             \
+          Args, float, double, std::size_t, int, std::vector<int>,             \
+          std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
+          std::vector<std::complex<float>>, std::vector<std::complex<double>>, \
+          std::vector<cudaq::simulation_scalar>, cudaq::qubit,                 \
+          cudaq::qvector<>> &&                                                 \
+      ...)
 #else
 // Not C++ 2020: stub these out.
 #define QuakeValueOrNumericType typename
@@ -76,6 +79,15 @@ concept KernelBuilderArgTypeIsValid =
 #endif
 
 namespace details {
+/// Use parametric type: `initializations` must be vectors of complex float or
+/// double. No other type is allowed.
+using StateVectorVariant = std::variant<std::vector<std::complex<float>> *,
+                                        std::vector<std::complex<double>> *>;
+
+/// Type describing user-provided state vector data. This is a list of the state
+/// vector variables used in a kernel with at least one `qvector` with initial
+/// state.
+using StateVectorStorage = std::vector<StateVectorVariant>;
 
 // Define a `mlir::Type` generator in the `cudaq` namespace, this helps us keep
 // MLIR out of this public header
@@ -98,34 +110,42 @@ public:
 };
 
 /// Map a `double` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(double &e);
+KernelBuilderType convertArgumentTypeToMLIR(double &e);
 
 /// Map a `float` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(float &e);
+KernelBuilderType convertArgumentTypeToMLIR(float &e);
 
 /// Map a `int` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(int &e);
+KernelBuilderType convertArgumentTypeToMLIR(int &e);
 
 /// Map a `size_t` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::size_t &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::size_t &e);
 
 /// Map a `std::vector<int>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<int> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<int> &e);
 
 /// Map a `std::vector<std::size_t>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<std::size_t> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<std::size_t> &e);
 
 /// Map a `std::vector<float>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<float> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e);
 
 /// Map a `vector<double>` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(std::vector<double> &e);
+KernelBuilderType convertArgumentTypeToMLIR(std::vector<double> &e);
+
+/// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e);
+
+/// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
+KernelBuilderType
+convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e);
 
 /// Map a `qubit` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(cudaq::qubit &e);
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e);
 
 /// @brief  Map a `qvector` to a `KernelBuilderType`
-KernelBuilderType mapArgToType(cudaq::qvector<> &e);
+KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e);
 
 /// @brief Initialize the `MLIRContext`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
@@ -158,6 +178,11 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
 
 /// @brief Allocate a `qvector` from existing `QuakeValue` size
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
+
+/// @brief Allocate a `qvector` from a user provided state vector.
+QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
+                  StateVectorStorage &stateVectorData,
+                  StateVectorVariant &&state, simulation_precision precision);
 
 /// @brief Create a QuakeValue representing a constant floating-point number
 QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
@@ -221,12 +246,13 @@ void applyPasses(mlir::PassManager &);
 std::tuple<bool, mlir::ExecutionEngine *>
 jitCode(mlir::ImplicitLocOpBuilder &, mlir::ExecutionEngine *,
         std::unordered_map<mlir::ExecutionEngine *, std::size_t> &, std::string,
-        std::vector<std::string>);
+        std::vector<std::string>, StateVectorStorage &);
 
 /// @brief Invoke the function with the given kernel name.
 void invokeCode(mlir::ImplicitLocOpBuilder &builder, mlir::ExecutionEngine *jit,
                 std::string kernelName, void **argsArray,
-                std::vector<std::string> extraLibPaths);
+                std::vector<std::string> extraLibPaths,
+                StateVectorStorage &storage);
 
 /// @brief Invoke the provided kernel function.
 void call(mlir::ImplicitLocOpBuilder &builder, std::string &name,
@@ -326,10 +352,7 @@ public:
   /// @brief Write the kernel_builder to the given output stream. This outputs
   /// the Quake representation.
   friend std::ostream &operator<<(std::ostream &stream,
-                                  const kernel_builder_base &builder) {
-    stream << builder.to_quake();
-    return stream;
-  }
+                                  const kernel_builder_base &builder);
 };
 
 } // namespace details
@@ -387,9 +410,12 @@ private:
     return std::get<std::string>(term);
   }
 
+  /// @brief Storage for any user-provided state-vector data.
+  details::StateVectorStorage stateVectorStorage;
+
 public:
-  /// @brief The constructor, takes the input `KernelBuilderType`s which is used
-  /// to create the MLIR function type
+  /// @brief The constructor, takes the input `KernelBuilderType`s which is
+  /// used to create the MLIR function type
   kernel_builder(std::vector<details::KernelBuilderType> &types)
       : context(details::initializeContext(), details::deleteContext),
         opBuilder(nullptr, [](mlir::ImplicitLocOpBuilder *) {}),
@@ -429,6 +455,28 @@ public:
   /// from a pre-allocated size `QuakeValue` or `BlockArgument`.
   QuakeValue qalloc(QuakeValue size) {
     return details::qalloc(*opBuilder.get(), size);
+  }
+
+  /// Return a `QuakeValue` representing the allocated quantum register,
+  /// initialized to the given state vector, \p state.
+  ///
+  /// Note: input argument is a \e true reference here, the calling context has
+  /// to own the data. Specifically, the builder object will capture variables
+  /// by reference (implemented as a container of pointers for simplicity) but
+  /// the builder does not create, own, or copy these vectors. This implies that
+  /// if the captured vector goes out of scope before the kernel is invoked, the
+  /// reference may contain garbage. This behavior is identical to a C++ lambda
+  /// capture by reference.
+  QuakeValue qalloc(std::vector<std::complex<double>> &state) {
+    return details::qalloc(*opBuilder.get(), stateVectorStorage,
+                           details::StateVectorVariant{&state},
+                           simulation_precision::fp64);
+  }
+  // Overload for complex<float> vector.
+  QuakeValue qalloc(std::vector<std::complex<float>> &state) {
+    return details::qalloc(*opBuilder.get(), stateVectorStorage,
+                           details::StateVectorVariant{&state},
+                           simulation_precision::fp32);
   }
 
   /// @brief Return a `QuakeValue` representing the constant floating-point
@@ -794,7 +842,7 @@ public:
   void jitCode(std::vector<std::string> extraLibPaths = {}) override {
     auto [wasChanged, ptr] =
         details::jitCode(*opBuilder, jitEngine.get(), jitEngineToModuleHash,
-                         kernelName, extraLibPaths);
+                         kernelName, extraLibPaths, stateVectorStorage);
     // If we had a jitEngine, but the code changed, delete the one we had.
     if (jitEngine && wasChanged)
       details::deleteJitEngine(jitEngine.release());
@@ -818,7 +866,7 @@ public:
       jitCode(extraLibPaths);
     }
     details::invokeCode(*opBuilder, jitEngine.get(), kernelName, argsArray,
-                        extraLibPaths);
+                        extraLibPaths, stateVectorStorage);
   }
 
   /// @brief The call operator for the kernel_builder, takes as input the
@@ -882,7 +930,7 @@ CUDAQ_VALID_BUILDER_ARGS_FOLD()
 auto make_kernel() {
   std::vector<details::KernelBuilderType> types;
   cudaq::tuple_for_each(std::tuple<Args...>(), [&](auto &&el) {
-    types.push_back(details::mapArgToType(el));
+    types.push_back(details::convertArgumentTypeToMLIR(el));
   });
   return kernel_builder<Args...>(types);
 }

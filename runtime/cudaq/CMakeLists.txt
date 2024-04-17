@@ -16,7 +16,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 add_library(${LIBRARY_NAME} 
          SHARED cudaq.cpp 
                 algorithms/draw.cpp
-                algorithms/state.cpp
+                qis/state.cpp
                 platform/quantum_platform.cpp 
                 qis/execution_manager.cpp
                 utils/cudaq_utils.cpp

@@ -6,8 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "mps_simulation_state.h"
 #include "simulator_cutensornet.h"
+
 #include <charconv>
+
 namespace nvqir {
 
 class SimulatorMPS : public SimulatorTensorNetBase {
@@ -17,7 +20,7 @@ class SimulatorMPS : public SimulatorTensorNetBase {
   double m_absCutoff = 1e-5;
   // Default relative cutoff
   double m_relCutoff = 1e-5;
-  std::vector<void *> m_mpsTensors_d;
+  std::vector<MPSTensor> m_mpsTensors_d;
   // List of auxiliary qubits that were used for controlled-gate decomposition.
   std::vector<std::size_t> m_auxQubitsForGateDecomp;
 
@@ -73,7 +76,7 @@ public:
     LOG_API_TIME();
     // Clean up previously factorized MPS tensors
     for (auto &tensor : m_mpsTensors_d) {
-      HANDLE_CUDA_ERROR(cudaFree(tensor));
+      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
     }
     m_mpsTensors_d.clear();
     // Factorize the state:
@@ -100,13 +103,41 @@ public:
   }
 
   virtual std::string name() const override { return "tensornet-mps"; }
+
   CircuitSimulator *clone() override {
     thread_local static auto simulator = std::make_unique<SimulatorMPS>();
     return simulator.get();
   }
+
+  std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
+    LOG_API_TIME();
+
+    if (!m_state || m_state->getNumQubits() == 0)
+      return std::make_unique<MPSSimulationState>(
+          std::move(m_state), std::vector<MPSTensor>{},
+          std::vector<std::size_t>{}, m_cutnHandle);
+
+    if (m_state->getNumQubits() > 1) {
+      std::vector<MPSTensor> tensors =
+          m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+      return std::make_unique<MPSSimulationState>(
+          std::move(m_state), tensors, m_auxQubitsForGateDecomp, m_cutnHandle);
+    }
+
+    auto [d_tensor, numElements] = m_state->contractStateVectorInternal({});
+    assert(numElements == 2);
+    MPSTensor stateTensor;
+    stateTensor.deviceData = d_tensor;
+    stateTensor.extents = {static_cast<int64_t>(numElements)};
+
+    return std::make_unique<MPSSimulationState>(
+        std::move(m_state), std::vector<MPSTensor>{stateTensor},
+        m_auxQubitsForGateDecomp, m_cutnHandle);
+  }
+
   virtual ~SimulatorMPS() noexcept {
     for (auto &tensor : m_mpsTensors_d) {
-      HANDLE_CUDA_ERROR(cudaFree(tensor));
+      HANDLE_CUDA_ERROR(cudaFree(tensor.deviceData));
     }
     m_mpsTensors_d.clear();
   }
@@ -114,23 +145,6 @@ public:
   void deallocateStateImpl() override {
     m_auxQubitsForGateDecomp.clear();
     SimulatorTensorNetBase::deallocateStateImpl();
-  }
-
-  /// @brief Return the state vector data
-  cudaq::State getStateData() override {
-    LOG_API_TIME();
-    if (m_state->getNumQubits() - m_auxQubitsForGateDecomp.size() > 64)
-      throw std::runtime_error("State vector data is too large.");
-    // Handle empty state (e.g., no qubit allocation)
-    if (!m_state)
-      return cudaq::State{{0}, {}};
-    const uint64_t svDim =
-        (1ull << (m_state->getNumQubits() - m_auxQubitsForGateDecomp.size()));
-    const std::vector<int32_t> projectedModes(m_auxQubitsForGateDecomp.begin(),
-                                              m_auxQubitsForGateDecomp.end());
-    // Returns the main qubit register state (auxiliary qubits are projected to
-    // zero state)
-    return cudaq::State{{svDim}, m_state->getStateVector(projectedModes)};
   }
 
   std::vector<size_t> addAuxQubits(std::size_t n) {
@@ -350,6 +364,7 @@ public:
     }
   }
 };
+
 } // end namespace nvqir
 
 NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS, tensornet_mps)

@@ -14,12 +14,13 @@
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
 #include "common/Timing.h"
-
+#include "cudaq/host_config.h"
 #include <cstdarg>
 #include <cstddef>
 #include <queue>
 #include <sstream>
 #include <string>
+#include <variant>
 
 namespace nvqir {
 
@@ -107,6 +108,12 @@ public:
     // do nothing
   }
 
+  /// @brief Provide a mechanism for simulators to
+  /// create and return a `SimulationState` instance from
+  /// a user-specified data set.
+  virtual std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &) = 0;
+
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
   /// simulation strategies that support noise modeling.
@@ -191,7 +198,10 @@ public:
   virtual std::size_t allocateQubit() = 0;
 
   /// @brief Allocate `count` qubits.
-  virtual std::vector<std::size_t> allocateQubits(const std::size_t count) = 0;
+  virtual std::vector<std::size_t>
+  allocateQubits(std::size_t count, const void *state = nullptr,
+                 cudaq::simulation_precision precision =
+                     cudaq::simulation_precision::fp32) = 0;
 
   /// @brief Deallocate the qubit with give unique index
   virtual void deallocate(const std::size_t qubitIdx) = 0;
@@ -453,7 +463,10 @@ protected:
 
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
-  virtual cudaq::State getStateData() { return {}; }
+  virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() {
+    throw std::runtime_error(
+        "Simulation data not available for this simulator backend.");
+  }
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
   /// processing in resetExecutionContext. Return true to indicate this is
@@ -594,7 +607,11 @@ protected:
   }
 
   /// @brief Add the given number of qubits to the state.
-  virtual void addQubitsToState(std::size_t count) {
+  virtual void addQubitsToState(std::size_t count,
+                                const void *state = nullptr) {
+    if (state != nullptr)
+      throw std::runtime_error("State initialization must be handled by "
+                               "subclasses, override addQubitsToState.");
     for (std::size_t i = 0; i < count; i++)
       addQubitToState();
   }
@@ -754,6 +771,13 @@ public:
   /// @brief The destructor
   virtual ~CircuitSimulatorBase() = default;
 
+  /// @brief Create a simulation-specific SimulationState
+  /// instance from a user-provided data set.
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return getSimulationState()->createFromData(data);
+  }
+
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
   /// simulation strategies that support noise modeling.
@@ -806,8 +830,26 @@ public:
   }
 
   /// @brief Allocate `count` qubits.
-  std::vector<std::size_t> allocateQubits(std::size_t count) override {
-    ScopedTraceWithContext("allocateQubits", count);
+  std::vector<std::size_t>
+  allocateQubits(std::size_t count, const void *state = nullptr,
+                 cudaq::simulation_precision precision =
+                     cudaq::simulation_precision::fp32) override {
+    // Make sure if someone gives us state data, that the precision
+    // is correct for this simulation.
+    if (state != nullptr) {
+      if constexpr (std::is_same_v<ScalarType, float>) {
+        if (precision == cudaq::simulation_precision::fp64)
+          throw std::runtime_error(
+              "Invalid user-provided state data. Simulator "
+              "is FP32 but state data is FP64.");
+      } else {
+        if (precision == cudaq::simulation_precision::fp32)
+          throw std::runtime_error(
+              "Invalid user-provided state data. Simulator "
+              "is FP64 but state data is FP32.");
+      }
+    }
+
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());
@@ -832,7 +874,7 @@ public:
     stateDimension = calculateStateDim(nQubitsAllocated);
 
     // Tell the subtype to allocate more qubits
-    addQubitsToState(count);
+    addQubitsToState(count, state);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -844,7 +886,7 @@ public:
 
   /// @brief Deallocate the qubit with give index
   void deallocate(const std::size_t qubitIdx) override {
-    if (executionContext) {
+    if (executionContext && executionContext->name != "tracer") {
       cudaq::info("Deferring qubit {} deallocation", qubitIdx);
       deferredDeallocation.push_back(qubitIdx);
       return;
@@ -966,7 +1008,7 @@ public:
     // Set the state data if requested.
     if (executionContext->name == "extract-state") {
       flushGateQueue();
-      executionContext->simulationData = getStateData();
+      executionContext->simulationState = getSimulationState();
     }
 
     // Deallocate the deferred qubits, but do so

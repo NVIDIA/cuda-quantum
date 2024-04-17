@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/TargetParser/Triple.h"
+#include "mlir/IR/Matchers.h"
 
 using namespace mlir;
 
@@ -149,6 +150,20 @@ func::FuncOp factory::createFunction(StringRef name, ArrayRef<Type> retTypes,
   auto func = rewriter.create<func::FuncOp>(module->getLoc(), name, fType);
   rewriter.restoreInsertionPoint(insPt);
   return func;
+}
+
+std::optional<std::uint64_t> factory::maybeValueOfIntConstant(Value v) {
+  APInt cst;
+  if (matchPattern(v, m_ConstantInt(&cst)))
+    return {cst.getZExtValue()};
+  return std::nullopt;
+}
+
+std::optional<double> factory::maybeValueOfFloatConstant(Value v) {
+  APFloat cst(0.0);
+  if (matchPattern(v, m_ConstantFloat(&cst)))
+    return {cst.convertToDouble()};
+  return std::nullopt;
 }
 
 void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {

@@ -58,6 +58,7 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DNVQIR_BACKEND_NAME=${NVQIR_BACKEND_OUT})
   target_compile_definitions(${TEST_EXE_NAME} PRIVATE __MATH_LONG_DOUBLE_CONSTANTS)
   target_include_directories(${TEST_EXE_NAME} PRIVATE .)
+
   # On GCC, the default is --as-needed for linking, and therefore the
   # nvqir-simulation plugin may not get picked up. This works as is on clang 
   # But here we add it purposefully to avoid that bug. 
@@ -72,22 +73,23 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     cudaq-builder
     gtest_main)
   set(TEST_LABELS "")
+  if (${NVQIR_BACKEND} STREQUAL "qpp")
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_SIMULATION_SCALAR_FP64)
+  endif()
   if (${NVQIR_BACKEND} STREQUAL "dm")
-    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM -DCUDAQ_SIMULATION_SCALAR_FP64)
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet")
-    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_SIMULATION_SCALAR_FP64)
     set(TEST_LABELS "gpu_required")
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet-mps")
-    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_SIMULATION_SCALAR_FP64)
     set(TEST_LABELS "gpu_required")
   endif()
   if (${NVQIR_BACKEND} STREQUAL "custatevec-fp32")
-    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_CUSTATEVEC_FP32)
-    set(TEST_LABELS "gpu_required")
-  endif()
-  if (${NVQIR_BACKEND} STREQUAL "custatevec-fp64")
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_CUSTATEVEC_FP32 -DCUDAQ_SIMULATION_SCALAR_FP32)
+    target_link_libraries(${TEST_EXE_NAME} PRIVATE ${CUDA_LIBRARIES} ${CUDA_CUDART_LIBRARY})
     set(TEST_LABELS "gpu_required")
   endif()
   if ("${TEST_LABELS}" STREQUAL "")
@@ -169,7 +171,24 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
         endif()
       endif()
     endif() 
+
+  add_executable(test_gpu_get_state main.cpp gpu/get_state_tester.cu)
+  # Need to force the link to nvqir-qpp here if gcc.
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_gpu_get_state PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_compile_options(test_gpu_get_state PRIVATE -Wno-suggest-override -Wno-attributes)
+  target_include_directories(test_gpu_get_state PRIVATE .)
+  target_link_libraries(test_gpu_get_state
+    PRIVATE 
+    cudaq
+    cudaq-builder
+    cudaq-platform-mqpu
+    nvqir-custatevec-fp64
+    gtest_main)
+    gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required")
 endif() 
+
 
 if(TARGET nvqir-tensornet)
   message(STATUS "Building cutensornet backend tests.")
@@ -288,7 +307,7 @@ if (CUDAQ_ENABLE_PYTHON)
     PRIVATE 
     cudaq
     cudaq-platform-default
-    nvqir nvqir-qpp
+    nvqir nvqir-custatevec-fp32
     cudaq-spin
     cudaq-chemistry
     cudaq-pyscf

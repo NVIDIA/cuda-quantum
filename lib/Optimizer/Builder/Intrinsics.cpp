@@ -158,6 +158,23 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %9 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
+    {"__nvqpp_getStateVectorData_fp32", {}, R"#(
+  func.func private @__nvqpp_getStateVectorData_fp32(%p : i64, %o : i64) -> !cc.ptr<complex<f32>>
+  )#"},
+    {"__nvqpp_getStateVectorData_fp64", {}, R"#(
+  func.func private @__nvqpp_getStateVectorData_fp64(%p : i64, %o : i64) -> !cc.ptr<complex<f64>>
+  )#"},
+    {"__nvqpp_getStateVectorLength_fp32",
+     {},
+     R"#(
+  func.func private @__nvqpp_getStateVectorLength_fp32(%p : i64, %o : i64) -> i64
+  )#"},
+    {"__nvqpp_getStateVectorLength_fp64",
+     {},
+     R"#(
+  func.func private @__nvqpp_getStateVectorLength_fp64(%p : i64, %o : i64) -> i64
+  )#"},
+
     // __nvqpp_initializer_list_to_vector_bool
     {cudaq::stdvecBoolCtorFromInitList,
      {},

@@ -32,7 +32,7 @@ def test_state_vector_simple():
     backend. Begins with a kernel, converts to state, then checks
     its member functions.
     """
-
+    cudaq.set_target('nvidia-fp64')
     @cudaq.kernel
     def bell():
         qubits = cudaq.qvector(2)
@@ -42,8 +42,10 @@ def test_state_vector_simple():
     # Get the quantum state, which should be a vector.
     got_state = cudaq.get_state(bell)
 
-    want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
-                          dtype=np.complex128)
+    want_state = cudaq.State.from_data(np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
+                          dtype=np.complex128))
+    
+    assert len(want_state) == 4 
 
     # Check the indexing operators on the State class
     # while also checking their values
@@ -60,6 +62,7 @@ def test_state_vector_simple():
         print(f"want = {want_state[i]}")
         print(f"got = {got_vector[i]}")
     assert np.allclose(want_state, np.array(got_state))
+    cudaq.reset_target()
 
 
 def check_state_vector_integration(entity):

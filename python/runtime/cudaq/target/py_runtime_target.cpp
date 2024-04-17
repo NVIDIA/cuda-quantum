@@ -17,6 +17,10 @@ namespace cudaq {
 
 void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
 
+  py::enum_<simulation_precision>(mod, "SimulationPrecision")
+      .value("fp32", simulation_precision::fp32)
+      .value("fp64", simulation_precision::fp64);
+
   py::class_<cudaq::RuntimeTarget>(
       mod, "Target",
       "The `cudaq.Target` represents the underlying infrastructure that CUDA "
@@ -40,13 +44,17 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       .def("is_emulated", &cudaq::RuntimeTarget::is_emulated,
            "Returns true if the emulation mode for the target has been "
            "activated.")
+      .def("get_precision", &cudaq::RuntimeTarget::get_precision, "")
       .def(
           "__str__",
           [](cudaq::RuntimeTarget &self) {
-            return fmt::format("Target {}\n\tsimulator={}\n\tplatform={}"
-                               "\n\tdescription={}\n",
-                               self.name, self.simulatorName, self.platformName,
-                               self.description);
+            return fmt::format(
+                "Target {}\n\tsimulator={}\n\tplatform={}"
+                "\n\tdescription={}\n\tprecision={}\n",
+                self.name, self.simulatorName, self.platformName,
+                self.description,
+                self.get_precision() == simulation_precision::fp32 ? "fp32"
+                                                                   : "fp64");
           },
           "Persist the information in this `cudaq.Target` to a string.");
 
