@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++17
 // REQUIRES: remote-sim
-// REQUIRES: c++20
 
 // clang-format off
 // RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t 
@@ -25,7 +25,7 @@ struct ansatz {
     cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
-    x<cudaq::ctrl>(q[1], q[0]);
+    cx(q[1], q[0]);
   }
 };
 

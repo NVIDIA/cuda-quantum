@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // REQUIRES: remote-sim
-// REQUIRES: c++20
+// REQUIRES: c++17
 
 // clang-format off
 // RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t 
@@ -21,7 +21,7 @@ struct ansatz {
     cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
-    x<cudaq::ctrl>(q[1], q[0]);
+    cx(q[1], q[0]);
   }
 };
 
