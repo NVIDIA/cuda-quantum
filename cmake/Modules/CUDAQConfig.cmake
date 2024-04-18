@@ -44,17 +44,41 @@ if (NOT CUDAQ_LIBRARY_MODE)
   enable_language(CUDAQ)
 endif() 
 
+# ---- TARGET EXPORTS ----
+add_library(cudaq::cudaq-nvidia-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+add_library(cudaq::cudaq-nvidia-fp64-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-fp64-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+add_library(cudaq::cudaq-qpp-cpu-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-qpp-cpu-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-qpp${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-qpp${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+# -------------------------
+
 if(NOT TARGET cudaq::cudaq)
     include("${CUDAQ_CMAKE_DIR}/CUDAQTargets.cmake")
 endif()
+
+function(cudaq_set_target TARGETNAME)
+  message(STATUS "CUDA Quantum Target = ${TARGETNAME}")
+  target_link_libraries(cudaq::cudaq INTERFACE cudaq::cudaq-${TARGETNAME}-target)
+endfunction()
 
 add_library(cudaq::cudaq-builder SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-builder PROPERTIES
   IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libcudaq-builder${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_SONAME "libcudaq-builder${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
+target_link_libraries(cudaq::cudaq INTERFACE cudaq::cudaq-builder)
 
-add_library(cudaq::cudaq-nvidia-target SHARED IMPORTED)
-set_target_properties(cudaq::cudaq-nvidia-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}")
+set(CUDAQ_TARGET "nvidia" CACHE STRING "The CUDA Quantum target to compile for and execute on. Defaults to `nvidia`")
+cudaq_set_target(${CUDAQ_TARGET})
