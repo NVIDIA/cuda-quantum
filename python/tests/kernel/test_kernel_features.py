@@ -1283,7 +1283,7 @@ def test_bad_attr_call_error():
 def test_bad_return_value_with_stdvec_arg():
 
     @cudaq.kernel
-    def test_param(i: int, l : list[int]) -> int: 
+    def test_param(i: int, l : List[int]) -> int: 
         return i
 
     l = [42]
