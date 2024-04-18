@@ -71,7 +71,8 @@ protected:
     // FIXME: this assumes no qubit reuse, aka the qubits in targets are the
     // last ones to be allocated. This is consistent with the Kronecker product
     // assumption in CircuitSimulator.
-    if (targets.size() != requestedAllocations.size()) {
+    if (!requestedAllocations.empty() &&
+        targets.size() != requestedAllocations.size()) {
       assert(targets.size() < requestedAllocations.size());
       const auto numDefaultAllocs =
           requestedAllocations.size() - targets.size();
