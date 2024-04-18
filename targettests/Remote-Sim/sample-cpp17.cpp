@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++17
 // REQUIRES: remote-sim
-// REQUIRES: c++20
 
 // clang-format off
 // RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t 
@@ -22,7 +22,7 @@ struct ghz {
     cudaq::qarray<N> q;
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
-      x<cudaq::ctrl>(q[i], q[i + 1]);
+      cx(q[i], q[i + 1]);
     }
     mz(q);
   }
@@ -41,7 +41,7 @@ int main() {
       cudaq::qvector q(N);
       h(q[0]);
       for (int i = 0; i < N - 1; i++) {
-        x<cudaq::ctrl>(q[i], q[i + 1]);
+        cx(q[i], q[i + 1]);
       }
       mz(q);
     };

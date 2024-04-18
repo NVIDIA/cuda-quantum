@@ -8,7 +8,7 @@
 
 #include <cudaq.h>
 
-// REQUIRES: c++20
+// REQUIRES: c++17
 // RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine Apollo -o %t.x && %t.x | FileCheck %s
 
 // CHECK: { 0:{{[0-9]+}} 1:{{[0-9]+}} }
@@ -19,7 +19,7 @@ struct ghz {
     cudaq::qarray<N> q;
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
-      x<cudaq::ctrl>(q[i], q[i + 1]);
+      cx(q[i], q[i + 1]);
     }
     auto result = mz(q[0]);
   }
