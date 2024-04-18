@@ -52,3 +52,9 @@ add_library(cudaq::cudaq-builder SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-builder PROPERTIES
   IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libcudaq-builder${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_SONAME "libcudaq-builder${CMAKE_SHARED_LIBRARY_SUFFIX}")
+
+
+add_library(cudaq::cudaq-nvidia-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}")
