@@ -45,7 +45,10 @@ state pyGetState(py::object kernel, py::args args) {
 /// @brief Bind the get_state cudaq function
 void bindPyState(py::module &mod) {
 
-  py::class_<SimulationState::Tensor>(mod, "Tensor")
+  py::class_<SimulationState::Tensor>(
+      mod, "Tensor",
+      "The `Tensor` describes a pointer to simulation data as well as the rank "
+      "and extents for that tensorial data it represents.")
       .def("data",
            [](SimulationState::Tensor &tensor) {
              return reinterpret_cast<intptr_t>(tensor.data);

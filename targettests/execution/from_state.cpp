@@ -11,14 +11,14 @@
 
 #include <cudaq.h>
 
-__qpu__ void test(std::vector<cudaq::simulation_scalar> inState) {
+__qpu__ void test(std::vector<cudaq::complex> inState) {
   cudaq::qvector q = inState;
 }
 
 // CHECK: size 2
 
 int main() {
-  std::vector<cudaq::simulation_scalar> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+  std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
   auto counts = cudaq::sample(test, vec);
   counts.dump();
 

@@ -20,12 +20,17 @@ skipIfPythonLessThan39 = pytest.mark.skipif(
     reason="built-in collection types such as `list` not supported")
 
 
+skipIfNoGQPU = pytest.mark.skipif(
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    reason="nvidia-mqpu backend not available")
+
 @pytest.fixture(autouse=True)
 def do_something():
     yield
     cudaq.__clearKernelRegistries()
 
 
+@skipIfNoGQPU
 def test_state_vector_simple():
     """
     A simple end-to-end test of the state class on a state vector

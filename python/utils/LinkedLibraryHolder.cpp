@@ -11,6 +11,7 @@
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "cudaq/platform.h"
+#include "cudaq/target_control.h"
 #include "nvqir/CircuitSimulator.h"
 #include <fstream>
 #include <regex>
@@ -156,6 +157,9 @@ void findAvailableTargets(
 LinkedLibraryHolder::LinkedLibraryHolder() {
   cudaq::info("Init infrastructure for pythonic builder.");
 
+  if (!cudaq::__internal__::canModifyTarget())
+    return;
+
   cudaq::__internal__::CUDAQLibraryData data;
 #if defined(__APPLE__) && defined(__MACH__)
   libSuffix = "dylib";
@@ -300,9 +304,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   // argument or set_target() API
   currentTarget = defaultTarget;
 
-  if (disallowTargetModification)
-    return;
-
   // We'll always start off with the default target
   resetTarget();
 }
@@ -367,7 +368,7 @@ void LinkedLibraryHolder::setTarget(
     std::map<std::string, std::string> extraConfig) {
   // Do not set the default target if the disallow
   // flag has been set.
-  if (disallowTargetModification)
+  if (!cudaq::__internal__::canModifyTarget())
     return;
 
   auto iter = targets.find(targetName);

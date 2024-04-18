@@ -335,7 +335,7 @@ protected:
         reinterpret_cast<CudaDataType *>(otherState),
         reinterpret_cast<CudaDataType *>(newDeviceStateVector));
     HANDLE_CUDA_ERROR(cudaGetLastError());
-
+    
     // Free the old vectors we don't need anymore.
     HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     HANDLE_CUDA_ERROR(cudaFree(otherState));

@@ -418,7 +418,7 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
 
   // We just want to apply the same gate to all qubits provided
   for (auto &targetId : targets)
-    getExecutionManager()->apply(gateName, std::vector<ScalarAngle>{angle}, {},
+    getExecutionManager()->apply(gateName, std::vector<double>{angle}, {},
                                  {targetId});
 }
 

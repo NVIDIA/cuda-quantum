@@ -69,8 +69,7 @@ concept KernelBuilderArgTypeIsValid =
           Args, float, double, std::size_t, int, std::vector<int>,             \
           std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
           std::vector<std::complex<float>>, std::vector<std::complex<double>>, \
-          std::vector<cudaq::simulation_scalar>, cudaq::qubit,                 \
-          cudaq::qvector<>> &&                                                 \
+          std::vector<cudaq::complex>, cudaq::qubit, cudaq::qvector<>> &&      \
       ...)
 #else
 // Not C++ 2020: stub these out.

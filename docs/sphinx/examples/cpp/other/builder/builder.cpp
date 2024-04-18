@@ -130,7 +130,7 @@ int main() {
     // In this example, we create a kernel template `sim_kernel` that captures
     // the variable `init_state` by reference.
     auto sim_builder = cudaq::make_kernel();
-    std::vector<cudaq::simulation_scalar> init_state;
+    std::vector<cudaq::complex> init_state;
     auto q = sim_builder.qalloc(init_state);
     // Build the quantum circuit template here.
     sim_builder.mz(q);
