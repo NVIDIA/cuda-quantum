@@ -877,10 +877,11 @@ def test_recursive_calls():
 
     print(kernel3)
 
-  
+
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-  not cudaq.has_target('nvidia-fp64'),
-  reason='Could not find nvidia-fp64 in installation')
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
+    reason='Could not find nvidia-fp64 in installation')
+
 
 @skipIfNvidiaFP64NotInstalled
 def test_from_state0():
@@ -944,10 +945,12 @@ def test_from_state0():
 
     cudaq.reset_target()
 
+
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
-  not cudaq.has_target('nvidia'),
-  reason='Could not find nvidia in installation')
-  
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    reason='Could not find nvidia in installation')
+
+
 @skipIfNvidiaNotInstalled
 def test_from_state1():
     cudaq.set_target('nvidia')
@@ -986,7 +989,7 @@ def test_from_state1():
     assert '11' in counts
     assert '00' in counts
 
-    state = cudaq.create_state(np.array([.5]*4))
+    state = cudaq.create_state(np.array([.5] * 4))
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
     counts = cudaq.sample(kernel2)
