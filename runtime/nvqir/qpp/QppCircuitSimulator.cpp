@@ -223,7 +223,7 @@ public:
 
   /// @brief Reset the qubit
   /// @param index 0-based index of qubit to reset
-  void resetQubit(const std::size_t index) override {
+  void doResetQubit(const std::size_t index) override {
     flushGateQueue();
     const auto qubitIdx = convertQubitIndex(index);
     state = qpp::reset(state, {qubitIdx});

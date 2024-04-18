@@ -364,7 +364,7 @@ public:
 
   /// @brief Reset the qubit
   /// @param qubitIdx
-  void resetQubit(const std::size_t qubitIdx) override {
+  void doResetQubit(const std::size_t qubitIdx) override {
     flushGateQueue();
     const int basisBits[] = {(int)qubitIdx};
     int parity;

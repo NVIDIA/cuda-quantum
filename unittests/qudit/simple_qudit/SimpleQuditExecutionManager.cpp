@@ -8,20 +8,13 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
-
 #include "cudaq/qis/managers/BasicExecutionManager.h"
-#include "cudaq/qis/qudit.h"
 #include "cudaq/spin_op.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "qpp.h"
-#include <complex>
 #include <cstring>
 #include <functional>
 #include <iostream>
-#include <map>
-#include <queue>
-#include <sstream>
-#include <stack>
 
 namespace {
 
@@ -34,27 +27,25 @@ private:
 
   std::vector<cudaq::QuditInfo> sampleQudits;
 
+  std::size_t numQudits = 0;
+
 protected:
-  void allocateQudit(const cudaq::QuditInfo &q) override {
+  std::size_t allocateQudit(std::size_t n_levels) override {
+    std::size_t id = numQudits;
+    numQudits += 1;
     if (state.size() == 0) {
       // qubit will give [1,0], qutrit will give [1,0,0]
-      state = qpp::ket::Zero(q.levels);
+      state = qpp::ket::Zero(n_levels);
       state(0) = 1.0;
-      return;
+    } else {
+      qpp::ket zeroState = qpp::ket::Zero(n_levels);
+      zeroState(0) = 1.0;
+      state = qpp::kron(state, zeroState);
     }
-
-    qpp::ket zeroState = qpp::ket::Zero(q.levels);
-    zeroState(0) = 1.0;
-    state = qpp::kron(state, zeroState);
+    return id;
   }
 
-  void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    for (auto &q : qudits)
-      allocateQudit(q);
-  }
-
-  void deallocateQudit(const cudaq::QuditInfo &q) override {}
-  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
+  void returnQudit(const cudaq::QuditInfo &q) override {}
 
   void handleExecutionContextChanged() override {}
 

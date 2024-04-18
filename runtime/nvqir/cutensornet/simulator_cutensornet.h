@@ -38,7 +38,7 @@ public:
   }
 
   /// @brief Reset the state of a given qubit to zero
-  virtual void resetQubit(const std::size_t qubitIdx) override;
+  virtual void doResetQubit(const std::size_t qubitIdx) override;
 
   /// @brief Device synchronization
   virtual void synchronize() override;

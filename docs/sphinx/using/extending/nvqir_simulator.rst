@@ -48,7 +48,7 @@ The key methods that need to be overridden by subtypes of :code:`CircuitSimulato
     * - :code:`addQubitsToState`
       - :code:`nQubits : std::size_t` 
       - Add the specified number of qubits to the underlying state representation.
-    * - :code:`resetQubit`
+    * - :code:`doResetQubit`
       - :code:`qubitIdx : std::size_t`
       - Reset the state of the qubit at the given index to :code:`|0>`
     * - :code:`resetQubitStateImpl`
@@ -135,13 +135,14 @@ and then fill out your :code:`MySimulator.cpp` file with your subtype implementa
         /// @brief Apply the given gate
         void applyGate(const GateApplicationTask &task) override { ... }
 
+        /// @brief Reset a qubit to the |0> state.
+        void doResetQubit(std::size_t qubitIdx) override { ... }
+
       public:
         MySimulator() = default;
         virtual ~MySimulator() = default;
         
         bool measureQubit(std::size_t qubitIdx) override { ... }
-
-        void resetQubit(std::size_t &qubitIdx) override { ... }
 
         cudaq::SampleResult sample(std::vector<std::size_t> &measuredBits,
                               int shots) override { ... }
