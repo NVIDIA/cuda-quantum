@@ -21,7 +21,7 @@ skipIfPythonLessThan39 = pytest.mark.skipif(
 
 
 skipIfNoGQPU = pytest.mark.skipif(
-    not cudaq.has_target('nvidia'),
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
     reason="nvidia-mqpu backend not available")
 
 @pytest.fixture(autouse=True)

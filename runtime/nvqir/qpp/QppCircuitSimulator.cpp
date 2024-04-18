@@ -13,6 +13,7 @@
 #include <iostream>
 #include <qpp.h>
 #include <set>
+#include <span>
 
 using namespace cudaq;
 
@@ -42,9 +43,15 @@ struct QppState : public cudaq::SimulationState {
         (other.getTensor().extents != getTensor().extents))
       throw std::runtime_error("[qpp-state] overlap error - other state "
                                "dimension not equal to this state dimension.");
-    return state.transpose().dot(Eigen::Map<qpp::ket>(
+
+    std::span<std::complex<double>> otherState(
         reinterpret_cast<std::complex<double> *>(other.getTensor().data),
-        other.getTensor().extents[0]));
+        other.getTensor().extents[0]);
+    return std::inner_product(
+               state.begin(), state.end(), otherState.begin(), complex{0., 0.},
+               [](auto a, auto b) { return a + b; },
+               [](auto a, auto b) { return std::abs(a * std::conj(b)); })
+        .real();
   }
 
   std::complex<double>

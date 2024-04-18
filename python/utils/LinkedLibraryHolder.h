@@ -44,12 +44,6 @@ struct RuntimeTarget {
 /// dynamically loading and storing the required plugin libraries
 /// for the CUDA Quantum runtime within the Python runtime.
 class LinkedLibraryHolder {
-public:
-  /// @brief Global boolean that disables target modification.
-  /// This will turn off (bypass) target modification in the LinkedLibraryHolder
-  /// instance used by Python bindings.
-  static inline bool disallowTargetModification = false;
-
 protected:
   // Store the library suffix
   std::string libSuffix = "";

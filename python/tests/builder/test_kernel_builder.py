@@ -879,7 +879,7 @@ def test_recursive_calls():
 
   
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-  not cudaq.has_target('nvidia-fp64'),
+  not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
   reason='Could not find nvidia-fp64 in installation')
 
 @skipIfNvidiaFP64NotInstalled
@@ -945,7 +945,7 @@ def test_from_state0():
     cudaq.reset_target()
 
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
-  not cudaq.has_target('nvidia'),
+  not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
   reason='Could not find nvidia in installation')
   
 @skipIfNvidiaNotInstalled

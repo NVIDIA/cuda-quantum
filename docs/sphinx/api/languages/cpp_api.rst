@@ -53,7 +53,24 @@ Common
 
 .. doxygenclass:: cudaq::SimulationState
 
+.. doxygenstruct:: cudaq::SimulationState::Tensor
+    :members:
+
+.. doxygenenum:: cudaq::SimulationState::precision
+
+.. doxygenenum:: cudaq::simulation_precision
+
+.. doxygentypedef:: cudaq::tensor
+
+.. doxygentypedef:: cudaq::state_data
+
 .. doxygenclass:: cudaq::CusvState
+
+.. doxygenclass:: cudaq::TensorNetworkState
+
+.. doxygenclass:: nvqir::MPSSimulationState
+
+.. doxygenclass:: nvqir::TensorNetSimulationState
 
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:

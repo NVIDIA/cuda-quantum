@@ -73,9 +73,9 @@ struct kraus_op {
   kraus_op adjoint() const {
     std::size_t N = data.size();
     std::vector<cudaq::complex> newData(N);
-    for (std::size_t i = 0; i < N; i++)
-      for (std::size_t j = 0; j < N; j++)
-        newData[j * N + i] = std::conj(data[i * N + j]);
+    for (std::size_t i = 0; i < nRows; i++)
+      for (std::size_t j = 0; j < nCols; j++)
+        newData[i * nRows + j] = std::conj(data[j * nCols + i]);
     return kraus_op(newData);
   }
 };

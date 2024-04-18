@@ -30,6 +30,8 @@ Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
+Tensor = cudaq_runtime.Tensor
+SimulationPrecision = cudaq_runtime.SimulationPrecision
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
