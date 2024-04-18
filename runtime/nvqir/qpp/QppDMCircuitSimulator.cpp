@@ -194,7 +194,6 @@ protected:
       if (!stateDataIn) {
         state = qpp::cmat::Zero(stateDimension, stateDimension);
         state(0, 0) = 1.0;
-        return;
       } else {
         // rho = |psi><psi|
         auto *stateData = reinterpret_cast<std::complex<double> *>(
@@ -202,8 +201,11 @@ protected:
         qpp::ket psi = qpp::ket::Map(stateData, (1UL << qubitCount));
         state = psi * psi.adjoint();
       }
+
+      return;
     }
 
+    // We're adding qubits to an existing state.
     if (!stateDataIn) {
       qpp::cmat zero_state = qpp::cmat::Zero(1 << qubitCount, 1 << qubitCount);
       zero_state(0, 0) = 1.0;
