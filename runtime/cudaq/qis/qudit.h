@@ -10,7 +10,15 @@
 
 #include "execution_manager.h"
 
+using namespace std::complex_literals;
+
 namespace cudaq {
+using complex = std::complex<double>;
+
+namespace ket {
+inline static const std::vector<complex> zero{1. + 0i, 0. + 0i};
+inline static const std::vector<complex> one{0. + 0i, 1. + 0i};
+} // namespace ket
 
 /// The qudit models a general d-level quantum system.
 /// This type is templated on the number of levels d.
