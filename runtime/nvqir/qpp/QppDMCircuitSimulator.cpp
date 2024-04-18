@@ -184,24 +184,38 @@ protected:
   /// @brief Grow the density matrix by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
 
-  void addQubitsToState(std::size_t count,
-                        const void *data = nullptr) override {
-    if (count == 0)
+  void addQubitsToState(std::size_t qubitCount,
+                        const void *stateDataIn = nullptr) override {
+    if (qubitCount == 0)
       return;
-
-    if (data != nullptr)
-      throw std::runtime_error("init state not implemented for dm sim");
 
     if (state.size() == 0) {
       // If this is the first time, allocate the state
-      state = qpp::cmat::Zero(stateDimension, stateDimension);
-      state(0, 0) = 1.0;
-      return;
+      if (!stateDataIn) {
+        state = qpp::cmat::Zero(stateDimension, stateDimension);
+        state(0, 0) = 1.0;
+        return;
+      } else {
+        // rho = |psi><psi|
+        auto *stateData = reinterpret_cast<std::complex<double> *>(
+            const_cast<void *>(stateDataIn));
+        qpp::ket psi = qpp::ket::Map(stateData, (1UL << qubitCount));
+        state = psi * psi.adjoint();
+      }
     }
 
-    qpp::cmat zero_state = qpp::cmat::Zero(1 << count, 1 << count);
-    zero_state(0, 0) = 1.0;
-    state = qpp::kron(zero_state, state);
+    if (!stateDataIn) {
+      qpp::cmat zero_state = qpp::cmat::Zero(1 << qubitCount, 1 << qubitCount);
+      zero_state(0, 0) = 1.0;
+      state = qpp::kron(zero_state, state);
+    } else {
+      // rho = |psi><psi|
+      auto *stateData = reinterpret_cast<std::complex<double> *>(
+          const_cast<void *>(stateDataIn));
+      qpp::ket psi = qpp::ket::Map(stateData, (1UL << qubitCount));
+      qpp::cmat rho = psi * psi.adjoint();
+      state = qpp::kron(rho, state);
+    }
   }
 
   void setToZeroState() override {
