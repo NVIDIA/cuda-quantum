@@ -879,7 +879,7 @@ def test_recursive_calls():
 
   
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-  not cudaq.has_target('nvidia-fp64'),
+  not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
   reason='Could not find nvidia-fp64 in installation')
 
 @skipIfNvidiaFP64NotInstalled
@@ -945,7 +945,7 @@ def test_from_state0():
     cudaq.reset_target()
 
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
-  not cudaq.has_target('nvidia'),
+  not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
   reason='Could not find nvidia in installation')
   
 @skipIfNvidiaNotInstalled
@@ -968,9 +968,9 @@ def test_from_state1():
     cudaq.reset_target()
 
     # Regardless of the target precision, use
-    # cudaq.simulation_dtype() or cudaq.create_state()
+    # cudaq.complex() or cudaq.amplitudes()
     state = np.array([.70710678, 0., 0., 0.70710678],
-                     dtype=cudaq.simulation_dtype())
+                     dtype=cudaq.complex()) 
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
     counts = cudaq.sample(kernel2)
@@ -978,7 +978,7 @@ def test_from_state1():
     assert '11' in counts
     assert '00' in counts
 
-    state = cudaq.create_state([.70710678, 0., 0., 0.70710678])
+    state = cudaq.amplitudes([.70710678, 0., 0., 0.70710678])
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
     counts = cudaq.sample(kernel2)
@@ -986,7 +986,7 @@ def test_from_state1():
     assert '11' in counts
     assert '00' in counts
 
-    state = cudaq.create_state(np.array([.5]*4))
+    state = cudaq.amplitudes(np.array([.5]*4))
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
     counts = cudaq.sample(kernel2)
@@ -998,7 +998,7 @@ def test_from_state1():
 
     kernel, initState = cudaq.make_kernel(list[np.complex64])
     qubits = kernel.qalloc(initState)
-    state = cudaq.create_state([.70710678, 0., 0., 0.70710678])
+    state = cudaq.amplitudes([.70710678, 0., 0., 0.70710678])
     counts = cudaq.sample(kernel, state)
     print(counts)
     assert '11' in counts

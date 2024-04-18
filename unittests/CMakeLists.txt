@@ -300,14 +300,14 @@ if (CUDAQ_ENABLE_PYTHON)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
     target_link_options(test_domains PRIVATE -Wl,--no-as-needed)
   endif()
-  target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp)
+  target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp -DCUDAQ_SIMULATION_SCALAR_FP64)
   target_include_directories(test_domains PRIVATE .)
   set_property(TARGET test_domains PROPERTY ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
   target_link_libraries(test_domains
     PRIVATE 
     cudaq
     cudaq-platform-default
-    nvqir nvqir-custatevec-fp32
+    nvqir nvqir-qpp
     cudaq-spin
     cudaq-chemistry
     cudaq-pyscf

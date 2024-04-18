@@ -131,7 +131,7 @@ CUDAQ_TEST(H2MoleculeTester, checkUCCSD) {
     auto eigenVectors = matrix.eigenvectors();
 
     // Map it to a cudaq::state
-    std::vector<std::complex<float>> expectedData(eigenVectors.rows());
+    std::vector<cudaq::complex> expectedData(eigenVectors.rows());
     for (std::size_t i = 0; i < eigenVectors.rows(); i++)
       expectedData[i] = eigenVectors(i, 0);
     auto groundState = cudaq::get_state(ansatz, std::get<1>(res));

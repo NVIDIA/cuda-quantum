@@ -30,6 +30,8 @@ Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
+Tensor = cudaq_runtime.Tensor
+SimulationPrecision = cudaq_runtime.SimulationPrecision
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
@@ -88,7 +90,7 @@ def synthesize(kernel, *args):
                              kernelName=kernel.name)
 
 
-def simulation_dtype():
+def complex():
     """
     Return the data type for the current simulation backend, 
     either `numpy.complex128` or `numpy.complex64`.
@@ -100,12 +102,12 @@ def simulation_dtype():
     return numpy.complex64
 
 
-def create_state(array_data):
+def amplitudes(array_data):
     """
     Create a state array with the appropriate data type for the 
     current simulation backend target. 
     """
-    return numpy.array(array_data, dtype=simulation_dtype())
+    return numpy.array(array_data, dtype=complex())
 
 
 def __clearKernelRegistries():

@@ -15,6 +15,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 # Create the CUDA Quantum Library
 add_library(${LIBRARY_NAME} 
          SHARED cudaq.cpp 
+                target_control.cpp
                 algorithms/draw.cpp
                 qis/state.cpp
                 platform/quantum_platform.cpp 

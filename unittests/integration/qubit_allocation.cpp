@@ -49,7 +49,6 @@ CUDAQ_TEST(AllocationTester, checkSimple) {
   EXPECT_EQ(c, 1000);
 }
 
-
 #ifdef CUDAQ_BACKEND_DM
 // Tests for a previous bug in the density simulator, where
 // the qubit ordering flipped after resizing the density matrix
