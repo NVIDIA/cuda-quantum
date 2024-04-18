@@ -92,6 +92,8 @@ Data Types
 .. autoclass:: cudaq::State
     :members:
 
+.. autoclass:: cudaq::Tensor
+
 .. autoclass:: cudaq::QuakeValue
 
     .. automethod:: __add__

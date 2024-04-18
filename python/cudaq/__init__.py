@@ -29,6 +29,8 @@ Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
+Tensor = cudaq_runtime.Tensor
+SimulationPrecision = cudaq_runtime.SimulationPrecision
 pauli_word = cudaq_runtime.pauli_word
 
 # to be deprecated
