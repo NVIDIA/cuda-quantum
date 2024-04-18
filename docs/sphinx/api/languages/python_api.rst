@@ -86,6 +86,9 @@ Backend Configuration
 Data Types
 =============================
 
+.. autoclass:: cudaq::SimulationPrecision
+    :members:
+    
 .. autoclass:: cudaq::Target
     :members:
 

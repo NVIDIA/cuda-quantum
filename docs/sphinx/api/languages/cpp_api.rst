@@ -91,7 +91,6 @@ Common
 
 Noise Modeling 
 ================
-.. doxygentypedef:: cudaq::complex
 
 .. doxygenstruct:: cudaq::kraus_op
     :members:
@@ -180,6 +179,10 @@ Platform
 
 Utilities
 =========
+
+.. doxygentypedef:: cudaq::complex
+
+.. doxygentypedef:: cudaq::real 
 
 .. doxygenfunction:: cudaq::range(std::size_t)
     
