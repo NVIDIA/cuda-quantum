@@ -8,8 +8,8 @@
 #include "target_control.h"
 
 namespace cudaq::__internal__ {
-static bool targetModificationKillSwitch = false;
-void enableTargetModification() { targetModificationKillSwitch = true; }
-void disableTargetModification() { targetModificationKillSwitch = false; }
-bool canModifyTarget() { return targetModificationKillSwitch; }
+static bool m_CanModifyTarget = true;
+void enableTargetModification() { m_CanModifyTarget = true; }
+void disableTargetModification() { m_CanModifyTarget = false; }
+bool canModifyTarget() { return m_CanModifyTarget; }
 } // namespace cudaq::__internal__
