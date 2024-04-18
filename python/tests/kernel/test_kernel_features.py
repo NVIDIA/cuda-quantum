@@ -1279,3 +1279,13 @@ def test_bad_attr_call_error():
     with pytest.raises(RuntimeError) as e:
         test_state.compile()
     assert "Invalid function call - 'kernel' is unknown." in repr(e)
+
+def test_bad_return_value_with_stdvec_arg():
+
+    @cudaq.kernel
+    def test_param(i: int, l : list[int]) -> int: 
+        return i
+
+    l = [42]
+    for i in range(4):
+        assert test_param(i,l) == i 
