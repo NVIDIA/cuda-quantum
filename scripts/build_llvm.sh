@@ -29,7 +29,7 @@
 # - https://github.com/llvm/llvm-project/blob/main/openmp/docs/SupportAndFAQ.rst#q-how-to-build-an-openmp-gpu-offload-capable-compiler
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
-LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'} # FIXME: openmp
+LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'}
 PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
@@ -98,15 +98,11 @@ mkdir -p logs && rm -rf logs/*
 # To get a list of install targets, check the output of the following command in the build folder:
 #   ninja -t targets | grep -Po 'install-\K.*(?=-stripped:)'
 echo "Preparing LLVM build..."
-if [ -z "${llvm_projects##*compiler-rt;*}" ]; then
+if [ -z "${llvm_projects##*runtimes;*}" ]; then
   echo "- including runtime components"
-  llvm_runtimes+="libcxx;libcxxabi;libunwind;compiler-rt;"
-  projects=("${projects[@]/compiler-rt}")
-fi
-if [ -z "${llvm_projects##*openmp;*}" ]; then
-  echo "- including OpenMP support"
-  llvm_runtimes+="openmp;"
-  projects=("${projects[@]/openmp}")
+  # listing openmp under runtimes here does not work
+  llvm_runtimes+="libcxx;libcxxabi;libunwind;compiler-rt;" # openmp and llvm-libgcc?
+  projects=("${projects[@]/runtimes}")
 fi
 
 llvm_projects=`printf "%s;" "${projects[@]}"`
@@ -164,8 +160,10 @@ fi
 cat "../llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 
-# Generate CMake files; -DCLANG_RESOURCE_DIR=...
+# Generate CMake files; 
+#  -DCLANG_RESOURCE_DIR=... \
 #  -DBOOTSTRAP_LLVM_ENABLE_LLD=TRUE \
+#  -DLLVM_RUNTIME_DISTRIBUTION_COMPONENTS='"cxx-headers;...${llvm_runtimes%;}"' \
 # variables set manually: 
 # - LD_LIBRARY_PATH to find the built libc++ binaries
 # - LIBRARY_PATH to find the built libc++ binaries
@@ -182,7 +180,6 @@ cmake_args=" \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_FLAGS='-w'"
-#  -DLLVM_ENABLE_LIBCXX=ON \
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
   LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
@@ -231,12 +228,15 @@ if [ -n "$llvm_runtimes" ]; then
   echo "Building runtime components..."
   ninja runtimes
   ninja install-runtimes
+  # Not sure why no install step is defined for builtins when compiler-rt 
+  # is built as runtime rather than as project. Invoking the installation manually.
+  cmake -P runtimes/builtins-bins/cmake_install.cmake
   status=$?
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
     cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
   else
-    echo "Successfully added runtime components $(echo $llvm_runtimes | sed 's/;/, /g')."
+    echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
   fi
 fi
 

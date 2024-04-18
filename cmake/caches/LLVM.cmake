@@ -7,27 +7,33 @@ set(LLVM_ENABLE_ZSTD OFF CACHE BOOL "")
 set(ZLIB_USE_STATIC_LIBS ON CACHE BOOL "")
 
 # Path configurations
-#set(CLANG_RESOURCE_DIR "../" CACHE STRING "")
-#set(CMAKE_BUILD_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib" CACHE STRING "")
 set(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib" CACHE STRING "")
-set(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR OFF CACHE BOOL "") # see https://github.com/llvm/llvm-project/issues/62114
+set(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR ON CACHE BOOL "")
 
 # Default configurations for the built toolchain
-set(CLANG_DEFAULT_CXX_STDLIB libc++ CACHE STRING "")
-set(CLANG_DEFAULT_RTLIB compiler-rt CACHE STRING "")
-set(CLANG_DEFAULT_UNWINDLIB libunwind CACHE STRING "")
 set(CLANG_DEFAULT_OPENMP_RUNTIME libomp CACHE STRING "")
 set(CLANG_DEFAULT_LINKER lld CACHE STRING "")
+set(CLANG_DEFAULT_CXX_STDLIB libc++ CACHE STRING "")
+#if not runtimes contains llvm-libgcc:
+set(CLANG_DEFAULT_RTLIB compiler-rt CACHE STRING "")
+set(CLANG_DEFAULT_UNWINDLIB libunwind CACHE STRING "")
 
 # Runtime related build configurations
 set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
+set(LIBCXX_CXX_ABI libcxxabi CACHE STRING "")
+#if runtimes contains llvm-libgcc:
+# ... does not work ...
+#set(LLVM_LIBGCC_EXPLICIT_OPT_IN ON CACHE BOOL "")
+#set(LIBCXXABI_USE_LLVM_UNWINDER OFF CACHE BOOL "")
+#set(COMPILER_RT_BUILD_CRT ON CACHE BOOL "")
+#set(COMPILER_RT_BUILD_BUILTINS ON CACHE BOOL "")
+# else:
 set(COMPILER_RT_USE_LIBCXX ON CACHE BOOL "")
 set(COMPILER_RT_USE_LLVM_UNWINDER ON CACHE BOOL "")
 set(LIBUNWIND_USE_COMPILER_RT ON CACHE BOOL "")
 set(LIBCXX_USE_COMPILER_RT ON CACHE BOOL "")
 set(LIBCXXABI_USE_COMPILER_RT ON CACHE BOOL "")
 set(LIBCXXABI_USE_LLVM_UNWINDER ON CACHE BOOL "")
-set(LIBCXX_CXX_ABI libcxxabi CACHE STRING "")
 set(LIBUNWIND_HAS_GCC_LIB OFF CACHE BOOL "")
 set(LIBUNWIND_HAS_GCC_S_LIB OFF CACHE BOOL "")
 set(LIBCXXABI_HAS_GCC_LIB OFF CACHE BOOL "")
@@ -37,9 +43,17 @@ set(LIBCXX_HAS_GCC_S_LIB OFF CACHE BOOL "")
 set(LIBCXX_HAS_ATOMIC_LIB OFF CACHE BOOL "")
 set(COMPILER_RT_HAS_GCC_LIB OFF CACHE BOOL "")
 set(COMPILER_RT_HAS_GCC_S_LIB OFF CACHE BOOL "")
-#set(COMPILER_RT_USE_BUILTINS_LIBRARY ON CACHE BOOL "")
+set(COMPILER_RT_BUILD_CRT ON CACHE BOOL "")
+set(COMPILER_RT_BUILD_BUILTINS ON CACHE BOOL "")
+set(COMPILER_RT_USE_BUILTINS_LIBRARY ON CACHE BOOL "")
+
+# COMPILER_RT_BUILD_STANDALONE_LIBATOMIC? - check if these need to be set:
 #set(COMPILER_RT_HAS_ATOMICS OFF CACHE BOOL "")
 #set(LLVM_HAS_ATOMICS OFF CACHE BOOL "")
+
+# problem with installing a stripped distribution:
+# the runtimes build doesn't seem to correctly find the built libraries, 
+# check https://github.com/llvm/llvm-project/blob/main/runtimes/CMakeLists.txt
 
 # If we want to build dynamic libraries for the unwinder,
 # we need to build support for exception handling.
@@ -53,10 +67,12 @@ set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
 #set(LIBCXX_ENABLE_SHARED OFF CACHE BOOL "")
 #set(LIBOMP_ENABLE_SHARED OFF CACHE BOOL "")
 #set(COMPILER_RT_ENABLE_STATIC_UNWINDER ON CACHE BOOL "")
+#set(COMPILER_RT_BUILTINS_HIDE_SYMBOLS ON CACHE BOOL "")
 
 # See https://libcxx.llvm.org/BuildingLibcxx.html regarding the following settings:
 # - LIBCXX_ENABLE_STATIC_ABI_LIBRARY
 # - LIBCXX_HERMETIC_STATIC_LIBRARY
+# - COMPILER_RT_STATIC_CXX_LIBRARY
 
 # See also the multi-stage LLVM build: 
 # https://github.com/llvm/llvm-project/blob/main/clang/cmake/caches/Release.cmake

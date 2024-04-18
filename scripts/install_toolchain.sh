@@ -135,7 +135,7 @@ elif [ "$toolchain" = "llvm" ]; then
         temp_install_if_command_unknown cmake cmake
         this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
         LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
-        LLVM_PROJECTS='clang;lld;compiler-rt' \
+        LLVM_PROJECTS='clang;lld;runtimes' \
         CC="$CC" CXX="$CXX" bash "$this_file_dir/build_llvm.sh" -s "$LLVM_SOURCE" -c Release -v
         if [ ! $? -eq 0 ]; then 
             echo -e "\e[01;31mError: Failed to build LLVM toolchain from source.\e[0m" >&2
