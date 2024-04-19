@@ -181,7 +181,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType == np.complex128:
         return ComplexType.get(mlirTypeFromPyType(np.float64, ctx))
     if argType == np.complex64:
-        return ComplexType.get(mlirTypeFromPyType(F32Type.get(ctx), ctx))
+        return ComplexType.get(F32Type.get(ctx), ctx)
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
 
