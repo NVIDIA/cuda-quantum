@@ -94,6 +94,10 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         if annotation.value.id in ['numpy', 'np']:
             if annotation.attr == 'ndarray':
                 return cc.StdvecType.get(ctx, F64Type.get())
+            if annotation.attr == 'complex128':
+                return ComplexType.get(F64Type.get())
+            if annotation.attr == 'complex64':
+                return ComplexType.get(F32Type.get())
 
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
@@ -161,7 +165,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if id == 'complex':
         return ComplexType.get(F64Type.get())
 
-    localEmitFatalError(f'{id} is not a supported type.')
+    localEmitFatalError(f'{ast.unparse(annotation)} is not a supported type.')
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
@@ -174,6 +178,10 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return IntegerType.get_signless(1, ctx)
     if argType == complex:
         return ComplexType.get(mlirTypeFromPyType(float, ctx))
+    if argType == np.complex128:
+        return ComplexType.get(mlirTypeFromPyType(np.float64, ctx))
+    if argType == np.complex64:
+        return ComplexType.get(mlirTypeFromPyType(F32Type.get(ctx), ctx))
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
 
@@ -213,7 +221,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
 
         if isinstance(argInstance[0], np.complex64):
-            return cc.StdvecType.get(ctx, ComplexType.get(F32Type.get(ctx)))
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.complex64, ctx))
 
         if isinstance(argInstance[0], pauli_word):
             return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
@@ -257,7 +265,9 @@ def mlirTypeToPyType(argType):
         return float
 
     if ComplexType.isinstance(argType):
-        return complex
+        if F64Type.isinstance(ComplexType(argType).element_type):
+            return complex
+        return np.complex64
 
     if cc.CharspanType.isinstance(argType):
         return pauli_word
@@ -280,7 +290,9 @@ def mlirTypeToPyType(argType):
         if F64Type.isinstance(eleTy):
             return getListType(float)
         if ComplexType.isinstance(eleTy):
-            return getListType(complex)
+            ty = complex if F64Type.isinstance(
+                ComplexType(argType).element_type) else np.complex64
+            return getListType(ty)
 
     emitFatalError(
         f"Cannot infer CUDA Quantum type from provided Python type ({argType})")
