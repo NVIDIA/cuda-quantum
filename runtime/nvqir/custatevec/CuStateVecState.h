@@ -89,20 +89,6 @@ private:
         cudaMemcpyDeviceToHost));
   }
 
-  /// @brief Return true if the given pointer is a GPU device pointer
-  bool isDevicePointer(void *ptr) const {
-    cudaPointerAttributes attributes;
-    HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
-    return attributes.type > 1;
-  }
-
-  /// @brief Given a GPU device pointer, get the CUDA device it is on.
-  int deviceFromPointer(void *ptr) const {
-    cudaPointerAttributes attributes;
-    HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
-    return attributes.device;
-  }
-
   /// @brief Check the input data pointer and if it is
   /// host data, copy it to the GPU.
   auto maybeCopyToDevice(std::size_t size, void *dataPtr) {
@@ -181,6 +167,20 @@ private:
   }
 
 public:
+  /// @brief Return true if the given pointer is a GPU device pointer
+  static bool isDevicePointer(void *ptr) {
+    cudaPointerAttributes attributes;
+    HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
+    return attributes.type > 1;
+  }
+
+  /// @brief Given a GPU device pointer, get the CUDA device it is on.
+  static int deviceFromPointer(void *ptr) {
+    cudaPointerAttributes attributes;
+    HANDLE_CUDA_ERROR(cudaPointerGetAttributes(&attributes, ptr));
+    return attributes.device;
+  }
+
   CusvState(std::size_t s, void *ptr) : size(s), devicePtr(ptr) {}
   CusvState(std::size_t s, void *ptr, bool owns)
       : size(s), devicePtr(ptr), ownsDevicePtr(owns) {}

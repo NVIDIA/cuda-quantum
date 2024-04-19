@@ -335,11 +335,51 @@ protected:
         reinterpret_cast<CudaDataType *>(otherState),
         reinterpret_cast<CudaDataType *>(newDeviceStateVector));
     HANDLE_CUDA_ERROR(cudaGetLastError());
-    
+
     // Free the old vectors we don't need anymore.
     HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     HANDLE_CUDA_ERROR(cudaFree(otherState));
     deviceStateVector = newDeviceStateVector;
+  }
+
+  void addQubitsToState(cudaq::SimulationState *initState) override {
+    // Check if it is the state of this Simulator
+    auto *statePtr = dynamic_cast<cudaq::CusvState<ScalarType> *>(initState);
+    if (!statePtr)
+      throw std::runtime_error("Incompatible initial state provided.");
+    int dev;
+    HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
+    if (dev != cudaq::CusvState<ScalarType>::deviceFromPointer(
+                   statePtr->getTensor().data))
+      throw std::runtime_error("CusvState is on a different GPU device.");
+    // Note: we assume the ownership of the initState pointer.
+    // TODO: look for a way to make this whole pointer passing safer.
+    if (!deviceStateVector) {
+      HANDLE_ERROR(custatevecCreate(&handle));
+      deviceStateVector = statePtr->getTensor().data;
+    } else {
+      // Allocate new vector to place the kron prod result
+      void *otherState = statePtr->getTensor().data;
+      void *newDeviceStateVector;
+      HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
+                                   stateDimension * sizeof(CudaDataType)));
+      // Compute the kronecker product
+      constexpr int32_t threads_per_block = 256;
+      const uint32_t n_blocks =
+          (stateDimension + threads_per_block - 1) / threads_per_block;
+      kronprod<CudaDataType><<<n_blocks, threads_per_block>>>(
+          previousStateDimension,
+          reinterpret_cast<CudaDataType *>(deviceStateVector),
+          (1UL << statePtr->getNumQubits()),
+          reinterpret_cast<CudaDataType *>(otherState),
+          reinterpret_cast<CudaDataType *>(newDeviceStateVector));
+      HANDLE_CUDA_ERROR(cudaGetLastError());
+
+      // Free the old vectors we don't need anymore.
+      HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
+      HANDLE_CUDA_ERROR(cudaFree(otherState));
+      deviceStateVector = newDeviceStateVector;
+    }
   }
 
   /// @brief Increase the state size by one qubit.

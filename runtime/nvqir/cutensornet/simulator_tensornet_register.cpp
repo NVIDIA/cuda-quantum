@@ -51,6 +51,41 @@ public:
                                                       m_cutnHandle);
   }
 
+  void addQubitsToState(cudaq::SimulationState *initState) override {
+    // Check if it is the state of this Simulator
+    auto *statePtr = dynamic_cast<TensorNetSimulationState *>(initState);
+    if (!statePtr)
+      throw std::runtime_error("Incompatible initial state provided.");
+
+    if (!m_state)
+      m_state = std::move(statePtr->m_state);
+    else {
+      // Expanding the state:
+      // (1) Create a blank tensor network with combined number of qubits
+      // (2) Add back the gate tensors of the original tensor network (first
+      // half of the register) (3) Add gate tensors of the incoming init state
+      // after remapping the leg indices, i.e., shifting the leg id by the
+      // original size.
+      const auto currentSize = m_state->getNumQubits();
+      // TODO: this depends on #1537 (implements addQubits);
+      // m_state->addQubits(statePtr->getNumQubits());
+      auto mapQubitIdxs = [currentSize](const std::vector<int32_t> &idxs) {
+        std::vector<int32_t> mapped(idxs);
+        for (auto &x : mapped)
+          x += currentSize;
+        return mapped;
+      };
+      for (auto &op : statePtr->m_state->m_tensorOps) {
+        if (op.isUnitary)
+          m_state->applyGate(mapQubitIdxs(op.qubitIds), op.deviceData,
+                             op.isAdjoint);
+        else
+          m_state->applyQubitProjector(op.deviceData,
+                                       mapQubitIdxs(op.qubitIds));
+      }
+    }
+  }
+
 private:
   friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();
   /// @brief Has cuTensorNet MPI been initialized?

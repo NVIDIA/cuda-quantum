@@ -40,6 +40,12 @@ public:
   std::complex<double> operator()(const std::initializer_list<std::size_t> &,
                                   std::size_t tensorIdx = 0);
 
+  /// @brief Return the number of qubits of this simulation state.
+  std::size_t get_num_qubits() const;
+
+  /// Release the underlying state that this owns.
+  SimulationState *release();
+
   /// @brief Return the tensor at the given index for this state representation.
   /// For state-vector and density matrix simulation states, there is just one
   /// tensor with rank 1 or 2 respectively.

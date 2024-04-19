@@ -203,6 +203,9 @@ public:
                  cudaq::simulation_precision precision =
                      cudaq::simulation_precision::fp32) = 0;
 
+  virtual std::vector<std::size_t>
+  allocateQubits(cudaq::SimulationState *initState) = 0;
+
   /// @brief Deallocate the qubit with give unique index
   virtual void deallocate(const std::size_t qubitIdx) = 0;
 
@@ -616,6 +619,8 @@ protected:
       addQubitToState();
   }
 
+  virtual void addQubitsToState(cudaq::SimulationState *initState) = 0;
+
   /// @brief Execute a sampling task with the current set of sample qubits.
   void flushAnySamplingTasks(bool force = false) {
     if (sampleQubits.empty())
@@ -827,6 +832,43 @@ public:
 
     // return the new qubit index
     return newIdx;
+  }
+
+  std::vector<std::size_t>
+  allocateQubits(cudaq::SimulationState *initState) override {
+    auto count = initState->getNumQubits();
+    std::vector<std::size_t> qubits;
+    for (std::size_t i = 0; i < count; i++)
+      qubits.emplace_back(tracker.getNextIndex());
+
+    if (isInBatchMode()) {
+      // Store the current number of qubits requested
+      batchModeCurrentNumQubits += count;
+
+      // We have an allocated state, it has been set to |0>,
+      // we want to reuse it as is. If the state needs to grow, then
+      // we will ask the subtype to add more qubits.
+      if (qubits.back() < nQubitsAllocated)
+        count = 0;
+      else
+        count = qubits.back() + 1 - nQubitsAllocated;
+    }
+
+    cudaq::info("Allocating {} new qubits.", count);
+
+    previousStateDimension = stateDimension;
+    nQubitsAllocated += count;
+    stateDimension = calculateStateDim(nQubitsAllocated);
+
+    // Tell the subtype to allocate more qubits
+    addQubitsToState(initState);
+
+    // May be that the state grows enough that we
+    // want to handle observation via sampling
+    if (executionContext)
+      executionContext->canHandleObserve = canHandleObserve();
+
+    return qubits;
   }
 
   /// @brief Allocate `count` qubits.

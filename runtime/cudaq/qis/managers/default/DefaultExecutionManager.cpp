@@ -69,6 +69,12 @@ protected:
     requestedAllocations.clear();
   }
 
+  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                       cudaq::SimulationState *initState) override {
+    simulator()->allocateQubits(initState);
+    requestedAllocations.clear();
+  }
+
   void deallocateQudit(const cudaq::QuditInfo &q) override {
 
     // Before trying to deallocate, make sure the qudit hasn't

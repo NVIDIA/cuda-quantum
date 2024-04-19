@@ -145,6 +145,7 @@ public:
 
 private:
   friend class SimulatorMPS;
+  friend class SimulatorTensorNet;
   friend class TensorNetSimulationState;
   /// Internal method to contract the tensor network.
   /// Returns device memory pointer and size (number of elements).

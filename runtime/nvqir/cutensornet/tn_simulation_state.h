@@ -80,6 +80,8 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> toSimulationState() override;
 
+  friend class SimulatorTensorNet;
+
 protected:
   std::unique_ptr<TensorNetState> m_state;
   cutensornetHandle_t m_cutnHandle;

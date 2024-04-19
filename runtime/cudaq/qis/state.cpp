@@ -52,6 +52,15 @@ state::operator()(const std::initializer_list<std::size_t> &indices,
   return (*internal)(tensorIdx, idxVec);
 }
 
+std::size_t state::get_num_qubits() const { return internal->getNumQubits(); }
+
+SimulationState *state::release() {
+  // TODO: make this safer: ideally making the `state` <-> `SimulationState` a
+  // 1:1 mapping.
+  SimulationState *ptr = internal.get();
+  return ptr;
+}
+
 std::complex<double> state::operator[](std::size_t idx) {
   std::size_t numQubits = internal->getNumQubits();
   if (!internal->isArrayLike()) {

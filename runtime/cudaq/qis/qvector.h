@@ -10,6 +10,7 @@
 
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qview.h"
+#include "cudaq/qis/state.h"
 
 namespace cudaq {
 
@@ -65,6 +66,19 @@ public:
       : qvector(std::vector<complex>{list.begin(), list.end()}) {}
   qvector(const std::initializer_list<complex> &list)
       : qvector(std::vector<complex>{list.begin(), list.end()}) {}
+
+  /// @brief Construct a `qvector` in a specific state.
+  // TODO: determine if we want to support state copying.
+  // On one hand, there could be a use case whereby the user want to keep the
+  // state intact. On the other hand, it's prone to excessive memory usage if
+  // not carefully managed.
+  qvector(const cudaq::state &initState) = delete;
+  qvector(cudaq::state &&initState) : qudits(initState.get_num_qubits()) {
+    std::vector<QuditInfo> targets;
+    for (auto &q : qudits)
+      targets.emplace_back(QuditInfo{Levels, q.id()});
+    getExecutionManager()->initializeState(targets, initState.release());
+  };
 
   /// @cond
   /// Nullary constructor

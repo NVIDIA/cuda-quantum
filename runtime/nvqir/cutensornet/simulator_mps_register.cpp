@@ -72,6 +72,10 @@ public:
     }
   }
 
+  void addQubitsToState(cudaq::SimulationState *initState) override {
+    throw std::runtime_error("addQubitsToState is not yet supported.");
+  }
+
   virtual void prepareQubitTensorState() override {
     LOG_API_TIME();
     // Clean up previously factorized MPS tensors

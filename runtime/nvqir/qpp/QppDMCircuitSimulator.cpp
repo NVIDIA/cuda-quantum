@@ -204,6 +204,17 @@ protected:
     state = qpp::kron(zero_state, state);
   }
 
+  void addQubitsToState(cudaq::SimulationState *initState) override {
+    // Check if it is the state of this Simulator
+    QppDmState *statePtr = dynamic_cast<QppDmState *>(initState);
+    if (!statePtr)
+      throw std::runtime_error("Incompatible initial state provided.");
+    if (state.size() == 0)
+      state = std::move(statePtr->state);
+    else
+      state = qpp::kron(statePtr->state, state);
+  }
+
   void setToZeroState() override {
     state = qpp::cmat::Zero(stateDimension, stateDimension);
     state(0, 0) = 1.0;
