@@ -24,7 +24,7 @@ state state::from_data(const state_data &data) {
     throw std::runtime_error(
         "[state::from_data] Could not find valid simulator backend.");
 
-  return state(simulator->createStateFromData(data).release());
+  return state(simulator->createStateFromData(data));
 }
 
 SimulationState::precision state::get_precision() const {
@@ -53,13 +53,6 @@ state::operator()(const std::initializer_list<std::size_t> &indices,
 }
 
 std::size_t state::get_num_qubits() const { return internal->getNumQubits(); }
-
-SimulationState *state::release() {
-  // TODO: make this safer: ideally making the `state` <-> `SimulationState` a
-  // 1:1 mapping.
-  SimulationState *ptr = internal.get();
-  return ptr;
-}
 
 std::complex<double> state::operator[](std::size_t idx) {
   std::size_t numQubits = internal->getNumQubits();
@@ -100,7 +93,7 @@ state::~state() {
   // Current use count is 1, so the
   // shared_ptr is about to go out of scope,
   // there are no users. Delete the state data.
-  if (internal.use_count() == 1)
+  if (internal)
     internal->destroyState();
 }
 

@@ -342,9 +342,11 @@ protected:
     deviceStateVector = newDeviceStateVector;
   }
 
-  void addQubitsToState(cudaq::SimulationState *initState) override {
+  void addQubitsToState(
+      std::unique_ptr<cudaq::SimulationState> &&initState) override {
     // Check if it is the state of this Simulator
-    auto *statePtr = dynamic_cast<cudaq::CusvState<ScalarType> *>(initState);
+    auto *statePtr =
+        dynamic_cast<cudaq::CusvState<ScalarType> *>(initState.release());
     if (!statePtr)
       throw std::runtime_error("Incompatible initial state provided.");
     int dev;
@@ -377,7 +379,8 @@ protected:
 
       // Free the old vectors we don't need anymore.
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
-      HANDLE_CUDA_ERROR(cudaFree(otherState));
+      statePtr->destroyState();
+      delete statePtr;
       deviceStateVector = newDeviceStateVector;
     }
   }

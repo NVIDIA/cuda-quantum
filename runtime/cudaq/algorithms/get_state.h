@@ -59,7 +59,7 @@ state extractState(KernelFunctor &&kernel) {
   // pointer to the state type. The state will retain
   // value semantics, due to its tracking of this simulation
   // data as a shared_ptr.
-  return state(context.simulationState.release());
+  return state(std::move(context.simulationState));
 }
 
 template <typename KernelFunctor>
@@ -88,7 +88,7 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
         func();
         platform.reset_exec_ctx(qpu_id);
         // Extract state data
-        p.set_value(state(context.simulationState.release()));
+        p.set_value(state(std::move(context.simulationState)));
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);

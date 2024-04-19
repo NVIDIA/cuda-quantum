@@ -224,15 +224,19 @@ protected:
     return;
   }
 
-  void addQubitsToState(cudaq::SimulationState *initState) override {
+  void addQubitsToState(
+      std::unique_ptr<cudaq::SimulationState> &&initState) override {
     // Check if it is the state of this Simulator
-    QppState *statePtr = dynamic_cast<QppState *>(initState);
+    QppState *statePtr = dynamic_cast<QppState *>(initState.release());
     if (!statePtr)
       throw std::runtime_error("Incompatible initial state provided.");
-    if (state.size() == 0)
+    if (state.size() == 0) {
       state = std::move(statePtr->state);
-    else
+    } else {
       state = qpp::kron(statePtr->state, state);
+      statePtr->destroyState();
+      delete statePtr;
+    }
   }
 
   /// @brief Reset the qubit state.

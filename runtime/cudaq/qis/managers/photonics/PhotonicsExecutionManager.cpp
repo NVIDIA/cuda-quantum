@@ -60,8 +60,9 @@ protected:
                        simulation_precision precision) override {
     throw std::runtime_error("initializeState not implemented.");
   }
-  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
-                       cudaq::SimulationState *initState) override {
+  void initializeState(
+      const std::vector<cudaq::QuditInfo> &targets,
+      std::unique_ptr<cudaq::SimulationState> &&initState) override {
     throw std::runtime_error("initializeState not implemented.");
   }
   /// @brief Qudit deallocation method

@@ -123,8 +123,9 @@ public:
   /// state.
   /// Note: the state must be compatible with the current runtime simulator
   /// instance.
-  virtual void initializeState(const std::vector<QuditInfo> &targets,
-                               SimulationState *initState) = 0;
+  virtual void
+  initializeState(const std::vector<QuditInfo> &targets,
+                  std::unique_ptr<cudaq::SimulationState> &&initState) = 0;
 
   /// Apply the quantum instruction with the given name, on the provided target
   /// qudits. Supports input of control qudits and rotational parameters. Can

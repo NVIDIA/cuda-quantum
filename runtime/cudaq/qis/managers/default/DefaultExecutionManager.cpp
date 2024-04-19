@@ -69,9 +69,10 @@ protected:
     requestedAllocations.clear();
   }
 
-  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
-                       cudaq::SimulationState *initState) override {
-    simulator()->allocateQubits(initState);
+  void initializeState(
+      const std::vector<cudaq::QuditInfo> &targets,
+      std::unique_ptr<cudaq::SimulationState> &&initState) override {
+    simulator()->allocateQubits(std::move(initState));
     requestedAllocations.clear();
   }
 

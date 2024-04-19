@@ -23,12 +23,20 @@ class state {
 
 private:
   /// @brief Reference to the simulation data
-  std::shared_ptr<SimulationState> internal;
+  std::unique_ptr<SimulationState> internal;
 
 public:
   /// @brief The constructor, takes the simulation data and owns it
-  state(SimulationState *ptrToOwn)
-      : internal(std::shared_ptr<SimulationState>(ptrToOwn)) {}
+  state(std::unique_ptr<SimulationState> &&ptrToOwn)
+      : internal(std::move(ptrToOwn)) {}
+
+  state(state &&s) : internal(std::move(s.internal)) {}
+  state &operator=(state &&other) {
+    internal.reset(other.internal.release());
+    return *this;
+  }
+
+  std::unique_ptr<SimulationState> release() { return std::move(internal); }
 
   /// @brief Convenience function for extracting from a known vector.
   std::complex<double> operator[](std::size_t idx);
@@ -42,9 +50,6 @@ public:
 
   /// @brief Return the number of qubits of this simulation state.
   std::size_t get_num_qubits() const;
-
-  /// Release the underlying state that this owns.
-  SimulationState *release();
 
   /// @brief Return the tensor at the given index for this state representation.
   /// For state-vector and density matrix simulation states, there is just one
