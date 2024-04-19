@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
       continue;
     }
     if (line.find(" linkonce_odr ") != std::string::npos ||
-	line.find(" weak dso_local ") != std::string::npos) {
+        line.find(" weak dso_local ") != std::string::npos) {
       outFile << line << std::endl;
       continue;
     }
