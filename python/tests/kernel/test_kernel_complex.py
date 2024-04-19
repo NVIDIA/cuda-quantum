@@ -11,7 +11,7 @@ import os, sys
 import pytest
 import numpy as np
 import math
-from typing import List 
+from typing import List
 
 import cudaq
 from cudaq import spin
@@ -33,11 +33,11 @@ def test_complex_params():
     @cudaq.kernel
     def complex_vec_param(vec : list[complex], i: int) -> complex:
         return vec[i]
-    
+
     # Returning complex is not supported yet
-    # for i in range(len(c)): 
+    # for i in range(len(c)):
     #    is_equal(c[i].real, complex_vec_param(c, i).real)
-    # for i in range(len(c)): 
+    # for i in range(len(c)):
     #    is_equal(c[i].imag, complex_vec_param(c, i).imag)
 
     @cudaq.kernel
@@ -45,7 +45,7 @@ def test_complex_params():
         v = vec[i]
         return v.real
     # Fails due to https://github.com/NVIDIA/cuda-quantum/issues/1529
-    # for i in range(len(c)): 
+    # for i in range(len(c)):
     #    assert is_equal(c[i].real, complex_vec_param_real(c, i))
 
     @cudaq.kernel
@@ -59,7 +59,7 @@ def test_complex_params():
         v = vec[i]
         return v.imag
     # Fails due to https://github.com/NVIDIA/cuda-quantum/issues/1529
-    # for i in range(len(c)): 
+    # for i in range(len(c)):
     #    assert is_equal(c[i].imag, complex_vec_param_imag(c, i))
 
     @cudaq.kernel
@@ -79,14 +79,14 @@ def test_complex_capture():
     def complex_vec_capture_real(i: int) -> float:
         v = c[i]
         return v.real
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].real, complex_vec_capture_real(i))
 
     @cudaq.kernel
     def complex_vec_capture_imag(i: int) -> float:
         v = c[i]
         return v.imag
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].imag, complex_vec_capture_imag(i))
 
 def test_complex_definition():
@@ -99,14 +99,14 @@ def test_complex_definition():
     def complex_vec_definition_real(i:int) -> float:
         v = [.70710678 + 0j, 0., 0., 0.70710678][i]
         return v.real
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].real, complex_vec_definition_real(i))
 
     @cudaq.kernel
     def complex_vec_definition_imag(i:int) -> float:
         v = [.70710678 + 0j, 0., 0., 0.70710678][i]
         return v.imag
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].imag, complex_vec_definition_imag(i))
 
 def test_complex_definition_with_constructor():
@@ -119,14 +119,14 @@ def test_complex_definition_with_constructor():
     def complex_vec_definition_real(i:int) -> float:
         v = [complex(.70710678, 0.), 0., 0., 0.70710678][i]
         return v.real
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].real, complex_vec_definition_real(i))
 
     @cudaq.kernel
     def complex_vec_definition_imag(i:int) -> float:
         v = [complex(.70710678, 0.), 0., 0., 0.70710678][i]
         return v.imag
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].imag, complex_vec_definition_imag(i))
 
 def test_complex_definition_with_constructor_named():
@@ -140,14 +140,14 @@ def test_complex_definition_with_constructor_named():
     def complex_vec_definition_real(i:int) -> float:
         v = [complex(real=.70710678, imag=0.), 0., 0., 0.70710678][i]
         return v.real
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].real, complex_vec_definition_real(i))
 
     @cudaq.kernel
     def complex_vec_definition_imag(i:int) -> float:
        v = [complex(real=.70710678, imag=0.), 0., 0., 0.70710678][i]
        return v.imag
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].imag, complex_vec_definition_imag(i))
 
     # Use int arguments to complex constructor
@@ -155,14 +155,14 @@ def test_complex_definition_with_constructor_named():
     def complex_vec_definition_real_i(i:int) -> float:
         v = [complex(real=.70710678, imag=0.), 0., 0., 0.70710678][i]
         return v.real
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].real, complex_vec_definition_real_i(i))
 
     @cudaq.kernel
     def complex_vec_definition_imag_i(i:int) -> float:
         v = [complex(real=.70710678, imag=0.), 0., 0., 0.70710678][i]
         return v.imag
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].imag, complex_vec_definition_imag_i(i))
 
     # Use int in list of complex
@@ -170,14 +170,14 @@ def test_complex_definition_with_constructor_named():
     def complex_vec_definition_real_ii(i:int) -> float:
         v = [complex(real=.70710678, imag=0.), 0., 0., 0.70710678][i]
         return v.real
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].real, complex_vec_definition_real_ii(i))
 
     @cudaq.kernel
     def complex_vec_definition_imag_ii(i:int) -> float:
         v = [complex(real=.70710678, imag=0.), 0., 0., 0.70710678][i]
         return v.imag
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].imag, complex_vec_definition_imag_ii(i))
 
 def test_complex_use():
@@ -209,11 +209,11 @@ def test_np_complex128_params():
     @cudaq.kernel
     def complex_vec_param(vec : list[np.complex128], i: int) -> complex:
         return vec[i]
-    
+
     # Returning complex is not supported yet
-    # for i in range(len(c)): 
+    # for i in range(len(c)):
     #    is_equal(c[i].real, complex_vec_param(c, i).real)
-    # for i in range(len(c)): 
+    # for i in range(len(c)):
     #    is_equal(c[i].imag, complex_vec_param(c, i).imag)
 
     @cudaq.kernel
@@ -221,7 +221,7 @@ def test_np_complex128_params():
         v = vec[i]
         return v.real
     # Fails due to https://github.com/NVIDIA/cuda-quantum/issues/1529
-    # for i in range(len(c)): 
+    # for i in range(len(c)):
     #    assert is_equal(c[i].real, complex_vec_param_real(c, i))
 
     @cudaq.kernel
@@ -235,7 +235,7 @@ def test_np_complex128_params():
         v = vec[i]
         return v.imag
     # Fails due to https://github.com/NVIDIA/cuda-quantum/issues/1529
-    # for i in range(len(c)): 
+    # for i in range(len(c)):
     #    assert is_equal(c[i].imag, complex_vec_param_imag(c, i))
 
     @cudaq.kernel
@@ -255,14 +255,14 @@ def test_np_complex128_capture():
     def complex_vec_capture_real(i: int) -> float:
         v = c[i]
         return v.real
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].real, complex_vec_capture_real(i))
 
     @cudaq.kernel
     def complex_vec_capture_imag(i: int) -> float:
         v = c[i]
         return v.imag
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].imag, complex_vec_capture_imag(i))
 
 def test_np_complex128_definition():
@@ -275,14 +275,14 @@ def test_np_complex128_definition():
     def complex_vec_definition_real(i:int) -> float:
         v = [np.complex128(.70710678 + 0j),np.complex128(0.), np.complex128(0.), np.complex128(0.70710678)][i]
         return v.real
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].real, complex_vec_definition_real(i))
 
     @cudaq.kernel
     def complex_vec_definition_imag(i:int) -> float:
         v = [np.complex128(.70710678 + 0j),np.complex128(0.), np.complex128(0.), np.complex128(0.70710678)][i]
         return v.imag
-    for i in range(len(c)): 
+    for i in range(len(c)):
         assert is_equal(c[i].imag, complex_vec_definition_imag(i))
 
 def test_np_complex128_use():

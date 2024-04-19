@@ -11,7 +11,7 @@ import os, sys
 import pytest
 import numpy as np
 import math
-from typing import List 
+from typing import List
 
 import cudaq
 from cudaq import spin
@@ -28,12 +28,12 @@ def test_float_params():
 
     # Pass a list of float as a parameter
     @cudaq.kernel
-    def float_vec_param(vec : list[float], i : int) -> float: 
+    def float_vec_param(vec : list[float], i : int) -> float:
         return vec[i]
 
     # Fails due to https://github.com/NVIDIA/cuda-quantum/issues/1529
-    # for i in range(len(f)): 
-    #    assert np.isclose(f[i], float_vec_param(f, i), atol=1e-6) 
+    # for i in range(len(f)):
+    #    assert np.isclose(f[i], float_vec_param(f, i), atol=1e-6)
     #
     # Using below as a temporary replacement test until the issue is fixed
     def float_vec_param_temp(vec : list[float]) -> float:
@@ -51,7 +51,7 @@ def test_float_capture():
     def float_vec_capture(i: int) -> float:
         return f[i]
 
-    for i in range(len(f)): 
+    for i in range(len(f)):
         assert np.isclose(f[i], float_vec_capture(i), atol=1e-6)
 
 
@@ -65,7 +65,7 @@ def test_float_definition():
     def float_vec_definition(i: int) -> float:
         return [0., 1., 1., 0.][i]
 
-    for i in range(len(f)): 
+    for i in range(len(f)):
         assert np.isclose(f[i], float_vec_definition(i), atol=1e-6)
 
 
