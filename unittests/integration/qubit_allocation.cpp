@@ -76,6 +76,7 @@ CUDAQ_TEST(AllocationTester, checkSetState) {
     c += count;
     EXPECT_TRUE(bits == "00" || bits == "11");
   }
+  EXPECT_EQ(c, 1000);
 }
 
 CUDAQ_TEST(AllocationTester, checkSetStateExpandRegister) {
@@ -87,6 +88,7 @@ CUDAQ_TEST(AllocationTester, checkSetStateExpandRegister) {
     c += count;
     EXPECT_TRUE(bits == "1100" || bits == "1111");
   }
+  EXPECT_EQ(c, 1000);
 }
 
 #ifdef CUDAQ_BACKEND_DM
