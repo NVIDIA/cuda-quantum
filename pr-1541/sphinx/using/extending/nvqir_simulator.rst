@@ -135,7 +135,8 @@ and then fill out your :code:`MySimulator.cpp` file with your subtype implementa
         /// @brief Apply the given gate
         void applyGate(const GateApplicationTask &task) override { ... }
 
-        void doResetQubit(std::size_t &qubitIdx) override { ... }
+        /// @brief Reset a qubit to the |0> state.
+        void doResetQubit(std::size_t qubitIdx) override { ... }
 
       public:
         MySimulator() = default;
