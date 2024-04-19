@@ -355,7 +355,6 @@ protected:
                    statePtr->getTensor().data))
       throw std::runtime_error("CusvState is on a different GPU device.");
     // Note: we assume the ownership of the initState pointer.
-    // TODO: look for a way to make this whole pointer passing safer.
     if (!deviceStateVector) {
       HANDLE_ERROR(custatevecCreate(&handle));
       deviceStateVector = statePtr->getTensor().data;
