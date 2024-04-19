@@ -2633,8 +2633,8 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5state5stateEP15SimulationState">
-<span class="target" id="classcudaq_1_1state_1ae07a132f3563b069e3e2acd494ec4eec"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">state</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ptrToOwn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5state5stateEP15SimulationState" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5state5stateERRNSt10unique_ptrI15SimulationStateEE">
+<span class="target" id="classcudaq_1_1state_1a128eaf922096d84b371ad23e5f94d3c1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">state</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ptrToOwn</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5state5stateERRNSt10unique_ptrI15SimulationStateEE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The constructor, takes the simulation data and owns it. </p>
 </dd></dl>
 
@@ -2660,12 +2660,6 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq5state14get_num_qubitsEv">
 <span class="target" id="classcudaq_1_1state_1a79d449c7e66ae1a83dacbf6ea2573a2c"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_num_qubits</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq5state14get_num_qubitsEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return the number of qubits of this simulation state. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq5state7releaseEv">
-<span class="target" id="classcudaq_1_1state_1a8e96f47d80961dfad6bc526b37a57ee6"></span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">release</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq5state7releaseEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Release the underlying state that this owns. </p>
 </dd></dl>
 
 <dl class="cpp function">
