@@ -136,10 +136,14 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     python3 -m build --wheel
     ## [<CUDAQuantumPythonBuild]
 
+# The '[a-z]*linux_[^\.]*' is meant to catch things like:
+# - manylinux_2_28_x86_64,
+# - manylinux_2_28_aarch64,
+# - linux_x86_64, etc.
 RUN echo "Patching up wheel using auditwheel..." && \
     ## [>CUDAQuantumWheel]
     CUDAQ_WHEEL="$(find . -name 'cuda_quantum*.whl')" && \
-    MANYLINUX_PLATFORM="$(echo ${CUDAQ_WHEEL} | grep -o 'manylinux_[^\.]*')" && \
+    MANYLINUX_PLATFORM="$(echo ${CUDAQ_WHEEL} | grep -o '[a-z]*linux_[^\.]*')" && \
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/_skbuild/lib" \ 
     python3 -m auditwheel -v repair ${CUDAQ_WHEEL} \
         --plat ${MANYLINUX_PLATFORM} \
