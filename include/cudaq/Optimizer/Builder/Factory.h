@@ -20,6 +20,7 @@ namespace cudaq {
 namespace cc {
 class LoopOp;
 class PointerType;
+class StateType;
 class StructType;
 } // namespace cc
 
@@ -71,7 +72,7 @@ inline mlir::Type getPointerType(mlir::Type ty) {
 }
 
 /// Get the Quake type translation of a `cudaq::state` type.
-cc::StructType getCudaqStateType(mlir::MLIRContext *ctx);
+cc::StateType getCudaqStateType(mlir::MLIRContext *ctx);
 
 cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
 
