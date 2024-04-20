@@ -560,13 +560,25 @@ CUDAQ_ONE_QUBIT_PARAM_IMPL(rz, RzOp)
 CUDAQ_ONE_QUBIT_PARAM_IMPL(r1, R1Op)
 
 void u3(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &parameters,
-        QuakeValue &target) {
+        std::vector<QuakeValue> &ctrls, const std::vector<QuakeValue> &qubits,
+        bool adjoint) {
   cudaq::info("kernel_builder apply u3");
+
   std::vector<Value> parameterValues;
   std::transform(parameters.begin(), parameters.end(),
                  std::back_inserter(parameterValues),
                  [](auto &el) { return el.getValue(); });
-  builder.create<quake::U3Op>(parameterValues, target.getValue());
+
+  std::vector<Value> qubitValues;
+  std::transform(qubits.begin(), qubits.end(), std::back_inserter(qubitValues),
+                 [](auto &el) { return el.getValue(); });
+
+  std::vector<Value> ctrlValues;
+  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(ctrlValues),
+                 [](auto &el) { return el.getValue(); });
+
+  builder.create<quake::U3Op>(adjoint, parameterValues, ctrlValues,
+                              qubitValues);
 }
 
 template <typename QuakeMeasureOp>

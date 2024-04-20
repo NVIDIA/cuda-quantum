@@ -1254,6 +1254,20 @@ def test_u3_op():
     assert counts["1"] == 1000
 
 
+@pytest.mark.skip("Controlled U3 not implemented")
+def test_u3_ctrl():
+
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+    kernel.u3(np.pi / 2, 0., np.pi, qubits[0])
+    kernel.cu3(np.pi, np.pi, np.pi / 2, qubits[0], qubits[1])
+
+    counts = cudaq.sample(kernel)
+    assert (len(counts) == 2)
+    assert ('00' in counts)
+    assert ('11' in counts)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

@@ -127,12 +127,13 @@ template <typename A, typename P = void>
 bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
              SmallVector<Value> &negations,
              llvm::function_ref<void()> reportNegateError,
-             bool isAdjoint = false, bool isControl = false) {
+             bool isAdjoint = false, bool isControl = false,
+             size_t paramCount = 1) {
   if constexpr (std::is_same_v<P, Param>) {
     assert(operands.size() >= 2 && "must be at least 2 operands");
-    auto params = operands.take_front();
-    auto [target, ctrls] =
-        maybeUnpackOperands(builder, loc, operands.drop_front(1), isControl);
+    auto params = operands.take_front(paramCount);
+    auto [target, ctrls] = maybeUnpackOperands(
+        builder, loc, operands.drop_front(paramCount), isControl);
     for (auto v : target)
       if (std::find(negations.begin(), negations.end(), v) != negations.end())
         reportNegateError();
@@ -1582,12 +1583,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                          reportNegateError, isAdjoint,
                                          /*control=*/true);
 
-    if (funcName.equals("u3")) {
-      const auto size = args.size();
-      assert(size == 4);
-      SmallVector<Value> params(args.begin(), args.end() - 1);
-      builder.create<quake::U3Op>(loc, params, args.back());
-    }
+    if (funcName.equals("u3"))
+      return buildOp<quake::U3Op, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         isControl, /*paramCount=*/3);
 
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to

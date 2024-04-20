@@ -79,6 +79,16 @@ def __generalOperation(self,
     self.createInvariantForLoop(size, body)
 
 
+def get_parameter_value(self, parameter):
+    paramVal = parameter
+    if isinstance(parameter, float):
+        fty = mlirTypeFromPyType(float, self.ctx)
+        paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
+    elif isinstance(parameter, QuakeValue):
+        paramVal = parameter.mlirValue
+    return paramVal
+
+
 def __singleTargetOperation(self, opName, target, isAdj=False):
     """
     Utility function for adding a single target quantum operation to the 
@@ -126,14 +136,8 @@ def __singleTargetSingleParameterOperation(self,
     MLIR representation for the PyKernel.
     """
     with self.insertPoint, self.loc:
-        paramVal = None
-        if isinstance(parameter, float):
-            fty = mlirTypeFromPyType(float, self.ctx)
-            paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
-        else:
-            paramVal = parameter.mlirValue
         __generalOperation(self,
-                           opName, [paramVal], [],
+                           opName, [get_parameter_value(self, parameter)], [],
                            target,
                            isAdj=isAdj,
                            context=self.ctx)
@@ -160,15 +164,8 @@ def __singleTargetSingleParameterControlOperation(self,
         else:
             emitFatalError(f"invalid controls type for {opName}.")
 
-        paramVal = parameter
-        if isinstance(parameter, float):
-            fty = mlirTypeFromPyType(float, self.ctx)
-            paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
-        elif isinstance(parameter, QuakeValue):
-            paramVal = parameter.mlirValue
-
         __generalOperation(self,
-                           opName, [paramVal],
+                           opName, [get_parameter_value(self, parameter)],
                            fwdControls,
                            target,
                            isAdj=isAdj,
@@ -631,19 +628,26 @@ class PyKernel(object):
             kernel.u3(np.pi, np.pi, np.pi / 2, q)
         ```
         """
-
-        def get_parameter_value(param):
-            if isinstance(param, float):
-                fty = mlirTypeFromPyType(float, self.ctx)
-                paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, param))
-            else:
-                paramVal = param.mlirValue
-            return paramVal
-
         with self.insertPoint, self.loc:
-            quake.U3Op([],
-                       [get_parameter_value(p) for p in [theta, phi, delta]],
-                       [], [target.mlirValue])
+            quake.U3Op(
+                [], [get_parameter_value(self, p) for p in [theta, phi, delta]],
+                [], [target.mlirValue])
+
+    def cu3(self, theta, phi, delta, controls, target):
+        with self.insertPoint, self.loc:
+            fwdControls = None
+            if isinstance(controls, list):
+                fwdControls = [c.mlirValue for c in controls]
+            elif quake.RefType.isinstance(
+                    controls.mlirValue.type) or quake.VeqType.isinstance(
+                        controls.mlirValue.type):
+                fwdControls = [controls.mlirValue]
+            else:
+                emitFatalError(f"invalid controls type for cu3.")
+
+            quake.U3Op(
+                [], [get_parameter_value(self, p) for p in [theta, phi, delta]],
+                fwdControls, [target.mlirValue])
 
     def cswap(self, controls, qubitA, qubitB):
         """

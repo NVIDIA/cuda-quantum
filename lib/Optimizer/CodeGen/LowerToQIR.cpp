@@ -791,23 +791,17 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto instName = instOp->getName().stripDialect().str();
     auto numControls = instOp.getControls().size();
-    auto loc = instOp->getLoc();
+    auto instOperands = adaptor.getOperands();
+
+    auto loc = instOp.getLoc();
     ModuleOp parentModule = instOp->template getParentOfType<ModuleOp>();
-    auto *context = instOp.getContext();
-    auto qirFunctionName = std::string(cudaq::opt::QIRQISPrefix) + instName;
+    auto context = parentModule->getContext();
+    std::string qirQisPrefix = cudaq::opt::QIRQISPrefix;
+    auto qirFunctionName = qirQisPrefix + instName;
 
-    SmallVector<Type> tmpArgTypes;
     auto qubitIndexType = cudaq::opt::getQubitType(context);
-
+    auto qubitArrayType = cudaq::opt::getArrayType(context);
     auto paramType = FloatType::getF64(context);
-    tmpArgTypes.push_back(paramType);
-    tmpArgTypes.push_back(paramType);
-    tmpArgTypes.push_back(paramType);
-    tmpArgTypes.push_back(qubitIndexType);
-
-    FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
-        std::move(tmpArgTypes), parentModule);
 
     SmallVector<Value> funcArgs;
     auto castToDouble = [&](Value v) {
@@ -815,24 +809,101 @@ public:
         v = rewriter.create<arith::ExtFOp>(loc, rewriter.getF64Type(), v);
       return v;
     };
-
-    for (size_t i = 0; i < 3; i++) {
-      Value v = adaptor.getOperands()[i];
-      v = instOp.getIsAdj() ? rewriter.create<arith::NegFOp>(loc, v) : v;
-      funcArgs.push_back(castToDouble(v));
+    // 3 parameters
+    for (int i = 0; i < 3; i++) {
+      Value val = instOp.getIsAdj()
+                      ? rewriter.create<arith::NegFOp>(loc, instOperands[i])
+                      : instOperands[i];
+      funcArgs.push_back(castToDouble(val));
     }
 
-    // TODO: What about the control qubits?
-    if (numControls != 0)
-      return instOp.emitError("unsupported controlled op " + instName +
-                              " with " + std::to_string(numControls) +
-                              " ctrl qubits");
+    // If no controls, then this is simple
+    if (numControls == 0) {
+      FlatSymbolRefAttr symbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
+              {paramType, paramType, paramType, qubitIndexType}, parentModule);
 
-    funcArgs.push_back(adaptor.getOperands()[numControls + 3]);
+      funcArgs.push_back(adaptor.getTargets().front());
 
-    // Create the CallOp for this quantum instruction
-    rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
-                                              funcArgs);
+      // Create the CallOp for this quantum instruction
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, ArrayRef<Type>{},
+                                                symbolRef, funcArgs);
+      return success();
+    }
+
+    qirFunctionName += "__ctl";
+
+    // __quantum__qis__u3__ctl(double, double, double, Array*, Qubit*) Type
+    auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
+        LLVM::LLVMVoidType::get(context),
+        {paramType, paramType, paramType, qubitArrayType, qubitIndexType});
+
+    // Get function pointer to ctrl operation
+    FlatSymbolRefAttr instSymbolRef =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
+            {paramType, paramType, paramType, qubitArrayType, qubitIndexType},
+            parentModule);
+
+    // We have >= 1 control, is the first a veq or a ref?
+    auto control = *instOp.getControls().begin();
+    Type type = control.getType();
+    // If type is a VeqType, then we're good, just forward to the call op
+    if (numControls == 1 && type.isa<quake::VeqType>()) {
+
+      // Add the control array to the args.
+      funcArgs.push_back(adaptor.getControls().front());
+
+      // Add the target op
+      funcArgs.push_back(adaptor.getTargets().front());
+
+      // Here we already have and Array*, Qubit*
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{},
+                                                instSymbolRef, funcArgs);
+      return success();
+    }
+
+    // The remaining scenarios are best handled with the
+    // invokeU3RotationWithControlQubits function.
+
+    Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
+        loc, LLVM::LLVMPointerType::get(instOpQISFunctionType), instSymbolRef);
+
+    // Get symbol for void invokeU3RotationWithControlQubits(double theta,
+    // double phi, double lambda, const std::size_t numControlOperands, i64*
+    // isArrayAndLength, void (*QISFunction)(Array*, Qubit*), Qubit*, ...);
+    auto i64Type = rewriter.getI64Type();
+    auto applyMultiControlFunction =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            cudaq::opt::NVQIRInvokeU3RotationWithControlBits,
+            LLVM::LLVMVoidType::get(context),
+            {paramType, paramType, paramType, i64Type,
+             LLVM::LLVMPointerType::get(i64Type),
+             LLVM::LLVMPointerType::get(instOpQISFunctionType)},
+            parentModule, true);
+
+    // numControls could be more than num operands,
+    // e.g. ctrls = {veq<2>, ref} is 3 and not 2 controls
+    // We need an i64 array encoding 0 if control operand is a ref, and N if
+    // control operand is a veq<N>.
+    Value numControlOperands =
+        cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls);
+
+    // Create an integer array where the kth element is N if the kth
+    // control operand is a veq<N>, and 0 otherwise.
+    Value isArrayAndLengthArr = cudaq::opt::factory::packIsArrayAndLengthArray(
+        loc, rewriter, parentModule, numControlOperands, adaptor.getControls());
+
+    funcArgs.push_back(numControlOperands);
+    funcArgs.push_back(isArrayAndLengthArr);
+    funcArgs.push_back(ctrlOpPointer);
+    funcArgs.append(instOperands.begin(), instOperands.end());
+
+    // Call our utility function.
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        instOp, TypeRange{}, applyMultiControlFunction, funcArgs);
+
     return success();
   }
 };
