@@ -872,7 +872,8 @@ public:
 
     // Get symbol for void invokeU3RotationWithControlQubits(double theta,
     // double phi, double lambda, const std::size_t numControlOperands, i64*
-    // isArrayAndLength, void (*QISFunction)(Array*, Qubit*), Qubit*, ...);
+    // isArrayAndLength, void (*QISFunction)(double, double, double, Array*,
+    // Qubit*), Qubit*, ...);
     auto i64Type = rewriter.getI64Type();
     auto applyMultiControlFunction =
         cudaq::opt::factory::createLLVMFunctionSymbol(

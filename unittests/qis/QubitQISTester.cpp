@@ -392,4 +392,33 @@ CUDAQ_TEST(QubitQISTester, checkU3Op) {
   }
 }
 
+CUDAQ_TEST(QubitQISTester, checkU3Ctrl) {
+  auto another_bell_pair = []() {
+    cudaq::qvector qubits(2);
+    u3(M_PI_2, 0., M_PI, qubits[0]);
+    u3<cudaq::ctrl>(M_PI, M_PI, M_PI_2, qubits[0], qubits[1]);
+  };
+  auto counts = cudaq::sample(another_bell_pair);
+  counts.dump();
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "00" || bits == "11");
+  }
+}
+
+CUDAQ_TEST(QubitQISTester, checkU3Adj) {
+  auto rotation_adjoint_test = []() {
+    cudaq::qubit q;
+    // u3(1.1, -M_PI_2, M_PI_2, q);
+    // u3<cudaq::adj>(1.1, -M_PI_2, M_PI_2, q);
+    u3(1.1, 0., 0., q);
+    u3<cudaq::adj>(1.1, 0., 0., q);
+  };
+
+  auto counts = cudaq::sample(rotation_adjoint_test);
+  counts.dump();
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "0");
+  }
+}
+
 #endif

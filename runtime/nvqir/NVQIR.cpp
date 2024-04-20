@@ -820,7 +820,7 @@ void invokeRotationWithControlQubits(
 void invokeU3RotationWithControlQubits(
     double theta, double phi, double lambda,
     const std::size_t numControlOperands, std::size_t *isArrayAndLength,
-    void (*QISFunction)(double, Array *, Qubit *), ...) {
+    void (*QISFunction)(double, double, double, Array *, Qubit *), ...) {
   va_list args;
   va_start(args, QISFunction);
   double params[3] = {theta, phi, lambda};

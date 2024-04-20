@@ -1247,7 +1247,7 @@ def test_list_subscript():
 def test_u3_op():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(1)
-    # TODO: Allow use of only `q`
+    # ASKME: Allow use of only `q`?
     kernel.u3(np.pi, np.pi, np.pi / 2, q[0])
 
     counts = cudaq.sample(kernel)
