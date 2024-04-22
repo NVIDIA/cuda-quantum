@@ -69,8 +69,7 @@ public:
       // after remapping the leg indices, i.e., shifting the leg id by the
       // original size.
       const auto currentSize = m_state->getNumQubits();
-      // TODO: this depends on #1537 (implements addQubits);
-      // m_state->addQubits(statePtr->getNumQubits());
+      m_state->addQubits(statePtr->getNumQubits());
       auto mapQubitIdxs = [currentSize](const std::vector<int32_t> &idxs) {
         std::vector<int32_t> mapped(idxs);
         for (auto &x : mapped)
