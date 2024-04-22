@@ -14,7 +14,7 @@ on:
 name: Push stable release
 
 jobs:
-  cudaq_hpc:
+  ngc_quantum:
     name: Publish to stable
     runs-on: ubuntu-latest
     permissions:
@@ -25,6 +25,9 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Log in to NGC registry
         uses: docker/login-action@v3
         with:
