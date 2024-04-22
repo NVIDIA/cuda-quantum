@@ -133,16 +133,12 @@ static bool isKernelResultType(Type t) {
          isStaticArithmeticProductType(t);
 }
 
-/// Is \p t a std::string type?
-static bool isStringType(Type t) { return isa<cudaq::cc::CharspanType>(t); }
-
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
 /// dynamic type composed of arithmetic types, a quantum type, a callable
 /// (function), or a string.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
          isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-         isStringType(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
