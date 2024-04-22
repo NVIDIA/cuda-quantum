@@ -192,9 +192,9 @@ protected:
 
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
-  void addQubitsToState(std::size_t count,
+  void addQubitsToState(std::size_t qubitCount,
                         const void *stateDataIn = nullptr) override {
-    if (count == 0)
+    if (qubitCount == 0)
       return;
 
     auto *stateData = reinterpret_cast<std::complex<double> *>(
@@ -209,16 +209,15 @@ protected:
         state = qpp::ket::Map(stateData, stateDimension);
       return;
     }
-
     // If we are resizing an existing, allocate
     // a zero state on a n qubit, and Kron-prod
     // that with the existing state.
     if (stateData == nullptr) {
-      qpp::ket zero_state = qpp::ket::Zero((1UL << count));
+      qpp::ket zero_state = qpp::ket::Zero((1UL << qubitCount));
       zero_state(0) = 1.0;
       state = qpp::kron(zero_state, state);
     } else {
-      qpp::ket initState = qpp::ket::Map(stateData, count);
+      qpp::ket initState = qpp::ket::Map(stateData, (1UL << qubitCount));
       state = qpp::kron(initState, state);
     }
     return;

@@ -36,6 +36,25 @@ struct test_resizing {
   }
 };
 
+struct test_bell_init {
+  void operator()() __qpu__ {
+    // Start with an initial allocation of 2 qubits in a specific state.
+    cudaq::qvector q({M_SQRT1_2, 0.0, 0.0, M_SQRT1_2});
+    mz(q);
+  }
+};
+
+struct test_state_expand_init {
+  void operator()() __qpu__ {
+    cudaq::qvector q(2);
+    x(q);
+    // Add 2 more qubits in Bell state
+    cudaq::qvector q1({M_SQRT1_2, 0.0, 0.0, M_SQRT1_2});
+    mz(q);
+    mz(q1);
+  }
+};
+
 CUDAQ_TEST(AllocationTester, checkSimple) {
   test_allocation{}();
 
@@ -45,6 +64,29 @@ CUDAQ_TEST(AllocationTester, checkSimple) {
   for (auto &[bits, count] : counts) {
     c += count;
     EXPECT_TRUE(bits == "00" || bits == "11");
+  }
+  EXPECT_EQ(c, 1000);
+}
+
+CUDAQ_TEST(AllocationTester, checkSetState) {
+  auto counts = cudaq::sample(test_bell_init{});
+  EXPECT_EQ(2, counts.size());
+  int c = 0;
+  for (auto &[bits, count] : counts) {
+    c += count;
+    EXPECT_TRUE(bits == "00" || bits == "11");
+  }
+  EXPECT_EQ(c, 1000);
+}
+
+CUDAQ_TEST(AllocationTester, checkSetStateExpandRegister) {
+  auto counts = cudaq::sample(test_state_expand_init{});
+  EXPECT_EQ(2, counts.size());
+  counts.dump();
+  int c = 0;
+  for (auto &[bits, count] : counts) {
+    c += count;
+    EXPECT_TRUE(bits == "1100" || bits == "1111");
   }
   EXPECT_EQ(c, 1000);
 }

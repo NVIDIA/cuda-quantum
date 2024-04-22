@@ -63,6 +63,54 @@ void TensorNetState::applyQubitProjector(void *proj_d,
   m_tensorOps.emplace_back(AppliedTensorOp{proj_d, qubitIdx, false, false});
 }
 
+void TensorNetState::addQubits(std::size_t numQubits) {
+  // Destroy the current quantum circuit state
+  HANDLE_CUTN_ERROR(cutensornetDestroyState(m_quantumState));
+  m_numQubits += numQubits;
+  const std::vector<int64_t> qubitDims(m_numQubits, 2);
+  HANDLE_CUTN_ERROR(cutensornetCreateState(
+      m_cutnHandle, CUTENSORNET_STATE_PURITY_PURE, m_numQubits,
+      qubitDims.data(), CUDA_C_64F, &m_quantumState));
+  // Append any previously-applied gate tensors.
+  // These tensors will only be appending to those existing qubit wires, i.e.,
+  // the new wires are all empty (zero state).
+  int64_t tensorId = 0;
+  for (auto &op : m_tensorOps)
+    HANDLE_CUTN_ERROR(cutensornetStateApplyTensor(
+        m_cutnHandle, m_quantumState, op.qubitIds.size(), op.qubitIds.data(),
+        op.deviceData, nullptr, /*immutable*/ 1,
+        /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+        /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+}
+
+void TensorNetState::addQubits(std::span<std::complex<double>> stateVec) {
+  const std::size_t numQubits = std::log2(stateVec.size());
+  auto ket =
+      Eigen::Map<const Eigen::VectorXcd>(stateVec.data(), stateVec.size());
+  Eigen::VectorXcd initState = Eigen::VectorXcd::Zero(stateVec.size());
+  initState(0) = std::complex<double>{1.0, 0.0};
+  Eigen::MatrixXcd stateVecProj = ket * initState.transpose();
+  assert(static_cast<std::size_t>(stateVecProj.size()) ==
+         stateVec.size() * stateVec.size());
+  stateVecProj.transposeInPlace();
+  void *d_proj{nullptr};
+  HANDLE_CUDA_ERROR(
+      cudaMalloc(&d_proj, stateVecProj.size() * sizeof(std::complex<double>)));
+  HANDLE_CUDA_ERROR(
+      cudaMemcpy(d_proj, stateVecProj.data(),
+                 stateVecProj.size() * sizeof(std::complex<double>),
+                 cudaMemcpyHostToDevice));
+
+  std::vector<int32_t> qubitIdx(numQubits);
+  std::iota(qubitIdx.begin(), qubitIdx.end(), m_numQubits);
+  // Add qubits in zero state
+  addQubits(numQubits);
+
+  // Project the state of those new qubits to the input state.
+  applyQubitProjector(d_proj, qubitIdx);
+  m_tempDevicePtrs.emplace_back(d_proj);
+}
+
 std::unordered_map<std::string, size_t>
 TensorNetState::sample(const std::vector<int32_t> &measuredBitIds,
                        int32_t shots) {
@@ -492,9 +540,9 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
   return state;
 }
 
-std::unique_ptr<TensorNetState> TensorNetState::createFromStateVector(
-    const std::vector<std::complex<double>> &stateVec,
-    cutensornetHandle_t handle) {
+std::unique_ptr<TensorNetState>
+TensorNetState::createFromStateVector(std::span<std::complex<double>> stateVec,
+                                      cutensornetHandle_t handle) {
   const std::size_t numQubits = std::log2(stateVec.size());
   auto state = std::make_unique<TensorNetState>(numQubits, handle);
 

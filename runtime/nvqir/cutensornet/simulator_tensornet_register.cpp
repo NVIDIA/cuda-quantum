@@ -51,6 +51,29 @@ public:
                                                       m_cutnHandle);
   }
 
+  void addQubitsToState(std::size_t numQubits, const void *ptr) override {
+    LOG_API_TIME();
+    if (!m_state) {
+      if (!ptr) {
+        m_state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
+      } else {
+        auto *casted =
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
+        std::span<std::complex<double>> stateVec(casted, 1ULL << numQubits);
+        m_state = TensorNetState::createFromStateVector(stateVec, m_cutnHandle);
+      }
+    } else {
+      if (!ptr) {
+        m_state->addQubits(numQubits);
+      } else {
+        auto *casted =
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
+        std::span<std::complex<double>> stateVec(casted, 1ULL << numQubits);
+        m_state->addQubits(stateVec);
+      }
+    }
+  }
+
 private:
   friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();
   /// @brief Has cuTensorNet MPI been initialized?
