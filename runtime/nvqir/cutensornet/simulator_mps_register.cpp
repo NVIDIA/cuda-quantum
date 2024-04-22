@@ -72,8 +72,8 @@ public:
     }
   }
 
-  void addQubitsToState(
-      std::unique_ptr<cudaq::SimulationState> &&initState) override {
+  void addQubitsToState(cudaq::SimulationState *initState,
+                        AllocatorFlag flag) override {
     throw std::runtime_error("addQubitsToState is not yet supported.");
   }
 

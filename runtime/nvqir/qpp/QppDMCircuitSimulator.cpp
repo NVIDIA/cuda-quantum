@@ -220,10 +220,10 @@ protected:
     }
   }
 
-  void addQubitsToState(
-      std::unique_ptr<cudaq::SimulationState> &&initState) override {
+  void addQubitsToState(cudaq::SimulationState *initState,
+                        AllocatorFlag flag) override {
     // Check if it is the state of this Simulator
-    QppDmState *statePtr = dynamic_cast<QppDmState *>(initState.release());
+    QppDmState *statePtr = dynamic_cast<QppDmState *>(initState);
     if (!statePtr)
       throw std::runtime_error("Incompatible initial state provided.");
     if (state.size() == 0)

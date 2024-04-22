@@ -342,11 +342,10 @@ protected:
     deviceStateVector = newDeviceStateVector;
   }
 
-  void addQubitsToState(
-      std::unique_ptr<cudaq::SimulationState> &&initState) override {
+  void addQubitsToState(cudaq::SimulationState *initState,
+                        nvqir::CircuitSimulator::AllocatorFlag flag) override {
     // Check if it is the state of this Simulator
-    auto *statePtr =
-        dynamic_cast<cudaq::CusvState<ScalarType> *>(initState.release());
+    auto *statePtr = dynamic_cast<cudaq::CusvState<ScalarType> *>(initState);
     if (!statePtr)
       throw std::runtime_error("Incompatible initial state provided.");
     int dev;
@@ -354,10 +353,32 @@ protected:
     if (dev != cudaq::CusvState<ScalarType>::deviceFromPointer(
                    statePtr->getTensor().data))
       throw std::runtime_error("CusvState is on a different GPU device.");
-    // Note: we assume the ownership of the initState pointer.
     if (!deviceStateVector) {
       HANDLE_ERROR(custatevecCreate(&handle));
-      deviceStateVector = statePtr->getTensor().data;
+      switch (flag) {
+      case nvqir::CircuitSimulator::AllocatorFlag::OwnershipTransfer: {
+        deviceStateVector = statePtr->getTensor().data;
+        ownsDeviceVector = true;
+        break;
+      }
+      case nvqir::CircuitSimulator::AllocatorFlag::ConstReference: {
+        const auto sizeInBytes =
+            (1UL << (statePtr->getNumQubits())) * sizeof(CudaDataType);
+        HANDLE_CUDA_ERROR(cudaMalloc(&deviceStateVector, sizeInBytes));
+        HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector,
+                                     statePtr->getTensor().data, sizeInBytes,
+                                     cudaMemcpyDeviceToDevice));
+        ownsDeviceVector = true;
+        break;
+      }
+      case nvqir::CircuitSimulator::AllocatorFlag::Reference: {
+        deviceStateVector = statePtr->getTensor().data;
+        ownsDeviceVector = false;
+        break;
+      }
+      default:
+        __builtin_unreachable();
+      }
     } else {
       // Allocate new vector to place the kron prod result
       void *otherState = statePtr->getTensor().data;
@@ -376,11 +397,19 @@ protected:
           reinterpret_cast<CudaDataType *>(newDeviceStateVector));
       HANDLE_CUDA_ERROR(cudaGetLastError());
 
-      // Free the old vectors we don't need anymore.
-      HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
-      statePtr->destroyState();
-      delete statePtr;
+      if (ownsDeviceVector) {
+        // Free the old vectors we don't need anymore.
+        // (only if we own it)
+        HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
+      }
+
+      if (flag == nvqir::CircuitSimulator::AllocatorFlag::OwnershipTransfer) {
+        // The state is sent on by a move, delete the input state.
+        statePtr->destroyState();
+        delete statePtr;
+      }
       deviceStateVector = newDeviceStateVector;
+      ownsDeviceVector = true;
     }
   }
 
@@ -785,6 +814,20 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     flushGateQueue();
+    // At this point, if we don't own the state (e.g., it was a reference to an
+    // existing state), we need to do a copy since the caller assumes the
+    // ownership of the memory.
+    if (!ownsDeviceVector) {
+      const auto sizeInBytes = stateDimension * sizeof(CudaDataType);
+      void *copyData = nullptr;
+      HANDLE_CUDA_ERROR(cudaMalloc(&copyData, sizeInBytes));
+      HANDLE_CUDA_ERROR(cudaMemcpy(copyData, deviceStateVector, sizeInBytes,
+                                   cudaMemcpyDeviceToDevice));
+      return std::make_unique<cudaq::CusvState<ScalarType>>(stateDimension,
+                                                            copyData);
+    }
+
+    // We owns the memory, release the ownership.
     ownsDeviceVector = false;
     return std::make_unique<cudaq::CusvState<ScalarType>>(stateDimension,
                                                           deviceStateVector);

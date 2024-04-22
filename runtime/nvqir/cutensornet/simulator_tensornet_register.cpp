@@ -51,11 +51,10 @@ public:
                                                       m_cutnHandle);
   }
 
-  void addQubitsToState(
-      std::unique_ptr<cudaq::SimulationState> &&initState) override {
+  void addQubitsToState(cudaq::SimulationState *initState,
+                        AllocatorFlag flag) override {
     // Check if it is the state of this Simulator
-    auto *statePtr =
-        dynamic_cast<TensorNetSimulationState *>(initState.release());
+    auto *statePtr = dynamic_cast<TensorNetSimulationState *>(initState);
     if (!statePtr)
       throw std::runtime_error("Incompatible initial state provided.");
 

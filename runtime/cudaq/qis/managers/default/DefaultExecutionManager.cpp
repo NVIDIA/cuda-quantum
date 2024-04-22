@@ -89,7 +89,26 @@ protected:
   void initializeState(
       const std::vector<cudaq::QuditInfo> &targets,
       std::unique_ptr<cudaq::SimulationState> &&initState) override {
-    simulator()->allocateQubits(std::move(initState));
+    simulator()->allocateQubits(
+        initState.release(),
+        nvqir::CircuitSimulator::AllocatorFlag::OwnershipTransfer);
+    requestedAllocations.clear();
+  }
+
+  void
+  initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                  std::unique_ptr<cudaq::SimulationState> &initState) override {
+    simulator()->allocateQubits(
+        initState.get(), nvqir::CircuitSimulator::AllocatorFlag::Reference);
+    requestedAllocations.clear();
+  }
+
+  void initializeState(
+      const std::vector<cudaq::QuditInfo> &targets,
+      const std::unique_ptr<cudaq::SimulationState> &initState) override {
+    simulator()->allocateQubits(
+        initState.get(),
+        nvqir::CircuitSimulator::AllocatorFlag::ConstReference);
     requestedAllocations.clear();
   }
 

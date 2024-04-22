@@ -37,6 +37,8 @@ public:
   }
 
   std::unique_ptr<SimulationState> release() { return std::move(internal); }
+  const std::unique_ptr<SimulationState> &get() const { return internal; }
+  std::unique_ptr<SimulationState> &get() { return internal; }
 
   /// @brief Convenience function for extracting from a known vector.
   std::complex<double> operator[](std::size_t idx);

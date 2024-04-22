@@ -134,3 +134,91 @@ CUDAQ_TEST(AllocationTester, checkAllocationFromRetrievedState) {
   }
   EXPECT_EQ(c, 1000);
 }
+
+CUDAQ_TEST(AllocationTester, checkChainingGetState) {
+  auto state1 = cudaq::get_state([]() __qpu__ {
+    cudaq::qvector q(2);
+    // First half of the circuit
+    h(q[0]);
+  });
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
+  const auto *ptr = state1.get_tensor().data;
+
+  // Second half of the circuit
+  auto state2 = cudaq::get_state(
+      [](cudaq::state &&state) __qpu__ {
+        cudaq::qvector q(std::move(state));
+        cx(q[0], q[1]);
+      },
+      std::move(state1));
+  EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state2.amplitude({1, 0})), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(state2.amplitude({0, 1})), 0.0, 1e-9);
+  // Check that we're operating on the same piece of memory
+  EXPECT_EQ(ptr, state2.get_tensor().data);
+}
+
+CUDAQ_TEST(AllocationTester, checkQvecAllocByRef) {
+  auto state1 = cudaq::get_state([]() __qpu__ {
+    cudaq::qvector q(2);
+    // First half of the circuit
+    h(q[0]);
+  });
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
+
+  // Second half of the circuit
+  // FIXME: how to run the circuit without a cudaq:: API?
+  auto state2 = cudaq::get_state(
+      [](cudaq::state &state) __qpu__ {
+        cudaq::qvector q(state);
+        cx(q[0], q[1]);
+      },
+      state1);
+  // The original is updated...
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
+}
+
+CUDAQ_TEST(AllocationTester, checkQvecAllocByConstRef) {
+  auto state1 = cudaq::get_state([]() __qpu__ {
+    cudaq::qvector q(2);
+    // First half of the circuit
+    h(q[0]);
+  });
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
+
+  // Second half of the circuit
+  // FIXME: how to run the circuit without a cudaq:: API?
+  auto state2 = cudaq::get_state(
+      [](const cudaq::state &state) __qpu__ {
+        cudaq::qvector q(state);
+        cx(q[0], q[1]);
+      },
+      state1);
+  // The original stay the same
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
+  // The new state is returned
+  EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state2.amplitude({1, 0})), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(state2.amplitude({0, 1})), 0.0, 1e-9);
+  // We can thus use the two states for computation, e.g., overlap
+  const auto overlap = state1.overlap(state2);
+  // Expected: 0.5
+  EXPECT_NEAR(std::abs(overlap), 0.5, 1e-6);
+}
