@@ -309,7 +309,7 @@ def quake_InitializeStateOp : QuakeOp<"init_state", [MemoryEffects<[MemAlloc,
 
   let arguments = (ins
     VeqType:$targets,
-    cc_PointerType:$state
+    AnyStateInitType:$state
   );
   let results = (outs VeqType);
 
