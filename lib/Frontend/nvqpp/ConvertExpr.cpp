@@ -2462,8 +2462,6 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           auto i64Ty = builder.getI64Type();
           auto numQubits = builder.create<func::CallOp>(
               loc, i64Ty, getNumQubitsFromCudaqState, ValueRange{state});
-          // FIXME: Do we need to consider f32?
-          auto stdvecTy = cc::PointerType::get(builder.getF64Type());
           auto veqTy = quake::VeqType::getUnsized(ctx);
           auto alloc = builder.create<quake::AllocaOp>(loc, veqTy,
                                                        numQubits.getResult(0));

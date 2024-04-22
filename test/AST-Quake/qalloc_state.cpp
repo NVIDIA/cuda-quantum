@@ -20,10 +20,10 @@ struct Eins {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Eins(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.state>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
-// CHECK:           %[[VAL_4:.*]] = call @__nvqpp_cudaq_state_vectorData(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_3]] : i64]
-// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<f64>) -> !quake.veq<?>
+// CHECK: %[[VAL_4:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_4]]) : (!cc.state) -> i64
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
+// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.state) -> !quake.veq<?>
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 
 struct Zwei {
@@ -36,10 +36,10 @@ struct Zwei {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Zwei(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.state>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
-// CHECK:           %[[VAL_4:.*]] = call @__nvqpp_cudaq_state_vectorData(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_3]] : i64]
-// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<f64>) -> !quake.veq<?>
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_4]]) : (!cc.state) -> i64
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
+// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.state) -> !quake.veq<?>
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 
 struct Drei {
@@ -52,10 +52,10 @@ struct Drei {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Drei(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.state>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
-// CHECK:           %[[VAL_4:.*]] = call @__nvqpp_cudaq_state_vectorData(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_3]] : i64]
-// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<f64>) -> !quake.veq<?>
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_4]]) : (!cc.state) -> i64
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
+// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.state) -> !quake.veq<?>
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 
 struct Vier {
@@ -68,10 +68,10 @@ struct Vier {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Vier(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.state>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> i64
-// CHECK:           %[[VAL_4:.*]] = call @__nvqpp_cudaq_state_vectorData(%[[VAL_0]]) : (!cc.ptr<!cc.state>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_3]] : i64]
-// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<f64>) -> !quake.veq<?>
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_0]] : !cc.ptr<!cc.state>
+// CHECK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_4]]) : (!cc.state) -> i64
+// CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
+// CHECK:           %[[VAL_6:.*]] = quake.init_state %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.state) -> !quake.veq<?>
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
 
 #if 0
@@ -85,5 +85,12 @@ struct Fuenf {
 };
 #endif
 
-// CHECK: func.func private @__nvqpp_cudaq_state_vectorData(!cc.ptr<!cc.state>) -> !cc.ptr<f64>
-// CHECK: func.func private @__nvqpp_cudaq_state_numberOfQubits(!cc.ptr<!cc.state>) -> i64
+// CHxCK-LABEL:   func.func @__nvqpp__mlirgen__Fuenf(
+// CHxCK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!cc.state>) -> !cc.stdvec<i1>
+// CHxCK:           %[[VAL_4:.*]] = cc.load(%[[VAL_0]]) : (!cc.state) -> !cc.ptr<f64>
+// CHxCK:           %[[VAL_3:.*]] = call @__nvqpp_cudaq_state_numberOfQubits(%[[VAL_4]]) : (!cc.state) -> i64
+// CHxCK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_3]] : i64]
+// CHxCK:           %[[VAL_6:.*]] = quake.init_state move %[[VAL_5]], %[[VAL_4]] : (!quake.veq<?>, !cc.state) -> !quake.veq<?>
+// CHxCK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_6]] : (!quake.veq<?>) -> i64
+
+// CHECK: func.func private @__nvqpp_cudaq_state_numberOfQubits(!cc.state) -> i64
