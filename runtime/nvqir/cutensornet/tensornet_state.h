@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 #pragma once
+#include "common/EigenDense.h"
+#include "common/SimulationState.h"
 #include "cutensornet.h"
 #include "tensornet_utils.h"
 #include "timing_utils.h"
+#include <span>
 #include <unordered_map>
-
-#include "common/EigenDense.h"
-#include "common/SimulationState.h"
 
 namespace nvqir {
 /// This is used to track whether the tensor state is default initialized vs
@@ -79,7 +79,7 @@ public:
   // is required if users have a state vector that they want to initialize the
   // tensor network simulator with.
   static std::unique_ptr<TensorNetState>
-  createFromStateVector(const std::vector<std::complex<double>> &stateVec,
+  createFromStateVector(std::span<std::complex<double>> stateVec,
                         cutensornetHandle_t handle);
 
   /// @brief Apply a unitary gate
@@ -93,6 +93,14 @@ public:
   /// @param proj_d Projector matrix (expected a 2x2 matrix in column major)
   /// @param qubitIdx Qubit operand
   void applyQubitProjector(void *proj_d, const std::vector<int32_t> &qubitIdx);
+
+  /// @brief Add a number of qubits to the state.
+  /// The qubits will be initialized to zero.
+  void addQubits(std::size_t numQubits);
+
+  /// @brief Add a number of qubits in a specific superposition to the current
+  /// state. The size of the wave function determines the number of qubits.
+  void addQubits(std::span<std::complex<double>> stateVec);
 
   /// @brief Accessor to the cuTensorNet handle (context).
   cutensornetHandle_t getInternalContext() { return m_cutnHandle; }
