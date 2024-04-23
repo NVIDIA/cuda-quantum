@@ -17,8 +17,8 @@ using namespace mlir;
 
 namespace cudaq::opt {
 
-cc::StructType factory::getCudaqStateType(MLIRContext *ctx) {
-  return cc::StructType::get(ctx, "cudaq.state");
+cc::StateType factory::getCudaqStateType(MLIRContext *ctx) {
+  return cc::StateType::get(ctx);
 }
 
 bool factory::isX86_64(ModuleOp module) {

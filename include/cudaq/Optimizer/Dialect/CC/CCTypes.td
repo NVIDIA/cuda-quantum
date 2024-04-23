@@ -195,7 +195,7 @@ def cc_CallableType : CCType<"Callable", "callable"> {
 }
 
 //===----------------------------------------------------------------------===//
-// StdVectorType
+// StdVectorType - implemented as a span
 //===----------------------------------------------------------------------===//
 
 def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
@@ -227,6 +227,10 @@ def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
   ];
 }
 
+//===----------------------------------------------------------------------===//
+// CharSpanType - implemented as a span
+//===----------------------------------------------------------------------===//
+
 def cc_CharSpanType
     : CCType<"Charspan", "charspan", [], "cudaq::cc::SpanLikeType"> {
   let summary = "Proxy for a span over a std::string in cc";
@@ -253,5 +257,23 @@ def cc_CharSpanType
 
 def IsSpanLikePred : CPred<"$_self.isa<cudaq::cc::SpanLikeType>()">;
 def SpanningType : Type<IsSpanLikePred, "dynamic length type">;
+
+//===----------------------------------------------------------------------===//
+// StateType
+//===----------------------------------------------------------------------===//
+
+def cc_StateType : CCType<"State", "state"> {
+  let summary = "Proxy for the cudaq::state class.";
+  let description = [{
+    The cudaq::state class is an abstraction for any data that may be used to
+    describe the initial state of a set of qubits. It would typically be used
+    in a simulation environment.
+
+    The CUDA-Q runtime will implement an ABI of intrinsic functions for the
+    compiler generated code to interface with this information in a generic
+    manner.
+  }];
+  let genStorageClass = 0;
+}
 
 #endif // CUDAQ_DIALECT_CC_TYPES_TD
