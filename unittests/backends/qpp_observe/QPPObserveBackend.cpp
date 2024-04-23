@@ -28,7 +28,7 @@ public:
 
     auto nQ = op.num_qubits();
     double sum = 0.0;
-
+    auto &state = simState->state;
     // Want to loop over all terms in op and
     // compute E_i = coeff_i * < psi | Term | psi >
     // = coeff_i * sum_k <psi | Pauli_k psi>

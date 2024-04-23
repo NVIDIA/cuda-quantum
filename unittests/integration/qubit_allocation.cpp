@@ -141,8 +141,13 @@ CUDAQ_TEST(AllocationTester, checkChainingGetState) {
     // First half of the circuit
     h(q[0]);
   });
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), 0.5, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), 0.5, 1e-6);
+#else
   EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
   EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), M_SQRT1_2, 1e-6);
+#endif
   EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.0, 1e-9);
   EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
   const auto *ptr = state1.get_tensor().data;
@@ -154,12 +159,22 @@ CUDAQ_TEST(AllocationTester, checkChainingGetState) {
         cx(q[0], q[1]);
       },
       std::move(state1));
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), 0.5, 1e-6);
+  EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), 0.5, 1e-6);
+#else
   EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), M_SQRT1_2, 1e-6);
   EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+#endif
   EXPECT_NEAR(std::abs(state2.amplitude({1, 0})), 0.0, 1e-9);
   EXPECT_NEAR(std::abs(state2.amplitude({0, 1})), 0.0, 1e-9);
-  // Check that we're operating on the same piece of memory
-  EXPECT_EQ(ptr, state2.get_tensor().data);
+  // Check that we're operating on the same piece of memory (for custatevec)
+  // Note: for qpp (CPU) simulators, gate matrix is applied in a non-inplace
+  // fashion (a = Gate * a), hence, the vector may be reallocated to a different
+  // address.
+  if (state2.is_on_gpu() && state2.get_num_tensors() == 1) {
+    EXPECT_EQ(ptr, state2.get_tensor().data);
+  }
 }
 
 CUDAQ_TEST(AllocationTester, checkQvecAllocByRef) {
@@ -168,8 +183,13 @@ CUDAQ_TEST(AllocationTester, checkQvecAllocByRef) {
     // First half of the circuit
     h(q[0]);
   });
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), 0.5, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), 0.5, 1e-6);
+#else
   EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
   EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), M_SQRT1_2, 1e-6);
+#endif
   EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.0, 1e-9);
   EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
 
@@ -181,9 +201,14 @@ CUDAQ_TEST(AllocationTester, checkQvecAllocByRef) {
         cx(q[0], q[1]);
       },
       state1);
-  // The original is updated...
+// The original is updated...
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), 0.5, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.5, 1e-6);
+#else
   EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
   EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+#endif
   EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), 0.0, 1e-9);
   EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
 }
@@ -194,8 +219,13 @@ CUDAQ_TEST(AllocationTester, checkQvecAllocByConstRef) {
     // First half of the circuit
     h(q[0]);
   });
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), 0.5, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), 0.5, 1e-6);
+#else
   EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
   EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), M_SQRT1_2, 1e-6);
+#endif
   EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.0, 1e-9);
   EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
 
@@ -207,18 +237,32 @@ CUDAQ_TEST(AllocationTester, checkQvecAllocByConstRef) {
         cx(q[0], q[1]);
       },
       state1);
-  // The original stay the same
+// The original stay the same
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), 0.5, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), 0.5, 1e-6);
+#else
   EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
   EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), M_SQRT1_2, 1e-6);
+#endif
   EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.0, 1e-9);
   EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
-  // The new state is returned
+// The new state is returned
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), 0.5, 1e-6);
+  EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), 0.5, 1e-6);
+#else
   EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), M_SQRT1_2, 1e-6);
   EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+#endif
   EXPECT_NEAR(std::abs(state2.amplitude({1, 0})), 0.0, 1e-9);
   EXPECT_NEAR(std::abs(state2.amplitude({0, 1})), 0.0, 1e-9);
   // We can thus use the two states for computation, e.g., overlap
   const auto overlap = state1.overlap(state2);
-  // Expected: 0.5
+// Expected: 0.5 for state vec and 0.25 for density matrix
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(overlap), 0.25, 1e-6);
+#else
   EXPECT_NEAR(std::abs(overlap), 0.5, 1e-6);
+#endif
 }
