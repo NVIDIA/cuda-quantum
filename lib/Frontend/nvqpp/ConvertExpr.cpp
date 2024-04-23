@@ -2451,34 +2451,22 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           IRBuilder irBuilder(builder.getContext());
           auto mod =
               builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
-          auto result = irBuilder.loadIntrinsic(mod, getCudaqStateAsVector);
-          assert(succeeded(result) && "loading intrinsic should never fail");
-          result = irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
+          auto result =
+              irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
           assert(succeeded(result) && "loading intrinsic should never fail");
           Value state = initials;
-          if (!isa<cc::PointerType>(initials.getType())) {
-            // There must be a LoadOp in the middle. Eliminate it.
-            auto load = initials.getDefiningOp<cc::LoadOp>();
-            if (!load) {
-              reportClangError(
-                  x, mangler,
-                  "could not recover address of cudaq::state object");
-              return false;
-            }
-            state = load.getPtrvalue();
+          if (isa<cc::PointerType>(initials.getType())) {
+            // Add a LoadOp to eliminate the pointer dereference.
+            state = builder.create<cc::LoadOp>(loc, state);
           }
           auto i64Ty = builder.getI64Type();
           auto numQubits = builder.create<func::CallOp>(
               loc, i64Ty, getNumQubitsFromCudaqState, ValueRange{state});
-          // FIXME: Do we need to consider f32?
-          auto stdvecTy = cc::PointerType::get(builder.getF64Type());
-          auto dataVec = builder.create<func::CallOp>(
-              loc, stdvecTy, getCudaqStateAsVector, ValueRange{state});
           auto veqTy = quake::VeqType::getUnsized(ctx);
           auto alloc = builder.create<quake::AllocaOp>(loc, veqTy,
                                                        numQubits.getResult(0));
           return pushValue(builder.create<quake::InitializeStateOp>(
-              loc, veqTy, alloc, dataVec.getResult(0)));
+              loc, veqTy, alloc, state));
         }
         // Otherwise, it is the cudaq::qvector(std::vector<complex>) ctor.
         Value numQubits;

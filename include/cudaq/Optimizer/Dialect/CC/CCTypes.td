@@ -276,4 +276,8 @@ def cc_StateType : CCType<"State", "state"> {
   let genStorageClass = 0;
 }
 
+def AnyStateInitLike : TypeConstraint<Or<[cc_PointerType.predicate,
+        cc_StateType.predicate]>, "state initializer types">;
+def AnyStateInitType : Type<AnyStateInitLike.predicate, "initial state type">;
+
 #endif // CUDAQ_DIALECT_CC_TYPES_TD
