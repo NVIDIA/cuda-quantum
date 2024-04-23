@@ -17,6 +17,10 @@ using namespace mlir;
 
 namespace cudaq::opt {
 
+cc::StateType factory::getCudaqStateType(MLIRContext *ctx) {
+  return cc::StateType::get(ctx);
+}
+
 bool factory::isX86_64(ModuleOp module) {
   auto ta = module->getAttr(targetTripleAttrName);
   llvm::Triple tr(cast<StringAttr>(ta).str());
