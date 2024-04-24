@@ -47,7 +47,19 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
-    return std::make_unique<TensorNetSimulationState>(std::move(m_state),
+    if (m_ownsState)
+      return std::make_unique<TensorNetSimulationState>(std::move(m_state),
+                                                        m_cutnHandle);
+
+    auto copiedState =
+        std::make_unique<TensorNetState>(m_state->getNumQubits(), m_cutnHandle);
+    for (auto &op : m_state->m_tensorOps) {
+      if (op.isUnitary)
+        copiedState->applyGate(op.qubitIds, op.deviceData, op.isAdjoint);
+      else
+        copiedState->applyQubitProjector(op.deviceData, op.qubitIds);
+    }
+    return std::make_unique<TensorNetSimulationState>(std::move(copiedState),
                                                       m_cutnHandle);
   }
 
@@ -58,9 +70,34 @@ public:
     if (!statePtr)
       throw std::runtime_error("Incompatible initial state provided.");
 
-    if (!m_state)
-      m_state = std::move(statePtr->m_state);
-    else {
+    if (!m_state) {
+      switch (flag) {
+      case nvqir::CircuitSimulator::AllocatorFlag::OwnershipTransfer: {
+        m_state = std::move(statePtr->m_state);
+        m_ownsState = true;
+        break;
+      }
+      case nvqir::CircuitSimulator::AllocatorFlag::ConstReference: {
+        m_state = std::make_unique<TensorNetState>(
+            statePtr->m_state->getNumQubits(), m_cutnHandle);
+        for (auto &op : statePtr->m_state->m_tensorOps) {
+          if (op.isUnitary)
+            m_state->applyGate(op.qubitIds, op.deviceData, op.isAdjoint);
+          else
+            m_state->applyQubitProjector(op.deviceData, op.qubitIds);
+        }
+        m_ownsState = true;
+        break;
+      }
+      case nvqir::CircuitSimulator::AllocatorFlag::Reference: {
+        m_state = std::unique_ptr<TensorNetState>(statePtr->m_state.get());
+        m_ownsState = false;
+        break;
+      }
+      default:
+        __builtin_unreachable();
+      }
+    } else {
       // Expanding the state:
       // (1) Create a blank tensor network with combined number of qubits
       // (2) Add back the gate tensors of the original tensor network (first
@@ -83,9 +120,18 @@ public:
           m_state->applyQubitProjector(op.deviceData,
                                        mapQubitIdxs(op.qubitIds));
       }
-      statePtr->destroyState();
-      delete statePtr;
+      if (flag == nvqir::CircuitSimulator::AllocatorFlag::OwnershipTransfer) {
+        statePtr->destroyState();
+        delete statePtr;
+      }
     }
+  }
+
+  void deallocateStateImpl() override {
+    if (!m_ownsState)
+      m_state.release();
+    m_ownsState = true;
+    SimulatorTensorNetBase::deallocateStateImpl();
   }
 
   void addQubitsToState(std::size_t numQubits, const void *ptr) override {
@@ -115,6 +161,7 @@ private:
   friend nvqir::CircuitSimulator * ::getCircuitSimulator_tensornet();
   /// @brief Has cuTensorNet MPI been initialized?
   bool m_cutnMpiInitialized = false;
+  bool m_ownsState = true;
 };
 } // namespace nvqir
 
