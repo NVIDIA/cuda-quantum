@@ -61,8 +61,17 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && git submodule
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAHOSTCXX="$CXX" \
-    LLVM_PROJECTS='clang;lld;mlir' \
+    LLVM_PROJECTS='clang;flang;lld;mlir' \
     bash scripts/install_prerequisites.sh -t llvm
+
+# Validate that the built toolchain and libraries have no GCC dependencies.
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    shared_libraries=$(find "${LLVM_INSTALL_PREFIX}" -name '*.so') && \
+    executables=$(find "${LLVM_INSTALL_PREFIX}" -executable -type f) && \
+    if [ -n "$(ldd ${shared_libraries} ${executables} | grep gcc)" ]; then \
+        echo -e "\e[01;31mThe produced toolchain and libraries depend on GCC libraries.\e[0m" >&2; \
+        exit 1; \
+    fi
 
 # Checking out a CUDA Quantum commit is suboptimal, since the source code
 # version must match this file. At the same time, adding the entire current
@@ -105,7 +114,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_WERROR=false \
     CUDAQ_PYTHON_SUPPORT=OFF \
     CUDAHOSTCXX="$CXX" \
-    LLVM_PROJECTS='clang;lld;mlir' \
+    LLVM_PROJECTS='clang;flang;lld;mlir' \
     bash scripts/build_cudaq.sh -t llvm -v
     ## [<CUDAQuantumBuild]
 

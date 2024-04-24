@@ -164,10 +164,6 @@ cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 #  -DCLANG_RESOURCE_DIR=... \
 #  -DBOOTSTRAP_LLVM_ENABLE_LLD=TRUE \
 #  -DLLVM_RUNTIME_DISTRIBUTION_COMPONENTS='"cxx-headers;...${llvm_runtimes%;}"' \
-# variables set manually: 
-# - LD_LIBRARY_PATH to find the built libc++ binaries
-# - LIBRARY_PATH to find the built libc++ binaries
-# - CUDAHOSTCXX="$CXX", since otherwise CUDA check was unhappy
 cmake_args=" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
@@ -228,15 +224,22 @@ if [ -n "$llvm_runtimes" ]; then
   echo "Building runtime components..."
   ninja runtimes
   ninja install-runtimes
-  # Not sure why no install step is defined for builtins when compiler-rt 
-  # is built as runtime rather than as project. Invoking the installation manually.
-  cmake -P runtimes/builtins-bins/cmake_install.cmake
   status=$?
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
     cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
   else
+    # Not sure why no install step is defined for builtins when compiler-rt 
+    # is built as runtime rather than as project. Invoking the installation manually.
+    cmake -P runtimes/builtins-bins/cmake_install.cmake
     echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
+
+    # We can use a default config file to set specific clang configurations.
+    # See https://clang.llvm.org/docs/UsersManual.html#configuration-files
+    clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
+    echo "-L$LLVM_INSTALL_PREFIX/lib" > "$clang_config_file"
+    echo "-L$(ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*)" >> "$clang_config_file"
+    echo "Default configuration file written to $clang_config_file"
   fi
 fi
 

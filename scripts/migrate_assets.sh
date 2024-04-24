@@ -129,8 +129,8 @@ function move_artifacts {
     for symlink in `find -L $2 -xtype l`;
     do
         if [ ! -e "$symlink" ] ; then
-            echo "Error: broken symbolic link $symlink pointing to $(readlink -f $symlink)." 1>&2;
-            exit 1
+            echo -e "\e[01;31mError: Broken symbolic link $symlink pointing to $(readlink -f $symlink).\e[0m" >&2
+            (return 0 2>/dev/null) && return 1 || exit 1
         fi
     done
     echo '  rmdir -p "'$2'" 2> /dev/null || true' >> "$remove_assets"
