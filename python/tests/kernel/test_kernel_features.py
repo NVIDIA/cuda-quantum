@@ -1230,6 +1230,7 @@ def test_bad_attr_call_error():
         test_state.compile()
     assert "Invalid function call - 'kernel' is unknown." in repr(e)
 
+
 def test_bad_return_value_with_stdvec_arg():
 
     @cudaq.kernel
@@ -1239,3 +1240,23 @@ def test_bad_return_value_with_stdvec_arg():
     l = [42]
     for i in range(4):
         assert test_param(i,l) == i 
+
+
+def test_measure_variadic_qubits():
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(5)
+        x(q[2])
+        mz(q[0], q[1], q[2]) 
+    
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '001' in counts
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(5)
+        x(q[0], q[2])
+        mz(q[0], [q[1], q[2]]) 
+    
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '101' in counts
