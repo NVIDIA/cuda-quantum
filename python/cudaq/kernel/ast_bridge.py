@@ -235,6 +235,9 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Return an MLIR float type (single or double precision).
         """
+        # Note:
+        # `numpy.float64` is the same as `float` type, with width of 64 bit.
+        # `numpy.float32` type has width of 32 bit.
         return F64Type.get() if width == 64 else F32Type.get()
 
     def getFloatAttr(self, type, value):
@@ -262,6 +265,10 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Return an MLIR complex type (single or double precision).
         """
+        # Note:
+        # `numpy.complex128` is the same as `complex` type,
+        # with element width of 64bit (`np.complex64` and `float`)
+        # `numpy.complex64` type has element type of `np.float32`.
         return self.getComplexTypeWithElementType(
             self.getFloatType(width=width))
 
