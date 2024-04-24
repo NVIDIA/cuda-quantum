@@ -27,7 +27,7 @@ class qudit {
 
 public:
   /// Construct a qudit, will allocated a new unique index
-  qudit() : idx(getExecutionManager()->allocateQudit(n_levels())) {}
+  qudit() : idx(getExecutionManager()->getAvailableIndex(n_levels())) {}
   qudit(const std::vector<complex> &state) : qudit() {
     if (state.size() != Levels)
       throw std::runtime_error(

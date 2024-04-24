@@ -142,8 +142,9 @@ int main(int argc, char **argv) {
   std::error_code ec;
   llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
   checkErrorCode(ec);
-  auto printModuleAction = [&]() { out.os() << *module << '\n'; };
-  llvm::function_ref<void()> targetAction = printModuleAction;
+  llvm::function_ref<void()> targetAction = [&]() {
+    out.os() << *module << '\n';
+  };
   bool targetUsesLlvm = emitLLVM;
   auto *modOp = module->getOperation();
   auto modLoc = module->getLoc();
