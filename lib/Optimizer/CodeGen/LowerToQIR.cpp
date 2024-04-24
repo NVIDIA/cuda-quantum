@@ -1717,6 +1717,24 @@ public:
   }
 };
 
+// Erase the std::move() call here.
+// TODO: move to a special quake "canonicalize" pass?
+class EraseStdMovePattern : public OpRewritePattern<func::CallOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(func::CallOp call,
+                                PatternRewriter &rewriter) const override {
+    auto callee = call.getCallee();
+    if (callee.equals(cudaq::stdMoveBuiltin)) {
+      rewriter.replaceOp(call, call.getOperands());
+      rewriter.eraseOp(call);
+      return success();
+    }
+    return failure();
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Code generation: converts the Quake IR to QIR.
 //===----------------------------------------------------------------------===//
@@ -1796,7 +1814,7 @@ public:
   void fuseSubgraphPatterns() {
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<CodeGenRAIIPattern>(ctx);
+    patterns.insert<CodeGenRAIIPattern, EraseStdMovePattern>(ctx);
     if (failed(applyPatternsAndFoldGreedily(getModule(), std::move(patterns))))
       signalPassFailure();
   }
