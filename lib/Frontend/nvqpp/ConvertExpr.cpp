@@ -657,6 +657,7 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
   case clang::CastKind::CK_ArrayToPointerDecay:
   case clang::CastKind::CK_NoOp:
   case clang::CastKind::CK_ToVoid:
+  case clang::CastKind::CK_BuiltinFnToFnPtr:
     return true;
   case clang::CastKind::CK_FloatingToIntegral: {
     auto qualTy = x->getType();
@@ -2445,6 +2446,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
               irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
           assert(succeeded(result) && "loading intrinsic should never fail");
           Value state = initials;
+          bool isMoved = false;
+          if (auto *op = state.getDefiningOp())
+            isMoved = isa<func::CallOp, func::CallIndirectOp>(op);
           if (isa<cc::PointerType>(initials.getType())) {
             // Add a LoadOp to eliminate the pointer dereference.
             state = builder.create<cc::LoadOp>(loc, state);
@@ -2453,10 +2457,10 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           auto numQubits = builder.create<func::CallOp>(
               loc, i64Ty, getNumQubitsFromCudaqState, ValueRange{state});
           auto veqTy = quake::VeqType::getUnsized(ctx);
-          auto alloc = builder.create<quake::AllocaOp>(loc, veqTy,
-                                                       numQubits.getResult(0));
+          Value alloc = builder.create<quake::AllocaOp>(loc, veqTy,
+                                                        numQubits.getResult(0));
           return pushValue(builder.create<quake::InitializeStateOp>(
-              loc, veqTy, alloc, state));
+              loc, veqTy, alloc, state, isMoved));
         }
         // Otherwise, it is the cudaq::qvector(std::vector<complex>) ctor.
         Value numQubits;

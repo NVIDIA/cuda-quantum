@@ -81,8 +81,15 @@ public:
   qvector() : qudits(1) {}
   /// @endcond
 
+  //===--------------------------------------------------------------------===//
+  // qvector with an initial state
+  //===--------------------------------------------------------------------===//
+
   explicit qvector(const state *);
   explicit qvector(const state &);
+  explicit qvector(state *);
+  explicit qvector(state &);
+  explicit qvector(state &&);
 
   /// @brief `qvectors` cannot be copied
   qvector(qvector const &) = delete;
