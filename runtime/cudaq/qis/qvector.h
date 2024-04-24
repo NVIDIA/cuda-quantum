@@ -13,6 +13,8 @@
 
 namespace cudaq {
 
+class state;
+
 /// @brief A `qvector` is an owning, dynamically sized container for qudits.
 /// The semantics of the `qvector` follows that of a `std::vector` for qudits.
 /// It is templated on the number of levels for the held qudits.
@@ -58,10 +60,17 @@ public:
     getExecutionManager()->initializeState(targets, vector.data(), precision);
   }
 
-  // // FIXME do we need float versions?
   qvector(const std::vector<double> &vector)
       : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}
+  qvector(std::vector<double> &&vector)
+      : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}
   qvector(const std::initializer_list<double> &list)
+      : qvector(std::vector<complex>{list.begin(), list.end()}) {}
+  qvector(const std::vector<float> &vector)
+      : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}
+  qvector(std::vector<float> &&vector)
+      : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}
+  qvector(const std::initializer_list<float> &list)
       : qvector(std::vector<complex>{list.begin(), list.end()}) {}
   qvector(const std::initializer_list<complex> &list)
       : qvector(std::vector<complex>{list.begin(), list.end()}) {}
@@ -71,6 +80,9 @@ public:
   /// meant to be used with `kernel_builder<cudaq::qvector<>>`
   qvector() : qudits(1) {}
   /// @endcond
+
+  explicit qvector(const state *);
+  explicit qvector(const state &);
 
   /// @brief `qvectors` cannot be copied
   qvector(qvector const &) = delete;

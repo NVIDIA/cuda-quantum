@@ -7,11 +7,10 @@
  ******************************************************************************/
 
 #include "state.h"
-#include "cudaq/simulators.h"
-
 #include "common/EigenDense.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
+#include "cudaq/simulators.h"
 #include <iostream>
 
 namespace cudaq {
@@ -42,8 +41,8 @@ std::vector<SimulationState::Tensor> state::get_tensors() const {
 
 std::size_t state::get_num_tensors() const { return internal->getNumTensors(); }
 
-void state::dump() { dump(std::cout); }
-void state::dump(std::ostream &os) { internal->dump(os); }
+void state::dump() const { dump(std::cout); }
+void state::dump(std::ostream &os) const { internal->dump(os); }
 
 std::complex<double>
 state::operator()(const std::initializer_list<std::size_t> &indices,
@@ -93,6 +92,18 @@ state::~state() {
   // there are no users. Delete the state data.
   if (internal.use_count() == 1)
     internal->destroyState();
+}
+
+extern "C" {
+std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
+  throw std::runtime_error(
+      "not yet implemented: getting number of qubits from state");
+}
+
+double *__nvqpp_cudaq_state_vectorData(state *obj) {
+  throw std::runtime_error(
+      "not yet implemented: getting vector data from state");
+}
 }
 
 } // namespace cudaq

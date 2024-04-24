@@ -1163,21 +1163,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
 
-  if (isInClassInNamespace(func, "basic_string", "std")) {
-    if (funcName.equals("data") || funcName.equals("c_str")) {
-      FunctionType funcTy = cast<FunctionType>(popType());
-      return pushValue(builder.create<cc::StdvecDataOp>(
-          loc, funcTy.getResult(0), popValue()));
-    }
-    // fall through and use std::vector for other member functions.
-  }
-
   // Dealing with our std::vector as a view data structures. If we have some θ
   // with the type `std::vector<double/float/int>`, and in the kernel, θ.size()
   // is called, we need to convert that to loading the size field of the pair.
   // For θ.empty(), the size is loaded and compared to zero.
-  if (isInClassInNamespace(func, "vector", "std") ||
-      isInClassInNamespace(func, "basic_string", "std")) {
+  if (isInClassInNamespace(func, "vector", "std")) {
     // Get the size of the std::vector.
     auto svec = popValue();
     if (isa<cc::PointerType>(svec.getType()))
@@ -2409,8 +2399,20 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         return pushValue(builder.create<quake::AllocaOp>(
             loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
       }
+
+      // lambda determines: is `t` a cudaq::state or cudaq::state* ?
+      auto isStateType = [&](Type t) {
+        auto ptrTy = dyn_cast<cc::PointerType>(t);
+        return isCudaqStateType(t) ||
+               (ptrTy && isCudaqStateType(ptrTy.getElementType()));
+      };
+
       if (ctorName == "qudit") {
         auto initials = popValue();
+        if (isStateType(initials.getType())) {
+          TODO_x(loc, x, mangler, "qudit(state) ctor");
+          return false;
+        }
         bool ok = false;
         if (auto ptrTy = dyn_cast<cc::PointerType>(initials.getType()))
           if (auto arrTy = dyn_cast<cc::ArrayType>(ptrTy.getElementType()))
@@ -2434,6 +2436,27 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           // This is the cudaq::qvector(std::size_t) ctor.
           return pushValue(builder.create<quake::AllocaOp>(
               loc, quake::VeqType::getUnsized(ctx), initials));
+        }
+        if (isStateType(initials.getType())) {
+          IRBuilder irBuilder(builder.getContext());
+          auto mod =
+              builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+          auto result =
+              irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
+          assert(succeeded(result) && "loading intrinsic should never fail");
+          Value state = initials;
+          if (isa<cc::PointerType>(initials.getType())) {
+            // Add a LoadOp to eliminate the pointer dereference.
+            state = builder.create<cc::LoadOp>(loc, state);
+          }
+          auto i64Ty = builder.getI64Type();
+          auto numQubits = builder.create<func::CallOp>(
+              loc, i64Ty, getNumQubitsFromCudaqState, ValueRange{state});
+          auto veqTy = quake::VeqType::getUnsized(ctx);
+          auto alloc = builder.create<quake::AllocaOp>(loc, veqTy,
+                                                       numQubits.getResult(0));
+          return pushValue(builder.create<quake::InitializeStateOp>(
+              loc, veqTy, alloc, state));
         }
         // Otherwise, it is the cudaq::qvector(std::vector<complex>) ctor.
         Value numQubits;

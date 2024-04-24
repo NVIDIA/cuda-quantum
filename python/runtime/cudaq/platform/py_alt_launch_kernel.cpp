@@ -272,10 +272,11 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               const std::vector<std::string> &names) {
   auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
                                                runtimeArgs, names);
+  auto unwrapped = unwrap(returnType);
+
   // We first need to compute the offset for the return value.
   // We'll loop through all the arguments and increment the
   // offset for the argument type. Then we'll be at our return type location.
-  auto unwrapped = unwrap(returnType);
   auto returnOffset = [&]() {
     std::size_t offset = 0;
     auto kernelFunc = getKernelFuncOp(module, name);

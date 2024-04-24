@@ -8,11 +8,10 @@
 
 #pragma once
 
+#include "common/SimulationState.h"
 #include <memory>
 #include <variant>
 #include <vector>
-
-#include "common/SimulationState.h"
 
 namespace cudaq {
 
@@ -27,7 +26,7 @@ private:
 
 public:
   /// @brief The constructor, takes the simulation data and owns it
-  state(SimulationState *ptrToOwn)
+  explicit state(SimulationState *ptrToOwn)
       : internal(std::shared_ptr<SimulationState>(ptrToOwn)) {}
 
   /// @brief Convenience function for extracting from a known vector.
@@ -51,8 +50,7 @@ public:
   /// @brief Return the number of tensors that represent this state.
   std::size_t get_num_tensors() const;
 
-  /// @brief Return the underlying floating point precision for
-  /// this state.
+  /// @brief Return the underlying floating point precision for this state.
   SimulationState::precision get_precision() const;
 
   /// @brief Return true if this a state on the GPU.
@@ -69,17 +67,15 @@ public:
   }
 
   /// @brief Dump the state to standard out
-  void dump();
+  void dump() const;
 
   /// @brief Dump the state to given output stream
-  void dump(std::ostream &os);
+  void dump(std::ostream &os) const;
 
-  /// @brief Compute the overlap of this state
-  /// with the other one.
+  /// @brief Compute the overlap of this state with the other one.
   std::complex<double> overlap(const state &other);
 
-  /// @brief Return the amplitude of the given computational
-  /// basis state
+  /// @brief Return the amplitude of the given computational basis state
   std::complex<double> amplitude(const std::vector<int> &basisState);
 
   /// @brief Create a new state from user-provided data.

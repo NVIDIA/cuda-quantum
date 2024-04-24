@@ -158,6 +158,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     return %9 : !cc.struct<{!cc.ptr<i8>, i64}>
   })#"},
 
+    {cudaq::getNumQubitsFromCudaqState, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.state) -> i64
+  )#"},
+
     {"__nvqpp_getStateVectorData_fp32", {}, R"#(
   func.func private @__nvqpp_getStateVectorData_fp32(%p : i64, %o : i64) -> !cc.ptr<complex<f32>>
   )#"},
