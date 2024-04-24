@@ -71,6 +71,12 @@ public:
   std::unique_ptr<nvqir::TensorNetState> reconstructBackendState() override;
   std::unique_ptr<cudaq::SimulationState> toSimulationState() override;
 
+  /// Util method to create an MPS state from an input state vector.
+  // For example, state vector from the user's input.
+  static std::pair<std::unique_ptr<TensorNetState>, std::vector<MPSTensor>>
+  createFromStateVec(cutensornetHandle_t cutnHandle, std::size_t size,
+                     std::complex<double> *data);
+
 protected:
   void deallocate();
   std::complex<double>

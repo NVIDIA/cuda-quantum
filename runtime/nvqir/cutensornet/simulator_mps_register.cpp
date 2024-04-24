@@ -109,6 +109,61 @@ public:
     return simulator.get();
   }
 
+  void addQubitsToState(std::size_t numQubits, const void *ptr) override {
+    LOG_API_TIME();
+    if (!m_state) {
+      if (!ptr) {
+        m_state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
+      } else {
+        // FIXME: expand the MPS tensors to the max extent
+        auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
+            m_cutnHandle, 1ULL << numQubits,
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)));
+        m_state = std::move(state);
+      }
+    } else {
+      // FIXME: expand the MPS tensors to the max extent
+      if (!ptr) {
+        auto tensors =
+            m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+        // The right most MPS tensor needs to have one more extra leg (no longer
+        // the boundary tensor).
+        tensors.back().extents.emplace_back(1);
+        // The newly added MPS tensors are in zero state
+        constexpr std::complex<double> tensorBody[2]{1.0, 0.0};
+        constexpr auto tensorSizeBytes = 2 * sizeof(std::complex<double>);
+        for (std::size_t i = 0; i < numQubits; ++i) {
+          const std::vector<int64_t> extents =
+              (i != numQubits - 1) ? std::vector<int64_t>{1, 2, 1}
+                                   : std::vector<int64_t>{1, 2};
+          void *mpsTensor{nullptr};
+          HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensor, tensorSizeBytes));
+          HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensor, tensorBody, tensorSizeBytes,
+                                       cudaMemcpyHostToDevice));
+          tensors.emplace_back(MPSTensor(mpsTensor, extents));
+        }
+        m_state = TensorNetState::createFromMpsTensors(tensors, m_cutnHandle);
+      } else {
+        // Non-zero state needs to be factorized and appended.
+        auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
+            m_cutnHandle, 1ULL << numQubits,
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)));
+        auto tensors =
+            m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+        // Adjust the extents of the last tensor in the original state
+        tensors.back().extents.emplace_back(1);
+
+        // Adjust the extents of the first tensor in the state to be appended.
+        auto extents = mpsTensors.front().extents;
+        extents.insert(extents.begin(), 1);
+        mpsTensors.front().extents = extents;
+        // Combine the list
+        tensors.insert(tensors.end(), mpsTensors.begin(), mpsTensors.end());
+        m_state = TensorNetState::createFromMpsTensors(tensors, m_cutnHandle);
+      }
+    }
+  }
+
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
 

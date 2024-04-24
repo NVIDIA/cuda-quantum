@@ -479,49 +479,19 @@ std::complex<double> TensorNetState::computeExpVal(
 }
 
 std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
-    const std::vector<MPSTensor> &in_mpsTensors, cutensornetHandle_t handle,
-    std::vector<MPSTensor> &outTensors) {
+    const std::vector<MPSTensor> &in_mpsTensors, cutensornetHandle_t handle) {
   if (in_mpsTensors.empty())
     throw std::invalid_argument("Empty MPS tensor list");
-  if (in_mpsTensors.size() == 1) {
-    auto state = std::make_unique<TensorNetState>(in_mpsTensors.size(), handle);
-    // This is a single-qubit tensor. Just apply it as a projector to the zero
-    // state qubit.
-    std::complex<double> proj[4] = {0.0, 0.0, 0.0, 0.0};
-    // The first column is the state that we want to project |0> state to.
-    HANDLE_CUDA_ERROR(cudaMemcpy(&proj, in_mpsTensors[0].deviceData,
-                                 2 * sizeof(std::complex<double>),
-                                 cudaMemcpyDeviceToHost));
-    // Make it agnostic to column/row major
-    proj[2] = proj[1];
-    void *d_proj{nullptr};
-    HANDLE_CUDA_ERROR(cudaMalloc(&d_proj, 4 * sizeof(std::complex<double>)));
-    HANDLE_CUDA_ERROR(cudaMemcpy(d_proj, proj, 4 * sizeof(std::complex<double>),
-                                 cudaMemcpyHostToDevice));
-    state->m_tempDevicePtrs.emplace_back(d_proj);
-
-    state->applyQubitProjector(d_proj, {0});
-    return state;
-  }
-  const auto maxExtent = in_mpsTensors[0].extents[1];
   auto state = std::make_unique<TensorNetState>(in_mpsTensors.size(), handle);
-  // Factorize the initial state into placeholder MPS tensors
-  // FIXME: switch to `cutensornetStateInitializeMPS` once upgraded to
-  // cutensornet 24.03
-  auto mpsTensors =
-      state->factorizeMPS(maxExtent, std::numeric_limits<double>::min(),
-                          std::numeric_limits<double>::min());
-  // Load the MPS tensors in
-  for (std::size_t i = 0; i < mpsTensors.size(); ++i) {
-    const auto transferSize = std::accumulate(in_mpsTensors[i].extents.begin(),
-                                              in_mpsTensors[i].extents.begin(),
-                                              1, std::multiplies<int64_t>()) *
-                              sizeof(std::complex<double>);
-    HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensors[i].deviceData,
-                                 in_mpsTensors[i].deviceData, transferSize,
-                                 cudaMemcpyDeviceToDevice));
+  std::vector<const int64_t *> extents;
+  std::vector<void *> tensorData;
+  for (const auto &tensor : in_mpsTensors) {
+    extents.emplace_back(tensor.extents.data());
+    tensorData.emplace_back(tensor.deviceData);
   }
-  outTensors = mpsTensors;
+  HANDLE_CUTN_ERROR(cutensornetStateInitializeMPS(
+      handle, state->m_quantumState, CUTENSORNET_BOUNDARY_CONDITION_OPEN,
+      extents.data(), nullptr, tensorData.data()));
   return state;
 }
 

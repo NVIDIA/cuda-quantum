@@ -421,19 +421,17 @@ void MPSSimulationState::dump(std::ostream &os) const {
 
 std::unique_ptr<nvqir::TensorNetState>
 MPSSimulationState::reconstructBackendState() {
-  [[maybe_unused]] std::vector<MPSTensor> tensors;
   return nvqir::TensorNetState::createFromMpsTensors(
-      m_mpsTensors, state->getInternalContext(), tensors);
+      m_mpsTensors, state->getInternalContext());
 }
 
 std::unique_ptr<cudaq::SimulationState>
 MPSSimulationState::toSimulationState() {
-  std::vector<MPSTensor> tensors;
   auto cloneState = nvqir::TensorNetState::createFromMpsTensors(
-      m_mpsTensors, state->getInternalContext(), tensors);
+      m_mpsTensors, state->getInternalContext());
 
-  return std::make_unique<MPSSimulationState>(std::move(cloneState), tensors,
-                                              m_auxTensorIds, m_cutnHandle);
+  return std::make_unique<MPSSimulationState>(
+      std::move(cloneState), m_mpsTensors, m_auxTensorIds, m_cutnHandle);
 }
 
 static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
@@ -455,15 +453,13 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
   return stacked;
 }
 
-std::unique_ptr<cudaq::SimulationState>
-MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
-                                         std::size_t dataType) {
-  Eigen::VectorXcd stateVec = Eigen::Map<Eigen::VectorXcd>(
-      reinterpret_cast<std::complex<double> *>(ptr), size);
+std::pair<std::unique_ptr<TensorNetState>, std::vector<MPSTensor>>
+MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
+                                       std::size_t size,
+                                       std::complex<double> *ptr) {
+  Eigen::VectorXcd stateVec = Eigen::Map<Eigen::VectorXcd>(ptr, size);
   const std::size_t numQubits = std::log2(size);
-  auto state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
   if (numQubits == 1) {
-    // Easy case: construct the the tensor
     void *d_tensor = nullptr;
     HANDLE_CUDA_ERROR(cudaMalloc(&d_tensor, 2 * sizeof(std::complex<double>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, ptr,
@@ -472,10 +468,10 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = std::vector<int64_t>{2};
-
-    return std::make_unique<MPSSimulationState>(
-        std::move(state), std::vector<MPSTensor>{stateTensor},
-        std::vector<std::size_t>{}, m_cutnHandle);
+    auto state =
+        TensorNetState::createFromMpsTensors({stateTensor}, cutnHandle);
+    return std::make_pair(std::move(state),
+                          std::vector<MPSTensor>{stateTensor});
   }
 
   // Recursively factor the state vector from left to right.
@@ -525,6 +521,15 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
   stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
+  auto state = TensorNetState::createFromMpsTensors(mpsTensors, cutnHandle);
+  return std::make_pair(std::move(state), mpsTensors);
+}
+
+std::unique_ptr<cudaq::SimulationState>
+MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
+                                         std::size_t dataType) {
+  auto [state, mpsTensors] = createFromStateVec(
+      m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr));
   return std::make_unique<MPSSimulationState>(
       std::move(state), mpsTensors, std::vector<std::size_t>{}, m_cutnHandle);
 }

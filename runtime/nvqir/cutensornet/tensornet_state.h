@@ -64,8 +64,7 @@ public:
   /// Reconstruct/initialize a state from MPS tensors
   static std::unique_ptr<TensorNetState>
   createFromMpsTensors(const std::vector<MPSTensor> &mpsTensors,
-                       cutensornetHandle_t handle,
-                       std::vector<MPSTensor> &outTensors);
+                       cutensornetHandle_t handle);
 
   /// Reconstruct/initialize a tensor network state from a list of tensor
   /// operators.
