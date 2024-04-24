@@ -1339,3 +1339,24 @@ def test_no_param_no_return():
         return
 
     kernel()
+        assert test_param(i,l) == i 
+
+
+def test_measure_variadic_qubits():
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(5)
+        x(q[2])
+        mz(q[0], q[1], q[2]) 
+    
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '001' in counts
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(5)
+        x(q[0], q[2])
+        mz(q[0], [q[1], q[2]]) 
+    
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '101' in counts

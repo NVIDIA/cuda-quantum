@@ -1440,17 +1440,18 @@ class PyASTBridge(ast.NodeVisitor):
                                 "measurement register_name keyword must be a constant string literal.",
                                 node)
                         registerName = userProvidedRegName.value.value
-                qubit = self.popValue()
-                self.checkControlAndTargetTypes([], [qubit])
+                qubits = [self.popValue() for _ in range(len(self.valueStack))]
+                self.checkControlAndTargetTypes([], qubits)
                 opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
                 i1Ty = self.getIntegerType(1)
-                resTy = i1Ty if quake.RefType.isinstance(
-                    qubit.type) else cc.StdvecType.get(self.ctx, i1Ty)
+                resTy = i1Ty if len(qubits) == 1 and quake.RefType.isinstance(
+                    qubits[0].type) else cc.StdvecType.get(self.ctx, i1Ty)
                 measTy = quake.MeasureType.get(
-                    self.ctx) if quake.RefType.isinstance(
-                        qubit.type) else cc.StdvecType.get(
+                    self.ctx) if len(qubits) == 1 and quake.RefType.isinstance(
+                        qubits[0].type) else cc.StdvecType.get(
                             self.ctx, quake.MeasureType.get(self.ctx))
-                measureResult = opCtor(measTy, [], [qubit],
+                measureResult = opCtor(measTy, [],
+                                       qubits,
                                        registerName=registerName).result
                 if pushResultToStack:
                     self.pushValue(
