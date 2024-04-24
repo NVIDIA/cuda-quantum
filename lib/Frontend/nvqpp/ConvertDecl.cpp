@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
@@ -486,7 +487,7 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
     // create a special name for 'std::move()' so we can erase it.
     if (isInNamespace(x, "std") && x->getIdentifier() &&
         x->getName().equals("move"))
-      return std::string(".std::move");
+      return std::string(cudaq::stdMoveBuiltin);
     return cxxMangledDeclName(x);
   }();
   auto kernSym = SymbolRefAttr::get(builder.getContext(), kernName);
