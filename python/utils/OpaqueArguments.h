@@ -317,8 +317,8 @@ packArgs(OpaqueArguments &argData, py::args args,
               .Case([&](cudaq::cc::CharspanType type) {
                 genericVecAllocator.template operator()<cudaq::pauli_word>(
                     [](py::handle element) {
-                      auto pw = element.cast<cudaq::pauli_word>();
-                      return cudaq::pauli_word(pw.str());
+                      auto pw = element.cast<std::string>();
+                      return cudaq::pauli_word(pw);
                     });
                 return;
               })
