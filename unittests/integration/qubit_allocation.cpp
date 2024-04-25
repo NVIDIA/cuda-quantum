@@ -109,3 +109,72 @@ CUDAQ_TEST(AllocationTester, checkDensityOrderingBug) {
   EXPECT_EQ(c, 100);
 }
 #endif
+
+struct test_allocation_from_state {
+  void operator()(cudaq::state &&state) __qpu__ {
+    cudaq::qvector q(std::move(state));
+    mz(q);
+  }
+};
+
+CUDAQ_TEST(AllocationTester, checkAllocationFromRetrievedState) {
+  auto bellState = cudaq::get_state([]() __qpu__ {
+    cudaq::qvector q(2);
+    h(q[0]);
+    cx(q[0], q[1]);
+  });
+  auto counts =
+      cudaq::sample(test_allocation_from_state{}, std::move(bellState));
+  counts.dump();
+  EXPECT_EQ(2, counts.size());
+  int c = 0;
+  for (auto &[bits, count] : counts) {
+    c += count;
+    EXPECT_TRUE(bits == "00" || bits == "11");
+  }
+  EXPECT_EQ(c, 1000);
+}
+
+CUDAQ_TEST(AllocationTester, checkChainingGetState) {
+  auto state1 = cudaq::get_state([]() __qpu__ {
+    cudaq::qvector q(2);
+    // First half of the circuit
+    h(q[0]);
+  });
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), 0.5, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), 0.5, 1e-6);
+#else
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 0})), M_SQRT1_2, 1e-6);
+#endif
+  EXPECT_NEAR(std::abs(state1.amplitude({1, 1})), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(state1.amplitude({0, 1})), 0.0, 1e-9);
+
+  // Second half of the circuit
+  auto state2 = cudaq::get_state(
+      [](cudaq::state state) __qpu__ {
+        cudaq::qvector q(state);
+        cx(q[0], q[1]);
+      },
+      state1);
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), 0.5, 1e-6);
+  EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), 0.5, 1e-6);
+#else
+  EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+  EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+#endif
+  EXPECT_NEAR(std::abs(state2.amplitude({1, 0})), 0.0, 1e-9);
+  EXPECT_NEAR(std::abs(state2.amplitude({0, 1})), 0.0, 1e-9);
+
+  // Both states should remain valid, hence we can use the two states for
+  // computation, e.g., overlap
+  const auto overlap = state1.overlap(state2);
+// Expected: 0.5 for state vec and 0.25 for density matrix
+#ifdef CUDAQ_BACKEND_DM
+  EXPECT_NEAR(std::abs(overlap), 0.25, 1e-6);
+#else
+  EXPECT_NEAR(std::abs(overlap), 0.5, 1e-6);
+#endif
+}

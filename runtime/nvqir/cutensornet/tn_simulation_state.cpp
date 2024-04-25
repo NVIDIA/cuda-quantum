@@ -192,12 +192,12 @@ void TensorNetSimulationState::dump(std::ostream &os) const {
 }
 
 std::unique_ptr<nvqir::TensorNetState>
-TensorNetSimulationState::reconstructBackendState() {
+TensorNetSimulationState::reconstructBackendState() const {
   return m_state->clone();
 }
 
 std::unique_ptr<cudaq::SimulationState>
-TensorNetSimulationState::toSimulationState() {
+TensorNetSimulationState::toSimulationState() const {
   return std::make_unique<TensorNetSimulationState>(
       m_state->clone(), m_state->getInternalContext());
 }

@@ -10,10 +10,9 @@
 
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qview.h"
+#include "cudaq/qis/state.h"
 
 namespace cudaq {
-
-class state;
 
 /// @brief A `qvector` is an owning, dynamically sized container for qudits.
 /// The semantics of the `qvector` follows that of a `std::vector` for qudits.
@@ -32,6 +31,8 @@ public:
   /// @brief Construct a `qvector` with `size` qudits in the |0> state.
   qvector(std::size_t size) : qudits(size) {}
 
+  /// @brief Construct a `qvector` from an input state vector.
+  /// The number of qubits is determined by the size of the input vector.
   qvector(const std::vector<complex> &vector)
       : qudits(std::log2(vector.size())) {
     if (Levels == 2) {
@@ -81,8 +82,16 @@ public:
   qvector() : qudits(1) {}
   /// @endcond
 
-  explicit qvector(const state *);
-  explicit qvector(const state &);
+  /// @brief Construct a `qvector` from a pre-existing `state`.
+  /// This `state` could be constructed with `state::from_data` or retrieved
+  /// from an cudaq::get_state.
+  explicit qvector(state state) : qudits(state.get_num_qubits()) {
+    std::vector<QuditInfo> targets;
+    for (auto &q : qudits)
+      targets.emplace_back(QuditInfo{Levels, q.id()});
+    // Note: the internal state data will be cloned by the simulator backend.
+    getExecutionManager()->initializeState(targets, state.internal.get());
+  }
 
   /// @brief `qvectors` cannot be copied
   qvector(qvector const &) = delete;
