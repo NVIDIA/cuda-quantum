@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os, sys
+import os, sys, random
 
 import pytest
 import numpy as np
@@ -275,9 +275,49 @@ def test_spec_adherence():
         cudaq.observe(circuit, hamiltonian, .59)
 
     @cudaq.kernel
-    def returnsSomethign() -> int :
+    def returnsSomething() -> int :
         return 0
     
     with pytest.raises(RuntimeError) as e:
-        cudaq.observe(returnsSomethign, hamiltonian, .59)
-    
+        cudaq.observe(returnsSomething, hamiltonian, .59)
+
+
+@skipIfPythonLessThan39
+def test_pack_args_pauli_list():
+    random.seed(13)
+    np.random.seed(13)
+
+    def generateRandomPauliStrings(numQubits, numPaulis):
+        s = ['X', 'Y', 'Z', 'I']
+        return [
+            ''.join([random.choice(s)
+                     for i in range(numQubits)])
+            for i in range(numPaulis)
+        ]
+
+    def build_cudaq_obs(hs, paulis):
+        observable = cudaq.SpinOperator()
+        for h, p in zip(hs, paulis):
+            observable += h * cudaq.SpinOperator.from_word(p)
+        return observable - cudaq.SpinOperator()
+
+    @cudaq.kernel
+    def gqeCirc(N: int, thetas: list[float], paulis: list[cudaq.pauli_word]):
+        q = cudaq.qvector(N)
+        for i in range(len(paulis)):
+            exp_pauli(thetas[i], q, paulis[i])
+
+    numQubits = 4
+    numPaulis = 8
+    numberOfTerms = 4
+
+    # Generate the observable
+    obs_ps = generateRandomPauliStrings(numQubits, numberOfTerms)
+    obs = build_cudaq_obs([1.0] * len(obs_ps), obs_ps)
+
+    pauliStings = generateRandomPauliStrings(numQubits, numPaulis)
+    ts = np.random.rand(len(pauliStings))
+
+    exp_val = cudaq.observe_async(gqeCirc, obs, numQubits, list(ts),
+                                  pauliStings).get().expectation()
+    print('observe_async exp_val', exp_val)
