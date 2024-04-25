@@ -155,6 +155,23 @@ inline py::args simplifiedValidateInputArguments(py::args &args) {
         throw std::runtime_error("Cannot pass ndarray with shape != (N,).");
 
       arg = args[i].attr("tolist")();
+    } else if (py::isinstance<py::list>(arg)) {
+      bool all_strings = true;
+      py::list list_arg = py::cast<py::list>(arg);
+      for (auto item : list_arg) {
+        if (!py::isinstance<py::str>(item)) {
+          all_strings = false;
+          break;
+        }
+      }
+      if (all_strings) {
+        std::vector<cudaq::pauli_word> new_list;
+        for (auto item : list_arg) {
+          std::string item_str = py::cast<std::string>(item);
+          new_list.push_back(item_str);
+        }
+        arg = new_list;
+      }
     }
 
     processed[i] = arg;
@@ -317,8 +334,8 @@ packArgs(OpaqueArguments &argData, py::args args,
               .Case([&](cudaq::cc::CharspanType type) {
                 genericVecAllocator.template operator()<cudaq::pauli_word>(
                     [](py::handle element) {
-                      auto pw = element.cast<std::string>();
-                      return cudaq::pauli_word(pw);
+                      auto pw = element.cast<cudaq::pauli_word>();
+                      return cudaq::pauli_word(pw.str());
                     });
                 return;
               })
