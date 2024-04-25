@@ -10,7 +10,7 @@ import os, sys, random
 
 import pytest
 import numpy as np
-from typing import List 
+from typing import List
 
 import cudaq
 from cudaq import spin
@@ -157,7 +157,6 @@ def test_broadcast():
     print(energies)
     assert len(energies) == 50
 
-
     qubit_count = 5
     sample_count = 10
     spin_z = spin.z(0)
@@ -165,21 +164,24 @@ def test_broadcast():
 
     # Below we run a circuit for 10000 different input parameters.
     parameters = np.random.default_rng(13).uniform(low=0,
-                                                high=1,
-                                                size=(sample_count, parameter_count))
+                                                   high=1,
+                                                   size=(sample_count,
+                                                         parameter_count))
 
     @cudaq.kernel
     def kernel(qubit_count: int, parameters: List[float]):
         qvector = cudaq.qvector(qubit_count)
-        for i in range(qubit_count-1):
+        for i in range(qubit_count - 1):
             rx(parameters[i], qvector[i])
 
     # Has to fail, user passed a single `qubit_count` with a broadcast call
     with pytest.raises(RuntimeError) as e:
         result = cudaq.observe(kernel, spin_z, qubit_count, parameters)
-    
-    results = cudaq.observe(kernel, spin_z, [qubit_count]*sample_count, parameters)
+
+    results = cudaq.observe(kernel, spin_z, [qubit_count] * sample_count,
+                            parameters)
     print([r for r in results])
+
 
 @skipIfPythonLessThan39
 def test_broadcast_py39Plus():
@@ -196,7 +198,6 @@ def test_broadcast_py39Plus():
         x.ctrl(qubits[0], qubits[1])
         x.ctrl(qubits[1], qubits[0])
 
-    
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(
             1) + 9.625 - 9.625 * spin.z(2) - 3.913119 * spin.x(1) * spin.x(
@@ -259,15 +260,15 @@ def test_observe_async():
 
 
 def test_spec_adherence():
-    
+
     @cudaq.kernel
     def circuit(theta: float):
         q = cudaq.qvector(2)
         x(q[0])
         ry(theta, q[1])
-        x.ctrl(q[1], q[0]) 
+        x.ctrl(q[1], q[0])
         mz(q[0])
-    
+
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
@@ -275,9 +276,9 @@ def test_spec_adherence():
         cudaq.observe(circuit, hamiltonian, .59)
 
     @cudaq.kernel
-    def returnsSomething() -> int :
+    def returnsSomething() -> int:
         return 0
-    
+
     with pytest.raises(RuntimeError) as e:
         cudaq.observe(returnsSomething, hamiltonian, .59)
 
