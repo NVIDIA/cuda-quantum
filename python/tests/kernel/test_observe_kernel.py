@@ -303,7 +303,12 @@ def test_pack_args_pauli_list():
         return observable - cudaq.SpinOperator()
 
     @cudaq.kernel
-    def gqeCirc(N: int, thetas: list[float], paulis: list[cudaq.pauli_word]):
+    def gqeCirc1(N: int, thetas: list[float], one_pauli: cudaq.pauli_word):
+        q = cudaq.qvector(N)
+        exp_pauli(thetas[0], q, one_pauli)
+
+    @cudaq.kernel
+    def gqeCirc2(N: int, thetas: list[float], paulis: list[cudaq.pauli_word]):
         q = cudaq.qvector(N)
         for i in range(len(paulis)):
             exp_pauli(thetas[i], q, paulis[i])
@@ -319,6 +324,9 @@ def test_pack_args_pauli_list():
     pauliStings = generateRandomPauliStrings(numQubits, numPaulis)
     ts = np.random.rand(len(pauliStings))
 
-    exp_val = cudaq.observe_async(gqeCirc, obs, numQubits, list(ts),
-                                  pauliStings).get().expectation()
-    print('observe_async exp_val', exp_val)
+    exp_val1 = cudaq.observe_async(gqeCirc1, obs, numQubits, list(ts),
+                                   pauliStings[0]).get().expectation()
+    print('observe_async exp_val1', exp_val1)
+    exp_val2 = cudaq.observe_async(gqeCirc2, obs, numQubits, list(ts),
+                                   pauliStings).get().expectation()
+    print('observe_async exp_val2', exp_val2)
