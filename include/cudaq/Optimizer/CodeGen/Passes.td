@@ -113,7 +113,8 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
   }];
 }
 
-def VerifyNVQIRCallOps : Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
+def VerifyNVQIRCallOps :
+    Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
   let summary =
     "Verify that all LLVM CallOps' callees are NVQIR compliant";
   let description = [{
@@ -125,7 +126,7 @@ def VerifyNVQIRCallOps : Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp">
   
   let options = [
     ListOption<"allowedFuncs", "allowed-funcs", "llvm::StringRef",
-               "Allowed list of functions in addition to NVQIR-defined function.">
+        "Allowed list of functions in addition to NVQIR-defined function.">
   ];
 
   let constructor = "cudaq::opt::createVerifyNVQIRCallOpsPass({})";
