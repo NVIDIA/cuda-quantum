@@ -326,15 +326,30 @@ void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
   nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
 }
 
-void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q) {
-  auto qI = qubitToSizeT(q);
+auto u3_matrix = [](double theta, double phi, double lambda) {
   std::complex<double> i(0, 1.);
   std::vector<std::complex<double>> matrix{
       std::cos(theta / 2.), -std::exp(i * lambda) * std::sin(theta / 2.),
       std::exp(i * phi) * std::sin(theta / 2.),
       std::exp(i * (lambda + phi)) * std::cos(theta / 2.)};
-  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
+  return matrix;
+};
+
+void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q) {
+  auto qI = qubitToSizeT(q);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      u3_matrix(theta, phi, lambda), {}, {qI});
 }
+
+void __quantum__qis__u3__ctl(double theta, double phi, double lambda,
+                             Array *ctrls, Qubit *q) {
+  auto ctrlIdxs = arrayToVectorSizeT(ctrls);
+  auto qI = qubitToSizeT(q);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      u3_matrix(theta, phi, lambda), ctrlIdxs, {qI});
+}
+
+// ASKME: Do we need `__quantum__qis__u3__body(...)`?
 
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);

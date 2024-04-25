@@ -895,6 +895,7 @@ void quake::U3Op::getOperatorMatrix(Matrix &matrix) {
     phi *= -1;
     lambda *= -1;
   }
+
   matrix.assign({std::cos(theta / 2.),
                  std::exp(phi * 1i) * std::sin(theta / 2.),
                  -std::exp(lambda * 1i) * std::sin(theta / 2.),

@@ -1355,7 +1355,6 @@ def test_u3_op():
     assert ('11' in counts)
 
 
-@pytest.mark.skip("Controlled U3 not implemented")
 def test_u3_ctrl():
 
     @cudaq.kernel
@@ -1401,3 +1400,9 @@ def test_u3_parameterized():
 
     counts = cudaq.sample(param_kernel, np.pi, np.pi, np.pi / 2)
     assert counts["1"] == 1000
+
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])

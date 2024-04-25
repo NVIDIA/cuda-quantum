@@ -1247,14 +1247,12 @@ def test_list_subscript():
 def test_u3_op():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(1)
-    # ASKME: Allow use of only `q`?
-    kernel.u3(np.pi, np.pi, np.pi / 2, q[0])
+    kernel.u3(np.pi, np.pi, np.pi / 2, q)
 
     counts = cudaq.sample(kernel)
     assert counts["1"] == 1000
 
 
-@pytest.mark.skip("Controlled U3 not implemented")
 def test_u3_ctrl():
 
     kernel = cudaq.make_kernel()

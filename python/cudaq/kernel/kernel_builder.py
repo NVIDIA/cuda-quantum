@@ -629,11 +629,38 @@ class PyKernel(object):
         ```
         """
         with self.insertPoint, self.loc:
-            quake.U3Op(
-                [], [get_parameter_value(self, p) for p in [theta, phi, delta]],
-                [], [target.mlirValue])
+            parameters = [
+                get_parameter_value(self, p) for p in [theta, phi, delta]
+            ]
+
+            if quake.RefType.isinstance(target.mlirValue.type):
+                quake.U3Op([], parameters, [], [target.mlirValue])
+                return
+
+            # Must be a `veq`, get the size
+            size = quake.VeqSizeOp(self.getIntegerType(), target.mlirValue)
+
+            def body(idx):
+                extracted = quake.ExtractRefOp(quake.RefType.get(self.ctx),
+                                               target.mlirValue,
+                                               -1,
+                                               index=idx).result
+                quake.U3Op([], parameters, [], [extracted])
+
+            self.createInvariantForLoop(size, body)
 
     def cu3(self, theta, phi, delta, controls, target):
+        """
+        Controlled u3 operation.
+        The controls parameter is expected to be a list of QuakeValue.
+
+        ```python
+            # Example:
+            kernel = cudaq.make_kernel()
+            qubits = kernel.qalloc(2)
+            kernel.cu3(np.pi, np.pi, np.pi / 2, qubits[0], qubits[1]))
+        ```
+        """
         with self.insertPoint, self.loc:
             fwdControls = None
             if isinstance(controls, list):
