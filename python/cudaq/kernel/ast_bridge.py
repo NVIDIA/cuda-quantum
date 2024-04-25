@@ -308,7 +308,7 @@ class PyASTBridge(ast.NodeVisitor):
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
 
-    def promote_operand_type(self, ty, operand):
+    def promoteOperandType(self, ty, operand):
         if ComplexType.isinstance(ty):
             complexType = ComplexType(ty)
             floatType = complexType.element_type
@@ -316,15 +316,13 @@ class PyASTBridge(ast.NodeVisitor):
                 otherComplexType = ComplexType(operand.type)
                 otherFloatType = otherComplexType.element_type
                 if (floatType != otherFloatType):
-                    real = self.promote_operand_type(
-                        floatType,
-                        complex.ReOp(operand).result)
-                    imag = self.promote_operand_type(
-                        floatType,
-                        complex.ImOp(operand).result)
+                    real = self.promoteOperandType(floatType,
+                                                   complex.ReOp(operand).result)
+                    imag = self.promoteOperandType(floatType,
+                                                   complex.ImOp(operand).result)
                     operand = complex.CreateOp(complexType, real, imag).result
             else:
-                real = self.promote_operand_type(floatType, operand)
+                real = self.promoteOperandType(floatType, operand)
                 imag = self.getConstantFloatWithType(0.0, floatType)
                 operand = complex.CreateOp(complexType, real, imag).result
 
@@ -518,28 +516,7 @@ class PyASTBridge(ast.NodeVisitor):
         """
         retValues = []
         for v in values:
-            if IntegerType.isinstance(v.type):
-                if F64Type.isinstance(type):
-                    retValues.append(arith.SIToFPOp(type, v).result)
-                elif ComplexType.isinstance(type):
-                    # cast integer to float, pass to real part
-                    retValues.append(
-                        complex.CreateOp(
-                            type,
-                            arith.SIToFPOp(ComplexType(type).element_type,
-                                           v).result,
-                            self.getConstantFloat(0)).result)
-                else:
-                    retValues.append(v)
-            if F64Type.isinstance(v.type):
-                if ComplexType.isinstance(type):
-                    retValues.append(
-                        complex.CreateOp(type, v,
-                                         self.getConstantFloat(0)).result)
-                else:
-                    retValues.append(v)
-            if ComplexType.isinstance(v.type):
-                retValues.append(v)
+            retValues.append(self.promoteOperandType(type, v))
 
         return retValues
 
@@ -1347,8 +1324,8 @@ class PyASTBridge(ast.NodeVisitor):
                 else:
                     imag = namedArgs['imag']
                     real = namedArgs['real']
-                imag = self.promote_operand_type(self.getFloatType(), imag)
-                real = self.promote_operand_type(self.getFloatType(), real)
+                imag = self.promoteOperandType(self.getFloatType(), imag)
+                real = self.promoteOperandType(self.getFloatType(), real)
                 self.pushValue(
                     complex.CreateOp(self.getComplexType(), real, imag).result)
                 return
@@ -1594,15 +1571,15 @@ class PyASTBridge(ast.NodeVisitor):
                         ty = self.getComplexType(width=32)
                         eleTy = self.getFloatType(width=32)
 
-                    value = self.promote_operand_type(ty, value)
+                    value = self.promoteOperandType(ty, value)
                     if (ty == value.type):
                         self.pushValue(value)
                         return
 
                     real = complex.ReOp(value).result
                     imag = complex.ImOp(value).result
-                    real = self.promote_operand_type(eleTy, real)
-                    imag = self.promote_operand_type(eleTy, imag)
+                    real = self.promoteOperandType(eleTy, real)
+                    imag = self.promoteOperandType(eleTy, imag)
 
                     self.pushValue(complex.CreateOp(ty, real, imag).result)
                     return
@@ -1613,18 +1590,18 @@ class PyASTBridge(ast.NodeVisitor):
                     if node.func.attr == 'float32':
                         ty = self.getFloatType(width=32)
 
-                    value = self.promote_operand_type(ty, value)
+                    value = self.promoteOperandType(ty, value)
                     self.pushValue(value)
                     return
 
                 # Promote argument's types for `numpy.func` calls to match python's semantics
                 if node.func.attr in ['sin', 'cos', 'sqrt', 'ceil']:
                     if ComplexType.isinstance(value.type):
-                        value = self.promote_operand_type(
-                            self.getComplexType(), value)
+                        value = self.promoteOperandType(self.getComplexType(),
+                                                        value)
                     if IntegerType.isinstance(value.type):
-                        value = self.promote_operand_type(
-                            self.getFloatType(), value)
+                        value = self.promoteOperandType(self.getFloatType(),
+                                                        value)
 
                 if node.func.attr == 'cos':
                     if ComplexType.isinstance(value.type):
@@ -2794,7 +2771,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         if result.type != self.knownResultType:
             # FIXME consider more auto-casting where possible
-            result = self.promote_operand_type(self.knownResultType, result)
+            result = self.promoteOperandType(self.knownResultType, result)
 
         if result.type != self.knownResultType:
             self.emitFatalError(
@@ -2923,8 +2900,8 @@ class PyASTBridge(ast.NodeVisitor):
 
         # Type promotion for addition, subtraction, multiplication, or division
         if isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
-            right = self.promote_operand_type(left.type, right)
-            left = self.promote_operand_type(right.type, left)
+            right = self.promoteOperandType(left.type, right)
+            left = self.promoteOperandType(right.type, left)
 
         # Based on the op type and the leaf types, create the MLIR operator
         if isinstance(node.op, ast.Add):
