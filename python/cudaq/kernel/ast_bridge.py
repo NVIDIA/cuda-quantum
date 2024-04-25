@@ -1501,25 +1501,59 @@ class PyASTBridge(ast.NodeVisitor):
 
             if node.func.value.id == 'cudaq':
                 if node.func.attr in ['qvector']:
-                    # Handle `cudaq.qvector(N)`
-                    size = self.popValue()
-                    if hasattr(size, "literal_value"):
-                        ty = self.getVeqType(size.literal_value)
-                        qubits = quake.AllocaOp(ty)
+                    print('popping vector arg')
+                    value = self.popValue()
+                    print(dir(value))
+                    if hasattr(value, "literal_value"):
+                        value = value.literal_value
+                        if (isinstance(value, int)):
+                            print('integer literal')
+                            # Handle `cudaq.qvector(N)`
+                            ty = self.getVeqType(value)
+                            qubits = quake.AllocaOp(ty)
+                            self.pushValue(qubits.results[0]) 
+                        else:
+                                print('non-integer literal')
+                                self.emitFatalError(
+                                    f"unsupported qvector argument: {value} (expected integer)", node)
                     else:
-                        ty = self.getVeqType()
-                        size = self.ifPointerThenLoad(size)
-                        qubits = quake.AllocaOp(ty, size=size)
-                    self.pushValue(qubits.results[0])
-                    return
+                        value = self.ifPointerThenLoad(value)
+                        print(f'non-literal: {value.type}')
+                        if (IntegerType.isinstance(value.type)):
+                            # handle `cudaq.qvector(n)`
+                            print('integer non-literal')
+                            ty = self.getVeqType()
+                            qubits = quake.AllocaOp(ty, size=value)
+                            self.pushValue(qubits.results[0]) 
+                        elif cc.StdvecType.isinstance(value.type):
+                            # handle `cudaq.qvector([1.0+0j, ...])`
+                            size = cc.StdvecSizeOp(self.getIntegerType(), value).result
+                            print(f'stdvec of size {size}: {value}')
 
-                if node.func.attr == "qubit":
-                    if len(self.valueStack) == 1 and IntegerType.isinstance(
-                            self.valueStack[0].type):
-                        self.emitFatalError(
-                            'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
-                        )
-                    self.pushValue(quake.AllocaOp(self.getRefType()).result)
+                            numQubits =  math.CountTrailingZerosOp(size).result
+                            eleTy = cc.StdvecType.getElementType(value.type)
+                            ptrTy = cc.PointerType.get(self.ctx, eleTy)
+                            vecTy = quake.VeqType.get(self.ctx)
+                            qubits = quake.AllocaOp(vecTy, size=numQubits)
+                            initials = cc.StdvecDataOp(ptrTy, value).result
+                            initState = quake.InitializeStateOp(vecTy, qubits, initials)
+                            self.pushValue(qubits.results[0]) 
+
+                            if (numQubits == None):
+                                self.emitFatalError(
+                                    "internal error: could not determine the number of qubits")
+                        else:
+                            self.emitFatalError(
+                                f"unsupported qvector argument type: {value} (unknown)", node)
+                        return
+
+                    if node.func.attr == "qubit":
+                        if len(self.valueStack) == 1 and IntegerType.isinstance(
+                                self.valueStack[0].type):
+                            self.emitFatalError(
+                                'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
+                            )
+                        self.pushValue(quake.AllocaOp(self.getRefType()).result)
                     return
 
                 if node.func.attr == 'adjoint':

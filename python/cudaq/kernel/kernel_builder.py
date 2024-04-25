@@ -260,7 +260,7 @@ class PyKernel(object):
         """
         if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
             return ty, None
-        if get_origin(ty) == list or isinstance(ty(), list):
+        if get_origin(ty) == list or isinstance(ty, list):
             if '[' in str(ty) and ']' in str(ty):
                 allowedTypeMap = {
                     'int': int,
