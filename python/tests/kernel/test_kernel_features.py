@@ -1290,21 +1290,22 @@ def test_bad_attr_call_error():
 def test_bad_return_value_with_stdvec_arg():
 
     @cudaq.kernel
-    def test_param(i: int, l : List[int]) -> int: 
+    def test_param(i: int, l: List[int]) -> int:
         return i
 
     l = [42]
     for i in range(4):
-        assert test_param(i,l) == i 
+        assert test_param(i, l) == i
 
 
 def test_measure_variadic_qubits():
+
     @cudaq.kernel
     def test():
         q = cudaq.qvector(5)
         x(q[2])
-        mz(q[0], q[1], q[2]) 
-    
+        mz(q[0], q[1], q[2])
+
     counts = cudaq.sample(test)
     assert len(counts) == 1 and '001' in counts
 
@@ -1312,11 +1313,10 @@ def test_measure_variadic_qubits():
     def test():
         q = cudaq.qvector(5)
         x(q[0], q[2])
-        mz(q[0], [q[1], q[2]]) 
-    
+        mz(q[0], [q[1], q[2]])
+
     counts = cudaq.sample(test)
     assert len(counts) == 1 and '101' in counts
-
 
 
 def test_bad_return_value_with_stdvec_arg():
@@ -1376,9 +1376,10 @@ def test_u3_adj():
     def rotation_adjoint_test():
         q = cudaq.qubit()
 
-        # # implement Rx gate with U3
-        # u3(1.1, -np.pi / 2, np.pi / 2, q)
-        # u3.adj(1.1, -np.pi / 2, np.pi / 2, q)
+        # implement Rx gate with U3
+        u3(1.1, -np.pi / 2, np.pi / 2, q)
+        # rx.adj(angle) = u3.adj(angle, pi/2, -pi/2)
+        u3.adj(1.1, np.pi / 2, -np.pi / 2, q)
 
         # implement Ry gate with U3
         u3(1.1, 0, 0, q)
