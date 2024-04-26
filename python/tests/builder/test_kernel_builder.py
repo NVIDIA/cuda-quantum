@@ -918,7 +918,6 @@ def test_from_state0():
     print(counts)
     assert '11' in counts
     assert '00' in counts
-    cudaq.reset_target()
 
     state = [.70710678 + 0j, 0., 0., 0.70710678]
     kernel = cudaq.make_kernel()

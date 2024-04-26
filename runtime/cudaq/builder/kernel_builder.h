@@ -88,14 +88,6 @@ using StateVectorVariant = std::variant<std::vector<std::complex<float>> *,
 /// state.
 using StateVectorStorage = std::vector<StateVectorVariant>;
 
-/// @brief Type describing user-provided state vector data.
-/// This maps the state vector unique hash to the vector data.
-struct StateVectorData {
-  void *data = nullptr;
-  simulation_precision precision = simulation_precision::fp32;
-};
-using StateVectorStorage = std::map<std::size_t, StateVectorData>;
-
 // Define a `mlir::Type` generator in the `cudaq` namespace, this helps us keep
 // MLIR out of this public header
 

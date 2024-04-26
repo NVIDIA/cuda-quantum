@@ -1051,33 +1051,8 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
 
-<<<<<<< HEAD
-  // If we have any state vector data, we need to extract the function pointer
-  // to set that data, and then set it.
-  for (auto &[stateHash, svdata] : storage) {
-    auto setStateFPtr =
-        jit->lookup("nvqpp.set.state." + std::to_string(stateHash));
-    if (!setStateFPtr)
-      throw std::runtime_error(
-          "cudaq::builder failed to get set state function.");
-
-    if (svdata.precision == simulation_precision::fp64) {
-      auto setStateFunc =
-          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
-      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
-    } else {
-      auto setStateFunc =
-          reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
-      setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
-    }
-  }
-
-  // Incoming Args... have been converted to void **,
-  // now we convert to void * altLaunchKernel args.
-=======
   // Incoming Args... have been converted to void **, now we convert to void *
   // altLaunchKernel args.
->>>>>>> upstream/experimental/stateHandling
   auto argCreatorName = properName + ".argsCreator";
   auto expectedPtr = jit->lookup(argCreatorName);
   if (!expectedPtr) {
