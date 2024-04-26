@@ -29,6 +29,8 @@
 #include "mlir/Target/LLVMIR/Export.h"
 
 #include <fmt/core.h>
+#include <complexobject.h>
+#include <pybind11/complex.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
@@ -146,6 +148,14 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             delete static_cast<long *>(ptr);
           });
         })
+        .Case([&](ComplexType type) {
+          Py_complex *ourAllocatedArg = new Py_complex();
+          ourAllocatedArg->real = 0.0;
+          ourAllocatedArg->imag = 0.0;
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<Py_complex *>(ptr);
+          });
+        })
         .Case([&](Float64Type type) {
           double *ourAllocatedArg = new double();
           *ourAllocatedArg = 0.;
@@ -259,6 +269,26 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
   std::free(rawArgs);
 }
 
+// TODO: do we need to add this to the python bindings?
+class complex_ : public py::object {
+public:
+    complex_(double real, double imag) : object(PyComplex_FromDoubles(real, imag), stolen_t{}) {
+        if (!m_ptr) {
+            throw std::runtime_error("Could not allocate complex object!");
+        }
+    }
+    // TODO: can we use std::complex instead of Py_complex to store
+    // the return value of a kernel?
+    // complex_(std::complex<double> value) {
+    //   impl = py::detail::type_caster<std::complex<double>>::cast(
+    //     value, py::return_value_policy::automatic, nullptr);
+    // }
+    operator std::complex<double>() {
+      auto value = PyComplex_AsCComplex(m_ptr);
+      return std::complex<double>(value.real, value.imag);
+    }
+};
+
 py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
@@ -285,6 +315,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
             return;
           })
           .Case([&](cc::StdvecType ty) { offset += 8; })
+          .Case([&](ComplexType ty) { offset += 16; })
           .Case([&](Float64Type ty) { offset += 8; })
           .Default([](Type) {});
 
@@ -304,6 +335,27 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
         std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
         std::free(rawArgs);
         return py::int_(concrete);
+      })
+      .Case([&](ComplexType ty) -> py::object {
+        auto eleTy = ty.getElementType();
+        return llvm::TypeSwitch<mlir::Type, py::object>(eleTy)
+          .Case([&](Float64Type ty) -> py::object {
+            Py_complex concrete;
+            std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 16);
+            std::free(rawArgs);
+            return complex_(concrete.real, concrete.imag);
+          })
+          // .Case([&](Float32Type ty) -> py::object {
+          //   double real, imag;
+          //   std::memcpy(&real, ((char *)rawArgs) + returnOffset, 4);
+          //   std::memcpy(&imag, ((char *)rawArgs) + returnOffset + 4, 4);
+          //   std::free(rawArgs);
+          //   return py::complex_(real, imag);
+          // })
+          .Default([](Type ty) -> py::object {
+          ty.dump();
+          throw std::runtime_error("Invalid float element type for return type for pyAltLaunchKernel.");
+        });
       })
       .Case([&](Float64Type ty) -> py::object {
         double concrete;
