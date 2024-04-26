@@ -133,14 +133,15 @@ class PyKernelDecorator(object):
         # variables from the parent frame that we captured
         # have not changed. If they have changed, we need to
         # recompile with the new values.
-        for i, s in enumerate(inspect.stack()):
-            if s.frame == self.parentFrame:
+        s = inspect.currentframe()
+        while s:
+            if s == self.parentFrame:
                 # We found the parent frame, now
                 # see if any of the variables we depend
                 # on have changed.
                 self.globalScopedVars = {
-                    k: v for k, v in dict(inspect.getmembers(s.frame))
-                    ['f_locals'].items()
+                    k: v
+                    for k, v in dict(inspect.getmembers(s))['f_locals'].items()
                 }
                 if self.dependentCaptures != None:
                     for k, v in self.dependentCaptures.items():
@@ -148,6 +149,8 @@ class PyKernelDecorator(object):
                             # Need to recompile
                             self.module = None
                             break
+                break
+            s = s.f_back
 
         if self.module != None:
             return
