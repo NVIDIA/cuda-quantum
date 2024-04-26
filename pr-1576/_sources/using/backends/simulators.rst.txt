@@ -55,7 +55,7 @@ Multi-node multi-GPU
 
 The :code:`nvidia-mgpu` target provides a state vector simulator accelerated with 
 the :code:`cuStateVec` library but with support for Multi-Node, Multi-GPU distribution of the 
-state vector. (It can also run on a single GPU.)
+state vector, in addition to a single GPU.
 
 The multi-node multi-GPU simulator expects to run within an MPI context.
 To execute a program on the :code:`nvidia-mgpu` target, use the following commands (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
@@ -99,12 +99,16 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 
 The :code:`nvidia-mgpu` backend has additional performance improvements to
 help reduce your simulation runtimes, even on a single GPU. One of the
-performance improvements is to fuse multiple gates together during runtime. By
-default, up to 4 gates are fused together for single-GPU simulations, and up to
-6 gates are fused together for multi-GPU simulations. The number of gates fused
-can **significantly** affect performance of some circuits, so users can override
-the default fusion level by setting the setting `CUDAQ_MGPU_FUSE` environment
-variable to another integer value as shown below.
+performance improvements is to fuse multiple gates together during runtime. For
+example, :code:`x(qubit0)` and :code:`x(qubit1)` can be fused together into a
+single 4x4 matrix operation on the state vector rather than 2 separate 2x2
+matrix operations on the state vector. This fusion reduces memory bandwidth on
+the GPU because the state vector is transferred into and out of memory fewer
+times. By default, up to 4 gates are fused together for single-GPU simulations,
+and up to 6 gates are fused together for multi-GPU simulations. The number of
+gates fused can **significantly** affect performance of some circuits, so users
+can override the default fusion level by setting the setting `CUDAQ_MGPU_FUSE`
+environment variable to another integer value as shown below.
 
 .. tab:: Python
 

@@ -549,7 +549,7 @@ switch to <code class="code docutils literal notranslate"><span class="pre">FP64
 <h3>Multi-node multi-GPU<a class="headerlink" href="#multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
 <p id="nvidia-mgpu-backend">The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target provides a state vector simulator accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> library but with support for Multi-Node, Multi-GPU distribution of the
-state vector. (It can also run on a single GPU.)</p>
+state vector, in addition to a single GPU.</p>
 <p>The multi-node multi-GPU simulator expects to run within an MPI context.
 To execute a program on the <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target, use the following commands (adjust the value of the <code class="code docutils literal notranslate"><span class="pre">-np</span></code> flag as needed to reflect available GPU resources on your system):</p>
 <div class="tab-set docutils">
@@ -586,12 +586,16 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 </div>
 <p>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend has additional performance improvements to
 help reduce your simulation runtimes, even on a single GPU. One of the
-performance improvements is to fuse multiple gates together during runtime. By
-default, up to 4 gates are fused together for single-GPU simulations, and up to
-6 gates are fused together for multi-GPU simulations. The number of gates fused
-can <strong>significantly</strong> affect performance of some circuits, so users can override
-the default fusion level by setting the setting <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment
-variable to another integer value as shown below.</p>
+performance improvements is to fuse multiple gates together during runtime. For
+example, <code class="code docutils literal notranslate"><span class="pre">x(qubit0)</span></code> and <code class="code docutils literal notranslate"><span class="pre">x(qubit1)</span></code> can be fused together into a
+single 4x4 matrix operation on the state vector rather than 2 separate 2x2
+matrix operations on the state vector. This fusion reduces memory bandwidth on
+the GPU because the state vector is transferred into and out of memory fewer
+times. By default, up to 4 gates are fused together for single-GPU simulations,
+and up to 6 gates are fused together for multi-GPU simulations. The number of
+gates fused can <strong>significantly</strong> affect performance of some circuits, so users
+can override the default fusion level by setting the setting <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code>
+environment variable to another integer value as shown below.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_MGPU_FUSE</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia-mgpu
