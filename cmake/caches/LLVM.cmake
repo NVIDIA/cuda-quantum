@@ -8,6 +8,7 @@ set(ZLIB_USE_STATIC_LIBS ON CACHE BOOL "")
 
 # Path configurations
 set(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib" CACHE STRING "")
+#set(LIBCXX_INSTALL_LIBRARY_DIR lib CACHE STRING "")
 set(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR ON CACHE BOOL "")
 
 # Default configurations for the built toolchain
@@ -24,10 +25,6 @@ set(LIBCXX_CXX_ABI libcxxabi CACHE STRING "")
 #if runtimes contains llvm-libgcc:
 # ... does not work ...
 #set(LLVM_LIBGCC_EXPLICIT_OPT_IN ON CACHE BOOL "")
-#set(LIBCXXABI_USE_LLVM_UNWINDER OFF CACHE BOOL "")
-#set(COMPILER_RT_BUILD_CRT ON CACHE BOOL "")
-#set(COMPILER_RT_BUILD_BUILTINS ON CACHE BOOL "")
-# else:
 set(COMPILER_RT_USE_LIBCXX ON CACHE BOOL "")
 set(COMPILER_RT_USE_LLVM_UNWINDER ON CACHE BOOL "")
 set(LIBUNWIND_USE_COMPILER_RT ON CACHE BOOL "")
@@ -50,10 +47,6 @@ set(COMPILER_RT_USE_BUILTINS_LIBRARY ON CACHE BOOL "")
 # COMPILER_RT_BUILD_STANDALONE_LIBATOMIC? - check if these need to be set:
 #set(COMPILER_RT_HAS_ATOMICS OFF CACHE BOOL "")
 #set(LLVM_HAS_ATOMICS OFF CACHE BOOL "")
-
-# problem with installing a stripped distribution:
-# the runtimes build doesn't seem to correctly find the built libraries, 
-# check https://github.com/llvm/llvm-project/blob/main/runtimes/CMakeLists.txt
 
 # If we want to build dynamic libraries for the unwinder,
 # we need to build support for exception handling.

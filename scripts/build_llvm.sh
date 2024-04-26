@@ -33,7 +33,7 @@ LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'}
 PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
-# Process command line arguments
+# Process command line arguments.
 build_configuration=Release
 verbose=false
 
@@ -62,7 +62,7 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 echo "Configured C compiler: $CC"
 echo "Configured C++ compiler: $CXX"
 
-# Check if we build python bindings and build pybind11 from source if necessary
+# Check if we build python bindings and build pybind11 from source if necessary.
 projects=(`echo $LLVM_PROJECTS | tr ';' ' '`)
 llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*python-bindings;*}" ]; then
@@ -79,7 +79,7 @@ if [ -z "${llvm_projects##*python-bindings;*}" ]; then
   fi
 fi
 
-# Prepare the source and build directory
+# Prepare the source and build directory.
 if [ "$llvm_source" = "" ]; then
   echo "Cloning LLVM submodule..."
   cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
@@ -201,7 +201,7 @@ else
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
-# Build and install clang in a folder
+# Build and install the defined distribution.
 echo "Building LLVM with configuration $build_configuration..."
 if $verbose; then
   ninja $install_target
@@ -212,7 +212,6 @@ else
   status=$?
 fi
 
-# Build and install runtimes using the newly built toolchain
 if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
   echo "Failed to build compiler components. Please check the files in the `pwd`/logs directory."
   cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
@@ -220,6 +219,7 @@ else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
 fi
 
+# Build and install runtimes using the newly built toolchain.
 if [ -n "$llvm_runtimes" ]; then
   echo "Building runtime components..."
   ninja runtimes
@@ -233,14 +233,17 @@ if [ -n "$llvm_runtimes" ]; then
     # is built as runtime rather than as project. Invoking the installation manually.
     cmake -P runtimes/builtins-bins/cmake_install.cmake
     echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
-
-    # We can use a default config file to set specific clang configurations.
-    # See https://clang.llvm.org/docs/UsersManual.html#configuration-files
-    clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
-    echo "-L$LLVM_INSTALL_PREFIX/lib" > "$clang_config_file"
-    echo "-L$(ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*)" >> "$clang_config_file"
-    echo "Default configuration file written to $clang_config_file"
   fi
+fi
+
+# We can use a default config file to set specific clang configurations.
+# See https://clang.llvm.org/docs/UsersManual.html#configuration-files
+echo "Defining default configuration file $clang_config_file."
+clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
+target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
+echo "-L$LLVM_INSTALL_PREFIX/lib" > "$clang_config_file"
+if [ -n "$target_specific_libs" ]; then
+  echo "-L$(ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*)" >> "$clang_config_file"
 fi
 
 cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"

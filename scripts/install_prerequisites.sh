@@ -148,9 +148,10 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     # BETTER: IN GENERAL, SET UP THE DEFAULT CONFIG FILE TO SET THE RPATH
     # BUT: STDLIB VANISHES ONCE WE REMOVE THE TEMP DIR, LEAVING BROKEN LIBS BEHIND; 
     # INSTEAD, MOVE THE STDLIB TO A BETTER LOCATION?
-    cmake -B build && cmake --build build
+    LDFLAGS="-static-libstdc++" cmake -B build
+    cmake --build build
     mv build/ninja /usr/local/bin/
-    rm -rf v1.11.1.tar.gz ninja-1.11.1 v1.11.1.tar.gz
+    cd .. && rm -rf v1.11.1.tar.gz ninja-1.11.1
   fi
 fi
 
@@ -186,16 +187,20 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     echo "Installing LLVM libraries..."
     if [ "$toolchain" = "llvm" ]; then
       mkdir -p "$LLVM_INSTALL_PREFIX/lib"
-      cp -rv "$(ls -d "$(dirname $CC)/../lib"/*linux*)" "$LLVM_INSTALL_PREFIX/lib"
+      cp -v $(ls "$(dirname $CC)/../lib"/*linux*/*) "$LLVM_INSTALL_PREFIX/lib"
     fi
     # We need to set the LD_LIBRARY_PATH here to make sure that the table-gen
     # executable actually finds the standard library, since we don't rebuild it.
-    LD_LIBRARY_PATH="$(ls -d $LLVM_INSTALL_PREFIX/lib/*/ 2>/dev/null):$LD_LIBRARY_PATH" \
+    LD_LIBRARY_PATH="$LLVM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
     PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
     bash "$this_file_dir/build_llvm.sh" -v
+    # FIXME: NOT PARTICULARLY SAVE (DIFFERENT LLVM VERSIONS MIX WITHOUT ERROR)
+    if [ "$toolchain" = "llvm" ]; then
+      cp -rvn $($CC -print-resource-dir)/* "$("$LLVM_INSTALL_PREFIX/bin/clang" -print-resource-dir)"
+    fi
   else 
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
