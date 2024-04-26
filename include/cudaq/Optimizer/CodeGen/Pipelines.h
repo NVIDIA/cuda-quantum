@@ -37,7 +37,7 @@ inline void addPipelineConvertToQIR(mlir::PassManager &pm) {
 inline void addPipelineConvertToQIR(mlir::PassManager &pm,
                                     mlir::StringRef convertTo) {
   commonPipelineConvertToQIR(pm, convertTo);
-  cudaq::opt::addQIRProfilePipeline(pm, convertTo);
+  addQIRProfilePipeline(pm, convertTo);
 }
 
 void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
