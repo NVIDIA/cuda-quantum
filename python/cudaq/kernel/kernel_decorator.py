@@ -140,8 +140,8 @@ class PyKernelDecorator(object):
                 # see if any of the variables we depend
                 # on have changed.
                 self.globalScopedVars = {
-                    k: v for k, v in dict(inspect.getmembers(s))
-                    ['f_locals'].items()
+                    k: v
+                    for k, v in dict(inspect.getmembers(s))['f_locals'].items()
                 }
                 if self.dependentCaptures != None:
                     for k, v in self.dependentCaptures.items():
