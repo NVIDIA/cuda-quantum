@@ -55,7 +55,7 @@ Multi-node multi-GPU
 
 The :code:`nvidia-mgpu` target provides a state vector simulator accelerated with 
 the :code:`cuStateVec` library but with support for Multi-Node, Multi-GPU distribution of the 
-state vector. (It can also run on a single GPU.)
+state vector, in addition to a single GPU.
 
 The multi-node multi-GPU simulator expects to run within an MPI context.
 To execute a program on the :code:`nvidia-mgpu` target, use the following commands (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
