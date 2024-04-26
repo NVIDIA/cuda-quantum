@@ -31,6 +31,16 @@ namespace cudaq {
 
 namespace details {
 
+/// @brief Helper function to convert ordering of matrix elements
+/// to match internal simulator state ordering.
+std::size_t convertOrdering(std::size_t numQubits, std::size_t idx) {
+  std::size_t newIdx = 0;
+  for (std::size_t i = 0; i < numQubits; ++i)
+    if (idx & (1ULL << i))
+      newIdx |= (1ULL << ((numQubits - 1) - i));
+  return newIdx;
+}
+
 /// @brief Compute the action
 std::pair<std::string, std::complex<double>>
 actionOnBra(spin_op &term, const std::string &bitConfiguration) {
@@ -197,7 +207,8 @@ complex_matrix spin_op::to_matrix() const {
     for_each_term([&](spin_op &term) {
       auto [res, coeff] = details::actionOnBra(term, rowBitStr);
       auto colIdx = std::stol(res, nullptr, 2);
-      rawData[rowIdx * dim + colIdx] += coeff;
+      rawData[details::convertOrdering(n, rowIdx) * dim +
+              details::convertOrdering(n, colIdx)] += coeff;
     });
   }
   return A;
@@ -249,8 +260,8 @@ spin_op::csr_spmatrix spin_op::to_sparse_matrix() const {
   for (int k = 0; k < mat.outerSize(); ++k)
     for (SpMat::InnerIterator it(mat, k); it; ++it) {
       values.emplace_back(it.value());
-      rows.emplace_back(it.row());
-      cols.emplace_back(it.col());
+      rows.emplace_back(details::convertOrdering(n, it.row()));
+      cols.emplace_back(details::convertOrdering(n, it.col()));
     }
 
   return std::make_tuple(values, rows, cols);

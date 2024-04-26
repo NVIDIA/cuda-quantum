@@ -69,8 +69,7 @@ concept KernelBuilderArgTypeIsValid =
           Args, float, double, std::size_t, int, std::vector<int>,             \
           std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
           std::vector<std::complex<float>>, std::vector<std::complex<double>>, \
-          std::vector<cudaq::simulation_scalar>, cudaq::qubit,                 \
-          cudaq::qvector<>> &&                                                 \
+          std::vector<cudaq::complex>, cudaq::qubit, cudaq::qvector<>> &&      \
       ...)
 #else
 // Not C++ 2020: stub these out.
@@ -79,6 +78,15 @@ concept KernelBuilderArgTypeIsValid =
 #endif
 
 namespace details {
+/// Use parametric type: `initializations` must be vectors of complex float or
+/// double. No other type is allowed.
+using StateVectorVariant = std::variant<std::vector<std::complex<float>> *,
+                                        std::vector<std::complex<double>> *>;
+
+/// Type describing user-provided state vector data. This is a list of the state
+/// vector variables used in a kernel with at least one `qvector` with initial
+/// state.
+using StateVectorStorage = std::vector<StateVectorVariant>;
 
 /// @brief Type describing user-provided state vector data.
 /// This maps the state vector unique hash to the vector data.
@@ -179,8 +187,9 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
 
 /// @brief Allocate a `qvector` from a user provided state vector.
-QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, std::size_t hash,
-                  std::size_t size, simulation_precision precision);
+QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
+                  StateVectorStorage &stateVectorData,
+                  StateVectorVariant &&state, simulation_precision precision);
 
 /// @brief Create a QuakeValue representing a constant floating-point number
 QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
@@ -350,10 +359,7 @@ public:
   /// @brief Write the kernel_builder to the given output stream. This outputs
   /// the Quake representation.
   friend std::ostream &operator<<(std::ostream &stream,
-                                  const kernel_builder_base &builder) {
-    stream << builder.to_quake();
-    return stream;
-  }
+                                  const kernel_builder_base &builder);
 };
 
 } // namespace details
@@ -411,18 +417,6 @@ private:
     return std::get<std::string>(term);
   }
 
-  /// @brief Compute a unique hash code for the given state vector data.
-  template <typename ScalarType>
-  std::size_t
-  hashStateVector(const std::vector<std::complex<ScalarType>> &vec) const {
-    auto seed = vec.size();
-    for (auto &v : vec)
-      seed ^= std::hash<ScalarType>()(v.real()) +
-              std::hash<ScalarType>()(v.imag()) + 0x9e3779b9 + (seed << 6) +
-              (seed >> 2);
-    return seed;
-  }
-
   /// @brief Storage for any user-provided state-vector data.
   details::StateVectorStorage stateVectorStorage;
 
@@ -470,22 +464,26 @@ public:
     return details::qalloc(*opBuilder.get(), size);
   }
 
-  // @brief Return a `QuakeValue` representing the allocated
-  // quantum register, initialized to the given state vector.
-  // Note - input argument is not const here, user has to own the data.
-  template <typename ScalarType>
-  QuakeValue qalloc(const std::vector<std::complex<ScalarType>> &state) {
-    auto hash = hashStateVector(state);
-    simulation_precision precision = std::is_same_v<ScalarType, float>
-                                         ? simulation_precision::fp32
-                                         : simulation_precision::fp64;
-    auto value =
-        details::qalloc(*opBuilder.get(), hash, state.size(), precision);
-    stateVectorStorage.insert(
-        {hash,
-         details::StateVectorData{
-             const_cast<std::complex<ScalarType> *>(state.data()), precision}});
-    return value;
+  /// Return a `QuakeValue` representing the allocated quantum register,
+  /// initialized to the given state vector, \p state.
+  ///
+  /// Note: input argument is a \e true reference here, the calling context has
+  /// to own the data. Specifically, the builder object will capture variables
+  /// by reference (implemented as a container of pointers for simplicity) but
+  /// the builder does not create, own, or copy these vectors. This implies that
+  /// if the captured vector goes out of scope before the kernel is invoked, the
+  /// reference may contain garbage. This behavior is identical to a C++ lambda
+  /// capture by reference.
+  QuakeValue qalloc(std::vector<std::complex<double>> &state) {
+    return details::qalloc(*opBuilder.get(), stateVectorStorage,
+                           details::StateVectorVariant{&state},
+                           simulation_precision::fp64);
+  }
+  // Overload for complex<float> vector.
+  QuakeValue qalloc(std::vector<std::complex<float>> &state) {
+    return details::qalloc(*opBuilder.get(), stateVectorStorage,
+                           details::StateVectorVariant{&state},
+                           simulation_precision::fp32);
   }
 
   /// @brief Return a `QuakeValue` representing the constant floating-point

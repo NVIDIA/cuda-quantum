@@ -135,7 +135,8 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
 
-  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
+  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
+                               {static_cast<int32_t>(qubitIdx)});
 }
 
 /// @brief Device synchronization
@@ -173,7 +174,8 @@ bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
         4 * sizeof(std::complex<double>), cudaMemcpyHostToDevice));
     m_gateDeviceMemCache[projKey] = d_gateProj;
   }
-  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
+  m_state->applyQubitProjector(m_gateDeviceMemCache[projKey],
+                               {static_cast<int32_t>(qubitIdx)});
   return resultBool;
 }
 
@@ -257,19 +259,6 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
                                  cudaq::sample_result(cudaq::ExecutionResult(
                                      {}, ham.to_string(false), expVal.real())));
   }
-}
-
-/// @brief Return the state vector data
-cudaq::State SimulatorTensorNetBase::getStateData() {
-  LOG_API_TIME();
-  if (m_state->getNumQubits() > 64)
-    throw std::runtime_error("State vector data is too large.");
-  // Handle empty state (e.g., no qubit allocation)
-  if (!m_state)
-    return cudaq::State{{0}, {}};
-
-  const uint64_t svDim = 1ull << m_state->getNumQubits();
-  return cudaq::State{{svDim}, m_state->getStateVector()};
 }
 
 nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }

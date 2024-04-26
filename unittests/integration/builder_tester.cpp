@@ -1206,7 +1206,7 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
 #if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_TENSORNET)
 
 TEST(BuilderTester, checkFromStateVector) {
-  std::vector<cudaq::simulation_scalar> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+  std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
   {
     auto kernel = cudaq::make_kernel();
     auto qubits = kernel.qalloc(vec);
@@ -1224,7 +1224,7 @@ TEST(BuilderTester, checkFromStateVector) {
 
   {
     auto [kernel, initState] =
-        cudaq::make_kernel<std::vector<cudaq::simulation_scalar>>();
+        cudaq::make_kernel<std::vector<cudaq::complex>>();
     auto qubits = kernel.qalloc(initState);
     std::cout << kernel << "\n";
     auto counts = cudaq::sample(kernel, vec);
@@ -1240,9 +1240,9 @@ TEST(BuilderTester, checkFromStateVector) {
 
   {
     // 2 qubit 11 state
-    std::vector<cudaq::simulation_scalar> vec{0., 0., 0., 1.};
+    std::vector<cudaq::complex> vec{0., 0., 0., 1.};
     auto [kernel, initState] =
-        cudaq::make_kernel<std::vector<cudaq::simulation_scalar>>();
+        cudaq::make_kernel<std::vector<cudaq::complex>>();
     auto qubits = kernel.qalloc(initState);
     // induce the need for a kron prod between
     // [0,0,0,1] and [1, 0, 0, 0]
@@ -1256,9 +1256,9 @@ TEST(BuilderTester, checkFromStateVector) {
 
   {
     // 2 qubit 11 state
-    std::vector<cudaq::simulation_scalar> vec{0., 0., 0., 1.};
+    std::vector<cudaq::complex> vec{0., 0., 0., 1.};
     auto [kernel, initState] =
-        cudaq::make_kernel<std::vector<cudaq::simulation_scalar>>();
+        cudaq::make_kernel<std::vector<cudaq::complex>>();
     auto qubits = kernel.qalloc(initState);
     // induce the need for a kron prod between
     // [0,0,0,1] and [1, 0]
@@ -1322,9 +1322,9 @@ CUDAQ_TEST(BuilderTester, checkQuakeValueOperators) {
   kernel.rx(M_PI / 8.0, q[0]);
   auto state = cudaq::get_state(kernel);
 
-  EXPECT_NEAR(state.overlap(state1), 1.0, 1e-3);
-  EXPECT_NEAR(state.overlap(state2), 1.0, 1e-3);
-  EXPECT_NEAR(state.overlap(state3), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state1).real(), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state2).real(), 1.0, 1e-3);
+  EXPECT_NEAR(state.overlap(state3).real(), 1.0, 1e-3);
 }
 
 #endif

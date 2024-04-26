@@ -18,7 +18,17 @@ if (CMAKE_EXE_LINKER_FLAGS)
     # Convert the list back to a space-separated string
     string(REPLACE ";" " " CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS_LIST}") 
 endif()
-
+if (${CMAKE_EXE_LINKER_FLAGS} MATCHES "^.*static-libstdc\\+\\+.*")
+    # If doing static linking to libstdc++, add the full archive to make sure all symbols are available 
+    # (for later JIT compilation of incoming requests).
+    target_link_libraries(${TOOL_NAME} PRIVATE
+        -Wl,--whole-archive
+        -lstdc++
+        -Wl,--no-whole-archive
+    )
+endif()
 target_link_libraries(${TOOL_NAME} PRIVATE cudaq rest-remote-platform-server cudaq-mlir-runtime)
 target_compile_options(${TOOL_NAME} PRIVATE -fno-rtti)
+export_executable_symbols_for_plugins(${TOOL_NAME})
+
 install(TARGETS ${TOOL_NAME} DESTINATION bin)

@@ -385,10 +385,16 @@ async_sample_result sample_async(const std::size_t qpu_id,
       platform, kernelName, shots, qpu_id);
 #else
   return details::runSamplingAsync(
-      [&kernel,
-       args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
-        std::apply(std::move(kernel), std::move(args));
-      },
+      detail::make_copyable_function([&kernel,
+                                      args = std::make_tuple(std::forward<Args>(
+                                          args)...)]() mutable {
+        std::apply(
+            [&kernel](Args &&...args) {
+              return cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                         std::forward<Args>(args)...);
+            },
+            std::move(args));
+      }),
       platform, kernelName, shots, qpu_id);
 #endif
 }
@@ -437,10 +443,16 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
       platform, kernelName, shots, qpu_id);
 #else
   return details::runSamplingAsync(
-      [&kernel,
-       args = std::forward_as_tuple(std::forward<Args>(args)...)]() mutable {
-        std::apply(std::move(kernel), std::move(args));
-      },
+      detail::make_copyable_function([&kernel,
+                                      args = std::make_tuple(std::forward<Args>(
+                                          args)...)]() mutable {
+        std::apply(
+            [&kernel](Args &&...args) {
+              return cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
+                                         std::forward<Args>(args)...);
+            },
+            std::move(args));
+      }),
       platform, kernelName, shots, qpu_id);
 #endif
 }

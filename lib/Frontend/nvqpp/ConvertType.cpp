@@ -137,16 +137,12 @@ static bool isKernelResultType(Type t) {
          isStaticArithmeticProductType(t);
 }
 
-/// Is \p t a std::string type?
-static bool isStringType(Type t) { return isa<cudaq::cc::CharspanType>(t); }
-
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
 /// dynamic type composed of arithmetic types, a quantum type, a callable
 /// (function), or a string.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
          isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-         isStringType(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
@@ -414,6 +410,12 @@ SmallVector<Type> QuakeBridgeVisitor::lastTypes(unsigned n) {
   return result;
 }
 
+static bool isReferenceToCudaqStateType(Type t) {
+  if (auto ptrTy = dyn_cast<cc::PointerType>(t))
+    return isCudaqStateType(ptrTy.getElementType());
+  return false;
+}
+
 // Do syntax checking on the signature of kernel \p x.
 // Precondition: the top of the type stack is the kernel's `mlir::FunctionType`.
 // Return true if and only if the kernel \p x has a legal signature.
@@ -434,7 +436,8 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   for (auto [t, p] : llvm::zip(funcTy.getInputs(), x->parameters())) {
     // Structs, lambdas, functions are valid callable objects. Also pure
     // device kernels may take veq and/or ref arguments.
-    if (isKernelArgumentType(t) || isReferenceToCallableRecord(t, p))
+    if (isKernelArgumentType(t) || isReferenceToCallableRecord(t, p) ||
+        isReferenceToCudaqStateType(t))
       continue;
     reportClangError(p, mangler, "kernel argument type not supported");
     return false;

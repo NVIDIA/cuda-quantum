@@ -171,12 +171,12 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     // qvector<LEVEL>, qview<LEVEL>
     if (name.equals("qvector") || name.equals("qview"))
       return pushType(quake::VeqType::getUnsized(ctx));
+    if (name.equals("state"))
+      return pushType(opt::factory::getCudaqStateType(ctx));
     auto loc = toLocation(x);
     TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
   }
   if (isInNamespace(x, "std")) {
-    if (name.equals("basic_string"))
-      return pushType(cc::CharspanType::get(ctx));
     if (name.equals("vector")) {
       auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the vector's element type.

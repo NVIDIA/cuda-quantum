@@ -295,8 +295,8 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
   }];
 }
 
-def quake_InitializeStateOp : QuakeOp<"init_state", [MemoryEffects<[MemAlloc,
-    MemWrite]>]> {
+def quake_InitializeStateOp : QuakeOp<"init_state",
+    [MemoryEffects<[MemAlloc, MemWrite]>]> {
   let summary = "Initialize the quantum state to a specific complex vector.";
   let description = [{
     Given a !cc.ptr pointing to a complex data array of size 2**N, where N is
@@ -309,13 +309,21 @@ def quake_InitializeStateOp : QuakeOp<"init_state", [MemoryEffects<[MemAlloc,
 
   let arguments = (ins
     VeqType:$targets,
-    cc_PointerType:$state
+    AnyStateInitType:$state,
+    OptionalAttr<UnitAttr>:$move
   );
   let results = (outs VeqType);
-
+  
   let assemblyFormat = [{
-    $targets `,` $state `:` functional-type(operands, results) attr-dict
+    (`move` $move^)? $targets `,` $state `:`
+      functional-type(operands, results) attr-dict
   }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::Type":$vt, "mlir::Value":$t, "mlir::Value":$s), [{
+      return build($_builder, $_state, vt, t, s, mlir::UnitAttr{});
+    }]>
+  ];
 
   let hasVerifier = 1;
 }

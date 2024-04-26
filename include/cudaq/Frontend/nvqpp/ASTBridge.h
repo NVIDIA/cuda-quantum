@@ -779,4 +779,6 @@ inline bool isCharPointerType(mlir::Type t) {
   return false;
 }
 
+inline bool isCudaqStateType(mlir::Type t) { return isa<cc::StateType>(t); }
+
 } // namespace cudaq

@@ -29,6 +29,7 @@
 #include "mlir/Target/LLVMIR/Export.h"
 
 #include <fmt/core.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
@@ -36,6 +37,16 @@ using namespace mlir;
 
 namespace cudaq {
 static std::unique_ptr<JITExecutionCache> jitCache;
+
+struct PyStateVectorData {
+  void *data = nullptr;
+  simulation_precision precision = simulation_precision::fp32;
+  std::string kernelName;
+};
+using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
+
+static std::unique_ptr<PyStateVectorStorage> stateStorage =
+    std::make_unique<PyStateVectorStorage>();
 
 std::tuple<ExecutionEngine *, void *, std::size_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
@@ -185,6 +196,28 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   std::string properName = name;
 
+  // If we have any state vector data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, svdata] : *stateStorage) {
+    if (svdata.kernelName != name)
+      continue;
+    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
+    if (!setStateFPtr)
+      throw std::runtime_error(
+          "python alt_launch_kernel failed to get set state function.");
+
+    if (svdata.precision == simulation_precision::fp64) {
+      auto setStateFunc =
+          reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
+      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
+      continue;
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
+    setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+  }
+
   // Need to first invoke the init_func()
   auto kernelInitFunc = properName + ".init_func";
   auto initFuncPtr = jit->lookup(kernelInitFunc);
@@ -233,28 +266,55 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
                                                runtimeArgs, names);
   auto unwrapped = unwrap(returnType);
-  if (unwrapped.isInteger(64)) {
-    std::size_t concrete;
-    // Here we know the return type should be at
-    // the last 8 bytes of memory
-    // FIXME revisit this calculation when we support returning vectors
-    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
-    std::free(rawArgs);
-    return py::int_(concrete);
-  } else if (unwrapped.isInteger(1)) {
-    bool concrete = false;
-    std::memcpy(&concrete, ((char *)rawArgs) + size - 1, 1);
-    return py::bool_(concrete);
-  } else if (isa<FloatType>(unwrapped)) {
-    double concrete;
-    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
-    std::free(rawArgs);
-    return py::float_(concrete);
-  }
 
-  std::free(rawArgs);
-  unwrapped.dump();
-  throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
+  // We first need to compute the offset for the return value.
+  // We'll loop through all the arguments and increment the
+  // offset for the argument type. Then we'll be at our return type location.
+  auto returnOffset = [&]() {
+    std::size_t offset = 0;
+    auto kernelFunc = getKernelFuncOp(module, name);
+    for (auto argType : kernelFunc.getArgumentTypes())
+      llvm::TypeSwitch<mlir::Type, void>(argType)
+          .Case([&](IntegerType ty) {
+            if (ty.getIntOrFloatBitWidth() == 1) {
+              offset += 1;
+              return;
+            }
+
+            offset += 8;
+            return;
+          })
+          .Case([&](cc::StdvecType ty) { offset += 8; })
+          .Case([&](Float64Type ty) { offset += 8; })
+          .Default([](Type) {});
+
+    return offset;
+  }();
+
+  // Extract the return value from the rawArgs pointer.
+  return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
+      .Case([&](IntegerType ty) -> py::object {
+        if (ty.getIntOrFloatBitWidth() == 1) {
+          bool concrete = false;
+          std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 1);
+          std::free(rawArgs);
+          return py::bool_(concrete);
+        }
+        std::size_t concrete;
+        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
+        std::free(rawArgs);
+        return py::int_(concrete);
+      })
+      .Case([&](Float64Type ty) -> py::object {
+        double concrete;
+        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
+        std::free(rawArgs);
+        return py::float_(concrete);
+      })
+      .Default([](Type ty) -> py::object {
+        ty.dump();
+        throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
+      });
 }
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
@@ -362,6 +422,7 @@ void bindAltLaunchKernel(py::module &mod) {
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
       py::arg("callable_names") = std::vector<std::string>{}, "DOC STRING");
+
   mod.def(
       "pyAltLaunchKernelR",
       [&](const std::string &kernelName, MlirModule module, MlirType returnType,
@@ -398,5 +459,28 @@ void bindAltLaunchKernel(py::module &mod) {
         return getQIRLL(name, module, args, profile);
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");
+
+  mod.def(
+      "storePointerToStateData",
+      [](const std::string &name, const std::string &hash, py::buffer data,
+         simulation_precision precision) {
+        auto ptr = data.request().ptr;
+        stateStorage->insert({hash, PyStateVectorData{ptr, precision, name}});
+      },
+      "Store qalloc state initialization array data.");
+
+  mod.def(
+      "deletePointersToStateData",
+      [](const std::vector<std::string> &hashes) {
+        for (auto iter = stateStorage->cbegin(); iter != stateStorage->end();) {
+          if (std::find(hashes.begin(), hashes.end(), iter->first) !=
+              hashes.end()) {
+            stateStorage->erase(iter++);
+            continue;
+          }
+          iter++;
+        }
+      },
+      "Remove our pointers to the qalloc array data.");
 }
 } // namespace cudaq
