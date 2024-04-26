@@ -360,6 +360,31 @@ void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
   nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
 }
 
+auto u3_matrix = [](double theta, double phi, double lambda) {
+  std::complex<double> i(0, 1.);
+  std::vector<std::complex<double>> matrix{
+      std::cos(theta / 2.), -std::exp(i * lambda) * std::sin(theta / 2.),
+      std::exp(i * phi) * std::sin(theta / 2.),
+      std::exp(i * (lambda + phi)) * std::cos(theta / 2.)};
+  return matrix;
+};
+
+void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q) {
+  auto qI = qubitToSizeT(q);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      u3_matrix(theta, phi, lambda), {}, {qI});
+}
+
+void __quantum__qis__u3__ctl(double theta, double phi, double lambda,
+                             Array *ctrls, Qubit *q) {
+  auto ctrlIdxs = arrayToVectorSizeT(ctrls);
+  auto qI = qubitToSizeT(q);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      u3_matrix(theta, phi, lambda), ctrlIdxs, {qI});
+}
+
+// ASKME: Do we need `__quantum__qis__u3__body(...)`?
+
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
   auto rI = qubitToSizeT(r);
@@ -686,7 +711,7 @@ static void commonInvokeWithRotationsControlsTargets(
     std::size_t numControlOperands, std::size_t *isArrayAndLength,
     Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
     void (*QISFunction)()) {
-  if (numRotationOperands > 2)
+  if (numRotationOperands > 3)
     throw std::runtime_error("Invoke has invalid number of rotations.");
   if (numTargetOperands < 1 || numTargetOperands > 2)
     throw std::runtime_error("Invoke has invalid number of targets.");
@@ -751,6 +776,17 @@ static void commonInvokeWithRotationsControlsTargets(
       reinterpret_cast<void (*)(double, double, Array *, Qubit *, Qubit *)>(
           QISFunction)(params[0], params[1], ctrlArray.get(), targets[0],
                        targets[1]);
+    break;
+  case 3: // Three rotations.
+    if (numTargetOperands == 1)
+      reinterpret_cast<void (*)(double, double, double, Array *, Qubit *)>(
+          QISFunction)(params[0], params[1], params[2], ctrlArray.get(),
+                       targets[0]);
+    else
+      reinterpret_cast<void (*)(double, double, double, Array *, Qubit *,
+                                Qubit *)>(QISFunction)(
+          params[0], params[1], params[2], ctrlArray.get(), targets[0],
+          targets[1]);
     break;
   }
 }
@@ -825,6 +861,27 @@ void invokeRotationWithControlQubits(
   va_end(args);
   commonInvokeWithRotationsControlsTargets(
       /*rotations=*/1, params, numControlOperands, isArrayAndLength, controls,
+      /*targets=*/1, targets, reinterpret_cast<void (*)()>(QISFunction));
+}
+
+/// @brief Utility function same as `invokeRotationWithControlQubits`, but used
+/// for U3 controlled rotations.
+void invokeU3RotationWithControlQubits(
+    double theta, double phi, double lambda,
+    const std::size_t numControlOperands, std::size_t *isArrayAndLength,
+    void (*QISFunction)(double, double, double, Array *, Qubit *), ...) {
+  va_list args;
+  va_start(args, QISFunction);
+  double params[3] = {theta, phi, lambda};
+  Qubit *targets[1];
+  auto **controls =
+      reinterpret_cast<Qubit **>(alloca(numControlOperands * sizeof(Qubit *)));
+  for (std::size_t i = 0; i < numControlOperands; ++i)
+    controls[i] = va_arg(args, Qubit *);
+  targets[0] = va_arg(args, Qubit *);
+  va_end(args);
+  commonInvokeWithRotationsControlsTargets(
+      /*rotations=*/3, params, numControlOperands, isArrayAndLength, controls,
       /*targets=*/1, targets, reinterpret_cast<void (*)()>(QISFunction));
 }
 }

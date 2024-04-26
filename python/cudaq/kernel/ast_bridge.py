@@ -1468,6 +1468,22 @@ class PyASTBridge(ast.NodeVisitor):
                 opCtor([], [], [], [qubitA, qubitB])
                 return
 
+            if node.func.id == 'u3':
+                # Single target, three parameters `u3(θ,φ,λ)`
+                all_args = [
+                    self.popValue() for _ in range(len(self.valueStack))
+                ]
+                qubitTargets = all_args[:-3]
+                qubitTargets.reverse()
+                params = all_args[-3:]
+                params.reverse()
+                for idx, val in enumerate(params):
+                    if IntegerType.isinstance(val.type):
+                        params[idx] = arith.SIToFPOp(self.getFloatType(),
+                                                     val).result
+                self.__applyQuantumOperation(node.func.id, params, qubitTargets)
+                return
+
             if node.func.id in globalKernelRegistry:
                 # If in `globalKernelRegistry`, it has to be in this Module
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
@@ -1965,6 +1981,69 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(
                     f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                 )
+
+            if node.func.value.id == 'u3':
+                numValues = len(self.valueStack)
+                target = self.popValue()
+                other_args = [self.popValue() for _ in range(numValues - 1)]
+
+                opCtor = getattr(quake,
+                                 '{}Op'.format(node.func.value.id.title()))
+
+                if node.func.attr == 'ctrl':
+                    controls = other_args[:-3]
+                    params = other_args[-3:]
+                    params.reverse()
+                    for idx, val in enumerate(params):
+                        if IntegerType.isinstance(val.type):
+                            params[idx] = arith.SIToFPOp(
+                                self.getFloatType(), val).result
+
+                    negatedControlQubits = None
+                    if len(self.controlNegations):
+                        negCtrlBools = [None] * len(controls)
+                        for i, c in enumerate(controls):
+                            negCtrlBools[i] = c in self.controlNegations
+                        negatedControlQubits = DenseBoolArrayAttr.get(
+                            negCtrlBools)
+                        self.controlNegations.clear()
+
+                    self.checkControlAndTargetTypes(controls, [target])
+                    opCtor([],
+                           params,
+                           controls, [target],
+                           negated_qubit_controls=negatedControlQubits)
+                    return
+
+                if node.func.attr == 'adj':
+                    params = other_args
+                    params.reverse()
+                    for idx, val in enumerate(params):
+                        if IntegerType.isinstance(val.type):
+                            params[idx] = arith.SIToFPOp(
+                                self.getFloatType(), val).result
+
+                    self.checkControlAndTargetTypes([], [target])
+                    if quake.VeqType.isinstance(target.type):
+
+                        def bodyBuilder(iterVal):
+                            q = quake.ExtractRefOp(self.getRefType(),
+                                                   target,
+                                                   -1,
+                                                   index=iterVal).result
+                            opCtor([], params, [], [q], is_adj=True)
+
+                        veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                  target).result
+                        self.createInvariantForLoop(veqSize, bodyBuilder)
+                        return
+                    elif quake.RefType.isinstance(target.type):
+                        opCtor([], params, [], [target], is_adj=True)
+                        return
+                    else:
+                        self.emitFatalError(
+                            'adj quantum operation on incorrect type {}.'.
+                            format(target.type), node)
 
             self.emitFatalError(
                 f"Invalid function call - '{node.func.value.id}' is unknown.")
