@@ -21,6 +21,9 @@
 
 namespace cudaq::opt {
 
+/// The common pipeline.
+/// Adds the common pipeline (with or without a profile specifier) but without
+/// the final QIR profile lowering passes.
 void commonPipelineConvertToQIR(
     mlir::PassManager &pm, const std::optional<mlir::StringRef> &convertTo);
 
