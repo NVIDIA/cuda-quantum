@@ -19,7 +19,7 @@ Check out our `documentation <https://nvidia.github.io/cuda-quantum/latest/using
 to get started with the new Python syntax support we have added, and `follow our blog <https://developer.nvidia.com/cuda-q>`__
 to learn more about the new setup and its performance benefits.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
 - `Python wheel <https://pypi.org/project/cuda-quantum/>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.7.0>`__
@@ -40,7 +40,7 @@ The binaries are built against the `GNU C library <https://www.gnu.org/software/
 version 2.28.
 We've added a detailed :doc:`Building from Source <using/install/data_center_install>` guide to build these binaries for older `glibc` versions.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cuda-quantum/0.6.0>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.6.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.6.0>`__
@@ -57,7 +57,7 @@ The 0.5.0 release furthermore improves the tensor network simulation tools and a
 Additionally, we are now publishing images for experimental features, which currently includes improved Python language support.
 Please take a look at :doc:`using/install/install` for more information about how to obtain them.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cuda-quantum/0.5.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.5.0>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.5.0/docs/sphinx/examples>`__
@@ -68,7 +68,7 @@ The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/r
 
 The 0.4.1 release adds support for ARM processors in the form of multi-platform Docker images and `aarch64` Python wheels. Additionally, all GPU-based backends are now included in the Python wheels as well as in the Docker image.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cuda-quantum/0.4.1>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.4.1>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.4.1/docs/sphinx/examples>`__
@@ -83,7 +83,7 @@ The 0.4.0 release adds support for quantum kernel execution on Quantinuum and Io
 The 0.4.0 PyPI release does not yet include all of the GPU-based backends.
 The fully featured version is available as a Docker image for `linux/amd64` platforms.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cuda-quantum/0.4.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.4.0>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/0.4.0/docs/sphinx/examples>`__
@@ -94,6 +94,6 @@ The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/r
 
 The 0.3.0 release of CUDA Quantum is available as a Docker image for `linux/amd64` platforms.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.3.0>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/0.3.0/docs/sphinx/examples>`__

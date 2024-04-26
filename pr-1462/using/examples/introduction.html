@@ -527,8 +527,7 @@
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    This is our first CUDA Quantum kernel.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="c1"># Next, we can allocate qubits to the kernel via `qalloc(qubit_count)`.</span>
-    <span class="c1"># An empty call to `qalloc` will return a single qubit.</span>
+    <span class="c1"># Next, we can allocate a single qubit to the kernel via `qubit()`.</span>
     <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 
     <span class="c1"># Now we can begin adding instructions to apply to this qubit!</span>
