@@ -21,8 +21,8 @@
 
 namespace cudaq::opt {
 
-void commonPipelineConvertToQIR(mlir::PassManager &pm,
-                                std::optional<mlir::StringRef> convertTo);
+void commonPipelineConvertToQIR(
+    mlir::PassManager &pm, const std::optional<mlir::StringRef> &convertTo);
 
 /// \brief Pipeline builder to convert Quake to QIR.
 /// Does not specify a particular QIR profile.

@@ -11,7 +11,7 @@
 using namespace mlir;
 
 void cudaq::opt::commonPipelineConvertToQIR(
-    PassManager &pm, std::optional<StringRef> convertTo) {
+    PassManager &pm, const std::optional<StringRef> &convertTo) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
   cudaq::opt::addAggressiveEarlyInlining(pm);
   pm.addPass(createCanonicalizerPass());

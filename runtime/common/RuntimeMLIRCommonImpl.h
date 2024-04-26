@@ -570,7 +570,7 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
     // Even though we're not lowering all the way to a real QIR profile for this
     // emulated path, we need to pass in the `convertTo` in order to mimic what
     // the non-emulated path would do.
-    cudaq::opt::addPipelineConvertToQIR(pm, convertTo);
+    cudaq::opt::commonPipelineConvertToQIR(pm, convertTo);
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
