@@ -5,7 +5,9 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #pragma once
+
 #include "Logger.h"
 #include "Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
@@ -369,7 +371,7 @@ qirProfileTranslationFunction(const char *qirProfile, Operation *op,
     pm.enableIRPrinting();
   std::string errMsg;
   llvm::raw_string_ostream errOs(errMsg);
-  cudaq::opt::addPipelineToQIR</*QIRProfile=*/true>(pm, qirProfile);
+  cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&
       failed(parsePassPipeline(additionalPasses, pm, errOs)))
@@ -489,7 +491,7 @@ void registerToOpenQASMTranslation() {
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
-        cudaq::opt::addPipelineToOpenQASM(pm);
+        cudaq::opt::addPipelineTranslateToOpenQASM(pm);
         DefaultTimingManager tm;
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
@@ -518,7 +520,7 @@ void registerToIQMJsonTranslation() {
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
-        cudaq::opt::addPipelineToIQMJson(pm);
+        cudaq::opt::addPipelineTranslateToIQMJson(pm);
         DefaultTimingManager tm;
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
@@ -568,7 +570,7 @@ ExecutionEngine *createQIRJITEngine(ModuleOp &moduleOp,
     // Even though we're not lowering all the way to a real QIR profile for this
     // emulated path, we need to pass in the `convertTo` in order to mimic what
     // the non-emulated path would do.
-    cudaq::opt::addPipelineToQIR</*QIRProfile=*/false>(pm, convertTo);
+    cudaq::opt::addPipelineConvertToQIR(pm, convertTo);
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
