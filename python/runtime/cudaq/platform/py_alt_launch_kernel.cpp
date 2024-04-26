@@ -163,6 +163,13 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             delete static_cast<double *>(ptr);
           });
         })
+        .Case([&](Float32Type type) {
+          float *ourAllocatedArg = new float();
+          *ourAllocatedArg = 0.;
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<float *>(ptr);
+          });
+        })
         .Default([](Type ty) {
           std::string msg;
           {
@@ -317,6 +324,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
           .Case([&](cc::StdvecType ty) { offset += 8; })
           .Case([&](ComplexType ty) { offset += 16; })
           .Case([&](Float64Type ty) { offset += 8; })
+          .Case([&](Float32Type ty) { offset += 4; })
           .Default([](Type) {});
 
     return offset;
@@ -360,6 +368,12 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
       .Case([&](Float64Type ty) -> py::object {
         double concrete;
         std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
+        std::free(rawArgs);
+        return py::float_(concrete);
+      })
+      .Case([&](Float32Type ty) -> py::object {
+        float concrete;
+        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 4);
         std::free(rawArgs);
         return py::float_(concrete);
       })

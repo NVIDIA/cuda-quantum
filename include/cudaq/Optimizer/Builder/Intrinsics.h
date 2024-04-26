@@ -12,6 +12,10 @@
 
 namespace cudaq {
 
+/// This is the name of a dummy builtin to identify a std::move() call. These
+/// calls will be erased before code gen.
+static constexpr const char stdMoveBuiltin[] = ".std::move";
+
 static constexpr const char llvmMemCopyIntrinsic[] =
     "llvm.memcpy.p0i8.p0i8.i64";
 
