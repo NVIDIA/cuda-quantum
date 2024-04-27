@@ -50,6 +50,7 @@ Program Construction
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
+    .. automethod:: u3
 
 .. autoclass:: cudaq::PyKernelDecorator
     :members:
