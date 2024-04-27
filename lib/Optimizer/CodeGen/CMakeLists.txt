@@ -14,8 +14,10 @@ add_cudaq_library(OptCodeGen
   LowerToQIRProfile.cpp
   LowerToQIR.cpp
   Passes.cpp
+  RemoveMeasurements.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
+  VerifyNVQIRCalls.cpp
 
   DEPENDS
     CCDialect
