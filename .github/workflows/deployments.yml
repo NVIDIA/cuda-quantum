@@ -169,7 +169,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.multi_platform || needs.metadata.outputs.platforms).ids }}
-        toolchain: [llvm, clang16, gcc12]
+        toolchain: [clang16, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:

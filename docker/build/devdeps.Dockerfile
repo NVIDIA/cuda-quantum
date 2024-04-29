@@ -59,14 +59,12 @@ RUN LLVM_SOURCE=/llvm-project \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && rm -rf /llvm-project/build
 
-# Build the libz prerequisite we also use for CUDA Quantum;
-# this is a C-library and hence will not need to be re-built depending on the C++ standard library.
+# Build the libz; libz is used by several prerequisites including LLVM.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
-#RUN source "/opt/llvm_stage1/bootstrap/init_command.sh" \
-#    && bash /scripts/install_prerequisites.sh -m \
-#    && apt-get remove -y ca-certificates \
-#    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN source "/opt/llvm_stage1/bootstrap/init_command.sh" \
+    && bash /scripts/install_prerequisites.sh -m \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Clone and build pybind11 (used for MLIR generated Python bindings).
 ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
