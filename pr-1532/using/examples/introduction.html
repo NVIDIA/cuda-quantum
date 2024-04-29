@@ -466,6 +466,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -527,8 +528,7 @@
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    This is our first CUDA Quantum kernel.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="c1"># Next, we can allocate qubits to the kernel via `qalloc(qubit_count)`.</span>
-    <span class="c1"># An empty call to `qalloc` will return a single qubit.</span>
+    <span class="c1"># Next, we can allocate a single qubit to the kernel via `qubit()`.</span>
     <span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 
     <span class="c1"># Now we can begin adding instructions to apply to this qubit!</span>
