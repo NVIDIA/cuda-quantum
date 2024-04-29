@@ -324,6 +324,37 @@ This operation swaps the states of two qubits.
         //        | 0 0 0 1 |
         swap(qubit_1, qubit_2);
 
+:code:`u3`
+---------------------
+
+This operation applies the universal three-parameters operator to target qubit. The three parameters are Euler angles - theta (θ), phi (φ), and lambda (λ).
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        qubit = cudaq.qubit()
+
+        # Apply the unitary transformation
+        # U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
+        #             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
+        u3(np.pi, np.pi, np.pi / 2, q)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        cudaq::qubit qubit;
+
+        // Apply the unitary transformation
+        // U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |
+        //             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |
+        u3(M_PI, M_PI, M_PI_2, q);
+
+.. note:: 
+
+  The `u3` operation is currently supported in simulation only.
+
 
 Adjoint and Controlled Operations
 ==================================
