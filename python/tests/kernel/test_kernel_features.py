@@ -1300,7 +1300,7 @@ def test_bad_return_value_with_stdvec_arg():
 
 def test_bad_return_int_bool_param():
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def kernel(c: int, b: bool) -> int:
         return c
 
@@ -1309,7 +1309,7 @@ def test_bad_return_int_bool_param():
 
 def test_good_return_bool_bool_param():
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def kernel(b: bool, b2: bool) -> bool:
         return b
 
@@ -1318,7 +1318,7 @@ def test_good_return_bool_bool_param():
 
 def test_good_return_int_int_param():
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def kernel(b: int, b2: int) -> int:
         return b
 
