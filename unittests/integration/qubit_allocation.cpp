@@ -111,8 +111,8 @@ CUDAQ_TEST(AllocationTester, checkDensityOrderingBug) {
 #endif
 
 struct test_allocation_from_state {
-  void operator()(cudaq::state &&state) __qpu__ {
-    cudaq::qvector q(std::move(state));
+  void operator()(cudaq::state state) __qpu__ {
+    cudaq::qvector q(state);
     mz(q);
   }
 };
@@ -123,8 +123,7 @@ CUDAQ_TEST(AllocationTester, checkAllocationFromRetrievedState) {
     h(q[0]);
     cx(q[0], q[1]);
   });
-  auto counts =
-      cudaq::sample(test_allocation_from_state{}, std::move(bellState));
+  auto counts = cudaq::sample(test_allocation_from_state{}, bellState);
   counts.dump();
   EXPECT_EQ(2, counts.size());
   int c = 0;
