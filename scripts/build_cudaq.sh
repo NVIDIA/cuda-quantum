@@ -42,7 +42,7 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 # Process command line arguments
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
-install_prereqs=""
+install_toolchain=""
 
 __optind__=$OPTIND
 OPTIND=1
@@ -50,7 +50,7 @@ while getopts ":c:t:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
-    t) install_prereqs="$OPTARG"
+    t) install_toolchain="$OPTARG"
     ;;
     v) verbose=true
     ;;
@@ -71,14 +71,14 @@ mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
 mkdir -p "$working_dir/build" && cd "$working_dir/build" && rm -rf * 
 mkdir -p logs && rm -rf logs/*
 
-if [ -n "$install_prereqs" ]; then
+if [ -n "$install_toolchain" ]; then
   echo "Installing pre-requisites..."
   if $verbose; then
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_prereqs"
+    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain"
     status=$?
   else
     echo "The install log can be found in `pwd`/logs/prereqs_output.txt."
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_prereqs" \
+    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain" \
       2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
     status=$?
   fi
@@ -126,7 +126,7 @@ cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
   -DCMAKE_CUDA_HOST_COMPILER="$CXX" \
-  -DLLVM_ENABLE_LIBCXX=ON \
+  -DLLVM_ENABLE_LIBCXX=$([ "$install_toolchain" == "llvm" ] && echo ON || echo OFF) \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
@@ -148,16 +148,18 @@ fi
 # Build and install CUDAQ
 echo "Building CUDA Quantum with configuration $build_configuration..."
 logs_dir=`pwd`/logs
-function fail_gracefully {
-  echo "Build failed. Please check the console output or the files in the $logs_dir directory."
-  cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
-}
-
 if $verbose; then 
-  ninja install || fail_gracefully
+  ninja install
+  status=$?
 else
   echo "The progress of the build is being logged to $logs_dir/ninja_output.txt."
-  ninja install 2> "$logs_dir/ninja_error.txt" 1> "$logs_dir/ninja_output.txt" || fail_gracefully
+  ninja install 2> "$logs_dir/ninja_error.txt" 1> "$logs_dir/ninja_output.txt"
+  status=$?
+fi
+
+if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+  echo "Build failed. Please check the console output or the files in the $logs_dir directory."
+  cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
 cp "$repo_root/LICENSE" "$CUDAQ_INSTALL_PREFIX/LICENSE"

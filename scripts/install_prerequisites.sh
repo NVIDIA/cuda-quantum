@@ -117,7 +117,8 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       LLVM_STAGE1_SOURCE="${LLVM_SOURCE:-$llvm_stage1_tmpdir/llvm_source}"
     fi
 
-    # FIXME: NEED TO MAKE SURE THAT THE RUNTIME LIB IS THE SAME COMMIT AS CLANG/MLIR LATER
+    # Note that the compiler/runtime built here is not necessarily the same version as
+    # CUDA Quantum depends on. These are merely used to build the correct libraries later on.
     LLVM_SOURCE="$LLVM_STAGE1_SOURCE" LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" \
     source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
   fi
@@ -137,17 +138,6 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     # see also https://github.com/ninja-build/ninja/issues/2284.
     wget https://github.com/ninja-build/ninja/archive/refs/tags/v1.11.1.tar.gz
     tar -xzvf v1.11.1.tar.gz && cd ninja-1.11.1
-
-    # FIXME: NEED TO INCLUDE RPATH TO THE LIBC++ HERE; E.G. 
-    # $ clang++ -nostdinc++ -nostdlib++           \
-    #      -isystem <install>/include/c++/v1 \
-    #      -L <install>/lib                  \
-    #      -Wl,-rpath,<install>/lib          \
-    #      -lc++                             \
-    #      test.
-    # BETTER: IN GENERAL, SET UP THE DEFAULT CONFIG FILE TO SET THE RPATH
-    # BUT: STDLIB VANISHES ONCE WE REMOVE THE TEMP DIR, LEAVING BROKEN LIBS BEHIND; 
-    # INSTEAD, MOVE THE STDLIB TO A BETTER LOCATION?
     LDFLAGS="-static-libstdc++" cmake -B build
     cmake --build build
     mv build/ninja /usr/local/bin/
@@ -185,24 +175,14 @@ fi
 if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]; then
   if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
     echo "Installing LLVM libraries..."
-    if [ "$toolchain" = "llvm" ]; then
-      mkdir -p "$LLVM_INSTALL_PREFIX/lib" "$LLVM_INSTALL_PREFIX/include/c++"
-      cp -v $(ls "$(dirname $CC)/../lib"/*linux*/*) "$LLVM_INSTALL_PREFIX/lib"
-      cp -rv "$(ls -d "$(dirname $CC)/../include"/*linux*)" "$LLVM_INSTALL_PREFIX/include"
-      cp -rv "$(ls -d "$(dirname $CC)/../include/c++"/*)" "$LLVM_INSTALL_PREFIX/include/c++"
-    fi
     # We need to set the LD_LIBRARY_PATH here to make sure that the table-gen
-    # executable actually finds the standard library, since we don't rebuild it.
-    LD_LIBRARY_PATH="$LLVM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
+    # executable actually finds the standard library.
+    LD_LIBRARY_PATH="$(ls -d $(dirname $CC)/../lib/*linux*/ 2>/dev/null):$LD_LIBRARY_PATH" \
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
     PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
     bash "$this_file_dir/build_llvm.sh" -v
-    # FIXME: NOT PARTICULARLY SAVE (DIFFERENT LLVM VERSIONS MIX WITHOUT ERROR)
-    if [ "$toolchain" = "llvm" ]; then
-      cp -rvn $($CC -print-resource-dir)/* "$("$LLVM_INSTALL_PREFIX/bin/clang" -print-resource-dir)"
-    fi
   else 
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
@@ -233,9 +213,8 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     wget http://www.netlib.org/blas/blas-3.11.0.tgz
     tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0 
     # We need to set the LD_LIBRARY_PATH here to make sure that the flang compiler
-    # actually finds the standard library when we build it from source.
-    # FIXME: BETTER SOLUTION?
-    LD_LIBRARY_PATH="$(ls -d $LLVM_INSTALL_PREFIX/lib/*/ 2>/dev/null):$LD_LIBRARY_PATH" \
+    # actually finds the standard library when we built flang from source.
+    LD_LIBRARY_PATH="$(ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*/ 2>/dev/null):$LD_LIBRARY_PATH" \
     make FC="${FC:-gfortran}"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"

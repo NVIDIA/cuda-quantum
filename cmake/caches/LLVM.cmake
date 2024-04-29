@@ -8,24 +8,18 @@ set(LLVM_ENABLE_ZSTD OFF CACHE BOOL "")
 
 # Path configurations
 set(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/../lib" CACHE STRING "")
-#set(LIBCXX_INSTALL_LIBRARY_DIR lib CACHE STRING "" FORCE)
-#set(LIBCXX_INSTALL_INCLUDE_DIR ...)
 set(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR ON CACHE BOOL "")
 
 # Default configurations for the built toolchain
 set(CLANG_DEFAULT_OPENMP_RUNTIME libomp CACHE STRING "")
 set(CLANG_DEFAULT_LINKER lld CACHE STRING "")
 set(CLANG_DEFAULT_CXX_STDLIB libc++ CACHE STRING "")
-#if not runtimes contains llvm-libgcc:
 set(CLANG_DEFAULT_RTLIB compiler-rt CACHE STRING "")
 set(CLANG_DEFAULT_UNWINDLIB libunwind CACHE STRING "")
 
 # Runtime related build configurations
 set(LLVM_ENABLE_LIBCXX ON CACHE BOOL "")
 set(LIBCXX_CXX_ABI libcxxabi CACHE STRING "")
-#if runtimes contains llvm-libgcc:
-# ... does not work ...
-#set(LLVM_LIBGCC_EXPLICIT_OPT_IN ON CACHE BOOL "")
 set(COMPILER_RT_USE_LIBCXX ON CACHE BOOL "")
 set(COMPILER_RT_USE_LLVM_UNWINDER ON CACHE BOOL "")
 set(LIBUNWIND_USE_COMPILER_RT ON CACHE BOOL "")

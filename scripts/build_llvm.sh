@@ -161,10 +161,7 @@ fi
 cat "../llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 
-# Generate CMake files; 
-#  -DCLANG_RESOURCE_DIR=... \
-#  -DBOOTSTRAP_LLVM_ENABLE_LLD=TRUE \
-#  -DLLVM_RUNTIME_DISTRIBUTION_COMPONENTS='"cxx-headers;...${llvm_runtimes%;}"' \
+# Generate CMake files.
 cmake_args=" \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
@@ -234,17 +231,19 @@ if [ -n "$llvm_runtimes" ]; then
     # is built as runtime rather than as project. Invoking the installation manually.
     cmake -P runtimes/builtins-bins/cmake_install.cmake
     echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
-  fi
-fi
 
-# We can use a default config file to set specific clang configurations.
-# See https://clang.llvm.org/docs/UsersManual.html#configuration-files
-echo "Defining default configuration file $clang_config_file."
-clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
-target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
-echo "-L$LLVM_INSTALL_PREFIX/lib" > "$clang_config_file"
-if [ -n "$target_specific_libs" ]; then
-  echo "-L$(ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*)" >> "$clang_config_file"
+    # We can use a default config file to set specific clang configurations.
+    # See https://clang.llvm.org/docs/UsersManual.html#configuration-files
+    clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
+    echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' > "$clang_config_file"
+    echo '-Wl,-rpath,"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
+    target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
+    for libdir in $target_specific_libs; do
+      echo '-L"'$libdir'"' >> "$clang_config_file"
+      echo '-Wl,-rpath,"'$libdir'"' >> "$clang_config_file"
+    done
+    echo "Added default configuration $clang_config_file."
+  fi
 fi
 
 cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
