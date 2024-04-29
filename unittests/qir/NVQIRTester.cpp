@@ -470,7 +470,6 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromStateVec) {
   __quantum__rt__finalize();
 }
 
-
 CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateSimple) {
   // Library code...
   __quantum__rt__initialize(0, nullptr);
@@ -552,8 +551,7 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateExpand) {
   cudaq::ExecutionContext sampleCtx("sample", shots);
   __quantum__rt__setExecutionContext(&sampleCtx);
   // Allocate some qubits in 0 state
-  auto *someQubits =
-      __quantum__rt__qubit_allocate_array(2);
+  auto *someQubits = __quantum__rt__qubit_allocate_array(2);
   // Allocate some more in a specific state
   auto *qubits =
       __quantum__rt__qubit_allocate_array_with_state_ptr(state.get());
@@ -569,6 +567,7 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateExpand) {
   __quantum__qis__mz(q3);
   __quantum__qis__mz(q4);
   __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__qubit_release_array(someQubits);
   __quantum__rt__resetExecutionContext();
 
   cudaq::sample_result counts = sampleCtx.result;

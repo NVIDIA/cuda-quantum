@@ -231,7 +231,7 @@ protected:
         (state.size() == 0) ? casted->state : qpp::kron(casted->state, state);
     return;
   }
-  
+
   void setToZeroState() override {
     state = qpp::cmat::Zero(stateDimension, stateDimension);
     state(0, 0) = 1.0;

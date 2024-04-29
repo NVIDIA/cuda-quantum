@@ -127,7 +127,7 @@ public:
                                const cudaq::SimulationState *state) override {
     throw std::runtime_error("initializeState not implemented.");
   }
-  
+
   void resetQudit(const cudaq::QuditInfo &id) override {}
 };
 

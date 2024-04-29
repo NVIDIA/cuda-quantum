@@ -76,7 +76,8 @@ public:
   // the simulation. The resulting nvqir::TensorNetState should be able to be
   // fed to the appropriate tensor network based simulator to continue the
   // simulation.
-  std::unique_ptr<nvqir::TensorNetState> reconstructBackendState() const override;
+  std::unique_ptr<nvqir::TensorNetState>
+  reconstructBackendState() const override;
 
   std::unique_ptr<cudaq::SimulationState> toSimulationState() const override;
 

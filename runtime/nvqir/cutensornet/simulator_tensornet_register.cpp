@@ -77,13 +77,13 @@ public:
   virtual void
   addQubitsToState(const cudaq::SimulationState &in_state) override {
     LOG_API_TIME();
-     const TensorNetSimulationState *const casted =
+    const TensorNetSimulationState *const casted =
         dynamic_cast<const TensorNetSimulationState *>(&in_state);
     if (!casted)
       throw std::invalid_argument(
           "[Tensornet simulator] Incompatible state input");
     if (!m_state) {
-       m_state = casted->reconstructBackendState();
+      m_state = casted->reconstructBackendState();
     } else {
       // Expand an existing state:
       //  (1) Create a blank tensor network with combined number of qubits
