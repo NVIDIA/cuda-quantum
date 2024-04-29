@@ -33,11 +33,10 @@ def test_complex_params():
     def complex_vec_param(vec: list[complex], i: int) -> complex:
         return vec[i]
 
-    # Returning complex is not supported yet
-    # for i in range(len(c)):
-    #    is_close(c[i].real, complex_vec_param(c, i).real)
-    # for i in range(len(c)):
-    #    is_close(c[i].imag, complex_vec_param(c, i).imag)
+    for i in range(len(c)):
+       is_close(c[i].real, complex_vec_param(c, i).real)
+    for i in range(len(c)):
+       is_close(c[i].imag, complex_vec_param(c, i).imag)
 
     @cudaq.kernel
     def complex_vec_param_real(vec: list[complex], i: int) -> float:
@@ -230,11 +229,10 @@ def test_np_complex128_params():
     def complex_vec_param(vec: list[np.complex128], i: int) -> complex:
         return vec[i]
 
-    # Returning complex is not supported yet
-    # for i in range(len(c)):
-    #    is_close(c[i].real, complex_vec_param(c, i).real)
-    # for i in range(len(c)):
-    #    is_close(c[i].imag, complex_vec_param(c, i).imag)
+    for i in range(len(c)):
+       is_close(c[i].real, complex_vec_param(c, i).real)
+    for i in range(len(c)):
+       is_close(c[i].imag, complex_vec_param(c, i).imag)
 
     @cudaq.kernel
     def complex_vec_param_real(vec: list[np.complex128], i: int) -> float:
@@ -392,11 +390,10 @@ def test_np_complex64_params():
     def complex_vec_param(vec: list[np.complex64], i: int) -> np.complex64:
         return vec[i]
 
-    # Returning complex is not supported yet
-    # for i in range(len(c)):
-    #    is_close(c[i].real, complex_vec_param(c, i).real)
-    # for i in range(len(c)):
-    #    is_close(c[i].imag, complex_vec_param(c, i).imag)
+    for i in range(len(c)):
+       is_close(c[i].real, complex_vec_param(c, i).real)
+    for i in range(len(c)):
+       is_close(c[i].imag, complex_vec_param(c, i).imag)
 
     @cudaq.kernel
     def complex_vec_param_real(vec: list[np.complex64], i: int) -> np.float32:

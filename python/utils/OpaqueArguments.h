@@ -17,7 +17,9 @@
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 
+#include "complex.h"
 #include <chrono>
+#include <complex>
 #include <functional>
 #include <future>
 #include <pybind11/complex.h>
@@ -200,23 +202,21 @@ packArgs(OpaqueArguments &argData, py::args args,
     auto kernelArgTy = kernelFuncOp.getArgument(i).getType();
     llvm::TypeSwitch<mlir::Type, void>(kernelArgTy)
         .Case([&](mlir::ComplexType ty) {
-          if (!py::hasattr(arg, "real"))
-            throw std::runtime_error("invalid complex element type");
-          if (!py::hasattr(arg, "imag"))
-            throw std::runtime_error("invalid complex element type");
+          if (!py::isinstance<complex_>(arg))
+            throw std::runtime_error("kernel argument type is `complex` but "
+                                     "argument provided is not (argument " +
+                                     std::to_string(i) + ", value=" +
+                                     py::str(arg).cast<std::string>() + ").");
 
           std::complex<double> *ourAllocatedArg = new std::complex<double>();
           if (isa<Float64Type>(ty.getElementType())) {
-            *ourAllocatedArg =
-                std::complex<double>(PyFloat_AsDouble(arg.attr("real").ptr()),
-                                     PyFloat_AsDouble(arg.attr("imag").ptr()));
+            *ourAllocatedArg = arg.cast<std::complex<double>>();
 
             argData.emplace_back(ourAllocatedArg, [](void *ptr) {
               delete static_cast<std::complex<double> *>(ptr);
             });
           } else {
-            *ourAllocatedArg = std::complex<float>(
-                arg.attr("real").cast<float>(), arg.attr("imag").cast<float>());
+            *ourAllocatedArg = arg.cast<std::complex<float>>();
 
             argData.emplace_back(ourAllocatedArg, [](void *ptr) {
               delete static_cast<std::complex<float> *>(ptr);
@@ -367,26 +367,24 @@ packArgs(OpaqueArguments &argData, py::args args,
                 if (isa<Float64Type>(type.getElementType())) {
                   genericVecAllocator.template operator()<std::complex<double>>(
                       [](py::handle element) -> std::complex<double> {
-                        if (!py::hasattr(element, "real"))
+                        if (!py::hasattr(element, "real") ||
+                            !py::hasattr(element, "imag"))
                           throw std::runtime_error(
-                              "invalid complex element type");
-                        if (!py::hasattr(element, "imag"))
-                          throw std::runtime_error(
-                              "invalid complex element type");
-                        return {PyFloat_AsDouble(element.attr("real").ptr()),
-                                PyFloat_AsDouble(element.attr("imag").ptr())};
+                              "invalid complex element type: " +
+                              py::str(element).cast<std::string>());
+
+                        return element.cast<std::complex<double>>();
                       });
                 } else {
                   genericVecAllocator.template operator()<std::complex<float>>(
                       [](py::handle element) -> std::complex<float> {
-                        if (!py::hasattr(element, "real"))
+                        if (!py::hasattr(element, "real") ||
+                            !py::hasattr(element, "imag"))
                           throw std::runtime_error(
-                              "invalid complex element type");
-                        if (!py::hasattr(element, "imag"))
-                          throw std::runtime_error(
-                              "invalid complex element type");
-                        return {element.attr("real").cast<float>(),
-                                element.attr("imag").cast<float>()};
+                              "invalid complex element type: " +
+                              py::str(element).cast<std::string>());
+
+                        return element.cast<std::complex<float>>();
                       });
                 }
                 return;

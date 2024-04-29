@@ -42,6 +42,9 @@ class PyScopedSymbolTable(object):
     def popScope(self):
         self.symbolTable.pop()
 
+    def numLevels(self):
+        return len(self.symbolTable)
+
     def add(self, symbol, value, level=-1):
         """
         Add a symbol to the scoped symbol table at any scope level.
@@ -685,7 +688,8 @@ class PyASTBridge(ast.NodeVisitor):
         function. 
         """
         # FIXME add more as we need them
-        return F64Type.isinstance(type) or IntegerType.isinstance(type)
+        return ComplexType.isinstance(type) or F64Type.isinstance(
+            type) or F32Type.isinstance(type) or IntegerType.isinstance(type)
 
     def generic_visit(self, node):
         for field, value in reversed(list(ast.iter_fields(node))):
@@ -768,6 +772,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             # Create the entry block
             self.entry = f.add_entry_block()
+            # self.entry.parent = f
 
             # Set the insertion point to the start of the entry block
             with InsertionPoint(self.entry):
@@ -2763,11 +2768,12 @@ class PyASTBridge(ast.NodeVisitor):
             func.ReturnOp([res])
             return
 
-        if result.owner.parent != self.kernelFuncOp:
+        result = self.ifPointerThenLoad(result)
+
+        if self.symbolTable.numLevels() > 1:
+            # We are in an inner scope, release all scopes before returning
             cc.UnwindReturnOp([result])
             return
-
-        result = self.ifPointerThenLoad(result)
 
         if result.type != self.knownResultType:
             # FIXME consider more auto-casting where possible
