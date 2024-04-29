@@ -134,6 +134,7 @@ fi
 echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
 llvm_components+="llvm-config;llc;llvm-ar;llvm-as;llvm-nm;llvm-symbolizer;"
+llvm_components+="FileCheck;"
 
 if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
   echo "- including additional project(s) "$(echo "${projects[*]}" | xargs | tr ' ' ',')

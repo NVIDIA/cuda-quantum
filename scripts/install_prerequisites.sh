@@ -186,8 +186,10 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
   if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
     echo "Installing LLVM libraries..."
     if [ "$toolchain" = "llvm" ]; then
-      mkdir -p "$LLVM_INSTALL_PREFIX/lib"
+      mkdir -p "$LLVM_INSTALL_PREFIX/lib" "$LLVM_INSTALL_PREFIX/include/c++"
       cp -v $(ls "$(dirname $CC)/../lib"/*linux*/*) "$LLVM_INSTALL_PREFIX/lib"
+      cp -rv "$(ls -d "$(dirname $CC)/../include"/*linux*)" "$LLVM_INSTALL_PREFIX/include"
+      cp -rv "$(ls -d "$(dirname $CC)/../include/c++"/*)" "$LLVM_INSTALL_PREFIX/include/c++"
     fi
     # We need to set the LD_LIBRARY_PATH here to make sure that the table-gen
     # executable actually finds the standard library, since we don't rebuild it.
