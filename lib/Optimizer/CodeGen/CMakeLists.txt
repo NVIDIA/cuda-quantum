@@ -14,8 +14,8 @@ add_cudaq_library(OptCodeGen
   CodeGenDialect.cpp
   CodeGenOps.cpp
   CodeGenTypes.cpp
-  LowerToQIRProfile.cpp
-  LowerToQIR.cpp
+  ConvertToQIRProfile.cpp
+  ConvertToQIR.cpp
   Passes.cpp
   RemoveMeasurements.cpp
   TranslateToIQMJson.cpp
