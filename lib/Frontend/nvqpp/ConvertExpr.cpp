@@ -2523,10 +2523,19 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return pushValue(builder.create<cc::LoadOp>(loc, fromStruct));
   }
 
+  if (ctor->isCopyConstructor() && ctor->isTrivial() &&
+      isa<cc::StructType>(ctorTy)) {
+    auto copyObj = builder.create<cc::AllocaOp>(loc, ctorTy);
+    auto fromStruct = popValue();
+    auto fromVal = builder.create<cc::LoadOp>(loc, fromStruct);
+    builder.create<cc::StoreOp>(loc, fromVal, copyObj);
+    return pushValue(builder.create<cc::LoadOp>(loc, copyObj));
+  }
+
   // TODO: remove this when we can handle ctors more generally.
   if (!ctor->isDefaultConstructor()) {
     LLVM_DEBUG(llvm::dbgs() << ctorName << " - unhandled ctor:\n"; x->dump());
-    TODO_x(loc, x, mangler, "C++ constructor (not-default)");
+    TODO_x(loc, x, mangler, "C++ constructor (non-default)");
   }
 
   // A regular C++ class constructor lowers as:
