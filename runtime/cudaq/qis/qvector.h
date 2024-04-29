@@ -92,6 +92,15 @@ public:
     // Note: the internal state data will be cloned by the simulator backend.
     getExecutionManager()->initializeState(targets, state.internal.get());
   }
+  //===--------------------------------------------------------------------===//
+  // qvector with an initial state
+  //===--------------------------------------------------------------------===//
+
+  explicit qvector(const state *);
+  explicit qvector(const state &);
+  explicit qvector(state *);
+  explicit qvector(state &);
+  explicit qvector(state &&);
 
   /// @brief `qvectors` cannot be copied
   qvector(qvector const &) = delete;
