@@ -12,10 +12,8 @@
 #include <string>
 #include <tuple>
 
-// expected-error@+1{{kernel argument type not supported}}
 void prepQubit(std::pair<int, double> basis, cudaq::qubit &q) __qpu__ {}
 
-// expected-error@+1{{kernel argument type not supported}}
 void RzArcTan2(bool input, std::pair<int, double> basis) __qpu__ {
   cudaq::qubit aux;
   cudaq::qubit resource;
