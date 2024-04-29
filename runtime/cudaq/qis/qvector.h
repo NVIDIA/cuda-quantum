@@ -82,28 +82,23 @@ public:
   qvector() : qudits(1) {}
   /// @endcond
 
+  //===--------------------------------------------------------------------===//
+  // qvector with an initial state
+  //===--------------------------------------------------------------------===//
   /// @brief Construct a `qvector` from a pre-existing `state`.
   /// This `state` could be constructed with `state::from_data` or retrieved
   /// from an cudaq::get_state.
-  qvector(state state) : qudits(state.get_num_qubits()) {
+  explicit qvector(const state &state) : qudits(state.get_num_qubits()) {
     std::vector<QuditInfo> targets;
     for (auto &q : qudits)
       targets.emplace_back(QuditInfo{Levels, q.id()});
     // Note: the internal state data will be cloned by the simulator backend.
     getExecutionManager()->initializeState(targets, state.internal.get());
   }
-  //===--------------------------------------------------------------------===//
-  // qvector with an initial state
-  //===--------------------------------------------------------------------===//
-  // TODO: selectively enable these as needed. In this implementation, only
-  // using `state` by-value is needed (state is a thin wrapper around the
-  // SimulationState pointer).
-  //
-  // explicit qvector(const state *);
-  // explicit qvector(const state &)
-  // explicit qvector(state *);
-  // explicit qvector(state &);
-  // explicit qvector(state &&);
+  explicit qvector(const state *ptr) : qvector(*ptr){};
+  explicit qvector(state *ptr) : qvector(*ptr){};
+  explicit qvector(state &s) : qvector(const_cast<const state &>(s)){};
+  explicit qvector(state &&s) : qvector(s){};
 
   /// @brief `qvectors` cannot be copied
   qvector(qvector const &) = delete;
