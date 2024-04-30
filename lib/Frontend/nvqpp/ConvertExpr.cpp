@@ -1980,7 +1980,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto ptr = builder.create<cc::ComputePtrOp>(
             loc, resultTy, args[0],
             ArrayRef<cc::ComputePtrArg>{
-                0, specArgs[0].getAsIntegral().getExtValue()});
+                0, static_cast<std::int32_t>(
+                       specArgs[0].getAsIntegral().getExtValue())});
         return pushValue(builder.create<cc::LoadOp>(loc, ptr));
       }
       auto *selectTy = specArgs[0].getAsType().getTypePtr();
