@@ -620,7 +620,10 @@ protected:
 
   /// @brief Add (appending) the given simulation state to the current simulator
   /// state.
-  virtual void addQubitsToState(const cudaq::SimulationState &state) = 0;
+  virtual void addQubitsToState(const cudaq::SimulationState &state) {
+    throw std::runtime_error("State initialization must be handled by "
+                             "subclasses, override addQubitsToState.");
+  }
 
   /// @brief Execute a sampling task with the current set of sample qubits.
   void flushAnySamplingTasks(bool force = false) {
