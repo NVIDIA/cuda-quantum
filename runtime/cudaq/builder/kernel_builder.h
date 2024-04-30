@@ -82,7 +82,7 @@ namespace details {
 
 /// @brief The `kernel_builder::Type` allows us to track input C++ types
 /// representing the quake function argument types in a way that does not expose
-/// MLIR Type to the CUDA Quantum code. This type keeps track of a functor that
+/// MLIR Type to the CUDA-Q code. This type keeps track of a functor that
 /// generates the MLIR Type in implementation code when create() is invoked.
 class KernelBuilderType {
 protected:
@@ -349,17 +349,17 @@ template <typename... Args>
 class kernel_builder : public details::kernel_builder_base {
 private:
   /// @brief Handle to the MLIR Context, stored as a pointer here to keep
-  /// implementation details out of CUDA Quantum code
+  /// implementation details out of CUDA-Q code
   std::unique_ptr<mlir::MLIRContext, void (*)(mlir::MLIRContext *)> context;
 
   /// @brief Handle to the MLIR `OpBuilder`, stored as a pointer here to keep
-  /// implementation details out of CUDA Quantum code
+  /// implementation details out of CUDA-Q code
   std::unique_ptr<mlir::ImplicitLocOpBuilder,
                   void (*)(mlir::ImplicitLocOpBuilder *)>
       opBuilder;
 
   /// @brief Handle to the MLIR `ExecutionEngine`, stored as a pointer here to
-  /// keep implementation details out of CUDA Quantum code
+  /// keep implementation details out of CUDA-Q code
   std::unique_ptr<mlir::ExecutionEngine, void (*)(mlir::ExecutionEngine *)>
       jitEngine;
 
@@ -368,10 +368,10 @@ private:
   std::unordered_map<mlir::ExecutionEngine *, std::size_t>
       jitEngineToModuleHash;
 
-  /// @brief Name of the CUDA Quantum kernel Quake function
+  /// @brief Name of the CUDA-Q kernel Quake function
   std::string kernelName = "__nvqpp__mlirgen____nvqppBuilderKernel";
 
-  /// @brief The CUDA Quantum Quake function arguments stored as `QuakeValue`s.
+  /// @brief The CUDA-Q Quake function arguments stored as `QuakeValue`s.
   std::vector<QuakeValue> arguments;
 
   /// @brief Return a string representation of the given spin operator.
@@ -449,8 +449,8 @@ public:
   [[deprecated("In the future, passing `ctrls` to " #NAME                      \
                " will require an explicit `<cudaq::ctrl>` template argument. " \
                "Upon the next release, this will be interpreted as a single "  \
-               "qubit gate broadcast across all input qubits, per the CUDA "   \
-               "Quantum Specification.")]] void                                \
+               "qubit gate broadcast across all input qubits, per the CUDA-Q "   \
+               "Specification.")]] void                                \
   NAME(std::vector<QuakeValue> &ctrls, QuakeValue &target) {                   \
     details::NAME(*opBuilder, ctrls, target);                                  \
   }                                                                            \
@@ -500,8 +500,8 @@ public:
   [[deprecated("In the future, passing `ctrls` to " #NAME                      \
                " will require an explicit `<cudaq::ctrl>` template argument. " \
                "Upon the next release, this will be interpreted as a single "  \
-               "qubit gate broadcast across all input qubits, per the CUDA "   \
-               "Quantum Specification.")]] void                                \
+               "qubit gate broadcast across all input qubits, per the CUDA-Q "   \
+               "Specification.")]] void                                \
   NAME(QuakeValue parameter, std::vector<QuakeValue> &ctrls,                   \
        QuakeValue &target) {                                                   \
     details::NAME(*opBuilder, parameter, ctrls, target);                       \
@@ -516,8 +516,8 @@ public:
   [[deprecated("In the future, passing `ctrls` to " #NAME                      \
                " will require an explicit `<cudaq::ctrl>` template argument. " \
                "Upon the next release, this will be interpreted as a single "  \
-               "qubit gate broadcast across all input qubits, per the CUDA "   \
-               "Quantum Specification.")]] void                                \
+               "qubit gate broadcast across all input qubits, per the CUDA-Q "   \
+               "Specification.")]] void                                \
   NAME(double parameter, std::vector<QuakeValue> &ctrls, QuakeValue &target) { \
     QuakeValue v(*opBuilder, parameter);                                       \
     details::NAME(*opBuilder, v, ctrls, target);                               \

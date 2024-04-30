@@ -1,6 +1,6 @@
-# Welcome to the CUDA Quantum Python API
+# Welcome to the CUDA-Q Python API
 
-CUDA Quantum is a comprehensive framework for quantum programming. It features:
+CUDA-Q is a comprehensive framework for quantum programming. It features:
 
 - A programming model which extends C++ and Python with quantum kernels,
   enabling high-level programming in familiar languages
@@ -12,8 +12,8 @@ computing, including CUDA, ISO standard parallelism, OpenMP, and OpenACC
   technologies, including state-of-the-art simulator backends with NVIDIA
   cuQuantum and a number of different physical quantum processors (QPUs)
 
-The CUDA Quantum Python wheels contain the Python API and core components of
-CUDA Quantum. More information about available packages as well as a link to the
+The CUDA-Q Python wheels contain the Python API and core components of
+CUDA-Q. More information about available packages as well as a link to the
 documentation and examples for each version can be found in the [release
 notes][cudaq_docs_releases]. System and compatibility requirements
 are listed in the Installation Guide of the linked documentation.
@@ -25,15 +25,15 @@ are listed in the Installation Guide of the linked documentation.
 
 [//]: # (Begin complete install)
 
-CUDA Quantum does not require a GPU to use, but some components are GPU-accelerated.
+CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.
 If you have access to an NVIDIA GPU, you can enable GPU-acceleration within
-CUDA Quantum by installing the CUDA as well as a CUDA-aware MPI implementation.
+CUDA-Q by installing the CUDA as well as a CUDA-aware MPI implementation.
 We recommend using [Conda](https://docs.conda.io/en/latest/) to do so.
 If you are not already using Conda,
 you can install a minimal version following the instructions
 [here](https://docs.conda.io/projects/miniconda/en/latest/index.html). The
-following commands will create and activate a complete environment for CUDA
-Quantum with all its dependencies:
+following commands will create and activate a complete environment for CUDA-Q
+with all its dependencies:
 
 [//]: # (Begin conda install)
 
@@ -78,9 +78,9 @@ encountering an error "The value of the MCA parameter `plm_rsh_agent` was set to
 a path that could not be found", please make sure you have an SSH Client
 installed.
 
-## Running CUDA Quantum
+## Running CUDA-Q
 
-You should now be able to import CUDA Quantum and start building quantum
+You should now be able to import CUDA-Q and start building quantum
 programs in Python!
 
 ```console
@@ -99,17 +99,17 @@ notes][cudaq_docs_releases].
 
 ## Contributing
 
-There are many ways in which you can get involved with CUDA Quantum. If you are
-interested in developing quantum applications with CUDA Quantum, our [GitHub
+There are many ways in which you can get involved with CUDA-Q. If you are
+interested in developing quantum applications with CUDA-Q, our [GitHub
 repository][github_link] is a great place to get started! For more information
-about contributing to the CUDA Quantum platform, please take a look at
+about contributing to the CUDA-Q platform, please take a look at
 [Contributing.md](https://github.com/NVIDIA/cuda-quantum/blob/main/Contributing.md).
 
 ## License
 
-CUDA Quantum is an open source project. The source code is available on
+CUDA-Q is an open source project. The source code is available on
 [GitHub][github_link] and licensed under [Apache License
-2.0](https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE). CUDA Quantum
+2.0](https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE). CUDA-Q
 makes use of the NVIDIA cuQuantum SDK to enable high-performance simulation,
 which is held to its own respective license.
 
@@ -117,7 +117,7 @@ which is held to its own respective license.
 
 ## Feedback
 
-Please let us know your feedback and ideas for the CUDA Quantum platform in the
+Please let us know your feedback and ideas for the CUDA-Q platform in the
 [Discussions][discussions] tab of our [GitHub repository][github_repo], or [file
 an issue][cuda_quantum_issues]. To report security concerns please reach out to
 [cuda-quantum@nvidia.com](mailto:cuda-quantum@nvidia.com).

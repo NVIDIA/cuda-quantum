@@ -149,7 +149,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             ty.print(os);
           }
           throw std::runtime_error(
-              "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
+              "Unsupported CUDA-Q kernel return type - " + msg + ".\n");
         });
 
   void *rawArgs = nullptr;

@@ -23,7 +23,7 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'NVIDIA CUDA Quantum'
+project = 'NVIDIA CUDA-Q'
 copyright = '2023, NVIDIA Corporation & Affiliates'
 author = 'NVIDIA Corporation & Affiliates'
 

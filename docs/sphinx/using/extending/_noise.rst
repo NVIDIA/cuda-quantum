@@ -1,9 +1,9 @@
-Noise Modeling with CUDA Quantum
+Noise Modeling with CUDA-Q
 ********************************
 
-CUDA Quantum models incoherent noise via quantum channels, linear 
+CUDA-Q models incoherent noise via quantum channels, linear 
 completely-positive and trace-preserving (CPTP) maps. Specifically 
-CUDA Quantum requires the definition of a quantum channel via Kraus operators
+CUDA-Q requires the definition of a quantum channel via Kraus operators
 that satisfy the CPTP condition (:math:`\sum_i K_i^\dagger K_i = \mathbf{I}`). 
 
 Noise channels are composed of a list of Kraus operators and can be 
@@ -23,7 +23,7 @@ state in the following way
 Design 
 ------
 
-To model this in CUDA Quantum, we put forward :code:`cudaq::kraus_op`, :code:`cudaq::kraus_channel`, 
+To model this in CUDA-Q, we put forward :code:`cudaq::kraus_op`, :code:`cudaq::kraus_channel`, 
 and :code:`cudaq::noise_model`. 
 
 A :code:`cudaq::kraus_op` encapsulates a :code:`vector` of :code:`complex` 
@@ -54,4 +54,4 @@ done with the noise model.
 
 The :code:`kraus_op` matrix data assumes a LSB qubit ordering. 
 
-To get started with noise modeling in CUDA Quantum, take a look at the :doc:`/using/examples`.
+To get started with noise modeling in CUDA-Q, take a look at the :doc:`/using/examples`.

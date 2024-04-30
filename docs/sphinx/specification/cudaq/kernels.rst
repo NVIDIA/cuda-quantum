@@ -1,16 +1,16 @@
 Quantum Kernels
 ***************
-**[1]** To differentiate between host and quantum device code, the CUDA Quantum programming
+**[1]** To differentiate between host and quantum device code, the CUDA-Q programming
 model defines the concept of a **quantum kernel**. A quantum kernel is any callable 
 in C++ annotated to indicate compilation and execution on an available quantum coprocessor. 
 
 **[2]** All quantum kernels must be annotated to indicate they are to be compiled for, and executed
-on, a specified quantum coprocessor. CUDA Quantum requires the :code:`__qpu__` function
+on, a specified quantum coprocessor. CUDA-Q requires the :code:`__qpu__` function
 attribute for quantum kernel declarations. Other language bindings may opt to use other language 
 features to enable function annotation or decoration (e.g. a :code:`@cudaq.kernel()` function 
 decorator in Python). 
 
-**[3]** CUDA Quantum specifically differentiates between kernels invoked from host code and those invoked
+**[3]** CUDA-Q specifically differentiates between kernels invoked from host code and those invoked
 from within another quantum kernel. The former are denoted **entry-point**
 quantum kernels, the latter are **pure device** quantum kernels. Entry point kernels can 
 only take classical types as input and return classical output. Pure-device kernels 
@@ -63,7 +63,7 @@ Kernels can be composed of the following:
   * Syntax for common quantum programming patterns (e.g. compute-action-uncompute).
 
 
-**[5]** CUDA Quantum defines a set of allowed types that can be leveraged in quantum kernel 
+**[5]** CUDA-Q defines a set of allowed types that can be leveraged in quantum kernel 
 function signatures (input and return types), in-function variable declaration or construction, 
 and in variable capture from parent scope. 
 
@@ -73,7 +73,7 @@ The allowed types are as follows:
   * :code:`std::vector<T>` such that :code:`std::is_arithmetic_v<T> == true`
   * :code:`std::span<T>` such that :code:`std::is_arithmetic_v<T> == true`
   * :code:`std::vector<V>` such that type :code:`V` is a valid :code:`std::vector<T>` (possibly recursively)
-  * :code:`struct` types composed of any valid CUDA Quantum type.
+  * :code:`struct` types composed of any valid CUDA-Q type.
   * :code:`std::tuple<Ts...>` such that T is any allowed type.
   * :code:`std::pair<T,U>` such that T is any allowed type.
 
@@ -87,7 +87,7 @@ The allowed types are as follows:
        std::vector<double> angles;
     }; 
 
-    // Valid CUDA Quantum Types used in Kernels
+    // Valid CUDA-Q Types used in Kernels
     auto kernel = [](int N, bool flag, float angle, std::vector<std::size_t> layers,
              std::vector<double> parameters, std::vector<std::vector<float>> recursiveVec, 
              MyCustomSimpleStruct var) __qpu__ { ... }
@@ -116,8 +116,8 @@ The allowed types are as follows:
         ... 
         return np.pi / 2.0
 
-**[6]** Any variable with an allowed CUDA Quantum type can be allocated on the stack within 
-CUDA Quantum kernels. Variables of type :code:`std::vector<T>` for any allowed type 
+**[6]** Any variable with an allowed CUDA-Q type can be allocated on the stack within 
+CUDA-Q kernels. Variables of type :code:`std::vector<T>` for any allowed type 
 :code:`T` can only be constructed with known size. Vector-like variables cannot be 
 default constructed and later filled with type :code:`T` data (i.e. no dynamic memory allocation). 
 
@@ -125,7 +125,7 @@ default constructed and later filled with type :code:`T` data (i.e. no dynamic m
 
   .. code-block:: cpp
 
-    // Valid CUDA Quantum Types used in Kernels
+    // Valid CUDA-Q Types used in Kernels
     auto kernel = []() __qpu__ {
       
       // Not Allowed. 
@@ -212,8 +212,8 @@ default constructed and later filled with type :code:`T` data (i.e. no dynamic m
 
 .. FIXME Pass by value vs reference, should we mandate pass by reference for inter-kernel calls
 
-**[8]** CUDA Quantum kernel lambdas in C++ can capture variables of allowed type 
-by value. CUDA Quantum kernels defined as custom callable types can define non-reference type 
+**[8]** CUDA-Q kernel lambdas in C++ can capture variables of allowed type 
+by value. CUDA-Q kernels defined as custom callable types can define non-reference type 
 class members of any allowed type. These member variables can be set with 
 pass-by-value semantics at kernel construction. 
 
@@ -272,8 +272,8 @@ pass-by-value semantics at kernel construction.
 
 **[9]** All quantum kernel invocations are synchronous calls by default. 
 
-**[10]** CUDA Quantum kernels can serve as input to other quantum kernels and invoked by kernel 
-function body code. To support CUDA Quantum kernel parameterization on callable quantum kernel 
+**[10]** CUDA-Q kernels can serve as input to other quantum kernels and invoked by kernel 
+function body code. To support CUDA-Q kernel parameterization on callable quantum kernel 
 code, programmers can leverage standard C++ template definitions or dynamic typing in language bindings such as Python:
 
 .. tab:: C++ 
@@ -327,7 +327,7 @@ code, programmers can leverage standard C++ template definitions or dynamic typi
     
     MyGenericAlgorithm(MyStatePrep)
 
-CUDA Quantum kernel inputs can also be `constrained <https://en.cppreference.com/w/cpp/language/constraints>`_. 
+CUDA-Q kernel inputs can also be `constrained <https://en.cppreference.com/w/cpp/language/constraints>`_. 
 
 .. code-block:: cpp 
 

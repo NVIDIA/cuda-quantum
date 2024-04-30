@@ -19,8 +19,8 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
 
   py::class_<cudaq::RuntimeTarget>(
       mod, "Target",
-      "The `cudaq.Target` represents the underlying infrastructure that CUDA "
-      "Quantum kernels will execute on. Instances of `cudaq.Target` describe "
+      "The `cudaq.Target` represents the underlying infrastructure that "
+      "CUDA-Q kernels will execute on. Instances of `cudaq.Target` describe "
       "what simulator they may leverage, the quantum_platform required for "
       "execution, and a description for the target.")
       .def_readonly("name", &cudaq::RuntimeTarget::name,
@@ -89,7 +89,7 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
         }
         holder.setTarget(target.name, config);
       },
-      "Set the `cudaq.Target` to be used for CUDA Quantum kernel execution. "
+      "Set the `cudaq.Target` to be used for CUDA-Q kernel execution. "
       "Can provide optional, target-specific configuration data via Python "
       "kwargs.");
   mod.def(
@@ -112,7 +112,7 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
         }
         holder.setTarget(name, config);
       },
-      "Set the `cudaq.Target` with given name to be used for CUDA Quantum "
+      "Set the `cudaq.Target` with given name to be used for CUDA-Q "
       "kernel execution. Can provide optional, target-specific configuration "
       "data via Python kwargs.");
 }

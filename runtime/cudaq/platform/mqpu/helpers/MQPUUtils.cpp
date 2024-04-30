@@ -78,7 +78,7 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
       llvm::sys::findProgramByName(serverExeName.c_str(), {binPath.c_str()});
   if (!serverApp)
     throw std::runtime_error(
-        "Unable to find CUDA Quantum REST server to launch.");
+        "Unable to find CUDA-Q REST server to launch.");
 
   constexpr std::size_t PORT_MAX_RETRIES = 10;
   for (std::size_t j = 0; j < PORT_MAX_RETRIES; j++) {
