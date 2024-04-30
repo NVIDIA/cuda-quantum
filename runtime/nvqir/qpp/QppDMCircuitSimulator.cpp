@@ -229,7 +229,7 @@ protected:
 
     state =
         (state.size() == 0) ? casted->state : qpp::kron(casted->state, state);
-    return;
+    
   }
 
   void setToZeroState() override {
