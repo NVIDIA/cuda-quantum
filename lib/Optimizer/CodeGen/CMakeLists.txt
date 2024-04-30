@@ -14,6 +14,7 @@ add_cudaq_library(OptCodeGen
   ConvertToQIRProfile.cpp
   ConvertToQIR.cpp
   Passes.cpp
+  Pipelines.cpp
   RemoveMeasurements.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
