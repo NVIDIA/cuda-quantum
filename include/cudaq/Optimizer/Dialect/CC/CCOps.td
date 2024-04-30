@@ -227,7 +227,7 @@ def cc_LoopOp : CCOp<"loop",
         mlir::Location, mlir::Region &)>;
 
     bool hasArguments() { return getOperands().size(); }
-    constexpr static llvm::StringRef postCondAttrName() {
+    static constexpr llvm::StringRef postCondAttrName() {
       return llvm::StringLiteral("post_condition");
     }
     bool isPostConditional() {
