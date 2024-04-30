@@ -797,8 +797,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         arguments = node.args.args
         if len(arguments):
-            self.emitFatalError("CUDA-Q lambdas cannot have arguments.",
-                                node)
+            self.emitFatalError("CUDA-Q lambdas cannot have arguments.", node)
 
         ty = cc.CallableType.get(self.ctx, [])
         createLambda = cc.CreateLambdaOp(ty)
@@ -943,8 +942,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if cc.StdvecType.isinstance(type) or cc.ArrayType.isinstance(
                         type):
                     self.emitFatalError(
-                        "CUDA-Q does not allow dynamic list resizing.",
-                        node)
+                        "CUDA-Q does not allow dynamic list resizing.", node)
 
             if node.attr == 'size' and quake.VeqType.isinstance(value.type):
                 self.pushValue(
