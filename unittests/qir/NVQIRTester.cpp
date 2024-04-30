@@ -72,7 +72,7 @@ void __quantum__qis__apply__general(Array *data, int64_t n_qubits, ...);
 // Qubit array allocation / deallocation
 Array *__quantum__rt__qubit_allocate_array(uint64_t idx);
 Array *
-__quantum__rt__qubit_allocate_array_with_state_fp64(uint64_t size,
+__quantum__rt__qubit_allocate_array_with_state_fp64(std::uint64_t size,
                                                     std::complex<double> *data);
 Array *
 __quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t size,
