@@ -24,8 +24,8 @@ def kernel(angles: List[float]):
 # Define the optimizer that we'd like to use.
 optimizer = cudaq.optimizers.Adam()
 
-# Since we'll be using a gradient-based optimizer, we can leverage
-# CUDA-Q's gradient helper class to automatically compute the gradient
+# Since we'll be using a gradient-based optimizer, we can leverage the
+# CUDA-Q gradient helper class to automatically compute the gradient
 # vector for us. The use of this class for gradient calculations is
 # purely optional and can be replaced with your own custom gradient
 # routine.

@@ -129,8 +129,8 @@ py::object unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
     return mpi_obj;
   } catch (std::exception &e) {
     std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
-    throw std::runtime_error(
-        "Invalid distributed communicator encountered in CUDA-Q mpi4py plugin.");
+    throw std::runtime_error("Invalid distributed communicator encountered in "
+                             "CUDA-Q mpi4py plugin.");
   }
 }
 

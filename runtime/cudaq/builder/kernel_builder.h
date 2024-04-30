@@ -449,8 +449,8 @@ public:
   [[deprecated("In the future, passing `ctrls` to " #NAME                      \
                " will require an explicit `<cudaq::ctrl>` template argument. " \
                "Upon the next release, this will be interpreted as a single "  \
-               "qubit gate broadcast across all input qubits, per the CUDA-Q "   \
-               "Specification.")]] void                                \
+               "qubit gate broadcast across all input qubits, per the CUDA-Q " \
+               "Specification.")]] void                                        \
   NAME(std::vector<QuakeValue> &ctrls, QuakeValue &target) {                   \
     details::NAME(*opBuilder, ctrls, target);                                  \
   }                                                                            \
@@ -500,8 +500,8 @@ public:
   [[deprecated("In the future, passing `ctrls` to " #NAME                      \
                " will require an explicit `<cudaq::ctrl>` template argument. " \
                "Upon the next release, this will be interpreted as a single "  \
-               "qubit gate broadcast across all input qubits, per the CUDA-Q "   \
-               "Specification.")]] void                                \
+               "qubit gate broadcast across all input qubits, per the CUDA-Q " \
+               "Specification.")]] void                                        \
   NAME(QuakeValue parameter, std::vector<QuakeValue> &ctrls,                   \
        QuakeValue &target) {                                                   \
     details::NAME(*opBuilder, parameter, ctrls, target);                       \
@@ -516,8 +516,8 @@ public:
   [[deprecated("In the future, passing `ctrls` to " #NAME                      \
                " will require an explicit `<cudaq::ctrl>` template argument. " \
                "Upon the next release, this will be interpreted as a single "  \
-               "qubit gate broadcast across all input qubits, per the CUDA-Q "   \
-               "Specification.")]] void                                \
+               "qubit gate broadcast across all input qubits, per the CUDA-Q " \
+               "Specification.")]] void                                        \
   NAME(double parameter, std::vector<QuakeValue> &ctrls, QuakeValue &target) { \
     QuakeValue v(*opBuilder, parameter);                                       \
     details::NAME(*opBuilder, v, ctrls, target);                               \
