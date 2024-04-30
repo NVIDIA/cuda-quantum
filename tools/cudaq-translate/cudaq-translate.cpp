@@ -142,9 +142,8 @@ int main(int argc, char **argv) {
   std::error_code ec;
   llvm::ToolOutputFile out(outputFilename, ec, llvm::sys::fs::OF_None);
   checkErrorCode(ec);
-  llvm::function_ref<void()> targetAction = [&]() {
-    out.os() << *module << '\n';
-  };
+  auto printModuleAction = [&]() { out.os() << *module << '\n'; };
+  llvm::function_ref<void()> targetAction = printModuleAction;
   bool targetUsesLlvm = emitLLVM;
   auto *modOp = module->getOperation();
   auto modLoc = module->getLoc();
@@ -163,22 +162,21 @@ int main(int argc, char **argv) {
   };
 
   llvm::StringSwitch<std::function<void()>>(convertTo)
-      .Case("qir", [&]() { cudaq::opt::addPipelineToQIR<>(pm); })
+      .Case("qir", [&]() { cudaq::opt::addPipelineConvertToQIR(pm); })
       .Cases("qir-adaptive", "qir-base",
              [&]() {
-               cudaq::opt::addPipelineToQIR</*QIRProfile=*/true>(
-                   pm, convertTo.getValue());
+               cudaq::opt::addPipelineConvertToQIR(pm, convertTo.getValue());
              })
       .Case("openqasm",
             [&]() {
               targetUsesLlvm = false;
-              cudaq::opt::addPipelineToOpenQASM(pm);
+              cudaq::opt::addPipelineTranslateToOpenQASM(pm);
               targetAction = qasmAction;
             })
       .Case("iqm",
             [&]() {
               targetUsesLlvm = false;
-              cudaq::opt::addPipelineToIQMJson(pm);
+              cudaq::opt::addPipelineTranslateToIQMJson(pm);
               targetAction = iqmAction;
             })
       .Default([]() {})();

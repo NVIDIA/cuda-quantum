@@ -14,12 +14,12 @@
 namespace cudaq {
 /// Util to invoke a wrapped kernel defined by LLVM IR with serialized
 /// arguments.
-// We don't use `mlir::ExecutionEngine` because:
-//  (1) we need to `setAutoClaimResponsibilityForObjectSymbols(true)` to work
-//  around an assert bug ("Resolving symbol outside this responsibility set").
-//  (2) skipping unnecessary `packFunctionArguments`.
-// Optionally, the JIT'ed kernel can be executed a number of times along with a
-// post-execution callback. For example, sample a dynamic kernel.
+// Note: We don't use `mlir::ExecutionEngine` to skip unnecessary
+// `packFunctionArguments` (slow for raw LLVM IR containing many functions from
+// included headers).
+// Optionally, the JIT'ed kernel can be executed a number of
+// times along with a post-execution callback. For example, sample a dynamic
+// kernel.
 void invokeWrappedKernel(
     std::string_view llvmIr, const std::string &kernelName, void *args,
     std::uint64_t argsSize, std::size_t numTimes = 1,

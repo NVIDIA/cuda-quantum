@@ -1001,14 +1001,12 @@ def test_draw_bug_1400():
         cx(q[0], q[1])
         mz(q)
 
-
     @cudaq.kernel
-    def kernel(angle:float):
+    def kernel(angle: float):
         q = cudaq.qubit()
         h(q)
         ry(angle, q)
-    
-    
+
     print(cudaq.draw(kernel, 0.59))
     print(cudaq.draw(kernel, 0.59))
     circuit = cudaq.draw(bell_pair)
@@ -1023,8 +1021,9 @@ q1 : ─────┤ x ├
 
 
 def test_with_docstring_2():
+
     @cudaq.kernel
-    def simple(n:int):
+    def simple(n: int):
         '''
         A docstring with triple single quote
         '''
@@ -1227,12 +1226,15 @@ def test_ctrl_wrong_dtype_1447():
 
 def test_math_module_pi_1448():
     import math
+
     @cudaq.kernel
     def test_kernel() -> float:
         theta = math.pi
         return theta
+
     test_kernel.compile()
     assert np.isclose(test_kernel(), math.pi, 1e-12)
+
 
 def test_len_qvector_1449():
 
@@ -1247,35 +1249,161 @@ def test_len_qvector_1449():
     test_kernel.compile()
     assert test_kernel(5) == 5
 
+
 def test_missing_paren_1450():
 
     @cudaq.kernel
     def test_kernel():
         state_reg = cudaq.qubit
         x(state_reg)
-    
+
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
     assert 'invalid assignment detected.' in repr(e)
 
+
 def test_cast_error_1451():
+
     @cudaq.kernel
     def test_kernel(N: int):
         q = cudaq.qvector(N)
-        for i in range(0,N/2):
-            swap(q[i], q[N-i-1])
-    
+        for i in range(0, N / 2):
+            swap(q[i], q[N - i - 1])
+
     # Test is that this compiles
     test_kernel.compile()
 
 
 def test_bad_attr_call_error():
+
     @cudaq.kernel
     def test_state(N: int):
         q = cudaq.qvector(N)
         h(q[0])
         kernel.h(q[0])
-    
+
     with pytest.raises(RuntimeError) as e:
         test_state.compile()
     assert "Invalid function call - 'kernel' is unknown." in repr(e)
+
+
+def test_bad_return_value_with_stdvec_arg():
+
+    @cudaq.kernel
+    def test_param(i: int, l: List[int]) -> int:
+        return i
+
+    l = [42]
+    for i in range(4):
+        assert test_param(i, l) == i
+
+
+def test_measure_variadic_qubits():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(5)
+        x(q[2])
+        mz(q[0], q[1], q[2])
+
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '001' in counts
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(5)
+        x(q[0], q[2])
+        mz(q[0], [q[1], q[2]])
+
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '101' in counts
+
+
+def test_bad_return_value_with_stdvec_arg():
+
+    @cudaq.kernel
+    def test_param(i: int, l: List[int]) -> int:
+        return i
+
+    l = [42]
+    for i in range(4):
+        assert test_param(i, l) == i
+
+
+def test_u3_op():
+
+    @cudaq.kernel
+    def check_x():
+        q = cudaq.qubit()
+        # implement Pauli-X gate with U3
+        u3(np.pi, np.pi, np.pi / 2, q)
+
+    print(check_x)
+    counts = cudaq.sample(check_x)
+    assert counts["1"] == 1000
+
+    @cudaq.kernel
+    def bell_pair():
+        qubits = cudaq.qvector(2)
+        # implement Hadamard gate with U3
+        u3(np.pi / 2, 0, np.pi, qubits[0])
+        cx(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell_pair)
+    assert (len(counts) == 2)
+    assert ('00' in counts)
+    assert ('11' in counts)
+
+
+def test_u3_ctrl():
+
+    @cudaq.kernel
+    def another_bell_pair():
+        qubits = cudaq.qvector(2)
+        u3(np.pi / 2, 0, np.pi, qubits[0])
+        u3.ctrl(np.pi, np.pi, np.pi / 2, qubits[0], qubits[1])
+
+    print(another_bell_pair)
+    counts = cudaq.sample(another_bell_pair)
+    assert (len(counts) == 2)
+    assert ('00' in counts)
+    assert ('11' in counts)
+
+
+def test_u3_adj():
+
+    @cudaq.kernel
+    def rotation_adjoint_test():
+        q = cudaq.qubit()
+
+        # implement Rx gate with U3
+        u3(1.1, -np.pi / 2, np.pi / 2, q)
+        # rx.adj(angle) = u3.adj(angle, pi/2, -pi/2)
+        u3.adj(1.1, np.pi / 2, -np.pi / 2, q)
+
+        # implement Ry gate with U3
+        u3(1.1, 0, 0, q)
+        u3.adj(1.1, 0, 0, q)
+
+    print(rotation_adjoint_test)
+
+    counts = cudaq.sample(rotation_adjoint_test)
+    assert '0' in counts
+    assert len(counts) == 1
+
+
+def test_u3_parameterized():
+
+    @cudaq.kernel
+    def param_kernel(theta: float, phi: float, lambda_: float):
+        q = cudaq.qubit()
+        u3(theta, phi, lambda_, q)
+
+    counts = cudaq.sample(param_kernel, np.pi, np.pi, np.pi / 2)
+    assert counts["1"] == 1000
+
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])
