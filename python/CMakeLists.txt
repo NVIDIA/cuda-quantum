@@ -186,6 +186,6 @@ if(CUDAQ_BUILD_TESTS)
     message(FATAL_ERROR "CUDA Quantum Python Warning - CUDAQ_BUILD_TESTS=TRUE but can't find numpy or pytest modules required for testing.")
   endif()
 else()
-  ## NOTE: Following tests can be run without pytest or numpy
+  ## NOTE: 'Some' of the following tests can be run without pytest
   add_subdirectory(tests/mlir)
 endif()
