@@ -18,7 +18,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "utils/OpaqueArguments.h"
-#include "utils/complex.h"
+#include "utils/PyTypes.h"
 
 #include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"

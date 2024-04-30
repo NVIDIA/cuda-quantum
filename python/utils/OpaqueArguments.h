@@ -17,7 +17,8 @@
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 
-#include "complex.h"
+#include "PyTypes.h"
+
 #include <chrono>
 #include <complex>
 #include <functional>
@@ -202,20 +203,20 @@ packArgs(OpaqueArguments &argData, py::args args,
     auto kernelArgTy = kernelFuncOp.getArgument(i).getType();
     llvm::TypeSwitch<mlir::Type, void>(kernelArgTy)
         .Case([&](mlir::ComplexType ty) {
-          if (!py::isinstance<complex_>(arg))
+          if (!conversion::isComplex(arg))
             throw std::runtime_error("kernel argument type is `complex` but "
                                      "argument provided is not (argument " +
                                      std::to_string(i) + ", value=" +
                                      py::str(arg).cast<std::string>() + ").");
-
-          std::complex<double> *ourAllocatedArg = new std::complex<double>();
           if (isa<Float64Type>(ty.getElementType())) {
+            std::complex<double> *ourAllocatedArg = new std::complex<double>();
             *ourAllocatedArg = arg.cast<std::complex<double>>();
 
             argData.emplace_back(ourAllocatedArg, [](void *ptr) {
               delete static_cast<std::complex<double> *>(ptr);
             });
           } else {
+            std::complex<float> *ourAllocatedArg = new std::complex<float>();
             *ourAllocatedArg = arg.cast<std::complex<float>>();
 
             argData.emplace_back(ourAllocatedArg, [](void *ptr) {
@@ -224,7 +225,7 @@ packArgs(OpaqueArguments &argData, py::args args,
           }
         })
         .Case([&](mlir::Float64Type ty) {
-          if (!py::isinstance<py::float_>(arg))
+          if (!conversion::isFloat(arg))
             throw std::runtime_error("kernel argument type is `float` but "
                                      "argument provided is not (argument " +
                                      std::to_string(i) + ", value=" +
@@ -236,11 +237,12 @@ packArgs(OpaqueArguments &argData, py::args args,
           });
         })
         .Case([&](mlir::Float32Type ty) {
-          if (!py::isinstance<py::float_>(arg))
+          if (!conversion::isFloat(arg))
             throw std::runtime_error("kernel argument type is `float` but "
                                      "argument provided is not (argument " +
                                      std::to_string(i) + ", value=" +
                                      py::str(arg).cast<std::string>() + ").");
+
           float *ourAllocatedArg = new float();
           *ourAllocatedArg = arg.cast<float>();
           argData.emplace_back(ourAllocatedArg, [](void *ptr) {
