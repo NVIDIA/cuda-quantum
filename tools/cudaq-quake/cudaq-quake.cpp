@@ -39,8 +39,8 @@
 
 using namespace llvm;
 
-constexpr static const char toolName[] = "cudaq-quake";
-constexpr static const char mangledKernelNameMapAttrName[] =
+static constexpr const char toolName[] = "cudaq-quake";
+static constexpr const char mangledKernelNameMapAttrName[] =
     "quake.mangled_name_map";
 
 //===----------------------------------------------------------------------===//
