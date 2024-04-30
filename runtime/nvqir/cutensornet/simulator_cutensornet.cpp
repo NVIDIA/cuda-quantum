@@ -87,8 +87,8 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
     m_gateDeviceMemCache[gateKey] = dMem;
   }
   // Type conversion
-  const std::vector<int32_t> ctrlQubits(controls.begin(), controls.end());
-  const std::vector<int32_t> targetQubits(targets.begin(), targets.end());
+  const std::vector<std::int32_t> ctrlQubits(controls.begin(), controls.end());
+  const std::vector<std::int32_t> targetQubits(targets.begin(), targets.end());
   m_state->applyGate(ctrlQubits, targetQubits, m_gateDeviceMemCache[gateKey]);
 }
 
