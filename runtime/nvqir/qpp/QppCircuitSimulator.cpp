@@ -233,7 +233,6 @@ protected:
       state = casted->state;
     else
       state = qpp::kron(casted->state, state);
-    return;
   }
 
   /// @brief Reset the qubit state.
