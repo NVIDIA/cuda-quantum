@@ -394,7 +394,7 @@ protected:
   /// @brief Environment variable name that allows a programmer to
   /// specify how expectation values should be computed. This
   /// defaults to true.
-  constexpr static const char observeSamplingEnvVar[] =
+  static constexpr const char observeSamplingEnvVar[] =
       "CUDAQ_OBSERVE_FROM_SAMPLING";
 
   /// @brief A GateApplicationTask consists of a
