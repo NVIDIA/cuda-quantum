@@ -98,7 +98,7 @@ public:
   explicit qvector(const state *ptr) : qvector(*ptr){};
   explicit qvector(state *ptr) : qvector(*ptr){};
   explicit qvector(state &s) : qvector(const_cast<const state &>(s)){};
-  explicit qvector(state &&s) : qvector(s){};
+  explicit qvector(state &&s) : qvector(std::move(s)){};
 
   /// @brief `qvectors` cannot be copied
   qvector(qvector const &) = delete;
