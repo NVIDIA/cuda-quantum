@@ -104,7 +104,7 @@ public:
     // Handle empty state (e.g., no qubit allocation)
     if (!m_state)
       return cudaq::State{{0}, {}};
-    const uint64_t svDim = (1ull << m_state->getNumQubits());
+    const std::uint64_t svDim = (1ull << m_state->getNumQubits());
     // Returns the main qubit register state (auxiliary qubits are projected to
     // zero state)
     return cudaq::State{{svDim}, m_state->getStateVector()};
