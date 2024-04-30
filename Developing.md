@@ -2,9 +2,10 @@
 
 This document contains guidelines for contributing to the code in this
 repository. This document is relevant primarily for contributions to the `nvq++`
-compiler, the CUDA-Q runtime, or to the integrated simulation backends. If
-you would like to contribute applications and examples that use the CUDA-Q
-platform, please follow the instructions for [installing CUDA-Q][official_install] instead.
+compiler, the CUDA-Q runtime, or to the integrated simulation backends. If you
+would like to contribute applications and examples that use the CUDA-Q platform,
+please follow the instructions for [installing CUDA-Q][official_install]
+instead.
 
 [official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
 
@@ -54,12 +55,11 @@ quake-translate --convert-to=qir
 ## Code style
 
 With regards to code format and style, we distinguish public APIs and CUDA-Q
-internals. Public APIs should follow the style guide of the respective
-language, specifically [this guide][cpp_style] for C++, and the [this
-guide][python_style] for Python. The CUDA-Q internals on the other hand
-follow the [MLIR/LLVM style guide][llvm_style]. Please ensure that your code
-includes comprehensive doc comments as well as a comment at the top of the file
-to indicating its purpose.
+internals. Public APIs should follow the style guide of the respective language,
+specifically [this guide][cpp_style] for C++, and the [this guide][python_style]
+for Python. The CUDA-Q internals on the other hand follow the [MLIR/LLVM style
+guide][llvm_style]. Please ensure that your code includes comprehensive doc
+comments as well as a comment at the top of the file to indicating its purpose.
 
 [python_style]: https://google.github.io/styleguide/pyguide.html
 [cpp_style]: https://www.gnu.org/prep/standards/standards.html
@@ -73,8 +73,8 @@ libraries should have an accompanying test added to the appropriate spot in the
 `unittests` folder. All code that directly impacts compiler code should have an
 accompanying `FileCheck` test. These tests are located in the `test` folder.
 
-When running a CUDA-Q executable locally, the verbosity of the output can
-be configured by setting the `CUDAQ_LOG_LEVEL` environment variable. Setting its
+When running a CUDA-Q executable locally, the verbosity of the output can be
+configured by setting the `CUDAQ_LOG_LEVEL` environment variable. Setting its
 value to `info` will enable printing of informational messages, and setting its
 value to `trace` generates additional messages to trace the execution. These
 logs can be directed to a file by setting the `CUDAQ_LOG_FILE` variable when

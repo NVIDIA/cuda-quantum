@@ -33,7 +33,7 @@ export PYTHONPATH="${CUDAQ_INSTALL_PREFIX}:${PYTHONPATH}"
 Our development container comes with a pre-built version of LLVM which is used
 to build CUDA-Q. If you are working outside our container, please see the
 instructions for [building CUDA-Q with a custom LLVM
-version](#building-cuda-quantum-with-a-custom-llvm-version).
+version](#building-cuda-q-with-a-custom-llvm-version).
 
 Once you have built CUDA-Q, you should be able to run the tests and confirm that
 they pass by navigating to the `build` folder and entering the command `ctest`.
