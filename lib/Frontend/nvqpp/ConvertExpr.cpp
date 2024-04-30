@@ -1971,6 +1971,30 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
       return true;
     }
+    if (funcName.equals("get")) {
+      auto *stdGetSpec = cast<clang::FunctionDecl>(callee);
+      auto &specArgs = *stdGetSpec->getTemplateSpecializationArgs();
+      auto resultTy = cc::PointerType::get(peekType());
+      // The first specialization arg is either a type or an integer value.
+      if (specArgs[0].getKind() == clang::TemplateArgument::ArgKind::Integral) {
+        auto ptr = builder.create<cc::ComputePtrOp>(
+            loc, resultTy, args[0],
+            ArrayRef<cc::ComputePtrArg>{
+                0, specArgs[0].getAsIntegral().getExtValue()});
+        return pushValue(builder.create<cc::LoadOp>(loc, ptr));
+      }
+      auto *selectTy = specArgs[0].getAsType().getTypePtr();
+      assert(specArgs[1].getKind() == clang::TemplateArgument::ArgKind::Pack);
+      int i = 0;
+      for (auto &templateArg : specArgs[1].pack_elements()) {
+        if (templateArg.getAsType().getTypePtr() == selectTy) {
+          auto ptr = builder.create<cc::ComputePtrOp>(
+              loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{0, i});
+          return pushValue(builder.create<cc::LoadOp>(loc, ptr));
+        }
+        ++i;
+      }
+    }
   }
 
   if (func->isVariadic()) {
