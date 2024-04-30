@@ -48,7 +48,7 @@ using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
 static std::unique_ptr<PyStateVectorStorage> stateStorage =
     std::make_unique<PyStateVectorStorage>();
 
-std::tuple<ExecutionEngine *, void *, std::size_t>
+std::tuple<ExecutionEngine *, void *, std::size_t, std::size_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
                  const std::vector<std::string> &names, Type returnType) {
@@ -172,6 +172,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
 
   void *rawArgs = nullptr;
   std::size_t size = 0;
+  std::size_t returnOffset = 0;
   if (runtimeArgs.size()) {
     auto expectedPtr = jit->lookup(name + ".argsCreator");
     if (!expectedPtr) {
@@ -179,18 +180,18 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
           "cudaq::builder failed to get argsCreator function.");
     }
     auto argsCreator =
-        reinterpret_cast<std::size_t (*)(void **, void **)>(*expectedPtr);
+        reinterpret_cast<std::size_t (*)(void **, void **, size_t*)>(*expectedPtr);
     rawArgs = nullptr;
-    size = argsCreator(runtimeArgs.data(), &rawArgs);
+    size = argsCreator(runtimeArgs.data(), &rawArgs, &returnOffset);
   }
-  return std::make_tuple(jit, rawArgs, size);
+  return std::make_tuple(jit, rawArgs, size, returnOffset);
 }
 
-std::tuple<void *, std::size_t>
+std::tuple<void *, std::size_t, std::size_t>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                       Type returnType, cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names) {
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, names, returnType);
 
   auto mod = unwrap(module);
@@ -249,12 +250,12 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   if (platform.is_remote() || platform.is_emulated()) {
     auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
     cudaq::altLaunchKernel(name.c_str(), thunk,
-                           reinterpret_cast<void *>(wrapper), size, 0);
+                           reinterpret_cast<void *>(wrapper), size, returnOffset);
     delete wrapper;
   } else
-    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size, 0);
+    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size, returnOffset);
 
-  return std::make_tuple(rawArgs, size);
+  return std::make_tuple(rawArgs, size, returnOffset);
 }
 
 void pyAltLaunchKernel(const std::string &name, MlirModule module,
@@ -270,34 +271,34 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
                               const std::vector<std::string> &names) {
-  auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
+  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
                                                runtimeArgs, names);
   auto unwrapped = unwrap(returnType);
 
   // We first need to compute the offset for the return value.
   // We'll loop through all the arguments and increment the
   // offset for the argument type. Then we'll be at our return type location.
-  auto returnOffset = [&]() {
-    std::size_t offset = 0;
-    auto kernelFunc = getKernelFuncOp(module, name);
-    for (auto argType : kernelFunc.getArgumentTypes())
-      llvm::TypeSwitch<mlir::Type, void>(argType)
-          .Case([&](IntegerType ty) {
-            if (ty.getIntOrFloatBitWidth() == 1) {
-              offset += 1;
-              return;
-            }
+  // auto returnOffset = [&]() {
+  //   std::size_t offset = 0;
+  //   auto kernelFunc = getKernelFuncOp(module, name);
+  //   for (auto argType : kernelFunc.getArgumentTypes())
+  //     llvm::TypeSwitch<mlir::Type, void>(argType)
+  //         .Case([&](IntegerType ty) {
+  //           if (ty.getIntOrFloatBitWidth() == 1) {
+  //             offset += 1;
+  //             return;
+  //           }
 
-            offset += 8;
-            return;
-          })
-          .Case([&](cc::StdvecType ty) { offset += 8; })
-          .Case([&](Float64Type ty) { offset += 8; })
-          .Case([&](Float32Type ty) { offset += 4; })
-          .Default([](Type) {});
+  //           offset += 8;
+  //           return;
+  //         })
+  //         .Case([&](cc::StdvecType ty) { offset += 8; })
+  //         .Case([&](Float64Type ty) { offset += 8; })
+  //         .Case([&](Float32Type ty) { offset += 4; })
+  //         .Default([](Type) {});
 
-    return offset;
-  }();
+  //   return offset;
+  // }();
 
   // Extract the return value from the rawArgs pointer.
   return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
