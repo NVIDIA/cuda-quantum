@@ -466,6 +466,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -818,11 +819,41 @@ enables one to create a superposition of computational basis states.</p>
 </div>
 </div>
 </section>
+<section id="u3">
+<h3><code class="code docutils literal notranslate"><span class="pre">u3</span></code><a class="headerlink" href="#u3" title="Permalink to this heading">¶</a></h3>
+<p>This operation applies the universal three-parameters operator to target qubit. The three parameters are Euler angles - theta (θ), phi (φ), and lambda (λ).</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--11-input--1" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+
+<span class="c1"># Apply the unitary transformation</span>
+<span class="c1"># U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |</span>
+<span class="c1">#             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |</span>
+<span class="n">u3</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--11-input--2" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">qubit</span><span class="p">;</span>
+
+<span class="c1">// Apply the unitary transformation</span>
+<span class="c1">// U3(θ,φ,λ) = | cos(θ/2)            -exp(iλ) * sin(θ/2)       |</span>
+<span class="c1">//             | exp(iφ) * sin(θ/2)   exp(i(λ + φ)) * cos(θ/2) |</span>
+<span class="n">u3</span><span class="p">(</span><span class="n">M_PI</span><span class="p">,</span><span class="w"> </span><span class="n">M_PI</span><span class="p">,</span><span class="w"> </span><span class="n">M_PI_2</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="code docutils literal notranslate"><span class="pre">u3</span></code> operation is currently supported in simulation only.</p>
+</div>
+</section>
 </section>
 <section id="adjoint-and-controlled-operations">
 <h2>Adjoint and Controlled Operations<a class="headerlink" href="#adjoint-and-controlled-operations" title="Permalink to this heading">¶</a></h2>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--11-input--1" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--12-input--1" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--1">Python</label><div class="tab-content docutils">
 <p>The <code class="code docutils literal notranslate"><span class="pre">adj</span></code> method of any gate can be used to invoke the
 <a class="reference external" href="https://en.wikipedia.org/wiki/Conjugate_transpose">adjoint</a> transformation:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a kernel and allocate a qubit in a |0&gt; state.</span>
@@ -868,7 +899,7 @@ conditional on the state of one or more control qubits, see also this
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--11-input--2" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--12-input--2" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--2">C++</label><div class="tab-content docutils">
 <p>The template argument <code class="code docutils literal notranslate"><span class="pre">cudaq::adj</span></code> can be used to invoke the
 <a class="reference external" href="https://en.wikipedia.org/wiki/Conjugate_transpose">adjoint</a> transformation:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Allocate a qubit in a |0&gt; state.</span>
@@ -922,7 +953,7 @@ a <code class="code docutils literal notranslate"><span class="pre">|0&gt;</span
 The syntax for negating the polarity is the not-operator preceding the
 control qubit:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--12-input--1" name="tab-set--12" type="radio"><label class="tab-label" for="tab-set--12-input--1">C++</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--13-input--1" name="tab-set--13" type="radio"><label class="tab-label" for="tab-set--13-input--1">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">;</span>
 <span class="n">h</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
 <span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="o">!</span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">);</span>
@@ -943,13 +974,13 @@ Negating the polarity of control qubits is similarly supported when using <code 
 i.e., it projects the state of that qubit onto the eigenvectors of the Pauli-Z matrix.
 This is a non-linear transformation, and no template overloads are available.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--13-input--1" name="tab-set--13" type="radio"><label class="tab-label" for="tab-set--13-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--14-input--1" name="tab-set--14" type="radio"><label class="tab-label" for="tab-set--14-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--13-input--2" name="tab-set--13" type="radio"><label class="tab-label" for="tab-set--13-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--14-input--2" name="tab-set--14" type="radio"><label class="tab-label" for="tab-set--14-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">qubit</span><span class="p">;</span>
 <span class="n">mz</span><span class="p">(</span><span class="n">qubit</span><span class="p">);</span>
 </pre></div>
@@ -963,13 +994,13 @@ This is a non-linear transformation, and no template overloads are available.</p
 i.e., it projects the state of that qubit onto the eigenvectors of the Pauli-X matrix.
 This is a non-linear transformation, and no template overloads are available.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--14-input--1" name="tab-set--14" type="radio"><label class="tab-label" for="tab-set--14-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--15-input--1" name="tab-set--15" type="radio"><label class="tab-label" for="tab-set--15-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 <span class="n">mx</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--14-input--2" name="tab-set--14" type="radio"><label class="tab-label" for="tab-set--14-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--15-input--2" name="tab-set--15" type="radio"><label class="tab-label" for="tab-set--15-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">qubit</span><span class="p">;</span>
 <span class="n">mx</span><span class="p">(</span><span class="n">qubit</span><span class="p">);</span>
 </pre></div>
@@ -983,13 +1014,13 @@ This is a non-linear transformation, and no template overloads are available.</p
 i.e., it projects the state of that qubit onto the eigenvectors of the Pauli-Y matrix.
 This is a non-linear transformation, and no template overloads are available.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--15-input--1" name="tab-set--15" type="radio"><label class="tab-label" for="tab-set--15-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--16-input--1" name="tab-set--16" type="radio"><label class="tab-label" for="tab-set--16-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">qubit</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 <span class="n">kernel</span><span class="o">.</span><span class="n">my</span><span class="p">(</span><span class="n">qubit</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--15-input--2" name="tab-set--15" type="radio"><label class="tab-label" for="tab-set--15-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--16-input--2" name="tab-set--16" type="radio"><label class="tab-label" for="tab-set--16-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">qubit</span><span class="p">;</span>
 <span class="n">my</span><span class="p">(</span><span class="n">qubit</span><span class="p">);</span>
 </pre></div>
