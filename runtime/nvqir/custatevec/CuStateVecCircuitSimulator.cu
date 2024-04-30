@@ -342,6 +342,48 @@ protected:
     deviceStateVector = newDeviceStateVector;
   }
 
+  void addQubitsToState(const cudaq::SimulationState &in_state) override {
+    const cudaq::CusvState<ScalarType> *const casted =
+        dynamic_cast<const cudaq::CusvState<ScalarType> *>(&in_state);
+    if (!casted)
+      throw std::invalid_argument(
+          "[CuStateVecCircuitSimulator] Incompatible state input");
+
+    if (!deviceStateVector) {
+      // Create the memory and the handle
+      HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
+                                   stateDimension * sizeof(CudaDataType)));
+      HANDLE_ERROR(custatevecCreate(&handle));
+      // First allocation, so just copy the user provided data (device mem) here
+      HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, casted->getDevicePointer(),
+                                   stateDimension * sizeof(CudaDataType),
+                                   cudaMemcpyDeviceToDevice));
+      return;
+    }
+
+    // Expanding the state
+    // Allocate new vector to place the kron prod result
+    void *newDeviceStateVector;
+    HANDLE_CUDA_ERROR(cudaMalloc((void **)&newDeviceStateVector,
+                                 stateDimension * sizeof(CudaDataType)));
+    constexpr int32_t threads_per_block = 256;
+    uint32_t n_blocks =
+        (stateDimension + threads_per_block - 1) / threads_per_block;
+    // Compute the kronecker product
+    kronprod<CudaDataType><<<n_blocks, threads_per_block>>>(
+        previousStateDimension,
+        reinterpret_cast<CudaDataType *>(deviceStateVector),
+        (1UL << in_state.getNumQubits()),
+        reinterpret_cast<const CudaDataType *>(casted->getDevicePointer()),
+        reinterpret_cast<CudaDataType *>(newDeviceStateVector));
+    HANDLE_CUDA_ERROR(cudaGetLastError());
+
+    // Free the old state we don't need anymore.
+    // Note: the devicePtr of the input state is owned by the caller.
+    HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
+    deviceStateVector = newDeviceStateVector;
+  }
+
   /// @brief Increase the state size by one qubit.
   void addQubitToState() override {
     ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitToState");
