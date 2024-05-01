@@ -591,8 +591,8 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
       return {};
     }
 
-    ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
-                                                    tmOrError.get().get());
+    mlir::ExecutionEngine::setupTargetTripleAndDataLayout(
+        llvmModule.get(), tmOrError.get().get());
     return llvmModule;
   };
 
