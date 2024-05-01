@@ -226,10 +226,11 @@ packArgs(OpaqueArguments &argData, py::args args,
         })
         .Case([&](mlir::Float64Type ty) {
           if (!conversion::isFloat(arg))
-            throw std::runtime_error("kernel argument type is `float` but "
-                                     "argument provided is not (argument " +
-                                     std::to_string(i) + ", value=" +
-                                     py::str(arg).cast<std::string>() + ").");
+            throw std::runtime_error(
+                "kernel argument type is 64-bit `float` but "
+                "argument provided is not (argument " +
+                std::to_string(i) +
+                ", value=" + py::str(arg).cast<std::string>() + ").");
           double *ourAllocatedArg = new double();
           *ourAllocatedArg = PyFloat_AsDouble(arg.ptr());
           argData.emplace_back(ourAllocatedArg, [](void *ptr) {
@@ -238,10 +239,11 @@ packArgs(OpaqueArguments &argData, py::args args,
         })
         .Case([&](mlir::Float32Type ty) {
           if (!conversion::isFloat(arg))
-            throw std::runtime_error("kernel argument type is `float` but "
-                                     "argument provided is not (argument " +
-                                     std::to_string(i) + ", value=" +
-                                     py::str(arg).cast<std::string>() + ").");
+            throw std::runtime_error(
+                "kernel argument type is 32-bit `float` but "
+                "argument provided is not (argument " +
+                std::to_string(i) +
+                ", value=" + py::str(arg).cast<std::string>() + ").");
 
           float *ourAllocatedArg = new float();
           *ourAllocatedArg = arg.cast<float>();
