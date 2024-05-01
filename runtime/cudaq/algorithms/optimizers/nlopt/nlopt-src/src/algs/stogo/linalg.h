@@ -5,10 +5,10 @@
 
 #pragma once
 
+#include <algorithm>
+#include <cmath> // for sqrt()
 #include <float.h>
 #include <iostream>
-#include <cmath> // for sqrt()
-#include <algorithm>
 
 typedef const class RVector CRVector;
 typedef CRVector &RCRVector;
