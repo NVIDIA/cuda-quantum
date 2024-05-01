@@ -16,13 +16,16 @@ import cudaq
 ## [PYTHON_VERSION_FIX]
 skipIfPythonLessThan39 = pytest.mark.skipif(
     sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
+    reason=
+    "built-in collection types such as `list` not supported or module 'ast' has no attribute 'unparse'"
+)
 
 
 def is_close(expected, actual):
     return np.isclose(expected, actual, atol=1e-6)
 
 
+@skipIfPythonLessThan39
 def test_complex_params():
     """Test that we can pass complex lists to kernel functions."""
 
@@ -215,6 +218,7 @@ def test_complex_use():
 # np.complex128
 
 
+@skipIfPythonLessThan39
 def test_np_complex128_params():
     """Test that we can pass complex lists to kernel functions."""
 
@@ -377,6 +381,7 @@ def test_np_complex128_use():
 # Complex64
 
 
+@skipIfPythonLessThan39
 def test_np_complex64_params():
     """Test that we can pass complex lists to kernel functions."""
 
@@ -443,6 +448,7 @@ def test_np_complex64_capture():
         assert is_close(c[i].imag, complex_vec_capture_imag(i))
 
 
+@skipIfPythonLessThan39
 def test_np_complex64_definition():
     """Test that we can define complex lists inside kernel functions."""
 

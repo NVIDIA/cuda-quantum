@@ -122,6 +122,12 @@ public:
                        cudaq::simulation_precision precision) override {
     throw std::runtime_error("initializeState not implemented.");
   }
+
+  virtual void initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                               const cudaq::SimulationState *state) override {
+    throw std::runtime_error("initializeState not implemented.");
+  }
+
   void resetQudit(const cudaq::QuditInfo &id) override {}
 };
 

@@ -193,6 +193,21 @@ Array *__quantum__rt__qubit_allocate_array_with_state_fp64(
   return vectorSizetToArray(qubitIdxs);
 }
 
+Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
+    cudaq::SimulationState *state) {
+  if (!state)
+    throw std::invalid_argument("[NVQIR] Invalid simulation state encountered "
+                                "in qubit array allocation.");
+  ScopedTraceWithContext(
+      "NVQIR::__quantum__rt__qubit_allocate_array_with_state_ptr",
+      state->getNumQubits());
+
+  __quantum__rt__initialize(0, nullptr);
+  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+      state->getNumQubits(), state);
+  return vectorSizetToArray(qubitIdxs);
+}
+
 Array *
 __quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t size,
                                                     std::complex<float> *data) {
