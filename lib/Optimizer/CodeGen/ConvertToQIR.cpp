@@ -858,7 +858,7 @@ public:
     // invokeU3RotationWithControlQubits function.
 
     Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
-        loc, LLVM::LLVMPointerType::get(instOpQISFunctionType), instSymbolRef);
+        loc, LLVM::LLVMPointerType::get(context), instSymbolRef);
 
     // Get symbol for void invokeU3RotationWithControlQubits(double theta,
     // double phi, double lambda, const std::size_t numControlOperands, i64*
@@ -870,8 +870,8 @@ public:
             cudaq::opt::NVQIRInvokeU3RotationWithControlBits,
             LLVM::LLVMVoidType::get(context),
             {paramType, paramType, paramType, i64Type,
-             LLVM::LLVMPointerType::get(i64Type),
-             LLVM::LLVMPointerType::get(instOpQISFunctionType)},
+             LLVM::LLVMPointerType::get(context),
+             LLVM::LLVMPointerType::get(context)},
             parentModule, true);
 
     // numControls could be more than num operands,
