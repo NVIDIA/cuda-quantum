@@ -22,9 +22,9 @@ class SimulationState;
 class TensorNetworkState {
 public:
   virtual ~TensorNetworkState() = default;
-
-  virtual std::unique_ptr<nvqir::TensorNetState> reconstructBackendState() = 0;
-  virtual std::unique_ptr<cudaq::SimulationState> toSimulationState() = 0;
+  virtual std::unique_ptr<nvqir::TensorNetState>
+  reconstructBackendState() const = 0;
+  virtual std::unique_ptr<cudaq::SimulationState> toSimulationState() const = 0;
 };
 
 /// @brief state_data is a variant type
