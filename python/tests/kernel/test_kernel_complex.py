@@ -211,6 +211,23 @@ def test_complex_use():
     t = np.sqrt(np.pi / 2 + 0j).imag
     assert is_close(t, complex_np_use_imag())
 
+    # Use a complex inside np in a kernel (exp)
+    @cudaq.kernel
+    def complex_np_use_real() -> float:
+        v = np.exp(np.pi / 2 + 0j)
+        return v.real
+
+    t = np.exp(np.pi / 2 + 0j).real
+    assert is_close(t, complex_np_use_real())
+
+    @cudaq.kernel
+    def complex_np_use_imag() -> float:
+        v = np.exp(np.pi / 2 + 0j)
+        return v.imag
+
+    t = np.exp(np.pi / 2 + 0j).imag
+    assert is_close(t, complex_np_use_imag())
+
 
 # np.complex128
 
@@ -373,6 +390,23 @@ def test_np_complex128_use():
     t = np.sqrt(np.complex128(np.pi / 2 + 1 + 1j)).imag
     assert is_close(t, complex_np_use_imag())
 
+    # Use a complex inside np in a kernel (exp)
+    @cudaq.kernel
+    def complex_np_use_real() -> float:
+        v = np.exp(np.complex128(np.pi / 2 + 1 + 1j))
+        return v.real
+
+    t = np.exp(np.complex128(np.pi / 2 + 1 + 1j)).real
+    assert is_close(t, complex_np_use_real())
+
+    @cudaq.kernel
+    def complex_np_use_imag() -> float:
+        v = np.exp(np.complex128(np.pi / 2 + 1 + 1j))
+        return v.imag
+
+    t = np.exp(np.complex128(np.pi / 2 + 1 + 1j)).imag
+    assert is_close(t, complex_np_use_imag())
+
 
 # Complex64
 
@@ -533,4 +567,21 @@ def test_np_complex64_use():
         return v.imag
 
     t = np.sqrt(np.complex64((np.pi / 2. + 1) + 1j)).imag
+    assert is_close(t, complex_np_use_imag())
+
+    # Use a complex inside np in a kernel (exp)
+    @cudaq.kernel
+    def complex_np_use_real() -> np.float32:
+        v = np.exp(np.complex64((np.pi / 2. + 1) + 1j))
+        return v.real
+
+    t = np.exp(np.complex64((np.pi / 2. + 1) + 1j)).real
+    assert is_close(t, complex_np_use_real())
+
+    @cudaq.kernel(verbose=True)
+    def complex_np_use_imag() -> np.float32:
+        v = np.exp(np.complex64((np.pi / 2. + 1) + 1j))
+        return v.imag
+
+    t = np.exp(np.complex64((np.pi / 2. + 1) + 1j)).imag
     assert is_close(t, complex_np_use_imag())

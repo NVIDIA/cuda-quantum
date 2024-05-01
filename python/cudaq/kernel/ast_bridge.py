@@ -1595,7 +1595,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
                 # Promote argument's types for `numpy.func` calls to match python's semantics
-                if node.func.attr in ['sin', 'cos', 'sqrt', 'ceil']:
+                if node.func.attr in ['sin', 'cos', 'sqrt', 'ceil', 'exp']:
                     if ComplexType.isinstance(value.type):
                         value = self.promoteOperandType(self.getComplexType(),
                                                         value)
@@ -1621,10 +1621,33 @@ class PyASTBridge(ast.NodeVisitor):
                         return
                     self.pushValue(math.SqrtOp(value).result)
                     return
+                if node.func.attr == 'exp':
+                    # Note: using `complex.ExpOp` results in a "can't
+                    # legalize `complex.exp`" error.
+                    # Using Euler's' formula instead:
+                    #
+                    # "e^(x+i*y) = (e^x) * (cos(y)+i*sin(y))"
+                    if ComplexType.isinstance(value.type):
+                        complexType = ComplexType(value.type)
+                        floatType = complexType.element_type
+                        real = complex.ReOp(value).result
+                        imag = complex.ImOp(value).result
+                        left = self.promoteOperandType(complexType,
+                                                       math.ExpOp(real).result)
+                        re2 = math.CosOp(imag).result
+                        im2 = math.SinOp(imag).result
+                        right = complex.CreateOp(ComplexType.get(floatType),
+                                                 re2, im2).result
+                        res = complex.MulOp(left, right).result
+                        self.pushValue(res)
+                        return
+                    self.pushValue(math.ExpOp(value).result)
+                    return
                 if node.func.attr == 'ceil':
                     if not ComplexType.isinstance(value.type):
                         self.pushValue(math.CeilOp(value).result)
                         return
+                    return
 
                 self.emitFatalError(
                     f"unsupported NumPy call ({node.func.attr})", node)
