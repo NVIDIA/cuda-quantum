@@ -223,6 +223,18 @@ protected:
     return;
   }
 
+  void addQubitsToState(const cudaq::SimulationState &in_state) override {
+    const QppState *const casted = dynamic_cast<const QppState *>(&in_state);
+    if (!casted)
+      throw std::invalid_argument(
+          "[QppCircuitSimulator] Incompatible state input");
+
+    if (state.size() == 0)
+      state = casted->state;
+    else
+      state = qpp::kron(casted->state, state);
+  }
+
   /// @brief Reset the qubit state.
   void deallocateStateImpl() override {
     StateType tmp;

@@ -291,6 +291,9 @@ public:
   /// @brief This state is GPU device data, always return true.
   bool isDeviceData() const override { return true; }
 
+  /// @brief Return the device pointer
+  const void *getDevicePointer() const { return devicePtr; }
+
   /// @brief Return the precision of the state data elements.
   precision getPrecision() const override {
     if constexpr (std::is_same_v<ScalarType, float>)

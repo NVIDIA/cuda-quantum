@@ -23,6 +23,8 @@ class state {
 private:
   /// @brief Reference to the simulation data
   std::shared_ptr<SimulationState> internal;
+  template <std::size_t Levels>
+  friend class qvector;
 
 public:
   /// @brief The constructor, takes the simulation data and owns it
@@ -49,6 +51,9 @@ public:
 
   /// @brief Return the number of tensors that represent this state.
   std::size_t get_num_tensors() const;
+
+  /// @brief Return the number of qubits.
+  std::size_t get_num_qubits() const;
 
   /// @brief Return the underlying floating point precision for this state.
   SimulationState::precision get_precision() const;

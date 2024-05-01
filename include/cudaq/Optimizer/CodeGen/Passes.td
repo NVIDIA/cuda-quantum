@@ -61,7 +61,8 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
                             "mlir::LLVM::LLVMFuncOp"> {
   let summary = "Analyze kernels and add attributes and record calls.";
   let description = [{
-    This is a (function) subpass of the pipeline to convert to specific QIR Profile.
+    This is a (function) subpass of the pipeline to convert to specific QIR
+    Profile.
 
     Each function with a body is analyzed for qubit allocations and qubit
     measurements. Attributes for the total count of qubits are added to the

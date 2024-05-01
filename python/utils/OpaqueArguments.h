@@ -199,6 +199,30 @@ packArgs(OpaqueArguments &argData, py::args args,
     py::object arg = args[i];
     auto kernelArgTy = kernelFuncOp.getArgument(i).getType();
     llvm::TypeSwitch<mlir::Type, void>(kernelArgTy)
+        .Case([&](mlir::ComplexType ty) {
+          if (!py::hasattr(arg, "real"))
+            throw std::runtime_error("invalid complex element type");
+          if (!py::hasattr(arg, "imag"))
+            throw std::runtime_error("invalid complex element type");
+
+          std::complex<double> *ourAllocatedArg = new std::complex<double>();
+          if (isa<Float64Type>(ty.getElementType())) {
+            *ourAllocatedArg =
+                std::complex<double>(PyFloat_AsDouble(arg.attr("real").ptr()),
+                                     PyFloat_AsDouble(arg.attr("imag").ptr()));
+
+            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+              delete static_cast<std::complex<double> *>(ptr);
+            });
+          } else {
+            *ourAllocatedArg = std::complex<float>(
+                arg.attr("real").cast<float>(), arg.attr("imag").cast<float>());
+
+            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+              delete static_cast<std::complex<float> *>(ptr);
+            });
+          }
+        })
         .Case([&](mlir::Float64Type ty) {
           if (!py::isinstance<py::float_>(arg))
             throw std::runtime_error("kernel argument type is `float` but "
@@ -209,6 +233,18 @@ packArgs(OpaqueArguments &argData, py::args args,
           *ourAllocatedArg = PyFloat_AsDouble(arg.ptr());
           argData.emplace_back(ourAllocatedArg, [](void *ptr) {
             delete static_cast<double *>(ptr);
+          });
+        })
+        .Case([&](mlir::Float32Type ty) {
+          if (!py::isinstance<py::float_>(arg))
+            throw std::runtime_error("kernel argument type is `float` but "
+                                     "argument provided is not (argument " +
+                                     std::to_string(i) + ", value=" +
+                                     py::str(arg).cast<std::string>() + ").");
+          float *ourAllocatedArg = new float();
+          *ourAllocatedArg = arg.cast<float>();
+          argData.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<float *>(ptr);
           });
         })
         .Case([&](mlir::IntegerType ty) {
@@ -312,6 +348,11 @@ packArgs(OpaqueArguments &argData, py::args args,
                     [](py::handle element) {
                       return PyFloat_AsDouble(element.ptr());
                     });
+                return;
+              })
+              .Case([&](Float32Type type) {
+                genericVecAllocator.template operator()<float>(
+                    [](py::handle element) { return element.cast<float>(); });
                 return;
               })
               .Case([&](cudaq::cc::CharspanType type) {
