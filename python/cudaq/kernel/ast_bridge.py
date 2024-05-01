@@ -1622,12 +1622,12 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(math.SqrtOp(value).result)
                     return
                 if node.func.attr == 'exp':
-                    # Note: using `complex.ExpOp` results in a "can't
-                    # legalize `complex.exp`" error.
-                    # Using Euler's' formula instead:
-                    #
-                    # "e^(x+i*y) = (e^x) * (cos(y)+i*sin(y))"
                     if ComplexType.isinstance(value.type):
+                        # Note: using `complex.ExpOp` results in a
+                        # "can't legalize `complex.exp`" error.
+                        # Using Euler's' formula instead:
+                        #
+                        # "e^(x+i*y) = (e^x) * (cos(y)+i*sin(y))"
                         complexType = ComplexType(value.type)
                         floatType = complexType.element_type
                         real = complex.ReOp(value).result
@@ -1644,9 +1644,12 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(math.ExpOp(value).result)
                     return
                 if node.func.attr == 'ceil':
-                    if not ComplexType.isinstance(value.type):
-                        self.pushValue(math.CeilOp(value).result)
+                    if ComplexType.isinstance(value.type):
+                        self.emitFatalError(
+                            f"numpy call ({node.func.attr}) is not supported for complex numbers",
+                            node)
                         return
+                    self.pushValue(math.CeilOp(value).result)
                     return
 
                 self.emitFatalError(
