@@ -220,6 +220,17 @@ protected:
     }
   }
 
+  void addQubitsToState(const cudaq::SimulationState &in_state) override {
+    const QppDmState *const casted =
+        dynamic_cast<const QppDmState *>(&in_state);
+    if (!casted)
+      throw std::invalid_argument(
+          "[QppNoiseCircuitSimulator] Incompatible state input");
+
+    state =
+        (state.size() == 0) ? casted->state : qpp::kron(casted->state, state);
+  }
+
   void setToZeroState() override {
     state = qpp::cmat::Zero(stateDimension, stateDimension);
     state(0, 0) = 1.0;

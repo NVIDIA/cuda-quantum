@@ -61,6 +61,11 @@ protected:
     throw std::runtime_error("initializeState not implemented.");
   }
 
+  virtual void initializeState(const std::vector<QuditInfo> &targets,
+                               const SimulationState *state) override {
+    throw std::runtime_error("initializeState not implemented.");
+  }
+
   /// @brief Qudit deallocation method
   void deallocateQudit(const cudaq::QuditInfo &q) override {}
 
