@@ -39,8 +39,8 @@
 
 using namespace llvm;
 
-constexpr static const char toolName[] = "cudaq-quake";
-constexpr static const char mangledKernelNameMapAttrName[] =
+static constexpr const char toolName[] = "cudaq-quake";
+static constexpr const char mangledKernelNameMapAttrName[] =
     "quake.mangled_name_map";
 
 //===----------------------------------------------------------------------===//
@@ -343,8 +343,8 @@ int main(int argc, char **argv) {
   });
 
   // Process arguments.
-  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-Wno-c++20-extensions",
-                                     "-resource-dir", resourceDirPath.string()};
+  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-resource-dir",
+                                     resourceDirPath.string()};
   if (verboseClang)
     clArgs.push_back("-v");
 

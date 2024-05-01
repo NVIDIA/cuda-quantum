@@ -31,6 +31,8 @@ constexpr static const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
 constexpr static const char NVQIRInvokeRotationWithControlBits[] =
     "invokeRotationWithControlQubits";
+constexpr static const char NVQIRInvokeU3RotationWithControlBits[] =
+    "invokeU3RotationWithControlQubits";
 constexpr static const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
 constexpr static const char NVQIRPackSingleQubitInArray[] =

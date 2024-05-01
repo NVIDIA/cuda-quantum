@@ -127,12 +127,13 @@ template <typename A, typename P = void>
 bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
              SmallVector<Value> &negations,
              llvm::function_ref<void()> reportNegateError,
-             bool isAdjoint = false, bool isControl = false) {
+             bool isAdjoint = false, bool isControl = false,
+             size_t paramCount = 1) {
   if constexpr (std::is_same_v<P, Param>) {
     assert(operands.size() >= 2 && "must be at least 2 operands");
-    auto params = operands.take_front();
-    auto [target, ctrls] =
-        maybeUnpackOperands(builder, loc, operands.drop_front(1), isControl);
+    auto params = operands.take_front(paramCount);
+    auto [target, ctrls] = maybeUnpackOperands(
+        builder, loc, operands.drop_front(paramCount), isControl);
     for (auto v : target)
       if (std::find(negations.begin(), negations.end(), v) != negations.end())
         reportNegateError();
@@ -1160,21 +1161,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     return pushValue(builder.create<math::PowFOp>(loc, base, power));
   }
 
-  if (isInClassInNamespace(func, "basic_string", "std")) {
-    if (funcName.equals("data") || funcName.equals("c_str")) {
-      FunctionType funcTy = cast<FunctionType>(popType());
-      return pushValue(builder.create<cc::StdvecDataOp>(
-          loc, funcTy.getResult(0), popValue()));
-    }
-    // fall through and use std::vector for other member functions.
-  }
-
   // Dealing with our std::vector as a view data structures. If we have some θ
   // with the type `std::vector<double/float/int>`, and in the kernel, θ.size()
   // is called, we need to convert that to loading the size field of the pair.
   // For θ.empty(), the size is loaded and compared to zero.
-  if (isInClassInNamespace(func, "vector", "std") ||
-      isInClassInNamespace(func, "basic_string", "std")) {
+  if (isInClassInNamespace(func, "vector", "std")) {
     // Get the size of the std::vector.
     auto svec = popValue();
     if (isa<cc::PointerType>(svec.getType()))
@@ -1523,6 +1514,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::SOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint,
                                  /*control=*/true);
+    if (funcName.equals("sdg"))
+      return buildOp<quake::SOp>(builder, loc, args, negations,
+                                 reportNegateError, /*adjoint=*/true,
+                                 isControl);
     if (funcName.equals("t"))
       return buildOp<quake::TOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint, isControl);
@@ -1530,6 +1525,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::TOp>(builder, loc, args, negations,
                                  reportNegateError, isAdjoint,
                                  /*control=*/true);
+    if (funcName.equals("tdg"))
+      return buildOp<quake::TOp>(builder, loc, args, negations,
+                                 reportNegateError, /*adjoint=*/true,
+                                 isControl);
 
     if (funcName.equals("reset")) {
       if (!negations.empty())
@@ -1555,18 +1554,39 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
+    if (funcName.equals("cr1"))
+      return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         /*control=*/true);
     if (funcName.equals("rx"))
       return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
+    if (funcName.equals("crx"))
+      return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         /*control=*/true);
     if (funcName.equals("ry"))
       return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
+    if (funcName.equals("cry"))
+      return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         /*control=*/true);
     if (funcName.equals("rz"))
       return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
                                          reportNegateError, isAdjoint,
                                          isControl);
+    if (funcName.equals("crz"))
+      return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         /*control=*/true);
+
+    if (funcName.equals("u3"))
+      return buildOp<quake::U3Op, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         isControl, /*paramCount=*/3);
 
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to
