@@ -64,7 +64,7 @@ int main() {
     counts.dump();
   }
   {
-    auto counts = cudaq::sample(run_grover{}, 3, 1, oracle_func);
+    auto counts = cudaq::sample(run_grover{}, 3, 1, *oracle_func);
     // CHECK NEXT: Callable entry-point kernel arguments are not supported for
     // CHECK NEXT: the remote simulator platform in library mode. Please
     // CHECK NEXT: rewrite the entry  point kernel or use MLIR mode.
