@@ -205,7 +205,7 @@ Use the following commands to enable distribution across multiple GPUs (adjust t
 .. note::
 
   If the `CUTENSORNET_COMM_LIB` environment variable is not set, MPI parallelization on the :code:`tensornet` backend may fail.
-  If you are using a CUDA Quantum container, this variable is pre-configured and no additional setup is needed. If you are customizing your installation or have built CUDA Quantum from source, please follow the instructions for `activating the distributed interface <https://docs.nvidia.com/cuda/cuquantum/latest/getting-started/index.html#from-nvidia-devzone>`__ for the `cuTensorNet` library. This requires
+  If you are using a CUDA Quantum container, this variable is pre-configured and no additional setup is needed. If you are customizing your installation or have built CUDA Quantum from source, please follow the instructions for `activating the distributed interface <https://docs.nvidia.com/cuda/cuquantum/latest/getting-started/index.html#from-nvidia-devzone>`__ for the `cuTensorNet` library. This requires 
   :ref:`installing CUDA development dependencies <additional-cuda-tools>`, and setting the `CUTENSORNET_COMM_LIB`
   environment variable to the newly built `libcutensornet_distributed_interface_mpi.so` library.
 
