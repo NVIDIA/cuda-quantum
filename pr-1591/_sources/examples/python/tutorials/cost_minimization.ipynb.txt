@@ -122,7 +122,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "# Define a CUDA Quantum optimizer.\n",
+    "# Define a CUDA-Q optimizer.\n",
     "optimizer = cudaq.optimizers.COBYLA()\n",
     "optimizer.initial_parameters = initial_parameters\n",
     "\n",

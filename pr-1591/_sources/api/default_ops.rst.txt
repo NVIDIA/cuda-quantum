@@ -1,7 +1,7 @@
 Quantum Operations
 ******************************
 
-CUDA Quantum provides a default set of quantum operations on qubits. 
+CUDA-Q provides a default set of quantum operations on qubits. 
 These operations can be used to define custom kernels and libraries.
 Since the set of quantum intrinsic operations natively supported on a specific target 
 depends on the backends architecture, the :code:`nvq++` compiler automatically
@@ -13,7 +13,7 @@ The sections `Unitary Operations on Qubits`_ and `Measurements on Qubits`_ list 
 Operations that implement unitary transformations of the quantum state are templated.
 The template argument allows to invoke the adjoint and controlled version of the quantum transformation, see the section on `Adjoint and Controlled Operations`_.
 
-CUDA Quantum additionally provides overloads to support broadcasting of
+CUDA-Q additionally provides overloads to support broadcasting of
 single-qubit operations across a vector of qubits.  For example,
 :code:`x(cudaq::qvector<>&)` flips the state of each qubit in the provided
 :code:`cudaq::qvector`. 
