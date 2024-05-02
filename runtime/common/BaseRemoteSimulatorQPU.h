@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
@@ -14,10 +15,7 @@
 #include "cudaq.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
-
 #include <fstream>
-
-using namespace mlir;
 
 namespace cudaq {
 
@@ -28,7 +26,7 @@ protected:
   std::string m_simName;
   std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
   std::mutex m_contextMutex;
-  std::unique_ptr<MLIRContext> m_mlirContext;
+  std::unique_ptr<mlir::MLIRContext> m_mlirContext;
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client;
 
 public:

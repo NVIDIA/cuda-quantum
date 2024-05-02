@@ -21,8 +21,6 @@
 
 namespace nvqir {
 
-using namespace std::complex_literals;
-
 template <typename Scalar = double>
 static constexpr std::complex<Scalar> im = std::complex<Scalar>(0, 1.);
 
