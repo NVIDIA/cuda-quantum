@@ -1,8 +1,8 @@
-# CUDA Quantum Documentation
+# CUDA-Q Documentation
 
-This folder contains tools and content to build the CUDA Quantum documentation.
+This folder contains tools and content to build the CUDA-Q documentation.
 The [script for building docs](../scripts/build_docs.sh) can be used to build
-the complete CUDA Quantum documentation. Please see the comment in that script
+the complete CUDA-Q documentation. Please see the comment in that script
 for more detail.
 
 We use [Sphinx](https://www.sphinx-doc.org/) to produce documentation in HTML
@@ -37,10 +37,10 @@ configured by the settings in the [sphinx/conf.py](./sphinx/conf.py) file.
 
 - **Python bindings**: <br/>
   We use [pybind11](https://github.com/pybind/pybind11) to define Python
-  bindings for the CUDA Quantum API. Doc comments are defined as part of
+  bindings for the CUDA-Q API. Doc comments are defined as part of
   defining these bindings in C++. To incorporate the API documentation, the
   `cudaq` Python package needs to be built and installed prior to generating the
-  CUDA Quantum documentation. The [build_docs.sh](../scripts/build_docs.sh)
+  CUDA-Q documentation. The [build_docs.sh](../scripts/build_docs.sh)
   script will automatically do that if necessary. This project generates
   ReStructuredText documentation from Python `docstrings` using `autodoc`.
   The generated `.rst` files are in `docs/source/apidoc`. The files are
@@ -51,7 +51,7 @@ configured by the settings in the [sphinx/conf.py](./sphinx/conf.py) file.
 The extensions we use to generate API docs are outlined and linked in the
 section above. The full list of built-in Sphinx tensions can be found
 [here](https://www.sphinx-doc.org/en/master/usage/extensions/index.html). The
-list of extensions that are enabled for building CUDA Quantum documentation is
+list of extensions that are enabled for building CUDA-Q documentation is
 defined by the value of the `extensions` configuration in
 [conf.py](./sphinx/conf.py).
 

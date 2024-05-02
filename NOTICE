@@ -1,4 +1,4 @@
-CUDA Quantum
+CUDA-Q
 
 This product includes software developed by NVIDIA corporation and affiliates and includes material from third parties. It includes work released under the following licenses:
 
@@ -8,7 +8,7 @@ LLVM - Apache License 2.0 with LLVM Exceptions
 <https://github.com/llvm/llvm-project> and <https://github.com/llvm/circt/>
 
 Originally developed by University of Illinois at Urbana Campaign.
-The incorporated source code and its license can be found as as submodule on the CUDA Quantum repository.
+The incorporated source code and its license can be found as as submodule on the CUDA-Q repository.
 License at <https://github.com/llvm/llvm-project/blob/main/LICENSE.TXT>
 
 ----------------------------------------------------------------
@@ -16,7 +16,7 @@ License at <https://github.com/llvm/llvm-project/blob/main/LICENSE.TXT>
 Eigen - various licenses, primarily MPL2 and BSD
 <https://gitlab.com/libeigen/eigen>
 
-The incorporated source code and its licenses can be found as a submodule on the CUDA Quantum repository.
+The incorporated source code and its licenses can be found as a submodule on the CUDA-Q repository.
 See also <https://gitlab.com/libeigen/eigen/-/blob/master/COPYING.README>.
 
 ----------------------------------------------------------------
@@ -32,7 +32,7 @@ License at <https://github.com/pybind/pybind11/blob/master/LICENSE>
 Ensmallen - 3-Clause BSD License
 <https://github.com/mlpack/ensmallen>
 
-The incorporated source code and its license can be found as a submodule on the CUDA Quantum repository.
+The incorporated source code and its license can be found as a submodule on the CUDA-Q repository.
 License at <https://github.com/mlpack/ensmallen/blob/master/LICENSE.txt>
 
 ----------------------------------------------------------------
@@ -40,7 +40,7 @@ License at <https://github.com/mlpack/ensmallen/blob/master/LICENSE.txt>
 Armadillo - Apache License 2.0
 <https://gitlab.com/conradsnicta/armadillo-code>
 
-The incorporated source code and its license can be found as as submodule on the CUDA Quantum repository.
+The incorporated source code and its license can be found as as submodule on the CUDA-Q repository.
 License at <https://gitlab.com/conradsnicta/armadillo-code/-/blob/12.0.x/LICENSE.txt>
 
 ----------------------------------------------------------------
@@ -65,7 +65,7 @@ License at <https://github.com/softwareQinc/qpp/blob/main/LICENSE>
 <https://github.com/fmtlib/fmt>
 
 Originally developed by Victor Zverovich and contributors.
-The incorporated source code and its license can be found as a submodule on the CUDA Quantum repository.
+The incorporated source code and its license can be found as a submodule on the CUDA-Q repository.
 License at <https://github.com/fmtlib/fmt/blob/master/LICENSE.rst>
 
 ----------------------------------------------------------------
@@ -74,7 +74,7 @@ SPDLog - MIT License
 <https://github.com/gabime/spdlog>
 
 Originally developed by Gabi Melman.
-The incorporated source code and its license can be found as a submodule on the CUDA Quantum repository.
+The incorporated source code and its license can be found as a submodule on the CUDA-Q repository.
 License at <https://github.com/gabime/spdlog/blob/v1.x/LICENSE>
 
 ----------------------------------------------------------------
@@ -83,7 +83,7 @@ NLopt - various licenses, primarily MIT
 <https://github.com/stevengj/nlopt>
 
 The source code includes a subset of the optimization libraries combined in NLopt.
-The relevant code included with CUDA Quantum is based on work that is licensed under MIT license. More information about the original authors and copyright holders can be found on the respository in the folder for the respective algorithm.
+The relevant code included with CUDA-Q is based on work that is licensed under MIT license. More information about the original authors and copyright holders can be found on the respository in the folder for the respective algorithm.
 See also <https://github.com/stevengj/nlopt/blob/master/COPYING>
 
 ----------------------------------------------------------------

@@ -110,7 +110,7 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
   }
 }
 
-/// @brief Construct a CUDA Quantum kernel that produces the
+/// @brief Construct a CUDA-Q kernel that produces the
 /// given state. This overload will return the `kernel_builder` as a
 /// `unique_ptr`.
 auto from_state(const std::span<std::complex<double>> data) {
