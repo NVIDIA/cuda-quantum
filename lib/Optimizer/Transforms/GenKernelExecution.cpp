@@ -348,7 +348,6 @@ public:
     // Initialize the counter for extra size.
     Value zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
     Value extraBytes = zero;
-    Value returnOffset = zero;
 
     // Process all the arguments for the original call by looping over the
     // kernel's arguments.
@@ -427,16 +426,6 @@ public:
       }
       if (isa<cudaq::cc::PointerType>(currEleTy))
         continue;
-      
-      // Compute return offset
-      if (idx == kernelArgTypes.size() - 1) {
-        // Compute the struct size
-        auto nullSt = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, zero);
-        auto computedOffset = builder.create<cudaq::cc::ComputePtrOp>(
-            loc, structPtrTy, nullSt, SmallVector<cudaq::cc::ComputePtrArg>{1});
-        Value returnOffset =
-            builder.create<cudaq::cc::CastOp>(loc, i64Ty, computedOffset);
-      }
 
       // cast to the struct element type, void* -> TYPE *
       argPtr = builder.create<cudaq::cc::CastOp>(
@@ -523,7 +512,6 @@ public:
       }
     }
     builder.create<cudaq::cc::StoreOp>(loc, buff, entry->getArgument(1));
-    builder.create<cudaq::cc::StoreOp>(loc, returnOffset, entry->getArgument(2));
     builder.create<func::ReturnOp>(loc, ValueRange{extendedStructSize});
     return argsCreatorFunc;
   }

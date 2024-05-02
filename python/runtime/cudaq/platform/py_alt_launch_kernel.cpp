@@ -172,7 +172,6 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
 
   void *rawArgs = nullptr;
   std::size_t size = 0;
-  std::size_t returnOffset = 0;
   if (runtimeArgs.size()) {
     auto expectedPtr = jit->lookup(name + ".argsCreator");
     if (!expectedPtr) {
@@ -183,6 +182,18 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
         reinterpret_cast<std::size_t (*)(void **, void **)>(*expectedPtr);
     rawArgs = nullptr;
     size = argsCreator(runtimeArgs.data(), &rawArgs);
+  }
+
+  std::size_t returnOffset = 0;
+  if (runtimeArgs.size()) {
+    auto expectedPtr = jit->lookup(name + ".returnOffset");
+    if (!expectedPtr) {
+      throw std::runtime_error(
+          "cudaq::builder failed to get returnOffset function.");
+    }
+    auto returnOffsetCreator =
+        reinterpret_cast<std::size_t (*)()>(*expectedPtr);
+    returnOffset = returnOffsetCreator();
   }
   return std::make_tuple(jit, rawArgs, size, returnOffset);
 }
@@ -250,7 +261,8 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   if (platform.is_remote() || platform.is_emulated()) {
     auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
     cudaq::altLaunchKernel(name.c_str(), thunk,
-                           reinterpret_cast<void *>(wrapper), size, returnOffset);
+                           reinterpret_cast<void *>(wrapper), size,
+                           returnOffset);
     delete wrapper;
   } else
     cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size, returnOffset);
@@ -262,7 +274,7 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
                        cudaq::OpaqueArguments &runtimeArgs,
                        const std::vector<std::string> &names) {
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
-  auto [rawArgs, size] =
+  auto [rawArgs, size, returnOffset] =
       pyAltLaunchKernelBase(name, module, noneType, runtimeArgs, names);
   std::free(rawArgs);
 }
@@ -271,34 +283,9 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
                               const std::vector<std::string> &names) {
-  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
-                                               runtimeArgs, names);
+  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
+      name, module, unwrap(returnType), runtimeArgs, names);
   auto unwrapped = unwrap(returnType);
-
-  // We first need to compute the offset for the return value.
-  // We'll loop through all the arguments and increment the
-  // offset for the argument type. Then we'll be at our return type location.
-  // auto returnOffset = [&]() {
-  //   std::size_t offset = 0;
-  //   auto kernelFunc = getKernelFuncOp(module, name);
-  //   for (auto argType : kernelFunc.getArgumentTypes())
-  //     llvm::TypeSwitch<mlir::Type, void>(argType)
-  //         .Case([&](IntegerType ty) {
-  //           if (ty.getIntOrFloatBitWidth() == 1) {
-  //             offset += 1;
-  //             return;
-  //           }
-
-  //           offset += 8;
-  //           return;
-  //         })
-  //         .Case([&](cc::StdvecType ty) { offset += 8; })
-  //         .Case([&](Float64Type ty) { offset += 8; })
-  //         .Case([&](Float32Type ty) { offset += 4; })
-  //         .Default([](Type) {});
-
-  //   return offset;
-  // }();
 
   // Extract the return value from the rawArgs pointer.
   return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
@@ -337,7 +324,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
@@ -370,7 +357,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIRLL", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
