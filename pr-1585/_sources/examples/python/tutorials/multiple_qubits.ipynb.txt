@@ -7,7 +7,7 @@
    "source": [
     "# Multiple Qubits\n",
     "\n",
-    "If we have 2 classical bits, the possible states we could encode information in would be 00, 01, 10 and 11. Correspondingly multiple qubits can be combined and the possible combinations of their states used to process information. \n",
+    "If we have 2 classical bits, the possible states we could encode information in would be 00, 01, 10 and 11. Correspondingly, multiple qubits can be combined and the possible combinations of their states used to process information. \n",
     "\n",
     "A two qubit system has 4 computational basis states: $\\ket{00}, \\ket{01}, \\ket{10}, \\ket{11}$. \n",
     "\n",
@@ -17,7 +17,7 @@
     "\n",
     "where the probability of measuring $x = 00, 01, 10, 11$ occurs with probability $\\lvert \\alpha_{x} \\rvert ^2$ with the normalization condition that $\\sum_{x \\in \\{ 0,1 \\}^2} \\lvert  \\alpha_{x} \\rvert ^2  = 1$\n",
     "\n",
-    "More generally, the quantum state of a $n$ qubit system is written as a sum of $2^n$ possiblle basis states where the coefficients track the probability of the system collapsing into that state if a measurment is applied. \n",
+    "More generally, the quantum state of a $n$ qubit system is written as a sum of $2^n$ possible basis states where the coefficients track the probability of the system collapsing into that state if a measurement is applied. \n",
     "\n",
     "For $n = 500$, $2^n \\approx 10^{150}$ which is greater than the number of atoms in the universe. Storing the complex numbers associated with $2^{500}$ amplitudes would not be feasible using bits and classical computations but nature seems to only require 500 qubits to do so. The art of quantum computation is thus to build quantum systems that we can manipulate with fine precision such that evolving a large statevector can be offloaded onto a quantum computer.\n",
     "\n"
@@ -34,7 +34,7 @@
     "\n",
     "\n",
     "\n",
-    "For brevity, we denote gate application with subscripts to reference the qubit it acts on. For e.g. $X_{0}\\ket{00} = \\ket{10}$ refers to $X_{0}$ acting on the 0<sup>th</sup> qubit flipping it to the state 1 as shown. Below we see how this is done in CUDA Quantum."
+    "For brevity, we denote gate application with subscripts to reference the qubit it acts on. For e.g. $X_{0}\\ket{00} = \\ket{10}$ refers to $X_{0}$ acting on the 0<sup>th</sup> qubit flipping it to the state 1 as shown. Below we see how this is done in CUDA-Q."
    ]
   },
   {

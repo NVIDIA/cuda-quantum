@@ -1,4 +1,4 @@
-CUDA Quantum C++ API
+CUDA-Q C++ API
 ******************************
 
 Operators 

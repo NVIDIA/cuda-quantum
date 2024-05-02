@@ -23,8 +23,8 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'NVIDIA CUDA Quantum'
-copyright = '2023, NVIDIA Corporation & Affiliates'
+project = 'NVIDIA CUDA-Q'
+copyright = '2024, NVIDIA Corporation & Affiliates'
 author = 'NVIDIA Corporation & Affiliates'
 
 # The version info for the project you're documenting, acts as replacement for
