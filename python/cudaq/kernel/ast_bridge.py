@@ -19,7 +19,7 @@ from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic
 
-# This file implements the CUDA Quantum Python AST to MLIR conversion.
+# This file implements the CUDA-Q Python AST to MLIR conversion.
 # It provides a `PyASTBridge` class that implements the `ast.NodeVisitor` type
 # to walk the Python AST for a `cudaq.kernel` annotated function and generate
 # valid MLIR code using `Quake`, `CC`, `Arith`, and `Math` dialects.
@@ -88,10 +88,10 @@ class PyASTBridge(ast.NodeVisitor):
     The `PyASTBridge` class implements the `ast.NodeVisitor` type to convert a 
     python function definition (annotated with cudaq.kernel) to an MLIR `ModuleOp`
     containing a `func.FuncOp` representative of the original python function but leveraging 
-    the Quake and CC dialects provided by CUDA Quantum. This class keeps track of a 
+    the Quake and CC dialects provided by CUDA-Q. This class keeps track of a 
     MLIR Value stack that is pushed to and popped from during visitation of the 
     function AST nodes. We leverage the auto-generated MLIR Python bindings for the internal 
-    C++ CUDA Quantum dialects to build up the MLIR code. 
+    C++ CUDA-Q dialects to build up the MLIR code. 
 
     For kernels that call other kernels, we require that the `ModuleOp` contain the 
     kernel being called. This is enabled via the `FindDepKernelsVisitor` in the local 
@@ -583,7 +583,7 @@ class PyASTBridge(ast.NodeVisitor):
                             isDecrementing = True
                     else:
                         self.emitFatalError(
-                            'CUDA Quantum requires step value on range() to be a constant.'
+                            'CUDA-Q requires step value on range() to be a constant.'
                         )
 
             # exclusive end
@@ -639,7 +639,7 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Create an MLIR `func.FuncOp` for the given FunctionDef AST node. For the top-level
         FunctionDef, this will add the `FuncOp` to the `ModuleOp` body, annotate the `FuncOp` with 
-        `cudaq-entrypoint` if it is an Entry Point CUDA Quantum kernel, and visit the rest of the 
+        `cudaq-entrypoint` if it is an Entry Point CUDA-Q kernel, and visit the rest of the 
         FunctionDef body. If this is an inner FunctionDef, this will treat the function as a CC 
         lambda function and add the cc.callable-typed value to the symbol table, keyed on the 
         FunctionDef name. 
@@ -776,7 +776,7 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Lambda(self, node):
         """
-        Map a lambda expression in a CUDA Quantum kernel to a CC Lambda (a Value of `cc.callable` type 
+        Map a lambda expression in a CUDA-Q kernel to a CC Lambda (a Value of `cc.callable` type 
         using the `cc.create_lambda` operation). Note that we extend Python with a novel 
         syntax to specify a list of independent statements (Python lambdas must have a single statement) by 
         allowing programmers to return a Tuple where each element is an independent statement. 
@@ -797,8 +797,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         arguments = node.args.args
         if len(arguments):
-            self.emitFatalError("CUDA Quantum lambdas cannot have arguments.",
-                                node)
+            self.emitFatalError("CUDA-Q lambdas cannot have arguments.", node)
 
         ty = cc.CallableType.get(self.ctx, [])
         createLambda = cc.CreateLambdaOp(ty)
@@ -833,10 +832,10 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.currentNode = node
 
-        # CUDA Quantum does not yet support dynamic memory allocation
+        # CUDA-Q does not yet support dynamic memory allocation
         if isinstance(node.value, ast.List) and len(node.value.elts) == 0:
             self.emitFatalError(
-                "CUDA Quantum does not support allocating lists of zero size (no dynamic memory allocation)",
+                "CUDA-Q does not support allocating lists of zero size (no dynamic memory allocation)",
                 node)
 
         # Retain the variable name for potential children (like `mz(q, registerName=...)`)
@@ -860,7 +859,7 @@ class PyASTBridge(ast.NodeVisitor):
                 ptrVal = self.popValue()
                 if not cc.PointerType.isinstance(ptrVal.type):
                     self.emitFatalError(
-                        "Invalid CUDA Quantum subscript assignment, variable must be a pointer.",
+                        "Invalid CUDA-Q subscript assignment, variable must be a pointer.",
                         node)
                 # See if this is a pointer to an array, if so cast it
                 # to a pointer on the array type
@@ -909,7 +908,7 @@ class PyASTBridge(ast.NodeVisitor):
             elif varNames[i] in self.symbolTable:
                 if varNames[i] in self.capturedVars:
                     self.emitFatalError(
-                        f"CUDA Quantum does not allow assignment to variables captured from parent scope.",
+                        f"CUDA-Q does not allow assignment to variables captured from parent scope.",
                         node)
 
                 cc.StoreOp(value, self.symbolTable[varNames[i]])
@@ -943,8 +942,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if cc.StdvecType.isinstance(type) or cc.ArrayType.isinstance(
                         type):
                     self.emitFatalError(
-                        "CUDA Quantum does not allow dynamic list resizing.",
-                        node)
+                        "CUDA-Q does not allow dynamic list resizing.", node)
 
             if node.attr == 'size' and quake.VeqType.isinstance(value.type):
                 self.pushValue(
@@ -977,7 +975,7 @@ class PyASTBridge(ast.NodeVisitor):
         value is added to the value stack. Measurements of single qubit reference and registers of 
         qubits are supported. 
 
-        General calls to previously seen CUDA Quantum kernels are supported. By this we mean that 
+        General calls to previously seen CUDA-Q kernels are supported. By this we mean that 
         an kernel can not be invoked from a kernel unless it was defined before the current kernel.
         Kernels can also be reversed or controlled with `cudaq.adjoint(kernel, ...)` and `cudaq.control(kernel, ...)`.
 
@@ -1363,6 +1361,22 @@ class PyASTBridge(ast.NodeVisitor):
                 self.checkControlAndTargetTypes([], [qubitA, qubitB])
                 opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
                 opCtor([], [], [], [qubitA, qubitB])
+                return
+
+            if node.func.id == 'u3':
+                # Single target, three parameters `u3(θ,φ,λ)`
+                all_args = [
+                    self.popValue() for _ in range(len(self.valueStack))
+                ]
+                qubitTargets = all_args[:-3]
+                qubitTargets.reverse()
+                params = all_args[-3:]
+                params.reverse()
+                for idx, val in enumerate(params):
+                    if IntegerType.isinstance(val.type):
+                        params[idx] = arith.SIToFPOp(self.getFloatType(),
+                                                     val).result
+                self.__applyQuantumOperation(node.func.id, params, qubitTargets)
                 return
 
             if node.func.id in globalKernelRegistry:
@@ -1809,6 +1823,69 @@ class PyASTBridge(ast.NodeVisitor):
                     f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                 )
 
+            if node.func.value.id == 'u3':
+                numValues = len(self.valueStack)
+                target = self.popValue()
+                other_args = [self.popValue() for _ in range(numValues - 1)]
+
+                opCtor = getattr(quake,
+                                 '{}Op'.format(node.func.value.id.title()))
+
+                if node.func.attr == 'ctrl':
+                    controls = other_args[:-3]
+                    params = other_args[-3:]
+                    params.reverse()
+                    for idx, val in enumerate(params):
+                        if IntegerType.isinstance(val.type):
+                            params[idx] = arith.SIToFPOp(
+                                self.getFloatType(), val).result
+
+                    negatedControlQubits = None
+                    if len(self.controlNegations):
+                        negCtrlBools = [None] * len(controls)
+                        for i, c in enumerate(controls):
+                            negCtrlBools[i] = c in self.controlNegations
+                        negatedControlQubits = DenseBoolArrayAttr.get(
+                            negCtrlBools)
+                        self.controlNegations.clear()
+
+                    self.checkControlAndTargetTypes(controls, [target])
+                    opCtor([],
+                           params,
+                           controls, [target],
+                           negated_qubit_controls=negatedControlQubits)
+                    return
+
+                if node.func.attr == 'adj':
+                    params = other_args
+                    params.reverse()
+                    for idx, val in enumerate(params):
+                        if IntegerType.isinstance(val.type):
+                            params[idx] = arith.SIToFPOp(
+                                self.getFloatType(), val).result
+
+                    self.checkControlAndTargetTypes([], [target])
+                    if quake.VeqType.isinstance(target.type):
+
+                        def bodyBuilder(iterVal):
+                            q = quake.ExtractRefOp(self.getRefType(),
+                                                   target,
+                                                   -1,
+                                                   index=iterVal).result
+                            opCtor([], params, [], [q], is_adj=True)
+
+                        veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                  target).result
+                        self.createInvariantForLoop(veqSize, bodyBuilder)
+                        return
+                    elif quake.RefType.isinstance(target.type):
+                        opCtor([], params, [], [target], is_adj=True)
+                        return
+                    else:
+                        self.emitFatalError(
+                            'adj quantum operation on incorrect type {}.'.
+                            format(target.type), node)
+
             self.emitFatalError(
                 f"Invalid function call - '{node.func.value.id}' is unknown.")
 
@@ -1823,7 +1900,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         if len(node.generators) > 1:
             self.emitFatalError(
-                "CUDA Quantum only supports single generators for list comprehension.",
+                "CUDA-Q only supports single generators for list comprehension.",
                 node)
 
         if not isinstance(node.generators[0].target, ast.Name):
@@ -1860,7 +1937,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         if len(self.valueStack) != 2:
             self.emitFatalError(
-                "Invalid CUDA Quantum list creation via list comprehension - valid iterable not detected.",
+                "Invalid CUDA-Q list creation via list comprehension - valid iterable not detected.",
                 node)
 
         iterableSize = self.popValue()
@@ -1869,13 +1946,13 @@ class PyASTBridge(ast.NodeVisitor):
         # FIXME revisit this
         if not cc.PointerType.isinstance(iterable.type):
             self.emitFatalError(
-                "CUDA Quantum only considers general list comprehension on iterables from range(...)",
+                "CUDA-Q only considers general list comprehension on iterables from range(...)",
                 node)
 
         arrayTy = cc.PointerType.getElementType(iterable.type)
         if not cc.ArrayType.isinstance(arrayTy):
             self.emitFatalError(
-                "CUDA Quantum only considers general list comprehension on iterables from range(...)",
+                "CUDA-Q only considers general list comprehension on iterables from range(...)",
                 node)
 
         arrayEleTy = cc.ArrayType.getElementType(arrayTy)
@@ -2956,7 +3033,7 @@ class PyASTBridge(ast.NodeVisitor):
 
 def compile_to_mlir(astModule, metadata, **kwargs):
     """
-    Compile the given Python AST Module for the CUDA Quantum 
+    Compile the given Python AST Module for the CUDA-Q 
     kernel FunctionDef to an MLIR `ModuleOp`. 
     Return both the `ModuleOp` and the list of function 
     argument types as MLIR Types. 

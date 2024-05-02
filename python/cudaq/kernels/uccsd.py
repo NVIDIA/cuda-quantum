@@ -566,7 +566,7 @@ def uccsd_even_electrons(qubits: cudaq.qview, thetas: List[float],
 def uccsd(qubits: cudaq.qview, thetas: List[float], n_electrons: int,
           n_qubits: int):
     """
-    Generate the unitary coupled cluster singlet doublet CUDA Quantum kernel.
+    Generate the unitary coupled cluster singlet doublet CUDA-Q kernel.
 
     Args:
         qubits (:class:`qview`): Pre-allocated qubits

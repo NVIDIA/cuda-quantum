@@ -21,7 +21,7 @@
 // but with the use of dynamic kernels. Here we have QAOA with `p` layers,
 // with each layer containing the alternating set of unitaries corresponding
 // to the problem and the mixer Hamiltonians. The algorithm leverages the
-// CUDA Quantum VQE support to compute the Max-Cut of a rectangular graph
+// CUDA-Q VQE support to compute the Max-Cut of a rectangular graph
 // illustrated below.
 //
 //        v0  0---------------------0 v1

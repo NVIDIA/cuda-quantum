@@ -7,12 +7,12 @@
  ******************************************************************************/
 
 /*! \file mpi_comm_impl.cpp
-    \brief Reference implementation of CUDAQ MPI interface wrapper
+    \brief Reference implementation of CUDA-Q MPI interface wrapper
 
     This is an implementation of the MPI shim interface defined in
    distributed_capi.h. This can be compiled and linked against an MPI
    implementation (e.g., OpenMPI or MPICH) to produce a runtime loadable plugin
-   providing CUDA Quantum with necessary MPI functionalities.
+   providing CUDA-Q with necessary MPI functionalities.
 */
 
 #include "distributed_capi.h"

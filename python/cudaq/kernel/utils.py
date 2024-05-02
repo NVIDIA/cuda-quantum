@@ -280,7 +280,7 @@ def mlirTypeToPyType(argType):
             return getListType(complex)
 
     emitFatalError(
-        f"Cannot infer CUDA Quantum type from provided Python type ({argType})")
+        f"Cannot infer CUDA-Q type from provided Python type ({argType})")
 
 
 def emitErrorIfInvalidPauli(pauliArg):

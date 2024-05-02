@@ -1,11 +1,11 @@
 Introduction
 --------------------------------
 
-Welcome to CUDA Quantum! On this page we will illustrate CUDA Quantum with several examples. 
+Welcome to CUDA-Q! On this page we will illustrate CUDA-Q with several examples. 
 
 .. tab:: Python
 
-   We're going to take a look at how to construct quantum programs through CUDA Quantum's `Kernel` API.
+   We're going to take a look at how to construct quantum programs through CUDA-Q's `Kernel` API.
 
    When you create a `Kernel` and invoke its methods, a quantum program is constructed that can then be executed by calling, for example, `cudaq::sample`. Let's take a closer look!
 
@@ -14,10 +14,10 @@ Welcome to CUDA Quantum! On this page we will illustrate CUDA Quantum with sever
 
 .. tab:: C++
 
-   We're going to take a look at how to construct quantum programs using CUDA Quantum kernels.
+   We're going to take a look at how to construct quantum programs using CUDA-Q kernels.
 
-   CUDA Quantum kernels are any typed callable in the language that is annotated with the :code:`__qpu__` attribute. Let's take a look at a very 
-   simple "Hello World" example, specifically a CUDA Quantum kernel that prepares a GHZ state on a programmer-specified number of qubits. 
+   CUDA-Q kernels are any typed callable in the language that is annotated with the :code:`__qpu__` attribute. Let's take a look at a very 
+   simple "Hello World" example, specifically a CUDA-Q kernel that prepares a GHZ state on a programmer-specified number of qubits. 
 
    .. literalinclude:: ../../examples/cpp/basics/static_kernel.cpp
       :language: cpp
@@ -29,7 +29,7 @@ Welcome to CUDA Quantum! On this page we will illustrate CUDA Quantum with sever
    operations, like the :code:`x<cudaq::ctrl>(q[0],q[1])` operation which implements a controlled-X gate. We 
    can measure single qubits or entire registers. 
 
-   In this example we are interested in sampling the final state produced by this CUDA Quantum kernel. 
+   In this example we are interested in sampling the final state produced by this CUDA-Q kernel. 
    To do so, we leverage the generic :code:`cudaq::sample` function, which returns a data type 
    encoding the qubit measurement strings and the corresponding number of times that string 
    was observed (here the default number of shots is used, :code:`1000`).

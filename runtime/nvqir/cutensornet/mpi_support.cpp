@@ -80,11 +80,11 @@ void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
                              "initializing cutensornet MPI");
 
   // If CUTENSORNET_COMM_LIB environment variable is not set,
-  // use this builtin plugin shim (redirect MPI calls to CUDAQ plugin)
+  // use this builtin plugin shim (redirect MPI calls to CUDA-Q plugin)
   if (std::getenv("CUTENSORNET_COMM_LIB") == nullptr) {
     cudaq::info("Enabling cuTensorNet MPI without environment variable "
                 "CUTENSORNET_COMM_LIB. \nUse the builtin cuTensorNet "
-                "communicator lib from '{}' - cuda quantum MPI plugin {}.",
+                "communicator lib from '{}' - CUDA-Q MPI plugin {}.",
                 getThisSharedLibFilePath(), getMpiPluginFilePath());
     setenv("CUTENSORNET_COMM_LIB", getThisSharedLibFilePath(), 0);
   }
@@ -109,9 +109,9 @@ void resetCuTensornetComm(cutensornetHandle_t cutnHandle) {
 }
 
 // Implementing cutensornet's COMM interface by delegating wrapped MPI calls to
-// the underlying CUDA Quantum MPI plugin. This will make this library
+// the underlying CUDA-Q MPI plugin. This will make this library
 // compatible with CUTENSORNET_COMM_LIB API. Converts CUDA data type to the
-// corresponding CUDAQ shim type enum
+// corresponding CUDA-Q shim type enum
 
 /// Convert cutensornet CUDA datatype enum
 static DataType convertCudaToMpiDataType(const cudaDataType_t cudaDataType) {

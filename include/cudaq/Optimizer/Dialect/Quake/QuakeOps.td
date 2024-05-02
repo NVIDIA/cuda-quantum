@@ -10,7 +10,7 @@
 #define CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS
 
 //===----------------------------------------------------------------------===//
-// High-level CUDA Quantum support
+// High-level CUDA-Q support
 //===----------------------------------------------------------------------===//
 
 include "mlir/Interfaces/CallInterfaces.td"
@@ -121,7 +121,7 @@ def quake_ConcatOp : QuakeOp<"concat", [Pure]> {
 def quake_ComputeActionOp : QuakeOp<"compute_action"> {
   let summary = "Captures the compute/action/uncompute high-level idiom.";
   let description = [{
-    CUDA Quantum supports the high-level compute, action, uncompute idiom by
+    CUDA-Q supports the high-level compute, action, uncompute idiom by
     providing a custom template function (class) that takes pure kernels (a
     callable like a λ) as arguments. This operation captures uses of the idiom
     and can be systematically expanded into a quantum circuit via successive

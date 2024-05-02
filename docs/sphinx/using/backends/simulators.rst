@@ -1,9 +1,9 @@
-CUDA Quantum Simulation Backends
+CUDA-Q Simulation Backends
 *********************************
 
 .. _nvidia-backend:
 
-The simulation backends that are currently available in CUDA Quantum are as follows.
+The simulation backends that are currently available in CUDA-Q are as follows.
 
 State Vector Simulators
 ==================================
@@ -68,7 +68,7 @@ To execute a program on the :code:`nvidia-mgpu` target, use the following comman
 
     .. note::
 
-      If you installed CUDA Quantum via :code:`pip`, you will need to install the necessary MPI dependencies separately;
+      If you installed CUDA-Q via :code:`pip`, you will need to install the necessary MPI dependencies separately;
       please follow the instructions for installing dependencies in the `Project Description <https://pypi.org/project/cuda-quantum/#description>`__.
 
     In addition to using MPI in the simulator, you can use it in your application code by installing `mpi4py <https://mpi4py.readthedocs.io/>`__, and 
@@ -163,7 +163,7 @@ Tensor Network Simulators
 
 .. _tensor-backends:
 
-CUDA Quantum provides a couple of tensor-network simulator targets accelerated with 
+CUDA-Q provides a couple of tensor-network simulator targets accelerated with 
 the :code:`cuTensorNet` library. 
 These backends are available for use from both C++ and Python.
 
@@ -203,7 +203,7 @@ If you have *multiple GPUs* available on your system, you can use MPI to automat
 
 .. note::
 
-  If you installed the CUDA Quantum Python wheels, distribution across multiple GPUs is currently not supported for this backend.
+  If you installed the CUDA-Q Python wheels, distribution across multiple GPUs is currently not supported for this backend.
   We will add support for it in future releases. For more information, see this `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/920>`__.
 
 Use the following commands to enable distribution across multiple GPUs (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
@@ -231,7 +231,7 @@ Use the following commands to enable distribution across multiple GPUs (adjust t
 .. note::
 
   If the `CUTENSORNET_COMM_LIB` environment variable is not set, MPI parallelization on the :code:`tensornet` backend may fail.
-  If you are using a CUDA Quantum container, this variable is pre-configured and no additional setup is needed. If you are customizing your installation or have built CUDA Quantum from source, please follow the instructions for `activating the distributed interface <https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/getting_started.html#install-cutensornet-from-nvidia-devzone>`__ for the `cuTensorNet` library. This requires 
+  If you are using a CUDA-Q container, this variable is pre-configured and no additional setup is needed. If you are customizing your installation or have built CUDA-Q from source, please follow the instructions for `activating the distributed interface <https://docs.nvidia.com/cuda/cuquantum/latest/getting-started/index.html#from-nvidia-devzone>`__ for the `cuTensorNet` library. This requires 
   :ref:`installing CUDA development dependencies <additional-cuda-tools>`, and setting the `CUTENSORNET_COMM_LIB`
   environment variable to the newly built `libcutensornet_distributed_interface_mpi.so` library.
 
@@ -307,7 +307,7 @@ Default Simulator
 
 .. _default-simulator:
 
-If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA Quantum makes a default choice for the simulator.
+If no explicit target is set, i.e. if the code is compiled without any :code:`--target` flags, then CUDA-Q makes a default choice for the simulator.
 
 If an NVIDIA GPU and CUDA runtime libraries are available, the default target is set to `nvidia`. This will utilize the :ref:`cuQuantum single-GPU state vector simulator <cuQuantum single-GPU>`.  
 On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:`OpenMP CPU-only simulator <OpenMP CPU-only>`.
@@ -315,7 +315,7 @@ On CPU-only systems, the default target is set to `qpp-cpu` which uses the :ref:
 The default simulator can be overridden by the environment variable `CUDAQ_DEFAULT_SIMULATOR`. If no target is explicitly specified and the environment variable has a valid value, then it will take effect.
 This environment variable can be set to any non-hardware backend. Any invalid value is ignored.
 
-For CUDA Quantum Python API, the environment variable at the time when `cudaq` module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.
+For CUDA-Q Python API, the environment variable at the time when `cudaq` module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.
 
 For example,
 

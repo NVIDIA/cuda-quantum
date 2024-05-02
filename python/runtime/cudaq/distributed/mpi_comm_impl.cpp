@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 /*! \file mpi_comm_impl.cpp
-    \brief Implementation of CUDAQ MPI interface wrapper based on mpi4py
+    \brief Implementation of CUDA-Q MPI interface wrapper based on mpi4py
 
-    If a natively-built MPI wrapper plugin is not available, CUDA Quantum also
+    If a natively-built MPI wrapper plugin is not available, CUDA-Q also
    provides a plugin implementation based on Python's mpi4py lib via embedded
-   interpreter. Rationale: this plugin targets CUDA Quantum wheel distribution:
+   interpreter. Rationale: this plugin targets CUDA-Q wheel distribution:
    we ship pre-built wheel binary and leverage mpi4py build-from-source
    distribution mechanism to get MPI support for Python users.
 */
@@ -129,8 +129,8 @@ py::object unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
     return mpi_obj;
   } catch (std::exception &e) {
     std::cerr << "[mpi4py] Caught exception \"" << e.what() << "\"\n";
-    throw std::runtime_error(
-        "Invalid distributed communicator encountered in CUDAQ mpi4py plugin.");
+    throw std::runtime_error("Invalid distributed communicator encountered in "
+                             "CUDA-Q mpi4py plugin.");
   }
 }
 
