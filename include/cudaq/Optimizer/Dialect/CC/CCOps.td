@@ -14,14 +14,14 @@ include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
 
-def AnyPointerType : Type<CPred<"$_self.isa<mlir::LLVM::LLVMPointerType,"
-                          "cudaq::cc::PointerType>()">, "any pointer type">;
+def AnyPointerType : Type<CPred<"isa<mlir::LLVM::LLVMPointerType,"
+                     "cudaq::cc::PointerType>($_self)">, "any pointer type">;
 
-def AnyCallableType : Type<CPred<"$_self.isa<cudaq::cc::CallableType, "
-                          "mlir::FunctionType>()">, "any callable type">;
+def AnyCallableType : Type<CPred<"isa<cudaq::cc::CallableType, "
+                      "mlir::FunctionType>($_self)">, "any callable type">;
 
-def AnyAggregateType : Type<CPred<"$_self.isa<cudaq::cc::StructType, "
-                            "cudaq::cc::ArrayType>()">, "any aggregate type">;
+def AnyAggregateType : Type<CPred<"isa<cudaq::cc::StructType, "
+                       "cudaq::cc::ArrayType>($_self)">, "any aggregate type">;
 
 //===----------------------------------------------------------------------===//
 // Base operation definition.
@@ -722,7 +722,7 @@ def cc_AllocaOp : CCOp<"alloca", [
 def cc_LoadOp : CCOp<"load",
     [TypesMatchWith<"result type matches element type of pointer value",
         "ptrvalue", "result",
-        "$_self.cast<cudaq::cc::PointerType>().getElementType()">]> {
+        "cast<cudaq::cc::PointerType>($_self).getElementType()">]> {
   let summary = "Load a value from a pointer into a virtual register.";
   let description = [{
     A LoadOp is used to load a value from a memory location, specified by a
@@ -747,7 +747,7 @@ def cc_LoadOp : CCOp<"load",
 def cc_StoreOp : CCOp<"store",
     [TypesMatchWith<"type of value matches element type of pointer",
         "ptrvalue", "value",
-        "$_self.cast<cudaq::cc::PointerType>().getElementType()">]> {
+        "cast<cudaq::cc::PointerType>($_self).getElementType()">]> {
   let summary = "Store a virtual register value to a memory location.";
   let description = [{
     A StoreOp is used to store the value from a virtual register to a memory

@@ -97,13 +97,13 @@ public:
     // be compile time known and encoded in the veq return type.
     Value sizeOperand;
     if (adaptor.getOperands().empty()) {
-      auto type = alloca.getResult().getType().cast<quake::VeqType>();
+      auto type = cast<quake::VeqType>(alloca.getResult().getType());
       auto constantSize = type.getSize();
       sizeOperand =
           rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
     } else {
       sizeOperand = adaptor.getOperands().front();
-      if (sizeOperand.getType().cast<IntegerType>().getWidth() < 64) {
+      if (cast<IntegerType>(sizeOperand.getType()).getWidth() < 64) {
         sizeOperand = rewriter.create<LLVM::ZExtOp>(loc, rewriter.getI64Type(),
                                                     sizeOperand);
       }
@@ -132,7 +132,7 @@ public:
     // Could be a dealloc on a ref or a veq
     StringRef qirQuantumDeallocateFunc;
     Type operandType, qType = dealloc.getOperand().getType();
-    if (qType.isa<quake::VeqType>()) {
+    if (isa<quake::VeqType>(qType)) {
       qirQuantumDeallocateFunc = cudaq::opt::QIRArrayQubitReleaseArray;
       operandType = cudaq::opt::getArrayType(context);
     } else {
@@ -256,7 +256,7 @@ public:
       idx_operand = adaptor.getOperands()[1];
 
       if (idx_operand.getType().isIntOrFloat() &&
-          idx_operand.getType().cast<IntegerType>().getWidth() < 64)
+          cast<IntegerType>(idx_operand.getType()).getWidth() < 64)
         idx_operand = rewriter.create<LLVM::ZExtOp>(loc, i64Ty, idx_operand);
     }
 
@@ -290,8 +290,8 @@ public:
     Value lowArg = adaptor.getOperands()[1];
     Value highArg = adaptor.getOperands()[2];
     auto extend = [&](Value &v) -> Value {
-      if (v.getType().isa<IntegerType>() &&
-          v.getType().cast<IntegerType>().getWidth() < 64)
+      if (isa<IntegerType>(v.getType()) &&
+          cast<IntegerType>(v.getType()).getWidth() < 64)
         return rewriter.create<LLVM::ZExtOp>(loc, i64Ty, v);
       return v;
     };
@@ -650,7 +650,7 @@ public:
     auto control = *instOp.getControls().begin();
     Type type = control.getType();
     // If type is a VeqType, then we're good, just forward to the call op
-    if (numControls == 1 && type.isa<quake::VeqType>()) {
+    if (numControls == 1 && isa<quake::VeqType>(type)) {
 
       // Add the control array to the args.
       funcArgs.push_back(adaptor.getControls().front());
@@ -836,7 +836,7 @@ public:
     auto control = *instOp.getControls().begin();
     Type type = control.getType();
     // If type is a VeqType, then we're good, just forward to the call op
-    if (numControls == 1 && type.isa<quake::VeqType>()) {
+    if (numControls == 1 && isa<quake::VeqType>(type)) {
 
       // Add the control array to the args.
       funcArgs.push_back(adaptor.getControls().front());
@@ -962,7 +962,7 @@ public:
 
     bool appendName;
     auto ptrTy = LLVM::LLVMPointerType::get(context);
-    if (regName && !regName.cast<StringAttr>().getValue().empty()) {
+    if (regName && !cast<StringAttr>(regName).getValue().empty()) {
       // Change the function name
       qFunctionName += "__to__register";
       // Append a string type argument
@@ -985,7 +985,7 @@ public:
       appendName = false;
     }
     // Get the name
-    auto regNameAttr = regName.cast<StringAttr>();
+    auto regNameAttr = cast<StringAttr>(regName);
     auto regNameStr = regNameAttr.getValue().str();
     std::string regNameGlobalStr = regNameStr;
 
@@ -1436,7 +1436,7 @@ public:
           cast<LLVM::LLVMFuncOp>(calledFuncOp).getFunctionType());
     }();
     auto tramp = rewriter.create<LLVM::AddressOfOp>(
-        loc, sigTy, callable.getCallee().cast<FlatSymbolRefAttr>());
+        loc, sigTy, cast<FlatSymbolRefAttr>(callable.getCallee()));
     auto trampoline =
         rewriter.create<LLVM::BitcastOp>(loc, tupleArgTy.getBody()[0], tramp);
     auto zeroA = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
