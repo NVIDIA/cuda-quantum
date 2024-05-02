@@ -9,7 +9,7 @@
 # ============================================================================ #
 
 # This is a skeleton driver script to compile C++ source that contains
-# CUDA Quantum code.
+# CUDA-Q code.
 
 function error_exit {
 	callerName=$(basename "$(caller 0)")
@@ -111,7 +111,7 @@ function show_help {
 	Enable debugging output.
 
 --enable-mlir
-	Enable and generate MLIR code for CUDA Quantum kernels.
+	Enable and generate MLIR code for CUDA-Q kernels.
 
 --clang-verbose | -clang-verbose
 	Enable the verbose option (-v) to the C++ compiler.
@@ -210,7 +210,7 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 		CUDAQ_INCLUDE_PATH="@CMAKE_SOURCE_DIR@/runtime"
 		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
 	else
-		error_exit "Invalid CUDA Quantum install configuration."
+		error_exit "Invalid CUDA-Q install configuration."
 	fi
 fi
 
@@ -704,7 +704,7 @@ for i in ${SRCS}; do
 		continue
 	fi
 
-	# If we make it here, we have CUDA Quantum kernels, need
+	# If we make it here, we have CUDA-Q kernels, need
 	# to map to MLIR and output an LLVM file for the classical code
 	run ${TOOLBIN}cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file $i -o ${file}.qke
 	TMPFILES="${TMPFILES} ${file}.ll ${file}.qke"

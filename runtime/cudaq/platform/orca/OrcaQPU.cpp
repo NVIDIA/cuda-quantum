@@ -34,7 +34,7 @@
 namespace {
 
 /// @brief The OrcaRemoteRESTQPU is a subtype of QPU that enables the
-/// execution of CUDA Quantum kernels on remotely hosted quantum computing
+/// execution of CUDA-Q kernels on remotely hosted quantum computing
 /// services via a REST Client / Server interaction. This type is meant
 /// to be general enough to support any remotely hosted service.
 /// Moreover, this QPU handles launching kernels under the Execution Context

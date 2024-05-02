@@ -1647,7 +1647,7 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// Converts returning a Result* to returning a bit. QIR expects
-/// __quantum__qis__mz(Qubit*) to return a Result*, and CUDA Quantum expects
+/// __quantum__qis__mz(Qubit*) to return a Result*, and CUDA-Q expects
 /// mz to return a bool. In the library we let Result = bool, so Result* is
 /// a bool*. Here we bitcast the Result* to a bool* and then load it and
 /// replace its use with that loaded bool.

@@ -8,9 +8,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This script will build and activate a **custom** CUDA Quantum MPI interface.
+# This script will build and activate a **custom** CUDA-Q MPI interface.
 # Specifically, this script builds a MPI plugin interface against your local MPI installation 
-# and exports an environment variable $CUDAQ_MPI_COMM_LIB to tell CUDA Quantum to use this MPI Communicator plugin. 
+# and exports an environment variable $CUDAQ_MPI_COMM_LIB to tell CUDA-Q to use this MPI Communicator plugin. 
 #
 # It requires a GNU C++ compiler (g++).
 #
@@ -21,7 +21,7 @@
 #                ${MPI_PATH}/include is expected to contain the mpi.h header.
 #                ${MPI_PATH}/lib64 or ${MPI_PATH}/lib is expected to contain libmpi.so.
 #
-# Run: bash <cuda quantum install dir>/distributed_interfaces/activate_custom_mpi.sh
+# Run: bash <CUDA-Q install dir>/distributed_interfaces/activate_custom_mpi.sh
 # 
 # You could add $CUDAQ_MPI_COMM_LIB to your ~/.bashrc file to persist the environment variable.
 
