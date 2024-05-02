@@ -153,7 +153,7 @@ public:
       auto location =
           mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
       mlir::ImplicitLocOpBuilder builder(location, &mlirContext);
-      // Add cuda quantum kernel attribute if not already set.
+      // Add CUDA-Q kernel attribute if not already set.
       if (!func->hasAttr(cudaq::kernelAttrName))
         func->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
       // Add entry-point attribute if not already set.
@@ -659,7 +659,7 @@ public:
                   << m_availableFuncs[m_functionId].numGpus
                   << " GPUs requested.\n";
         std::cout << "Only one GPU will be used for simulation.\n";
-        std::cout << "Please refer to CUDA Quantum documentation for a list of "
+        std::cout << "Please refer to CUDA-Q documentation for a list of "
                      "multi-GPU capable simulator backends.\n";
         printOnce = true;
       }
@@ -681,7 +681,7 @@ public:
     if (request.format != cudaq::CodeFormat::MLIR) {
       // The `.config` file may have been tampered with.
       std::cerr << "Internal error: unsupported kernel IR detected.\nThis may "
-                   "indicate a corrupted CUDA Quantum installation.";
+                   "indicate a corrupted CUDA-Q installation.";
       std::abort();
     }
 

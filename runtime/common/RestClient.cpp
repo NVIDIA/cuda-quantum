@@ -56,7 +56,7 @@ RestClient::RestClient() : sslOptions(std::make_unique<cpr::SslOptions>()) {
         return curlCABundleStr;
       else
         cudaq::info(
-            "{} does not exist. Will fall back on CUDAQ installed certs",
+            "{} does not exist. Will fall back on CUDA-Q installed certs",
             curlCABundleStr);
     }
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};

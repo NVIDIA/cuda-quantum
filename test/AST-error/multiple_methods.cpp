@@ -12,7 +12,7 @@
 
 struct Sylvester {
   void operator() (int) __qpu__ {}
-  void operator() () __qpu__ { // expected-error{{CUDA Quantum kernel class with multiple quantum methods not yet supported}}
+  void operator() () __qpu__ { // expected-error{{CUDA-Q kernel class with multiple quantum methods not yet supported}}
      cudaq::qubit q;
      h(q);
   }

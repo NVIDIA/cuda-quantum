@@ -206,7 +206,7 @@ public:
 
   /// @brief This setTargetBackend override is in charge of reading the
   /// specific target backend configuration file (bundled as part of this
-  /// CUDA Quantum installation) and extract MLIR lowering pipelines and
+  /// CUDA-Q installation) and extract MLIR lowering pipelines and
   /// specific code generation output required by this backend (QIR/QASM2).
   void setTargetBackend(const std::string &backend) override {
     cudaq::info("Remote REST platform is targeting {}.", backend);

@@ -426,7 +426,7 @@ static bool onlyArithmeticMembers(cc::StructType structTy) {
 }
 
 // When the kernel comes from a class, there is always a default `this` argument
-// to the kernel entry function. The CUDA Quantum spec doesn't allow the kernel
+// to the kernel entry function. The CUDA-Q spec doesn't allow the kernel
 // object to contain data members (yet), so we can ignore the `this` pointer.
 FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
                                          ModuleOp module) {
