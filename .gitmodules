@@ -15,6 +15,7 @@
 [submodule "tpls/armadillo"]
 	path = tpls/armadillo
 	url = https://gitlab.com/conradsnicta/armadillo-code.git
+	ignore = dirty
 [submodule "tpls/ensmallen"]
 	path = tpls/ensmallen
 	url = https://github.com/mlpack/ensmallen

@@ -1,0 +1,26 @@
+diff --git a/include/armadillo_bits/Cube_bones.hpp b/include/armadillo_bits/Cube_bones.hpp
+index 5cf364a..33560f6 100644
+--- a/include/armadillo_bits/Cube_bones.hpp
++++ b/include/armadillo_bits/Cube_bones.hpp
+@@ -507,7 +507,6 @@ class Cube<eT>::fixed : public Cube<eT>
+   template<typename T1>              inline fixed(const BaseCube<eT,T1>& A);
+   template<typename T1, typename T2> inline fixed(const BaseCube<pod_type,T1>& A, const BaseCube<pod_type,T2>& B);
+   
+-  using Cube<eT>::operator=;
+   using Cube<eT>::operator();
+   
+   inline Cube& operator=(const fixed<fixed_n_rows, fixed_n_cols, fixed_n_slices>& X);
+diff --git a/include/armadillo_bits/Mat_bones.hpp b/include/armadillo_bits/Mat_bones.hpp
+index baa41da..9b19ac5 100644
+--- a/include/armadillo_bits/Mat_bones.hpp
++++ b/include/armadillo_bits/Mat_bones.hpp
+@@ -845,8 +845,7 @@ class Mat<eT>::fixed : public Mat<eT>
+   
+   inline fixed(const char*        text);
+   inline fixed(const std::string& text);
+-  
+-  using Mat<eT>::operator=;
++
+   using Mat<eT>::operator();
+   
+   inline          fixed(const std::initializer_list<eT>& list);
