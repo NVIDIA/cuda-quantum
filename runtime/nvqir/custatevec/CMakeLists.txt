@@ -35,6 +35,12 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
                 ${CUSTATEVEC_LIB}
                 ${CUDA_LIBRARIES} cublas )
 
+  # Add a special rpath for the NVQIR libs to make the wheels self-contained if
+  # dependent wheels are installed.
+  set_property(TARGET ${LIBRARY_NAME}
+    APPEND PROPERTY INSTALL_RPATH
+    "$ORIGIN/../cuquantum/lib/:$ORIGIN/../nvidia/cublas/lib/")
+
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 endmacro()
