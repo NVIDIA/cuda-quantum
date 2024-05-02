@@ -550,7 +550,7 @@ switch to <code class="code docutils literal notranslate"><span class="pre">FP64
 <h3>Multi-node multi-GPU<a class="headerlink" href="#multi-node-multi-gpu" title="Permalink to this heading">¶</a></h3>
 <p id="nvidia-mgpu-backend">The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target provides a state vector simulator accelerated with
 the <code class="code docutils literal notranslate"><span class="pre">cuStateVec</span></code> library but with support for Multi-Node, Multi-GPU distribution of the
-state vector.</p>
+state vector, in addition to a single GPU.</p>
 <p>The multi-node multi-GPU simulator expects to run within an MPI context.
 To execute a program on the <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> target, use the following commands (adjust the value of the <code class="code docutils literal notranslate"><span class="pre">-np</span></code> flag as needed to reflect available GPU resources on your system):</p>
 <div class="tab-set docutils">
@@ -585,6 +585,31 @@ mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</spa
 <p class="admonition-title">Note</p>
 <p>This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter either an error stating <code class="code docutils literal notranslate"><span class="pre">invalid</span> <span class="pre">simulator</span> <span class="pre">requested</span></code> (missing CUDA libraries), or an error along the lines of <code class="code docutils literal notranslate"><span class="pre">failed</span> <span class="pre">to</span> <span class="pre">launch</span> <span class="pre">kernel</span></code> (missing MPI installation). See the section <a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a> for more information about how to install dependencies.</p>
 </div>
+<p>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend has additional performance improvements to
+help reduce your simulation runtimes, even on a single GPU. One of the
+performance improvements is to fuse multiple gates together during runtime. For
+example, <code class="code docutils literal notranslate"><span class="pre">x(qubit0)</span></code> and <code class="code docutils literal notranslate"><span class="pre">x(qubit1)</span></code> can be fused together into a
+single 4x4 matrix operation on the state vector rather than 2 separate 2x2
+matrix operations on the state vector. This fusion reduces memory bandwidth on
+the GPU because the state vector is transferred into and out of memory fewer
+times. By default, up to 4 gates are fused together for single-GPU simulations,
+and up to 6 gates are fused together for multi-GPU simulations. The number of
+gates fused can <strong>significantly</strong> affect performance of some circuits, so users
+can override the default fusion level by setting the setting <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code>
+environment variable to another integer value as shown below.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_MGPU_FUSE</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>nvidia-mgpu
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>nvidia-mgpu<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
+<span class="nv">CUDAQ_MGPU_FUSE</span><span class="o">=</span><span class="m">5</span><span class="w"> </span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>./program.x
+</pre></div>
+</div>
+</div>
+</div>
 </section>
 <section id="openmp-cpu-only">
 <span id="id1"></span><h3>OpenMP CPU-only<a class="headerlink" href="#openmp-cpu-only" title="Permalink to this heading">¶</a></h3>
@@ -593,7 +618,7 @@ This is the default target when running on CPU-only systems.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> target even if a GPU-accelerated backend is available,
 use the following commands:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>qpp-cpu
 </pre></div>
 </div>
@@ -603,7 +628,7 @@ use the following commands:</p>
 </div>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
 </div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>qpp-cpu<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
@@ -625,7 +650,7 @@ Measurement samples and expectation values are computed via tensor network contr
 This backend supports multi-node, multi-GPU distribution of tensor operations required to evaluate and simulate the circuit.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> target using a <em>single GPU</em>, use the following commands:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>tensornet
 </pre></div>
 </div>
@@ -635,7 +660,7 @@ This backend supports multi-node, multi-GPU distribution of tensor operations re
 </div>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
 </div>
-<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tensornet<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
@@ -650,7 +675,7 @@ We will add support for it in future releases. For more information, see this <a
 </div>
 <p>Use the following commands to enable distribution across multiple GPUs (adjust the value of the <code class="code docutils literal notranslate"><span class="pre">-np</span></code> flag as needed to reflect available GPU resources on your system):</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>tensornet
 </pre></div>
 </div>
@@ -660,7 +685,7 @@ invoking the program with the command</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tensornet<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 mpiexec<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>./program.x
 </pre></div>
@@ -701,7 +726,7 @@ The <code class="code docutils literal notranslate"><span class="pre">tensornet-
 </div>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> target, use the following commands:</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>tensornet-mps
 </pre></div>
 </div>
@@ -711,7 +736,7 @@ The <code class="code docutils literal notranslate"><span class="pre">tensornet-
 </div>
 <p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
 </div>
-<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tensornet-mps<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
@@ -746,12 +771,12 @@ This environment variable can be set to any non-hardware backend. Any invalid va
 <p>For CUDA-Q Python API, the environment variable at the time when <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> module is imported is relevant, not the value of the environment variable at the time when the simulator is invoked.</p>
 <p>For example,</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--7-input--1" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_DEFAULT_SIMULATOR</span><span class="o">=</span>density-matrix-cpu<span class="w"> </span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--7-input--2" name="tab-set--7" type="radio"><label class="tab-label" for="tab-set--7-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_DEFAULT_SIMULATOR</span><span class="o">=</span>density-matrix-cpu<span class="w"> </span>nvq++<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
 ./program.x
 </pre></div>
