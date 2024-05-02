@@ -97,7 +97,7 @@ set_tests_properties(
     PROPERTIES
       ENVIRONMENT_MODIFICATION PATH=path_list_append:${CMAKE_BINARY_DIR}/bin
 )
-    
+
 # Only add the python tests if we built the python API
 if (CUDAQ_ENABLE_PYTHON)
   function(add_pycudaq_test TEST_NAME SOURCE_LOCATION)
