@@ -56,7 +56,7 @@ sample_result future::get() {
   return sample_result(results);
 #else
   throw std::runtime_error("cudaq::details::future::get() requires REST Client "
-                           "but CUDA Quantum was built without it.");
+                           "but CUDA-Q was built without it.");
   return sample_result();
 #endif
 }
