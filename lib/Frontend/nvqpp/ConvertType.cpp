@@ -133,16 +133,12 @@ static bool isKernelResultType(Type t) {
          isStaticArithmeticProductType(t);
 }
 
-/// Is \p t a std::string type?
-static bool isStringType(Type t) { return isa<cudaq::cc::CharspanType>(t); }
-
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
 /// dynamic type composed of arithmetic types, a quantum type, a callable
 /// (function), or a string.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
          isQuantumType(t) || isKernelCallable(t) || isFunctionCallable(t) ||
-         isStringType(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
@@ -245,8 +241,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
 }
 
 bool QuakeBridgeVisitor::VisitFunctionProtoType(clang::FunctionProtoType *t) {
-  assert(t->exceptions().empty() &&
-         "exceptions are not supported in CUDA Quantum");
+  assert(t->exceptions().empty() && "exceptions are not supported in CUDA-Q");
   if (t->getNoexceptExpr()) {
     // Throw away the boolean value from this clause.
     // TODO: Could enforce that it must be `true`.

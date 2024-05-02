@@ -27,11 +27,11 @@
 # - Additional dependencies for GPU-accelerated components: cuquantum, cutensor, cuda-11-8
 #
 # Note:
-# The CUDA Quantum build automatically detects whether the necessary libraries to build
+# The CUDA-Q build automatically detects whether the necessary libraries to build
 # GPU-based components are available and will omit them from the build if they are not. 
 #
 # Note:
-# By default, the CUDA Quantum is done with warnings-as-errors turned on.
+# By default, the CUDA-Q is done with warnings-as-errors turned on.
 # You can turn this setting off by defining the environment variable CUDAQ_WERROR=OFF.
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
@@ -121,7 +121,7 @@ fi
 
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
-echo "Preparing CUDA Quantum build with LLVM installation in $LLVM_INSTALL_PREFIX..."
+echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
   -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
@@ -145,8 +145,8 @@ else
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
-# Build and install CUDAQ
-echo "Building CUDA Quantum with configuration $build_configuration..."
+# Build and install CUDA-Q
+echo "Building CUDA-Q with configuration $build_configuration..."
 logs_dir=`pwd`/logs
 if $verbose; then 
   ninja install
@@ -166,7 +166,7 @@ cp "$repo_root/LICENSE" "$CUDAQ_INSTALL_PREFIX/LICENSE"
 cp "$repo_root/NOTICE" "$CUDAQ_INSTALL_PREFIX/NOTICE"
 cp "$repo_root/scripts/cudaq_set_env.sh" "$CUDAQ_INSTALL_PREFIX/set_env.sh"
 
-# The CUDA Quantum installation as built above is not fully self-contained;
+# The CUDA-Q installation as built above is not fully self-contained;
 # It will, in particular, break if the LLVM tools are not in the expected location.
 # We save any system configurations that are assumed by the installation with the installation.
 echo "<build_config>" > "$CUDAQ_INSTALL_PREFIX/build_config.xml"
@@ -175,4 +175,4 @@ echo "<CUQUANTUM_INSTALL_PREFIX>$CUQUANTUM_INSTALL_PREFIX</CUQUANTUM_INSTALL_PRE
 echo "<CUTENSOR_INSTALL_PREFIX>$CUTENSOR_INSTALL_PREFIX</CUTENSOR_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
 echo "</build_config>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
 
-cd "$working_dir" && echo "Installed CUDA Quantum in directory: $CUDAQ_INSTALL_PREFIX"
+cd "$working_dir" && echo "Installed CUDA-Q in directory: $CUDAQ_INSTALL_PREFIX"

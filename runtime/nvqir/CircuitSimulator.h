@@ -13,6 +13,7 @@
 #include "common/Logger.h"
 #include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
+#include "common/Timing.h"
 
 #include <cstdarg>
 #include <cstddef>
@@ -22,8 +23,58 @@
 
 namespace nvqir {
 
+// @brief Collect summary data and print upon simulator termination
+struct SummaryData {
+  std::size_t gateCount = 0;
+  std::size_t controlCount = 0;
+  std::size_t targetCount = 0;
+  std::size_t svIO = 0;
+  std::size_t svFLOPs = 0;
+  bool enabled = false;
+  std::string name;
+  SummaryData() {
+    if (cudaq::isTimingTagEnabled(cudaq::TIMING_GATE_COUNT))
+      enabled = true;
+  }
+
+  /// @brief Update state-vector-based statistics for a logic gate
+  void svGateUpdate(const std::size_t nControls, const std::size_t nTargets,
+                    const std::size_t stateDimension,
+                    const std::size_t stateVectorSizeBytes) {
+    assert(nControls <= 63);
+    if (enabled) {
+      gateCount++;
+      controlCount += nControls;
+      targetCount += nTargets;
+      // Times 2 because operating on the state vector requires both reading
+      // and writing.
+      svIO += (2 * stateVectorSizeBytes) / (1 << nControls);
+      // For each element of the state vector, 2 complex multiplies and 1
+      // complex accumulate is needed. This is reduced if there if this is a
+      // controlled operation.
+      // Each complex multiply is 6 real ops.
+      // So 2 complex multiplies and 1 complex addition is 2*6+2 = 14 ops.
+      svFLOPs += stateDimension * (14 * nTargets) / (1 << nControls);
+    }
+  }
+
+  ~SummaryData() {
+    if (enabled) {
+      cudaq::log("CircuitSimulator '{}' Total Program Metrics [tag={}]:", name,
+                 cudaq::TIMING_GATE_COUNT);
+      cudaq::log("Gate Count = {}", gateCount);
+      cudaq::log("Control Count = {}", controlCount);
+      cudaq::log("Target Count = {}", targetCount);
+      cudaq::log("State Vector I/O (GB) = {:.6f}",
+                 static_cast<double>(svIO) / 1e9);
+      cudaq::log("State Vector GFLOPs = {:.6f}",
+                 static_cast<double>(svFLOPs) / 1e9);
+    }
+  }
+};
+
 /// @brief The CircuitSimulator defines a base class for all
-/// simulators that are available to CUDAQ via the NVQIR library.
+/// simulators that are available to CUDA-Q via the NVQIR library.
 /// This base class handles Qubit allocation and deallocation,
 /// execution context handling, and defines all quantum operations pure
 /// virtual methods that subtypes must implement. Subtypes should be responsible
@@ -35,6 +86,9 @@ protected:
   /// apply them to the state. Internal and meant for
   /// subclasses to implement
   virtual void flushGateQueueImpl() = 0;
+
+  /// @brief Statistics collected over the life of the simulator.
+  SummaryData summaryData;
 
 public:
   /// @brief The constructor
@@ -61,6 +115,11 @@ public:
   virtual void setRandomSeed(std::size_t seed) {
     // do nothing
   }
+
+  /// @brief Perform any flushing or synchronization to force that all
+  /// previously applied gates have truly been applied by the underlying
+  /// simulator.
+  virtual void synchronize() {}
 
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
@@ -148,6 +207,9 @@ public:
 
   /// @brief Return the current execution context
   virtual cudaq::ExecutionContext *getExecutionContext() = 0;
+
+  /// @brief Whether or not this is a state vector simulator
+  virtual bool isStateVectorSimulator() const { return false; }
 
   /// @brief Apply a custom operation described by a matrix of data
   /// represented as 1-D vector of elements in row-major order, as well
@@ -332,7 +394,7 @@ protected:
   /// @brief Environment variable name that allows a programmer to
   /// specify how expectation values should be computed. This
   /// defaults to true.
-  constexpr static const char observeSamplingEnvVar[] =
+  static constexpr const char observeSamplingEnvVar[] =
       "CUDAQ_OBSERVE_FROM_SAMPLING";
 
   /// @brief A GateApplicationTask consists of a
@@ -643,6 +705,10 @@ protected:
   void flushGateQueueImpl() override {
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
+      if (isStateVectorSimulator() && summaryData.enabled)
+        summaryData.svGateUpdate(
+            next.controls.size(), next.targets.size(), stateDimension,
+            stateDimension * sizeof(std::complex<ScalarType>));
       applyGate(next);
       if (executionContext && executionContext->noiseModel) {
         std::vector<std::size_t> noiseQubits{next.controls.begin(),
@@ -653,6 +719,8 @@ protected:
       }
       gateQueue.pop();
     }
+    // For CUDA-based simulators, this calls cudaDeviceSynchronize()
+    synchronize();
   }
 
   /// @brief Set the current state to the |0> state,
@@ -739,6 +807,7 @@ public:
 
   /// @brief Allocate `count` qubits.
   std::vector<std::size_t> allocateQubits(std::size_t count) override {
+    ScopedTraceWithContext("allocateQubits", count);
     std::vector<std::size_t> qubits;
     for (std::size_t i = 0; i < count; i++)
       qubits.emplace_back(tracker.getNextIndex());
@@ -1087,7 +1156,7 @@ public:
     auto measureResult = measureQubit(qubitIdx);
     auto bitResult = measureResult == true ? "1" : "0";
 
-    // If this CUDAQ kernel has conditional statements on measure results
+    // If this CUDA-Q kernel has conditional statements on measure results
     // then we want to handle the sampling a bit differently.
     handleSamplingWithConditionals(qubitIdx, bitResult, registerName);
 

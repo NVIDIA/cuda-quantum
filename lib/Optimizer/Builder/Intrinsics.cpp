@@ -43,7 +43,7 @@ inline bool operator<(const IntrinsicCode &icode, const IntrinsicCode &jcode) {
 }
 
 /// Table of intrinsics:
-/// This table contains CUDA Quantum MLIR code for our inlined intrinsics as
+/// This table contains CUDA-Q MLIR code for our inlined intrinsics as
 /// well as prototypes for LLVM intrinsics and C library calls that are used by
 /// the compiler. The table should be kept in sorted order.
 static constexpr IntrinsicCode intrinsicTable[] = {
@@ -67,9 +67,75 @@ static constexpr IntrinsicCode intrinsicTable[] = {
         %one = arith.constant 1 : i64
         %s1 = arith.addi %i, %one : i64
         cc.continue %s1 : i64
-    }
+    } {invariant}
     %2 = cc.stdvec_init %arg0, %arg1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
     return %2 : !cc.stdvec<i64>
+  })#"},
+
+    // Compute and initialize a vector from a semi-open triple style notation.
+    // The vector returned will contain the ordered set defined by the triple.
+    // That set is specifically `{ i, i+s, i+2*s, ... i+(n-1)*s }` where `i` is
+    // the initial value `%arg1`, `s` is the step, `%arg3`, and the value
+    // `i+(n-1)*s` is strictly in the interval `[%arg1 .. %arg2)` or `(%arg2 ..
+    // %arg1]` depending on whether `%arg3` is positive or negative. Invalid
+    // triples, such as the step being zero or the lower and upper bounds being
+    // transposed will return a vector of length 0 (an empty set). Note that all
+    // three parameters are assumed to be signed values, which is required to
+    // have a decrementing loop.
+    {cudaq::setCudaqRangeVectorTriple,
+     {cudaq::getCudaqSizeFromTriple},
+     R"#(
+  func.func private @__nvqpp_CudaqRangeInitTriple(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64, %arg2: i64, %arg3: i64) -> !cc.stdvec<i64> {
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %0 = call @__nvqpp_CudaqSizeFromTriple(%arg1, %arg2, %arg3) : (i64, i64, i64) -> i64
+    %1:2 = cc.loop while ((%arg4 = %c0_i64, %arg5 = %arg1) -> (i64, i64)) {
+      %3 = arith.cmpi ult, %arg4, %0 : i64
+      cc.condition %3(%arg4, %arg5 : i64, i64)
+    } do {
+    ^bb0(%arg4: i64, %arg5: i64):
+      %3 = cc.compute_ptr %arg0[%arg4] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+      cc.store %arg5, %3 : !cc.ptr<i64>
+      cc.continue %arg4, %arg5 : i64, i64
+    } step {
+    ^bb0(%arg4: i64, %arg5: i64):
+      %3 = arith.addi %arg4, %c1_i64 : i64
+      %4 = arith.addi %arg5, %arg3 : i64
+      cc.continue %3, %4 : i64, i64
+    } {invariant}
+    %2 = cc.stdvec_init %arg0, %0 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
+    return %2 : !cc.stdvec<i64>
+  })#"},
+
+    // Compute the total number of iterations, which is the value `n`, from a
+    // semi-open triple style notation. The set defined by the triple is `{ i,
+    // i+s, i+2*s, ... i+(n-1)*s }` where `i` is the initial value `%start`, `s`
+    // is the step, `%step`, and the value `i+(n-1)*s` is strictly in the
+    // interval `[start .. stop)` or `(stop .. start]` depending on whether step
+    // is positive or negative. Invalid triples, such as the step being zero or
+    // the lower and upper bounds being transposed will return a value of 0.
+    // Note that all three parameters are assumed to be signed values, which is
+    // required to have a decrementing loop.
+    {cudaq::getCudaqSizeFromTriple,
+     {},
+     R"#(
+  func.func private @__nvqpp_CudaqSizeFromTriple(%start: i64, %stop: i64, %step: i64) -> i64 {
+    %0 = arith.constant 0 : i64
+    %1 = arith.constant 1 : i64
+    %n1 = arith.constant -1 : i64
+    %c1 = arith.cmpi eq, %step, %0 : i64
+    cf.cond_br %c1, ^b1, ^exit(%0 : i64)
+   ^b1:
+    %c2 = arith.cmpi sgt, %step, %0 : i64
+    %adjust = arith.select %c2, %1, %n1 : i64
+    %2 = arith.subi %stop, %adjust : i64
+    %3 = arith.subi %2, %start : i64
+    %4 = arith.addi %3, %step : i64
+    %5 = arith.divsi %4, %step : i64
+    %c3 = arith.cmpi sgt, %5, %0 : i64
+    cf.cond_br %c3, ^exit(%5 : i64), ^exit(%0 : i64)
+   ^exit(%rv : i64):
+    return %rv : i64
   })#"},
 
     {"__nvqpp_createDynamicResult",

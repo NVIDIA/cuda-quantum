@@ -108,22 +108,22 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
     extracted from the program to allow reconstruction of the outputs from the
     backend.
   }];
-
-  let constructor = "cudaq::opt::createRemoveMeasurementsPass()";
 }
 
-def VerifyNVQIRCallOps : Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
+def VerifyNVQIRCallOps :
+    Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
   let summary =
     "Verify that all LLVM CallOps' callees are NVQIR compliant";
   let description = [{
-    This is a function pass to verify that all function calls within the function body are 
-    referring to pre-defined allowed functions or QIR functions, i.e., 
-    starting with a __quantum prefix, or NVQIR runtime functions.
+    This is a function pass to verify that all function calls within the
+    function body are referring to pre-defined allowed functions or QIR
+    functions, i.e., starting with a __quantum prefix, or NVQIR runtime
+    functions.
   }];
   
   let options = [
     ListOption<"allowedFuncs", "allowed-funcs", "llvm::StringRef",
-               "Allowed list of functions in addition to NVQIR-defined function.">
+        "Allowed list of functions in addition to NVQIR-defined function.">
   ];
 
   let constructor = "cudaq::opt::createVerifyNVQIRCallOpsPass({})";

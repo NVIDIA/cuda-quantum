@@ -10,7 +10,7 @@
 
 # Usage: 
 # This script builds and installs a minimal set of dependencies needed to build 
-# CUDA Quantum from source. 
+# CUDA-Q from source. 
 #
 # Usage: 
 # bash install_prerequisites.sh
@@ -286,7 +286,7 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
     # path when invoking the Curl executable, this variable is *not* respected by default by the 
     # built library itself; instead, the user of libcurl is responsible for picking up the 
     # environment variables and passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO. 
-    # We opt to build Curl without any default paths, and instead have the CUDA Quantum runtime
+    # We opt to build Curl without any default paths, and instead have the CUDA-Q runtime
     # determine and pass a suitable path.
     wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
     tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
