@@ -287,7 +287,7 @@ public:
         return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
       auto ptrTy = cudaq::cc::PointerType::get(msgStructTy);
       auto members = msgStructTy.getMembers();
-      auto numKernelArgs = devKernelTy.getNumInputs();
+      std::int32_t numKernelArgs = devKernelTy.getNumInputs();
       auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
       auto basePtr = builder.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
       auto off = builder.create<cudaq::cc::ComputePtrOp>(
