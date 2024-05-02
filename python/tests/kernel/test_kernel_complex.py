@@ -494,7 +494,7 @@ def test_np_complex64_definition():
         np.complex64(0.70710678)
     ]
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def complex_vec_definition_real(i: int) -> np.float32:
         v = [
             np.complex64(.70710678 + 1j),
@@ -584,7 +584,7 @@ def test_np_complex64_use():
     t = np.exp(np.complex64((np.pi / 2. + 1) + 1j)).real
     assert is_close(t, complex_np_use_real())
 
-    @cudaq.kernel(verbose=True)
+    @cudaq.kernel
     def complex_np_use_imag() -> np.float32:
         v = np.exp(np.complex64((np.pi / 2. + 1) + 1j))
         return v.imag

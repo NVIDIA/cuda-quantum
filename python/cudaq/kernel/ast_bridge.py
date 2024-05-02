@@ -890,7 +890,7 @@ class PyASTBridge(ast.NodeVisitor):
         symbol table.
         """
         if self.verbose:
-            print('[Visit Assign {}]'.format(ast.unparse(node)))
+            print('[Visit Assign {}]'.format(node))
 
         self.currentNode = node
 
