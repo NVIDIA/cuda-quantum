@@ -1,6 +1,6 @@
 Quantum Types
 *************
-The CUDA Quantum language extension provides certain fundamental types that are pertinent
+The CUDA-Q language extension provides certain fundamental types that are pertinent
 to quantum-classical computing. These types are provided via defined classical library
 types in C++ in the :code:`cudaq` namespace. 
 
@@ -19,7 +19,7 @@ the :code:`cudaq::qudit` is non-copyable and non-movable. Therefore, all :code:`
 instances must be passed by reference, and the no-cloning theorem is satisfied
 at compile-time. 
 
-**[5]** :code:`cudaq::qudit` instances can only be allocated within CUDA Quantum quantum
+**[5]** :code:`cudaq::qudit` instances can only be allocated within CUDA-Q quantum
 kernel code and can never be allocated from classical host code.
 
 **[6]** All instantiated :code:`cudaq::qudit` instances start in the :code:`|0>` computational basis 
@@ -91,7 +91,7 @@ single quantum bit (:math:`2`-level) in the discrete quantum memory space.
     
 Quantum Containers
 ------------------
-**[1]** CUDA Quantum specifies abstractions for dealing with groups of :code:`cudaq::qudit` instances in the
+**[1]** CUDA-Q specifies abstractions for dealing with groups of :code:`cudaq::qudit` instances in the
 form of familiar C++ containers. 
 
 **[2]** The underlying connectivity of the :code:`cudaq::qudit` instances stored in these containers is opaque to
@@ -163,7 +163,7 @@ and since it owns the quantum memory, it cannot be copied or moved.
 **[3]** The :code:`cudaq::qvector` is templated on the dimensionality of the contained 
 quantum information unit, and defaults to :math:`2` for qubit systems.
 
-**[4]** The :code:`cudaq::qvector` can only be instantiated within CUDA Quantum kernels
+**[4]** The :code:`cudaq::qvector` can only be instantiated within CUDA-Q kernels
 
 **[5]** All qudits in the :code:`cudaq::qvector` start in the :code:`|0>` computational basis state. 
 
@@ -270,7 +270,7 @@ optimization and synthesis.
 
 **[3]** The :code:`cudaq::qarray` owns the quantum memory it contains, and therefore cannot be copied or moved.
 
-**[4]** The :code:`cudaq::qarray` can only be instantiated within CUDA Quantum kernels
+**[4]** The :code:`cudaq::qarray` can only be instantiated within CUDA-Q kernels
 
 **[5]** All qudits in the :code:`cudaq::qarray` start in the :code:`|0>` computational basis state. 
 

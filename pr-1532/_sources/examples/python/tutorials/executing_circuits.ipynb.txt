@@ -7,11 +7,11 @@
    "source": [
     "# Executing Quantum Circuits \n",
     "\n",
-    "In CUDA Quantum, quantum circuits are stored as quantum kernels. For estimating the probability distribution of a measured quantum state in a circuit, we use the `sample` function call, and for computing the expectation value of a quantum state with a given observable, we use the `observe` function call. \n",
+    "In CUDA-Q, quantum circuits are stored as quantum kernels. For estimating the probability distribution of a measured quantum state in a circuit, we use the `sample` function call, and for computing the expectation value of a quantum state with a given observable, we use the `observe` function call. \n",
     "\n",
     "## Sample\n",
     "\n",
-    "Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA Quantum `sample` call enables this: \n",
+    "Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA-Q `sample` call enables this: \n",
     "\n"
    ]
   },
