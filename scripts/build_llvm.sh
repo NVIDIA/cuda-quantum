@@ -163,6 +163,7 @@ cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 
 # Generate CMake files.
 cmake_args=" \
+  -DLLVM_HOST_TRIPLE='"$(bash /root/.llvm-project/llvm/cmake/config.guess)"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
   -DLLVM_ENABLE_PROJECTS='"${llvm_projects%;}"' \
