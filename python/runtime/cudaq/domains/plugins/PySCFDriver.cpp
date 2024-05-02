@@ -19,7 +19,7 @@ namespace {
 thread_local static std::unique_ptr<py::scoped_interpreter> interp;
 
 /// @brief Map an OpenFermion QubitOperator represented as a py::object
-/// to a CUDA Quantum spin_op
+/// to a CUDA-Q spin_op
 spin_op fromOpenFermionQubitOperator(const py::object &op) {
   if (!py::hasattr(op, "terms"))
     throw std::runtime_error(
@@ -43,9 +43,9 @@ spin_op fromOpenFermionQubitOperator(const py::object &op) {
   return H;
 }
 
-/// @brief Implement the CUDA Quantum MoleculePackageDriver interface
-/// with support for generating molecular hamiltonians via PySCF. We
-/// acheive this via Pybind11's embedded interpreter capabilities.
+/// @brief Implement the CUDA-Q MoleculePackageDriver interface
+/// with support for generating molecular Hamiltonians via PySCF. We
+/// achieve this via Pybind11's embedded interpreter capabilities.
 class PySCFPackageDriver : public MoleculePackageDriver {
 protected:
   /// @brief The name of the chemistry python module.

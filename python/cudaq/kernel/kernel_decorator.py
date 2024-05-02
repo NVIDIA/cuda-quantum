@@ -18,7 +18,7 @@ from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnN
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # This file implements the decorator mechanism needed to
-# JIT compile CUDA Quantum kernels. It exposes the cudaq.kernel()
+# JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
 # decorator which hooks us into the JIT compilation infrastructure
 # which maps the AST representation to an MLIR representation and ultimately
 # executable code.
@@ -110,7 +110,7 @@ class PyKernelDecorator(object):
         hasRetNodeVis.visit(self.astModule)
         if hasRetNodeVis.hasReturnNode and 'return' not in self.signature:
             emitFatalError(
-                'CUDA Quantum kernel has return statement but no return type annotation.'
+                'CUDA-Q kernel has return statement but no return type annotation.'
             )
 
         # Run analyzers and attach metadata (only have 1 right now)
@@ -176,7 +176,7 @@ class PyKernelDecorator(object):
 
     def __call__(self, *args):
         """
-        Invoke the CUDA Quantum kernel. JIT compilation of the 
+        Invoke the CUDA-Q kernel. JIT compilation of the 
         kernel AST to MLIR will occur here if it has not already occurred. 
         """
 
@@ -244,7 +244,7 @@ class PyKernelDecorator(object):
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
                 if arg.ndim != 1:
                     emitFatalError(
-                        f"CUDA Quantum kernels only support array arguments from NumPy that are one dimensional (input argument {i} has shape = {arg.shape})."
+                        f"CUDA-Q kernels only support array arguments from NumPy that are one dimensional (input argument {i} has shape = {arg.shape})."
                     )
                 processedArgs.append(arg.tolist())
             else:
@@ -266,9 +266,9 @@ class PyKernelDecorator(object):
 
 def kernel(function=None, **kwargs):
     """
-    The `cudaq.kernel` represents the CUDA Quantum language function 
+    The `cudaq.kernel` represents the CUDA-Q language function 
     attribute that programmers leverage to indicate the following function 
-    is a CUDA Quantum kernel and should be compile and executed on 
+    is a CUDA-Q kernel and should be compile and executed on 
     an available quantum coprocessor.
 
     Verbose logging can be enabled via `verbose=True`. 

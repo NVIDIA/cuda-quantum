@@ -67,7 +67,7 @@ public:
 };
 
 /// @brief The `molecular_hamiltonian` type holds all the pertinent
-/// data for a molecule created by CUDA Quantum from its geometry and
+/// data for a molecule created by CUDA-Q from its geometry and
 /// other metadata.
 struct molecular_hamiltonian {
   spin_op hamiltonian;

@@ -7,15 +7,15 @@
 # ============================================================================ #
 
 # This file builds the development environment that contains the necessary development 
-# dependencies for building a CUDA Quantum Python wheel.
+# dependencies for building a CUDA-Q Python wheel.
 #
 # Usage:
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:manylinux -f docker/build/devdeps.manylinux.Dockerfile .
 #
 # The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with. 
-# The toolchain used to build the LLVM binaries that CUDA Quantum depends on must be used to build
-# CUDA Quantum. This image sets the CC and CXX environment variables to use that toolchain. 
+# The toolchain used to build the LLVM binaries that CUDA-Q depends on must be used to build
+# CUDA-Q. This image sets the CC and CXX environment variables to use that toolchain. 
 # Currently, clang15 and gcc11 are supported.
 
 # There are currently no multi-platform manylinux images available.
@@ -39,7 +39,7 @@ RUN git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project
     && cd /llvm-project && git checkout $llvm_commit
 
 # Install the C/C++ compiler toolchain to build the LLVM dependencies.
-# CUDA Quantum needs to be built with that same toolchain, and the
+# CUDA-Q needs to be built with that same toolchain, and the
 # toolchain needs to be one of the supported CUDA host compilers. We use
 # a wrapper script so that the path that we set CC and CXX to is independent 
 # on the installed toolchain. Unfortunately, a symbolic link won't work.
@@ -80,14 +80,14 @@ RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.2
     && bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local \
     && rm cmake-install.sh
 
-# Build the the LLVM libraries and compiler toolchain needed to build CUDA Quantum.
+# Build the the LLVM libraries and compiler toolchain needed to build CUDA-Q.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 RUN LLVM_PROJECTS='clang;mlir' \
     bash /scripts/build_llvm.sh -s /llvm-project -c Release -v
     # No clean up of the build or source directory,
     # since we need to re-build llvm for each python version to get the bindings.
 
-# Install additional dependencies required to build the CUDA Quantum wheel.
+# Install additional dependencies required to build the CUDA-Q wheel.
 ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
 ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib

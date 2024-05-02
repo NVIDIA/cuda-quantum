@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file contains additional CUDA Quantum development dependencies. 
+# This file contains additional CUDA-Q development dependencies. 
 # The image installs cuQuantum, cuTensor, and the CUDA packages defined by the
 # cuda_packages build argument. It copies the OpenMPI installation and its 
 # dependencies from the given ompidev_image. The copied paths can be configured

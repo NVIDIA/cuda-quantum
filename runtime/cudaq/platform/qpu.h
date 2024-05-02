@@ -23,7 +23,7 @@ namespace cudaq {
 /// Expose the function that will return the current ExecutionManager
 ExecutionManager *getExecutionManager();
 
-/// A CUDA Quantum QPU is an abstraction on the quantum processing
+/// A CUDA-Q QPU is an abstraction on the quantum processing
 /// unit which executes quantum kernel expressions. The QPU exposes
 /// certain information about the QPU being targeting, such as the
 /// number of available qubits, the logical ID for this QPU in a set
