@@ -21,7 +21,7 @@
 #define __qpu__ __attribute__((annotate("quantum")))
 
 // This file describes the API for a default qubit logical instruction
-// set for CUDA Quantum kernels.
+// set for CUDA-Q kernels.
 
 namespace cudaq {
 
@@ -621,7 +621,7 @@ void compute_dag_action(ComputeFunction &&c, ActionFunction &&a) {
 }
 
 /// Helper function to extract a slice of a `std::vector<T>` to be used within
-/// CUDA Quantum kernels.
+/// CUDA-Q kernels.
 #if CUDAQ_USE_STD20
 template <typename T>
   requires(std::is_arithmetic_v<T>)
