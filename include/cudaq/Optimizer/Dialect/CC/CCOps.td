@@ -51,7 +51,7 @@ def cc_ScopeOp : CCOp<"scope",
     be added to reclaim stack space, or a call to `free` may be inserted to
     deallocate any compiler-generated heap allocations.
 
-    For a CUDA Quantum variable, cc.scope will, at minimum add calls to
+    For a CUDA-Q variable, cc.scope will, at minimum add calls to
     deallocate any quantum references created inside the ScopeOp's region. It
     may also be desirable to autogenerate adjoint code.
 

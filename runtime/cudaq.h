@@ -219,16 +219,16 @@ std::size_t get_random_seed();
 int num_available_gpus();
 
 namespace mpi {
-/// @brief Return true if CUDA Quantum has MPI plugin support.
+/// @brief Return true if CUDA-Q has MPI plugin support.
 bool available();
 
 /// @brief Initialize MPI if available. This function
-/// is a no-op if there CUDA Quantum has not been built
+/// is a no-op if there CUDA-Q has not been built
 /// against MPI.
 void initialize();
 
 /// @brief Initialize MPI if available. This function
-/// is a no-op if there CUDA Quantum has not been built
+/// is a no-op if there CUDA-Q has not been built
 /// against MPI. Takes program arguments as input.
 void initialize(int argc, char **argv);
 
@@ -280,7 +280,7 @@ void broadcast(std::vector<double> &data, int rootRank);
 void broadcast(std::string &data, int rootRank);
 
 /// @brief Finalize MPI. This function
-/// is a no-op if there CUDA Quantum has not been built
+/// is a no-op if there CUDA-Q has not been built
 /// against MPI.
 void finalize();
 

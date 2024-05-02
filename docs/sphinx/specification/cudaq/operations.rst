@@ -1,7 +1,7 @@
 Quantum Intrinsic Operations
 ****************************
 **[1]** To support low-level quantum programming and build foundational
-quantum kernels for large-scale applications, CUDA Quantum specifies the *quantum
+quantum kernels for large-scale applications, CUDA-Q specifies the *quantum
 intrinsic operation* abstraction for device-specific single-qudit unitary operations. 
 
 **[2]** A quantum intrinsic operation is modeled via a standard free function in the native classical language. It 
@@ -33,8 +33,8 @@ intrinsic operations across containers of :code:`cudaq::qudit`. For example,
 :code:`cudaq::qubit` in the provided :code:`cudaq::qvector`. 
 
 **[7]** Programmers can further modify quantum intrinsic operations via 
-an extra specified template parameter, and CUDA Quantum leverages this syntax 
-for synthesizing control and adjoint variants of the operation. Specifically CUDA Quantum 
+an extra specified template parameter, and CUDA-Q leverages this syntax 
+for synthesizing control and adjoint variants of the operation. Specifically CUDA-Q 
 provides the `cudaq::ctrl`, and `cudaq::adj` type modifiers for synthesizing control and 
 adjoint forms of the operation. For language bindings that do not support template 
 parameterization, implementations may rely on static method calls (e.g. :code:`x.ctrl(q, r)`)
@@ -124,4 +124,4 @@ qubit
 
     x.ctrl(~q, r)
   
-The set of gates that the official CUDA Quantum implementation supports can be found in the :doc:`API documentation </api/api>`.
+The set of gates that the official CUDA-Q implementation supports can be found in the :doc:`API documentation </api/api>`.
