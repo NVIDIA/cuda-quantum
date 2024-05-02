@@ -180,9 +180,9 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
           "cudaq::builder failed to get argsCreator function.");
     }
     auto argsCreator =
-        reinterpret_cast<std::size_t (*)(void **, void **, size_t*)>(*expectedPtr);
+        reinterpret_cast<std::size_t (*)(void **, void **)>(*expectedPtr);
     rawArgs = nullptr;
-    size = argsCreator(runtimeArgs.data(), &rawArgs, &returnOffset);
+    size = argsCreator(runtimeArgs.data(), &rawArgs);
   }
   return std::make_tuple(jit, rawArgs, size, returnOffset);
 }
