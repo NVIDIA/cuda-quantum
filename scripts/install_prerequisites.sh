@@ -175,9 +175,6 @@ fi
 if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]; then
   if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
     echo "Installing LLVM libraries..."
-    # We need to set the LD_LIBRARY_PATH here to make sure that the table-gen
-    # executable actually finds the standard library.
-    LD_LIBRARY_PATH="$(ls -d $(dirname $CC)/../lib/*linux*/ 2>/dev/null):$LD_LIBRARY_PATH" \
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
     PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
@@ -212,9 +209,6 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
     wget http://www.netlib.org/blas/blas-3.11.0.tgz
     tar -xzvf blas-3.11.0.tgz && cd BLAS-3.11.0 
-    # We need to set the LD_LIBRARY_PATH here to make sure that the flang compiler
-    # actually finds the standard library when we built flang from source.
-    LD_LIBRARY_PATH="$(ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*/ 2>/dev/null):$LD_LIBRARY_PATH" \
     make FC="${FC:-gfortran}"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
