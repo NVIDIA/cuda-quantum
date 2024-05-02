@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA Quantum C++ API &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>CUDA-Q C++ API &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -29,7 +29,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA Quantum Python API" href="python_api.html" />
+    <link rel="next" title="CUDA-Q Python API" href="python_api.html" />
     <link rel="prev" title="Code documentation" href="../api.html" /> 
 </head>
 
@@ -42,7 +42,7 @@
           
           
           <a href="../../index.html" class="icon icon-home">
-            NVIDIA CUDA Quantum
+            NVIDIA CUDA-Q
           </a>
               <div class="version">
                 amd64-pr-1462
@@ -99,14 +99,14 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../using/quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/quick_start.html#validate-your-installation">Validate your Installation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/basics/basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
@@ -177,7 +177,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
@@ -280,7 +280,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#updating-cuda-quantum">Updating CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
@@ -292,7 +292,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#python-support">Python Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
@@ -305,7 +305,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/integration/cuda_gpu.html">Combining CUDA with CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/integration/cmake_app.html">Downstream CMake Integration</a></li>
 </ul>
 </li>
@@ -315,8 +315,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../specification/index.html">   Specifications</a><ul>
@@ -349,8 +349,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-quantum-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-quantum-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -489,7 +489,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">NVIDIA CUDA Quantum</a>
+          <a href="../../index.html">NVIDIA CUDA-Q</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -498,21 +498,21 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../api.html">Code documentation</a></li>
-      <li class="breadcrumb-item active">CUDA Quantum C++ API</li>
+      <li class="breadcrumb-item active">CUDA-Q C++ API</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/api/languages/cpp_api.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="../api.html" class="btn btn-neutral float-left" title="Code documentation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="python_api.html" class="btn btn-neutral float-right" title="CUDA Quantum Python API" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="python_api.html" class="btn btn-neutral float-right" title="CUDA-Q Python API" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="cuda-quantum-c-api">
-<h1>CUDA Quantum C++ API<a class="headerlink" href="#cuda-quantum-c-api" title="Permalink to this heading">¶</a></h1>
+  <section id="cuda-q-c-api">
+<h1>CUDA-Q C++ API<a class="headerlink" href="#cuda-q-c-api" title="Permalink to this heading">¶</a></h1>
 <section id="operators">
 <h2>Operators<a class="headerlink" href="#operators" title="Permalink to this heading">¶</a></h2>
 <dl class="cpp class">
@@ -1083,7 +1083,7 @@
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContextE">
 <span class="target" id="classcudaq_1_1ExecutionContext"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ExecutionContext</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContextE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The <a class="reference internal" href="#classcudaq_1_1ExecutionContext"><span class="std std-ref">ExecutionContext</span></a> is an abstraction to indicate how a CUDA Quantum kernel should be executed. </p>
+<dd><p>The <a class="reference internal" href="#classcudaq_1_1ExecutionContext"><span class="std std-ref">ExecutionContext</span></a> is an abstraction to indicate how a CUDA-Q kernel should be executed. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -1135,7 +1135,7 @@
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext6resultE">
 <span class="target" id="classcudaq_1_1ExecutionContext_1a427813b94672a42814459459e30e0930"></span><a class="reference internal" href="#_CPPv4N5cudaq13sample_resultE" title="cudaq::sample_result"><span class="n"><span class="pre">sample_result</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">result</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext6resultE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Measurement counts for a CUDA Quantum kernel invocation. </p>
+<dd><p>Measurement counts for a CUDA-Q kernel invocation. </p>
 </dd></dl>
 
 <dl class="cpp var">
@@ -1222,7 +1222,7 @@
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq7details6futureE">
 <span class="target" id="classcudaq_1_1details_1_1future"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">future</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq7details6futureE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The future type models the expected result of a CUDA Quantum kernel execution under a specific execution context. This type is returned from asynchronous execution calls. It encapsulates the job-specific circuit execution identifiers, the name of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> the job executed on, and any extra configuration information needed to retrieve the results later from the server. This type can be persisted to file and read in later to retrieve execution results. It also optionally wraps a std::future&lt;T&gt; type, and in this case, persistence to file is not allowed, .get() must be invoked at some later point within the same runtime context. </p>
+<dd><p>The future type models the expected result of a CUDA-Q kernel execution under a specific execution context. This type is returned from asynchronous execution calls. It encapsulates the job-specific circuit execution identifiers, the name of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> the job executed on, and any extra configuration information needed to retrieve the results later from the server. This type can be persisted to file and read in later to retrieve execution results. It also optionally wraps a std::future&lt;T&gt; type, and in this case, persistence to file is not allowed, .get() must be invoked at some later point within the same runtime context. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -1249,7 +1249,7 @@
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN5cudaq12async_resultE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classcudaq_1_1async__result"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">async_result</span></span></span><a class="headerlink" href="#_CPPv4I0EN5cudaq12async_resultE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>the <a class="reference internal" href="#classcudaq_1_1async__result"><span class="std std-ref">async_result</span></a> type is a user facing, future-like type that is returned from CUDA Quantum public asynchronous API functions. It wraps a <a class="reference internal" href="#classcudaq_1_1details_1_1future"><span class="std std-ref">details::future</span></a> type, which can itself be constructed from a std::future or a collection of data pertinent to remote <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> REST invocation. </p>
+<dd><p>the <a class="reference internal" href="#classcudaq_1_1async__result"><span class="std std-ref">async_result</span></a> type is a user facing, future-like type that is returned from CUDA-Q public asynchronous API functions. It wraps a <a class="reference internal" href="#classcudaq_1_1details_1_1future"><span class="std std-ref">details::future</span></a> type, which can itself be constructed from a std::future or a collection of data pertinent to remote <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> REST invocation. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -2478,7 +2478,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq7details17KernelBuilderTypeE">
 <span class="target" id="classcudaq_1_1details_1_1KernelBuilderType"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">KernelBuilderType</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq7details17KernelBuilderTypeE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The <code class="docutils literal notranslate"><span class="pre">kernel_builder::Type</span></code> allows us to track input C++ types representing the quake function argument types in a way that does not expose MLIR Type to the CUDA Quantum code. This type keeps track of a functor that generates the MLIR Type in implementation code when <a class="reference internal" href="#classcudaq_1_1details_1_1KernelBuilderType_1ae62efe009d225bfc935230fd0d74fca7"><span class="std std-ref">create()</span></a> is invoked. </p>
+<dd><p>The <code class="docutils literal notranslate"><span class="pre">kernel_builder::Type</span></code> allows us to track input C++ types representing the quake function argument types in a way that does not expose MLIR Type to the CUDA-Q code. This type keeps track of a functor that generates the MLIR Type in implementation code when <a class="reference internal" href="#classcudaq_1_1details_1_1KernelBuilderType_1ae62efe009d225bfc935230fd0d74fca7"><span class="std std-ref">create()</span></a> is invoked. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -2803,7 +2803,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPUE">
 <span class="target" id="classcudaq_1_1QPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq8registryE" title="cudaq::registry"><span class="n"><span class="pre">registry</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4I0EN5cudaq8registry14RegisteredTypeE" title="cudaq::registry::RegisteredType"><span class="n"><span class="pre">RegisteredType</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq3QPUE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>A CUDA Quantum <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> is an abstraction on the quantum processing unit which executes quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> exposes certain information about the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> being targeting, such as the number of available qubits, the logical ID for this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> in a set of available QPUs, and its qubit connectivity. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> keeps track of an execution queue for enqueuing asynchronous tasks that execute quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> also tracks the client-provided execution context to enable quantum kernel related tasks such as sampling and observation.</p>
+<dd><p>A CUDA-Q <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> is an abstraction on the quantum processing unit which executes quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> exposes certain information about the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> being targeting, such as the number of available qubits, the logical ID for this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> in a set of available QPUs, and its qubit connectivity. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> keeps track of an execution queue for enqueuing asynchronous tasks that execute quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> also tracks the client-provided execution context to enable quantum kernel related tasks such as sampling and observation.</p>
 <p>This type is meant to be subtyped by concrete <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> subtypes. </p>
 <p>Subclassed by <a class="reference internal" href="#classcudaq_1_1BaseRemoteRESTQPU"><span class="std std-ref">cudaq::BaseRemoteRESTQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1BaseRemoteSimulatorQPU"><span class="std std-ref">cudaq::BaseRemoteSimulatorQPU</span></a></p>
 <div class="breathe-sectiondef docutils container">
@@ -3179,13 +3179,13 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpi10initializeEv">
 <span class="target" id="cudaq_8h_1a9d165737129a8ca7423ce1e0b0c9ca7e"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3mpi10initializeEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Initialize MPI if available. This function is a no-op if there CUDA Quantum has not been built against MPI. </p>
+<dd><p>Initialize MPI if available. This function is a no-op if there CUDA-Q has not been built against MPI. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpi10initializeEiPPc">
 <span class="target" id="cudaq_8h_1a6c944ecd26dfb16504034fb023a04a99"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">initialize</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">argc</span></span>, <span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">argv</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3mpi10initializeEiPPc" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Initialize MPI if available. This function is a no-op if there CUDA Quantum has not been built against MPI. Takes program arguments as input. </p>
+<dd><p>Initialize MPI if available. This function is a no-op if there CUDA-Q has not been built against MPI. Takes program arguments as input. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -3197,7 +3197,7 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3mpi8finalizeEv">
 <span class="target" id="cudaq_8h_1adbce8f0a621b7c6073e3f358d452b5ed"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3mpiE" title="cudaq::mpi"><span class="n"><span class="pre">mpi</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">finalize</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3mpi8finalizeEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Finalize MPI. This function is a no-op if there CUDA Quantum has not been built against MPI. </p>
+<dd><p>Finalize MPI. This function is a no-op if there CUDA-Q has not been built against MPI. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -3257,13 +3257,13 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../api.html" class="btn btn-neutral float-left" title="Code documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="python_api.html" class="btn btn-neutral float-right" title="CUDA Quantum Python API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="python_api.html" class="btn btn-neutral float-right" title="CUDA-Q Python API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

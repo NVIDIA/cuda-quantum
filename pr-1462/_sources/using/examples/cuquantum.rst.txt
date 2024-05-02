@@ -1,7 +1,7 @@
 Simulations with cuQuantum
 -----------------------------------
 
-CUDA Quantum provides support for cuQuantum-accelerated state vector and tensor network 
+CUDA-Q provides support for cuQuantum-accelerated state vector and tensor network 
 simulations. Let's take a look at an example that is too large for a standard CPU-only simulator, but 
 can be trivially simulated via a NVIDIA GPU-accelerated backend:
 

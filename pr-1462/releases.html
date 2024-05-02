@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CUDA Quantum Releases &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>CUDA-Q Releases &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
@@ -40,7 +40,7 @@
           
           
           <a href="index.html" class="icon icon-home">
-            NVIDIA CUDA Quantum
+            NVIDIA CUDA-Q
           </a>
               <div class="version">
                 amd64-pr-1462
@@ -97,14 +97,14 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="using/quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/quick_start.html#validate-your-installation">Validate your Installation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/basics/basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
@@ -175,7 +175,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
@@ -278,7 +278,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#updating-cuda-quantum">Updating CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
@@ -290,7 +290,7 @@
 <li class="toctree-l4"><a class="reference internal" href="using/install/data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#python-support">Python Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
@@ -303,7 +303,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/integration/cuda_gpu.html">Combining CUDA with CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="using/integration/cmake_app.html">Downstream CMake Integration</a></li>
 </ul>
 </li>
@@ -313,8 +313,8 @@
 <li class="toctree-l3"><a class="reference internal" href="using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="using/extending/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/extending/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="specification/index.html">   Specifications</a><ul>
@@ -347,8 +347,8 @@
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-quantum-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-quantum-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -487,7 +487,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">NVIDIA CUDA Quantum</a>
+          <a href="index.html">NVIDIA CUDA-Q</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -495,7 +495,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">CUDA Quantum Releases</li>
+      <li class="breadcrumb-item active">CUDA-Q Releases</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/releases.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -505,10 +505,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="cuda-quantum-releases">
-<h1>CUDA Quantum Releases<a class="headerlink" href="#cuda-quantum-releases" title="Permalink to this heading">¶</a></h1>
+  <section id="cuda-q-releases">
+<h1>CUDA-Q Releases<a class="headerlink" href="#cuda-q-releases" title="Permalink to this heading">¶</a></h1>
 <p><strong>latest</strong></p>
-<p>The latest version of CUDA Quantum is on the main branch of our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a> and is also available as a Docker image. More information about installing the nightly builds can be found <a class="reference internal" href="using/install/install.html"><span class="doc">here</span></a></p>
+<p>The latest version of CUDA-Q is on the main branch of our <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a> and is also available as a Docker image. More information about installing the nightly builds can be found <a class="reference internal" href="using/install/install.html"><span class="doc">here</span></a></p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum">Docker image (nightly builds)</a></p></li>
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest">Documentation</a></p></li>
@@ -531,11 +531,11 @@ to learn more about the new setup and its performance benefits.</p>
 <p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">here</a>.</p>
 <p><strong>0.6.0</strong></p>
 <p>The 0.6.0 release contains improved support for various HPC scenarios. We have added a
-<a class="reference internal" href="using/install/local_installation.html#distributed-computing-with-mpi"><span class="std std-ref">plugin infrastructure</span></a> for connecting CUDA Quantum
+<a class="reference internal" href="using/install/local_installation.html#distributed-computing-with-mpi"><span class="std std-ref">plugin infrastructure</span></a> for connecting CUDA-Q
 with an existing MPI installation, and we’ve added a <a class="reference internal" href="using/backends/platform.html#id1"><span class="std std-ref">new platform target</span></a> that distributes workloads across multiple virtual QPUs,
 each simulated by one or more GPUs.</p>
 <p>Starting with 0.6.0, we are now also distributing
-<a class="reference internal" href="using/install/local_installation.html#install-prebuilt-binaries"><span class="std std-ref">pre-built binaries</span></a> for using CUDA Quantum with C++.
+<a class="reference internal" href="using/install/local_installation.html#install-prebuilt-binaries"><span class="std std-ref">pre-built binaries</span></a> for using CUDA-Q with C++.
 The binaries are built against the <a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>
 version 2.28.
 We’ve added a detailed <a class="reference internal" href="using/install/data_center_install.html"><span class="doc">Building from Source</span></a> guide to build these binaries for older <code class="code docutils literal notranslate"><span class="pre">glibc</span></code> versions.</p>
@@ -548,9 +548,9 @@ We’ve added a detailed <a class="reference internal" href="using/install/data_
 </ul>
 <p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.6.0">here</a>.</p>
 <p><strong>0.5.0</strong></p>
-<p>With 0.5.0 we have added support for quantum kernel execution on OQC and IQM backends. For more information, see <a class="reference internal" href="using/backends/hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.
-CUDA Quantum now allows to executing adaptive quantum kernels on quantum hardware backends that support it.
-The 0.5.0 release furthermore improves the tensor network simulation tools and adds a matrix product state simulator, see <a class="reference internal" href="using/backends/simulators.html"><span class="doc">CUDA Quantum Simulation Backends</span></a>.</p>
+<p>With 0.5.0 we have added support for quantum kernel execution on OQC and IQM backends. For more information, see <a class="reference internal" href="using/backends/hardware.html"><span class="doc">CUDA-Q Hardware Backends</span></a>.
+CUDA-Q now allows to executing adaptive quantum kernels on quantum hardware backends that support it.
+The 0.5.0 release furthermore improves the tensor network simulation tools and adds a matrix product state simulator, see <a class="reference internal" href="using/backends/simulators.html"><span class="doc">CUDA-Q Simulation Backends</span></a>.</p>
 <p>Additionally, we are now publishing images for experimental features, which currently includes improved Python language support.
 Please take a look at <a class="reference internal" href="using/install/install.html"><span class="doc">Installation Guide</span></a> for more information about how to obtain them.</p>
 <ul class="simple">
@@ -570,8 +570,8 @@ Please take a look at <a class="reference internal" href="using/install/install.
 </ul>
 <p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.4.1">here</a>.</p>
 <p><strong>0.4.0</strong></p>
-<p>CUDA Quantum is now available on PyPI!
-The 0.4.0 release adds support for quantum kernel execution on Quantinuum and IonQ backends. For more information, see <a class="reference internal" href="using/backends/hardware.html"><span class="doc">CUDA Quantum Hardware Backends</span></a>.</p>
+<p>CUDA-Q is now available on PyPI!
+The 0.4.0 release adds support for quantum kernel execution on Quantinuum and IonQ backends. For more information, see <a class="reference internal" href="using/backends/hardware.html"><span class="doc">CUDA-Q Hardware Backends</span></a>.</p>
 <p>The 0.4.0 PyPI release does not yet include all of the GPU-based backends.
 The fully featured version is available as a Docker image for <code class="code docutils literal notranslate"><span class="pre">linux/amd64</span></code> platforms.</p>
 <ul class="simple">
@@ -582,7 +582,7 @@ The fully featured version is available as a Docker image for <code class="code 
 </ul>
 <p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/tag/0.4.0">here</a>.</p>
 <p><strong>0.3.0</strong></p>
-<p>The 0.3.0 release of CUDA Quantum is available as a Docker image for <code class="code docutils literal notranslate"><span class="pre">linux/amd64</span></code> platforms.</p>
+<p>The 0.3.0 release of CUDA-Q is available as a Docker image for <code class="code docutils literal notranslate"><span class="pre">linux/amd64</span></code> platforms.</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">Docker image</a></p></li>
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.3.0">Documentation</a></p></li>
@@ -598,7 +598,7 @@ The fully featured version is available as a Docker image for <code class="code 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
