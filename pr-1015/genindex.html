@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Index &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
@@ -39,7 +39,7 @@
           
           
           <a href="index.html" class="icon icon-home">
-            NVIDIA CUDA Quantum
+            NVIDIA CUDA-Q
           </a>
               <div class="version">
                 amd64-pr-1015
@@ -95,96 +95,59 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="install.html">   Getting Started</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#local-installation">Local Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#docker">Docker</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#singularity">Singularity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#python-wheels">Python wheels</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/quick_start.html">   Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/quick_start.html#validate-your-installation">Validate your Installation</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#development-with-vs-code">Development with VS Code</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#using-a-docker-container">Using a Docker container</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#using-a-singularity-container">Using a Singularity container</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/basics/basics.html">   Basics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#observe">Observe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#remote-access-via-ssh">Remote Access via SSH</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#dgx-cloud">DGX Cloud</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#get-started">Get Started</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#use-jupyterlab">Use JupyterLab</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#use-vs-code">Use VS Code</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#additional-cuda-tools">Additional CUDA Tools</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
-<li class="toctree-l2"><a class="reference internal" href="install.html#next-steps">Next Steps</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="using/cudaq.html">   Learn the Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/prereqs.html">CUDA Quantum Prerequisites</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/compiling.html">Compiling CUDA Quantum Programs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/kernel.html">What is a CUDA Quantum Kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/allocating_quantum_memory.html">Allocating Quantum Memory</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/runtime_v_compile.html">Runtime Versus Compile-time Kernels</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/generic_functions.html">Generic Library Functions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/builder.html">Creating Kernels at Runtime</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/variational.html">Variational Algorithms</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/platform.html">Multi-processor Platforms</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/cudaq/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/cudaq/platform.html#parallel-distribution-mode">Parallel distribution mode</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="using/cudaq/platform.html#c">C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/cudaq/platform.html#python">Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/basics/troubleshooting.html">   Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="using/cudaq/verbose_out.html">Debugging and Verbose Logging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/examples/examples.html">   Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/introduction.html">   Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/expectation_values.html">   Computing Expectation Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/multi_control.html">   Multi-Control Synthesis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/bernstein_vazirani.html">   Bernstein-Vazirani</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/vqe.html">   Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/qaoa.html">   Quantum Approximate Optimization Algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/cuquantum.html">   Simulations with cuQuantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/noisy_simulation.html">   Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="using/advanced.html">   Advanced Topics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/advanced/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/advanced/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/advanced/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="using/advanced/cmake_app.html">Downstream CMake Integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/advanced/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="using/advanced/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="using/examples.html">   Examples</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/cpp.html">   CUDA Quantum in C++</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/cpp.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/cpp.html#computing-expectation-values">Computing Expectation Values</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/cpp.html#multi-control-synthesis">Multi-control Synthesis</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/cpp.html#simulations-with-cuquantum">Simulations with cuQuantum</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/cpp.html#noisy-simulation">Noisy Simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/cpp.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="using/python.html">   CUDA Quantum in Python</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/python.html#introduction">Introduction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/python.html#bernstein-vazirani">Bernstein-Vazirani</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/python.html#variational-quantum-eigensolver">Variational Quantum Eigensolver</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/python.html#quantum-approximate-optimization-algorithm">Quantum Approximate Optimization Algorithm</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/python.html#noisy-simulation">Noisy Simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/python.html#using-quantum-hardware-providers">Using Quantum Hardware Providers</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="using/tutorials.html">   Tutorials</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Observe">Observe</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="using/tutorials.html">   Applications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/deutschs_algorithm.html">Deutschs’ Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/deutschs_algorithm.html#Deutschs'-Algorithm:">Deutschs’ Algorithm:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html">Executing Quantum Circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Sample-Async">Sample Async</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/python/tutorials/executing_circuits.html#Observe-Async">Observe Async</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html">Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Available-Targets">Available Targets</a></li>
@@ -194,54 +157,169 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multi_gpu_workflows.html#Multiple-QPU's">Multiple QPU’s</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/multiple_qubits.html">Multiple Qubits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multiple_qubits.html#Some-notation-conventions">Some notation conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/multiple_qubits.html#Controlled-NOT-gate">Controlled-NOT gate</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="using/simulators.html">   Simulator Backends</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#single-gpu">Single-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/noisy_simulations.html">Noisy Simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/quantum_bits.html">Quantum Bits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/quantum_bits.html#Qubit">Qubit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/quantum_bits.html#Pauli-X-gate">Pauli X gate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/quantum_bits.html#Superpositions-&amp;-Measurements">Superpositions &amp; Measurements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/quantum_bits.html#Qubit-visualizations">Qubit visualizations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/quantum_bits.html#Gate-linearity">Gate linearity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/quantum_bits.html#Gate-unitarity">Gate unitarity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/quantum_bits.html#Single-qubit-gates">Single qubit gates</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="using/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#id2">Multi-node multi-GPU</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/simulators.html#matrix-product-state">Matrix product state</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="using/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="using/hardware.html">   Hardware Backends</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="using/hardware.html#quantinuum">Quantinuum</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/backends/backends.html">   Backends</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/backends/simulators.html">   Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/simulators.html#state-vector-simulators">State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#openmp-cpu-only">OpenMP CPU-only</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="using/hardware.html#ionq">IonQ</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id1">Setting Credentials</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id2">Submission from C++</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id3">Submission from Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/simulators.html#tensor-network-simulators">Tensor Network Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#id2">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/simulators.html#matrix-product-state">Matrix product state</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="using/hardware.html#iqm">IQM</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id4">Setting Credentials</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id5">Submission from C++</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id6">Submission from Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/simulators.html#default-simulator">Default Simulator</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="using/hardware.html#oqc">OQC</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id7">Setting Credentials</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id8">Submission from C++</a></li>
-<li class="toctree-l3"><a class="reference internal" href="using/hardware.html#id9">Submission from Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/backends/hardware.html">   Quantum Hardware</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/hardware.html#quantinuum">Quantinuum</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#submission-from-c">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/hardware.html#ionq">IonQ</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#ionq-backend">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id2">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id3">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/hardware.html#iqm">IQM</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id4">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id5">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id6">Submission from Python</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/hardware.html#oqc">OQC</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id7">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id8">Submission from C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/hardware.html#id9">Submission from Python</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/backends/nvqc.html">   NVIDIA Quantum Cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/nvqc.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/nvqc.html#faq">FAQ</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/backends/platform.html">   Multi-Processor Platforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/platform.html#nvidia-mqpu-platform">NVIDIA <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/platform.html#asynchronous-expectation-value-computations">Asynchronous expectation value computations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/platform.html#parallel-distribution-mode">Parallel distribution mode</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/backends/platform.html#remote-mqpu-platform">Remote <code class="code docutils literal notranslate"><span class="pre">MQPU</span></code> Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/platform.html#supported-kernel-arguments">Supported Kernel Arguments</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="using/install/install.html">   Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/install/local_installation.html">Local Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#introduction">Introduction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#singularity">Singularity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#python-wheels">Python wheels</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#pre-built-binaries">Pre-built binaries</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#development-with-vs-code">Development with VS Code</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#using-a-docker-container">Using a Docker container</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#using-a-singularity-container">Using a Singularity container</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#connecting-to-a-remote-host">Connecting to a Remote Host</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#developing-with-remote-tunnels">Developing with Remote Tunnels</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#remote-access-via-ssh">Remote Access via SSH</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#dgx-cloud">DGX Cloud</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#get-started">Get Started</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#use-jupyterlab">Use JupyterLab</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#use-vs-code">Use VS Code</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#additional-cuda-tools">Additional CUDA Tools</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#installation-via-pypi">Installation via PyPI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#installation-in-container-images">Installation In Container Images</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/local_installation.html#installing-pre-built-binaries">Installing Pre-built Binaries</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/local_installation.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/install/data_center_install.html">Data Center Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#build-dependencies">Build Dependencies</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/install/data_center_install.html#cuda">CUDA</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/data_center_install.html#toolchain">Toolchain</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#c-support">C++ Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#python-support">Python Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/install/data_center_install.html#cuda-runtime-libraries">CUDA Runtime Libraries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/install/data_center_install.html#mpi">MPI</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="using/integration/integration.html">   Integration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/integration/cmake_app.html">Downstream CMake Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="using/extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="specification/index.html">   Specifications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="specification/cudaq.html">   Language Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/machine_model.html">1. Machine Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/namespace.html">2. Namespace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/namespace.html">2. Namespace and Standard</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/types.html">3. Quantum Types</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/types.html#cudaq-qudit-levels">3.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::qudit&lt;Levels&gt;</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/types.html#cudaq-qubit">3.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
@@ -252,12 +330,11 @@
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/operators.html#cudaq-spin-op">4.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::spin_op</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/operations.html">5. Quantum Operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/kernels.html">6. Quantum Kernels</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/kernels.html#kernel-composability">6.1. Kernel Composability</a></li>
-<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/kernels.html#allowed-kernel-classical-function-invocations">6.2. Allowed Kernel Classical Function Invocations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/operations.html">5. Quantum Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/operations.html#operations-on-cudaq-qubit">5.1. Operations on <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="specification/cudaq/kernels.html">6. Quantum Kernels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/synthesis.html">7. Sub-circuit Synthesis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/control_flow.html">8. Control Flow</a></li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/dynamic_kernels.html">9. Just-in-Time Kernel Creation</a></li>
@@ -269,8 +346,8 @@
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-optimizer">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-gradient">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -300,14 +377,17 @@
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#algorithms">Algorithms</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#platform">Platform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#namespaces">Namespaces</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/languages/python_api.html">Python API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#program-construction">Program Construction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.make_kernel"><code class="docutils literal notranslate"><span class="pre">make_kernel()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.from_state"><code class="docutils literal notranslate"><span class="pre">from_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PyKernel"><code class="docutils literal notranslate"><span class="pre">PyKernel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Kernel"><code class="docutils literal notranslate"><span class="pre">Kernel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.PyKernelDecorator"><code class="docutils literal notranslate"><span class="pre">PyKernelDecorator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.kernel"><code class="docutils literal notranslate"><span class="pre">kernel()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
@@ -318,6 +398,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.get_state_async"><code class="docutils literal notranslate"><span class="pre">get_state_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -339,6 +420,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.QuakeValue"><code class="docutils literal notranslate"><span class="pre">QuakeValue</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
@@ -381,6 +463,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -403,7 +486,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">NVIDIA CUDA Quantum</a>
+          <a href="index.html">NVIDIA CUDA-Q</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -446,9 +529,6 @@
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
- | <a href="#X"><strong>X</strong></a>
- | <a href="#Y"><strong>Y</strong></a>
- | <a href="#Z"><strong>Z</strong></a>
  
 </div>
 <h2 id="_">_</h2>
@@ -460,7 +540,7 @@
         <li><a href="api/languages/python_api.html#cudaq.SpinOperator.__add__">(cudaq.SpinOperator method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.__call__">__call__() (cudaq.Kernel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.__call__">__call__() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.__eq__">__eq__() (cudaq.SpinOperator method)</a>
 </li>
@@ -525,7 +605,7 @@
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.__str__">__str__() (cudaq.ComplexMatrix method)</a>
 
       <ul>
-        <li><a href="api/languages/python_api.html#cudaq.Kernel.__str__">(cudaq.Kernel method)</a>
+        <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.__str__">(cudaq.PyKernelDecorator method)</a>
 </li>
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.QuakeValue.__sub__">__sub__() (cudaq.QuakeValue method)</a>
@@ -542,8 +622,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.NoiseModel.add_channel">add_channel() (cudaq.NoiseModel method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.adjoint">adjoint() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.all_gather">all_gather() (in module cudaq.mpi)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.AmplitudeDampingChannel">AmplitudeDampingChannel (class in cudaq)</a>
@@ -552,11 +630,9 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.apply_call">apply_call() (cudaq.Kernel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernel.argument_count">argument_count (cudaq.PyKernel attribute)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.argument_count">argument_count (cudaq.Kernel attribute)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.arguments">arguments (cudaq.Kernel attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernel.arguments">arguments (cudaq.PyKernel attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.AsyncObserveResult">AsyncObserveResult (class in cudaq)</a>
 </li>
@@ -582,17 +658,15 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.c_if">c_if() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.CentralDifference">CentralDifference (class in cudaq.gradients)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.ch">ch() (cudaq.Kernel method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.clear">clear() (cudaq.SampleResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA">COBYLA (class in cudaq.optimizers)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.KrausOperator.col_count">col_count (cudaq.KrausOperator property)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.compile">compile() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix">ComplexMatrix (class in cudaq)</a>
 </li>
@@ -604,23 +678,9 @@
         <li><a href="api/languages/python_api.html#cudaq.gradients.ParameterShift.compute">(cudaq.gradients.ParameterShift method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.control">control() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.count">count() (cudaq.SampleResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult.counts">counts() (cudaq.ObserveResult method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cr1">cr1() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.crx">crx() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cry">cry() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.crz">crz() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cs">cs() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.ct">ct() (cudaq.Kernel method)</a>
 </li>
       <li>
     cudaq
@@ -636,6 +696,12 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq12async_resultE">cudaq::async_result (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq12async_result3getEv">cudaq::async_result::get (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20BaseNvcfSimulatorQPUE">cudaq::BaseNvcfSimulatorQPU (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17BaseRemoteRESTQPUE">cudaq::BaseRemoteRESTQPU (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE">cudaq::BaseRemoteSimulatorQPU (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16bit_flip_channelE">cudaq::bit_flip_channel (C++ class)</a>
 </li>
@@ -685,6 +751,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7details17KernelBuilderType17KernelBuilderTypeERRNSt8functionIFN4mlir4TypeEPN4mlir11MLIRContextEEEE">cudaq::details::KernelBuilderType::KernelBuilderType (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq4drawENSt6stringERR13QuantumKernelDpRR4Args">cudaq::draw (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3dynE">cudaq::dyn (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContextE">cudaq::ExecutionContext (C++ class)</a>
@@ -705,13 +773,15 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext10kernelNameE">cudaq::ExecutionContext::kernelName (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext15kernelResourcesE">cudaq::ExecutionContext::kernelResources (C++ member)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext11kernelTraceE">cudaq::ExecutionContext::kernelTrace (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext4nameE">cudaq::ExecutionContext::name (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext10noiseModelE">cudaq::ExecutionContext::noiseModel (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext13registerNamesE">cudaq::ExecutionContext::registerNames (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext10reorderIdxE">cudaq::ExecutionContext::reorderIdx (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext6resultE">cudaq::ExecutionContext::result (C++ member)</a>
 </li>
@@ -731,7 +801,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResult15ExecutionResultE16CountsDictionary">cudaq::ExecutionResult::ExecutionResult (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResult15ExecutionResultE16CountsDictionaryNSt6stringE">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResult15ExecutionResultE16CountsDictionaryd">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResult15ExecutionResultENSt6stringE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResult15ExecutionResultERK15ExecutionResult">[4]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResult15ExecutionResultEd">[5]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResult15ExecutionResultEv">[6]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResultaSER15ExecutionResult">cudaq::ExecutionResult::operator= (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResultaSERK15ExecutionResult">cudaq::ExecutionResult::operator= (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq15ExecutionResulteqERK15ExecutionResult">cudaq::ExecutionResult::operator== (C++ function)</a>
 </li>
@@ -739,7 +809,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResult14sequentialDataE">cudaq::ExecutionResult::sequentialData (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResult9serializeEv">cudaq::ExecutionResult::serialize (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq15ExecutionResult9serializeEv">cudaq::ExecutionResult::serialize (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8gradientE">cudaq::gradient (C++ class)</a>
 </li>
@@ -767,21 +837,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq14kernel_builderE">cudaq::kernel_builder (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq14kernel_builder7adjointEvR18OtherKernelBuilderDpR11QuakeValues">cudaq::kernel_builder::adjoint (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder7adjointEvR18OtherKernelBuilderRNSt6vectorI10QuakeValueEE">[1]</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder4c_ifE10QuakeValueRRNSt8functionIFvvEEE">cudaq::kernel_builder::c_if (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq14kernel_builder4callEvRR18OtherKernelBuilderDpR11QuakeValues">cudaq::kernel_builder::call (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder4callEvR18OtherKernelBuilderRNSt6vectorI10QuakeValueEE">[1]</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder11constantValEd">cudaq::kernel_builder::constantVal (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueDpR11QuakeValues">cudaq::kernel_builder::control (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq14kernel_builder7controlEvR18OtherKernelBuilderR10QuakeValueRNSt6vectorI10QuakeValueEE">[1]</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I_23QuakeValueOrNumericTypeDpEN5cudaq14kernel_builder9exp_pauliEvRK6ParamTRKNSt6stringEDpRR9QubitArgs">cudaq::kernel_builder::exp_pauli (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I_23QuakeValueOrNumericTypeEN5cudaq14kernel_builder9exp_pauliEvRK6ParamTRK10QuakeValueRKNSt6stringE">[1]</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq14kernel_builder8for_loopEvRR9StartTypeRR7EndTypeRRNSt8functionIFvR10QuakeValueEEE">cudaq::kernel_builder::for_loop (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq14kernel_builder3getEDcv">cudaq::kernel_builder::get (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder12getArgumentsEv">cudaq::kernel_builder::getArguments (C++ function)</a>
 </li>
@@ -789,23 +845,13 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder11isArgStdVecENSt6size_tE">cudaq::kernel_builder::isArgStdVec (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder12jitAndInvokeEPPvNSt6vectorINSt6stringEEE">cudaq::kernel_builder::jitAndInvoke (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder7jitCodeENSt6vectorINSt6stringEEE">cudaq::kernel_builder::jitCode (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder14kernel_builderERNSt6vectorIN7details17KernelBuilderTypeEEE">cudaq::kernel_builder::kernel_builder (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder4nameEv">cudaq::kernel_builder::name (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builderclEDp4Args">cudaq::kernel_builder::operator() (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builderclEPPv">[1]</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder6qallocE10QuakeValue">cudaq::kernel_builder::qalloc (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder6qallocEKNSt6size_tE">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder6qallocEv">[2]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder5resetERK10QuakeValue">cudaq::kernel_builder::reset (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder4swapERK10QuakeValueRK10QuakeValue">cudaq::kernel_builder::swap (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq14kernel_builder8to_quakeEv">cudaq::kernel_builder::to_quake (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq14kernel_builder4swapEvRK10QuakeValueRK10QuakeValueRK10QuakeValue">cudaq::kernel_builder::swap (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq14kernel_builder4swapEvRKNSt6vectorI10QuakeValueEERK10QuakeValueRK10QuakeValue">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14kernel_builder4swapERK10QuakeValueRK10QuakeValue">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq19KernelExecutionTaskE">cudaq::KernelExecutionTask (C++ type)</a>
 </li>
@@ -845,7 +891,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction">cudaq::mpi::all_reduce (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK4Func">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpi9broadcastERNSt6vectorIdEEi">cudaq::mpi::broadcast (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpi9broadcastERNSt6stringEi">cudaq::mpi::broadcast (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpi9broadcastERNSt6vectorIdEEi">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpi8finalizeEv">cudaq::mpi::finalize (C++ function)</a>
 </li>
@@ -879,10 +925,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14id_coefficientEv">cudaq::observe_result::id_coefficient (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultERdRK7spin_op">cudaq::observe_result::observe_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultERdRK7spin_op13sample_result">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultEdRK7spin_op">cudaq::observe_result::observe_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result14observe_resultEdRK7spin_op13sample_result">[1]</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_resultcvdEv">cudaq::observe_result::operator double (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14observe_result8raw_dataEv">cudaq::observe_result::raw_data (C++ function)</a>
@@ -905,6 +949,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU15getConnectivityEv">cudaq::QPU::getConnectivity (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU20getExecutionThreadIdEv">cudaq::QPU::getExecutionThreadId (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12getNumQubitsEv">cudaq::QPU::getNumQubits (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU10isEmulatedEv">cudaq::QPU::isEmulated (C++ function)</a>
@@ -913,11 +959,17 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringEPFvPvEPvNSt8uint64_tENSt8uint64_tE">cudaq::QPU::launchKernel (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE">cudaq::QPU::onRandomSeedSet (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUENSt6size_tE">cudaq::QPU::QPU (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUERR3QPU">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUEv">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU21resetExecutionContextEv">cudaq::QPU::resetExecutionContext (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU19setExecutionContextEP16ExecutionContext">cudaq::QPU::setExecutionContext (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU5setIdENSt6size_tE">cudaq::QPU::setId (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU8setShotsEi">cudaq::QPU::setShots (C++ function)</a>
 </li>
@@ -1005,6 +1057,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform8num_qpusEv">cudaq::quantum_platform::num_qpus (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE">cudaq::quantum_platform::onRandomSeedSet (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14reset_exec_ctxENSt6size_tE">cudaq::quantum_platform::reset_exec_ctx (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform11reset_noiseEv">cudaq::quantum_platform::reset_noise (C++ function)</a>
@@ -1035,6 +1089,36 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qudit5quditEv">cudaq::qudit::qudit (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq7qvectorE">cudaq::qvector (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector4backENSt6size_tE">cudaq::qvector::back (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector4backEv">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5beginEv">cudaq::qvector::begin (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5clearEv">cudaq::qvector::clear (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector3endEv">cudaq::qvector::end (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5frontENSt6size_tE">cudaq::qvector::front (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5frontEv">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvectoraSERK7qvector">cudaq::qvector::operator= (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvectorixEKNSt6size_tE">cudaq::qvector::operator[] (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorENSt6size_tE">cudaq::qvector::qvector (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK7qvector">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERR7qvector">[2]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq7qvector4sizeEv">cudaq::qvector::size (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector5sliceENSt6size_tENSt6size_tE">cudaq::qvector::slice (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector10value_typeE">cudaq::qvector::value_type (C++ type)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq5qviewE">cudaq::qview (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview10value_typeE">cudaq::qview::value_type (C++ type)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType">cudaq::range (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5rangeENSt6size_tE">[2]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8registryE">cudaq::registry (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8registry14RegisteredTypeE">cudaq::registry::RegisteredType (C++ class)</a>
@@ -1063,35 +1147,35 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result9exp_val_zEKNSt11string_viewE">cudaq::sample_result::exp_val_z (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result11expectationEKNSt11string_viewE">cudaq::sample_result::expectation (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result11expectationEKNSt11string_viewE">cudaq::sample_result::expectation (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result12get_marginalERKNSt6vectorINSt6size_tEEEKNSt11string_viewE">cudaq::sample_result::get_marginal (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result12get_marginalERRKNSt6vectorINSt6size_tEEEKNSt11string_viewE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result15has_even_parityENSt11string_viewE">cudaq::sample_result::has_even_parity (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result15has_expectationEKNSt11string_viewE">cudaq::sample_result::has_expectation (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result15has_expectationEKNSt11string_viewE">cudaq::sample_result::has_expectation (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13most_probableEKNSt11string_viewE">cudaq::sample_result::most_probable (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultpLER13sample_result">cudaq::sample_result::operator+= (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultpLERK13sample_result">cudaq::sample_result::operator+= (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultaSER13sample_result">cudaq::sample_result::operator= (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_resulteqERK13sample_result">cudaq::sample_result::operator== (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result11probabilityENSt11string_viewEKNSt11string_viewE">cudaq::sample_result::probability (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result11probabilityENSt11string_viewEKNSt11string_viewE">cudaq::sample_result::probability (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result14register_namesEv">cudaq::sample_result::register_names (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result14register_namesEv">cudaq::sample_result::register_names (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result7reorderERKNSt6vectorINSt6size_tEEEKNSt11string_viewE">cudaq::sample_result::reorder (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultER15ExecutionResult">cudaq::sample_result::sample_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERNSt6vectorI15ExecutionResultEE">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultEdRNSt6vectorI15ExecutionResultEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultEv">[4]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultER15ExecutionResult">cudaq::sample_result::sample_result (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERNSt6vectorI15ExecutionResultEE">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultERR15ExecutionResult">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultEdRNSt6vectorI15ExecutionResultEE">[4]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result13sample_resultEv">[5]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result9serializeEv">cudaq::sample_result::serialize (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result9serializeEv">cudaq::sample_result::serialize (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result4sizeEKNSt11string_viewE">cudaq::sample_result::size (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result6to_mapEKNSt11string_viewE">cudaq::sample_result::to_map (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result6to_mapEKNSt11string_viewE">cudaq::sample_result::to_map (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultD0Ev">cudaq::sample_result::~sample_result (C++ function)</a>
 </li>
@@ -1171,13 +1255,9 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5state5stateE5State">cudaq::state::state (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5state5stateEv">[1]</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5TraceE">cudaq::Trace (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11unset_noiseEv">cudaq::unset_noise (C++ function)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cx">cx() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cy">cy() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.cz">cz() (cudaq.Kernel method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1190,6 +1270,8 @@
       <li><a href="api/languages/python_api.html#cudaq.Target.description">description (cudaq.Target property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.distribute_terms">distribute_terms() (cudaq.SpinOperator method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.draw">draw() (in module cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -1209,8 +1291,6 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.exp_pauli">exp_pauli() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult.expectation">expectation() (cudaq.ObserveResult method)</a>
 
       <ul>
@@ -1235,15 +1315,11 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.for_each_pauli">for_each_pauli() (cudaq.SpinOperator method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.for_each_term">for_each_term() (cudaq.SpinOperator method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.for_loop">for_loop() (cudaq.Kernel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.for_each_term">for_each_term() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.ForwardDifference">ForwardDifference (class in cudaq.gradients)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.from_state">from_state() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.from_word">from_word() (cudaq.SpinOperator static method)</a>
 </li>
@@ -1299,10 +1375,6 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.h">h() (cudaq.Kernel method)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.has_target">has_target() (in module cudaq)</a>
 </li>
   </ul></td>
@@ -1321,15 +1393,19 @@
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.initial_parameters">(cudaq.optimizers.NelderMead property)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.mpi.initialize">initialize() (in module cudaq.mpi)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.initialize_cudaq">initialize_cudaq() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Target.is_emulated">is_emulated() (cudaq.Target method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.is_identity">is_identity() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.is_initialized">is_initialized() (in module cudaq.mpi)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Target.is_remote">is_remote() (cudaq.Target method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.items">items() (cudaq.SampleResult method)</a>
 </li>
@@ -1339,7 +1415,9 @@
 <h2 id="K">K</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel">Kernel (class in cudaq)</a>
+      <li><a href="api/languages/python_api.html#cudaq.Kernel">Kernel (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.kernel">kernel() (in module cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -1383,10 +1461,10 @@
         <li><a href="api/languages/python_api.html#cudaq.optimizers.NelderMead.max_iterations">(cudaq.optimizers.NelderMead property)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.minimal_eigenvalue">minimal_eigenvalue() (cudaq.ComplexMatrix method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.minimal_eigenvalue">minimal_eigenvalue() (cudaq.ComplexMatrix method)</a>
+</li>
       <li>
     module
 
@@ -1396,19 +1474,13 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.most_probable">most_probable() (cudaq.SampleResult method)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.mx">mx() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.my">my() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.mz">mz() (cudaq.Kernel method)</a>
-</li>
   </ul></td>
 </tr></table>
 
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.name">name (cudaq.Kernel attribute)</a>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernel.name">name (cudaq.PyKernel attribute)</a>
 
       <ul>
         <li><a href="api/languages/python_api.html#cudaq.Target.name">(cudaq.Target property)</a>
@@ -1466,11 +1538,15 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PhaseFlipChannel">PhaseFlipChannel (class in cudaq)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Target.platform">platform (cudaq.Target property)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.probability">probability() (cudaq.SampleResult method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernel">PyKernel (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator">PyKernelDecorator (class in cudaq)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1478,15 +1554,15 @@
 <h2 id="Q">Q</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.qalloc">qalloc() (cudaq.Kernel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.qreg">qreg (in module cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.qreg">qreg (class in cudaq)</a>
+      <li><a href="api/languages/python_api.html#cudaq.QuakeValue">QuakeValue (class in cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.QuakeValue">QuakeValue (class in cudaq)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.qubit">qubit (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.qvector">qvector (class in cudaq)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1494,25 +1570,17 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.r1">r1() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.random">random() (cudaq.SpinOperator static method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.mpi.rank">rank() (in module cudaq.mpi)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.SampleResult.register_names">register_names (cudaq.SampleResult attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.SampleResult.register_names">register_names (cudaq.SampleResult attribute)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.reset_target">reset_target() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.KrausOperator.row_count">row_count (cudaq.KrausOperator property)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.rx">rx() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.ry">ry() (cudaq.Kernel method)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.rz">rz() (cudaq.Kernel method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1520,15 +1588,11 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.s">s() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.sample">sample() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.sample_async">sample_async() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult">SampleResult (class in cudaq)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.sdg">sdg() (cudaq.Kernel method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.serialize">serialize() (cudaq.SpinOperator method)</a>
 </li>
@@ -1556,24 +1620,18 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.State">State (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.swap">swap() (cudaq.Kernel method)</a>
-</li>
   </ul></td>
 </tr></table>
 
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.t">t() (cudaq.Kernel method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.Target">Target (class in cudaq)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.tdg">tdg() (cudaq.Kernel method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_matrix">to_matrix() (cudaq.SpinOperator method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_matrix">to_matrix() (cudaq.SpinOperator method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_sparse_matrix">to_sparse_matrix() (cudaq.SpinOperator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SpinOperator.to_string">to_string() (cudaq.SpinOperator method)</a>
@@ -1611,30 +1669,6 @@
   </ul></td>
 </tr></table>
 
-<h2 id="X">X</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.x">x() (cudaq.Kernel method)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="Y">Y</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.y">y() (cudaq.Kernel method)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="Z">Z</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Kernel.z">z() (cudaq.Kernel method)</a>
-</li>
-  </ul></td>
-</tr></table>
-
 
 
            </div>
@@ -1644,7 +1678,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

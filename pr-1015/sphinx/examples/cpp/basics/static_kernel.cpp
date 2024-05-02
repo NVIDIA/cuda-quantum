@@ -6,14 +6,14 @@
 
 #include <cudaq.h>
 
-// Define a CUDA Quantum kernel that is fully specified
+// Define a CUDA-Q kernel that is fully specified
 // at compile time via templates.
 template <std::size_t N>
 struct ghz {
   auto operator()() __qpu__ {
 
-    // Compile-time, std::array-like `qreg`.
-    cudaq::qreg<N> q;
+    // Compile-time sized array like std::array
+    cudaq::qarray<N> q;
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);

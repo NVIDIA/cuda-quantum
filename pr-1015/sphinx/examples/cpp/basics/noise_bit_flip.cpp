@@ -9,7 +9,7 @@
 
 #include <cudaq.h>
 
-// CUDA Quantum supports several different models of noise. In this case,
+// CUDA-Q supports several different models of noise. In this case,
 // we will examine the modeling of decoherence of the qubit state. This
 // will occur from "bit flip" errors, wherein the qubit has a user-specified
 // probability of undergoing an X-180 rotation.
@@ -20,7 +20,8 @@ int main() {
   // these decoherence channels to.
   cudaq::noise_model noise;
 
-  // Bit flip channel with `1.0` probability of the qubit flipping 180 degrees.
+  // We define a bit-flip channel setting the probability of the
+  // qubit flipping 180 degrees about the X axis to `1.0`.
   cudaq::bit_flip_channel bf(1.);
   // We will apply this channel to any X gate on the qubit, giving each X-gate
   // a probability of `1.0` of undergoing an extra X-gate.

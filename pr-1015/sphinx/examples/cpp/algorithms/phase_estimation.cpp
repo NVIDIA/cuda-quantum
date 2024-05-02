@@ -11,7 +11,7 @@
 
 // A pure device quantum kernel defined as a free function
 // (cannot be called from host code).
-__qpu__ void iqft(cudaq::qspan<> q) {
+__qpu__ void iqft(cudaq::qview<> q) {
   int N = q.size();
   // Swap qubits
   for (int i = 0; i < N / 2; ++i) {
@@ -31,20 +31,20 @@ __qpu__ void iqft(cudaq::qspan<> q) {
   h(q[N - 1]);
 }
 
-// CUDA Quantum kernel call operators can be templated on
-// input CUDA Quantum kernel expressions. Here we define a general
+// CUDA-Q kernel call operators can be templated on
+// input CUDA-Q kernel expressions. Here we define a general
 // Phase Estimation algorithm that is generic on the eigenstate
 // preparation and unitary evolution steps.
 struct qpe {
 
-  // Define the CUDA Quantum call expression to take user-specified eigenstate
+  // Define the CUDA-Q call expression to take user-specified eigenstate
   // and unitary evolution kernels, as well as the number of qubits in the
   // counting register and in the eigenstate register.
   template <typename StatePrep, typename Unitary>
   void operator()(const int nCountingQubits, StatePrep &&state_prep,
                   Unitary &&oracle) __qpu__ {
     // Allocate a register of qubits
-    cudaq::qreg q(nCountingQubits + 1);
+    cudaq::qvector q(nCountingQubits + 1);
 
     // Extract sub-registers, one for the counting qubits
     // another for the eigenstate register

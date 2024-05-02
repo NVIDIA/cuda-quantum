@@ -5,13 +5,16 @@ import cudaq
 # By default, we will submit to the Quantinuum syntax checker.
 cudaq.set_target("quantinuum")
 
+
 # Create the kernel we'd like to execute on Quantinuum.
-kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(2)
-kernel.h(qubits[0])
-kernel.cx(qubits[0], qubits[1])
-kernel.mz(qubits[0])
-kernel.mz(qubits[1])
+@cudaq.kernel
+def kernel():
+    qvector = cudaq.qvector(2)
+    h(qvector[0])
+    x.ctrl(qvector[0], qvector[1])
+    mz(qvector[0])
+    mz(qvector[1])
+
 
 # Submit to Quantinuum's endpoint and confirm the program is valid.
 
@@ -41,7 +44,7 @@ async_results = cudaq.sample_async(kernel)
 # ```
 # async_counts = async_results.get()
 # ```
-# or wee can also write the job reference (`async_results`) to
+# or we can also write the job reference (`async_results`) to
 # a file and load it later or from a different process.
 file = open("future.txt", "w")
 file.write(str(async_results))
