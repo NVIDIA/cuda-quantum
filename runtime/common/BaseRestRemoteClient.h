@@ -8,15 +8,20 @@
 
 #pragma once
 
+#include "common/JsonConvert.h"
+#include "common/Logger.h"
 #include "common/NvqcConfig.h"
+#include "common/RemoteKernelExecutor.h"
+#include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
+#include "common/UnzipUtils.h"
+#include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -35,14 +40,6 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
-
-#include "common/JsonConvert.h"
-#include "common/Logger.h"
-#include "common/RemoteKernelExecutor.h"
-#include "common/RestClient.h"
-#include "common/UnzipUtils.h"
-#include "cudaq.h"
-
 #include <dlfcn.h>
 #include <fstream>
 #include <iostream>
@@ -72,8 +69,6 @@ private:
   std::function<void()> m_atExitFunc;
 };
 } // namespace
-
-using namespace mlir;
 
 namespace cudaq {
 class BaseRemoteRestRuntimeClient : public cudaq::RemoteRuntimeClient {
@@ -121,7 +116,7 @@ public:
     return cudaq::RestRequest::REST_PAYLOAD_VERSION;
   }
 
-  std::string constructKernelPayload(MLIRContext &mlirContext,
+  std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
                                      const std::string &name,
                                      void (*kernelFunc)(void *), void *args,
                                      std::uint64_t voidStarSize) {
@@ -146,7 +141,7 @@ public:
     } else {
       // Get the quake representation of the kernel
       auto quakeCode = cudaq::get_quake_by_name(name);
-      auto module = parseSourceString<ModuleOp>(quakeCode, &mlirContext);
+      auto module = parseSourceString<mlir::ModuleOp>(quakeCode, &mlirContext);
       if (!module)
         throw std::runtime_error("module cannot be parsed");
 
@@ -155,18 +150,19 @@ public:
           std::string("__nvqpp__mlirgen__") + name);
 
       // Create a new Module to clone the function into
-      auto location = FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
-      ImplicitLocOpBuilder builder(location, &mlirContext);
+      auto location =
+          mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
+      mlir::ImplicitLocOpBuilder builder(location, &mlirContext);
       // Add CUDA-Q kernel attribute if not already set.
       if (!func->hasAttr(cudaq::kernelAttrName))
         func->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
       // Add entry-point attribute if not already set.
       if (!func->hasAttr(cudaq::entryPointAttrName))
         func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-      auto moduleOp = builder.create<ModuleOp>();
+      auto moduleOp = builder.create<mlir::ModuleOp>();
       moduleOp->setAttrs((*module)->getAttrDictionary());
       for (auto &op : *module) {
-        auto funcOp = dyn_cast<func::FuncOp>(op);
+        auto funcOp = dyn_cast<mlir::func::FuncOp>(op);
         // Add quantum kernels defined in the module.
         if (funcOp && (funcOp->hasAttr(cudaq::kernelAttrName) ||
                        funcOp.getName().startswith("__nvqpp__mlirgen__")))
@@ -175,7 +171,7 @@ public:
 
       if (args) {
         cudaq::info("Run Quake Synth.\n");
-        PassManager pm(&mlirContext);
+        mlir::PassManager pm(&mlirContext);
         pm.addPass(cudaq::opt::createQuakeSynthesizer(name, args));
         if (failed(pm.run(moduleOp)))
           throw std::runtime_error("Could not successfully apply quake-synth.");
@@ -183,7 +179,7 @@ public:
 
       // Client-side passes
       if (!clientPasses.empty()) {
-        PassManager pm(&mlirContext);
+        mlir::PassManager pm(&mlirContext);
         std::string errMsg;
         llvm::raw_string_ostream os(errMsg);
         const std::string pipeline =
@@ -211,7 +207,7 @@ public:
   }
 
   cudaq::RestRequest constructJobRequest(
-      MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
+      mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
@@ -259,11 +255,13 @@ public:
     return request;
   }
 
-  virtual bool
-  sendRequest(MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
+                           cudaq::ExecutionContext &io_context,
+                           const std::string &backendSimName,
+                           const std::string &kernelName,
+                           void (*kernelFunc)(void *), void *kernelArgs,
+                           std::uint64_t argsSize,
+                           std::string *optionalErrorMsg) override {
     cudaq::RestRequest request =
         constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
                             kernelFunc, kernelArgs, argsSize);
@@ -638,11 +636,13 @@ public:
       }
     }
   }
-  virtual bool
-  sendRequest(MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
-              const std::string &backendSimName, const std::string &kernelName,
-              void (*kernelFunc)(void *), void *kernelArgs,
-              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
+                           cudaq::ExecutionContext &io_context,
+                           const std::string &backendSimName,
+                           const std::string &kernelName,
+                           void (*kernelFunc)(void *), void *kernelArgs,
+                           std::uint64_t argsSize,
+                           std::string *optionalErrorMsg) override {
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {"tensornet",
                                                                 "nvidia-mgpu"};
     {
