@@ -333,7 +333,7 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
 
     The signal-failure-if-any-loop-cannot-be-completely-unrolled option controls
     whether to signal a failure if all loops cannot be fully unrolled. This is
-    necessary when synthesizing quantum circuits from CUDA Quantum kernels, such
+    necessary when synthesizing quantum circuits from CUDA-Q kernels, such
     as when generating a QIR base profile. A quantum circuit requires all loops
     be completely unrolled.
   }];
@@ -540,7 +540,7 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let description = [{
    This pass provides a hook for adding various metadata to a Quake
    function's list of compile-time attributes. This type of metadata
-   exposure will enable quantum IR introspection in the CUDA Quantum
+   exposure will enable quantum IR introspection in the CUDA-Q
    runtime library.
   }];
 

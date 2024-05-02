@@ -1,4 +1,4 @@
-CUDA Quantum Python API
+CUDA-Q Python API
 ******************************
 
 .. automodule:: cudaq

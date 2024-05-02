@@ -129,8 +129,7 @@ struct QppDmState : public cudaq::SimulationState {
 
 /// @brief The QppNoiseCircuitSimulator further specializes the
 /// QppCircuitSimulator to use a density matrix representation of the state.
-/// This class directly enables a simple noise modeling capability for CUDA
-/// Quantum.
+/// This class directly enables a simple noise modeling capability for CUDA-Q.
 class QppNoiseCircuitSimulator : public nvqir::QppCircuitSimulator<qpp::cmat> {
 
 protected:

@@ -107,7 +107,7 @@ negatedControlsAttribute(MLIRContext *ctx, ValueRange ctrls,
   return {boolVecAttr};
 }
 
-// There are three basic overloads of the "single target" CUDA Quantum ops.
+// There are three basic overloads of the "single target" CUDA-Q ops.
 //
 // 1. op(qubit...)
 //    This form takes the last qubit as the target and all qubits to

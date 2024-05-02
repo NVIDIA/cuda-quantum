@@ -17,7 +17,7 @@
 #include <vector>
 
 /// This file implements the primary QIR quantum-classical runtime API used
-/// by the CUDA Quantum compilation platform.
+/// by the CUDA-Q compilation platform.
 
 // Useful preprocessor defines for building up the
 // NVQIR quantum instruction functions
