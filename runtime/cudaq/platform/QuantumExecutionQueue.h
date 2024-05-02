@@ -25,7 +25,7 @@ namespace cudaq {
 using QuantumTask = std::function<void()>;
 
 /// The QuantumExecutionQueue provides a queue running on a
-/// separate thread from the main CUDA Quantum host thread that clients
+/// separate thread from the main CUDA-Q host thread that clients
 /// can submit execution tasks to, and these tasks will be executed
 /// (asynchronously from the calling thread) in the order they are submitted.
 class QuantumExecutionQueue {

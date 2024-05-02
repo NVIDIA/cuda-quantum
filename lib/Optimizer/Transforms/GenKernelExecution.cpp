@@ -1090,7 +1090,7 @@ public:
           continue;
 
       if (auto stdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(quakeTy)) {
-        // Per the CUDAQ spec, an entry point kernel must take a `[const]
+        // Per the CUDA-Q spec, an entry point kernel must take a `[const]
         // std::vector<T>` value argument.
         // Should the spec stipulate that pure device kernels must pass by
         // read-only reference, i.e., take `const std::vector<T> &` arguments?
