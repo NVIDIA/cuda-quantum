@@ -89,7 +89,7 @@ RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep 
 # Some tools related to shell handling.
 
 ARG COPYRIGHT_NOTICE="=========================\n\
-   NVIDIA CUDA-Q   \n\
+      NVIDIA CUDA-Q      \n\
 =========================\n\n\
 Version: ${CUDA_QUANTUM_VERSION}\n\n\
 Copyright (c) 2024 NVIDIA Corporation & Affiliates \n\
