@@ -10,10 +10,7 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-<<<<<<< HEAD
 #include "cudaq/qis/qarray.h"
-=======
->>>>>>> 434a8fe42 (Reenable the mutual exclusion check for --target and --library-mode. For)
 #include "cudaq/qis/qvector.h"
 #include <vector>
 
