@@ -17,11 +17,12 @@ if not "CUDAQ_DYNLIBS" in os.environ:
         cutensornet_libs = get_library_path("cutensornet-cu11")
         cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
 
-        # FIXME - will this work on aarch64?
+        # FIXME - will this work on `aarch64`?
         cudart_libs = get_library_path("nvidia-cuda_runtime-cu11")
         cudart_path = os.path.join(cudart_libs, "libcudart.so.11.0")
 
-        os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudart_path}"
+        os.environ[
+            "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudart_path}"
     except:
         import importlib.util
         if not importlib.util.find_spec("cuda-quantum") is None:
