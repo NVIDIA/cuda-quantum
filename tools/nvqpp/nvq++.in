@@ -446,6 +446,7 @@ while [ $# -ne 0 ]; do
 	-verify)
 		VERIFY_ONLY=true
 		DO_LINK=false
+		ARGS="${ARGS} -Xclang -verify"
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -verify"
 		;;
 	--clang-verbose | -clang-verbose)
@@ -695,7 +696,8 @@ fi
 OPT_PASSES="builtin.module(${OPT_PASSES})"
 
 if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
-	# If version is requested and no source files were provided, log the version string.
+	# If version is requested and no source files were provided, log the
+	# version string.
 	echo "$NVQPP_VERSION_STRING"
 	DO_LINK=false
 fi
@@ -703,18 +705,18 @@ fi
 for i in ${SRCS}; do
 	file=$(basename -s .cc -s .cpp $i)
 
-	# If LIBRARY_MODE explicitly requested, then
-	# simply compile with the classical compiler.
+	# If LIBRARY_MODE explicitly requested, then simply compile with the
+	# classical compiler.
 	if ${LIBRARY_MODE}; then
 		run ${CMAKE_FALLBACK_HOST_CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} -DCUDAQ_LIBRARY_MODE ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
 		OBJS="${OBJS} ${file}.o"
-		# Go to the next iteration, maybe there
-		# will be cudaq kernels there
+		# Go to the next iteration, maybe there will be cudaq kernels
+		# there
 		continue
 	fi
 
-	# If we make it here, we have CUDA-Q kernels, need
-	# to map to MLIR and output an LLVM file for the classical code
+	# If we make it here, we have CUDA-Q kernels, need to map to MLIR and
+	# output an LLVM file for the classical code
 	run ${TOOLBIN}cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file $i -o ${file}.qke
 	TMPFILES="${TMPFILES} ${file}.ll ${file}.qke"
 	if ${VERIFY_ONLY}; then
