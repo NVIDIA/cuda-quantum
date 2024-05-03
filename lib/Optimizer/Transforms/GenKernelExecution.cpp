@@ -42,7 +42,8 @@ static constexpr const char cudaqRegisterArgsCreator[] =
 static constexpr const char cudaqRegisterKernelName[] =
     "cudaqRegisterKernelName";
 
-static constexpr std::size_t NoResultOffset =
+/// This value is used to indicate that a kernel does not return a result.
+static constexpr std::uint64_t NoResultOffset =
     std::numeric_limits<std::int32_t>::max();
 
 class GenerateKernelExecution
