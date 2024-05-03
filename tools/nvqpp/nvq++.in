@@ -291,6 +291,7 @@ DISABLE_QUBIT_MAPPING=false
 NVQIR_LIBS="-lnvqir -lnvqir-"
 CPPSTD=-std=c++20
 CUDAQ_OPT_EXTRA_PASSES=
+VERIFY_ONLY=false
 
 # Provide a default backend, user can override
 NVQIR_SIMULATION_BACKEND="qpp"
@@ -440,11 +441,12 @@ while [ $# -ne 0 ]; do
 		LIBRARY_MODE=false
 		;;
 	--library-mode)
-		if [-n "${TARGET_CONFIG}"]; then
-			echo "cannot use --library-mode with --target" >&2
-			exit 2
-		fi
 		LIBRARY_MODE=true
+		;;
+	-verify)
+		VERIFY_ONLY=true
+		DO_LINK=false
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -verify"
 		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
@@ -715,6 +717,9 @@ for i in ${SRCS}; do
 	# to map to MLIR and output an LLVM file for the classical code
 	run ${TOOLBIN}cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file $i -o ${file}.qke
 	TMPFILES="${TMPFILES} ${file}.ll ${file}.qke"
+	if ${VERIFY_ONLY}; then
+		continue
+	fi
 
 	# Run the MLIR passes
 	QUAKE_IN=${file}.qke
