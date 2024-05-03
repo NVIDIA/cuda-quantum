@@ -298,14 +298,12 @@ protected:
       // FIXME handle case where pointer is a device pointer
 
       // First allocation, so just set the user provided data here
-      {
-        ScopedTraceWithContext(
-            "CuStateVecCircuitSimulator::addQubitsToState cudaMemcpy",
-            stateDimension * sizeof(CudaDataType));
-        HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
-                                     stateDimension * sizeof(CudaDataType),
-                                     cudaMemcpyHostToDevice));
-      }
+      ScopedTraceWithContext(
+          "CuStateVecCircuitSimulator::addQubitsToState cudaMemcpy",
+          stateDimension * sizeof(CudaDataType));
+      HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, state,
+                                   stateDimension * sizeof(CudaDataType),
+                                   cudaMemcpyHostToDevice));
       return;
     }
 

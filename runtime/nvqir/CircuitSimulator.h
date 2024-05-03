@@ -357,6 +357,12 @@ private:
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
 
+private:
+  /// @brief Return true if the simulator is in the tracer mode.
+  bool isInTracerMode() const {
+    return executionContext && executionContext->name == "tracer";
+  }
+
 protected:
   /// @brief The current Execution Context (typically this is null,
   /// sampling, or spin_op observation.
@@ -689,7 +695,7 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
-    if (executionContext && executionContext->name == "tracer") {
+    if (isInTracerMode()) {
       std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
       for (auto &c : controls)
         controlsInfo.emplace_back(2, c);
@@ -807,8 +813,6 @@ public:
   std::size_t allocateQubit() override {
     // Get a new qubit index
     auto newIdx = tracker.getNextIndex();
-    const bool inTraceMode =
-        (executionContext && executionContext->name == "tracer");
     if (isInBatchMode()) {
       batchModeCurrentNumQubits++;
       // In batch mode, we might already have an allocated state that
@@ -827,7 +831,7 @@ public:
     nQubitsAllocated++;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    if (!inTraceMode)
+    if (!isInTracerMode())
       // Tell the subtype to grow the state representation
       addQubitToState();
 
@@ -845,8 +849,6 @@ public:
   allocateQubits(std::size_t count, const void *state = nullptr,
                  cudaq::simulation_precision precision =
                      cudaq::simulation_precision::fp32) override {
-    const bool inTraceMode =
-        (executionContext && executionContext->name == "tracer");
     // Make sure if someone gives us state data, that the precision
     // is correct for this simulation.
     if (state != nullptr) {
@@ -886,7 +888,7 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    if (!inTraceMode)
+    if (!isInTracerMode())
       // Tell the subtype to allocate more qubits
       addQubitsToState(count, state);
 
@@ -902,13 +904,10 @@ public:
   std::vector<std::size_t>
   allocateQubits(std::size_t count,
                  const cudaq::SimulationState *state) override {
-    const bool inTraceMode =
-        (executionContext && executionContext->name == "tracer");
-
     if (!state)
       return allocateQubits(count);
 
-    if (!inTraceMode && count != state->getNumQubits())
+    if (!isInTracerMode() && count != state->getNumQubits())
       throw std::invalid_argument("Dimension mismatch: the input state doesn't "
                                   "match the number of qubits");
 
@@ -935,7 +934,7 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    if (!inTraceMode)
+    if (!isInTracerMode())
       // Tell the subtype to allocate more qubits
       addQubitsToState(*state);
 
@@ -956,10 +955,9 @@ public:
     }
 
     cudaq::info("Deallocating qubit {}", qubitIdx);
-    const bool inTraceMode =
-        (executionContext && executionContext->name == "tracer");
+
     // Reset the qubit
-    if (!inTraceMode)
+    if (!isInTracerMode())
       resetQubit(qubitIdx);
 
     // Return the index to the tracker
@@ -1259,7 +1257,7 @@ public:
     if (handleBasicSampling(qubitIdx, registerName))
       return true;
 
-    if (executionContext && executionContext->name == "tracer")
+    if (isInTracerMode())
       return true;
 
     // Get the actual measurement from the subtype measureQubit implementation
