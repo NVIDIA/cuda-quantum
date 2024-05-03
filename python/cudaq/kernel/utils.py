@@ -39,6 +39,12 @@ class Color:
     END = '\033[0m'
 
 
+## [PYTHON_VERSION_FIX]
+if sys.version_info < (3, 9):
+    import astunparse
+    ast.unparse = astunparse.unparse
+
+
 def emitFatalError(msg):
     """
     Emit a fatal error diagnostic. The goal here is to 
