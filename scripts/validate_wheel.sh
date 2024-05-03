@@ -11,7 +11,7 @@
 # Usage:
 # Create a folder with the Python README, the tests, the python examples and snippets, 
 # and run this script passing the path to that folder as well as the path to 
-# the CUDA Quantum wheel to test with -f and -w respectively.
+# the CUDA-Q wheel to test with -f and -w respectively.
 # Check the output for any tests that were skipped.
 
 # E.g. run the command 

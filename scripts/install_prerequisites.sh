@@ -10,7 +10,7 @@
 
 # Usage: 
 # This script builds and installs a minimal set of dependencies needed to build 
-# CUDA Quantum from source. 
+# CUDA-Q from source. 
 #
 # Usage: 
 # bash install_prerequisites.sh
@@ -211,7 +211,7 @@ if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
   # path when invoking the Curl executable, this variable is *not* respected by default by the 
   # built library itself; instead, the user of libcurl is responsible for picking up the 
   # environment variables and passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO. 
-  # We opt to build Curl without any default paths, and instead have the CUDA Quantum runtime
+  # We opt to build Curl without any default paths, and instead have the CUDA-Q runtime
   # determine and pass a suitable path.
   wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
   tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
@@ -230,7 +230,7 @@ if [ ! -f "$CURL_INSTALL_PREFIX/lib/libcurl.a" ]; then
   remove_temp_installs
 fi
 
-# [LLVM/MLIR] Needed to build the CUDA Quantum toolchain
+# [LLVM/MLIR] Needed to build the CUDA-Q toolchain
 llvm_dir="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
 if [ ! -d "$llvm_dir" ]; then
   echo "Installing LLVM libraries..."

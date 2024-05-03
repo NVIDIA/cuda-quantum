@@ -14,7 +14,7 @@
 
 namespace cudaq {
 
-/// @brief Given any CUDA Quantum kernel and its associated runtime arguments,
+/// @brief Given any CUDA-Q kernel and its associated runtime arguments,
 /// return the resources that this kernel will use. This does not execute the
 /// circuit simulation, it only traces the quantum operation calls and returns
 /// a `resources` type that allows the programmer to query the number and types

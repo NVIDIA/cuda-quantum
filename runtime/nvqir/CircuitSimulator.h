@@ -74,7 +74,7 @@ struct SummaryData {
 };
 
 /// @brief The CircuitSimulator defines a base class for all
-/// simulators that are available to CUDAQ via the NVQIR library.
+/// simulators that are available to CUDA-Q via the NVQIR library.
 /// This base class handles Qubit allocation and deallocation,
 /// execution context handling, and defines all quantum operations pure
 /// virtual methods that subtypes must implement. Subtypes should be responsible
@@ -394,7 +394,7 @@ protected:
   /// @brief Environment variable name that allows a programmer to
   /// specify how expectation values should be computed. This
   /// defaults to true.
-  constexpr static const char observeSamplingEnvVar[] =
+  static constexpr const char observeSamplingEnvVar[] =
       "CUDAQ_OBSERVE_FROM_SAMPLING";
 
   /// @brief A GateApplicationTask consists of a
@@ -1156,7 +1156,7 @@ public:
     auto measureResult = measureQubit(qubitIdx);
     auto bitResult = measureResult == true ? "1" : "0";
 
-    // If this CUDAQ kernel has conditional statements on measure results
+    // If this CUDA-Q kernel has conditional statements on measure results
     // then we want to handle the sampling a bit differently.
     handleSamplingWithConditionals(qubitIdx, bitResult, registerName);
 

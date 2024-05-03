@@ -66,7 +66,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    cudaq::opt::addPipelineToQIR<>(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
 
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
@@ -148,8 +148,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             llvm::raw_string_ostream os(msg);
             ty.print(os);
           }
-          throw std::runtime_error(
-              "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
+          throw std::runtime_error("Unsupported CUDA-Q kernel return type - " +
+                                   msg + ".\n");
         });
 
   void *rawArgs = nullptr;
@@ -329,9 +329,9 @@ std::string getQIRLL(const std::string &name, MlirModule module,
 
   PassManager pm(context);
   if (profile.empty())
-    cudaq::opt::addPipelineToQIR<>(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
   else
-    cudaq::opt::addPipelineToQIR<true>(pm, profile);
+    cudaq::opt::addPipelineConvertToQIR(pm, profile);
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer

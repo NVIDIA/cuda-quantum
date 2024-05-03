@@ -8,7 +8,7 @@
 set(TOOL_NAME cudaq-qpud)
 add_executable(${TOOL_NAME} RestServerMain.cpp)
 set_target_properties(${TOOL_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
-# Note: this app linked against CUDA Quantum runtime (dynamic libraries).
+# Note: this app linked against CUDA-Q runtime (dynamic libraries).
 # Hence, we don't enforce static linking. 
 if (CMAKE_EXE_LINKER_FLAGS)
     # Convert it to a list
