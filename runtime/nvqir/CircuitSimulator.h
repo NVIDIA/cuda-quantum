@@ -1259,6 +1259,9 @@ public:
     if (handleBasicSampling(qubitIdx, registerName))
       return true;
 
+    if (executionContext && executionContext->name == "tracer")
+      return true;
+
     // Get the actual measurement from the subtype measureQubit implementation
     auto measureResult = measureQubit(qubitIdx);
     auto bitResult = measureResult == true ? "1" : "0";
