@@ -807,7 +807,8 @@ public:
   std::size_t allocateQubit() override {
     // Get a new qubit index
     auto newIdx = tracker.getNextIndex();
-
+    const bool inTraceMode =
+        (executionContext && executionContext->name == "tracer");
     if (isInBatchMode()) {
       batchModeCurrentNumQubits++;
       // In batch mode, we might already have an allocated state that
@@ -826,8 +827,9 @@ public:
     nQubitsAllocated++;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    // Tell the subtype to grow the state representation
-    addQubitToState();
+    if (!inTraceMode)
+      // Tell the subtype to grow the state representation
+      addQubitToState();
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -843,6 +845,8 @@ public:
   allocateQubits(std::size_t count, const void *state = nullptr,
                  cudaq::simulation_precision precision =
                      cudaq::simulation_precision::fp32) override {
+    const bool inTraceMode =
+        (executionContext && executionContext->name == "tracer");
     // Make sure if someone gives us state data, that the precision
     // is correct for this simulation.
     if (state != nullptr) {
@@ -882,8 +886,9 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    // Tell the subtype to allocate more qubits
-    addQubitsToState(count, state);
+    if (!inTraceMode)
+      // Tell the subtype to allocate more qubits
+      addQubitsToState(count, state);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -897,10 +902,13 @@ public:
   std::vector<std::size_t>
   allocateQubits(std::size_t count,
                  const cudaq::SimulationState *state) override {
+    const bool inTraceMode =
+        (executionContext && executionContext->name == "tracer");
+
     if (!state)
       return allocateQubits(count);
 
-    if (count != state->getNumQubits())
+    if (!inTraceMode && count != state->getNumQubits())
       throw std::invalid_argument("Dimension mismatch: the input state doesn't "
                                   "match the number of qubits");
 
@@ -927,8 +935,9 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    // Tell the subtype to allocate more qubits
-    addQubitsToState(*state);
+    if (!inTraceMode)
+      // Tell the subtype to allocate more qubits
+      addQubitsToState(*state);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
