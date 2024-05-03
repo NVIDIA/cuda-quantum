@@ -156,6 +156,14 @@ def test_float64_use():
     t = np.ceil(np.float64(np.pi / 2 + 1))
     assert is_close(t, float_np_use())
 
+    # Use a float inside np in a kernel (exp)
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.exp(np.float64(np.pi / 2 + 1))
+
+    t = np.exp(np.float64(np.pi / 2 + 1))
+    assert is_close(t, float_np_use())
+
 
 # np.float32
 
@@ -235,4 +243,12 @@ def test_float32_use():
         return np.ceil(np.float32(np.pi / 2 + 1))
 
     t = np.ceil(np.float32(np.pi / 2 + 1))
+    assert is_close(t, float_np_use())
+
+    # Use a float inside np in a kernel (exp)
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.exp(np.float32(np.pi / 2 + 1))
+
+    t = np.exp(np.float32(np.pi / 2 + 1))
     assert is_close(t, float_np_use())
