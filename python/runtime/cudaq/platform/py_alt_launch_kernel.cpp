@@ -36,6 +36,7 @@ namespace py = pybind11;
 using namespace mlir;
 
 namespace cudaq {
+// TODO: unify with the definition in GenKernelExec.cpp
 static constexpr std::int32_t NoResultOffset =
     std::numeric_limits<std::int32_t>::max();
 static std::unique_ptr<JITExecutionCache> jitCache;
