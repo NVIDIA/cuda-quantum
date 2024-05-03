@@ -34,7 +34,7 @@ public:
   /// @brief Construct a `qvector` from an input state vector.
   /// The number of qubits is determined by the size of the input vector.
   /// If `validate` is set, it will check the norm of input state vector.
-  qvector(const std::vector<complex> &vector, bool validate = false)
+  explicit qvector(const std::vector<complex> &vector, bool validate)
       : qudits(std::log2(vector.size())) {
     if (Levels == 2) {
       auto numElements = std::log2(vector.size());
@@ -61,6 +61,7 @@ public:
                          : simulation_precision::fp64;
     getExecutionManager()->initializeState(targets, vector.data(), precision);
   }
+  qvector(const std::vector<complex> &vector) : qvector(vector, false){};
 
   qvector(const std::vector<double> &vector)
       : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}

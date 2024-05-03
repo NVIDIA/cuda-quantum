@@ -956,9 +956,11 @@ public:
     }
 
     cudaq::info("Deallocating qubit {}", qubitIdx);
-
+    const bool inTraceMode =
+        (executionContext && executionContext->name == "tracer");
     // Reset the qubit
-    resetQubit(qubitIdx);
+    if (!inTraceMode)
+      resetQubit(qubitIdx);
 
     // Return the index to the tracker
     tracker.returnIndex(qubitIdx);
