@@ -68,11 +68,6 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.3")
     add_library(nvqir-${LIBRARY_NAME} SHARED ${ARGN})
     target_include_directories(nvqir-${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime/common ${CMAKE_SOURCE_DIR}/runtime/nvqir ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CUTENSORNET_INCLUDE_DIR})
     target_link_libraries(nvqir-${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq cudaq-common ${CUTENSORNET_LIB} ${CUTENSOR_LIB} CUDA::cudart)
-    # Add a special rpath for the NVQIR libs to make the wheels self-contained if
-    # dependent wheels are installed.
-    set_property(TARGET nvqir-${LIBRARY_NAME}
-      APPEND PROPERTY INSTALL_RPATH
-      "$ORIGIN/../cuquantum/lib/:$ORIGIN/../cutensor/lib/:$ORIGIN/../nvidia/cuda_runtime/lib/")
     install(TARGETS nvqir-${LIBRARY_NAME} DESTINATION lib)
     file (WRITE ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config "NVQIR_SIMULATION_BACKEND=${LIBRARY_NAME}\nGPU_REQUIREMENTS=\"true\"\n")
     install(FILES ${CMAKE_BINARY_DIR}/targets/${LIBRARY_NAME}.config DESTINATION targets)
