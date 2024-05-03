@@ -36,6 +36,8 @@ namespace py = pybind11;
 using namespace mlir;
 
 namespace cudaq {
+static constexpr std::int32_t NoResultOffset =
+    std::numeric_limits<std::int32_t>::max();
 static std::unique_ptr<JITExecutionCache> jitCache;
 
 struct PyStateVectorData {
@@ -48,7 +50,7 @@ using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
 static std::unique_ptr<PyStateVectorStorage> stateStorage =
     std::make_unique<PyStateVectorStorage>();
 
-std::tuple<ExecutionEngine *, void *, std::size_t, std::size_t>
+std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
                  const std::vector<std::string> &names, Type returnType) {
@@ -184,21 +186,24 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     size = argsCreator(runtimeArgs.data(), &rawArgs);
   }
 
-  std::size_t returnOffset = 0;
+  std::int32_t returnOffset = 0;
   if (runtimeArgs.size()) {
     auto expectedPtr = jit->lookup(name + ".returnOffset");
     if (!expectedPtr) {
       throw std::runtime_error(
           "cudaq::builder failed to get returnOffset function.");
     }
-    auto returnOffsetCreator =
-        reinterpret_cast<std::size_t (*)()>(*expectedPtr);
-    returnOffset = returnOffsetCreator();
+    auto returnOffsetCalculator =
+        reinterpret_cast<std::int64_t (*)()>(*expectedPtr);
+    returnOffset = (std::int32_t)returnOffsetCalculator();
+    if (returnOffset == NoResultOffset) {
+      returnOffset = 0;
+    }
   }
   return std::make_tuple(jit, rawArgs, size, returnOffset);
 }
 
-std::tuple<void *, std::size_t, std::size_t>
+std::tuple<void *, std::size_t, std::int32_t>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                       Type returnType, cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names) {
@@ -262,10 +267,11 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
     auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
     cudaq::altLaunchKernel(name.c_str(), thunk,
                            reinterpret_cast<void *>(wrapper), size,
-                           returnOffset);
+                           (uint64_t)returnOffset);
     delete wrapper;
   } else
-    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size, returnOffset);
+    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
+                           (uint64_t)returnOffset);
 
   return std::make_tuple(rawArgs, size, returnOffset);
 }
