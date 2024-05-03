@@ -132,6 +132,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
         # The tree differs here between Python 3.8 and 3.9+
         eleTypeNode = annotation.slice
+        ## [PYTHON_VERSION_FIX]
         if sys.version_info < (3, 9):
             eleTypeNode = eleTypeNode.value
 
@@ -291,6 +292,7 @@ def mlirTypeToPyType(argType):
         return pauli_word
 
     def getListType(eleType: type):
+        ## [PYTHON_VERSION_FIX]
         if sys.version_info < (3, 9):
             return List[eleType]
         else:

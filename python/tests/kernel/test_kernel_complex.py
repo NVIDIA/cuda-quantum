@@ -23,6 +23,7 @@ def is_close(expected, actual):
     return np.isclose(expected, actual, atol=1e-6)
 
 
+@skipIfPythonLessThan39
 def test_complex_params():
     """Test that we can pass complex lists to kernel functions."""
 
@@ -215,6 +216,7 @@ def test_complex_use():
 # np.complex128
 
 
+@skipIfPythonLessThan39
 def test_np_complex128_params():
     """Test that we can pass complex lists to kernel functions."""
 
@@ -377,6 +379,7 @@ def test_np_complex128_use():
 # Complex64
 
 
+@skipIfPythonLessThan39
 def test_np_complex64_params():
     """Test that we can pass complex lists to kernel functions."""
 

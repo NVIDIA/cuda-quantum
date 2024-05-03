@@ -83,6 +83,12 @@ class CompilerError(RuntimeError):
         RuntimeError.__init__(self, *args, **kwargs)
 
 
+## [PYTHON_VERSION_FIX]
+if sys.version_info < (3, 9):
+    import astunparse
+    ast.unparse = astunparse.unparse
+
+
 class PyASTBridge(ast.NodeVisitor):
     """
     The `PyASTBridge` class implements the `ast.NodeVisitor` type to convert a 
