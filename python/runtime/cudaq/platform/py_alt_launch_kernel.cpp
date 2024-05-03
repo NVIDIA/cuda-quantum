@@ -336,13 +336,13 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
               std::complex<double> concrete;
               std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 16);
               std::free(rawArgs);
-              return complex_(concrete);
+              return py_ext::Complex(concrete);
             })
             .Case([&](Float32Type eTy) -> py::object {
               std::complex<float> concrete;
               std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
               std::free(rawArgs);
-              return complex_(concrete);
+              return py_ext::Complex(concrete);
             })
             .Default([](Type eTy) -> py::object {
               eTy.dump();
@@ -354,13 +354,13 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
         double concrete;
         std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
         std::free(rawArgs);
-        return py::float_(concrete);
+        return py_ext::Float(concrete);
       })
       .Case([&](Float32Type ty) -> py::object {
         float concrete;
         std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 4);
         std::free(rawArgs);
-        return py::float_(concrete);
+        return py_ext::Float(concrete);
       })
       .Default([](Type ty) -> py::object {
         ty.dump();

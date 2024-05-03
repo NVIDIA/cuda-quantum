@@ -16,7 +16,11 @@
 
 namespace py = pybind11;
 
-/// Additional type checking helpers for python.
+namespace py_ext {
+/// Type checking and conversion for python complex and float objects.
+///
+/// Supports `complex` `numpy.complex64`, `numpy.complex128`,
+/// `float` `numpy.float64`, `float32` types.
 class conversion {
 public:
   static bool isComplex(py::handle h) { return isComplex_(h.ptr()); }
@@ -46,35 +50,8 @@ public:
     }
     return false;
   }
-};
 
-/// Complex object.
-class complex_ : public py::object {
-public:
-  // Python does not provide a `PyNumber_Complex` function, so we provide our
-  // own `convert`.
-  PYBIND11_OBJECT_CVT(complex_, object, PyComplex_Check, convert)
-
-  complex_(double real, double imag)
-      : object(PyComplex_FromDoubles(real, imag), stolen_t{}) {}
-
-  complex_(std::complex<double> value)
-      : complex_((double)value.real(), (double)value.imag()) {}
-
-  complex_(std::complex<float> value)
-      : complex_((double)value.real(), (double)value.imag()) {}
-
-  operator std::complex<double>() {
-    auto value = PyComplex_AsCComplex(m_ptr);
-    return std::complex<double>(value.real, value.imag);
-  }
-  operator std::complex<float>() {
-    auto value = PyComplex_AsCComplex(m_ptr);
-    return std::complex<float>(value.real, value.imag);
-  }
-
-private:
-  static PyObject *convert(PyObject *o) {
+  static PyObject *convertComplex_(PyObject *o) {
     PyObject *ret = nullptr;
     if (conversion::isComplex_(o)) {
       double real = PyComplex_RealAsDouble(o);
@@ -85,4 +62,79 @@ private:
     }
     return ret;
   }
+
+  static PyObject *convertFloat_(PyObject *o) {
+    PyObject *ret = nullptr;
+    if (conversion::isFloat_(o)) {
+      ret = PyFloat_FromDouble(PyFloat_AsDouble(o));
+    } else {
+      py::set_error(PyExc_TypeError, "Unexpected type");
+    }
+    return ret;
+  }
 };
+
+/// Extended python complex object.
+///
+/// Includes `complex`, `numpy.complex64`, `numpy.complex128`.
+class Complex : public py::object {
+public:
+  PYBIND11_OBJECT_CVT(Complex, object, conversion::isComplex_,
+                      conversion::convertComplex_)
+
+  Complex(double real, double imag)
+      : object(PyComplex_FromDoubles(real, imag), stolen_t{}) {
+    if (!m_ptr) {
+      py::pybind11_fail("Could not allocate complex object!");
+    }
+  }
+
+  // Allow implicit conversion from complex<double>/complex<float>:
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  Complex(std::complex<double> value)
+      : Complex((double)value.real(), (double)value.imag()) {}
+
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  Complex(std::complex<float> value)
+      : Complex((double)value.real(), (double)value.imag()) {}
+
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  operator std::complex<double>() {
+    auto value = PyComplex_AsCComplex(m_ptr);
+    return std::complex<double>(value.real, value.imag);
+  }
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  operator std::complex<float>() {
+    auto value = PyComplex_AsCComplex(m_ptr);
+    return std::complex<float>(value.real, value.imag);
+  }
+};
+
+/// Extended float object.
+///
+/// Includes `float`, `numpy.float64`, `numpy.float32`.
+class Float : public py::object {
+public:
+  PYBIND11_OBJECT_CVT(Float, object, conversion::isFloat_,
+                      conversion::convertFloat_)
+
+  // Allow implicit conversion from float/double:
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  Float(float value) : object(PyFloat_FromDouble((double)value), stolen_t{}) {
+    if (!m_ptr) {
+      py::pybind11_fail("Could not allocate float object!");
+    }
+  }
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  Float(double value = .0)
+      : object(PyFloat_FromDouble((double)value), stolen_t{}) {
+    if (!m_ptr) {
+      py::pybind11_fail("Could not allocate float object!");
+    }
+  }
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  operator float() const { return (float)PyFloat_AsDouble(m_ptr); }
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  operator double() const { return (double)PyFloat_AsDouble(m_ptr); }
+};
+} // namespace py_ext

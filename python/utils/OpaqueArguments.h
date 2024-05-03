@@ -203,7 +203,7 @@ packArgs(OpaqueArguments &argData, py::args args,
     auto kernelArgTy = kernelFuncOp.getArgument(i).getType();
     llvm::TypeSwitch<mlir::Type, void>(kernelArgTy)
         .Case([&](mlir::ComplexType ty) {
-          if (!conversion::isComplex(arg))
+          if (!py::isinstance<py_ext::Complex>(arg))
             throw std::runtime_error("kernel argument type is `complex` but "
                                      "argument provided is not (argument " +
                                      std::to_string(i) + ", value=" +
@@ -225,20 +225,20 @@ packArgs(OpaqueArguments &argData, py::args args,
           }
         })
         .Case([&](mlir::Float64Type ty) {
-          if (!conversion::isFloat(arg))
+          if (!py::isinstance<py_ext::Float>(arg))
             throw std::runtime_error(
                 "kernel argument type is 64-bit `float` but "
                 "argument provided is not (argument " +
                 std::to_string(i) +
                 ", value=" + py::str(arg).cast<std::string>() + ").");
           double *ourAllocatedArg = new double();
-          *ourAllocatedArg = PyFloat_AsDouble(arg.ptr());
+          *ourAllocatedArg = arg.cast<double>();
           argData.emplace_back(ourAllocatedArg, [](void *ptr) {
             delete static_cast<double *>(ptr);
           });
         })
         .Case([&](mlir::Float32Type ty) {
-          if (!conversion::isFloat(arg))
+          if (!py::isinstance<py_ext::Float>(arg))
             throw std::runtime_error(
                 "kernel argument type is 32-bit `float` but "
                 "argument provided is not (argument " +
@@ -349,9 +349,7 @@ packArgs(OpaqueArguments &argData, py::args args,
               })
               .Case([&](Float64Type type) {
                 genericVecAllocator.template operator()<double>(
-                    [](py::handle element) {
-                      return PyFloat_AsDouble(element.ptr());
-                    });
+                    [](py::handle element) { return element.cast<double>(); });
                 return;
               })
               .Case([&](Float32Type type) {
