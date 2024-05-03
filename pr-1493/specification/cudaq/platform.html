@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>11. Quantum Platform &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>11. Quantum Platform &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/tabs.css" type="text/css" />
@@ -42,7 +42,7 @@
           
           
           <a href="../../index.html" class="icon icon-home">
-            NVIDIA CUDA Quantum
+            NVIDIA CUDA-Q
           </a>
               <div class="version">
                 amd64-pr-1493
@@ -99,14 +99,14 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../using/quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/quick_start.html#validate-your-installation">Validate your Installation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/basics/basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
@@ -177,7 +177,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/tutorials/vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/tutorials/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
@@ -280,7 +280,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#updating-cuda-quantum">Updating CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
@@ -292,7 +292,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/install/data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#python-support">Python Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
@@ -305,7 +305,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/integration/cuda_gpu.html">Combining CUDA with CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/integration/cmake_app.html">Downstream CMake Integration</a></li>
 </ul>
 </li>
@@ -315,8 +315,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../index.html">   Specifications</a><ul class="current">
@@ -349,8 +349,8 @@
 <li class="toctree-l3"><a class="reference internal" href="algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-quantum-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-quantum-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="examples.html">13. Example Programs</a><ul>
@@ -489,7 +489,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">NVIDIA CUDA Quantum</a>
+          <a href="../../index.html">NVIDIA CUDA-Q</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -514,14 +514,14 @@
              
   <section id="quantum-platform">
 <h1><span class="section-number">11. </span>Quantum Platform<a class="headerlink" href="#quantum-platform" title="Permalink to this heading">¶</a></h1>
-<p><strong>[1]</strong> CUDA Quantum provides an abstraction describing the underlying quantum computing resource(s).
+<p><strong>[1]</strong> CUDA-Q provides an abstraction describing the underlying quantum computing resource(s).
 The underlying quantum platform can contain one or many quantum processing units (QPUs) each with
 its own qubit connectivity and noise configuration.</p>
-<p><strong>[2]</strong> CUDA Quantum defines a <code class="code docutils literal notranslate"><span class="pre">cudaq::quantum_platform</span></code> in an effort to expose relevant system
+<p><strong>[2]</strong> CUDA-Q defines a <code class="code docutils literal notranslate"><span class="pre">cudaq::quantum_platform</span></code> in an effort to expose relevant system
 information and enable asynchronous quantum kernel invocations.</p>
 <p><strong>[3]</strong> The <code class="code docutils literal notranslate"><span class="pre">cudaq::quantum_platform</span></code> provides an API for querying the number of available
 quantum processing units (QPUs), with each QPU assigned a logical integer index (<code class="code docutils literal notranslate"><span class="pre">{0,1,2,...}</span></code>).</p>
-<p><strong>[4]</strong> Programmers can specify the ID of the desired QPU and all subsequent CUDA Quantum
+<p><strong>[4]</strong> Programmers can specify the ID of the desired QPU and all subsequent CUDA-Q
 kernel executions will target that QPU.</p>
 <p>The <code class="code docutils literal notranslate"><span class="pre">cudaq::quantum_platform</span></code>  should take the following structure</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="p">{</span>
@@ -549,7 +549,7 @@ kernel executions will target that QPU.</p>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>CUDA Quantum provides the following public functions to interact with the current
+<p>CUDA-Q provides the following public functions to interact with the current
 <code class="code docutils literal notranslate"><span class="pre">cudaq::quantum_platform</span></code></p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">quantum_platform</span><span class="w"> </span><span class="o">&amp;</span><span class="nf">get_platform</span><span class="p">()</span><span class="w"> </span><span class="p">;</span>
@@ -569,7 +569,7 @@ kernel executions will target that QPU.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

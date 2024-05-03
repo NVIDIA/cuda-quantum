@@ -1,6 +1,6 @@
 Quantum Algorithmic Primitives
 ******************************
-**[1]** The general philosophy of the CUDA Quantum specification is that quantum 
+**[1]** The general philosophy of the CUDA-Q specification is that quantum 
 device code should be encapsulated as stand-alone callable instances of generic 
 signature, and that operations or primitive algorithms targeting a quantum 
 coprocessor be implemented as adaptors on those callable instances. Adaptors, by 
@@ -19,7 +19,7 @@ executions). The result of this task is typically a mapping of observed
 measurement bit strings to the number of times each was observed. This
 is typically termed the counts dictionary in the community. 
 
-**[2]** The CUDA Quantum model enables this functionality via template functions within the
+**[2]** The CUDA-Q model enables this functionality via template functions within the
 :code:`cudaq` namespace with the following structure:
 
 .. code-block:: cpp
@@ -44,7 +44,7 @@ is typically termed the counts dictionary in the community.
                          QuantumKernel&& kernel, Args&&... args);
 
 **[3]** This function takes as input a quantum kernel instance followed by the
-concrete arguments at which the kernel should be invoked. CUDA Quantum kernels 
+concrete arguments at which the kernel should be invoked. CUDA-Q kernels 
 passed to this function must be entry-point kernels and return :code:`void`. 
 
 **[4]** Overloaded functions exist for specifying the number of shots to sample and the
@@ -90,7 +90,7 @@ extract the result information in the following manner:
         print('Observed: {}, {}'.format(bits, count))
 
 
-**[6]** CUDA Quantum specifies the following structure for :code:`cudaq::sample_result`:
+**[6]** CUDA-Q specifies the following structure for :code:`cudaq::sample_result`:
 
 .. code-block:: cpp 
 
@@ -285,7 +285,7 @@ values.
 sample function which must be enforced by compiler implementations. The kernel 
 must be an entry-point kernel that returns :code:`void`.
 
-**[10]** CUDA Quantum also provides an asynchronous version of this function 
+**[10]** CUDA-Q also provides an asynchronous version of this function 
 (:code:`cudaq::sample_async`) which returns a :code:`sample_async_result`. 
 
 .. code-block:: cpp 
@@ -443,7 +443,7 @@ If a specific shot count is provided then the returned expectation value will co
 level of statistical noise. Overloaded :code:`observe` functions are provided to 
 specify the number of shots and/or specify the noise model to apply.
 
-**[7]** CUDA Quantum also provides an asynchronous version of this function 
+**[7]** CUDA-Q also provides an asynchronous version of this function 
 (:code:`cudaq::observe_async`) which returns a :code:`async_observe_result`. 
 
 .. code-block:: cpp 
@@ -458,7 +458,7 @@ information for each execution and can be persisted to file and loaded from file
 and when remote queue jobs are completed, one can invoke :code:`get()` and the results will 
 be retrieved and returned. 
 
-:code:`cudaq::optimizer` (deprecated, functionality moved to CUDA Quantum libraries)
+:code:`cudaq::optimizer` (deprecated, functionality moved to CUDA-Q libraries)
 ------------------------------------------------------------------------------------
 The primary use case for :code:`cudaq::observe` is to leverage it as
 the core of a broader objective function optimization workflow. 
@@ -468,7 +468,7 @@ set of parameters, and often programmers will require an extremal value of that 
 at a specific set of concrete parameters. This will directly require
 abstractions for gradient-based and gradient-free optimization strategies. 
 
-The CUDA Quantum model provides a :code:`cudaq::optimizer` data type that exposes
+The CUDA-Q model provides a :code:`cudaq::optimizer` data type that exposes
 an :code:`optimize()` method that takes as input an 
 :code:`optimizable_function` to optimize and the number of independent
 function dimensions. Implementations are free to implement this abstraction
@@ -479,7 +479,7 @@ dictating the underlying optimization algorithm in a type-safe manner.
 Moreover, the optimizer should expose a public API of pertinent optimizer-specific 
 options that the programmer can customize.
 
-CUDA Quantum models the :code:`cudaq::optimizer` as follows:
+CUDA-Q models the :code:`cudaq::optimizer` as follows:
 
 .. code-block:: cpp 
 
@@ -529,7 +529,7 @@ Here is an example of how the :code:`cudaq::optimizer` is intended to be used:
             return cudaq::observe(ansatz, H, x[0], x[1]);
           });
 
-:code:`cudaq::gradient` (deprecated, functionality moved to CUDA Quantum libraries)
+:code:`cudaq::gradient` (deprecated, functionality moved to CUDA-Q libraries)
 -----------------------------------------------------------------------------------
 Typical optimization use cases will require the computation of gradients for the specified
 objective function. The gradient is a vector over all ansatz circuit
@@ -537,7 +537,7 @@ parameters :math:`∂H(𝚹) / ∂𝚹_i`. There are a number of potential strat
 computing this gradient vector, but most require additional evaluations
 of the ansatz circuit on the quantum processor. 
 
-To enable true extensibility in gradient strategies, CUDA Quantum programmers can
+To enable true extensibility in gradient strategies, CUDA-Q programmers can
 instantiate custom sub-types of the :code:`cudaq::gradient` type. The :code:`cudaq::gradient`
 type defines a :code:`compute(...)` method that takes a mutable reference to the 
 current gradient vector and is free to update that vector in a strategy-specific way. 
@@ -586,7 +586,7 @@ mechanism for mapping common quantum kernel ansatz functional expressions to a :
 :code:`ArgsMapper` callable template type. This type must implement the 
 :code:`std::tuple<Args...>(std::vector<double>&)` callable concept. 
 
-The overall CUDA Quantum workflow for leveraging the :code:`cudaq::optimizer`
+The overall CUDA-Q workflow for leveraging the :code:`cudaq::optimizer`
 will work as follows (here we demonstrate with an ansatz without the
 default :code:`std::vector<double>` signature):
 

@@ -1,7 +1,7 @@
 Just-in-Time Kernel Creation
 ****************************
 
-**[1]** CUDA Quantum provides a set of programming abstractions for dynamically constructing
+**[1]** CUDA-Q provides a set of programming abstractions for dynamically constructing
 quantum kernel code at runtime. 
 
 **[2]** The callable :code:`cudaq::kernel_builder` abstraction
@@ -84,7 +84,7 @@ The :code:`kernel_builder` takes the following structure
     }
 
 **[3]** The structure above allows one to leverage the provided factory functions (:code:`make_kernel`)
-to construct an empty CUDA Quantum kernel with defined argument signature. 
+to construct an empty CUDA-Q kernel with defined argument signature. 
 
 **[4]** For each type in the signature, the programmer is returned a new :code:`Value` instance which 
 can be leveraged in the construction of the kernel. The intended mechanism for 
@@ -96,7 +96,7 @@ using the exposed API. There are methods for qubit allocation, quantum operation
 invocation, control and adjoint synthesis, and conditional branching based on 
 `boolean` values. 
 
-Here is a simple example how one might build a CUDA Quantum kernel dynamically. 
+Here is a simple example how one might build a CUDA-Q kernel dynamically. 
 
 .. tab:: C++ 
 
@@ -122,7 +122,7 @@ Here is a simple example how one might build a CUDA Quantum kernel dynamically.
     kernel.mz(qubits)
 
 Here is an example demonstrating how one may build a dynamic set of 
-CUDA Quantum kernels for executing the standard Hadamard test. 
+CUDA-Q kernels for executing the standard Hadamard test. 
 
 .. tab:: C++ 
 
