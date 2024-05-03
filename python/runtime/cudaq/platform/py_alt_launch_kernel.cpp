@@ -201,7 +201,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
       returnOffset = 0;
     }
   }
-  return std::make_tuple(jit, rawArgs, size, returnOffset);
+  return {jit, rawArgs, size, returnOffset};
 }
 
 std::tuple<void *, std::size_t, std::int32_t>
