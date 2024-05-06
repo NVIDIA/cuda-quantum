@@ -114,6 +114,7 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
       llvm_stage1_tmpdir="$(mktemp -d)"
       LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir/llvm"
+      echo "Installing LLVM stage-1 build in $LLVM_STAGE1_BUILD."
     fi
 
     # Note that when we first build the compiler/runtime built here we need to make sure it is
@@ -128,6 +129,8 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
     bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
     rm -rf cmake-install.sh 
+    # FIXME: SYMLINK TO WHERE CMAKE WAS BEFORE (INSTALLED VIA PACKAGE MANAGER)
+    # ln -s /usr/local/bin/cmake /usr/bin/cmake
   fi
   if [ ! -x "$(command -v ninja)" ]; then
     echo "Installing Ninja..."
@@ -142,6 +145,8 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     cmake --build build
     mv build/ninja /usr/local/bin/
     cd .. && rm -rf v1.11.1.tar.gz ninja-1.11.1
+    # FIXME: SYMLINK TO WHERE CMAKE WAS BEFORE (INSTALLED VIA PACKAGE MANAGER)
+    # ln -s /usr/local/bin/ninja /usr/bin/ninja-build
   fi
 fi
 

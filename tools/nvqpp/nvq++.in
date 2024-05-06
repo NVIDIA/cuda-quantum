@@ -231,7 +231,7 @@ CLANG_RESOURCE_DIR=""
 # add compiler flags that will point clang to our repackaged
 # clang / gcc system headers.
 if ${IS_RELOCATABLE_INSTALL}; then
-	CLANG_RESOURCE_DIR="-resource-dir ${install_dir}/lib/clang/@CUDAQ_LLVM_VERSION@"
+	CLANG_RESOURCE_DIR="-resource-dir ${install_dir}/lib/clang/@LLVM_VERSION_MAJOR@"
 fi
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@

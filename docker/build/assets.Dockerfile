@@ -43,6 +43,7 @@ ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
+ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
@@ -107,6 +108,8 @@ ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    # FIXME: DOESN'T WORK - AND MAKE THE INSTALL PREREQS SCRIPT FIND THIS AUTOMATICALLY...
+    LLVM_STAGE1_BUILD=/tmp/tmp.*/llvm \
     # IMPORTANT:
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
@@ -117,6 +120,13 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;runtimes' \
     bash scripts/build_cudaq.sh -t llvm -v
     ## [<CUDAQuantumBuild]
+
+# Validate that the nvidia backend was built.
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    if [ -z "$(ls $CUDAQ_INSTALL_PREFIX/targets/nvidia.config)" ]; then \
+        echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
+        exit 1; \
+    fi
 
 ## [Python support]
 FROM prereqs as python_build
@@ -143,6 +153,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
     ${PYTHON} -m pip install numpy build auditwheel patchelf
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    LLVM_STAGE1_BUILD=/tmp/tmp.*/llvm \
     # IMPORTANT:
     # Make sure that the invocation of the install_prerequisites.sh script here matches
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
@@ -162,7 +173,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
     ## [>CUDAQuantumWheel]
     CUDAQ_WHEEL="$(find . -name 'cuda_quantum*.whl')" && \
     MANYLINUX_PLATFORM="$(echo ${CUDAQ_WHEEL} | grep -o '[a-z]*linux_[^\.]*' | sed -re 's/^linux_/manylinux_2_28_/')" && \
-    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/_skbuild/lib" \ 
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/cuda-quantum/_skbuild/lib" \ 
     python3 -m auditwheel -v repair ${CUDAQ_WHEEL} \
         --plat ${MANYLINUX_PLATFORM} \
         --exclude libcublas.so.11 \
@@ -174,9 +185,15 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcudart.so.11.0 
     ## [<CUDAQuantumWheel]
 
+# Validate that the nvidia backend was built.
+RUN if [ -z "$(ls /cuda-quantum/_skbuild/targets/nvidia.config)" ]; then \
+        echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
+        exit 1; \
+    fi
+
 ## [Tests]
 FROM cpp_build
-RUN dnf remove -y gcc && dnf install -y glibc-devel
+RUN dnf remove -y gcc && dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \
     fi && cd /cuda-quantum && \

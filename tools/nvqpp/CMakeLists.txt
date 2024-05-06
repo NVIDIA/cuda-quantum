@@ -18,14 +18,19 @@ endif()
 
 add_custom_target(nvq++)
 
+configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
+               "${CUDAQ_BINARY_DIR}/include/nvqpp_config.h" 
+               @ONLY)
 configure_file("nvq++.in"
                "${CUDAQ_BINARY_DIR}/bin/nvq++" 
                FILE_PERMISSIONS
-	        OWNER_READ OWNER_WRITE OWNER_EXECUTE
-	        GROUP_READ GROUP_EXECUTE
-	        WORLD_READ WORLD_EXECUTE
+	              OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	              GROUP_READ GROUP_EXECUTE
+	              WORLD_READ WORLD_EXECUTE
                @ONLY)
 
+install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
+        DESTINATION include/nvqpp)
 install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/nvq++
         DESTINATION bin)
 install(FILES backendConfig.cpp DESTINATION targets/)

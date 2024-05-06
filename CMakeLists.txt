@@ -97,8 +97,8 @@ endif()
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
-if(NOT CUDAQ_LLVM_VERSION)
-  set(CUDAQ_LLVM_VERSION 16)
+if(NOT LLVM_VERSION_MAJOR)
+  set(LLVM_VERSION_MAJOR 16)
 endif()
 
 find_package(Git QUIET)
@@ -227,10 +227,10 @@ endif()
 # The user can specify the path to LLVM cmake directory using
 # `-DLLVM_DIR=path/to/cmake/llvm`.  If this definition is not provided, we look
 # for `llvm-config` tool.  The user can also provide a LLVM version to look for
-# using `CUDAQ_LLVM_VERSION`, e.g. "-DCUDAQ_LLVM_VERSION=15".  Note that this
+# using `LLVM_VERSION_MAJOR`, e.g. "-LLVM_VERSION_MAJOR=16".  Note that this
 # version variable is set to the latest LLVM version by default, and setting it
 # to an older version might break the project.
-find_package(LLVM ${CUDAQ_LLVM_VERSION} CONFIG QUIET)
+find_package(LLVM ${LLVM_VERSION_MAJOR} CONFIG QUIET)
 
 if(NOT LLVM_DIR)
   message(STATUS "LLVM_DIR not found, will try with llvm-config executable.")
@@ -262,19 +262,19 @@ if(NOT LLVM_DIR)
   endmacro()
 
   # First we try to find llvm-config in the llvm submodule.
-  find_llvm_config(llvm-config ${CUDAQ_LLVM_VERSION}
+  find_llvm_config(llvm-config ${LLVM_VERSION_MAJOR}
     "${CMAKE_CURRENT_SOURCE_DIR}/tpls/llvm/build/bin")
 
   # Try to find a system llvm-config and make sure it is the correct version.
   if(NOT LLVM_CONFIG)
-    find_llvm_config(llvm-config ${CUDAQ_LLVM_VERSION})
+    find_llvm_config(llvm-config ${LLVM_VERSION_MAJOR})
   endif()
 
   # If it is not the correct version, try finding llvm-config-VERSION
   if(NOT LLVM_CONFIG)
-    find_llvm_config(llvm-config-${CUDAQ_LLVM_VERSION} ${CUDAQ_LLVM_VERSION})
+    find_llvm_config(llvm-config-${LLVM_VERSION_MAJOR} ${LLVM_VERSION_MAJOR})
     if (LLVM_CONFIG)
-      set(NVQPP_LLVM_EXECUTABLE_SUFFIX -${CUDAQ_LLVM_VERSION})
+      set(NVQPP_LLVM_EXECUTABLE_SUFFIX -${LLVM_VERSION_MAJOR})
     endif()
   endif()
 
@@ -288,10 +288,10 @@ if(NOT LLVM_DIR)
 
   if(LLVM_CONFIG_RESULT)
     message(FATAL_ERROR
-      "Could not find suitable llvm-config(-${CUDAQ_LLVM_VERSION}).\
+      "Could not find suitable llvm-config(-${LLVM_VERSION_MAJOR}).\
       \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm.")
   else()
-    find_package(LLVM ${CUDAQ_LLVM_VERSION} REQUIRED CONFIG
+    find_package(LLVM ${LLVM_VERSION_MAJOR} REQUIRED CONFIG
       HINTS ${LLVM_CONFIG_CMAKE_DIR} NO_DEFAULT_PATH)
   endif()
 endif()
@@ -403,12 +403,6 @@ else()
     endforeach()
   endif() 
 endif()
-
-configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
-  "${CUDAQ_BINARY_DIR}/include/nvqpp_config.h")
-
-install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
-  DESTINATION include/nvqpp)
 
 # Version
 # ==============================================================================
@@ -644,7 +638,7 @@ if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/lld DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/ld.lld DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${CUDAQ_LLVM_VERSION} DESTINATION bin)
+  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${LLVM_VERSION_MAJOR} DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
   install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
 endif()

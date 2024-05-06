@@ -7,13 +7,17 @@
  ******************************************************************************/
 
 #pragma once
-#define PLATFORM_SHARED_LIBRARY_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}"
-#define LLVM_INCLUDE_DIR "${LLVM_INCLUDE_DIRS}"
-#define LLVM_ROOT "${LLVM_BINARY_DIR}"
-#define LLVM_LIBCXX_INCLUDE_DIR "${LLVM_BINARY_DIR}/include/c++/v1"
-#define CUDAQ_LLVM_VERSION "${CUDAQ_LLVM_VERSION}"
+#define PLATFORM_SHARED_LIBRARY_SUFFIX "@CMAKE_SHARED_LIBRARY_SUFFIX@"
+#define LLVM_INCLUDE_DIR "@LLVM_INCLUDE_DIRS@"
+#define LLVM_ROOT "@LLVM_BINARY_DIR@"
+#ifndef LLVM_CONFIG_H
+#include "llvm/Config/llvm-config.h"
+#endif
+#ifndef LLVM_TARGET_TRIPLE
+#define LLVM_TARGET_TRIPLE LLVM_DEFAULT_TARGET_TRIPLE
+#endif
 
 // This is used by cudaq-quake as a backup search location
 // for required cudaq headers. We will search this install 
 // directory first 
-#define FALLBACK_CUDAQ_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/runtime"
+#define FALLBACK_CUDAQ_INCLUDE_DIR "@CMAKE_SOURCE_DIR@/runtime"

@@ -121,6 +121,9 @@ fi
 
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
+# FIXME: 
+#  -DCMAKE_CUDA_COMPILER=${CUDA_HOME:-/usr/local/cuda}/bin/nvcc \
+#  -DCMAKE_CUDA_FLAGS=-allow-unsupported-compiler \
 echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja "$repo_root" \
   -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
