@@ -88,6 +88,14 @@ if [ "$llvm_source" = "" ]; then
   llvm_commit="$(git submodule | grep tpls/llvm | cut -c2- | cut -d ' ' -f1)"
   git clone --filter=tree:0 "$llvm_repo" "$llvm_source"
   cd "$llvm_source" && git checkout $llvm_commit
+
+  LLVM_CMAKE_PATCHES=${LLVM_CMAKE_PATCHES:-"$this_file_dir/../tpls/customizations/llvm"}
+  if [ -d "$LLVM_CMAKE_PATCHES" ]; then 
+    echo "Applying LLVM patches in $LLVM_CMAKE_PATCHES..."
+    for patch in `find "$LLVM_CMAKE_PATCHES"/* -maxdepth 0 -type f -name '*.diff'`; do
+      git apply "$patch" --ignore-whitespace
+    done
+  fi
 fi
 
 mkdir -p "$LLVM_INSTALL_PREFIX"
@@ -163,7 +171,7 @@ cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 
 # Generate CMake files.
 cmake_args=" \
-  -DLLVM_HOST_TRIPLE='"$(bash ../llvm/cmake/config.guess)"' \
+  -DLLVM_DEFAULT_TARGET_TRIPLE='"$(bash ../llvm/cmake/config.guess)"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
   -DLLVM_ENABLE_PROJECTS='"${llvm_projects%;}"' \
@@ -228,8 +236,8 @@ if [ -n "$llvm_runtimes" ]; then
     echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
     cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
   else
-    # Not sure why no install step is defined for builtins when compiler-rt 
-    # is built as runtime rather than as project. Invoking the installation manually.
+    # No install step is defined for builtins when compiler-rt is built
+    # as runtime rather than as project. Invoking the installation manually.
     cmake -P runtimes/builtins-bins/cmake_install.cmake
     echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
 
