@@ -137,4 +137,29 @@ public:
   // NOLINTNEXTLINE(google-explicit-constructor)
   operator double() const { return (double)PyFloat_AsDouble(m_ptr); }
 };
+
+template <typename T>
+inline std::string typeName() {
+  return {typeid(T).name()};
+}
+template <>
+inline std::string typeName<py_ext::Float>() {
+  return "float";
+}
+template <>
+inline std::string typeName<py_ext::Complex>() {
+  return "complex";
+}
+template <>
+inline std::string typeName<py::int_>() {
+  return "int";
+}
+template <>
+inline std::string typeName<py::bool_>() {
+  return "bool";
+}
+template <>
+inline std::string typeName<py::list>() {
+  return "list";
+}
 } // namespace py_ext
