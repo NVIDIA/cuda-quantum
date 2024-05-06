@@ -290,9 +290,33 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
                               const std::vector<std::string> &names) {
-  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
-      name, module, unwrap(returnType), runtimeArgs, names);
+  auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
+                                               runtimeArgs, names);
+  // We first need to compute the offset for the return value.
+  // We'll loop through all the arguments and increment the
+  // offset for the argument type. Then we'll be at our return type location.
   auto unwrapped = unwrap(returnType);
+  auto returnOffset = [&]() {
+    std::size_t offset = 0;
+    auto kernelFunc = getKernelFuncOp(module, name);
+    for (auto argType : kernelFunc.getArgumentTypes())
+      llvm::TypeSwitch<mlir::Type, void>(argType)
+          .Case([&](IntegerType ty) {
+            if (ty.getIntOrFloatBitWidth() == 1) {
+              offset += 1;
+              return;
+            }
+
+            offset += 8;
+            return;
+          })
+          .Case([&](cc::StdvecType ty) { offset += 8; })
+          .Case([&](Float64Type ty) { offset += 8; })
+          .Case([&](Float32Type ty) { offset += 4; })
+          .Default([](Type) {});
+
+    return offset;
+  }();
 
   // Extract the return value from the rawArgs pointer.
   return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)

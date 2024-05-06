@@ -107,7 +107,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                   ast.Subscript) and annotation.value.id == 'Callable':
         if not hasattr(annotation, 'slice'):
             localEmitFatalError(
-                f'Callable type must have signature specified ({ast.unparse(annotation)}).'
+                f"Callable type must have signature specified ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
 
         if hasattr(annotation.slice, 'elts'):
@@ -117,7 +117,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             firstElement = annotation.slice.value.elts[0]
         else:
             localEmitFatalError(
-                f'Unable to get list elements when inferring type from annotation ({ast.unparse(annotation)}).'
+                f"Unable to get list elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
         argTypes = [mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts]
         return cc.CallableType.get(ctx, argTypes)
@@ -127,11 +127,12 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                                       annotation.value.id == 'List'):
         if not hasattr(annotation, 'slice'):
             localEmitFatalError(
-                f'list subscript missing slice node ({ast.unparse(annotation)}).'
+                f"list subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
 
         # The tree differs here between Python 3.8 and 3.9+
         eleTypeNode = annotation.slice
+        ## [PYTHON_VERSION_FIX]
         if sys.version_info < (3, 9):
             eleTypeNode = eleTypeNode.value
 
@@ -149,7 +150,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             id = annotation.value.value.id
     else:
         localEmitFatalError(
-            f'{ast.unparse(annotation)} is not a supported type yet (could not infer type name).'
+            f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type yet (could not infer type name)."
         )
 
     if id == 'list' or id == 'List':
@@ -169,7 +170,9 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if id == 'complex':
         return ComplexType.get(F64Type.get())
 
-    localEmitFatalError(f'{ast.unparse(annotation)} is not a supported type.')
+    localEmitFatalError(
+        f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
+    )
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
@@ -291,6 +294,7 @@ def mlirTypeToPyType(argType):
         return pauli_word
 
     def getListType(eleType: type):
+        ## [PYTHON_VERSION_FIX]
         if sys.version_info < (3, 9):
             return List[eleType]
         else:

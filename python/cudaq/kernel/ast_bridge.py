@@ -852,7 +852,8 @@ class PyASTBridge(ast.NodeVisitor):
         ```
         """
         if self.verbose:
-            print('[Visit Lambda {}]'.format(ast.unparse(node)))
+            print('[Visit Lambda {}]'.format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -889,7 +890,8 @@ class PyASTBridge(ast.NodeVisitor):
         symbol table.
         """
         if self.verbose:
-            print('[Visit Assign {}]'.format(node))
+            print('[Visit Assign {}]'.format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -1077,7 +1079,8 @@ class PyASTBridge(ast.NodeVisitor):
         ```
         """
         if self.verbose:
-            print("[Visit Call] {}".format(ast.unparse(node)))
+            print("[Visit Call] {}".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -1263,7 +1266,7 @@ class PyASTBridge(ast.NodeVisitor):
                     assert len(
                         self.valueStack
                     ) == 2, 'Error in AST processing, should have 2 values on the stack for enumerate {}'.format(
-                        ast.unparse(node))
+                        ast.unparse(node) if hasattr(ast, 'unparse') else node)
                     totalSize = self.popValue()
                     iterable = self.popValue()
                     arrTy = cc.PointerType.getElementType(iterable.type)
@@ -2162,7 +2165,8 @@ class PyASTBridge(ast.NodeVisitor):
         single `veq` instances. 
         """
         if self.verbose:
-            print('[Visit List] {}', ast.unparse(node))
+            print('[Visit List] {}',
+                  ast.unparse(node) if hasattr(ast, 'unparse') else node)
         self.generic_visit(node)
 
         self.currentNode = node
@@ -2572,7 +2576,8 @@ class PyASTBridge(ast.NodeVisitor):
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
         if self.verbose:
-            print("[Visit While = {}]".format(ast.unparse(node)))
+            print("[Visit While = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -2797,7 +2802,8 @@ class PyASTBridge(ast.NodeVisitor):
         Map a Python `ast.If` node to an if statement operation in the CC dialect. 
         """
         if self.verbose:
-            print("[Visit If = {}]".format(ast.unparse(node)))
+            print("[Visit If = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -2840,7 +2846,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Return(self, node):
         if self.verbose:
-            print("[Visit Return] = {}]".format(ast.unparse(node)))
+            print("[Visit Return] = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         if node.value == None:
             return
@@ -2889,7 +2896,8 @@ class PyASTBridge(ast.NodeVisitor):
         Map unary operations in the Python AST to equivalents in MLIR.
         """
         if self.verbose:
-            print("[Visit Unary = {}]".format(ast.unparse(node)))
+            print("[Visit Unary = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
@@ -2977,7 +2985,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
 
         if self.verbose:
-            print("[Visit BinaryOp = {}]".format(ast.unparse(node)))
+            print("[Visit BinaryOp = {}]".format(
+                ast.unparse(node) if hasattr(ast, 'unparse') else node))
 
         self.currentNode = node
 
