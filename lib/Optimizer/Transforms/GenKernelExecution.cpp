@@ -42,7 +42,9 @@ static constexpr const char cudaqRegisterArgsCreator[] =
 static constexpr const char cudaqRegisterKernelName[] =
     "cudaqRegisterKernelName";
 
-static constexpr std::size_t NoResultOffset = ~0u >> 1;
+/// This value is used to indicate that a kernel does not return a result.
+static constexpr std::uint64_t NoResultOffset =
+    std::numeric_limits<std::int32_t>::max();
 
 class GenerateKernelExecution
     : public cudaq::opt::impl::GenerateKernelExecutionBase<
@@ -268,6 +270,22 @@ public:
     return {stVal, extraBytes};
   }
 
+  Value genComputeReturnOffset(Location loc, OpBuilder &builder,
+                               FunctionType funcTy,
+                               cudaq::cc::StructType msgStructTy,
+                               Value nullSt) {
+    auto i64Ty = builder.getI64Type();
+    if (funcTy.getNumResults() == 0)
+      return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
+    auto members = msgStructTy.getMembers();
+    std::int32_t numKernelArgs = funcTy.getNumInputs();
+    auto resTy = cudaq::cc::PointerType::get(members[numKernelArgs]);
+    auto gep = builder.create<cudaq::cc::ComputePtrOp>(
+        loc, resTy, nullSt,
+        SmallVector<cudaq::cc::ComputePtrArg>{0, numKernelArgs});
+    return builder.create<cudaq::cc::CastOp>(loc, i64Ty, gep);
+  }
+
   /// Create a function that determines the return value offset in the message
   /// buffer.
   void genReturnOffsetFunction(Location loc, OpBuilder &builder,
@@ -282,19 +300,11 @@ public:
     OpBuilder::InsertionGuard guard(builder);
     auto *entry = returnOffsetFunc.addEntryBlock();
     builder.setInsertionPointToStart(entry);
-    auto result = [&]() -> Value {
-      if (devKernelTy.getNumResults() == 0)
-        return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
-      auto ptrTy = cudaq::cc::PointerType::get(msgStructTy);
-      auto members = msgStructTy.getMembers();
-      std::int32_t numKernelArgs = devKernelTy.getNumInputs();
-      auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
-      auto basePtr = builder.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
-      auto off = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, cudaq::cc::PointerType::get(members[numKernelArgs]), basePtr,
-          ArrayRef<cudaq::cc::ComputePtrArg>{0, numKernelArgs});
-      return builder.create<cudaq::cc::CastOp>(loc, i64Ty, off);
-    }();
+    auto ptrTy = cudaq::cc::PointerType::get(msgStructTy);
+    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto basePtr = builder.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
+    auto result =
+        genComputeReturnOffset(loc, builder, devKernelTy, msgStructTy, basePtr);
     builder.create<func::ReturnOp>(loc, result);
   }
 
@@ -1082,7 +1092,7 @@ public:
   /// circuit. These entry points are `operator()` member functions in a class,
   /// so account for the `this` argument here.
   void genNewHostEntryPoint(Location loc, OpBuilder &builder,
-                            FunctionType funcTy, Type structTy,
+                            FunctionType funcTy, cudaq::cc::StructType structTy,
                             LLVM::GlobalOp kernelNameObj, func::FuncOp thunk,
                             func::FuncOp rewriteEntry, bool addThisPtr) {
     auto *ctx = builder.getContext();
@@ -1275,15 +1285,8 @@ public:
         builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrI8Ty, loadThunk);
     auto castTemp = builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, temp);
 
-    auto resultOffset = [&]() -> Value {
-      if (funcTy.getNumResults() == 0)
-        return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
-      int offset = funcTy.getNumInputs();
-      auto gep = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, structPtrTy, nullSt,
-          SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
-      return builder.create<cudaq::cc::CastOp>(loc, i64Ty, gep);
-    }();
+    auto resultOffset =
+        genComputeReturnOffset(loc, builder, funcTy, structTy, nullSt);
 
     // Generate the call to `launchKernel`.
     builder.create<func::CallOp>(
