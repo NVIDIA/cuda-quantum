@@ -191,7 +191,7 @@ if $install; then
     # Note: Generally, the idea is to set the necessary environment variables
     # to make CUDA Quantum discoverable in login shells and for all users. 
     # Non-login shells should inherit them from the original login shell. 
-    # If we cannot modify /etc/profile, we instead modify ~/.bashrc, which 
+    # If we cannot modify /etc/profile, we instead modify $HOME/.bashrc, which 
     # is always executed by all interactive non-login shells.
     # The reason for this is that bash is a bit particular when it comes to user
     # level profiles for login-shells in the sense that there isn't one specific
@@ -202,7 +202,7 @@ if $install; then
     if [ -f /etc/profile ] && [ -w /etc/profile ]; then
         update_profile /etc/profile
     else
-        update_profile ~/.bashrc
+        update_profile $HOME/.bashrc
     fi
     if [ -f /etc/zprofile ] && [ -w /etc/zprofile ]; then
         update_profile /etc/zprofile

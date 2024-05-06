@@ -114,12 +114,12 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
       llvm_stage1_tmpdir="$(mktemp -d)"
       LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir/llvm"
-      LLVM_STAGE1_SOURCE="${LLVM_SOURCE:-$llvm_stage1_tmpdir/llvm_source}"
     fi
 
-    # Note that the compiler/runtime built here is not necessarily the same version as
-    # CUDA Quantum depends on. These are merely used to build the correct libraries later on.
-    LLVM_SOURCE="$LLVM_STAGE1_SOURCE" LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" \
+    # Note that when we first build the compiler/runtime built here we need to make sure it is
+    # the same version as CUDA Quantum depends on, even if we rebuild the runtime libraries later,
+    # since otherwise we need to rebuild zlib.
+    LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" LLVM_BUILD_FOLDER="stage1_build" \
     source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
   fi
   if [ ! -x "$(command -v cmake)" ]; then
@@ -185,7 +185,7 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
   fi
 
   if [ "$toolchain" = "llvm" ]; then
-    rm -rf "$llvm_stage1_tmpdir"
+    #rm -rf "$llvm_stage1_tmpdir"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang" 
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     export FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
@@ -231,11 +231,11 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     # we just use our own perl version for the OpenSSL build.
     wget https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
     tar -xzf perl-5.38.2.tar.gz && cd perl-5.38.2
-    ./Configure -des -Dcc="$CC" -Dprefix=~/.perl5
+    ./Configure -des -Dcc="$CC" -Dprefix=$HOME/.perl5
     make CC="$CC" && make install
     cd .. && rm -rf perl-5.38.2.tar.gz perl-5.38.2
     # Additional perl modules can be installed with cpan, e.g.
-    # PERL_MM_USE_DEFAULT=1 ~/.perl5/bin/cpan App::cpanminus
+    # PERL_MM_USE_DEFAULT=1 $HOME/.perl5/bin/cpan App::cpanminus
 
     if [ ! -x "$(command -v ar)" ]; then
       cc_exe_dir=`dirname "$CC"`
@@ -247,9 +247,9 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
     tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
     CC="$CC" CFLAGS="-fPIC" CXX="$CXX" CXXFLAGS="-fPIC" AR="${AR:-ar}" \
-    ~/.perl5/bin/perl Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
+    $HOME/.perl5/bin/perl Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
     make CC="$CC" CXX="$CXX" && make install
-    cd .. && rm -rf openssl-3.1.1.tar.gz openssl-3.1.1 ~/.perl5
+    cd .. && rm -rf openssl-3.1.1.tar.gz openssl-3.1.1 $HOME/.perl5
     remove_temp_installs
   else
     echo "OpenSSL already installed in $OPENSSL_INSTALL_PREFIX."

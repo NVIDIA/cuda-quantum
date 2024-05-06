@@ -93,9 +93,9 @@ RUN mkdir /pybind11-project && cd /pybind11-project && git init \
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 RUN source "/opt/llvm_stage1/bootstrap/init_command.sh" && \
     rm -rf /llvm-project/build && \
-    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
+    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake LLVM_SOURCE=/llvm-project \
     LD_LIBRARY_PATH=/opt/llvm_stage1/lib/$(uname -m)-unknown-linux-gnu/ \
-    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v && \
+    bash /scripts/build_llvm.sh -c Release -v && \
     mv /opt/llvm_stage1/bootstrap "$LLVM_INSTALL_PREFIX/bootstrap" && \
     for file in `ls "$LLVM_INSTALL_PREFIX/bootstrap"`; do \
         sed -i "s|/opt/llvm_stage1|/opt/llvm|g" "$LLVM_INSTALL_PREFIX/bootstrap/$file"; \

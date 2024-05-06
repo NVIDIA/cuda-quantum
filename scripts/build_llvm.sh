@@ -39,11 +39,9 @@ verbose=false
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:s:v" opt; do
+while getopts ":c:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
-    ;;
-    s) llvm_source="$OPTARG"
     ;;
     v) verbose=true
     ;;
@@ -80,26 +78,19 @@ if [ -z "${llvm_projects##*python-bindings;*}" ]; then
 fi
 
 # Prepare the source and build directory.
-if [ "$llvm_source" = "" ]; then
+if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; then
   echo "Cloning LLVM submodule..."
   cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
-  llvm_source=~/.llvm-project
+  LLVM_SOURCE="${LLVM_SOURCE:-$HOME/.llvm-project}"
   llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
   llvm_commit="$(git submodule | grep tpls/llvm | cut -c2- | cut -d ' ' -f1)"
-  git clone --filter=tree:0 "$llvm_repo" "$llvm_source"
-  cd "$llvm_source" && git checkout $llvm_commit
-
-  LLVM_CMAKE_PATCHES=${LLVM_CMAKE_PATCHES:-"$this_file_dir/../tpls/customizations/llvm"}
-  if [ -d "$LLVM_CMAKE_PATCHES" ]; then 
-    echo "Applying LLVM patches in $LLVM_CMAKE_PATCHES..."
-    for patch in `find "$LLVM_CMAKE_PATCHES"/* -maxdepth 0 -type f -name '*.diff'`; do
-      git apply "$patch" --ignore-whitespace
-    done
-  fi
+  git clone --filter=tree:0 "$llvm_repo" "$LLVM_SOURCE"
+  cd "$LLVM_SOURCE" && git checkout $llvm_commit
 fi
 
 mkdir -p "$LLVM_INSTALL_PREFIX"
-mkdir -p "$llvm_source/build" && cd "$llvm_source/build"
+mkdir -p "$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"
+cd "$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"
 mkdir -p logs && rm -rf logs/* 
 
 # Specify which components we need to keep the size of the LLVM build down.
@@ -166,12 +157,12 @@ else
 fi
 
 # A hack, since otherwise the build can fail due to line endings in the LLVM script:
-cat "../llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
-cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
+cat "$LLVM_SOURCE/llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
+cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.guess
 
 # Generate CMake files.
 cmake_args=" \
-  -DLLVM_DEFAULT_TARGET_TRIPLE='"$(bash ../llvm/cmake/config.guess)"' \
+  -DLLVM_DEFAULT_TARGET_TRIPLE='"$(bash $LLVM_SOURCE/llvm/cmake/config.guess)"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
   -DLLVM_ENABLE_PROJECTS='"${llvm_projects%;}"' \
@@ -202,9 +193,9 @@ else
 fi
 
 if $verbose; then
-  cmake -G Ninja ../llvm $cmake_args $cmake_cache
+  cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache
 else
-  cmake -G Ninja ../llvm $cmake_args $cmake_cache \
+  cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 
