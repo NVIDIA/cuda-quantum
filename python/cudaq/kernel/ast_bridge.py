@@ -772,7 +772,6 @@ class PyASTBridge(ast.NodeVisitor):
 
             # Create the entry block
             self.entry = f.add_entry_block()
-            # self.entry.parent = f
 
             # Set the insertion point to the start of the entry block
             with InsertionPoint(self.entry):
