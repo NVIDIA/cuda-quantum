@@ -96,7 +96,9 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), strValue);
+          // Ignore empty parameter values
+          if (!strValue.empty())
+            config.emplace(key.cast<std::string>(), strValue);
         }
         holder.setTarget(target.name, config);
       },
@@ -119,7 +121,9 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), strValue);
+          // Ignore empty parameter values
+          if (!strValue.empty())
+            config.emplace(key.cast<std::string>(), strValue);
         }
         holder.setTarget(name, config);
       },

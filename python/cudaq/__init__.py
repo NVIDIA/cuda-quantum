@@ -8,6 +8,24 @@
 
 import sys, os, numpy
 from ._packages import *
+
+# CUDAQ_DYNLIBS must be set before any other imports that would initialize
+# LinkedLibraryHolder.
+if not "CUDAQ_DYNLIBS" in os.environ:
+    try:
+        custatevec_libs = get_library_path("custatevec-cu11")
+        custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
+
+        cutensornet_libs = get_library_path("cutensornet-cu11")
+        cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
+
+        os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
+    except:
+        import importlib.util
+        if not importlib.util.find_spec("cuda-quantum") is None:
+            print("Could not find a suitable cuQuantum Python package.")
+        pass
+
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
@@ -120,21 +138,6 @@ def __clearKernelRegistries():
 from .domains import chemistry
 from .kernels import uccsd
 from .dbg import ast
-
-if not "CUDAQ_DYNLIBS" in os.environ:
-    try:
-        custatevec_libs = get_library_path("custatevec-cu11")
-        custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
-
-        cutensornet_libs = get_library_path("cutensornet-cu11")
-        cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
-
-        os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
-    except:
-        import importlib.util
-        if not importlib.util.find_spec("cuda-quantum") is None:
-            print("Could not find a suitable cuQuantum Python package.")
-        pass
 
 initKwargs = {}
 

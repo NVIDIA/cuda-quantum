@@ -332,16 +332,15 @@ public:
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
     op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
+      auto qId = qubitIds[qubitIdx];
       if (type != cudaq::pauli::I)
         qubitSupport.push_back(qubitIds[qubitIdx]);
 
       if (type == cudaq::pauli::Y)
-        basisChange.emplace_back([&, qubitIdx](bool reverse) {
-          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIds[qubitIdx]);
-        });
-      else if (type == cudaq::pauli::X)
         basisChange.emplace_back(
-            [&, qubitIdx](bool) { h(qubitIds[qubitIdx]); });
+            [&, qId](bool reverse) { rx(!reverse ? M_PI_2 : -M_PI_2, qId); });
+      else if (type == cudaq::pauli::X)
+        basisChange.emplace_back([&, qId](bool) { h(qId); });
     });
 
     if (!basisChange.empty())
