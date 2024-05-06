@@ -191,15 +191,9 @@ llvm_install_dir="@LLVM_BINARY_DIR@"
 llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
 
-IS_RELOCATABLE_INSTALL=@CUDAQ_RELOCATABLE_BOOL@
 INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
 # Full version string of this nvq++ script.
 NVQPP_VERSION_STRING="nvq++ Version @CUDA_QUANTUM_VERSION@ (https://github.com/NVIDIA/cuda-quantum @CUDA_QUANTUM_COMMIT_SHA@)"
-# If we are a relocatable package, then we
-# want to re-divert llvm_install_dir to the install_dir
-if ${IS_RELOCATABLE_INSTALL}; then
-	llvm_install_dir="${install_dir}"
-fi
 
 # Ensure that we have cudaq.h and we know where the include path is
 CUDAQ_INCLUDE_PATH="${install_dir}/include"
@@ -227,12 +221,6 @@ fi
 # Compiler and linker flags
 COMPILER_FLAGS="-I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
-# If we are a relocatable package, we want to
-# add compiler flags that will point clang to our repackaged
-# clang / gcc system headers.
-if ${IS_RELOCATABLE_INSTALL}; then
-	CLANG_RESOURCE_DIR="-resource-dir ${install_dir}/lib/clang/@LLVM_VERSION_MAJOR@"
-fi
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
 LINKER_PATH=

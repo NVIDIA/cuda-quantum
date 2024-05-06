@@ -6,11 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(CUDAQ_RELOCATABLE_BOOL "false")
-if(CUDAQ_BUILD_RELOCATABLE_PACKAGE) 
-  set(CUDAQ_RELOCATABLE_BOOL "true")
-endif()
-
 set(CUDAQ_IS_APPLE "false")
 if (APPLE) 
   set(CUDAQ_IS_APPLE "true")

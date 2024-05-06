@@ -124,7 +124,6 @@ endif()
 # ==============================================================================
 option(CUDAQ_BUILD_TESTS "Build cudaq tests" ON)
 option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud connection." OFF)
-option(CUDAQ_BUILD_RELOCATABLE_PACKAGE "Make CUDA Quantum install tree relocatable, system headers included." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA Quantum runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
@@ -377,33 +376,6 @@ add_custom_target(cudaq-headers)
 set_target_properties(cudaq-headers PROPERTIES FOLDER "Misc")
 add_custom_target(cudaq-doc)
 
-# Install
-# ==============================================================================
-
-# If building normally, this will add the required 
-# system headers to the cudaq-quake include paths.
-if (NOT CUDAQ_BUILD_RELOCATABLE_PACKAGE)
-  foreach(dir ${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES})
-    set(CUDAQ_CXX_NVQPP_LINK_STR "${CUDAQ_CXX_NVQPP_LINK_STR} -L${dir}")
-  endforeach()
-else()
-  # If we are building the relocatable package, 
-  # we need to do a bit more for Apple Mac
-  if (APPLE) 
-    foreach(dir ${CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES})
-      if (${dir} MATCHES ".*/c.*/v1") 
-        # Copy the bundled c++ includes from theClang install to ours
-        file(COPY ${dir} DESTINATION include/c++/)
-        # We want the driver to include the bundled C++ headers from Clang
-        set(CUDAQ_CXX_NVQPP_INCLUDE_STR "${CUDAQ_CXX_NVQPP_INCLUDE_STR} -I include/c++/v1")
-      elseif(${dir} MATCHES ".*sdk/usr/include") 
-        # We want the driver to include the SDK/usr/include dir
-        set(CUDAQ_CXX_NVQPP_INCLUDE_STR "${CUDAQ_CXX_NVQPP_INCLUDE_STR} -I ${dir}")
-      endif()  
-    endforeach()
-  endif() 
-endif()
-
 # Version
 # ==============================================================================
 if (DEFINED ENV{CUDA_QUANTUM_VERSION})
@@ -628,19 +600,6 @@ if(CUDAQ_BUILD_TESTS)
     add_subdirectory(docs)
   endif()
   umbrella_lit_testsuite_end(check-all)
-endif()
-
-if (CUDAQ_BUILD_RELOCATABLE_PACKAGE AND NOT CUDAQ_DISABLE_CPP_FRONTEND) 
-  # Grab the Clang system headers / resource-dir
-  install(DIRECTORY ${LLVM_BINARY_DIR}/lib/clang/ DESTINATION lib/clang)
-
-  # Install the executables we need
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/llc DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/lld DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/ld.lld DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang-${LLVM_VERSION_MAJOR} DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang DESTINATION bin)
-  install(PROGRAMS ${LLVM_BINARY_DIR}/bin/clang++ DESTINATION bin)
 endif()
 
 if (CUDAQ_EXTERNAL_NVQIR_SIMS) 
