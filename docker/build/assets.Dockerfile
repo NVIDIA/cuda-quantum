@@ -176,6 +176,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
 
 ## [Tests]
 FROM cpp_build
+RUN dnf remove -y gcc && dnf install -y glibc-devel
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \
     fi && cd /cuda-quantum && \
@@ -184,7 +185,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
     excludes+=" --exclude-regex NloptTester|ctest-nvqpp|ctest-targettests" && \
     ctest --output-on-failure --test-dir build $excludes
 
-ENV CUDAQ_CPP_STD="c++17"
+#ENV CUDAQ_CPP_STD="c++17"
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
 
 RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
@@ -194,7 +195,6 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/test/lit.site.cfg.py && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py
-
 
 # Tests for the Python wheel are run post-installation.
 COPY --from=python_build /wheelhouse /cuda_quantum/wheelhouse
