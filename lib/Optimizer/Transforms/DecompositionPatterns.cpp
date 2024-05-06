@@ -1127,6 +1127,48 @@ struct RzToPhasedRx : public OpRewritePattern<quake::RzOp> {
   }
 };
 
+//===----------------------------------------------------------------------===//
+// U3Op decompositions
+//===----------------------------------------------------------------------===//
+
+// quake.u3( , , ) target
+// ──────────────────────────────────
+// quake.rx( ) target
+// quake.ry( ) target
+// quake.rz( ) target
+struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
+  using OpRewritePattern<quake::U3Op>::OpRewritePattern;
+
+  void initialize() { setDebugName("U3ToRotations"); }
+
+  LogicalResult matchAndRewrite(quake::U3Op op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.getControls().empty())
+      return failure();
+    if (!quake::isAllReferences(op))
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    // TODO: Sort out the angle names and if anything needs
+    // to be scaled before being passed of to rotation gates.
+    Value angle0 = op.getParameters()[0];
+    Value angle1 = op.getParameters()[1];
+    Value angle2 = op.getParameters()[2];
+
+    // check if the op.isAdj()
+
+    // then insert:
+    rewriter.create<quake::RxOp>(loc, angle0, op.getControls(), target);
+    rewriter.create<quake::RyOp>(loc, angle1, op.getControls(), target);
+    rewriter.create<quake::RzOp>(loc, angle2, op.getControls(), target);
+
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
 } // namespace
 
 //===----------------------------------------------------------------------===//
