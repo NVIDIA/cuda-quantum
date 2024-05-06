@@ -24,63 +24,38 @@ namespace cudaq {
 // overlap.
 class RemoteSimulationState : public cudaq::SimulationState {
   std::string kernelName;
-  mutable std::vector<cudaq::complex> state;
-  mutable bool executed = false;
+  mutable std::unique_ptr<cudaq::SimulationState> state;
+  mutable std::vector<char> argsBuffer;
 
 public:
   template <typename QuantumKernel, typename... Args>
   RemoteSimulationState(QuantumKernel &&kernel, Args &&...args) {
     kernelName = cudaq::getKernelName(kernel);
+    argsBuffer = cudaq::serializeArgs(std::forward<Args>(args)...);
   }
   void execute() const;
+
+  std::tuple<std::string, void *, std::size_t> getKernelInfo() const;
+
   std::size_t getNumQubits() const override {
     execute();
-    return std::log2(state.size());
+    return std::log2(state->getNumQubits());
   }
 
-  std::complex<double> overlap(const cudaq::SimulationState &other) override {
-    const auto &otherState = dynamic_cast<const RemoteSimulationState &>(other);
-    // Now submit an overlap computation
-    if (!executed && otherState.executed) {
-      // submit
-      // TODO
-    }
-    // We've resolved the state (due to other API calls)
-  }
+  std::complex<double> overlap(const cudaq::SimulationState &other) override;
 
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
     // FIXME: handle amplitude access for extremely-large state vector (mgpu,
     // mps, etc.)
+    // i.e., needs to forward getAmplitude as a REST API call.
     execute();
-    if (getNumQubits() != basisState.size())
-      throw std::runtime_error(
-          fmt::format("[RemoteSimulationState] getAmplitude with an invalid "
-                      "number of bits in the "
-                      "basis state: expected {}, provided {}.",
-                      getNumQubits(), basisState.size()));
-    if (std::any_of(basisState.begin(), basisState.end(),
-                    [](int x) { return x != 0 && x != 1; }))
-      throw std::runtime_error("[RemoteSimulationState] getAmplitude with an "
-                               "invalid basis state: only "
-                               "qubit state (0 or 1) is supported.");
-
-    // Convert the basis state to an index value
-    const std::size_t idx = std::accumulate(
-        std::make_reverse_iterator(basisState.end()),
-        std::make_reverse_iterator(basisState.begin()), 0ull,
-        [](std::size_t acc, int bit) { return (acc << 1) + bit; });
-    return state[idx];
+    return state->getAmplitude(basisState);
   }
 
   Tensor getTensor(std::size_t tensorIdx = 0) const override {
-    if (tensorIdx != 0)
-      throw std::runtime_error(
-          "[RemoteSimulationState] invalid tensor requested.");
-    return Tensor{
-        reinterpret_cast<void *>(const_cast<cudaq::complex *>(state.data())),
-        std::vector<std::size_t>{static_cast<std::size_t>(state.size())},
-        getPrecision()};
+    execute();
+    return state->getTensor(tensorIdx);
   }
 
   /// @brief Return all tensors that represent this state
@@ -92,37 +67,25 @@ public:
   std::complex<double>
   operator()(std::size_t tensorIdx,
              const std::vector<std::size_t> &indices) override {
-    if (tensorIdx != 0)
-      throw std::runtime_error(
-          "[RemoteSimulationState] invalid tensor requested.");
-    if (indices.size() != 1)
-      throw std::runtime_error(
-          "[RemoteSimulationState] invalid element extraction.");
-
-    return state[indices[0]];
+    execute();
+    return state->operator()(tensorIdx, indices);
   }
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
-    throw std::runtime_error("TODO");
+    throw std::runtime_error("Unsupported");
   }
 
   void dump(std::ostream &os) const override {
     execute();
-    os << "SV: [";
-    for (std::size_t i = 0; const auto &el : state) {
-      os << el;
-      if (i < (state.size() - 1))
-        os << ", ";
-      ++i;
-    }
-    os << "]\n";
+    state->dump(os);
   }
 
   precision getPrecision() const override {
-    return cudaq::SimulationState::precision::fp64;
+    execute();
+    return state->getPrecision(); 
   }
 
-  void destroyState() override { state.clear(); }
+  void destroyState() override { state.reset(); }
 };
 } // namespace cudaq

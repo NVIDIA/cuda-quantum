@@ -61,6 +61,13 @@ public:
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;
 
+  /// @brief List of pairs of states to compute the overlap
+  std::vector<std::pair<const SimulationState *, const SimulationState *>>
+      overlapComputeStates;
+
+  /// @brief Overlap results
+  std::vector<std::complex<double>> overlapResults;
+
   /// @brief When run under the tracer context, persist the
   /// traced quantum resources here.
   Trace kernelTrace;

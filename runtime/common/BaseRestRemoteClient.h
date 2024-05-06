@@ -238,8 +238,35 @@ public:
       request.format = cudaq::CodeFormat::MLIR;
     }
 
-    request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
-                                          kernelArgs, argsSize);
+    if (io_context.name == "state-overlap") {
+      std::cout << "HERE\n";
+      if (io_context.overlapComputeStates.empty())
+        throw std::runtime_error("Invalid execution context: no input states");
+      std::vector<std::pair<std::string, std::string>> overlapKernels;
+      for (const auto &[state1, state2] : io_context.overlapComputeStates) {
+        const auto *castedState1 =
+            dynamic_cast<const RemoteSimulationState *>(state1);
+        const auto *castedState2 =
+            dynamic_cast<const RemoteSimulationState *>(state2);
+        if (!castedState1 || !castedState2)
+          throw std::runtime_error(
+              "Invalid execution context: input states are not compatible");
+        auto [kernelName1, args1, argsSize1] = castedState1->getKernelInfo();
+        auto [kernelName2, args2, argsSize2] = castedState2->getKernelInfo();
+        overlapKernels.emplace_back(std::make_pair(
+            kernelName1, constructKernelPayload(mlirContext, kernelName1,
+                                                nullptr, args1, argsSize1)));
+        overlapKernels.emplace_back(std::make_pair(
+            kernelName2, constructKernelPayload(mlirContext, kernelName2,
+                                                nullptr, args2, argsSize2)));
+      }
+      json overloadJs(overlapKernels);
+      request.code = overloadJs.dump();
+      std::cout << "HOWDY:\n" <<  request.code << "\n";
+    } else {
+      request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
+                                            kernelArgs, argsSize);
+    }
     request.simulator = backendSimName;
     // Remote server seed
     // Note: unlike local executions whereby a static instance of the simulator

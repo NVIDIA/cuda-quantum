@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "remote_state.h"
+#include "cudaq/qis/remote_state.h"
 
 namespace cudaq {
 
 void RemoteSimulationState::execute() const {
-  if (!executed) {
+  if (!state) {
     auto &platform = cudaq::get_platform();
     // Create an execution context, indicate this is for
     // extracting the state representation
@@ -19,12 +19,33 @@ void RemoteSimulationState::execute() const {
     // Perform the usual pattern set the context,
     // execute and then reset
     platform.set_exec_ctx(&context);
-    platform.launchKernel(kernelName, nullptr, nullptr, 0, 0);
+    platform.launchKernel(kernelName, nullptr,
+                          static_cast<void *>(argsBuffer.data()),
+                          argsBuffer.size(), 0);
     platform.reset_exec_ctx();
-    state.resize(1ULL << context.simulationState->getNumQubits());
-    context.simulationState->toHost(state.data(), state.size());
+    state = std::move(context.simulationState);
   }
-  executed = true;
 }
 
+std::tuple<std::string, void *, std::size_t>
+RemoteSimulationState::getKernelInfo() const {
+  return std::make_tuple(kernelName, static_cast<void *>(argsBuffer.data()),
+                         argsBuffer.size());
+}
+
+std::complex<double>
+RemoteSimulationState::overlap(const cudaq::SimulationState &other) {
+  const auto &otherState = dynamic_cast<const RemoteSimulationState &>(other);
+  auto &platform = cudaq::get_platform();
+  std::cout  << "RemoteSimulationState::overlap\n";
+  ExecutionContext context("state-overlap");
+  context.overlapComputeStates.emplace_back(
+      std::make_pair(static_cast<const cudaq::SimulationState *>(this),
+                     static_cast<const cudaq::SimulationState *>(&otherState)));
+  platform.set_exec_ctx(&context);
+  platform.launchKernel(kernelName, nullptr, nullptr, 0, 0);
+  platform.reset_exec_ctx();
+  assert(!context.overlapResults.empty());
+  return context.overlapResults.front();
+}
 } // namespace cudaq

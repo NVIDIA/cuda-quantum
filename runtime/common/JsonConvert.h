@@ -86,16 +86,31 @@ inline void to_json(json &j, const ExecutionContext &context) {
   if (context.simulationState) {
     j["simulationData"] = json();
     j["simulationData"]["dim"] = context.simulationState->getTensor().extents;
-    std::vector<std::complex<double>> hostData(
-        context.simulationState->getNumElements());
-    if (context.simulationState->isDeviceData()) {
-      context.simulationState->toHost(hostData.data(), hostData.size());
-      j["simulationData"]["data"] = hostData;
+    if (context.simulationState->getPrecision() ==
+        cudaq::SimulationState::precision::fp32) {
+      std::vector<std::complex<float>> hostData(
+          context.simulationState->getNumElements());
+      if (context.simulationState->isDeviceData()) {
+        context.simulationState->toHost(hostData.data(), hostData.size());
+        j["simulationData"]["data"] = hostData;
+      } else {
+        auto *ptr = reinterpret_cast<std::complex<float> *>(
+            context.simulationState->getTensor().data);
+        j["simulationData"]["data"] = std::vector<std::complex<float>>(
+            ptr, ptr + context.simulationState->getNumElements());
+      }
     } else {
-      auto *ptr = reinterpret_cast<std::complex<double> *>(
-          context.simulationState->getTensor().data);
-      j["simulationData"]["data"] = std::vector<std::complex<double>>(
-          ptr, ptr + context.simulationState->getNumElements());
+      std::vector<std::complex<double>> hostData(
+          context.simulationState->getNumElements());
+      if (context.simulationState->isDeviceData()) {
+        context.simulationState->toHost(hostData.data(), hostData.size());
+        j["simulationData"]["data"] = hostData;
+      } else {
+        auto *ptr = reinterpret_cast<std::complex<double> *>(
+            context.simulationState->getTensor().data);
+        j["simulationData"]["data"] = std::vector<std::complex<double>>(
+            ptr, ptr + context.simulationState->getNumElements());
+      }
     }
   }
 
@@ -108,6 +123,8 @@ inline void to_json(json &j, const ExecutionContext &context) {
     j["spin"]["data"] = spinOpRepr;
   }
   j["registerNames"] = context.registerNames;
+  if (!context.overlapResults.empty())
+    j["overlapResults"] = context.overlapResults;
 }
 
 inline void from_json(const json &j, ExecutionContext &context) {
@@ -137,14 +154,26 @@ inline void from_json(const json &j, ExecutionContext &context) {
 
   if (j.contains("simulationData")) {
     std::vector<std::size_t> stateDim;
-    std::vector<std::complex<double>> stateData;
-    j["simulationData"]["dim"].get_to(stateDim);
-    j["simulationData"]["data"].get_to(stateData);
-
-    // Create the simulation specific SimulationState
     auto *simulator = cudaq::get_simulator();
-    context.simulationState = simulator->createStateFromData(
-        std::make_pair(stateData.data(), stateDim[0]));
+    if (simulator->name().find("fp32") != std::string::npos) {
+      std::vector<std::complex<float>> stateData;
+      j["simulationData"]["dim"].get_to(stateDim);
+      j["simulationData"]["data"].get_to(stateData);
+      context.simulationState = simulator->createStateFromData(
+          std::make_pair(stateData.data(), stateDim[0]));
+    } else {
+      std::vector<std::complex<double>> stateData;
+      j["simulationData"]["dim"].get_to(stateDim);
+      j["simulationData"]["data"].get_to(stateData);
+      context.simulationState = simulator->createStateFromData(
+          std::make_pair(stateData.data(), stateDim[0]));
+    }
+  }
+  
+  if (j.contains("overlapResults")) {
+    std::vector<std::complex<double>> overlapResults;
+    j.at("overlapResults").get_to(overlapResults);
+    context.overlapResults = overlapResults;
   }
 
   if (j.contains("registerNames"))
