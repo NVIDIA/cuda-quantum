@@ -23,11 +23,11 @@ include "mlir/IR/RegionKindInterface.td"
 
 def CCDialect : Dialect {
   let name = "cc";
-  let summary = "Classical compute dialect for the CUDA Quantum programming model.";
+  let summary = "Classical compute dialect for the CUDA-Q programming model.";
   let description = [{
     CC is envisioned to be a high-level, portable MLIR dialect that is very
-    close to the classical computing side of the CUDA Quantum programming model.
-    The classical computation found in CUDA Quantum is a restricted subdomain of C++.
+    close to the classical computing side of the CUDA-Q programming model.
+    The classical computation found in CUDA-Q is a restricted subdomain of C++.
   }];
 
   let cppNamespace = "cudaq::cc";

@@ -329,7 +329,7 @@ class PyKernel(object):
                         element, eleTy)
                 else:
                     emitFatalError(
-                        f"CUDA Quantum kernel builder could not process runtime list-like element type ({pyType})."
+                        f"CUDA-Q kernel builder could not process runtime list-like element type ({pyType})."
                     )
 
                 cc.StoreOp(elementVal, eleAddr)
@@ -342,7 +342,7 @@ class PyKernel(object):
                                    size).result
 
         emitFatalError(
-            "CUDA Quantum kernel builder could not translate runtime argument of type {pyType} to internal IR value."
+            "CUDA-Q kernel builder could not translate runtime argument of type {pyType} to internal IR value."
         )
 
     def createInvariantForLoop(self,
@@ -1158,6 +1158,7 @@ class PyKernel(object):
             )
 
         def getListType(eleType: type):
+            ## [PYTHON_VERSION_FIX]
             if sys.version_info < (3, 9):
                 return List[eleType]
             else:

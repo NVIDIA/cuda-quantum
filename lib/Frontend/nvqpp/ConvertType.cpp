@@ -241,8 +241,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
 }
 
 bool QuakeBridgeVisitor::VisitFunctionProtoType(clang::FunctionProtoType *t) {
-  assert(t->exceptions().empty() &&
-         "exceptions are not supported in CUDA Quantum");
+  assert(t->exceptions().empty() && "exceptions are not supported in CUDA-Q");
   if (t->getNoexceptExpr()) {
     // Throw away the boolean value from this clause.
     // TODO: Could enforce that it must be `true`.

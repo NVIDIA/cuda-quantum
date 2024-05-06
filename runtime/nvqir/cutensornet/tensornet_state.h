@@ -17,7 +17,7 @@ namespace nvqir {
 /// already has some gates applied to.
 constexpr std::int64_t InvalidTensorIndexValue = -1;
 
-/// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
+/// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDA-Q
 /// simulator implementation.
 class TensorNetState {
   std::size_t m_numQubits;

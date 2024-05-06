@@ -73,9 +73,9 @@ static llvm::cl::opt<bool> emitLLVM(
                    "translation will terminate with the selected dialect."),
     llvm::cl::init(true));
 
-constexpr static char BOLD[] = "\033[1m";
-constexpr static char RED[] = "\033[91m";
-constexpr static char CLEAR[] = "\033[0m";
+static constexpr const char BOLD[] = "\033[1m";
+static constexpr const char RED[] = "\033[91m";
+static constexpr const char CLEAR[] = "\033[0m";
 
 using namespace mlir;
 

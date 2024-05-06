@@ -142,14 +142,21 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             delete static_cast<double *>(ptr);
           });
         })
+        .Case([&](Float32Type type) {
+          float *ourAllocatedArg = new float();
+          *ourAllocatedArg = 0.;
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<float *>(ptr);
+          });
+        })
         .Default([](Type ty) {
           std::string msg;
           {
             llvm::raw_string_ostream os(msg);
             ty.print(os);
           }
-          throw std::runtime_error(
-              "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
+          throw std::runtime_error("Unsupported CUDA-Q kernel return type - " +
+                                   msg + ".\n");
         });
 
   void *rawArgs = nullptr;
@@ -232,11 +239,10 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               const std::vector<std::string> &names) {
   auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
                                                runtimeArgs, names);
-  auto unwrapped = unwrap(returnType);
-
   // We first need to compute the offset for the return value.
   // We'll loop through all the arguments and increment the
   // offset for the argument type. Then we'll be at our return type location.
+  auto unwrapped = unwrap(returnType);
   auto returnOffset = [&]() {
     std::size_t offset = 0;
     auto kernelFunc = getKernelFuncOp(module, name);
@@ -253,6 +259,7 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
           })
           .Case([&](cc::StdvecType ty) { offset += 8; })
           .Case([&](Float64Type ty) { offset += 8; })
+          .Case([&](Float32Type ty) { offset += 4; })
           .Default([](Type) {});
 
     return offset;
@@ -275,6 +282,12 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
       .Case([&](Float64Type ty) -> py::object {
         double concrete;
         std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
+        std::free(rawArgs);
+        return py::float_(concrete);
+      })
+      .Case([&](Float32Type ty) -> py::object {
+        float concrete;
+        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 4);
         std::free(rawArgs);
         return py::float_(concrete);
       })

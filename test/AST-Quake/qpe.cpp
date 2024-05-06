@@ -40,13 +40,13 @@ __qpu__ void iqft(cudaq::qview<> q) {
   h(q[N - 1]);
 }
 
-// Define an oracle CUDA Quantum kernel
+// Define an oracle CUDA-Q kernel
 struct tgate {
   // We do not own the qubits here, so just use a qspan.
   void operator()(cudaq::qview<> &q) __qpu__ { t(q); }
 };
 
-// CUDA Quantum Kernel call operators can be templated on input kernel
+// CUDA-Q Kernel call operators can be templated on input kernel
 // expressions. Here we define a general Phase Estimation algorithm that is
 // generic on the eigenstate preparation and unitary evolution steps.
 struct qpe {

@@ -26,7 +26,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
 ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 RUN source /cuda-quantum/scripts/configure_build.sh build-openmpi
 
-# [CUDA Quantum Installation]
+# [CUDA-Q Installation]
 FROM ${base_image}
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
@@ -63,7 +63,7 @@ WORKDIR /home/cudaq
 ARG cuda_quantum_installer='install_cuda_quantum.*'
 ADD "${cuda_quantum_installer}" .
 RUN source /etc/environment && \
-    echo "Installing CUDA Quantum..." && \
+    echo "Installing CUDA-Q..." && \
     ## [>CUDAQuantumInstall]
     MPI_PATH=/usr/local/openmpi \
     sudo -E bash install_cuda_quantum.$(uname -m) --accept && . /etc/profile

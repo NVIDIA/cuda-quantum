@@ -21,15 +21,13 @@
 
 namespace nvqir {
 
-using namespace std::complex_literals;
-
 template <typename Scalar = double>
 static constexpr std::complex<Scalar> im = std::complex<Scalar>(0, 1.);
 
 template <typename ScalarType = double>
 using ComplexT = std::complex<ScalarType>;
 
-/// @brief Enumeration of supported CUDA Quantum operations
+/// @brief Enumeration of supported CUDA-Q operations
 enum class GateName {
   X,
   Y,

@@ -268,6 +268,36 @@ public:
     return {stVal, extraBytes};
   }
 
+  /// Create a function that determines the return value offset in the message
+  /// buffer.
+  void genReturnOffsetFunction(Location loc, OpBuilder &builder,
+                               FunctionType devKernelTy,
+                               cudaq::cc::StructType msgStructTy,
+                               const std::string &classNameStr) {
+    auto *ctx = builder.getContext();
+    auto i64Ty = builder.getI64Type();
+    auto funcTy = FunctionType::get(ctx, {}, {i64Ty});
+    auto returnOffsetFunc = builder.create<func::FuncOp>(
+        loc, classNameStr + ".returnOffset", funcTy);
+    OpBuilder::InsertionGuard guard(builder);
+    auto *entry = returnOffsetFunc.addEntryBlock();
+    builder.setInsertionPointToStart(entry);
+    auto result = [&]() -> Value {
+      if (devKernelTy.getNumResults() == 0)
+        return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
+      auto ptrTy = cudaq::cc::PointerType::get(msgStructTy);
+      auto members = msgStructTy.getMembers();
+      std::int32_t numKernelArgs = devKernelTy.getNumInputs();
+      auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+      auto basePtr = builder.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
+      auto off = builder.create<cudaq::cc::ComputePtrOp>(
+          loc, cudaq::cc::PointerType::get(members[numKernelArgs]), basePtr,
+          ArrayRef<cudaq::cc::ComputePtrArg>{0, numKernelArgs});
+      return builder.create<cudaq::cc::CastOp>(loc, i64Ty, off);
+    }();
+    builder.create<func::ReturnOp>(loc, result);
+  }
+
   /// Creates a function that can take a block of pointers to argument values
   /// and using the compiler's knowledge of a kernel encodes those argument
   /// values into a message buffer. The message buffer is a pointer-free block
@@ -1090,7 +1120,7 @@ public:
           continue;
 
       if (auto stdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(quakeTy)) {
-        // Per the CUDAQ spec, an entry point kernel must take a `[const]
+        // Per the CUDA-Q spec, an entry point kernel must take a `[const]
         // std::vector<T>` value argument.
         // Should the spec stipulate that pure device kernels must pass by
         // read-only reference, i.e., take `const std::vector<T> &` arguments?
@@ -1449,6 +1479,9 @@ public:
         hostFuncTy =
             cudaq::opt::factory::toHostSideFuncType(funcTy, hasThisPtr, module);
       }
+
+      // Generate the function that computes the return offset.
+      genReturnOffsetFunction(loc, builder, funcTy, structTy, classNameStr);
 
       // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
       auto thunk = genThunkFunction(loc, builder, classNameStr, structTy,

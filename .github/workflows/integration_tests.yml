@@ -289,7 +289,7 @@ jobs:
         if: (success() || failure()) && (inputs.target == 'ionq' || github.event_name == 'schedule' || inputs.target == 'nightly')
         run: |
           echo "### Submit to IonQ Simulator" >> $GITHUB_STEP_SUMMARY
-          export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
+          export IONQ_API_KEY='${{ secrets.IONQ_API_KEY }}'
           # TODO: remove this flag once https://github.com/NVIDIA/cuda-quantum/issues/512 is addressed.
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
@@ -375,8 +375,8 @@ jobs:
         run: |
           echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
-          export OQC_EMAIL="${{ secrets.BACKEND_LOGIN_EMAIL }}"
-          export OQC_PASSWORD="${{ secrets.OQC_PASSWORD }}"
+          export OQC_EMAIL='${{ secrets.BACKEND_LOGIN_EMAIL }}'
+          export OQC_PASSWORD='${{ secrets.OQC_PASSWORD }}'
           set +e # Allow script to keep going through errors
           test_err_sum=0
           for filename in ${{ steps.gettests.outputs.testlist }}; do
@@ -418,7 +418,7 @@ jobs:
         if: inputs.target == 'quantinuum' && github.event_name == 'workflow_dispatch'
         run: |
           if ${{inputs.target == 'ionq'}}; then
-            export IONQ_API_KEY="${{ secrets.IONQ_API_KEY }}"
+            export IONQ_API_KEY='${{ secrets.IONQ_API_KEY }}'
           fi
           for filename in ${{ steps.gettests.outputs.testlist }}; do
             [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
