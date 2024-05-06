@@ -8,7 +8,7 @@
     {
   "swagger": "2.0",
   "info": {
-    "title": "CUDA Quantum Remote Simulation Runtime REST API",
+    "title": "CUDA-Q Remote Simulation Runtime REST API",
     "version": "1.0.0"
   },
   "paths": {
@@ -63,8 +63,8 @@
         },
         "clientVersion": {
           "type": "string",
-          "description": "Version description of the CUDA Quantum client generating the request.",
-          "example": "CUDA Quantum Version 0.7.0 (https://github.com/NVIDIA/cuda-quantum 8650fb9d79e7e780ea95d9506a513162daf84b80)"
+          "description": "Version description of the CUDA-Q client generating the request.",
+          "example": "CUDA-Q Version 0.7.0 (https://github.com/NVIDIA/cuda-quantum 8650fb9d79e7e780ea95d9506a513162daf84b80)"
         },
         "entryPoint": {
           "type": "string",
@@ -78,13 +78,13 @@
         },
         "executionContext": {
           "type": "object",
-          "description": "Context to indicate how the CUDA Quantum kernel should be executed.",
+          "description": "Context to indicate how the CUDA-Q kernel should be executed.",
           "$ref": "#/definitions/RequestExecutionContext"
         },
         "code": {
           "type": "string",
           "format": "binary",
-          "description": "Base64 encoded CUDA Quantum kernel IR (Intermediate Representation)."
+          "description": "Base64 encoded CUDA-Q kernel IR (Intermediate Representation)."
         },
         "args": {
           "type": "string",

@@ -1,14 +1,14 @@
-Create your own CUDA Quantum Compiler Pass 
+Create your own CUDA-Q Compiler Pass 
 ******************************************
 
-The CUDA Quantum IR can be transformed, analyzed, or optimized 
-using standard MLIR patterns and tools. CUDA Quantum provides a registration 
+The CUDA-Q IR can be transformed, analyzed, or optimized 
+using standard MLIR patterns and tools. CUDA-Q provides a registration 
 mechanism for the :code:`cudaq-opt` tool that allows one to create, load, and 
 use custom MLIR passes on Quake code. 
 
-CUDA Quantum MLIR Passes can only be created within an existing CUDA Quantum 
+CUDA-Q MLIR Passes can only be created within an existing CUDA-Q 
 development environment. Therefore, you must clone the repository and add your 
-Pass code as part of the existing CUDA Quantum CMake system. 
+Pass code as part of the existing CUDA-Q CMake system. 
 
 As an example, clone the repository and add the following directory structure 
 under :code:`lib`, :code:`lib/Plugins/MyCustomPlugin/`. Within this directory create a 
@@ -19,7 +19,7 @@ add the following:
 
     add_llvm_pass_plugin(MyCustomPlugin MyCustomPlugin.cpp)
 
-Creating a CUDA Quantum IR pass starts with the implementation of an 
+Creating a CUDA-Q IR pass starts with the implementation of an 
 :code:`mlir::OperationPass`. A full discussion of the MLIR Pass infrastructure 
 is beyond the scope of this document; please see 
 `MLIR Passes <https://mlir.llvm.org/docs/PassManagement>`_. To create such 
@@ -80,7 +80,7 @@ a pass, start with the following template in the :code:`MyCustomPlugin.cpp` file
     CUDAQ_REGISTER_MLIR_PASS(CustomPassPlugin)
 
 This example serves as a very simple template for creating custom MLIR 
-Passes that analyze the CUDA Quantum Quake representation and perform 
+Passes that analyze the CUDA-Q Quake representation and perform 
 some general transformation. In this example, we create a rewrite pattern 
 that replaces :code:`Hadamard` operations with :code:`S` operations. 
 
@@ -88,7 +88,7 @@ Ensure that :code:`add_subdirectory(Plugins)` is in the :code:`lib/CMakeLists.tx
 and also that there is a :code:`lib/Plugins/CMakeLists.txt` file that adds your 
 plugin directory with :code:`add_subdirectory`.
 
-Then build CUDA Quantum and you will have a :code:`MyCustomPlugin.so` plugin library 
+Then build CUDA-Q and you will have a :code:`MyCustomPlugin.so` plugin library 
 in the install. You can load the plugin and use it with :code:`cudaq-opt` as follows: 
 
 .. code:: bash 
