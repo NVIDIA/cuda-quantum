@@ -16,6 +16,7 @@ import sys
 import cudaq
 from cudaq import spin
 
+
 def test_return_float_param():
 
     @cudaq.kernel
