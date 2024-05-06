@@ -62,8 +62,9 @@ template <typename Kernel>
 void from_state(Kernel &&kernel, QuakeValue &qubits,
                 const std::span<std::complex<double>> data,
                 std::size_t inNumQubits = 0) {
-  auto numQubits = qubits.constantSize().value_or(inNumQubits);
-  if (numQubits == 0)
+  std::make_signed_t<std::size_t> numQubits =
+      qubits.constantSize().value_or(inNumQubits);
+  if (numQubits <= 0)
     throw std::runtime_error(
         "[from_state] cannot infer size of input quantum register, please "
         "specify the number of qubits via the from_state() final argument.");
@@ -109,7 +110,7 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
   }
 }
 
-/// @brief Construct a CUDA Quantum kernel that produces the
+/// @brief Construct a CUDA-Q kernel that produces the
 /// given state. This overload will return the `kernel_builder` as a
 /// `unique_ptr`.
 auto from_state(const std::span<std::complex<double>> data) {

@@ -20,7 +20,7 @@ def QuakeDialect : Dialect {
   let summary = "Higher level, memory-semantics dialect for cudaq. ";
   let description = [{
     Quake is envisioned to be a high-level, portable MLIR dialect that is very
-    close to the CUDA Quantum programming model. Quake is a "circuit building"
+    close to the CUDA-Q programming model. Quake is a "circuit building"
     language in which one writes programs that build quantum circuits. Quake is 
     not tied to a particular quantum hardware/machine.
   }];

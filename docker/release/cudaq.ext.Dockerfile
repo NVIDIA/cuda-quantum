@@ -11,7 +11,7 @@ FROM $base_image
 
 USER root
 
-# Copy over additional CUDA Quantum assets.
+# Copy over additional CUDA-Q assets.
 ARG assets=./assets
 COPY "$assets" "$CUDA_QUANTUM_PATH/assets/"
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"

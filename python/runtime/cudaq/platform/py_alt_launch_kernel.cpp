@@ -41,6 +41,7 @@ std::tuple<ExecutionEngine *, void *, std::size_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
                  const std::vector<std::string> &names, Type returnType) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "jitAndCreateArgs", name);
   auto mod = unwrap(module);
   auto cloned = mod.clone();
   auto context = cloned.getContext();
@@ -56,6 +57,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
   if (jitCache->hasJITEngine(hashKey))
     jit = jitCache->getJITEngine(hashKey);
   else {
+    ScopedTraceWithContext(cudaq::TIMING_JIT,
+                           "jitAndCreateArgs - execute passes", name);
 
     PassManager pm(context);
     pm.addNestedPass<func::FuncOp>(
@@ -63,10 +66,16 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    cudaq::opt::addPipelineToQIR<>(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
+
+    DefaultTimingManager tm;
+    tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+    auto timingScope = tm.getRootScope(); // starts the timer
+    pm.enableTiming(timingScope);         // do this right before pm.run
     if (failed(pm.run(cloned)))
       throw std::runtime_error(
           "cudaq::builder failed to JIT compile the Quake representation.");
+    timingScope.stop();
 
     // The "fast" instruction selection compilation algorithm is actually very
     // slow for large quantum circuits. Disable that here. Revisit this
@@ -139,8 +148,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             llvm::raw_string_ostream os(msg);
             ty.print(os);
           }
-          throw std::runtime_error(
-              "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
+          throw std::runtime_error("Unsupported CUDA-Q kernel return type - " +
+                                   msg + ".\n");
         });
 
   void *rawArgs = nullptr;
@@ -224,32 +233,60 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
                                                runtimeArgs, names);
   auto unwrapped = unwrap(returnType);
-  if (unwrapped.isInteger(64)) {
-    std::size_t concrete;
-    // Here we know the return type should be at
-    // the last 8 bytes of memory
-    // FIXME revisit this calculation when we support returning vectors
-    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
-    std::free(rawArgs);
-    return py::int_(concrete);
-  } else if (unwrapped.isInteger(1)) {
-    bool concrete = false;
-    std::memcpy(&concrete, ((char *)rawArgs) + size - 1, 1);
-    return py::bool_(concrete);
-  } else if (isa<FloatType>(unwrapped)) {
-    double concrete;
-    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
-    std::free(rawArgs);
-    return py::float_(concrete);
-  }
 
-  std::free(rawArgs);
-  unwrapped.dump();
-  throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
+  // We first need to compute the offset for the return value.
+  // We'll loop through all the arguments and increment the
+  // offset for the argument type. Then we'll be at our return type location.
+  auto returnOffset = [&]() {
+    std::size_t offset = 0;
+    auto kernelFunc = getKernelFuncOp(module, name);
+    for (auto argType : kernelFunc.getArgumentTypes())
+      llvm::TypeSwitch<mlir::Type, void>(argType)
+          .Case([&](IntegerType ty) {
+            if (ty.getIntOrFloatBitWidth() == 1) {
+              offset += 1;
+              return;
+            }
+
+            offset += 8;
+            return;
+          })
+          .Case([&](cc::StdvecType ty) { offset += 8; })
+          .Case([&](Float64Type ty) { offset += 8; })
+          .Default([](Type) {});
+
+    return offset;
+  }();
+
+  // Extract the return value from the rawArgs pointer.
+  return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
+      .Case([&](IntegerType ty) -> py::object {
+        if (ty.getIntOrFloatBitWidth() == 1) {
+          bool concrete = false;
+          std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 1);
+          std::free(rawArgs);
+          return py::bool_(concrete);
+        }
+        std::size_t concrete;
+        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
+        std::free(rawArgs);
+        return py::int_(concrete);
+      })
+      .Case([&](Float64Type ty) -> py::object {
+        double concrete;
+        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
+        std::free(rawArgs);
+        return py::float_(concrete);
+      })
+      .Default([](Type ty) -> py::object {
+        ty.dump();
+        throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
+      });
 }
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
                             cudaq::OpaqueArguments &runtimeArgs) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
   auto [jit, rawArgs, size] =
@@ -267,9 +304,14 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   pm.addPass(cudaq::opt::createLoopNormalize());
   pm.addPass(cudaq::opt::createLoopUnroll());
   pm.addPass(createCanonicalizerPass());
+  DefaultTimingManager tm;
+  tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+  auto timingScope = tm.getRootScope(); // starts the timer
+  pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
+  timingScope.stop();
   std::free(rawArgs);
   return wrap(cloned);
 }
@@ -277,6 +319,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
 std::string getQIRLL(const std::string &name, MlirModule module,
                      cudaq::OpaqueArguments &runtimeArgs,
                      std::string &profile) {
+  ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIRLL", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
   auto [jit, rawArgs, size] =
@@ -286,12 +329,17 @@ std::string getQIRLL(const std::string &name, MlirModule module,
 
   PassManager pm(context);
   if (profile.empty())
-    cudaq::opt::addPipelineToQIR<>(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
   else
-    cudaq::opt::addPipelineToQIR<true>(pm, profile);
+    cudaq::opt::addPipelineConvertToQIR(pm, profile);
+  DefaultTimingManager tm;
+  tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+  auto timingScope = tm.getRootScope(); // starts the timer
+  pm.enableTiming(timingScope);         // do this right before pm.run
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
+  timingScope.stop();
   std::free(rawArgs);
 
   llvm::LLVMContext llvmContext;

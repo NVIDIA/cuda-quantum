@@ -10,7 +10,7 @@
 
 # Usage: 
 # This script builds and installs a minimal set of dependencies needed to build 
-# CUDA Quantum from source. 
+# CUDA-Q from source. 
 #
 # Usage: 
 # bash install_prerequisites.sh
@@ -231,7 +231,7 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     # we just use our own perl version for the OpenSSL build.
     wget https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
     tar -xzf perl-5.38.2.tar.gz && cd perl-5.38.2
-    ./Configure -des -Dcc="$CC" -Dprefix=$HOME/.perl5
+    ./Configure -des -Dcc="$CC" -Dprefix="$HOME/.perl5"
     make CC="$CC" && make install
     cd .. && rm -rf perl-5.38.2.tar.gz perl-5.38.2
     # Additional perl modules can be installed with cpan, e.g.
@@ -247,9 +247,9 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     wget https://www.openssl.org/source/openssl-3.1.1.tar.gz
     tar -xf openssl-3.1.1.tar.gz && cd openssl-3.1.1
     CC="$CC" CFLAGS="-fPIC" CXX="$CXX" CXXFLAGS="-fPIC" AR="${AR:-ar}" \
-    $HOME/.perl5/bin/perl Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
+    "$HOME/.perl5/bin/perl" Configure no-shared no-zlib --prefix="$OPENSSL_INSTALL_PREFIX"
     make CC="$CC" CXX="$CXX" && make install
-    cd .. && rm -rf openssl-3.1.1.tar.gz openssl-3.1.1 $HOME/.perl5
+    cd .. && rm -rf openssl-3.1.1.tar.gz openssl-3.1.1 "$HOME/.perl5"
     remove_temp_installs
   else
     echo "OpenSSL already installed in $OPENSSL_INSTALL_PREFIX."
@@ -286,7 +286,7 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
     # path when invoking the Curl executable, this variable is *not* respected by default by the 
     # built library itself; instead, the user of libcurl is responsible for picking up the 
     # environment variables and passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO. 
-    # We opt to build Curl without any default paths, and instead have the CUDA Quantum runtime
+    # We opt to build Curl without any default paths, and instead have the CUDA-Q runtime
     # determine and pass a suitable path.
     wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
     tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0

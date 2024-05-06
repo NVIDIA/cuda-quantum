@@ -6,27 +6,25 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std -verify %s
-
 #include <cudaq.h>
-#include <string>
-#include <tuple>
 
-// expected-error@+1{{kernel argument type not supported}}
-void prepQubit(std::pair<int, double> basis, cudaq::qubit &q) __qpu__ {}
+// REQUIRES: c++17
+// RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine Apollo -o %t.x && %t.x | FileCheck %s
+// RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine=Apollo -o %t.x && %t.x | FileCheck %s
+// CHECK: { 0:1000 }
 
-// expected-error@+1{{kernel argument type not supported}}
-void RzArcTan2(bool input, std::pair<int, double> basis) __qpu__ {
-  cudaq::qubit aux;
-  cudaq::qubit resource;
-  cudaq::qubit target;
-  if (input) {
-    x(target);
+template <std::size_t N>
+struct kernel_with_z {
+  auto operator()() __qpu__ {
+    cudaq::qarray<N> q;
+    cz(q[0], q[1]);
+    auto result = mz(q[0]);
   }
-  prepQubit(basis, target);
-}
+};
 
 int main() {
-  RzArcTan2(true, {});
+  auto kernel = kernel_with_z<2>{};
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
   return 0;
 }

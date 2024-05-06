@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && CUDAQ_DUMP_JIT_IR=1 %t &> %basename_t.ir && cat %basename_t.ir | FileCheck %s && rm -f %basename_t.ir
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && CUDAQ_DUMP_JIT_IR=1 %t &> %basename_t.ir && cat %basename_t.ir | FileCheck %s && rm -f %basename_t.ir
 // clang-format on
 
 #include <cudaq.h>
@@ -36,12 +36,12 @@ __qpu__ void iqft(cudaq::qview<> q) {
   h(q[N - 1]);
 }
 
-// CUDA Quantum kernel call operators can be templated on input CUDA Quantum
+// CUDA-Q kernel call operators can be templated on input CUDA-Q
 // kernel expressions. Here we define a general Phase Estimation algorithm that
 // is generic on the eigenstate preparation and unitary evolution steps.
 struct qpe {
 
-  // Define the CUDA Quantum call expression to take user-specified eigenstate
+  // Define the CUDA-Q call expression to take user-specified eigenstate
   // and unitary evolution kernels, as well as the number of qubits in the
   // counting register and in the eigenstate register.
   template <typename StatePrep, typename Unitary>

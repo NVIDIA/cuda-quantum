@@ -14,15 +14,29 @@ namespace cudaq {
 
 static constexpr const char llvmMemCopyIntrinsic[] =
     "llvm.memcpy.p0i8.p0i8.i64";
+
+// cudaq::range(count);
 static constexpr const char setCudaqRangeVector[] = "__nvqpp_CudaqRangeInit";
+// cudaq::range(start, stop, step);
+static constexpr const char setCudaqRangeVectorTriple[] =
+    "__nvqpp_CudaqRangeInitTriple";
+// Computes the number of iterations as from a semi-open interval as given by a
+// cudaq::range() triple.
+static constexpr const char getCudaqSizeFromTriple[] =
+    "__nvqpp_CudaqSizeFromTriple";
+
+// Convert a sequence of booleans (as bytes) into a std::vector<bool> (which is
+// typically specialized to be bit packed).
 static constexpr const char stdvecBoolCtorFromInitList[] =
     "__nvqpp_initializer_list_to_vector_bool";
+// Convert a (likely packed) std::vector<bool> into a sequence of bytes, each
+// holding a boolean value.
 static constexpr const char stdvecBoolUnpackToInitList[] =
     "__nvqpp_vector_bool_to_initializer_list";
 
-/// Builder for lowering the clang AST to an IR for CUDA Quantum. Lowering
+/// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering
 /// includes the transformation of both quantum and classical computation.
-/// Different features of the CUDA Quantum programming model are lowered into
+/// Different features of the CUDA-Q programming model are lowered into
 /// different dialects of MLIR. This builder makes heavy use of the Quake
 /// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
 ///

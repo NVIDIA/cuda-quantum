@@ -95,8 +95,8 @@ protected:
 public:
   ExecutionManager() = default;
 
-  /// Return the next available qudit index
-  virtual std::size_t getAvailableIndex(std::size_t quditLevels = 2) = 0;
+  /// Allocates a qudit and returns its identifier (index).
+  virtual std::size_t allocateQudit(std::size_t quditLevels = 2) = 0;
 
   /// QuditInfo has been deallocated, return the qudit / id to the pool of
   /// qudits.
@@ -147,6 +147,10 @@ public:
 
   /// Synchronize - run all queue-ed instructions
   virtual void synchronize() = 0;
+
+  /// Flush the gate queue (needed for accurate timing information)
+  virtual void flushGateQueue(){};
+
   virtual ~ExecutionManager() = default;
 };
 

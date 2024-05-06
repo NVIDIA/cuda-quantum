@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file is used to build CUDA Quantum Python wheels.
+# This file is used to build CUDA-Q Python wheels.
 # Build with buildkit to get the wheels as output instead of the image.
 #
 # Usage:

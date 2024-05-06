@@ -215,9 +215,9 @@ struct Nesting {
     double sum = 0.0;
 
     for (auto &d : parms) {
-       for (auto &f : otherParms) {
-	  sum += d * f;
-       }
+      for (auto &f : otherParms) {
+        sum += d * f;
+      }
     }
 
     rx(sum, q);
@@ -278,7 +278,7 @@ struct Nesting {
 
 struct FreeRange {
   void operator()(cudaq::qvector<> r, unsigned N) __qpu__ {
-    for (auto i : cudaq::range(N)) {
+    for (auto i : cudaq::range(static_cast<int>(N))) {
       h(r[i]);
     }
   }
@@ -306,4 +306,49 @@ struct FreeRange {
 // CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_2]] : i64
 // CHECK:             cc.continue %[[VAL_15]] : i64
 // CHECK:           } {invariant}
+// clang-format on
+
+struct FreeRangeChicken {
+  void operator()(cudaq::qvector<> r, int Z, int N, int S) __qpu__ {
+    for (auto i : cudaq::range(Z, N, S)) {
+      h(r[i]);
+    }
+  }
+};
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__FreeRangeChicken(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>,
+// CHECK-SAME:      %[[VAL_1:.*]]: i32, %[[VAL_2:.*]]: i32, %[[VAL_3:.*]]: i32)
+// CHECK:           %[[VAL_4:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_5:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_6:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_1]], %[[VAL_6]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_7:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_8:.*]] = cc.alloca i32
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_8]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_9:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_12:.*]] = cc.cast signed %[[VAL_9]] : (i32) -> i64
+// CHECK:           %[[VAL_13:.*]] = cc.cast signed %[[VAL_10]] : (i32) -> i64
+// CHECK:           %[[VAL_14:.*]] = cc.cast signed %[[VAL_11]] : (i32) -> i64
+// CHECK:           %[[VAL_16:.*]] = call @__nvqpp_CudaqSizeFromTriple(%[[VAL_12]], %[[VAL_13]], %[[VAL_14]]) : (i64, i64, i64) -> i64
+// CHECK:           %[[VAL_17:.*]]:2 = cc.loop while ((%[[VAL_18:.*]] = %[[VAL_5]], %[[VAL_19:.*]] = %[[VAL_12]]) -> (i64, i64)) {
+// CHECK:             %[[VAL_20:.*]] = arith.cmpi slt, %[[VAL_18]], %[[VAL_16]] : i64
+// CHECK:             cc.condition %[[VAL_20]](%[[VAL_18]], %[[VAL_19]] : i64, i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_21:.*]]: i64, %[[VAL_22:.*]]: i64):
+// CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_21]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:             quake.h %[[VAL_23]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[VAL_21]], %[[VAL_22]] : i64, i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_24:.*]]: i64, %[[VAL_25:.*]]: i64):
+// CHECK:             %[[VAL_26:.*]] = arith.addi %[[VAL_24]], %[[VAL_4]] : i64
+// CHECK:             %[[VAL_27:.*]] = arith.addi %[[VAL_25]], %[[VAL_14]] : i64
+// CHECK:             cc.continue %[[VAL_26]], %[[VAL_27]] : i64, i64
+// CHECK:           } {invariant}
+// CHECK:           return
+// CHECK:         }
 // clang-format on

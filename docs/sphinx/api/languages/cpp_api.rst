@@ -1,4 +1,4 @@
-CUDA Quantum C++ API
+CUDA-Q C++ API
 ******************************
 
 Operators 
@@ -60,6 +60,9 @@ Common
     :members:
 
 .. doxygenclass:: cudaq::Trace
+
+.. doxygenfunction:: cudaq::range(ElementType total)
+.. doxygenfunction:: cudaq::range(ElementType begin, ElementType end, ElementType step)
 
 .. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
 
@@ -156,6 +159,11 @@ Platform
 
 .. doxygentypedef:: cudaq::KernelExecutionTask
 
+Utilities
+=========
+
+.. doxygenfunction:: cudaq::range(std::size_t)
+    
 Namespaces 
 ===========
 

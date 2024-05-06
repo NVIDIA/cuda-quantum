@@ -96,6 +96,8 @@ Vazirani
 WSL
 accessor
 acknowledgement
+adaptor
+adaptors
 adjoint
 al
 amongst
@@ -125,6 +127,7 @@ composability
 composable
 constructible
 controlled
+coprocessing
 coprocessor
 coprocessors
 copyable
@@ -144,6 +147,7 @@ decrement
 decrementing
 deserialize
 destructor
+dimensionality
 discoverable
 discretization
 discretize
@@ -218,6 +222,7 @@ qudit
 qudits
 reStructuredText
 runtime
+runtimes
 rvalue
 scalability
 scalable

@@ -56,7 +56,7 @@ void __quantum__qis__ry(double x, Qubit *q);
 void __quantum__qis__ry__ctl(double x, Array *ctrls, Qubit *q);
 void __quantum__qis__rz(double x, Qubit *q);
 void __quantum__qis__rz__ctl(double x, Array *ctrls, Qubit *q);
-// void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q);
+void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q);
 Result *__quantum__qis__mz(Qubit *q);
 Result *__quantum__qis__measure__body(Array *basis, Array *qubits);
 Result *__quantum__rt__result_get_one();
@@ -147,7 +147,7 @@ CUDAQ_TEST(NVQIRTester, checkQuantumIntrinsics) {
   __quantum__qis__rx(2.2, q);
   __quantum__qis__ry(2.2, q);
   __quantum__qis__rz(2.2, q);
-  // __quantum__qis__u3(1.1, 2.2, 3.3, q);
+  __quantum__qis__u3(1.1, 2.2, 3.3, q);
   __quantum__rt__qubit_release_array(qubits);
   __quantum__rt__finalize();
 }
