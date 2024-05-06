@@ -32,3 +32,4 @@ target_compile_options(${TOOL_NAME} PRIVATE -fno-rtti)
 export_executable_symbols_for_plugins(${TOOL_NAME})
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin)
+install(FILES ${TOOL_NAME}.py DESTINATION bin)
