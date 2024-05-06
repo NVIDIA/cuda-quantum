@@ -19,7 +19,7 @@ notes][cudaq_docs_releases]. System and compatibility requirements
 are listed in the Installation Guide of the linked documentation.
 
 **Note**: CUDA-Q is currently only supported on Linux operating systems using
-`x86_64` or `aarch64`/`amd64` processors.
+`x86_64` or `aarch64`/`arm64` processors.
 
 [cudaq_docs_releases]:
     https://nvidia.github.io/cuda-quantum/latest/releases.html
