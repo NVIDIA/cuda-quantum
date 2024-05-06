@@ -16,12 +16,6 @@ import sys
 import cudaq
 from cudaq import spin
 
-## [PYTHON_VERSION_FIX]
-skipIfPythonLessThan39 = pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="built-in collection types such as `list` not supported")
-
-
 def test_return_float_param():
 
     @cudaq.kernel
