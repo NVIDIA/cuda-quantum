@@ -9,6 +9,8 @@
 import sys, os, platform
 from ._packages import *
 
+# CUDAQ_DYNLIBS must be set before any other imports that would initialize
+# LinkedLibraryHolder.
 if not "CUDAQ_DYNLIBS" in os.environ:
     try:
         custatevec_libs = get_library_path("custatevec-cu11")
