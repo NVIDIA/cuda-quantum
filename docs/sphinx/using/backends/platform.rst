@@ -195,13 +195,29 @@ To customize how many and which GPUs are used for simulating each virtual QPU, o
 For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
 4 virtual QPU instances, each manages 2 GPUs. To do so, first launch a :code:`cudaq-qpud` server for each virtual QPU:
 
+.. tab:: Python
 
-.. code-block:: console
-    
-    CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 cudaq-qpud --port <QPU 1 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 cudaq-qpud --port <QPU 2 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 cudaq-qpud --port <QPU 3 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 cudaq-qpud --port <QPU 4 TCP/IP port number>
+     .. See scripts/validate_wheel.sh for examples of how similar commands are run automatically during release validation.
+
+     .. code-block:: bash
+         
+         # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
+         cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
+         qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
+         CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 python3 "$qpud_py" --port <QPU 1 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 python3 "$qpud_py" --port <QPU 2 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 python3 "$qpud_py" --port <QPU 3 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 python3 "$qpud_py" --port <QPU 4 TCP/IP port number>
+
+.. tab:: C++
+     
+     .. code-block:: bash
+         
+         # It is assumed that your $LD_LIBRARY_PATH is able to find all the necessary dependencies.
+         CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 cudaq-qpud --port <QPU 1 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 cudaq-qpud --port <QPU 2 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 cudaq-qpud --port <QPU 3 TCP/IP port number>
+         CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 cudaq-qpud --port <QPU 4 TCP/IP port number>
 
 
 In the above code snippet, four :code:`nvidia-mgpu` daemons are started in MPI context via the :code:`mpiexec` launcher.
