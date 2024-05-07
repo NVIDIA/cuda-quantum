@@ -62,7 +62,7 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && git submodule
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAHOSTCXX="$CXX" \
-    LLVM_PROJECTS='clang;flang;lld;mlir;runtimes' \
+    LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/install_prerequisites.sh -t llvm
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
@@ -117,7 +117,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_WERROR=false \
     CUDAQ_PYTHON_SUPPORT=OFF \
     CUDAHOSTCXX="$CXX" \
-    LLVM_PROJECTS='clang;flang;lld;mlir;runtimes' \
+    LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/build_cudaq.sh -t llvm -v
     ## [<CUDAQuantumBuild]
 

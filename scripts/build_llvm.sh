@@ -111,14 +111,21 @@ cd "$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"
 mkdir -p logs && rm -rf logs/* 
 
 # Specify which components we need to keep the size of the LLVM build down.
-# To get a list of install targets, check the output of the following command in the build folder:
+# To get a list of install targets, check the output of the following command 
+# in the build folder:
 #   ninja -t targets | grep -Po 'install-\K.*(?=-stripped:)'
 echo "Preparing LLVM build..."
 if [ -z "${llvm_projects##*runtimes;*}" ]; then
   echo "- including runtime components"
-  # listing openmp under runtimes here does not work
-  llvm_runtimes+="libcxx;libcxxabi;libunwind;compiler-rt;" # openmp and llvm-libgcc?
+  llvm_runtimes+="libcxx;libcxxabi;libunwind;compiler-rt;"
   projects=("${projects[@]/runtimes}")
+fi
+if [ -z "${llvm_projects##*openmp;*}" ]; then
+  # Enabled separately from other runtimes, since we need to build the other
+  # runtime libraries first before being able to build openmp.
+  echo "- including OpenMP runtime"
+  llvm_runtimes+="openmp;"
+  projects=("${projects[@]/openmp}")
 fi
 
 llvm_projects=`printf "%s;" "${projects[@]}"`
@@ -244,11 +251,6 @@ if [ -n "$llvm_runtimes" ]; then
     echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
     cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
   else
-    # No install step is defined for builtins when compiler-rt is built
-    # as runtime rather than as project. Invoking the installation manually.
-    cmake -P runtimes/builtins-bins/cmake_install.cmake
-    echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
-
     # We can use a default config file to set specific clang configurations.
     # See https://clang.llvm.org/docs/UsersManual.html#configuration-files
     clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
