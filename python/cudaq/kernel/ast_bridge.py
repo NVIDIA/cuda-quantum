@@ -1500,7 +1500,7 @@ class PyASTBridge(ast.NodeVisitor):
                     f"unsupported NumPy call ({node.func.attr})", node)
 
             if node.func.value.id == 'cudaq':
-                if node.func.attr in ['qvector']:
+                if node.func.attr == 'qvector':
                     print('popping vector arg')
                     value = self.popValue()
                     print(dir(value))
@@ -1542,18 +1542,18 @@ class PyASTBridge(ast.NodeVisitor):
                             if (numQubits == None):
                                 self.emitFatalError(
                                     "internal error: could not determine the number of qubits")
-                        else:
-                            self.emitFatalError(
-                                f"unsupported qvector argument type: {value} (unknown)", node)
-                        return
+                    
+                        self.emitFatalError(
+                            f"unsupported qvector argument type: {value} (unknown)", node)
+                    return
 
-                    if node.func.attr == "qubit":
-                        if len(self.valueStack) == 1 and IntegerType.isinstance(
-                                self.valueStack[0].type):
-                            self.emitFatalError(
-                                'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
-                            )
-                        self.pushValue(quake.AllocaOp(self.getRefType()).result)
+                if node.func.attr == "qubit":
+                    if len(self.valueStack) == 1 and IntegerType.isinstance(
+                            self.valueStack[0].type):
+                        self.emitFatalError(
+                            'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
+                        )
+                    self.pushValue(quake.AllocaOp(self.getRefType()).result)
                     return
 
                 if node.func.attr == 'adjoint':
