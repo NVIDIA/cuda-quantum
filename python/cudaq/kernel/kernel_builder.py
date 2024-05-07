@@ -1035,7 +1035,7 @@ class PyKernel(object):
                 conditional = arith.CmpIOp(condPred, condition,
                                            self.getConstantInt(0)).result
 
-            ifOp = cc.IfOp([], conditional)
+            ifOp = cc.IfOp([], conditional, [])
             thenBlock = Block.create_at_start(ifOp.thenRegion, [])
             with InsertionPoint(thenBlock):
                 tmpIp = self.insertPoint
