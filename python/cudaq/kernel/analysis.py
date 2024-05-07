@@ -64,12 +64,12 @@ class MidCircuitMeasurementAnalyzer(ast.NodeVisitor):
             elif self.isMeasureCallOp(condition.left):
                 # Handle: `if mz(q) == True/False`
                 self.hasMidCircuitMeasures = True
-        # Catch `if UnaryOp mz(q)` or `if UnaryOp var` (var = mz(q))
+        # Catch `if UnaryOp mz(q)` or `if UnaryOp var` (`var = mz(q)`)
         elif isinstance(condition, ast.UnaryOp):
             self.hasMidCircuitMeasures = self.isMeasureCallOp(
                 condition.operand) or (self.getVariableName(condition.operand)
                                        in self.measureResultsVars)
-        # Catch `if something BoolOp mz(q)` or `something BoolOp var` (var = mz(q))
+        # Catch `if something BoolOp mz(q)` or `something BoolOp var` (`var = mz(q)`)
         elif isinstance(condition,
                         ast.BoolOp) and 'values' in condition.__dict__:
             for node in condition.__dict__['values']:
