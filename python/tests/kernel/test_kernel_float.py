@@ -257,6 +257,7 @@ def test_float32_use():
     assert is_close(t, float_np_use())
 
 
+@skipIfPythonLessThan39
 def test_float_list_parameter_promotion():
 
     @cudaq.kernel
@@ -277,6 +278,7 @@ def test_float_list_parameter_promotion():
     check([1, 0])
 
 
+@skipIfPythonLessThan39
 def test_float64_list_parameter_promotion():
 
     @cudaq.kernel
@@ -297,6 +299,7 @@ def test_float64_list_parameter_promotion():
     check([1, 0])
 
 
+@skipIfPythonLessThan39
 def test_float32_list_parameter_promotion():
 
     @cudaq.kernel

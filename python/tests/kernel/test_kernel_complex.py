@@ -590,6 +590,7 @@ def test_np_complex64_use():
     assert is_close(t, complex_np_use_imag())
 
 
+@skipIfPythonLessThan39
 def test_list_parameter_promotion():
 
     @cudaq.kernel
@@ -616,6 +617,7 @@ def test_list_parameter_promotion():
     check([0, 1])
 
 
+@skipIfPythonLessThan39
 def test_list_parameter_promotion_complex128():
 
     @cudaq.kernel
@@ -642,6 +644,7 @@ def test_list_parameter_promotion_complex128():
     check([0, 1])
 
 
+@skipIfPythonLessThan39
 def test_list_parameter_promotion_complex64():
 
     @cudaq.kernel
