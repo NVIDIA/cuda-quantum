@@ -37,6 +37,7 @@ if not "CUDAQ_DYNLIBS" in os.environ:
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
+from .kernel.objective_function_decorator import objective_function, PyObjectiveFunctionDecorator
 from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.state import to_cupy
