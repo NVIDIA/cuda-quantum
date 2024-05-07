@@ -121,14 +121,18 @@ fi
 
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
-# FIXME: 
-#  -DCMAKE_CUDA_COMPILER=${CUDA_HOME:-/usr/local/cuda}/bin/nvcc \
-#  -DCMAKE_CUDA_FLAGS=-allow-unsupported-compiler \
 echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
-cmake_args="-G Ninja "$repo_root" \
-  -DCMAKE_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
-  -DNVQPP_LD_PATH="$NVQPP_LD_PATH" \
-  -DCMAKE_CUDA_HOST_COMPILER="$CXX" \
+cuda_flags='-allow-unsupported-compiler --compiler-options --stdlib=libstdc++ --linker-options --as-needed'
+# FIXME: --compiler-options -static-libstdc++ ?
+if [ -d "$GCC_TOOLCHAIN" ]; then 
+  cuda_flags+=" --compiler-options --gcc-toolchain=\"$GCC_TOOLCHAIN\""
+fi
+cmake_args="-G Ninja '"$repo_root"' \
+  -DCMAKE_INSTALL_PREFIX='"$CUDAQ_INSTALL_PREFIX"' \
+  -DNVQPP_LD_PATH='"$NVQPP_LD_PATH"' \
+  -DCMAKE_CUDA_COMPILER='"${CUDA_HOME:-/usr/local/cuda}/bin/nvcc"' \
+  -DCMAKE_CUDA_FLAGS='"$cuda_flags"' \
+  -DCMAKE_CUDA_HOST_COMPILER='"$CXX"' \
   -DLLVM_ENABLE_LIBCXX=$([ "$install_toolchain" == "llvm" ] && echo ON || echo OFF) \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
@@ -142,9 +146,9 @@ cmake_args="-G Ninja "$repo_root" \
 # the set host compiler is not officially supported. We hence don't set that variable 
 # here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
-  cmake $cmake_args
+  echo $cmake_args | cmake
 else
-  cmake $cmake_args \
+  echo $cmake_args | cmake \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 

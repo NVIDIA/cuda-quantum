@@ -120,6 +120,9 @@ if [ -z "${llvm_projects##*runtimes;*}" ]; then
   llvm_runtimes+="libcxx;libcxxabi;libunwind;compiler-rt;"
   projects=("${projects[@]/runtimes}")
 fi
+# FIXME: THIS WORKS PERFECTLY FINE THE THIRD TIME BUILDING...
+# LOOKS LIKE WE FIRST NEED TO COMPLETE THE INSTALL OF THE OTHER RT LIBRARIES,
+# THEN BUILD THE OPENMP SUPPORT...
 if [ -z "${llvm_projects##*openmp;*}" ]; then
   # Enabled separately from other runtimes, since we need to build the other
   # runtime libraries first before being able to build openmp.
@@ -185,6 +188,10 @@ cat "$LLVM_SOURCE/llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.guess
 
 # Generate CMake files.
+targets_to_build="host;NVPTX"
+# FIXME: 
+#  -DLLVM_TARGETS_TO_BUILD='"$targets_to_build"' \
+# maybe:  -DLLVM_RUNTIME_TARGETS='nvptx64-nvidia-cuda' \
 cmake_args=" \
   -DLLVM_DEFAULT_TARGET_TRIPLE='"$(bash $LLVM_SOURCE/llvm/cmake/config.guess)"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \

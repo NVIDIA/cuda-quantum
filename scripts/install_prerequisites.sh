@@ -284,6 +284,7 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
       rm -rf cacert.pem cacert.pem.sha256
     else
       mkdir -p "$CURL_INSTALL_PREFIX" && mv cacert.pem "$CURL_INSTALL_PREFIX"
+      rm -rf cacert.pem.sha256
     fi
     
     # Unfortunately, it looks like the default paths need to be absolute and known at compile time.

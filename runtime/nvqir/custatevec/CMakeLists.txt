@@ -27,14 +27,21 @@ SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUSTATEVEC_LIB_DIR}")
 macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
   add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILENAME})
 
+  # FIXME:
+  # I think we need to make sure all cudaq shared libraries this is linking against are
+  # statically linked against the hermetic libc++, and then link against libstdc++ here.
+  # The goal would be that everything builds, and non-GPU components can be used without
+  # libstdc++, but to use gpu component requires libstdc++ (seems fair given that we 
+  # inherit this dependency from cuquantum).
+  target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--unresolved-symbols=ignore-in-object-files)
+
   target_include_directories(${LIBRARY_NAME}
     PRIVATE .. ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CMAKE_SOURCE_DIR}/runtime/common
     ${CUSTATEVEC_ROOT}/include)
 
   target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq-common
                 ${CUSTATEVEC_LIB}
-                ${CUDA_LIBRARIES} cublas )
-
+                ${CUDA_LIBRARIES} cublas)
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 
 endmacro()
