@@ -1158,6 +1158,7 @@ class PyKernel(object):
             )
 
         def getListType(eleType: type):
+            ## [PYTHON_VERSION_FIX]
             if sys.version_info < (3, 9):
                 return List[eleType]
             else:
