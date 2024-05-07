@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
@@ -356,17 +357,17 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
   if (!TraverseDeclarationNameInfo(x->getNameInfo()))
     return false;
 
-  // If we're an explicit template specialization, iterate over the
-  // template args that were explicitly specified.  If we were doing
-  // this in typing order, we'd do it between the return type and
-  // the function args, but both are handled by the FunctionTypeLoc
-  // above, so we have to choose one side.  I've decided to do before.
+  // If we're an explicit template specialization, iterate over the template
+  // args that were explicitly specified.  If we were doing this in typing
+  // order, we'd do it between the return type and the function args, but both
+  // are handled by the FunctionTypeLoc above, so we have to choose one side.
+  // I've decided to do before.
   if (const auto *FTSI = x->getTemplateSpecializationInfo()) {
     if (FTSI->getTemplateSpecializationKind() != clang::TSK_Undeclared &&
         FTSI->getTemplateSpecializationKind() !=
             clang::TSK_ImplicitInstantiation) {
-      // A specialization might not have explicit template arguments if it
-      // has a templated return type and concrete arguments.
+      // A specialization might not have explicit template arguments if it has a
+      // templated return type and concrete arguments.
       if (const auto *tali = FTSI->TemplateArgumentsAsWritten) {
         auto *tal = tali->getTemplateArgs();
         for (unsigned i = 0; i != tali->NumTemplateArgs; ++i)
@@ -483,6 +484,10 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
   auto kernName = [&]() {
     if (isKernelEntryPoint(x))
       return generateCudaqKernelName(x);
+    // create a special name for 'std::move()' so we can erase it.
+    if (isInNamespace(x, "std") && x->getIdentifier() &&
+        x->getName().equals("move"))
+      return std::string(cudaq::stdMoveBuiltin);
     return cxxMangledDeclName(x);
   }();
   auto kernSym = SymbolRefAttr::get(builder.getContext(), kernName);

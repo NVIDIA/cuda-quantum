@@ -86,6 +86,25 @@ protected:
     requestedAllocations.clear();
   }
 
+  void initializeState(const std::vector<cudaq::QuditInfo> &targets,
+                       const cudaq::SimulationState *state) override {
+    // Note: a void* ptr doesn't provide enough info to the simulators, hence
+    // need a dedicated code path.
+    // TODO: simplify/combine the two code paths (raw vector and state).
+    if (!requestedAllocations.empty() &&
+        targets.size() != requestedAllocations.size()) {
+      assert(targets.size() < requestedAllocations.size());
+      const auto numDefaultAllocs =
+          requestedAllocations.size() - targets.size();
+      simulator()->allocateQubits(numDefaultAllocs);
+      // The targets will be allocated in a specific state.
+      simulator()->allocateQubits(targets.size(), state);
+    } else {
+      simulator()->allocateQubits(requestedAllocations.size(), state);
+    }
+    requestedAllocations.clear();
+  }
+
   void deallocateQudit(const cudaq::QuditInfo &q) override {
 
     // Before trying to deallocate, make sure the qudit hasn't
