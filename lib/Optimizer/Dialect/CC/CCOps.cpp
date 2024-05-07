@@ -643,8 +643,7 @@ LogicalResult cudaq::cc::LoopOp::verify() {
     return emitOpError("size of init args and outputs must be equal");
   if (getWhileArguments().size() != initArgsSize)
     return emitOpError("size of init args and while region args must be equal");
-  if (auto condOp =
-          dyn_cast<ConditionOp>(getWhileBlock()->getTerminator())) {
+  if (auto condOp = dyn_cast<ConditionOp>(getWhileBlock()->getTerminator())) {
     if (condOp.getResults().size() != initArgsSize)
       return emitOpError("size of init args and condition op must be equal");
   } else {
@@ -658,8 +657,7 @@ LogicalResult cudaq::cc::LoopOp::verify() {
     if (getStepArguments().size() != initArgsSize)
       return emitOpError(
           "size of init args and step region args must be equal");
-    if (auto contOp =
-            dyn_cast<ContinueOp>(getStepBlock()->getTerminator())) {
+    if (auto contOp = dyn_cast<ContinueOp>(getStepBlock()->getTerminator())) {
       if (contOp.getOperands().size() != initArgsSize)
         return emitOpError("size of init args and continue op must be equal");
     } else {
