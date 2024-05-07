@@ -600,7 +600,7 @@ def test_complex_list_parameter_promotion():
     def non_kernel(c: list[complex], i: int) -> complex:
         return c[i]
 
-    def check(c: list[complex]):
+    def check(c: any):
         for i in range(len(c)):
             is_close(kernel(c, i).real, non_kernel(c, i).real)
         for i in range(len(c)):
@@ -615,6 +615,7 @@ def test_complex_list_parameter_promotion():
     check([0, 0.70710678 + 2j])
     check([0, 1.0])
     check([0, 1])
+    check([0, 0.70710678 + 2j, True])
 
 
 @skipIfPythonLessThan39
@@ -627,7 +628,7 @@ def test_complex128_list_parameter_promotion():
     def non_kernel(c: list[np.complex128], i: int) -> np.complex128:
         return c[i]
 
-    def check(c: list[complex]):
+    def check(c: any):
         for i in range(len(c)):
             is_close(kernel(c, i).real, non_kernel(c, i).real)
         for i in range(len(c)):
@@ -642,6 +643,7 @@ def test_complex128_list_parameter_promotion():
     check([0, 0.70710678 + 2j])
     check([0, 1.0])
     check([0, 1])
+    check([0, 0.70710678 + 2j, True])
 
 
 @skipIfPythonLessThan39
@@ -654,7 +656,7 @@ def test_complex64_list_parameter_promotion():
     def non_kernel(c: list[np.complex64], i: int) -> np.complex64:
         return c[i]
 
-    def check(c: list[complex]):
+    def check(c: any):
         for i in range(len(c)):
             is_close(kernel(c, i).real, non_kernel(c, i).real)
         for i in range(len(c)):
@@ -669,3 +671,4 @@ def test_complex64_list_parameter_promotion():
     check([0, 0.70710678 + 2j])
     check([0, 1.0])
     check([0, 1])
+    check([0, 0.70710678 + 2j, True])

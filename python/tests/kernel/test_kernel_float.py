@@ -267,7 +267,7 @@ def test_float_list_parameter_promotion():
     def non_kernel(c: list[float], i: int) -> float:
         return c[i]
 
-    def check(c: list[complex]):
+    def check(c: any):
         for i in range(len(c)):
             is_close(kernel(c, i), non_kernel(c, i))
 
@@ -276,6 +276,7 @@ def test_float_list_parameter_promotion():
     check([np.float64(np.pi / 2), 0])
     check([np.float32(np.pi / 2), 0])
     check([1, 0])
+    check([np.float32(np.pi / 2), True])
 
 
 @skipIfPythonLessThan39
@@ -288,7 +289,7 @@ def test_float64_list_parameter_promotion():
     def non_kernel(c: list[np.float64], i: int) -> np.float64:
         return c[i]
 
-    def check(c: list[complex]):
+    def check(c: any):
         for i in range(len(c)):
             is_close(kernel(c, i), non_kernel(c, i))
 
@@ -297,6 +298,7 @@ def test_float64_list_parameter_promotion():
     check([np.float64(np.pi / 2), 0])
     check([np.float32(np.pi / 2), 0])
     check([1, 0])
+    check([np.float32(np.pi / 2), 0, True])
 
 
 @skipIfPythonLessThan39
@@ -309,7 +311,7 @@ def test_float32_list_parameter_promotion():
     def non_kernel(c: list[np.float32], i: int) -> np.float32:
         return c[i]
 
-    def check(c: list[complex]):
+    def check(c: any):
         for i in range(len(c)):
             is_close(kernel(c, i), non_kernel(c, i))
 
@@ -318,3 +320,4 @@ def test_float32_list_parameter_promotion():
     check([np.float64(np.pi / 2), 0])
     check([np.float32(np.pi / 2), 0])
     check([1, 0])
+    check([np.pi / 2, 0, True])
