@@ -793,7 +793,7 @@ jobs:
 
   wheel_validation:
     name: Python wheel instructions validation
-    needs: cudaq_wheels
+    needs: [assets, cudaq_wheels]
 
     runs-on: linux-amd64-gpu-v100-latest-1
 
@@ -838,7 +838,7 @@ jobs:
   
   wheel_validation_x86_simple:
     name: Simple Python wheel installation validation
-    needs: cudaq_wheels
+    needs: [assets, cudaq_wheels]
 
     runs-on: linux-amd64-gpu-v100-latest-1
 
