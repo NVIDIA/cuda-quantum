@@ -13,6 +13,7 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
+#include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
@@ -33,10 +34,11 @@
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 
-#include "cudaq/Optimizer/CAPI/Dialects.h"
+#include "../runtime/cudaq/platform/orca/orca_qpu.h"
+
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 
 namespace py = pybind11;
 
@@ -160,6 +162,9 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "Returns true if MPI has already been initialized.");
   mpiSubmodule.def(
       "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");
+
+  auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
+  orcaSubmodule.def("sample", &cudaq::orca::sample, "[Documentation TODO]");
 
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
