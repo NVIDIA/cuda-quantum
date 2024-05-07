@@ -137,6 +137,11 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
 }
 
+/// @brief Device synchronization
+void SimulatorTensorNetBase::synchronize() {
+  HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
+}
+
 /// @brief Perform a measurement on a given qubit
 bool SimulatorTensorNetBase::measureQubit(const std::size_t qubitIdx) {
   LOG_API_TIME();
@@ -186,7 +191,7 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
       allZTerm.at(m_state->getNumQubits() + m) = 1;
     cudaq::spin_op allZ(allZTerm, 1.0);
     // Just compute the expected value on <Z...Z>
-    return observe(allZ);
+    return cudaq::ExecutionResult({}, observe(allZ).expectation());
   }
 
   prepareQubitTensorState();
@@ -224,7 +229,7 @@ static nvqir::CutensornetExecutor *getPluginInstance() {
   return fcn();
 }
 /// @brief Evaluate the expectation value of a given observable
-cudaq::ExecutionResult
+cudaq::observe_result
 SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   LOG_API_TIME();
   prepareQubitTensorState();
@@ -238,13 +243,17 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
     for (std::size_t i = 0; i < terms.size(); ++i) {
       expVal += (coeffs[i] * termExpVals[i]);
     }
-    return cudaq::ExecutionResult({}, expVal.real());
+    return cudaq::observe_result(expVal.real(), ham,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, ham.to_string(false), expVal.real())));
   } else {
     TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
     std::complex<double> expVal =
         m_state->computeExpVal(spinOp.getNetworkOperator());
     expVal += spinOp.getIdentityTermOffset();
-    return cudaq::ExecutionResult({}, expVal.real());
+    return cudaq::observe_result(expVal.real(), ham,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, ham.to_string(false), expVal.real())));
   }
 }
 

@@ -6,28 +6,28 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std -verify %s
+// REQUIRES: c++17
+// clang-format off
+// RUN: nvq++ %cpp_std --enable-mlir --opt-plugin %cudaq_lib_dir/CustomPassPlugin.so --opt-pass 'func.func(cudaq-custom-pass)'  %s -o %t && %t | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
-#include <string>
-#include <tuple>
+#include <iostream>
 
-// expected-error@+1{{kernel argument type not supported}}
-void prepQubit(std::tuple<bool, float, unsigned> basis,
-               cudaq::qubit &q) __qpu__ {}
-
-// expected-error@+1{{kernel argument type not supported}}
-void RzArcTan2(bool input, std::tuple<bool, float, unsigned> basis) __qpu__ {
-  cudaq::qubit aux;
-  cudaq::qubit resource;
-  cudaq::qubit target;
-  if (input) {
-    x(target);
-  }
-  prepQubit(basis, target);
+void kernel() __qpu__ {
+  cudaq::qarray<2> q;
+  h(q[0]);
+  cx(q[0], q[1]);
+  mz(q);
 }
 
 int main() {
-  RzArcTan2(true, {});
+  auto result = cudaq::sample(1000, kernel);
+  for (auto &&[bits, counts] : result) {
+    std::cout << bits << '\n';
+  }
   return 0;
 }
+
+// The custom pass replace H with S, hence not a Bell state anymore.
+// CHECK: 00

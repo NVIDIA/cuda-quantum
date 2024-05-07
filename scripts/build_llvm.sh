@@ -17,7 +17,7 @@
 # Usage:
 # bash scripts/build_llvm.sh
 # -or-
-# bash scripts/build_llvm.sh -c DEBUG
+# bash scripts/build_llvm.sh -c Debug
 # -or-
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
 
@@ -118,7 +118,7 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
 fi
 echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
-llvm_components+="llvm-config;llvm-ar;llvm-nm;llvm-symbolizer;llc;FileCheck;count;not;"
+llvm_components+="llvm-config;llvm-ar;llvm-nm;llvm-symbolizer;llvm-profdata;llvm-cov;llc;FileCheck;count;not;"
 
 if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
   echo "- including additional projects "$(echo "${projects[*]}" | xargs | tr ' ' ',')

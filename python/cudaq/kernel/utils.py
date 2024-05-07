@@ -17,6 +17,7 @@ import ast, sys, traceback
 
 qvector = cudaq_runtime.qvector
 qubit = cudaq_runtime.qubit
+pauli_word = cudaq_runtime.pauli_word
 qreg = qvector
 
 nvqppPrefix = '__nvqpp__mlirgen__'
@@ -87,16 +88,26 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 return quake.VeqType.get(ctx)
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
+            if annotation.attr == 'pauli_word':
+                return cc.CharspanType.get(ctx)
 
         if annotation.value.id in ['numpy', 'np']:
             if annotation.attr == 'ndarray':
                 return cc.StdvecType.get(ctx, F64Type.get())
+            if annotation.attr == 'complex128':
+                return ComplexType.get(F64Type.get())
+            if annotation.attr == 'complex64':
+                return ComplexType.get(F32Type.get())
+            if annotation.attr == 'float64':
+                return F64Type.get()
+            if annotation.attr == 'float32':
+                return F32Type.get()
 
     if isinstance(annotation,
                   ast.Subscript) and annotation.value.id == 'Callable':
         if not hasattr(annotation, 'slice'):
             localEmitFatalError(
-                f'Callable type must have signature specified ({ast.unparse(annotation)}).'
+                f"Callable type must have signature specified ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
 
         if hasattr(annotation.slice, 'elts'):
@@ -106,7 +117,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             firstElement = annotation.slice.value.elts[0]
         else:
             localEmitFatalError(
-                f'Unable to get list elements when inferring type from annotation ({ast.unparse(annotation)}).'
+                f"Unable to get list elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
         argTypes = [mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts]
         return cc.CallableType.get(ctx, argTypes)
@@ -116,11 +127,12 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                                       annotation.value.id == 'List'):
         if not hasattr(annotation, 'slice'):
             localEmitFatalError(
-                f'list subscript missing slice node ({ast.unparse(annotation)}).'
+                f"list subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
 
         # The tree differs here between Python 3.8 and 3.9+
         eleTypeNode = annotation.slice
+        ## [PYTHON_VERSION_FIX]
         if sys.version_info < (3, 9):
             eleTypeNode = eleTypeNode.value
 
@@ -138,7 +150,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             id = annotation.value.value.id
     else:
         localEmitFatalError(
-            f'{ast.unparse(annotation)} is not a supported type yet (could not infer type name).'
+            f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type yet (could not infer type name)."
         )
 
     if id == 'list' or id == 'List':
@@ -158,7 +170,9 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if id == 'complex':
         return ComplexType.get(F64Type.get())
 
-    localEmitFatalError(f'{id} is not a supported type.')
+    localEmitFatalError(
+        f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
+    )
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
@@ -167,10 +181,18 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return IntegerType.get_signless(64, ctx)
     if argType in [float, np.float64]:
         return F64Type.get(ctx)
+    if argType == np.float32:
+        return F32Type.get(ctx)
     if argType == bool:
         return IntegerType.get_signless(1, ctx)
     if argType == complex:
         return ComplexType.get(mlirTypeFromPyType(float, ctx))
+    if argType == np.complex128:
+        return ComplexType.get(mlirTypeFromPyType(np.float64, ctx))
+    if argType == np.complex64:
+        return ComplexType.get(mlirTypeFromPyType(np.float32, ctx))
+    if argType == pauli_word:
+        return cc.CharspanType.get(ctx)
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
@@ -183,12 +205,18 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         argTypeToCompareTo = kwargs[
             'argTypeToCompareTo'] if 'argTypeToCompareTo' in kwargs else None
 
+        if len(argInstance) == 0:
+            if argTypeToCompareTo == None:
+                emitFatalError('Cannot infer runtime argument type')
+
+            eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
+            return cc.StdvecType.get(ctx, eleTy)
+
         if isinstance(argInstance[0], bool):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(bool, ctx))
-
         if isinstance(argInstance[0], int):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
-        if isinstance(argInstance[0], float):
+        if isinstance(argInstance[0], (float, np.float64)):
             if argTypeToCompareTo != None:
                 # check if we are comparing to a complex...
                 eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
@@ -197,8 +225,24 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                         "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
                     )
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+        if isinstance(argInstance[0], np.float32):
+            if argTypeToCompareTo != None:
+                # check if we are comparing to a complex...
+                eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
+                if ComplexType.isinstance(eleTy):
+                    emitFatalError(
+                        "Invalid runtime argument to kernel. list[complex] required, but list[float] provided."
+                    )
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.float32, ctx))
+
         if isinstance(argInstance[0], complex):
             return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
+
+        if isinstance(argInstance[0], np.complex64):
+            return cc.StdvecType.get(ctx, mlirTypeFromPyType(np.complex64, ctx))
+
+        if isinstance(argInstance[0], pauli_word):
+            return cc.StdvecType.get(ctx, cc.CharspanType.get(ctx))
 
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
@@ -216,6 +260,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return quake.VeqType.get(ctx)
     if argType == qubit:
         return quake.RefType.get(ctx)
+    if argType == pauli_word:
+        return cc.CharspanType.get(ctx)
 
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
@@ -236,10 +282,19 @@ def mlirTypeToPyType(argType):
     if F64Type.isinstance(argType):
         return float
 
+    if F32Type.isinstance(argType):
+        return np.float32
+
     if ComplexType.isinstance(argType):
-        return complex
+        if F64Type.isinstance(ComplexType(argType).element_type):
+            return complex
+        return np.complex64
+
+    if cc.CharspanType.isinstance(argType):
+        return pauli_word
 
     def getListType(eleType: type):
+        ## [PYTHON_VERSION_FIX]
         if sys.version_info < (3, 9):
             return List[eleType]
         else:
@@ -247,14 +302,32 @@ def mlirTypeToPyType(argType):
 
     if cc.StdvecType.isinstance(argType):
         eleTy = cc.StdvecType.getElementType(argType)
+        if cc.CharspanType.isinstance(eleTy):
+            return getListType(pauli_word)
+
         if IntegerType.isinstance(eleTy):
             if IntegerType(eleTy).width == 1:
                 return getListType(bool)
             return getListType(int)
         if F64Type.isinstance(eleTy):
             return getListType(float)
+        if F32Type.isinstance(eleTy):
+            return getListType(np.float32)
         if ComplexType.isinstance(eleTy):
-            return getListType(complex)
+            ty = complex if F64Type.isinstance(
+                ComplexType(argType).element_type) else np.complex64
+            return getListType(ty)
 
     emitFatalError(
-        f"Cannot infer CUDA QUantum type from provided Python type ({argType})")
+        f"Cannot infer CUDA-Q type from provided Python type ({argType})")
+
+
+def emitErrorIfInvalidPauli(pauliArg):
+    """
+    Verify that the input string is a valid Pauli string. 
+    Throw an exception if not.
+    """
+    if any(c not in 'XYZI' for c in pauliArg):
+        emitFatalError(
+            f"Invalid pauli_word string provided as runtime argument ({pauliArg}) - can only contain X, Y, Z, or I."
+        )

@@ -175,8 +175,6 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
   }
   if (isInNamespace(x, "std")) {
-    if (name.equals("basic_string"))
-      return pushType(cc::CharspanType::get(ctx));
     if (name.equals("vector")) {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the vector's element type.
@@ -220,16 +218,27 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return false;
     }
     if (name.equals("pair")) {
-      if (allowUnknownRecordType)
-        return true;
-      TODO_x(toLocation(x), x, mangler, "std::pair type");
-      return false;
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      SmallVector<Type> members;
+      for (unsigned i = 0; i < 2; ++i) {
+        if (!TraverseType(cts->getTemplateArgs()[i].getAsType()))
+          return false;
+        members.push_back(popType());
+      }
+      return pushType(cc::StructType::get(ctx, members));
     }
     if (name.equals("tuple")) {
-      if (allowUnknownRecordType)
-        return true;
-      TODO_x(toLocation(x), x, mangler, "std::tuple type");
-      return false;
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      auto &templateArg = cts->getTemplateArgs()[0];
+      if (templateArg.getKind() != clang::TemplateArgument::Pack)
+        return false;
+      SmallVector<Type> members;
+      for (auto &ta : templateArg.pack_elements()) {
+        if (!TraverseType(ta.getAsType()))
+          return false;
+        members.push_back(popType());
+      }
+      return pushType(cc::StructType::get(ctx, members));
     }
     if (ignoredClass(x))
       return true;

@@ -9,7 +9,7 @@
 #include "common/RemoteKernelExecutor.h"
 #include "llvm/Support/CommandLine.h"
 
-// Declare CUDAQ MPI API that we need since we cannot compile with cudaq.h
+// Declare CUDA-Q MPI API that we need since we cannot compile with cudaq.h
 // without RTTI (needed to link this tool against LLVMSupport).
 namespace cudaq {
 namespace mpi {
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
   extraArgv[argc] = "-fast-isel=0";
 
   llvm::cl::ParseCommandLineOptions(argc + 1, extraArgv.data(),
-                                    "CUDA Quantum REST server\n");
+                                    "CUDA-Q REST server\n");
   if (cudaq::mpi::available())
     cudaq::mpi::initialize();
   // Check the server type arg is valid.
@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
     // IMPORTANT: Don't change this message without updating
     // `cudaq.nvqc.Dockerfile`, which relies on the this information to perform
     // deployment sanity check.
-    printf("\nCUDA Quantum REST API version: %d\n", restServer->version());
+    printf("\nCUDA-Q REST API version: %d\n", restServer->version());
     return 0;
   }
 

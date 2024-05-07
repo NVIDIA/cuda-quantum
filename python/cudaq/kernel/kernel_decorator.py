@@ -13,12 +13,12 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir, PyASTBridge
-from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError
+from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 # This file implements the decorator mechanism needed to
-# JIT compile CUDA Quantum kernels. It exposes the cudaq.kernel()
+# JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
 # decorator which hooks us into the JIT compilation infrastructure
 # which maps the AST representation to an MLIR representation and ultimately
 # executable code.
@@ -110,7 +110,7 @@ class PyKernelDecorator(object):
         hasRetNodeVis.visit(self.astModule)
         if hasRetNodeVis.hasReturnNode and 'return' not in self.signature:
             emitFatalError(
-                'CUDA Quantum kernel has return statement but no return type annotation.'
+                'CUDA-Q kernel has return statement but no return type annotation.'
             )
 
         # Run analyzers and attach metadata (only have 1 right now)
@@ -133,14 +133,15 @@ class PyKernelDecorator(object):
         # variables from the parent frame that we captured
         # have not changed. If they have changed, we need to
         # recompile with the new values.
-        for i, s in enumerate(inspect.stack()):
-            if s.frame == self.parentFrame:
+        s = inspect.currentframe()
+        while s:
+            if s == self.parentFrame:
                 # We found the parent frame, now
                 # see if any of the variables we depend
                 # on have changed.
                 self.globalScopedVars = {
-                    k: v for k, v in dict(inspect.getmembers(s.frame))
-                    ['f_locals'].items()
+                    k: v
+                    for k, v in dict(inspect.getmembers(s))['f_locals'].items()
                 }
                 if self.dependentCaptures != None:
                     for k, v in self.dependentCaptures.items():
@@ -148,6 +149,8 @@ class PyKernelDecorator(object):
                             # Need to recompile
                             self.module = None
                             break
+                break
+            s = s.f_back
 
         if self.module != None:
             return
@@ -173,7 +176,7 @@ class PyKernelDecorator(object):
 
     def __call__(self, *args):
         """
-        Invoke the CUDA Quantum kernel. JIT compilation of the 
+        Invoke the CUDA-Q kernel. JIT compilation of the 
         kernel AST to MLIR will occur here if it has not already occurred. 
         """
 
@@ -192,6 +195,16 @@ class PyKernelDecorator(object):
             if isinstance(arg, PyKernelDecorator):
                 arg.compile()
 
+            if isinstance(arg, str):
+                # Only allow `pauli_word` as string input
+                emitErrorIfInvalidPauli(arg)
+                arg = cudaq_runtime.pauli_word(arg)
+
+            if issubclass(type(arg), list):
+                if all(isinstance(a, str) for a in arg):
+                    [emitErrorIfInvalidPauli(a) for a in arg]
+                    arg = [cudaq_runtime.pauli_word(a) for a in arg]
+
             mlirType = mlirTypeFromPyType(type(arg),
                                           self.module.context,
                                           argInstance=arg,
@@ -206,6 +219,7 @@ class PyKernelDecorator(object):
                             argEleTy):
                         processedArgs.append([float(i) for i in arg])
                         mlirType = self.argTypes[i]
+                        continue
 
             if not cc.CallableType.isinstance(
                     mlirType) and mlirType != self.argTypes[i]:
@@ -230,7 +244,7 @@ class PyKernelDecorator(object):
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
                 if arg.ndim != 1:
                     emitFatalError(
-                        f"CUDA Quantum kernels only support array arguments from NumPy that are one dimensional (input argument {i} has shape = {arg.shape})."
+                        f"CUDA-Q kernels only support array arguments from NumPy that are one dimensional (input argument {i} has shape = {arg.shape})."
                     )
                 processedArgs.append(arg.tolist())
             else:
@@ -252,9 +266,9 @@ class PyKernelDecorator(object):
 
 def kernel(function=None, **kwargs):
     """
-    The `cudaq.kernel` represents the CUDA Quantum language function 
+    The `cudaq.kernel` represents the CUDA-Q language function 
     attribute that programmers leverage to indicate the following function 
-    is a CUDA Quantum kernel and should be compile and executed on 
+    is a CUDA-Q kernel and should be compile and executed on 
     an available quantum coprocessor.
 
     Verbose logging can be enabled via `verbose=True`. 

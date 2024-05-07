@@ -190,6 +190,56 @@ def test_2grover_compute_action():
     assert '011' in counts
 
 
+@skipIfPythonLessThan39
+def test_pauli_word_input():
+
+    h2_data = [
+        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
+        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
+        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
+        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
+        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
+        1, 3, 3, -0.0454063, -0, 15
+    ]
+    h = cudaq.SpinOperator(h2_data, 4)
+
+    @cudaq.kernel
+    def kernel(theta: float, var: cudaq.pauli_word):
+        q = cudaq.qvector(4)
+        x(q[0])
+        x(q[1])
+        exp_pauli(theta, q, var)
+
+    print(kernel)
+    kernel(.11, 'XXXY')
+
+    want_exp = cudaq.observe(kernel, h, .11, 'XXXY').expectation()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)
+
+    want_exp = cudaq.observe(kernel, h, .11,
+                             cudaq.pauli_word('XXXY')).expectation()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)
+
+    @cudaq.kernel
+    def test(theta: float, paulis: list[cudaq.pauli_word]):
+        q = cudaq.qvector(4)
+        x(q[0])
+        x(q[1])
+        for p in paulis:
+            exp_pauli(theta, q, p)
+
+    print(test)
+    want_exp = cudaq.observe(test, h, .11, ['XXXY']).expectation()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)
+
+    words = [cudaq.pauli_word('XXXY')]
+    want_exp = cudaq.observe(test, h, .11, words).expectation()
+    assert np.isclose(want_exp, -1.13, atol=1e-2)
+
+    with pytest.raises(RuntimeError) as e:
+        kernel(.11, 'HELLOBADTERM')
+
+
 def test_exp_pauli():
     h2_data = [
         3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
@@ -803,6 +853,23 @@ def test_invalid_cudaq_type():
         print(test)
 
 
+@skipIfPythonLessThan39
+def test_bool_list_elements():
+
+    @cudaq.kernel
+    def kernel(var: list[bool]):
+        q = cudaq.qubit()
+        x(q)
+        if var[0]:
+            x(q)
+
+    counts = cudaq.sample(kernel, [False], shots_count=100)
+    assert '1' in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, [True], shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+
 def test_list_float_pass_list_int():
 
     @cudaq.kernel
@@ -849,6 +916,18 @@ def test_aug_assign_add():
         return i
 
     assert test2() == 10
+
+
+@skipIfPythonLessThan39
+def test_empty_lists():
+
+    @cudaq.kernel
+    def empty(var: list[cudaq.pauli_word], varvar: list[float],
+              varvarvar: list[bool]):
+        q = cudaq.qvector(2)
+        x(q[0])
+
+    empty([], [], [])
 
 
 def test_no_valueerror_np_array():
@@ -911,3 +990,420 @@ def test_draw_fail():
 
     with pytest.raises(RuntimeError) as error:
         print(cudaq.draw(kernel))
+
+
+def test_draw_bug_1400():
+
+    @cudaq.kernel
+    def bell_pair():
+        q = cudaq.qvector(2)
+        h(q[0])
+        cx(q[0], q[1])
+        mz(q)
+
+    @cudaq.kernel
+    def kernel(angle: float):
+        q = cudaq.qubit()
+        h(q)
+        ry(angle, q)
+
+    print(cudaq.draw(kernel, 0.59))
+    print(cudaq.draw(kernel, 0.59))
+    circuit = cudaq.draw(bell_pair)
+    print(circuit)
+    expected_str = '''     ╭───╮     
+q0 : ┤ h ├──●──
+     ╰───╯╭─┴─╮
+q1 : ─────┤ x ├
+          ╰───╯
+'''
+    assert circuit == expected_str
+
+
+def test_with_docstring_2():
+
+    @cudaq.kernel
+    def simple(n: int):
+        '''
+        A docstring with triple single quote
+        '''
+        qubits = cudaq.qvector(n)
+        exp_pauli(2.2, qubits, 'YYYY')
+        """
+        A docstring in the middle of kernel
+        """
+        for q in qubits:
+            '''
+            A multi-line string.
+            Should be ignored.
+            '''
+            h(q)
+
+    @cudaq.kernel
+    def kernel():
+        simple(4)
+
+    kernel.compile()
+    print(kernel)
+
+
+def test_user_error_op_attr_1446():
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        x.control(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean x.ctrl(...)?' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        x.adjoint(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean x.adj(...)?' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        x.adjointBadAttr(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean x.adj(...)?' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        x.noIdeaWhatThisIs(qubits[0], qubits[1])
+        h(qubits)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'Unknown attribute on quantum' in repr(
+        e) and 'Did you mean ' not in repr(e)
+
+
+def test_ctrl_wrong_dtype_1447():
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # should throw error for acting on ints
+        x.ctrl(0, 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # should throw error for acting on ints
+        x.ctrl(qubits[0], 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x(qubits)
+        # should throw error for acting on ints
+        swap(0, 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        cx(0, 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        h(22)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'quantum operation h on incorrect quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        crx(2.2, 0, 1)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        mz(22)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        rx.ctrl(2.2, 2, 3)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        sdg(2)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        x.adj(3)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        swap.ctrl(3, 4)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        rx.ctrl(1.1, 3, 2)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'control operand 0 is not of quantum type' in repr(e)
+
+    @cudaq.kernel
+    def test_kernel(nQubits: int):
+        qubits = cudaq.qvector(nQubits)
+        rx.adj(2.2, 3)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'target operand 0 is not of quantum type' in repr(e)
+
+
+def test_math_module_pi_1448():
+    import math
+
+    @cudaq.kernel
+    def test_kernel() -> float:
+        theta = math.pi
+        return theta
+
+    test_kernel.compile()
+    assert np.isclose(test_kernel(), math.pi, 1e-12)
+
+
+def test_len_qvector_1449():
+
+    @cudaq.kernel
+    def test_kernel(nCountingQubits: int) -> int:
+        qubits = cudaq.qvector(nCountingQubits)
+        # can use N = counting_qubits.size()
+        N = len(qubits)
+        h(qubits)
+        return N
+
+    test_kernel.compile()
+    assert test_kernel(5) == 5
+
+
+def test_missing_paren_1450():
+
+    @cudaq.kernel
+    def test_kernel():
+        state_reg = cudaq.qubit
+        x(state_reg)
+
+    with pytest.raises(RuntimeError) as e:
+        test_kernel.compile()
+    assert 'invalid assignment detected.' in repr(e)
+
+
+def test_cast_error_1451():
+
+    @cudaq.kernel
+    def test_kernel(N: int):
+        q = cudaq.qvector(N)
+        for i in range(0, N / 2):
+            swap(q[i], q[N - i - 1])
+
+    # Test is that this compiles
+    test_kernel.compile()
+
+
+def test_bad_attr_call_error():
+
+    @cudaq.kernel
+    def test_state(N: int):
+        q = cudaq.qvector(N)
+        h(q[0])
+        kernel.h(q[0])
+
+    with pytest.raises(RuntimeError) as e:
+        test_state.compile()
+    assert "Invalid function call - 'kernel' is unknown." in repr(e)
+
+
+def test_bad_return_value_with_stdvec_arg():
+
+    @cudaq.kernel
+    def test_param(i: int, l: List[int]) -> int:
+        return i
+
+    l = [42]
+    for i in range(4):
+        assert test_param(i, l) == i
+
+
+def test_measure_variadic_qubits():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(5)
+        x(q[2])
+        mz(q[0], q[1], q[2])
+
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '001' in counts
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(5)
+        x(q[0], q[2])
+        mz(q[0], [q[1], q[2]])
+
+    counts = cudaq.sample(test)
+    assert len(counts) == 1 and '101' in counts
+
+
+def test_bad_return_value_with_stdvec_arg():
+
+    @cudaq.kernel
+    def test_param(i: int, l: List[int]) -> int:
+        return i
+
+    l = [42]
+    for i in range(4):
+        assert test_param(i, l) == i
+
+
+def test_u3_op():
+
+    @cudaq.kernel
+    def check_x():
+        q = cudaq.qubit()
+        # implement Pauli-X gate with U3
+        u3(np.pi, np.pi, np.pi / 2, q)
+
+    print(check_x)
+    counts = cudaq.sample(check_x)
+    assert counts["1"] == 1000
+
+    @cudaq.kernel
+    def bell_pair():
+        qubits = cudaq.qvector(2)
+        # implement Hadamard gate with U3
+        u3(np.pi / 2, 0, np.pi, qubits[0])
+        cx(qubits[0], qubits[1])
+
+    counts = cudaq.sample(bell_pair)
+    assert (len(counts) == 2)
+    assert ('00' in counts)
+    assert ('11' in counts)
+
+
+def test_u3_ctrl():
+
+    @cudaq.kernel
+    def another_bell_pair():
+        qubits = cudaq.qvector(2)
+        u3(np.pi / 2, 0, np.pi, qubits[0])
+        u3.ctrl(np.pi, np.pi, np.pi / 2, qubits[0], qubits[1])
+
+    print(another_bell_pair)
+    counts = cudaq.sample(another_bell_pair)
+    assert (len(counts) == 2)
+    assert ('00' in counts)
+    assert ('11' in counts)
+
+
+def test_u3_adj():
+
+    @cudaq.kernel
+    def rotation_adjoint_test():
+        q = cudaq.qubit()
+
+        # implement Rx gate with U3
+        u3(1.1, -np.pi / 2, np.pi / 2, q)
+        # rx.adj(angle) = u3.adj(angle, pi/2, -pi/2)
+        u3.adj(1.1, np.pi / 2, -np.pi / 2, q)
+
+        # implement Ry gate with U3
+        u3(1.1, 0, 0, q)
+        u3.adj(1.1, 0, 0, q)
+
+    print(rotation_adjoint_test)
+
+    counts = cudaq.sample(rotation_adjoint_test)
+    assert '0' in counts
+    assert len(counts) == 1
+
+
+def test_u3_parameterized():
+
+    @cudaq.kernel
+    def param_kernel(theta: float, phi: float, lambda_: float):
+        q = cudaq.qubit()
+        u3(theta, phi, lambda_, q)
+
+    counts = cudaq.sample(param_kernel, np.pi, np.pi, np.pi / 2)
+    assert counts["1"] == 1000
+
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])

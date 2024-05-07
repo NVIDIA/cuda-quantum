@@ -42,7 +42,9 @@ static constexpr const char cudaqRegisterArgsCreator[] =
 static constexpr const char cudaqRegisterKernelName[] =
     "cudaqRegisterKernelName";
 
-static constexpr std::size_t NoResultOffset = ~0u >> 1;
+/// This value is used to indicate that a kernel does not return a result.
+static constexpr std::uint64_t NoResultOffset =
+    std::numeric_limits<std::int32_t>::max();
 
 class GenerateKernelExecution
     : public cudaq::opt::impl::GenerateKernelExecutionBase<
@@ -158,13 +160,13 @@ public:
       auto topLevelCount =
           convertLengthBytesToLengthI64(loc, builder, topLevelSize);
       // Now walk the vectors recursively.
-      auto topLevelIndex = builder.create<arith::IndexCastOp>(
-          loc, builder.getIndexType(), topLevelCount);
+      auto topLevelIndex = builder.create<cudaq::cc::CastOp>(
+          loc, builder.getI64Type(), topLevelCount,
+          cudaq::cc::CastOpMode::Unsigned);
       cudaq::opt::factory::createInvariantLoop(
           builder, loc, topLevelIndex,
           [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-            Value i = builder.create<arith::IndexCastOp>(
-                loc, builder.getI64Type(), block.getArgument(0));
+            Value i = block.getArgument(0);
             auto sub = builder.create<cudaq::cc::ComputePtrOp>(loc, hostVecTy,
                                                                nested, i);
             auto p =
@@ -266,6 +268,44 @@ public:
                                                      stVal, extentSize, idx);
     extraBytes = builder.create<arith::AddIOp>(loc, extraBytes, recursiveSize);
     return {stVal, extraBytes};
+  }
+
+  Value genComputeReturnOffset(Location loc, OpBuilder &builder,
+                               FunctionType funcTy,
+                               cudaq::cc::StructType msgStructTy,
+                               Value nullSt) {
+    auto i64Ty = builder.getI64Type();
+    if (funcTy.getNumResults() == 0)
+      return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
+    auto members = msgStructTy.getMembers();
+    std::int32_t numKernelArgs = funcTy.getNumInputs();
+    auto resTy = cudaq::cc::PointerType::get(members[numKernelArgs]);
+    auto gep = builder.create<cudaq::cc::ComputePtrOp>(
+        loc, resTy, nullSt,
+        SmallVector<cudaq::cc::ComputePtrArg>{0, numKernelArgs});
+    return builder.create<cudaq::cc::CastOp>(loc, i64Ty, gep);
+  }
+
+  /// Create a function that determines the return value offset in the message
+  /// buffer.
+  void genReturnOffsetFunction(Location loc, OpBuilder &builder,
+                               FunctionType devKernelTy,
+                               cudaq::cc::StructType msgStructTy,
+                               const std::string &classNameStr) {
+    auto *ctx = builder.getContext();
+    auto i64Ty = builder.getI64Type();
+    auto funcTy = FunctionType::get(ctx, {}, {i64Ty});
+    auto returnOffsetFunc = builder.create<func::FuncOp>(
+        loc, classNameStr + ".returnOffset", funcTy);
+    OpBuilder::InsertionGuard guard(builder);
+    auto *entry = returnOffsetFunc.addEntryBlock();
+    builder.setInsertionPointToStart(entry);
+    auto ptrTy = cudaq::cc::PointerType::get(msgStructTy);
+    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto basePtr = builder.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
+    auto result =
+        genComputeReturnOffset(loc, builder, devKernelTy, msgStructTy, basePtr);
+    builder.create<func::ReturnOp>(loc, result);
   }
 
   /// Creates a function that can take a block of pointers to argument values
@@ -627,13 +667,13 @@ public:
       // the vecTmp variable. Leaf vectors do not need a fresh variable. This
       // effectively translates all the size/offset information for all the
       // subvectors into temps.
-      Value vecLengthIndex = builder.create<arith::IndexCastOp>(
-          loc, builder.getIndexType(), vecLength);
+      Value vecLengthIndex = builder.create<cudaq::cc::CastOp>(
+          loc, builder.getI64Type(), vecLength,
+          cudaq::cc::CastOpMode::Unsigned);
       cudaq::opt::factory::createInvariantLoop(
           builder, loc, vecLengthIndex,
           [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-            Value i = builder.create<arith::IndexCastOp>(loc, i64Ty,
-                                                         block.getArgument(0));
+            Value i = block.getArgument(0);
             auto innerPtr = builder.create<cudaq::cc::ComputePtrOp>(
                 loc, cudaq::cc::PointerType::get(i64Ty), innerVec,
                 SmallVector<cudaq::cc::ComputePtrArg>{i});
@@ -937,8 +977,9 @@ public:
                                                  stdvecTy, hostVecTy);
     auto nested = fetchHostVectorFront(loc, builder, hostArg, hostVecTy);
     auto vecLogicalLen = convertLengthBytesToLengthI64(loc, builder, vecLen);
-    auto vecLenIndex = builder.create<arith::IndexCastOp>(
-        loc, builder.getIndexType(), vecLogicalLen);
+    auto vecLenIndex = builder.create<cudaq::cc::CastOp>(
+        loc, builder.getI64Type(), vecLogicalLen,
+        cudaq::cc::CastOpMode::Unsigned);
     auto buffPtrTy = buffPtr.getType();
     auto tmp = builder.create<cudaq::cc::AllocaOp>(loc, buffPtrTy);
     auto newEnd = builder.create<cudaq::cc::ComputePtrOp>(
@@ -951,8 +992,7 @@ public:
     cudaq::opt::factory::createInvariantLoop(
         builder, loc, vecLenIndex,
         [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-          Value i = builder.create<arith::IndexCastOp>(
-              loc, builder.getI64Type(), block.getArgument(0));
+          Value i = block.getArgument(0);
           auto currBuffPtr = builder.create<cudaq::cc::ComputePtrOp>(
               loc, ptrI64Ty, vecBasePtr,
               SmallVector<cudaq::cc::ComputePtrArg>{i});
@@ -1052,7 +1092,7 @@ public:
   /// circuit. These entry points are `operator()` member functions in a class,
   /// so account for the `this` argument here.
   void genNewHostEntryPoint(Location loc, OpBuilder &builder,
-                            FunctionType funcTy, Type structTy,
+                            FunctionType funcTy, cudaq::cc::StructType structTy,
                             LLVM::GlobalOp kernelNameObj, func::FuncOp thunk,
                             func::FuncOp rewriteEntry, bool addThisPtr) {
     auto *ctx = builder.getContext();
@@ -1090,7 +1130,7 @@ public:
           continue;
 
       if (auto stdvecTy = dyn_cast<cudaq::cc::SpanLikeType>(quakeTy)) {
-        // Per the CUDAQ spec, an entry point kernel must take a `[const]
+        // Per the CUDA-Q spec, an entry point kernel must take a `[const]
         // std::vector<T>` value argument.
         // Should the spec stipulate that pure device kernels must pass by
         // read-only reference, i.e., take `const std::vector<T> &` arguments?
@@ -1245,15 +1285,8 @@ public:
         builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrI8Ty, loadThunk);
     auto castTemp = builder.create<cudaq::cc::CastOp>(loc, ptrI8Ty, temp);
 
-    auto resultOffset = [&]() -> Value {
-      if (funcTy.getNumResults() == 0)
-        return builder.create<arith::ConstantIntOp>(loc, NoResultOffset, 64);
-      int offset = funcTy.getNumInputs();
-      auto gep = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, structPtrTy, nullSt,
-          SmallVector<cudaq::cc::ComputePtrArg>{0, offset});
-      return builder.create<cudaq::cc::CastOp>(loc, i64Ty, gep);
-    }();
+    auto resultOffset =
+        genComputeReturnOffset(loc, builder, funcTy, structTy, nullSt);
 
     // Generate the call to `launchKernel`.
     builder.create<func::CallOp>(
@@ -1449,6 +1482,9 @@ public:
         hostFuncTy =
             cudaq::opt::factory::toHostSideFuncType(funcTy, hasThisPtr, module);
       }
+
+      // Generate the function that computes the return offset.
+      genReturnOffsetFunction(loc, builder, funcTy, structTy, classNameStr);
 
       // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
       auto thunk = genThunkFunction(loc, builder, classNameStr, structTy,

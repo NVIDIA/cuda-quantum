@@ -412,7 +412,9 @@ jobs:
           push: true
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.1.1
+        uses: sigstore/cosign-installer@v3.3.0
+        with:
+          cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
         if: steps.release_info.outputs.push_to_ngc != 'true'
@@ -789,6 +791,51 @@ jobs:
             echo "Missing tests for nvidia-mgpu backend." && exit 1
           fi
 
+  wheel_validation:
+    name: Python wheel instructions validation
+    needs: cudaq_wheels
+
+    runs-on: linux-amd64-gpu-v100-latest-1
+
+    container:
+      image: ubuntu:22.04
+      options: --user root
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+        TERM: xterm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
+
+      - name: Load wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: x86_64-py3.10-wheels
+          path: /tmp/install
+      
+      - name: Run simple validation
+        shell: bash
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends ca-certificates vim wget openssh-client
+          cd /tmp
+          # Setup links for validate_wheel.sh script
+          ln -s $GITHUB_WORKSPACE/scripts/validate_wheel.sh .
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples
+          ln -s $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets
+          ln -s $GITHUB_WORKSPACE/python/tests /tmp/tests
+          ln -s $GITHUB_WORKSPACE/python/README.md .
+          # Run the script w/ -q to run a shortened test
+          set +e # Allow script to keep going through errors (needed for skipped tests)
+          source validate_wheel.sh -w /tmp/install/cuda_quantum-*.whl -f /tmp -p 3.10
+          set -e # Re-enable exit code error checking
+          if [ "$status_sum" -ne "0" ]; then
+            echo "Error running validation script"
+            exit $status_sum
+          fi
+  
   image_validation:
     name: Docker image validation
     needs: [assets, config]
@@ -935,7 +982,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels, create_release, installer_validation, image_validation]
+    needs: [assets, cudaq_hpc, cudaq_installer, cudaq_wheels, wheel_validation, create_release, installer_validation, image_validation]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest

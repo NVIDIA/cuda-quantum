@@ -6,9 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file builds the necessary Open MPI dependencies used by CUDA Quantum.
+# This file builds the necessary Open MPI dependencies used by CUDA-Q.
 # This image can be passed as argument to docker/build/devdeps.ext.Dockerfile
-# to create a complete development environment for CUDA Quantum that contains all
+# to create a complete development environment for CUDA-Q that contains all
 # necessary dependencies.
 #
 # Usage:

@@ -1,0 +1,100 @@
+on:
+  workflow_dispatch:
+    inputs:
+      image_short_name:
+        type: string 
+        description: The short name of the image to pull from the nightly channel and push to the stable channel.
+        default: cuda-quantum
+        required: false
+      image_tag:
+        type: string
+        description: The tag of the cuda-quantum image on the nightly channel to push to the stable channel.
+        required: true
+
+name: Push stable release
+
+jobs:
+  ngc_quantum:
+    name: Publish to stable
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to NGC registry
+        uses: docker/login-action@v3
+        with:
+          registry: 'nvcr.io'
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
+      - name: Pull nightly image
+        id: nightly_image
+        run: |
+          nightly_image=nvcr.io/nvidia/nightly/${{ inputs.image_short_name }}:${{ inputs.image_tag }}
+          echo "FROM $nightly_image" >> ngc.Dockerfile
+          if [ "$(echo ${{ inputs.image_tag }} | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" != "${{ inputs.image_tag }}" ]; then
+            echo "::error::Only non-prerelease tags can be pushed to stable." && exit 1
+          fi
+
+          regctl="docker run --rm ghcr.io/regclient/regctl:v0.6.0"
+          manifest=`$regctl image manifest $nightly_image --format "{{ json . }}"`
+          platforms=`echo $manifest | jq -r '.manifests | map("\(.platform.os)/\(.platform.architecture)") | .[]'`
+          echo "platforms=$(echo $platforms | tr ' ' ,)" >> $GITHUB_OUTPUT
+
+          $regctl image inspect $nightly_image \
+          | jq -r '.config.Labels | to_entries | map("\(.key)=\(.value|tostring)") | .[]' \
+          > labels.txt
+          {
+            echo 'labels<<multiline'
+            cat labels.txt
+            echo multiline
+          } >> $GITHUB_OUTPUT
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v3
+
+      - name: Update cuda-quantum metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: nvcr.io/nvidia/quantum/${{ inputs.image_short_name }}
+          flavor: latest=false
+          tags: type=raw,value=${{ inputs.image_tag }}
+          labels: |
+            ${{ steps.nightly_image.outputs.labels }}
+
+      - name: Copy cuda-quantum NGC image
+        id: copy_build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ngc.Dockerfile
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          platforms: ${{ steps.nightly_image.outputs.platforms }}
+          push: true
+
+      - name: Install NGC CLI
+        uses: ./.github/actions/install-ngc-cli
+        with:
+          version: 3.31.0
+          checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
+
+      - name: Sign image with NGC CLI
+        env:
+          TAGS: ${{ steps.metadata.outputs.tags }}
+          NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
+          NGC_CLI_ORG: ${{ github.repository_owner }}
+          NGC_CLI_TEAM: 'quantum'
+        run: |
+          echo "Signing ${TAGS}"
+          ngc-cli/ngc registry image publish --source ${TAGS} ${TAGS} --sign
+

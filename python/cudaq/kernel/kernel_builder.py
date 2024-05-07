@@ -14,7 +14,7 @@ import sys
 from typing import get_origin, List
 from .quake_value import QuakeValue
 from .kernel_decorator import PyKernelDecorator
-from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType
+from .utils import mlirTypeFromPyType, nvqppPrefix, emitFatalError, mlirTypeToPyType, emitErrorIfInvalidPauli
 from .common.givens import givens_builder
 from .common.fermionic_swap import fermionic_swap_builder
 
@@ -79,6 +79,16 @@ def __generalOperation(self,
     self.createInvariantForLoop(size, body)
 
 
+def get_parameter_value(self, parameter):
+    paramVal = parameter
+    if isinstance(parameter, float):
+        fty = mlirTypeFromPyType(float, self.ctx)
+        paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
+    elif isinstance(parameter, QuakeValue):
+        paramVal = parameter.mlirValue
+    return paramVal
+
+
 def __singleTargetOperation(self, opName, target, isAdj=False):
     """
     Utility function for adding a single target quantum operation to the 
@@ -126,14 +136,8 @@ def __singleTargetSingleParameterOperation(self,
     MLIR representation for the PyKernel.
     """
     with self.insertPoint, self.loc:
-        paramVal = None
-        if isinstance(parameter, float):
-            fty = mlirTypeFromPyType(float, self.ctx)
-            paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
-        else:
-            paramVal = parameter.mlirValue
         __generalOperation(self,
-                           opName, [paramVal], [],
+                           opName, [get_parameter_value(self, parameter)], [],
                            target,
                            isAdj=isAdj,
                            context=self.ctx)
@@ -160,15 +164,8 @@ def __singleTargetSingleParameterControlOperation(self,
         else:
             emitFatalError(f"invalid controls type for {opName}.")
 
-        paramVal = parameter
-        if isinstance(parameter, float):
-            fty = mlirTypeFromPyType(float, self.ctx)
-            paramVal = arith.ConstantOp(fty, FloatAttr.get(fty, parameter))
-        elif isinstance(parameter, QuakeValue):
-            paramVal = parameter.mlirValue
-
         __generalOperation(self,
-                           opName, [paramVal],
+                           opName, [get_parameter_value(self, parameter)],
                            fwdControls,
                            target,
                            isAdj=isAdj,
@@ -180,8 +177,6 @@ class PyKernel(object):
     The :class:`Kernel` provides an API for dynamically constructing quantum 
     circuits. The :class:`Kernel` programmatically represents the circuit as an MLIR 
     function using the Quake dialect.
-
-    See :func:`make_kernel` for the :class:`Kernel` constructor.
 
     Attributes:
         name (:obj:`str`): The name of the :class:`Kernel` function. Read-only.
@@ -245,13 +240,20 @@ class PyKernel(object):
             return ty, None
         if get_origin(ty) == list or isinstance(ty(), list):
             if '[' in str(ty) and ']' in str(ty):
-                allowedTypeMap = {'int': int, 'bool': bool, 'float': float}
+                allowedTypeMap = {
+                    'int': int,
+                    'bool': bool,
+                    'float': float,
+                    'pauli_word': cudaq_runtime.pauli_word
+                }
                 # Infer the slice type
                 result = re.search(r'ist\[(.*)\]', str(ty))
                 eleTyName = result.group(1)
+                if 'cudaq_runtime.pauli_word' in str(ty):
+                    eleTyName = 'pauli_word'
                 pyType = allowedTypeMap[eleTyName]
                 if eleTyName != None and eleTyName in allowedTypeMap:
-                    return list, [allowedTypeMap[eleTyName]()]
+                    return list, [pyType()]
                 emitFatalError(f'Invalid type for kernel builder {ty}')
         return ty, None
 
@@ -327,7 +329,7 @@ class PyKernel(object):
                         element, eleTy)
                 else:
                     emitFatalError(
-                        f"CUDA Quantum kernel builder could not process runtime list-like element type ({pyType})."
+                        f"CUDA-Q kernel builder could not process runtime list-like element type ({pyType})."
                     )
 
                 cc.StoreOp(elementVal, eleAddr)
@@ -340,7 +342,7 @@ class PyKernel(object):
                                    size).result
 
         emitFatalError(
-            "CUDA Quantum kernel builder could not translate runtime argument of type {pyType} to internal IR value."
+            "CUDA-Q kernel builder could not translate runtime argument of type {pyType} to internal IR value."
         )
 
     def createInvariantForLoop(self,
@@ -541,6 +543,13 @@ class PyKernel(object):
                     veqTy = quake.VeqType.get(self.ctx, size)
                     return self.__createQuakeValue(quake.AllocaOp(veqTy).result)
 
+    def __isPauliWordType(self, ty):
+        """
+        A Pauli word type in our MLIR dialects is a `cc.charspan`. Return 
+        True if the provided type is equivalent to this, False otherwise.
+        """
+        return cc.CharspanType.isinstance(ty)
+
     def exp_pauli(self, theta, *args):
         """
         Apply a general Pauli tensor product rotation, `exp(i theta P)`, on 
@@ -569,6 +578,9 @@ class PyKernel(object):
                 elif isinstance(arg, QuakeValue) and quake.VeqType.isinstance(
                         arg.mlirValue.type):
                     quantumVal = arg.mlirValue
+                elif isinstance(arg, QuakeValue) and self.__isPauliWordType(
+                        arg.mlirValue.type):
+                    pauliWordVal = arg.mlirValue
                 elif isinstance(arg, QuakeValue) and quake.RefType.isinstance(
                         arg.mlirValue.type):
                     qubitsList.append(arg.mlirValue)
@@ -585,7 +597,7 @@ class PyKernel(object):
                 quantumVal = quake.ConcatOp(quake.VeqType.get(
                     self.ctx), [quantumVal] if quantumVal is not None else [] +
                                             qubitsList).result
-            quake.ExpPauliOp(thetaVal, quantumVal, pauliWordVal)
+            quake.ExpPauliOp(thetaVal, quantumVal, pauli=pauliWordVal)
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """
@@ -603,6 +615,66 @@ class PyKernel(object):
 
     def from_state(self, qubits, state):
         emitFatalError("from_state not implemented.")
+
+    def u3(self, theta, phi, delta, target):
+        """
+        Apply the universal three-parameters operator to target qubit.
+        The three parameters are Euler angles - θ, φ, and λ.
+
+        ```python
+            # Example
+            kernel = cudaq.make_kernel()
+            q = cudaq.qubit()
+            kernel.u3(np.pi, np.pi, np.pi / 2, q)
+        ```
+        """
+        with self.insertPoint, self.loc:
+            parameters = [
+                get_parameter_value(self, p) for p in [theta, phi, delta]
+            ]
+
+            if quake.RefType.isinstance(target.mlirValue.type):
+                quake.U3Op([], parameters, [], [target.mlirValue])
+                return
+
+            # Must be a `veq`, get the size
+            size = quake.VeqSizeOp(self.getIntegerType(), target.mlirValue)
+
+            def body(idx):
+                extracted = quake.ExtractRefOp(quake.RefType.get(self.ctx),
+                                               target.mlirValue,
+                                               -1,
+                                               index=idx).result
+                quake.U3Op([], parameters, [], [extracted])
+
+            self.createInvariantForLoop(size, body)
+
+    def cu3(self, theta, phi, delta, controls, target):
+        """
+        Controlled u3 operation.
+        The controls parameter is expected to be a list of QuakeValue.
+
+        ```python
+            # Example:
+            kernel = cudaq.make_kernel()
+            qubits = kernel.qalloc(2)
+            kernel.cu3(np.pi, np.pi, np.pi / 2, qubits[0], qubits[1]))
+        ```
+        """
+        with self.insertPoint, self.loc:
+            fwdControls = None
+            if isinstance(controls, list):
+                fwdControls = [c.mlirValue for c in controls]
+            elif quake.RefType.isinstance(
+                    controls.mlirValue.type) or quake.VeqType.isinstance(
+                        controls.mlirValue.type):
+                fwdControls = [controls.mlirValue]
+            else:
+                emitFatalError(f"invalid controls type for cu3.")
+
+            quake.U3Op(
+                [], [get_parameter_value(self, p) for p in [theta, phi, delta]],
+                fwdControls, [target.mlirValue])
 
     def cswap(self, controls, qubitA, qubitB):
         """
@@ -1086,6 +1158,7 @@ class PyKernel(object):
             )
 
         def getListType(eleType: type):
+            ## [PYTHON_VERSION_FIX]
             if sys.version_info < (3, 9):
                 return List[eleType]
             else:
@@ -1094,9 +1167,27 @@ class PyKernel(object):
         # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
+            # Handle `list[str]` separately - we allow this only for
+            # `list[cudaq.pauli_word]` inputs
+            if issubclass(type(arg), list) and len(arg) and all(
+                    isinstance(a, str) for a in arg):
+                [emitErrorIfInvalidPauli(a) for a in arg]
+                processedArgs.append([cudaq_runtime.pauli_word(a) for a in arg])
+                continue
+
+            # Handle `str` input separately - we allow this for
+            # `cudaq.pauli_word` inputs
+            if isinstance(arg, str):
+                emitErrorIfInvalidPauli(arg)
+                processedArgs.append(cudaq_runtime.pauli_word(arg))
+                continue
+
             argType = type(arg)
             listType = None
             if argType == list:
+                if len(arg) == 0:
+                    processedArgs.append(arg)
+                    continue
                 listType = getListType(type(arg[0]))
             mlirType = mlirTypeFromPyType(argType, self.ctx)
             if mlirType != self.mlirArgTypes[
@@ -1162,6 +1253,26 @@ setattr(PyKernel, 'cr1',
 
 
 def make_kernel(*args):
+    """
+    Create a :class:`Kernel`: An empty kernel function to be used for quantum 
+    program construction. This kernel is non-parameterized if it accepts no 
+    arguments, else takes the provided types as arguments. 
+
+    Returns a kernel if it is non-parameterized, else a tuple containing the 
+    kernel and a :class:`QuakeValue` for each kernel argument.
+
+.. code-block:: python
+
+    # Example:
+    # Non-parameterized kernel.
+    kernel = cudaq.make_kernel()
+
+    # Example:
+    # Parameterized kernel that accepts an `int` and `float` as arguments.
+    kernel, int_value, float_value = cudaq.make_kernel(int, float)
+
+    """
+
     kernel = PyKernel([*args])
     if len([*args]) == 0:
         return kernel

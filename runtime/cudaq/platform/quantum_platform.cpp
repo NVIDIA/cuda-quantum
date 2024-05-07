@@ -151,7 +151,7 @@ void quantum_platform::onRandomSeedSet(std::size_t seed) {
 void cudaq::altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
                             void *kernelArgs, std::uint64_t argsSize,
                             std::uint64_t resultOffset) {
-  ScopedTrace trace("altLaunchKernel", kernelName, argsSize);
+  ScopedTraceWithContext("altLaunchKernel", kernelName, argsSize);
   auto &platform = *cudaq::getQuantumPlatformInternal();
   std::string kernName = kernelName;
   platform.launchKernel(kernName, kernelFunc, kernelArgs, argsSize,

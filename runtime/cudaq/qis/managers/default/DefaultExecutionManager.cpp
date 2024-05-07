@@ -156,14 +156,20 @@ protected:
     return simulator()->mz(q.id, registerName);
   }
 
+  void flushGateQueue() override {
+    synchronize();
+    flushRequestedAllocations();
+    simulator()->flushGateQueue();
+  }
+
   void measureSpinOp(const cudaq::spin_op &op) override {
     flushRequestedAllocations();
     simulator()->flushGateQueue();
 
     if (executionContext->canHandleObserve) {
       auto result = simulator()->observe(*executionContext->spin.value());
-      executionContext->expectationValue = result.expectationValue;
-      executionContext->result = cudaq::sample_result(result);
+      executionContext->expectationValue = result.expectation();
+      executionContext->result = result.raw_data();
       return;
     }
 

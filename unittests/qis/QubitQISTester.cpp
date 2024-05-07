@@ -157,8 +157,6 @@ CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
   EXPECT_NEAR(energy, -1.7487, 1e-3);
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
 
   auto ccnot = []() {
@@ -229,7 +227,6 @@ CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
   EXPECT_EQ(1, counts3.size());
   EXPECT_TRUE(counts3.begin()->first == "101");
 }
-#endif
 
 CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
   struct single_adjoint_test {
@@ -367,6 +364,63 @@ CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
     EXPECT_EQ(1, counts.size());
     // |11> -> |01> after reset
     EXPECT_TRUE(counts.begin()->first == "01");
+  }
+}
+
+CUDAQ_TEST(QubitQISTester, checkU3Op) {
+  auto check_x = []() {
+    cudaq::qubit q;
+    // mimic Pauli-X gate
+    u3(M_PI, M_PI, M_PI_2, q);
+  };
+  auto counts = cudaq::sample(check_x);
+  counts.dump();
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "1");
+  }
+
+  auto bell_pair = []() {
+    cudaq::qvector qubits(2);
+    // mimic Hadamard gate
+    u3(M_PI_2, 0., M_PI, qubits[0]);
+    x<cudaq::ctrl>(qubits[0], qubits[1]);
+  };
+  counts = cudaq::sample(bell_pair);
+  counts.dump();
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "00" || bits == "11");
+  }
+}
+
+CUDAQ_TEST(QubitQISTester, checkU3Ctrl) {
+  auto another_bell_pair = []() {
+    cudaq::qvector qubits(2);
+    u3(M_PI_2, 0., M_PI, qubits[0]);
+    u3<cudaq::ctrl>(M_PI, M_PI, M_PI_2, qubits[0], qubits[1]);
+  };
+  auto counts = cudaq::sample(another_bell_pair);
+  counts.dump();
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "00" || bits == "11");
+  }
+}
+
+CUDAQ_TEST(QubitQISTester, checkU3Adj) {
+  auto rotation_adjoint_test = []() {
+    cudaq::qubit q;
+    // mimic Rx gate
+    u3(1.1, -M_PI_2, M_PI_2, q);
+    // rx<adj>(angle) = u3<adj>(angle, pi/2, -pi/2)
+    u3<cudaq::adj>(1.1, M_PI_2, -M_PI_2, q);
+    // mimic Ry gate
+    u3(1.1, 0., 0., q);
+    u3<cudaq::adj>(1.1, 0., 0., q);
+  };
+
+  auto counts = cudaq::sample(rotation_adjoint_test);
+  counts.dump();
+  for (auto &[bits, count] : counts) {
+    EXPECT_TRUE(bits == "0");
   }
 }
 

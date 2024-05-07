@@ -101,8 +101,8 @@ module attributes {quake.mangled_name_map = {
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_12]] : (!llvm.ptr<array<4 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_15:.*]] = cc.func_ptr %[[VAL_13]] : ((!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_16:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_5]][0, 1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
-// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> i64
+// CHECK:           %[[VAL_17:.*]] = cc.compute_ptr %[[VAL_5]][0, 1] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<f64>) -> i64
 // CHECK:           call @altLaunchKernel(%[[VAL_14]], %[[VAL_15]], %[[VAL_16]], %[[VAL_8]], %[[VAL_18]]) : (!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> ()
 // CHECK:           %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_11]][0, 1] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64}> x ?>>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_20:.*]] = cc.load %[[VAL_19]] : !cc.ptr<f64>

@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -167,16 +167,15 @@ cc::LoopOp factory::createInvariantLoop(
     OpBuilder &builder, Location loc, Value totalIterations,
     llvm::function_ref<void(OpBuilder &, Location, Region &, Block &)>
         bodyBuilder) {
-  Value zero = builder.create<arith::ConstantIndexOp>(loc, 0);
-  Value one = builder.create<arith::ConstantIndexOp>(loc, 1);
-  Type indexTy = builder.getIndexType();
+  Value zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+  Value one = builder.create<arith::ConstantIntOp>(loc, 1, 64);
+  Type i64Ty = builder.getI64Type();
   SmallVector<Value> inputs = {zero};
-  SmallVector<Type> resultTys = {indexTy};
+  SmallVector<Type> resultTys = {i64Ty};
   auto loop = builder.create<cc::LoopOp>(
       loc, resultTys, inputs, /*postCondition=*/false,
       [&](OpBuilder &builder, Location loc, Region &region) {
-        cc::RegionBuilderGuard guard(builder, loc, region,
-                                     TypeRange{zero.getType()});
+        cc::RegionBuilderGuard guard(builder, loc, region, TypeRange{i64Ty});
         auto &block = *builder.getBlock();
         Value cmpi = builder.create<arith::CmpIOp>(
             loc, arith::CmpIPredicate::slt, block.getArgument(0),
@@ -184,19 +183,74 @@ cc::LoopOp factory::createInvariantLoop(
         builder.create<cc::ConditionOp>(loc, cmpi, block.getArguments());
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
+        cc::RegionBuilderGuard guard(builder, loc, region, TypeRange{i64Ty});
+        auto &block = *builder.getBlock();
+        bodyBuilder(builder, loc, region, block);
+        builder.create<cc::ContinueOp>(loc, block.getArguments());
+      },
+      [&](OpBuilder &builder, Location loc, Region &region) {
+        cc::RegionBuilderGuard guard(builder, loc, region, TypeRange{i64Ty});
+        auto &block = *builder.getBlock();
+        auto incr =
+            builder.create<arith::AddIOp>(loc, block.getArgument(0), one);
+        builder.create<cc::ContinueOp>(loc, ValueRange{incr});
+      });
+  loop->setAttr("invariant", builder.getUnitAttr());
+  return loop;
+}
+
+// This builder will transform the monotonic loop into an invariant loop during
+// construction. This is meant to save some time in loop analysis and
+// normalization, which would perform a similar transformation.
+cc::LoopOp factory::createMonotonicLoop(
+    OpBuilder &builder, Location loc, Value start, Value stop, Value step,
+    llvm::function_ref<void(OpBuilder &, Location, Region &, Block &)>
+        bodyBuilder) {
+  IRBuilder irBuilder(builder.getContext());
+  auto mod = builder.getBlock()->getParentOp()->getParentOfType<ModuleOp>();
+  [[maybe_unused]] auto loadedIntrinsic =
+      irBuilder.loadIntrinsic(mod, getCudaqSizeFromTriple);
+  assert(succeeded(loadedIntrinsic) && "loading intrinsic should never fail");
+  auto i64Ty = builder.getI64Type();
+  Value begin =
+      builder.create<cc::CastOp>(loc, i64Ty, start, cc::CastOpMode::Signed);
+  Value stepBy =
+      builder.create<cc::CastOp>(loc, i64Ty, step, cc::CastOpMode::Signed);
+  Value end =
+      builder.create<cc::CastOp>(loc, i64Ty, stop, cc::CastOpMode::Signed);
+  Value zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+  SmallVector<Value> inputs = {zero, begin};
+  SmallVector<Type> resultTys = {i64Ty, i64Ty};
+  auto totalIters = builder.create<func::CallOp>(
+      loc, i64Ty, getCudaqSizeFromTriple, ValueRange{begin, end, stepBy});
+  auto loop = builder.create<cc::LoopOp>(
+      loc, resultTys, inputs, /*postCondition=*/false,
+      [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region,
-                                     TypeRange{zero.getType()});
+                                     TypeRange{i64Ty, i64Ty});
+        auto &block = *builder.getBlock();
+        Value cmpi = builder.create<arith::CmpIOp>(
+            loc, arith::CmpIPredicate::slt, block.getArgument(0),
+            totalIters.getResult(0));
+        builder.create<cc::ConditionOp>(loc, cmpi, block.getArguments());
+      },
+      [&](OpBuilder &builder, Location loc, Region &region) {
+        cc::RegionBuilderGuard guard(builder, loc, region,
+                                     TypeRange{i64Ty, i64Ty});
         auto &block = *builder.getBlock();
         bodyBuilder(builder, loc, region, block);
         builder.create<cc::ContinueOp>(loc, block.getArguments());
       },
       [&](OpBuilder &builder, Location loc, Region &region) {
         cc::RegionBuilderGuard guard(builder, loc, region,
-                                     TypeRange{zero.getType()});
+                                     TypeRange{i64Ty, i64Ty});
         auto &block = *builder.getBlock();
-        auto incr =
+        auto one = builder.create<arith::ConstantIntOp>(loc, 1, 64);
+        Value count =
             builder.create<arith::AddIOp>(loc, block.getArgument(0), one);
-        builder.create<cc::ContinueOp>(loc, ValueRange{incr});
+        Value incr =
+            builder.create<arith::AddIOp>(loc, block.getArgument(1), stepBy);
+        builder.create<cc::ContinueOp>(loc, ValueRange{count, incr});
       });
   loop->setAttr("invariant", builder.getUnitAttr());
   return loop;
@@ -364,7 +418,7 @@ bool factory::structUsesTwoArguments(mlir::Type ty) {
 static bool onlyArithmeticMembers(cc::StructType structTy) {
   for (auto t : structTy.getMembers()) {
     // FIXME: check complex type
-    if (isa<IntegerType, FloatType, IndexType>(t))
+    if (isa<IntegerType, FloatType>(t))
       continue;
     return false;
   }
@@ -372,7 +426,7 @@ static bool onlyArithmeticMembers(cc::StructType structTy) {
 }
 
 // When the kernel comes from a class, there is always a default `this` argument
-// to the kernel entry function. The CUDA Quantum spec doesn't allow the kernel
+// to the kernel entry function. The CUDA-Q spec doesn't allow the kernel
 // object to contain data members (yet), so we can ignore the `this` pointer.
 FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
                                          ModuleOp module) {

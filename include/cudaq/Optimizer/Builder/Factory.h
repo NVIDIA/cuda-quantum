@@ -159,25 +159,6 @@ inline mlir::Value createF64Constant(mlir::Location loc,
   return createFloatConstant(loc, builder, value, builder.getF64Type());
 }
 
-inline mlir::Value createIntegerConstant(mlir::Location loc,
-                                         mlir::OpBuilder &builder,
-                                         std::int64_t value,
-                                         mlir::IntegerType type) {
-  return builder.create<mlir::arith::ConstantIntOp>(loc, value, type);
-}
-
-inline mlir::Value createI64Constant(mlir::Location loc,
-                                     mlir::OpBuilder &builder,
-                                     std::int64_t value) {
-  return createIntegerConstant(loc, builder, value, builder.getI64Type());
-}
-
-inline mlir::Value createI32Constant(mlir::Location loc,
-                                     mlir::OpBuilder &builder,
-                                     std::int32_t value) {
-  return createIntegerConstant(loc, builder, value, builder.getI32Type());
-}
-
 //===----------------------------------------------------------------------===//
 
 inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
@@ -212,6 +193,19 @@ void createGlobalCtorCall(mlir::ModuleOp mod, mlir::FlatSymbolRefAttr ctor);
 cc::LoopOp
 createInvariantLoop(mlir::OpBuilder &builder, mlir::Location loc,
                     mlir::Value totalIterations,
+                    llvm::function_ref<void(mlir::OpBuilder &, mlir::Location,
+                                            mlir::Region &, mlir::Block &)>
+                        bodyBuilder);
+
+/// Builds a monotonic loop. A monotonic loop is a loop that is guaranteed to
+/// execute the body of the loop from \p start to (but not including) \p stop
+/// stepping by \p step times. Exceptional conditions will cause the loop body
+/// to execute 0 times. Early exits are not allowed. This builder threads the
+/// loop control value, which will be returned as the value \p stop (or the next
+/// value near \p stop) when the loop exits.
+cc::LoopOp
+createMonotonicLoop(mlir::OpBuilder &builder, mlir::Location loc,
+                    mlir::Value start, mlir::Value stop, mlir::Value step,
                     llvm::function_ref<void(mlir::OpBuilder &, mlir::Location,
                                             mlir::Region &, mlir::Block &)>
                         bodyBuilder);
