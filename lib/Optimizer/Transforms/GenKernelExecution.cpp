@@ -426,6 +426,7 @@ public:
       }
       if (isa<cudaq::cc::PointerType>(currEleTy))
         continue;
+
       // cast to the struct element type, void* -> TYPE *
       argPtr = builder.create<cudaq::cc::CastOp>(
           loc, cudaq::cc::PointerType::get(currEleTy), argPtr);
