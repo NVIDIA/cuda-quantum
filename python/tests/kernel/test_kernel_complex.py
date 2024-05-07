@@ -591,7 +591,7 @@ def test_np_complex64_use():
 
 
 @skipIfPythonLessThan39
-def test_list_parameter_promotion():
+def test_complex_list_parameter_promotion():
 
     @cudaq.kernel
     def kernel(c: list[complex], i: int) -> complex:
@@ -618,7 +618,7 @@ def test_list_parameter_promotion():
 
 
 @skipIfPythonLessThan39
-def test_list_parameter_promotion_complex128():
+def test_complex128_list_parameter_promotion():
 
     @cudaq.kernel
     def kernel(c: list[np.complex128], i: int) -> np.complex128:
@@ -645,7 +645,7 @@ def test_list_parameter_promotion_complex128():
 
 
 @skipIfPythonLessThan39
-def test_list_parameter_promotion_complex64():
+def test_complex64_list_parameter_promotion():
 
     @cudaq.kernel
     def kernel(c: list[np.complex64], i: int) -> np.complex64:
