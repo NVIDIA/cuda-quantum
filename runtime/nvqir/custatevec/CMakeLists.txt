@@ -33,6 +33,8 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
   # The goal would be that everything builds, and non-GPU components can be used without
   # libstdc++, but to use gpu component requires libstdc++ (seems fair given that we 
   # inherit this dependency from cuquantum).
+  # Alternatively, maybe llvm-gcc would allow to link everything against that? 
+  # However, that's been tricky to build and use successfully...
   target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--unresolved-symbols=ignore-in-object-files)
 
   target_include_directories(${LIBRARY_NAME}
