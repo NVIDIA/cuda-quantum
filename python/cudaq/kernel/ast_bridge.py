@@ -415,7 +415,7 @@ class PyASTBridge(ast.NodeVisitor):
         Return True if the given type is an integer, float, or complex type. 
         """
         return IntegerType.isinstance(type) or F64Type.isinstance(
-            type) or ComplexType.isinstance(type)
+            type) or F32Type.isinstance(type) or ComplexType.isinstance(type)
 
     def ifPointerThenLoad(self, value):
         """

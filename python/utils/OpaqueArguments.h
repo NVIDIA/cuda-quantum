@@ -189,10 +189,21 @@ inline mlir::func::FuncOp getKernelFuncOp(MlirModule module,
 
 template <typename T>
 void checkArgumentType(py::handle arg, int index) {
-  if (!py::isinstance<T>(arg))
+  if (!py_ext::isConvertible<T>(arg))
     throw std::runtime_error(
         "kernel argument type is '" + py_ext::typeName<T>() + "'" +
         " but argument provided is not (argument " + std::to_string(index) +
+        ", value=" + py::str(arg).cast<std::string>() +
+        ", type=" + py::str(py::type::of(arg)).cast<std::string>() + ").");
+}
+
+template <typename T>
+void checkListElementType(py::handle arg, int index, int elementIndex) {
+  if (!py_ext::isConvertible<T>(arg))
+    throw std::runtime_error(
+        "kernel argument's element type is '" + py_ext::typeName<T>() + "'" +
+        " but argument provided is not (argument " + std::to_string(index) +
+        ", element " + std::to_string(elementIndex) +
         ", value=" + py::str(arg).cast<std::string>() +
         ", type=" + py::str(py::type::of(arg)).cast<std::string>() + ").");
 }
@@ -304,7 +315,8 @@ packArgs(OpaqueArguments &argData, py::args args,
             std::vector<VecTy> *ourAllocatedArg =
                 new std::vector<VecTy>(casted.size());
             for (std::size_t counter = 0; auto el : casted) {
-              (*ourAllocatedArg)[counter++] = converter(el);
+              auto converted = converter(el, i, counter);
+              (*ourAllocatedArg)[counter++] = converted;
             }
             argData.emplace_back(ourAllocatedArg, [](void *ptr) {
               delete static_cast<std::vector<VecTy> *>(ptr);
@@ -319,29 +331,44 @@ packArgs(OpaqueArguments &argData, py::args args,
                 // Handle vec<bool> and vec<int>
                 if (type.getIntOrFloatBitWidth() == 1) {
                   genericVecAllocator.template operator()<bool>(
-                      [](py::handle element) { return element.cast<bool>(); });
+                      [](py::handle element, int index, int elementIndex) {
+                        checkListElementType<py::bool_>(element, index,
+                                                        elementIndex);
+                        return element.cast<bool>();
+                      });
                   return;
                 }
 
                 genericVecAllocator.template operator()<std::size_t>(
-                    [](py::handle element) -> std::size_t {
+                    [](py::handle element, int index,
+                       int elementIndex) -> std::size_t {
+                      checkListElementType<py::int_>(element, index,
+                                                     elementIndex);
                       return element.cast<std::size_t>();
                     });
                 return;
               })
               .Case([&](Float64Type type) {
                 genericVecAllocator.template operator()<double>(
-                    [](py::handle element) { return element.cast<double>(); });
+                    [](py::handle element, int index, int elementIndex) {
+                      checkListElementType<py_ext::Float>(element, index,
+                                                          elementIndex);
+                      return element.cast<double>();
+                    });
                 return;
               })
               .Case([&](Float32Type type) {
                 genericVecAllocator.template operator()<float>(
-                    [](py::handle element) { return element.cast<float>(); });
+                    [](py::handle element, int index, int elementIndex) {
+                      checkListElementType<py_ext::Float>(element, index,
+                                                          elementIndex);
+                      return element.cast<float>();
+                    });
                 return;
               })
               .Case([&](cudaq::cc::CharspanType type) {
                 genericVecAllocator.template operator()<cudaq::pauli_word>(
-                    [](py::handle element) {
+                    [](py::handle element, int index, int elementIndex) {
                       auto pw = element.cast<cudaq::pauli_word>();
                       return cudaq::pauli_word(pw.str());
                     });
@@ -350,12 +377,18 @@ packArgs(OpaqueArguments &argData, py::args args,
               .Case([&](ComplexType type) {
                 if (isa<Float64Type>(type.getElementType())) {
                   genericVecAllocator.template operator()<std::complex<double>>(
-                      [](py::handle element) -> std::complex<double> {
+                      [](py::handle element, int index,
+                         int elementIndex) -> std::complex<double> {
+                        checkListElementType<py_ext::Complex>(element, index,
+                                                              elementIndex);
                         return element.cast<std::complex<double>>();
                       });
                 } else {
                   genericVecAllocator.template operator()<std::complex<float>>(
-                      [](py::handle element) -> std::complex<float> {
+                      [](py::handle element, int index,
+                         int elementIndex) -> std::complex<float> {
+                        checkListElementType<py_ext::Complex>(element, index,
+                                                              elementIndex);
                         return element.cast<std::complex<float>>();
                       });
                 }
