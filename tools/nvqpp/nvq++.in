@@ -267,6 +267,7 @@ OUTPUTFILE=
 OBJS=
 SRCS=
 ARGS=
+GCC_INSTALL_PREFIX="@GCC_INSTALL_PREFIX@"
 CUDAQ_QUAKE_ARGS=
 CUDAQ_OPT_ARGS=
 CUDAQ_TRANSLATE_ARGS=
@@ -301,7 +302,7 @@ if ${gpu_found} && [ -f "${install_dir}/lib/libnvqir-custatevec-fp32.so" ]; then
 	NVQIR_SIMULATION_BACKEND="custatevec-fp32"
 fi
 # Check environment variable - overrides the default
-if [[ ! -z "${CUDAQ_DEFAULT_SIMULATOR}" ]]; then
+if [[ -n "${CUDAQ_DEFAULT_SIMULATOR}" ]]; then
 	available_simulators=( $(list_simulators) )
 	for s in "${available_simulators[@]}"
 	do
@@ -375,6 +376,10 @@ while [ $# -ne 0 ]; do
 		;;
 	--llvm-version=*)
 		llvm_suffix="${arg#*=}"
+		;;
+	--gcc-toolchain=*)
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq \"$1\""
+		GCC_INSTALL_PREFIX=
 		;;
 	--execution-manager | -em | -execution-manager)
 		LIBRARY_MODE_EXECUTION_MANAGER="$2"
@@ -586,7 +591,7 @@ fi
 TMPFILES=
 function delete_temp_files {
 	if ${DELETE_TEMPS}; then
-		if [ -n "${TMPFILES}" ]; then
+		if [[ -n "${TMPFILES}" ]]; then
 			rm -f ${TMPFILES}
 		fi
 	fi
@@ -599,7 +604,7 @@ COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
 OBJS_TO_MERGE=""
-if [ -n "${TARGET_CONFIG}" ]; then
+if [[ -n "${TARGET_CONFIG}" ]]; then
 	# Disable compilation on non-x86 machines when targetting NVQC.
 	# See https://github.com/NVIDIA/cuda-quantum/issues/1345 for current status.
 	if [ "${TARGET_CONFIG}" == "nvqc" ]; then
@@ -617,7 +622,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			# backend on the quantum_platform
 			TARGET_CONFIG="${TARGET_CONFIG};emulate;${CUDAQ_EMULATE_REMOTE}"
 			TARGET_CONFIG="${TARGET_CONFIG};disable_qubit_mapping;${DISABLE_QUBIT_MAPPING}"
-			if [ -n "${MAPPING_FILE}" ]; then
+			if [[ -n "${MAPPING_FILE}" ]]; then
 				TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
 			fi
 			TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
@@ -646,6 +651,11 @@ if ${CUDAQ_IS_APPLE}; then
 fi
 LLC=${LLVMBIN}llc${llvm_suffix}
 
+if [[ -n "${GCC_INSTALL_PREFIX}" ]]; then
+	# Use the toolchain specified at build-time, if any, and the user has
+	# not overridden it already.
+	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq --gcc-toolchain=\"${GCC_INSTALL_PREFIX}\""
+fi
 if ${LIBRARY_MODE}; then
 	ENABLE_KERNEL_EXECUTION=false
 fi
