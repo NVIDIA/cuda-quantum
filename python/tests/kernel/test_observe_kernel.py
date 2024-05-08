@@ -258,6 +258,24 @@ def test_observe_async():
         future = cudaq.observe_async(kernel0, hamiltonian, qpu_id=12)
 
 
+# This tests whether a backend can support receiving an empty spin_op. This can
+# happen when parallelizing a spin_op over QPUs when it has more QPUs than
+# terms.
+def test_empty_spin_op():
+
+    @cudaq.kernel
+    def circuit(theta: float):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(theta, q[1])
+        x.ctrl(q[1], q[0])
+
+    h = spin.z(0)
+    batched = h.distribute_terms(2)
+    assert batched[1].get_term_count() == 0
+    assert cudaq.observe(circuit, batched[1], .59).expectation() == 0
+
+
 def test_spec_adherence():
     
     @cudaq.kernel
