@@ -7,7 +7,31 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include <algorithm>
 #include <cudaq/algorithm.h>
+#include <execution>
+std::vector<cudaq::complex> randomState(int numQubits) {
+  std::vector<cudaq::complex> stateVec(1ULL << numQubits);
+  std::generate(
+      std::execution::par_unseq, stateVec.begin(), stateVec.end(),
+      []() -> cudaq::complex {
+        thread_local std::default_random_engine
+            generator; // thread_local so we don't have to do any locking
+        thread_local std::normal_distribution<double> distribution(
+            0.0, 1.0); // mean = 0.0, stddev = 1.0
+        return cudaq::complex(distribution(generator), distribution(generator));
+      });
+
+  const double norm =
+      std::sqrt(std::accumulate(stateVec.begin(), stateVec.end(), 0.0,
+                                [](double accumulatedNorm, cudaq::complex val) {
+                                  return accumulatedNorm + std::norm(val);
+                                }));
+  std::transform(std::execution::par_unseq, stateVec.begin(), stateVec.end(),
+                 stateVec.begin(),
+                 [norm](std::complex<double> x) { return x / norm; });
+  return stateVec;
+}
 
 struct test_allocation {
   void operator()() __qpu__ {
@@ -176,4 +200,20 @@ CUDAQ_TEST(AllocationTester, checkChainingGetState) {
 #else
   EXPECT_NEAR(std::abs(overlap), 0.5, 1e-6);
 #endif
+}
+
+struct test_state_vector_init {
+  void operator()(const std::vector<cudaq::complex> &stateVec) __qpu__ {
+    cudaq::qvector q(stateVec);
+    mz(q);
+  }
+};
+
+CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecGeneral) {
+  constexpr int numQubits = 5;
+  const auto stateVec = randomState(numQubits);
+  for (const auto &x : stateVec)
+    std::cout << x << "\n";
+  auto counts = cudaq::sample(test_state_vector_init{}, stateVec);
+  counts.dump();
 }

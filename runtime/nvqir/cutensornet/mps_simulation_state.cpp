@@ -434,9 +434,7 @@ MPSSimulationState::toSimulationState() const {
       std::move(cloneState), m_mpsTensors, m_auxTensorIds, m_cutnHandle);
 }
 
-static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
-  Eigen::MatrixXcd A = stateVec;
-  A.transposeInPlace();
+static Eigen::MatrixXcd reshapeMatrix(const Eigen::MatrixXcd &A) {
   Eigen::MatrixXcd B, C;
   const std::size_t rows = A.rows();
   const std::size_t cols = A.cols();
@@ -453,10 +451,16 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
   return stacked;
 }
 
+static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
+  Eigen::MatrixXcd A = stateVec;
+  A.transposeInPlace();
+  return reshapeMatrix(A);
+}
+
 std::pair<std::unique_ptr<TensorNetState>, std::vector<MPSTensor>>
 MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
                                        std::size_t size,
-                                       std::complex<double> *ptr) {
+                                       std::complex<double> *ptr, int bondDim) {
   Eigen::VectorXcd stateVec = Eigen::Map<Eigen::VectorXcd>(ptr, size);
   const std::size_t numQubits = std::log2(size);
   if (numQubits == 1) {
@@ -484,14 +488,29 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
   Eigen::MatrixXcd reshapedMat = reshapeStateVec(stateVec);
   std::vector<MPSTensor> mpsTensors;
   std::vector<int64_t> numSingularValues;
+  const auto enforceBondDim = [bondDim](const Eigen::MatrixXcd &U,
+                                        const Eigen::MatrixXcd &V,
+                                        const Eigen::VectorXd &S) {
+    assert(U.cols() == S.size());
+    assert(V.cols() == S.size());
+    Eigen::MatrixXcd newU(U.rows(), bondDim);
+    newU.leftCols(U.cols()) = U;
+    Eigen::MatrixXcd newV(V.rows(), bondDim);
+    newV.leftCols(V.cols()) = V;
+    Eigen::VectorXd newS(bondDim);
+    newS.head(S.size()) = S;
+    return std::make_tuple(newU, newS, newV);
+  };
   for (std::size_t i = 0; i < numQubits - 1; ++i) {
     Eigen::BDCSVD<Eigen::MatrixXcd, Eigen::ComputeThinU | Eigen::ComputeThinV>
         svd(reshapedMat);
-    const Eigen::MatrixXcd U = svd.matrixU();
-    const Eigen::MatrixXcd V = svd.matrixV();
-    const Eigen::VectorXd S = svd.singularValues();
+    const Eigen::MatrixXcd U_orig = svd.matrixU();
+    const Eigen::MatrixXcd V_orig = svd.matrixV();
+    const Eigen::VectorXd S_orig = svd.singularValues();
+    const auto [U, S, V] = enforceBondDim(U_orig, V_orig, S_orig);
+    assert(S.size() == bondDim);
     numSingularValues.emplace_back(S.size());
-    reshapedMat = S.asDiagonal() * V;
+    reshapedMat = reshapeMatrix(S.asDiagonal() * V.adjoint());
     void *d_tensor = nullptr;
     HANDLE_CUDA_ERROR(
         cudaMalloc(&d_tensor, U.size() * sizeof(std::complex<double>)));
@@ -529,7 +548,7 @@ std::unique_ptr<cudaq::SimulationState>
 MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
                                          std::size_t dataType) {
   auto [state, mpsTensors] = createFromStateVec(
-      m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr));
+      m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr), 64);
   return std::make_unique<MPSSimulationState>(
       std::move(state), mpsTensors, std::vector<std::size_t>{}, m_cutnHandle);
 }

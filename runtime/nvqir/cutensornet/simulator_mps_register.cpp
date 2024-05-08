@@ -120,10 +120,9 @@ public:
       if (!ptr) {
         m_state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
       } else {
-        // FIXME: expand the MPS tensors to the max extent
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
             m_cutnHandle, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)));
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)), m_maxBond);
         m_state = std::move(state);
       }
     } else {
@@ -152,7 +151,7 @@ public:
         // Non-zero state needs to be factorized and appended.
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
             m_cutnHandle, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)));
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)), m_maxBond);
         auto tensors =
             m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
         // Adjust the extents of the last tensor in the original state

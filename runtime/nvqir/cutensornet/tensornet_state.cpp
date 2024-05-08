@@ -378,13 +378,13 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
       extentsPtr.data(), /*strides=*/nullptr));
   // Set up the SVD method for truncation.
   HANDLE_CUTN_ERROR(cutensornetStateConfigure(
-      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_MPS_SVD_CONFIG_ALGO,
+      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_ALGO,
       &algo, sizeof(algo)));
   HANDLE_CUTN_ERROR(cutensornetStateConfigure(
-      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_MPS_SVD_CONFIG_ABS_CUTOFF,
+      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_ABS_CUTOFF,
       &absCutoff, sizeof(absCutoff)));
   HANDLE_CUTN_ERROR(cutensornetStateConfigure(
-      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_MPS_SVD_CONFIG_REL_CUTOFF,
+      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_REL_CUTOFF,
       &relCutoff, sizeof(relCutoff)));
 
   // Prepare the MPS computation and attach workspace

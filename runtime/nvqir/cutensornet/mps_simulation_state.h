@@ -76,7 +76,7 @@ public:
   // For example, state vector from the user's input.
   static std::pair<std::unique_ptr<TensorNetState>, std::vector<MPSTensor>>
   createFromStateVec(cutensornetHandle_t cutnHandle, std::size_t size,
-                     std::complex<double> *data);
+                     std::complex<double> *data, int bondDim);
 
 protected:
   void deallocate();
