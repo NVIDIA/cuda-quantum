@@ -12,7 +12,9 @@
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
+include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
+include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
 
 def AnyPointerType : Type<CPred<"$_self.isa<mlir::LLVM::LLVMPointerType,"
                           "cudaq::cc::PointerType>()">, "any pointer type">;
@@ -340,7 +342,7 @@ def cc_IfOp : CCOp<"if",
     [DeclareOpInterfaceMethods<RegionBranchOpInterface,
                                ["getNumRegionInvocations",
                                 "getRegionInvocationBounds"]>,
-     RecursiveMemoryEffects, NoRegionArguments]> {
+     RecursiveMemoryEffects, LinearTypeArgsTrait]> {
   let summary = "if-then-else operation";
   let description = [{
     An IfOp is a C-like if statement that supports single-entry, multiple-exit
@@ -368,9 +370,15 @@ def cc_IfOp : CCOp<"if",
     ```
   }];
 
-  let arguments = (ins I1:$condition);
+  let arguments = (ins
+    I1:$condition,
+    Variadic<AnyQLinearType>:$linearArgs
+  );
   let results = (outs Variadic<AnyType>:$results);
-  let regions = (region AnyRegion:$thenRegion, AnyRegion:$elseRegion);
+  let regions = (region
+    AnyRegion:$thenRegion,
+    AnyRegion:$elseRegion
+  );
 
   let builders = [
     OpBuilder<(ins "mlir::TypeRange":$resultTypes, "mlir::Value":$cond,
@@ -388,6 +396,23 @@ def cc_IfOp : CCOp<"if",
         mlir::Location, mlir::Region &)>;
 
     bool hasResults() { return getResults().size(); }
+
+    // A cc.if must have a valid then region.
+    bool hasThen() { return !getThenRegion().empty(); }
+    mlir::Block *getThenEntryBlock() { return &getThenRegion().front(); }
+    mlir::Block::BlockArgListType getThenEntryArguments() {
+      return getThenEntryBlock()->getArguments();
+    }
+
+    bool hasElse() { return !getElseRegion().empty(); }
+    mlir::Block *getElseEntryBlock() {
+      return hasElse() ? &getElseRegion().front() :
+        static_cast<mlir::Block*>(nullptr);
+    }
+    mlir::Block::BlockArgListType getElseEntryArguments() {
+      return hasElse() ? getElseEntryBlock()->getArguments() :
+        mlir::Block::BlockArgListType{};
+    }
   }];
 }
 
