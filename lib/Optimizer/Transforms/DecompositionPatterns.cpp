@@ -1131,11 +1131,13 @@ struct RzToPhasedRx : public OpRewritePattern<quake::RzOp> {
 // U3Op decompositions
 //===----------------------------------------------------------------------===//
 
-// quake.u3( , , ) target
+// quake.u3(θ,ϕ,λ) target
 // ──────────────────────────────────
-// quake.rx( ) target
-// quake.ry( ) target
-// quake.rz( ) target
+// quake.rz(λ) target
+// quake.rx(π/2) target
+// quake.rz(θ) target
+// quake.rx(-π/2) target
+// quake.rz(ϕ) target
 struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
   using OpRewritePattern<quake::U3Op>::OpRewritePattern;
 
@@ -1151,18 +1153,28 @@ struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
-    // TODO: Sort out the angle names and if anything needs
-    // to be scaled before being passed of to rotation gates.
-    Value angle0 = op.getParameters()[0];
-    Value angle1 = op.getParameters()[1];
-    Value angle2 = op.getParameters()[2];
+    Value theta = op.getParameters()[0];
+    Value phi = op.getParameters()[1];
+    Value lam = op.getParameters()[2];
 
-    // check if the op.isAdj()
+    if (op.isAdj()) {
+      theta = rewriter.create<arith::NegFOp>(loc, theta);
+      phi = rewriter.create<arith::NegFOp>(loc, phi);
+      lam = rewriter.create<arith::NegFOp>(loc, lam);
+    }
 
-    // then insert:
-    rewriter.create<quake::RxOp>(loc, angle0, op.getControls(), target);
-    rewriter.create<quake::RyOp>(loc, angle1, op.getControls(), target);
-    rewriter.create<quake::RzOp>(loc, angle2, op.getControls(), target);
+    // Necessary/Helpful constants
+    Type angleType = op.getParameter().getType();
+    Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
+    Value negPi_2 = rewriter.create<arith::NegFOp>(loc, pi_2);
+
+    // This decomposition pattern was chosen due to testing showing
+    // it most accurately reproduces the u3 gate in simulation.
+    rewriter.create<quake::RzOp>(loc, lam, op.getControls(), target);
+    rewriter.create<quake::RxOp>(loc, pi_2, op.getControls(), target);
+    rewriter.create<quake::RzOp>(loc, theta, op.getControls(), target);
+    rewriter.create<quake::RxOp>(loc, negPi_2, op.getControls(), target);
+    rewriter.create<quake::RzOp>(loc, phi, op.getControls(), target);
 
     rewriter.eraseOp(op);
     return success();
@@ -1212,6 +1224,8 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     RzToPhasedRx,
     // Swap
     SwapToCX,
+    // U3Op
+    U3ToRotations,
     ExpPauliDecomposition
   >(patterns.getContext());
   // clang-format on
