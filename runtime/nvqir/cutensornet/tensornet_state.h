@@ -83,10 +83,12 @@ public:
                         cutensornetHandle_t handle);
 
   /// @brief Apply a unitary gate
-  /// @param qubitIds Qubit operands
+  /// @param controlQubits Controlled qubit operands
+  /// @param targetQubits Target qubit operands
   /// @param gateDeviceMem Gate unitary matrix in device memory
   /// @param adjoint Apply the adjoint of gate matrix if true
-  void applyGate(const std::vector<int32_t> &qubitIds, void *gateDeviceMem,
+  void applyGate(const std::vector<int32_t> &controlQubits,
+                 const std::vector<int32_t> &targetQubits, void *gateDeviceMem,
                  bool adjoint = false);
 
   /// @brief Apply a projector matrix (non-unitary)

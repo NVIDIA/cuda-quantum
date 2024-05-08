@@ -61,11 +61,11 @@ public:
   /// Clone API
   virtual nvqir::CircuitSimulator *clone() override;
 
-  virtual std::unique_ptr<cudaq::SimulationState>
-  getSimulationState() override {
-    throw std::runtime_error("[tensornet] getSimulationState not implemented");
-    return nullptr;
-  }
+  /// Swap gate implementation
+  // Note: cutensornetStateApplyControlledTensorOperator can only handle
+  // single-target.
+  void swap(const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
+            const std::size_t tgtIdx) override;
 
 protected:
   // Sub-type need to implement
