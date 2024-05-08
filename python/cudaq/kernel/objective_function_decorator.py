@@ -51,10 +51,10 @@ class PyObjectiveFunctionDecorator(object):
             [line[leadingSpaces:] for line in src.split('\n')])
 
         # Create the AST
-        self.astModule = ast.parse(self.funcSrc)
+        self.parsed_ast = ast.parse(self.funcSrc)
         if verbose and importlib.util.find_spec('astpretty') is not None:
             import astpretty
-            astpretty.pprint(self.astModule.body[0])
+            astpretty.pprint(self.parsed_ast.body[0])
 
         # Assign the signature for use later and
         # keep a list of arguments (used for validation in the runtime)
@@ -67,7 +67,7 @@ class PyObjectiveFunctionDecorator(object):
 
         # Validate that we have a return type annotation if necessary
         hasRetNodeVis = HasReturnNodeVisitor()
-        hasRetNodeVis.visit(self.astModule)
+        hasRetNodeVis.visit(self.parsed_ast)
         if hasRetNodeVis.hasReturnNode and 'return' not in self.signature:
             emitFatalError(
                 'CUDA-Q objective function has return statement but no return type annotation.'
@@ -76,8 +76,31 @@ class PyObjectiveFunctionDecorator(object):
         # Store the AST for this objective function, it is needed for
         # building up call graphs. We also must retain
         # the source code location for error diagnostics
-        globalAstRegistry[self.name] = (self.astModule, self.location)
+        globalAstRegistry[self.name] = (self.parsed_ast, self.location)
     
+    def compile(self):
+        """
+        Compile the Python objective function AST. This is a no-op 
+        if the objective function is already compiled. 
+        """
+
+        self.compiled_bytecode = compile(
+            self.parsed_ast,
+            '',
+            mode = 'exec'
+        )
+
+    def __call__(self):
+        """
+        Invoke the CUDA-Q objective function. 
+        """
+
+        # Compile, no-op if the module is not None
+        self.compile()
+
+        exec(self.compiled_bytecode)
+
+
 def objective_function(function=None, **kwargs):
     """
     The `cudaq.objective_function` represents the CUDA-Q language function 
