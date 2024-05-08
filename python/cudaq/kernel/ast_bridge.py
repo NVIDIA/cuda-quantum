@@ -2630,7 +2630,7 @@ class PyASTBridge(ast.NodeVisitor):
                                     1 if shortCircuitWhenTrue else 0), lhs,
                 zero).result
 
-            ifOp = cc.IfOp([cond.type], cond)
+            ifOp = cc.IfOp([cond.type], cond, [])
             thenBlock = Block.create_at_start(ifOp.thenRegion, [])
             with InsertionPoint(thenBlock):
                 if isinstance(node.op, ast.And):
@@ -2822,7 +2822,7 @@ class PyASTBridge(ast.NodeVisitor):
             condition = arith.CmpIOp(condPred, condition,
                                      self.getConstantInt(0)).result
 
-        ifOp = cc.IfOp([], condition)
+        ifOp = cc.IfOp([], condition, [])
         thenBlock = Block.create_at_start(ifOp.thenRegion, [])
         with InsertionPoint(thenBlock):
             self.symbolTable.pushScope()
