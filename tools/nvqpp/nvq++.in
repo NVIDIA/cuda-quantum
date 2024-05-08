@@ -267,7 +267,11 @@ OUTPUTFILE=
 OBJS=
 SRCS=
 ARGS=
-GCC_INSTALL_PREFIX="@GCC_INSTALL_PREFIX@"
+HOST_GCC_INSTALL_DIR="@CUDAQ_GCC_INSTALL_PREFIX@"
+if [[ -n "${GCC_INSTALL_PREFIX}" ]]; then
+	# The user may override the setting in their environment.
+	HOST_GCC_INSTALL_DIR="${GCC_INSTALL_PREFIX}"
+fi
 CUDAQ_QUAKE_ARGS=
 CUDAQ_OPT_ARGS=
 CUDAQ_TRANSLATE_ARGS=
@@ -379,7 +383,7 @@ while [ $# -ne 0 ]; do
 		;;
 	--gcc-toolchain=*)
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq \"$1\""
-		GCC_INSTALL_PREFIX=
+		HOST_GCC_INSTALL_DIR=
 		;;
 	--execution-manager | -em | -execution-manager)
 		LIBRARY_MODE_EXECUTION_MANAGER="$2"
@@ -651,10 +655,10 @@ if ${CUDAQ_IS_APPLE}; then
 fi
 LLC=${LLVMBIN}llc${llvm_suffix}
 
-if [[ -n "${GCC_INSTALL_PREFIX}" ]]; then
+if [[ -n "${HOST_GCC_INSTALL_DIR}" ]]; then
 	# Use the toolchain specified at build-time, if any, and the user has
 	# not overridden it already.
-	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq --gcc-toolchain=\"${GCC_INSTALL_PREFIX}\""
+	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq --gcc-toolchain=\"${HOST_GCC_INSTALL_DIR}\""
 fi
 if ${LIBRARY_MODE}; then
 	ENABLE_KERNEL_EXECUTION=false
