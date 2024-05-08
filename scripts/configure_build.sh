@@ -98,7 +98,8 @@ if [ "$1" == "install-gcc" ]; then
 fi
 
 # [>ToolchainConfiguration]
-export GCC_INSTALL_PREFIX=/opt/rh/gcc-toolset-11
+GCC_INSTALL_PREFIX=/opt/rh/gcc-toolset-11
+export CUDAQ_GCC_INSTALL_PREFIX="${GCC_INSTALL_PREFIX}"
 export CXX="${GCC_INSTALL_PREFIX}/root/usr/bin/g++"
 export CC="${GCC_INSTALL_PREFIX}/root/usr/bin/gcc"
 export FC="${GCC_INSTALL_PREFIX}/root/usr/bin/gfortran"
