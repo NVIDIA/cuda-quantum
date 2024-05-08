@@ -71,11 +71,14 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   const auto &controls = task.controls;
   const auto &targets = task.targets;
   // Cache name lookup key:
-  // <GateName>_<Param>
+  // <GateName>_<Param>_<Matrix>
   const std::string gateKey = task.operationName + "_" + [&]() {
     std::stringstream paramsSs;
     for (const auto &param : task.parameters) {
       paramsSs << param << "_";
+    }
+    for (const auto &cell : task.matrix) {
+      paramsSs << cell << "_";
     }
     return paramsSs.str();
   }();
@@ -88,7 +91,9 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   }
   // Type conversion
   const std::vector<std::int32_t> ctrlQubits(controls.begin(), controls.end());
-  const std::vector<std::int32_t> targetQubits(targets.begin(), targets.end());
+  // Reverse the targets to match endianess of the matrix
+  const std::vector<std::int32_t> targetQubits(targets.rbegin(),
+                                               targets.rend());
   m_state->applyGate(ctrlQubits, targetQubits, m_gateDeviceMemCache[gateKey]);
 }
 

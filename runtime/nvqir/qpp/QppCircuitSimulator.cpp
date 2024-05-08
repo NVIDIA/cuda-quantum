@@ -126,6 +126,8 @@ protected:
     for (auto index : task.targets) {
       targets.push_back(convertQubitIndex(index));
     }
+    // Reverse the targets to match endianess of the matrix
+    std::reverse(targets.begin(), targets.end());
 
     if (controls.empty()) {
       state = qpp::apply(state, matrix, targets);

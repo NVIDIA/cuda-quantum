@@ -47,31 +47,59 @@ def test_basic():
     check_bell(bell)
 
 
-def test_two_qubit_op():
-    """Test 2-qubit custom operations replicating CNOT and CZ gates."""
+def test_cnot_gate():
+    """Test CNOT gate with different qubit ordering"""
 
-    custom_cnot = cudaq.register_operation(
-        np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]))
+    # first argument is the 'target' qubit, second argument is the 'control' qubit
+    custom_cnot_be = cudaq.register_operation(
+        np.array([[1, 0, 0, 0],
+                  [0, 1, 0, 0],
+                  [0, 0, 0, 1], 
+                  [0, 0, 1, 0]]))
 
     @cudaq.kernel
-    def another_bell():
+    def bell_pair_be():
         qubits = cudaq.qvector(2)
         h(qubits[0])
-        custom_cnot(qubits[0], qubits[1])
+        # qubits[0] is the control and qubits[1] is the target
+        custom_cnot_be(qubits[1], qubits[0])
 
-    check_bell(another_bell)
+    check_bell(bell_pair_be)
 
+    # first argument is the 'control' qubit, second argument is the 'target' qubit
+    custom_cnot_le = cudaq.register_operation(
+        np.array([[1, 0, 0, 0], 
+                  [0, 0, 0, 1], 
+                  [0, 0, 1, 0], 
+                  [0, 1, 0, 0]]))
+
+    @cudaq.kernel
+    def bell_pair_le():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        # qubits[0] is the control and qubits[1] is the target
+        custom_cnot_le(qubits[0], qubits[1])
+
+    check_bell(bell_pair_le)
+
+
+def test_cz_gate():
+    """Test 2-qubit custom operation replicating CZ gate."""
+
+    # first argument is the 'target' qubit, second argument is the 'control' qubit
     custom_cz = cudaq.register_operation(
-        np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]]))
+        np.array([[1, 0, 0, 0], 
+                  [0, 1, 0, 0], 
+                  [0, 0, 1, 0], 
+                  [0, 0, 0, -1]]))
 
     @cudaq.kernel
     def ctrl_z_kernel():
         qubits = cudaq.qvector(5)
         controls = cudaq.qvector(2)
-
-        custom_cz(qubits[0], qubits[1])
+        custom_cz(qubits[1], qubits[0])  # custom_cz(target, control)
         x(qubits[2])
-        custom_cz(qubits[2], qubits[3])
+        custom_cz(qubits[3], qubits[2])  # custom_cz(target, control)
         x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
@@ -81,19 +109,45 @@ def test_two_qubit_op():
 def test_three_qubit_op():
     """Test three-qubit operation replicating Toffoli gate."""
 
-    toffoli = cudaq.register_operation(
-        np.array([[1, 0, 0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 1, 0]]))
+    toffoli_be = cudaq.register_operation(
+        np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                  [0, 1, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 1, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 1, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 1, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 1, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0, 1],
+                  [0, 0, 0, 0, 0, 0, 1, 0]]))
 
     @cudaq.kernel
-    def test_toffoli():
+    def test_toffoli_be():
         q = cudaq.qvector(3)
-        toffoli(q[0], q[1], q[2])
+        x(q)
+        toffoli_be(q[0], q[1], q[2])  # q[0] is the target
 
-    counts = cudaq.sample(test_toffoli)
-    assert counts["000"] == 1000
+    counts = cudaq.sample(test_toffoli_be)
+    print(counts)
+    assert counts["011"] == 1000
+
+    toffoli_le = cudaq.register_operation(
+        np.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                  [0, 1, 0, 0, 0, 0, 0, 0],
+                  [0, 0, 1, 0, 0, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 0, 1],
+                  [0, 0, 0, 0, 1, 0, 0, 0],
+                  [0, 0, 0, 0, 0, 1, 0, 0],
+                  [0, 0, 0, 0, 0, 0, 1, 0],
+                  [0, 0, 0, 1, 0, 0, 0, 0]]))
+    
+    @cudaq.kernel
+    def test_toffoli_le():
+        q = cudaq.qvector(3)
+        x(q)
+        toffoli_le(q[0], q[1], q[2])  # q[2] is the target
+
+    counts = cudaq.sample(test_toffoli_le)
+    print(counts)
+    assert counts["110"] == 1000
 
 
 @pytest.mark.parametrize("target", [
@@ -112,13 +166,13 @@ def test_simulators(target):
         return target_installed
 
     if can_set_target(target):
-        cudaq.set_target(target)
-        print(cudaq.get_target())
         test_basic()
-        test_two_qubit_op()
-        ## NOTE: RuntimeError: MPS simulator: Gates on 3 or more qubits are unsupported.
-        # test_three_qubit_op()
+        test_cnot_gate()
+        if not target == 'tensornet-mps':
+            test_three_qubit_op()
         cudaq.reset_target()
+    else:
+        pytest.skip("target not available")
 
     cudaq.reset_target()
 

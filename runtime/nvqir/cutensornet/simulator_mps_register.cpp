@@ -109,6 +109,15 @@ public:
     // zero state)
     return cudaq::State{{svDim}, m_state->getStateVector()};
   }
+
+  /// @brief Apply quantum gate on 2 or less qubits
+  void applyGate(const GateApplicationTask &task) override {
+    const auto &targets = task.targets;
+    if (targets.size() > 2) {
+      throw std::runtime_error("Gates on 3 or more qubits are unsupported.");
+    }
+    SimulatorTensorNetBase::applyGate(task);
+  }
 };
 } // end namespace nvqir
 
