@@ -158,7 +158,7 @@ public:
 
   /// @brief Return next results polling interval
   std::chrono::microseconds
-  nextResultPolingInterval(ServerMessage &postResponse) override;
+  nextResultPollingInterval(ServerMessage &postResponse) override;
 
   /// @brief Return true if the job is done
   bool jobIsDone(ServerMessage &getJobResponse) override;
@@ -209,7 +209,7 @@ std::string IQMServerHelper::constructGetJobPath(std::string &jobId) {
 }
 
 std::chrono::microseconds
-IQMServerHelper::nextResultPolingInterval(ServerMessage &postResponse) {
+IQMServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
   return std::chrono::seconds(1); // jobs never take less than few seconds
 };
 
