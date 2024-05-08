@@ -163,3 +163,6 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && make -j$(nproc) && make -j$(nproc) install \
     && rm -rf /var/tmp/ompi \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+
+# Debug
+RUN objdump -S /usr/local/pmix/lib/libpmix.so.2 | grep stlur

@@ -72,6 +72,22 @@ jobs:
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
 
+##   DEBUG ####
+  openmpi:
+    name: Build Open MPI
+    strategy:
+      matrix:
+        platform: [arm64]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/${{ matrix.platform }}
+      dockerfile: build/devdeps.ompi.Dockerfile
+##   DEBUG #### 
+  
   devdeps:
     name: Load dependencies
     needs: metadata
