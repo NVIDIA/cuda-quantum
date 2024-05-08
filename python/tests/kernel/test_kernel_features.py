@@ -1339,7 +1339,7 @@ def test_no_param_no_return():
         return
 
     kernel()
-        assert test_param(i,l) == i 
+    assert test_param(i,l) == i 
 
 
 def test_measure_variadic_qubits():
