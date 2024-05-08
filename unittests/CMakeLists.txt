@@ -131,7 +131,8 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     integration/nlopt_tester.cpp
   )
   target_include_directories(test_custatevec_observe_from_sampling PRIVATE .)
-  target_compile_definitions(test_custatevec_observe_from_sampling PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
+  target_compile_definitions(test_custatevec_observe_from_sampling 
+                             PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
     target_link_options(test_custatevec_observe_from_sampling PRIVATE -Wl,--no-as-needed)
   endif()
@@ -145,30 +146,30 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
   gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required")
 
-    if (MPI_CXX_FOUND)
-      # Count the number of GPUs
-      find_program(NVIDIA_SMI "nvidia-smi")
-      if(NVIDIA_SMI)
-        execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
-        # Only build this test if we have more than 1 GPU
-        if (${NGPUS} GREATER_EQUAL 2)
-          add_executable(test_mpi main.cpp mqpu/mpi_mqpu_tester.cpp)
-          if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-            target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
-          endif()
-          target_link_libraries(test_mpi
-              PRIVATE 
-              cudaq
-              cudaq-platform-mqpu
-              nvqir-custatevec-fp32
-              gtest_main)
-            configure_file("mqpu/run_mpi.sh.in"
-                      "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
-          add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 bash ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
-          set_tests_properties(MPITest PROPERTIES LABELS "gpu_required;mgpus_required")
+  if (MPI_CXX_FOUND)
+    # Count the number of GPUs
+    find_program(NVIDIA_SMI "nvidia-smi")
+    if(NVIDIA_SMI)
+      execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
+      # Only build this test if we have more than 1 GPU
+      if (${NGPUS} GREATER_EQUAL 2)
+        add_executable(test_mpi main.cpp mqpu/mpi_mqpu_tester.cpp)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+          target_link_options(test_mpi PRIVATE -Wl,--no-as-needed)
         endif()
+        target_link_libraries(test_mpi
+            PRIVATE 
+            cudaq
+            cudaq-platform-mqpu
+            nvqir-custatevec-fp32
+            gtest_main)
+          configure_file("mqpu/run_mpi.sh.in"
+                    "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
+        add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 bash ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
+        set_tests_properties(MPITest PROPERTIES LABELS "gpu_required;mgpus_required")
       endif()
-    endif() 
+    endif()
+  endif() 
 endif() 
 
 if(TARGET nvqir-tensornet)

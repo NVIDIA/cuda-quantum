@@ -122,8 +122,7 @@ fi
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
-cuda_flags='-allow-unsupported-compiler --compiler-options --stdlib=libstdc++ --linker-options --as-needed'
-# FIXME: --compiler-options -static-libstdc++ ?
+cuda_flags='-allow-unsupported-compiler --compiler-options --stdlib=libstdc++ --compiler-options -static-libgcc --compiler-options -static-libstdc++ --linker-options --as-needed'
 if [ -d "$GCC_TOOLCHAIN" ]; then 
   cuda_flags+=" --compiler-options --gcc-toolchain=\"$GCC_TOOLCHAIN\""
 fi
@@ -146,9 +145,9 @@ cmake_args="-G Ninja '"$repo_root"' \
 # the set host compiler is not officially supported. We hence don't set that variable 
 # here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
-  echo $cmake_args | cmake
+  echo $cmake_args | xargs cmake
 else
-  echo $cmake_args | cmake \
+  echo $cmake_args | xargs cmake \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 

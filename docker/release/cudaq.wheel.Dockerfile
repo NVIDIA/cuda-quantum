@@ -13,6 +13,11 @@
 # Must be built from the repo root with:
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/cudaq.wheel.Dockerfile . --output out
 
+# NOTES:
+# Building wheels for Mac; use CI build wheel instead. Good example: 
+# - https://github.com/numpy/numpy/blob/main/pyproject.toml, and 
+# - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
+
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-gcc11-main
 FROM $base_image as wheelbuild
 

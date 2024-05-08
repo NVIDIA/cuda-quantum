@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
-set (CMAKE_ENABLE_EXPORTS TRUE)
 message (STATUS "CUSTATEVEC_ROOT and CUDA_FOUND - building custatevec NVQIR backend.")
 
 string(REPLACE "." ";" CUDA_VERSION_LIST ${CMAKE_CUDA_COMPILER_VERSION})
@@ -27,15 +26,13 @@ SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUSTATEVEC_LIB_DIR}")
 macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
   add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILENAME})
 
-  # FIXME:
-  # I think we need to make sure all cudaq shared libraries this is linking against are
-  # statically linked against the hermetic libc++, and then link against libstdc++ here.
-  # The goal would be that everything builds, and non-GPU components can be used without
-  # libstdc++, but to use gpu component requires libstdc++ (seems fair given that we 
-  # inherit this dependency from cuquantum).
-  # Alternatively, maybe llvm-gcc would allow to link everything against that? 
-  # However, that's been tricky to build and use successfully...
-  target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--unresolved-symbols=ignore-in-object-files)
+  # Compiling from command line:
+  # This command fails for older CUDA versions due to missing support for clang 16, 
+  # but/and with CUDA 12.4 we get a very descriptive error 
+  # "libc++ is not supported on x86 system" ...
+  # It looks like this is generally the case, rather than a just not yet implemented.
+  # The check can be bypassed with -D_ALLOW_UNSUPPORTED_LIBCPP, but that leads to errors.
+  # /usr/local/cuda/bin/nvcc -allow-unsupported-compiler -ccbin=/usr/local/llvm/bin/clang++ ../runtime/nvqir/custatevec/CuStateVecCircuitSimulator.cu -I ../runtime/nvqir/ -I ../runtime/ -I ../tpls/spdlog/include/spdlog/ -I ../tpls/spdlog/include/ -I ../tpls/fmt/include/ -I ../runtime/common/ -I /usr/local/cuquantum/include/
 
   target_include_directories(${LIBRARY_NAME}
     PRIVATE .. ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CMAKE_SOURCE_DIR}/runtime/common
