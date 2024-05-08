@@ -25,7 +25,6 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>
     PRIVATE .)
 
-target_link_options(${LIBRARY_NAME} PRIVATE -static-libstdc++)
 if (OpenMP_CXX_FOUND)
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_OPENMP)
   target_link_libraries(${LIBRARY_NAME} PRIVATE fmt::fmt-header-only OpenMP::OpenMP_CXX)

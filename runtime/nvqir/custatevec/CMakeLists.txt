@@ -35,18 +35,7 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
   # inherit this dependency from cuquantum).
   # Alternatively, maybe llvm-gcc would allow to link everything against that? 
   # However, that's been tricky to build and use successfully...
-
-  target_compile_options(${LIBRARY_NAME} PRIVATE --stdlib=libstdc++)
-  target_link_options(${LIBRARY_NAME} PRIVATE -static-libgcc -static-libstdc++)
-  #target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--unresolved-symbols=ignore-in-object-files)
-  # compiler options: 
-  # -nostdlib -L$GCC_TOOLSET/lib/gcc/x86_64-redhat-linux/11/ -lstdc++ -lm -lc -lgcc_s
-
-  # Edited command:
-  # (works fine except that cudaq symbols are not found, e.g. for_each_term)
-  # check symbols with readelf -Ws --dyn-syms lib/libcudaq-spin.so | grep ...
-  # /usr/local/llvm/bin/clang++ -fPIC -Wl,-z,defs -Wl,-z,nodelete -Wl,--color-diagnostics -shared -Wl,-soname,libnvqir-custatevec-fp32.so -o lib/libnvqir-custatevec-fp32.so runtime/nvqir/custatevec/CMakeFiles/nvqir-custatevec-fp32.dir/CuStateVecCircuitSimulatorF32.cu.o  -Wl,-rpath,"\$ORIGIN:\$ORIGIN/lib:\$ORIGIN/lib/plugins:\$ORIGIN/../lib:\$ORIGIN/../lib/plugins:/usr/local/cuquantum/lib:/usr/local/cuquantum/lib"  lib/libcudaq-common.so  /usr/local/cuquantum/lib/libcustatevec.so  -lcublas  lib/libcudaq-spin.so  -lcudadevrt  -lcudart_static  -lrt  -lpthread -ldl -L"/usr/local/cuda/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda/targets/x86_64-linux/lib" -v -nostdlib -L$GCC_TOOLSET/lib/gcc/x86_64-redhat-linux/11/ -lstdc++ -lm -lc -lgcc_s
-
+  target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--unresolved-symbols=ignore-in-object-files)
 
   target_include_directories(${LIBRARY_NAME}
     PRIVATE .. ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} ${CMAKE_SOURCE_DIR}/runtime/common
