@@ -17,6 +17,15 @@
 #include "common/SimulationState.h"
 
 namespace nvqir {
+struct MPSSettings {
+  // Default max bond dim
+  int64_t maxBond = 64;
+  // Default absolute cutoff
+  double absCutoff = 1e-5;
+  // Default relative cutoff
+  double relCutoff = 1e-5;
+  MPSSettings();
+};
 
 class MPSSimulationState : public cudaq::SimulationState,
                            public cudaq::TensorNetworkState {

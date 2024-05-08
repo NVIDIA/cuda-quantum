@@ -211,9 +211,19 @@ struct test_state_vector_init {
 
 CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecGeneral) {
   constexpr int numQubits = 5;
+  // Large number of shots
+  constexpr int numShots = 1000000;
   const auto stateVec = randomState(numQubits);
-  for (const auto &x : stateVec)
-    std::cout << x << "\n";
-  auto counts = cudaq::sample(test_state_vector_init{}, stateVec);
+  auto counts = cudaq::sample(numShots, test_state_vector_init{}, stateVec);
   counts.dump();
+  for (const auto &[bitStr, count] : counts) {
+    const int val = std::stoi(bitStr, nullptr, 2);
+    const double prob = 1.0 * count / numShots;
+    const double expectedProb = std::norm(stateVec[val]);
+    if (expectedProb > 1e-6) {
+      const double relError = std::abs(expectedProb - prob) / expectedProb;
+      // Less than 10% difference (relative)
+      EXPECT_LT(relError, 0.1);
+    }
+  }
 }

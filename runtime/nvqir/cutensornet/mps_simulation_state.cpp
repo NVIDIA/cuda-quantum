@@ -8,8 +8,8 @@
 
 #include "mps_simulation_state.h"
 #include "common/EigenDense.h"
+#include <charconv>
 #include <cuComplex.h>
-#include <iostream>
 
 namespace nvqir {
 int deviceFromPointer(void *ptr) {
@@ -489,16 +489,26 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
   std::vector<MPSTensor> mpsTensors;
   std::vector<int64_t> numSingularValues;
   const auto enforceBondDim = [bondDim](const Eigen::MatrixXcd &U,
-                                        const Eigen::MatrixXcd &V,
-                                        const Eigen::VectorXd &S) {
+                                        const Eigen::VectorXd &S,
+                                        const Eigen::MatrixXcd &V) {
     assert(U.cols() == S.size());
     assert(V.cols() == S.size());
+    if (S.size() <= bondDim) {
+      Eigen::MatrixXcd newU(U.rows(), bondDim);
+      newU.leftCols(U.cols()) = U;
+      Eigen::MatrixXcd newV(V.rows(), bondDim);
+      newV.leftCols(V.cols()) = V;
+      Eigen::VectorXd newS(bondDim);
+      newS.head(S.size()) = S;
+      return std::make_tuple(newU, newS, newV);
+    }
+    // Truncation
     Eigen::MatrixXcd newU(U.rows(), bondDim);
-    newU.leftCols(U.cols()) = U;
+    newU = U.leftCols(bondDim);
     Eigen::MatrixXcd newV(V.rows(), bondDim);
-    newV.leftCols(V.cols()) = V;
+    newV = V.leftCols(bondDim);
     Eigen::VectorXd newS(bondDim);
-    newS.head(S.size()) = S;
+    newS = S.head(bondDim);
     return std::make_tuple(newU, newS, newV);
   };
   for (std::size_t i = 0; i < numQubits - 1; ++i) {
@@ -507,10 +517,12 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
     const Eigen::MatrixXcd U_orig = svd.matrixU();
     const Eigen::MatrixXcd V_orig = svd.matrixV();
     const Eigen::VectorXd S_orig = svd.singularValues();
-    const auto [U, S, V] = enforceBondDim(U_orig, V_orig, S_orig);
+    const auto [U, S, V] = enforceBondDim(U_orig, S_orig, V_orig);
     assert(S.size() == bondDim);
     numSingularValues.emplace_back(S.size());
-    reshapedMat = reshapeMatrix(S.asDiagonal() * V.adjoint());
+    reshapedMat = (i != (numQubits - 2))
+                      ? reshapeMatrix(S.asDiagonal() * V.adjoint())
+                      : (S.asDiagonal() * V.adjoint());
     void *d_tensor = nullptr;
     HANDLE_CUDA_ERROR(
         cudaMalloc(&d_tensor, U.size() * sizeof(std::complex<double>)));
@@ -548,8 +560,49 @@ std::unique_ptr<cudaq::SimulationState>
 MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
                                          std::size_t dataType) {
   auto [state, mpsTensors] = createFromStateVec(
-      m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr), 64);
+      m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr),
+      MPSSettings().maxBond);
   return std::make_unique<MPSSimulationState>(
       std::move(state), mpsTensors, std::vector<std::size_t>{}, m_cutnHandle);
+}
+
+MPSSettings::MPSSettings() {
+  if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
+    const std::string maxBondStr(maxBondEnvVar);
+    auto [ptr, ec] = std::from_chars(
+        maxBondStr.data(), maxBondStr.data() + maxBondStr.size(), maxBond);
+    if (ec != std::errc{} || maxBond < 1)
+      throw std::runtime_error("Invalid CUDAQ_MPS_MAX_BOND setting. Expected "
+                               "a positive number. Got: " +
+                               maxBondStr);
+
+    cudaq::info("Setting MPS max bond dimension to {}.", maxBond);
+  }
+  // Cutoff values
+  if (auto *absCutoffEnvVar = std::getenv("CUDAQ_MPS_ABS_CUTOFF")) {
+    const std::string absCutoffStr(absCutoffEnvVar);
+    auto [ptr, ec] =
+        std::from_chars(absCutoffStr.data(),
+                        absCutoffStr.data() + absCutoffStr.size(), absCutoff);
+    if (ec != std::errc{} || absCutoff <= 0.0 || absCutoff >= 1.0)
+      throw std::runtime_error("Invalid CUDAQ_MPS_ABS_CUTOFF setting. Expected "
+                               "a number in range (0.0, 1.0). Got: " +
+                               absCutoffStr);
+
+    cudaq::info("Setting MPS absolute cutoff to {}.", absCutoff);
+  }
+  if (auto *relCutoffEnvVar = std::getenv("CUDAQ_MPS_RELATIVE_CUTOFF")) {
+    const std::string relCutoffStr(relCutoffEnvVar);
+    auto [ptr, ec] =
+        std::from_chars(relCutoffStr.data(),
+                        relCutoffStr.data() + relCutoffStr.size(), relCutoff);
+    if (ec != std::errc{} || relCutoff <= 0.0 || relCutoff >= 1.0)
+      throw std::runtime_error(
+          "Invalid CUDAQ_MPS_RELATIVE_CUTOFF setting. Expected "
+          "a number in range (0.0, 1.0). Got: " +
+          relCutoffStr);
+
+    cudaq::info("Setting MPS relative cutoff to {}.", relCutoff);
+  }
 }
 } // namespace nvqir

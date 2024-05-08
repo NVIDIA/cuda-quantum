@@ -9,68 +9,17 @@
 #include "mps_simulation_state.h"
 #include "simulator_cutensornet.h"
 
-#include <charconv>
 
 namespace nvqir {
 
 class SimulatorMPS : public SimulatorTensorNetBase {
-  // Default max bond dim
-  int64_t m_maxBond = 64;
-  // Default absolute cutoff
-  double m_absCutoff = 1e-5;
-  // Default relative cutoff
-  double m_relCutoff = 1e-5;
+  MPSSettings m_settings;
   std::vector<MPSTensor> m_mpsTensors_d;
   // List of auxiliary qubits that were used for controlled-gate decomposition.
   std::vector<std::size_t> m_auxQubitsForGateDecomp;
 
 public:
-  SimulatorMPS() : SimulatorTensorNetBase() {
-    if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
-      const std::string maxBondStr(maxBondEnvVar);
-      int maxBond;
-      auto [ptr, ec] = std::from_chars(
-          maxBondStr.data(), maxBondStr.data() + maxBondStr.size(), maxBond);
-      if (ec != std::errc{} || maxBond < 1)
-        throw std::runtime_error("Invalid CUDAQ_MPS_MAX_BOND setting. Expected "
-                                 "a positive number. Got: " +
-                                 maxBondStr);
-
-      m_maxBond = maxBond;
-      cudaq::info("Setting MPS max bond dimension to {}.", m_maxBond);
-    }
-    // Cutoff values
-    if (auto *absCutoffEnvVar = std::getenv("CUDAQ_MPS_ABS_CUTOFF")) {
-      const std::string absCutoffStr(absCutoffEnvVar);
-      double absCutoff;
-      auto [ptr, ec] =
-          std::from_chars(absCutoffStr.data(),
-                          absCutoffStr.data() + absCutoffStr.size(), absCutoff);
-      if (ec != std::errc{} || absCutoff <= 0.0 || absCutoff >= 1.0)
-        throw std::runtime_error(
-            "Invalid CUDAQ_MPS_ABS_CUTOFF setting. Expected "
-            "a number in range (0.0, 1.0). Got: " +
-            absCutoffStr);
-
-      m_absCutoff = absCutoff;
-      cudaq::info("Setting MPS absolute cutoff to {}.", m_absCutoff);
-    }
-    if (auto *relCutoffEnvVar = std::getenv("CUDAQ_MPS_RELATIVE_CUTOFF")) {
-      const std::string relCutoffStr(relCutoffEnvVar);
-      double relCutoff;
-      auto [ptr, ec] =
-          std::from_chars(relCutoffStr.data(),
-                          relCutoffStr.data() + relCutoffStr.size(), relCutoff);
-      if (ec != std::errc{} || relCutoff <= 0.0 || relCutoff >= 1.0)
-        throw std::runtime_error(
-            "Invalid CUDAQ_MPS_RELATIVE_CUTOFF setting. Expected "
-            "a number in range (0.0, 1.0). Got: " +
-            relCutoffStr);
-
-      m_relCutoff = relCutoff;
-      cudaq::info("Setting MPS relative cutoff to {}.", m_relCutoff);
-    }
-  }
+  SimulatorMPS() : SimulatorTensorNetBase() {}
 
   virtual void prepareQubitTensorState() override {
     LOG_API_TIME();
@@ -82,7 +31,7 @@ public:
     // Factorize the state:
     if (m_state->getNumQubits() > 1)
       m_mpsTensors_d =
-          m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+          m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
   }
 
   virtual void applyGate(const GateApplicationTask &task) override {
@@ -122,14 +71,14 @@ public:
       } else {
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
             m_cutnHandle, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)), m_maxBond);
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)), m_settings.maxBond);
         m_state = std::move(state);
       }
     } else {
       // FIXME: expand the MPS tensors to the max extent
       if (!ptr) {
         auto tensors =
-            m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+            m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
         // The right most MPS tensor needs to have one more extra leg (no longer
         // the boundary tensor).
         tensors.back().extents.emplace_back(1);
@@ -151,9 +100,9 @@ public:
         // Non-zero state needs to be factorized and appended.
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
             m_cutnHandle, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)), m_maxBond);
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)), m_settings.maxBond);
         auto tensors =
-            m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+            m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
         // Adjust the extents of the last tensor in the original state
         tensors.back().extents.emplace_back(1);
 
@@ -178,7 +127,7 @@ public:
 
     if (m_state->getNumQubits() > 1) {
       std::vector<MPSTensor> tensors =
-          m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+          m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
       return std::make_unique<MPSSimulationState>(
           std::move(m_state), tensors, m_auxQubitsForGateDecomp, m_cutnHandle);
     }
@@ -422,6 +371,8 @@ public:
         basis(true);
     }
   }
+
+  int getBondDim() const { return m_settings.maxBond; }
 };
 
 } // end namespace nvqir
