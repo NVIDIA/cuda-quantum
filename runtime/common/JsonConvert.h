@@ -169,7 +169,7 @@ private:
   // Version string identifying the client version.
   static inline const std::string CUDA_QUANTUM_VERSION = []() {
     std::stringstream ss;
-    ss << "CUDA Quantum Version " << cudaq::getVersion() << " ("
+    ss << "CUDA-Q Version " << cudaq::getVersion() << " ("
        << cudaq::getFullRepositoryVersion() << ")";
     return ss.str();
   }();

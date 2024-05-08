@@ -80,7 +80,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    cudaq::opt::addPipelineToQIR<>(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
 
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
@@ -169,8 +169,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             llvm::raw_string_ostream os(msg);
             ty.print(os);
           }
-          throw std::runtime_error(
-              "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
+          throw std::runtime_error("Unsupported CUDA-Q kernel return type - " +
+                                   msg + ".\n");
         });
 
   void *rawArgs = nullptr;
@@ -292,6 +292,9 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               const std::vector<std::string> &names) {
   auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
       name, module, unwrap(returnType), runtimeArgs, names);
+  // We first need to compute the offset for the return value.
+  // We'll loop through all the arguments and increment the
+  // offset for the argument type. Then we'll be at our return type location.
   auto unwrapped = unwrap(returnType);
 
   // Extract the return value from the rawArgs pointer.
@@ -371,9 +374,9 @@ std::string getQIRLL(const std::string &name, MlirModule module,
 
   PassManager pm(context);
   if (profile.empty())
-    cudaq::opt::addPipelineToQIR<>(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
   else
-    cudaq::opt::addPipelineToQIR<true>(pm, profile);
+    cudaq::opt::addPipelineConvertToQIR(pm, profile);
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer

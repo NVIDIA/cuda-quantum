@@ -36,7 +36,7 @@ struct AppliedTensorOp {
   bool isUnitary;
 };
 
-/// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
+/// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDA-Q
 /// simulator implementation.
 class TensorNetState {
 

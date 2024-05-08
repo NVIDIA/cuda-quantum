@@ -804,8 +804,7 @@ public:
   }
 };
 
-/// Lower single target Quantum ops with two parameters to QIR:
-/// u2, u3
+/// Lower single target Quantum ops with two parameters to QIR: u2
 template <typename OP>
 class OneTargetTwoParamRewrite : public ConvertOpToLLVMPattern<OP> {
 public:
@@ -858,6 +857,136 @@ public:
     // Create the CallOp for this quantum instruction
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
                                               funcArgs);
+    return success();
+  }
+};
+
+/// Lower single target Quantum ops with three parameters to QIR: u3
+template <typename OP>
+class OneTargetThreeParamRewrite : public ConvertOpToLLVMPattern<OP> {
+public:
+  using Base = ConvertOpToLLVMPattern<OP>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(OP instOp, typename Base::OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto instName = instOp->getName().stripDialect().str();
+    auto numControls = instOp.getControls().size();
+    auto instOperands = adaptor.getOperands();
+
+    auto loc = instOp.getLoc();
+    ModuleOp parentModule = instOp->template getParentOfType<ModuleOp>();
+    auto context = parentModule->getContext();
+    std::string qirQisPrefix = cudaq::opt::QIRQISPrefix;
+    auto qirFunctionName = qirQisPrefix + instName;
+
+    auto qubitIndexType = cudaq::opt::getQubitType(context);
+    auto qubitArrayType = cudaq::opt::getArrayType(context);
+    auto paramType = FloatType::getF64(context);
+
+    SmallVector<Value> funcArgs;
+    auto castToDouble = [&](Value v) {
+      if (v.getType().getIntOrFloatBitWidth() < 64)
+        v = rewriter.create<arith::ExtFOp>(loc, rewriter.getF64Type(), v);
+      return v;
+    };
+    // 3 parameters
+    for (int i = 0; i < 3; i++) {
+      Value val = instOp.getIsAdj()
+                      ? rewriter.create<arith::NegFOp>(loc, instOperands[i])
+                      : instOperands[i];
+      funcArgs.push_back(castToDouble(val));
+    }
+
+    // If no controls, then this is simple
+    if (numControls == 0) {
+      FlatSymbolRefAttr symbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
+              {paramType, paramType, paramType, qubitIndexType}, parentModule);
+
+      funcArgs.push_back(adaptor.getTargets().front());
+
+      // Create the CallOp for this quantum instruction
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, ArrayRef<Type>{},
+                                                symbolRef, funcArgs);
+      return success();
+    }
+
+    qirFunctionName += "__ctl";
+
+    // __quantum__qis__u3__ctl(double, double, double, Array*, Qubit*) Type
+    auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
+        LLVM::LLVMVoidType::get(context),
+        {paramType, paramType, paramType, qubitArrayType, qubitIndexType});
+
+    // Get function pointer to ctrl operation
+    FlatSymbolRefAttr instSymbolRef =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
+            {paramType, paramType, paramType, qubitArrayType, qubitIndexType},
+            parentModule);
+
+    // We have >= 1 control, is the first a veq or a ref?
+    auto control = *instOp.getControls().begin();
+    Type type = control.getType();
+    // If type is a VeqType, then we're good, just forward to the call op
+    if (numControls == 1 && type.isa<quake::VeqType>()) {
+
+      // Add the control array to the args.
+      funcArgs.push_back(adaptor.getControls().front());
+
+      // Add the target op
+      funcArgs.push_back(adaptor.getTargets().front());
+
+      // Here we already have and Array*, Qubit*
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{},
+                                                instSymbolRef, funcArgs);
+      return success();
+    }
+
+    // The remaining scenarios are best handled with the
+    // invokeU3RotationWithControlQubits function.
+
+    Value ctrlOpPointer = rewriter.create<LLVM::AddressOfOp>(
+        loc, LLVM::LLVMPointerType::get(instOpQISFunctionType), instSymbolRef);
+
+    // Get symbol for void invokeU3RotationWithControlQubits(double theta,
+    // double phi, double lambda, const std::size_t numControlOperands, i64*
+    // isArrayAndLength, void (*QISFunction)(double, double, double, Array*,
+    // Qubit*), Qubit*, ...);
+    auto i64Type = rewriter.getI64Type();
+    auto applyMultiControlFunction =
+        cudaq::opt::factory::createLLVMFunctionSymbol(
+            cudaq::opt::NVQIRInvokeU3RotationWithControlBits,
+            LLVM::LLVMVoidType::get(context),
+            {paramType, paramType, paramType, i64Type,
+             LLVM::LLVMPointerType::get(i64Type),
+             LLVM::LLVMPointerType::get(instOpQISFunctionType)},
+            parentModule, true);
+
+    // numControls could be more than num operands,
+    // e.g. ctrls = {veq<2>, ref} is 3 and not 2 controls
+    // We need an i64 array encoding 0 if control operand is a ref, and N if
+    // control operand is a veq<N>.
+    Value numControlOperands =
+        cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls);
+
+    // Create an integer array where the kth element is N if the kth
+    // control operand is a veq<N>, and 0 otherwise.
+    Value isArrayAndLengthArr = cudaq::opt::factory::packIsArrayAndLengthArray(
+        loc, rewriter, parentModule, numControlOperands, adaptor.getControls());
+
+    funcArgs.push_back(numControlOperands);
+    funcArgs.push_back(isArrayAndLengthArr);
+    funcArgs.push_back(ctrlOpPointer);
+    funcArgs.append(instOperands.begin(), instOperands.end());
+
+    // Call our utility function.
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        instOp, TypeRange{}, applyMultiControlFunction, funcArgs);
+
     return success();
   }
 };
@@ -1640,7 +1769,7 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// Converts returning a Result* to returning a bit. QIR expects
-/// __quantum__qis__mz(Qubit*) to return a Result*, and CUDA Quantum expects
+/// __quantum__qis__mz(Qubit*) to return a Result*, and CUDA-Q expects
 /// mz to return a bool. In the library we let Result = bool, so Result* is
 /// a bool*. Here we bitcast the Result* to a bool* and then load it and
 /// replace its use with that loaded bool.
@@ -1850,7 +1979,7 @@ public:
         OneTargetOneParamRewrite<quake::RyOp>,
         OneTargetOneParamRewrite<quake::RzOp>,
         OneTargetTwoParamRewrite<quake::U2Op>,
-        OneTargetTwoParamRewrite<quake::U3Op>, PoisonOpPattern,
+        OneTargetThreeParamRewrite<quake::U3Op>, PoisonOpPattern,
         QmemRAIIOpRewrite, ResetRewrite, StdvecDataOpPattern,
         StdvecInitOpPattern, StdvecSizeOpPattern, StoreOpPattern,
         SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>, UndefOpPattern>(

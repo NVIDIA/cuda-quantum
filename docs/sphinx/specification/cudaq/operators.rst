@@ -3,7 +3,7 @@ Quantum Operators
 
 :code:`cudaq::spin_op`
 ----------------------
-**[1]** CUDA Quantum provides a native :code:`spin_op` data type in the :code:`cudaq` namespace for the
+**[1]** CUDA-Q provides a native :code:`spin_op` data type in the :code:`cudaq` namespace for the
 expression of quantum mechanical spin operators. 
 
 **[2]** The :code:`spin_op` provides an abstraction for a general tensor product of Pauli
@@ -17,7 +17,7 @@ for :math:`a = {x,y,z}`, :math:`j` the qubit index, and :math:`N` the number of 
 
 **[3]** The :code:`spin_op` exposes common C++ operator overloads for algebraic expressions. 
 
-**[4]** CUDA Quantum defines convenience functions in :code:`cudaq::spin` namespace that produce
+**[4]** CUDA-Q defines convenience functions in :code:`cudaq::spin` namespace that produce
 the primitive X, Y, and Z Pauli operators on specified qubit indices
 which can subsequently be used in algebraic expressions to build up
 more complicated Pauli tensor products and their sums.

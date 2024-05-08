@@ -14,11 +14,14 @@ add_cudaq_library(OptCodeGen
   CodeGenDialect.cpp
   CodeGenOps.cpp
   CodeGenTypes.cpp
-  LowerToQIRProfile.cpp
-  LowerToQIR.cpp
+  ConvertToQIRProfile.cpp
+  ConvertToQIR.cpp
   Passes.cpp
+  Pipelines.cpp
+  RemoveMeasurements.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
+  VerifyNVQIRCalls.cpp
 
   DEPENDS
     CCDialect
