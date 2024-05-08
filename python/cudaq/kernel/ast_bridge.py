@@ -1613,7 +1613,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
                 # Promote argument's types for `numpy.func` calls to match python's semantics
-                if node.func.attr in ['sin', 'cos', 'sqrt', 'ceil']:
+                if node.func.attr in ['sin', 'cos', 'sqrt', 'ceil', 'exp']:
                     if ComplexType.isinstance(value.type):
                         value = self.promoteOperandType(self.getComplexType(),
                                                         value)
@@ -1639,10 +1639,36 @@ class PyASTBridge(ast.NodeVisitor):
                         return
                     self.pushValue(math.SqrtOp(value).result)
                     return
-                if node.func.attr == 'ceil':
-                    if not ComplexType.isinstance(value.type):
-                        self.pushValue(math.CeilOp(value).result)
+                if node.func.attr == 'exp':
+                    if ComplexType.isinstance(value.type):
+                        # Note: using `complex.ExpOp` results in a
+                        # "can't legalize `complex.exp`" error.
+                        # Using Euler's' formula instead:
+                        #
+                        # "e^(x+i*y) = (e^x) * (cos(y)+i*sin(y))"
+                        complexType = ComplexType(value.type)
+                        floatType = complexType.element_type
+                        real = complex.ReOp(value).result
+                        imag = complex.ImOp(value).result
+                        left = self.promoteOperandType(complexType,
+                                                       math.ExpOp(real).result)
+                        re2 = math.CosOp(imag).result
+                        im2 = math.SinOp(imag).result
+                        right = complex.CreateOp(ComplexType.get(floatType),
+                                                 re2, im2).result
+                        res = complex.MulOp(left, right).result
+                        self.pushValue(res)
                         return
+                    self.pushValue(math.ExpOp(value).result)
+                    return
+                if node.func.attr == 'ceil':
+                    if ComplexType.isinstance(value.type):
+                        self.emitFatalError(
+                            f"numpy call ({node.func.attr}) is not supported for complex numbers",
+                            node)
+                        return
+                    self.pushValue(math.CeilOp(value).result)
+                    return
 
                 self.emitFatalError(
                     f"unsupported NumPy call ({node.func.attr})", node)
@@ -2604,7 +2630,7 @@ class PyASTBridge(ast.NodeVisitor):
                                     1 if shortCircuitWhenTrue else 0), lhs,
                 zero).result
 
-            ifOp = cc.IfOp([cond.type], cond)
+            ifOp = cc.IfOp([cond.type], cond, [])
             thenBlock = Block.create_at_start(ifOp.thenRegion, [])
             with InsertionPoint(thenBlock):
                 if isinstance(node.op, ast.And):
@@ -2796,7 +2822,7 @@ class PyASTBridge(ast.NodeVisitor):
             condition = arith.CmpIOp(condPred, condition,
                                      self.getConstantInt(0)).result
 
-        ifOp = cc.IfOp([], condition)
+        ifOp = cc.IfOp([], condition, [])
         thenBlock = Block.create_at_start(ifOp.thenRegion, [])
         with InsertionPoint(thenBlock):
             self.symbolTable.pushScope()

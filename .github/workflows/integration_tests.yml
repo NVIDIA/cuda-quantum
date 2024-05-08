@@ -371,7 +371,11 @@ jobs:
         shell: bash
 
       - name: Submit to OQC Sandbox server
-        if: (success() || failure()) && (inputs.target == 'oqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        # This step is currently bypassed during nightly runs due to
+        # maintenance. Restore the if check to the original value when
+        # maintenance is complete.
+        # if: (success() || failure()) && (inputs.target == 'oqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        if: (success() || failure()) && (inputs.target == 'oqc')
         run: |
           echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
