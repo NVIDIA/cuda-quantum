@@ -123,6 +123,7 @@ fi
 # specify the default location of the C++ headers and libraries that are to be
 # used by nvq++.
 if [[ -n "${CUDAQ_GCC_INSTALL_PREFIX}" ]]; then
+  echo "Using ${CUDAQ_GCC_INSTALL_PREFIX} for C++ standard headers, etc."
   GCC_INSTALL_PREFIX_OPT="-DCUDAQ_GCC_INSTALL_PREFIX=\"${CUDAQ_GCC_INSTALL_PREFIX}\""
 else
   GCC_INSTALL_PREFIX_OPT=
