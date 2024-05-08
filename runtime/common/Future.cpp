@@ -35,7 +35,7 @@ sample_result future::get() {
     auto resultResponse = client.get(jobGetPath, "", headers);
     while (!serverHelper->jobIsDone(resultResponse)) {
       auto polling_interval =
-          serverHelper->nextResultPolingInterval(resultResponse);
+          serverHelper->nextResultPollingInterval(resultResponse);
       std::this_thread::sleep_for(polling_interval);
       resultResponse = client.get(jobGetPath, "", headers);
     }
