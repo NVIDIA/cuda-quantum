@@ -116,7 +116,8 @@ public:
 
   /// @brief Get the jobs results polling interval.
   /// @return
-  virtual std::chrono::microseconds nextResultPolingInterval(ServerMessage &postResponse) {
+  virtual std::chrono::microseconds
+  nextResultPolingInterval(ServerMessage &postResponse) {
     return std::chrono::microseconds(100);
   }
 
