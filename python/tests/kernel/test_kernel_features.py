@@ -1001,14 +1001,12 @@ def test_draw_bug_1400():
         cx(q[0], q[1])
         mz(q)
 
-
     @cudaq.kernel
-    def kernel(angle:float):
+    def kernel(angle: float):
         q = cudaq.qubit()
         h(q)
         ry(angle, q)
-    
-    
+
     print(cudaq.draw(kernel, 0.59))
     print(cudaq.draw(kernel, 0.59))
     circuit = cudaq.draw(bell_pair)
@@ -1023,8 +1021,9 @@ q1 : ─────┤ x ├
 
 
 def test_with_docstring_2():
+
     @cudaq.kernel
-    def simple(n:int):
+    def simple(n: int):
         '''
         A docstring with triple single quote
         '''
@@ -1227,12 +1226,15 @@ def test_ctrl_wrong_dtype_1447():
 
 def test_math_module_pi_1448():
     import math
+
     @cudaq.kernel
     def test_kernel() -> float:
         theta = math.pi
         return theta
+
     test_kernel.compile()
     assert np.isclose(test_kernel(), math.pi, 1e-12)
+
 
 def test_len_qvector_1449():
 
@@ -1247,35 +1249,93 @@ def test_len_qvector_1449():
     test_kernel.compile()
     assert test_kernel(5) == 5
 
+
 def test_missing_paren_1450():
 
     @cudaq.kernel
     def test_kernel():
         state_reg = cudaq.qubit
         x(state_reg)
-    
+
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
     assert 'invalid assignment detected.' in repr(e)
 
+
 def test_cast_error_1451():
+
     @cudaq.kernel
     def test_kernel(N: int):
         q = cudaq.qvector(N)
-        for i in range(0,N/2):
-            swap(q[i], q[N-i-1])
-    
+        for i in range(0, N / 2):
+            swap(q[i], q[N - i - 1])
+
     # Test is that this compiles
     test_kernel.compile()
 
 
 def test_bad_attr_call_error():
+
     @cudaq.kernel
     def test_state(N: int):
         q = cudaq.qvector(N)
         h(q[0])
         kernel.h(q[0])
-    
+
     with pytest.raises(RuntimeError) as e:
         test_state.compile()
     assert "Invalid function call - 'kernel' is unknown." in repr(e)
+
+
+def test_bad_return_value_with_stdvec_arg():
+
+    @cudaq.kernel
+    def test_param(i: int, l: List[int]) -> int:
+        return i
+
+    l = [42]
+    for i in range(4):
+        assert test_param(i, l) == i
+
+
+def test_bad_return_int_bool_param():
+
+    @cudaq.kernel
+    def kernel(c: int, b: bool) -> int:
+        return c
+
+    assert kernel(1, False) == 1
+
+
+def test_return_bool_bool_param():
+
+    @cudaq.kernel
+    def kernel(b: bool, b2: bool) -> bool:
+        return b
+
+    assert kernel(True, False) == True
+
+
+def test_return_int_int_param():
+
+    @cudaq.kernel
+    def kernel(b: int, b2: int) -> int:
+        return b
+
+    assert kernel(42, 53) == 42
+
+def test_return_no_param():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        return 42
+
+    assert kernel() == 42
+
+def test_no_param_no_return():
+
+    @cudaq.kernel
+    def kernel():
+        return
+
+    kernel()

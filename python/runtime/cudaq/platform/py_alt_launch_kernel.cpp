@@ -36,6 +36,9 @@ namespace py = pybind11;
 using namespace mlir;
 
 namespace cudaq {
+// TODO: unify with the definition in GenKernelExec.cpp
+static constexpr std::int32_t NoResultOffset =
+    std::numeric_limits<std::int32_t>::max();
 static std::unique_ptr<JITExecutionCache> jitCache;
 
 struct PyStateVectorData {
@@ -48,7 +51,7 @@ using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
 static std::unique_ptr<PyStateVectorStorage> stateStorage =
     std::make_unique<PyStateVectorStorage>();
 
-std::tuple<ExecutionEngine *, void *, std::size_t>
+std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
                  const std::vector<std::string> &names, Type returnType) {
@@ -153,6 +156,13 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             delete static_cast<double *>(ptr);
           });
         })
+        .Case([&](Float32Type type) {
+          float *ourAllocatedArg = new float();
+          *ourAllocatedArg = 0.;
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<float *>(ptr);
+          });
+        })
         .Default([](Type ty) {
           std::string msg;
           {
@@ -176,14 +186,29 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     rawArgs = nullptr;
     size = argsCreator(runtimeArgs.data(), &rawArgs);
   }
-  return std::make_tuple(jit, rawArgs, size);
+
+  std::int32_t returnOffset = 0;
+  if (runtimeArgs.size()) {
+    auto expectedPtr = jit->lookup(name + ".returnOffset");
+    if (!expectedPtr) {
+      throw std::runtime_error(
+          "cudaq::builder failed to get returnOffset function.");
+    }
+    auto returnOffsetCalculator =
+        reinterpret_cast<std::int64_t (*)()>(*expectedPtr);
+    returnOffset = (std::int32_t)returnOffsetCalculator();
+    if (returnOffset == NoResultOffset) {
+      returnOffset = 0;
+    }
+  }
+  return {jit, rawArgs, size, returnOffset};
 }
 
-std::tuple<void *, std::size_t>
+std::tuple<void *, std::size_t, std::int32_t>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                       Type returnType, cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names) {
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, names, returnType);
 
   auto mod = unwrap(module);
@@ -242,19 +267,21 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   if (platform.is_remote() || platform.is_emulated()) {
     auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
     cudaq::altLaunchKernel(name.c_str(), thunk,
-                           reinterpret_cast<void *>(wrapper), size, 0);
+                           reinterpret_cast<void *>(wrapper), size,
+                           (uint64_t)returnOffset);
     delete wrapper;
   } else
-    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size, 0);
+    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
+                           (uint64_t)returnOffset);
 
-  return std::make_tuple(rawArgs, size);
+  return std::make_tuple(rawArgs, size, returnOffset);
 }
 
 void pyAltLaunchKernel(const std::string &name, MlirModule module,
                        cudaq::OpaqueArguments &runtimeArgs,
                        const std::vector<std::string> &names) {
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
-  auto [rawArgs, size] =
+  auto [rawArgs, size, returnOffset] =
       pyAltLaunchKernelBase(name, module, noneType, runtimeArgs, names);
   std::free(rawArgs);
 }
@@ -263,31 +290,40 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
                               const std::vector<std::string> &names) {
-  auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
-                                               runtimeArgs, names);
+  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
+      name, module, unwrap(returnType), runtimeArgs, names);
   auto unwrapped = unwrap(returnType);
-  if (unwrapped.isInteger(64)) {
-    std::size_t concrete;
-    // Here we know the return type should be at
-    // the last 8 bytes of memory
-    // FIXME revisit this calculation when we support returning vectors
-    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
-    std::free(rawArgs);
-    return py::int_(concrete);
-  } else if (unwrapped.isInteger(1)) {
-    bool concrete = false;
-    std::memcpy(&concrete, ((char *)rawArgs) + size - 1, 1);
-    return py::bool_(concrete);
-  } else if (isa<FloatType>(unwrapped)) {
-    double concrete;
-    std::memcpy(&concrete, ((char *)rawArgs) + size - 8, 8);
-    std::free(rawArgs);
-    return py::float_(concrete);
-  }
 
-  std::free(rawArgs);
-  unwrapped.dump();
-  throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
+  // Extract the return value from the rawArgs pointer.
+  return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
+      .Case([&](IntegerType ty) -> py::object {
+        if (ty.getIntOrFloatBitWidth() == 1) {
+          bool concrete = false;
+          std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 1);
+          std::free(rawArgs);
+          return py::bool_(concrete);
+        }
+        std::size_t concrete;
+        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
+        std::free(rawArgs);
+        return py::int_(concrete);
+      })
+      .Case([&](Float64Type ty) -> py::object {
+        double concrete;
+        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
+        std::free(rawArgs);
+        return py::float_(concrete);
+      })
+      .Case([&](Float32Type ty) -> py::object {
+        float concrete;
+        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 4);
+        std::free(rawArgs);
+        return py::float_(concrete);
+      })
+      .Default([](Type ty) -> py::object {
+        ty.dump();
+        throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
+      });
 }
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
@@ -295,7 +331,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
@@ -328,7 +364,7 @@ std::string getQIRLL(const std::string &name, MlirModule module,
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIRLL", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();

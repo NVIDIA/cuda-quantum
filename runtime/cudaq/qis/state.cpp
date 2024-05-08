@@ -41,6 +41,8 @@ std::vector<SimulationState::Tensor> state::get_tensors() const {
 
 std::size_t state::get_num_tensors() const { return internal->getNumTensors(); }
 
+std::size_t state::get_num_qubits() const { return internal->getNumQubits(); }
+
 void state::dump() const { dump(std::cout); }
 void state::dump(std::ostream &os) const { internal->dump(os); }
 

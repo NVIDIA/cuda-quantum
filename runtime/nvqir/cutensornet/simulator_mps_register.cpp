@@ -102,6 +102,11 @@ public:
     return numQubits;
   }
 
+  virtual void
+  addQubitsToState(const cudaq::SimulationState &in_state) override {
+    throw std::runtime_error("Not yet supported.");
+  }
+
   virtual std::string name() const override { return "tensornet-mps"; }
 
   CircuitSimulator *clone() override {

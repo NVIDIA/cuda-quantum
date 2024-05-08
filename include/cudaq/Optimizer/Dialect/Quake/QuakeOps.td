@@ -322,6 +322,11 @@ def quake_InitializeStateOp : QuakeOp<"init_state",
   let builders = [
     OpBuilder<(ins "mlir::Type":$vt, "mlir::Value":$t, "mlir::Value":$s), [{
       return build($_builder, $_state, vt, t, s, mlir::UnitAttr{});
+    }]>,
+    OpBuilder<(ins "mlir::Type":$vt, "mlir::Value":$t, "mlir::Value":$s,
+               "bool":$m), [{
+      auto isMove = m ? mlir::UnitAttr::get(t.getContext()) : mlir::UnitAttr{};
+      return build($_builder, $_state, vt, t, s, isMove);
     }]>
   ];
 

@@ -68,8 +68,9 @@ public:
   // In this case (MPS), the initial state is set to the MPS tensor train, which
   // has been factorized when the previous get_state was called (to get a handle
   // to this MPSSimulationState).
-  std::unique_ptr<nvqir::TensorNetState> reconstructBackendState() override;
-  std::unique_ptr<cudaq::SimulationState> toSimulationState() override;
+  std::unique_ptr<nvqir::TensorNetState>
+  reconstructBackendState() const override;
+  std::unique_ptr<cudaq::SimulationState> toSimulationState() const override;
 
   /// Util method to create an MPS state from an input state vector.
   // For example, state vector from the user's input.

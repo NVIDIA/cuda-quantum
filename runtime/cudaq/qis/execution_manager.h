@@ -17,6 +17,7 @@
 
 namespace cudaq {
 class ExecutionContext;
+class SimulationState;
 using SpinMeasureResult = std::pair<double, sample_result>;
 
 /// A QuditInfo is a type encoding the number of \a levels and the \a id of the
@@ -96,8 +97,8 @@ protected:
 public:
   ExecutionManager() = default;
 
-  /// Return the next available qudit index
-  virtual std::size_t getAvailableIndex(std::size_t quditLevels = 2) = 0;
+  /// Allocates a qudit and returns its identifier (index).
+  virtual std::size_t allocateQudit(std::size_t quditLevels = 2) = 0;
 
   /// QuditInfo has been deallocated, return the qudit / id to the pool of
   /// qudits.
@@ -117,6 +118,17 @@ public:
   virtual void initializeState(const std::vector<QuditInfo> &targets,
                                const void *state,
                                simulation_precision precision) = 0;
+  /// @brief Initialize the state of the given qudits to the provided
+  /// simulation state.
+  virtual void initializeState(const std::vector<QuditInfo> &targets,
+                               const SimulationState *state) = 0;
+
+  /// @brief Initialize the state of the given qudits to the provided
+  /// simulation state.
+  virtual void initializeState(const std::vector<QuditInfo> &targets,
+                               const SimulationState &state) {
+    initializeState(targets, &state);
+  }
 
   /// Apply the quantum instruction with the given name, on the provided target
   /// qudits. Supports input of control qudits and rotational parameters. Can
