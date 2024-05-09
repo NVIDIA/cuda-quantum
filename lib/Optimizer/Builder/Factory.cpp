@@ -73,7 +73,7 @@ cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy) {
     eleTys.push_back(genBufferType</*isOutput=*/false>(inTy));
   for (auto outTy : funcTy.getResults())
     eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
-  return cudaq::cc::StructType::get(ctx, eleTys /*isPacked = false*/);
+  return cudaq::cc::StructType::get(ctx, eleTys);
 }
 
 Value factory::packIsArrayAndLengthArray(Location loc,
