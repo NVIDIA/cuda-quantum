@@ -1148,7 +1148,7 @@ def UnitaryOp : QuakeOp<"unitary", [AttrSizedOperandSegments]> {
 
   let assemblyFormat = [{
     ( `<` `adj` $is_adj^ `>` )? (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
-    $targets (`(` $unitary^ `)`)? `:` functional-type(operands, results) attr-dict
+      $targets (`,` $unitary^ )? `:` functional-type(operands, results) attr-dict
   }];
 
   let hasVerifier = 1;

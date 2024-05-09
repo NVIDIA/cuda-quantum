@@ -991,3 +991,43 @@ std::vector<T> slice_vector(std::vector<T> &original, std::size_t start,
 }
 
 } // namespace cudaq
+
+// TODO: Handle params
+#define cudaq_register_operation(OP_NAME, DATA)                                \
+  template <typename mod = cudaq::base, typename... QubitArgs>                 \
+  void OP_NAME(QubitArgs &...args) {                                           \
+    constexpr std::size_t nArgs = sizeof...(QubitArgs);                        \
+    std::vector<cudaq::QuditInfo> quditInfos{                                  \
+        cudaq::qubitToQuditInfo(args)...};                                     \
+    std::vector<bool> qubitIsNegated{cudaq::qubitIsNegative(args)...};         \
+    std::vector<std::complex<double>> result;                                  \
+    for (const auto &m : DATA)                                                 \
+      result.insert(result.end(), m.begin(), m.end());                         \
+    if constexpr (std::is_same_v<mod, cudaq::base>) {                          \
+      cudaq::getExecutionManager()->apply("unitary", {}, {}, quditInfos,       \
+                                          false, cudaq::spin_op(), result);    \
+      return;                                                                  \
+    }                                                                          \
+    std::vector<cudaq::QuditInfo> controls(quditInfos.begin(),                 \
+                                           quditInfos.begin() + nArgs - 1);    \
+    if (!controls.empty())                                                     \
+      for (std::size_t i = 0; i < controls.size(); i++)                        \
+        if (qubitIsNegated[i])                                                 \
+          cudaq::getExecutionManager()->apply("x", {}, {}, {controls[i]});     \
+    cudaq::getExecutionManager()->apply(                                       \
+        "unitary", {}, controls, {quditInfos.back()},                          \
+        std::is_same_v<mod, cudaq::adj>, cudaq::spin_op(), result);            \
+    if (!controls.empty()) {                                                   \
+      for (std::size_t i = 0; i < controls.size(); i++) {                      \
+        if (qubitIsNegated[i]) {                                               \
+          cudaq::getExecutionManager()->apply("x", {}, {}, {controls[i]});     \
+          (                                                                    \
+              [&] {                                                            \
+                if (args.is_negative())                                        \
+                  args.negate();                                               \
+              }(),                                                             \
+              ...);                                                            \
+        }                                                                      \
+      }                                                                        \
+    }                                                                          \
+  }

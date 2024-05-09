@@ -1092,11 +1092,11 @@ public:
                                     ConversionPatternRewriter &rewriter,
                                     ModuleOp parentModule,
                                     std::int64_t numUnitaryElements,
-                                    std::string &operationName,
+                                    StringRef operationName,
                                     ArrayRef<double> data) const {
     auto f64Ty = rewriter.getF64Type();
     SmallVector<std::int64_t> shape{numUnitaryElements};
-    auto tensorTy = VectorType::get(shape, f64Ty);
+    auto vectorTy = VectorType::get(shape, f64Ty);
     auto insertPoint = rewriter.saveInsertionPoint();
     rewriter.setInsertionPointToStart(parentModule.getBody());
 
@@ -1106,8 +1106,8 @@ public:
       realGlobalOp = existingArr;
     else
       realGlobalOp = rewriter.create<LLVM::GlobalOp>(
-          loc, tensorTy, /*isConstant=*/true, LLVM::Linkage::Internal,
-          operationName, DenseFPElementsAttr::get(tensorTy, data),
+          loc, vectorTy, /*isConstant=*/true, LLVM::Linkage::Internal,
+          operationName, DenseFPElementsAttr::get(vectorTy, data),
           /*alignment=*/0);
 
     rewriter.restoreInsertionPoint(insertPoint);
@@ -1121,23 +1121,24 @@ public:
                                         realPartAddr, ValueRange{zero, zero});
   }
 
-  Value getQubitArray(Location &loc, ConversionPatternRewriter &rewriter,
-                      ValueRange qubits, FlatSymbolRefAttr &symbolRef,
-                      FlatSymbolRefAttr &getSymbolRef) const {
+  Value getQubitArray(Location loc, ConversionPatternRewriter &rewriter,
+                      ValueRange qubits, FlatSymbolRefAttr symbolRef,
+                      FlatSymbolRefAttr getSymbolRef) const {
 
     // Create (qubit...) -> Array* control array
     auto ctx = rewriter.getContext();
     Value eight = rewriter.create<arith::ConstantIntOp>(loc, 8, 32);
     auto qirArrayTy = cudaq::opt::getArrayType(ctx);
-    auto i8PtrTy =
-        cudaq::opt::factory::getPointerType(IntegerType::get(ctx, 8));
+    auto i8PtrTy = cudaq::opt::factory::getPointerType(ctx);
     Value numQubits =
         rewriter.create<arith::ConstantIntOp>(loc, qubits.size(), 64);
 
     auto createQubitsCall = rewriter.create<LLVM::CallOp>(
         loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, numQubits});
     auto controlsArr = createQubitsCall.getResult();
-    for (std::size_t i = 0; auto control : qubits) {
+    for (auto iter : llvm::enumerate(qubits)) {
+      auto i = iter.index();
+      auto control = iter.value();
       auto idx =
           rewriter.create<LLVM::ConstantOp>(loc, rewriter.getI64Type(), i);
       auto call = rewriter.create<LLVM::CallOp>(
@@ -1146,7 +1147,6 @@ public:
           loc, cudaq::opt::factory::getPointerType(i8PtrTy), call.getResult());
       auto cast = rewriter.create<LLVM::BitcastOp>(loc, i8PtrTy, control);
       rewriter.create<LLVM::StoreOp>(loc, cast, pointer);
-      i++;
     }
 
     return createQubitsCall.getResult();
@@ -1162,8 +1162,7 @@ public:
     auto opName = op.getOpName();
 
     auto qirArrayTy = cudaq::opt::getArrayType(ctx);
-    auto i8PtrTy =
-        cudaq::opt::factory::getPointerType(IntegerType::get(ctx, 8));
+    auto i8PtrTy = cudaq::opt::factory::getPointerType(ctx);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRArrayCreateArray, qirArrayTy,
         {rewriter.getIntegerType(32), rewriter.getIntegerType(64)},
@@ -1205,8 +1204,8 @@ public:
       i++;
     }
 
-    std::string opNameReal = llvm::formatv("{0}_real", opName);
-    std::string opNameImag = llvm::formatv("{0}_imag", opName);
+    std::string opNameReal = opName.str() + "_real";
+    std::string opNameImag = opName.str() + "_imag";
 
     Value realPartVal = mapUnitaryDataToLLVMPointer(
         loc, rewriter, parentModule, unitary.size(), opNameReal, realPart);

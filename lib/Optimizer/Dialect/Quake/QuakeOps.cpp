@@ -641,9 +641,10 @@ LogicalResult quake::UnitaryOp::verify() {
               "quake.unitary cannot have runtime-known veq<?> types for "
               "constant-sized matrix data.");
         numQubits += veqTy.getSize();
-      } else // otherwise, must be a quake.ref
+      } else {
+        // otherwise, must be a quake.ref
         numQubits++;
-
+      }
     // Should have 2**NumQ x 2**NumQ
     std::size_t expectedNumElements = (1UL << numQubits) * (1UL << numQubits);
     if (expectedNumElements != unitary.size())

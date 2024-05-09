@@ -153,6 +153,10 @@ func.func @quantum_ops() {
   %48 = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
   quake.exp_pauli %f2, %46, %48 : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
   
+  // Custom operations defined with `register_operation`
+  quake.unitary %4 : (!quake.ref) -> () {constantUnitary = [array<f32: 0.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 0.000000e+00, 0.000000e+00>], opName = "custom_x"}
+  quake.unitary [%7] %4 : (!quake.ref, !quake.ref) -> () {constantUnitary = [array<f32: 0.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 0.000000e+00, 0.000000e+00>], opName = "custom_x"}
+  quake.unitary<adj> %4 : (!quake.ref) -> () {constantUnitary = [array<f32: 0.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 0.000000e+00, 0.000000e+00>], opName = "custom_x"}
   return
 }
 
@@ -265,6 +269,9 @@ func.func @quantum_ops() {
 // CHECK:           %[[VAL_59:.*]] = arith.constant 1.200000e+01 : f64
 // CHECK:           %[[VAL_60:.*]] = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
 // CHECK:           quake.exp_pauli %[[VAL_59]], %[[VAL_54]], %[[VAL_60]] : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
+// CHECK:           quake.unitary %[[VAL_5]] : (!quake.ref) -> () {constantUnitary = [array<f32: 0.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 0.000000e+00, 0.000000e+00>], opName = "custom_x"}
+// CHECK:           quake.unitary {{\[}}%[[VAL_10]]] %[[VAL_5]] : (!quake.ref, !quake.ref) -> () {constantUnitary = [array<f32: 0.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 0.000000e+00, 0.000000e+00>], opName = "custom_x"}
+// CHECK:           quake.unitary<adj> %[[VAL_5]] : (!quake.ref) -> () {constantUnitary = [array<f32: 0.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 1.000000e+00, 0.000000e+00>, array<f32: 0.000000e+00, 0.000000e+00>], opName = "custom_x"}
 // CHECK:           return
 // CHECK:         }
 
