@@ -1479,7 +1479,7 @@ class PyASTBridge(ast.NodeVisitor):
                 def bodyBuilder(iterVal):
                     q = quake.ExtractRefOp(self.getRefType(),
                                            target,
-                                           -1,
+                                           -1, # kDynamicIndex
                                            index=iterVal).result
                     quake.ResetOp([], q)
 
