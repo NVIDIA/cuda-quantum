@@ -802,7 +802,7 @@ Dependencies and Compatibility
 
 CUDA-Q can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also :doc:`../backends/simulators`.
 
-The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.
+The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).
 
 .. note:: 
 
