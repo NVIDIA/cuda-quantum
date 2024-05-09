@@ -94,7 +94,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: build/devdeps.ompi.Dockerfile
+          file: ./docker/build/devdeps.ompi.Dockerfile
           tags: debug-ompi-240509
           outputs: type=docker,dest=/tmp/ompi_image.tar
 
