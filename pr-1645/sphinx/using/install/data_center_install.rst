@@ -59,7 +59,7 @@ will be installed and used.
   or newer than the version on the build system. Our own builds
   use version 2.28.
 - CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
-  (Armv8-A architecture and newer). Other architectures may work but are not tested and may require
+  (ARM v8-A architecture and newer). Other architectures may work but are not tested and may require
   adjustments to the build instructions.
 - Needed **only on the host** system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
   Hopper architecture and `Compute Capability
