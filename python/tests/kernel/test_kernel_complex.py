@@ -606,6 +606,7 @@ def test_complex_list_parameter_promotion():
         for i in range(len(c)):
             is_close(kernel(c, i).imag, non_kernel(c, i).imag)
 
+    check([0 + 2j])
     check([0.70710678, 0.70710678 + 2j])
     check([0.70710678, np.complex128(0.70710678 + 2j)])
     check([0.70710678, np.complex64(0.70710678 + 2j)])
@@ -634,6 +635,7 @@ def test_complex128_list_parameter_promotion():
         for i in range(len(c)):
             is_close(kernel(c, i).imag, non_kernel(c, i).imag)
 
+    check([0 + 2j])
     check([0.70710678, 0.70710678 + 2j])
     check([0.70710678, np.complex128(0.70710678 + 2j)])
     check([0.70710678, np.complex64(0.70710678 + 2j)])
@@ -662,6 +664,7 @@ def test_complex64_list_parameter_promotion():
         for i in range(len(c)):
             is_close(kernel(c, i).imag, non_kernel(c, i).imag)
 
+    check([0 + 2j])
     check([0.70710678, 0.70710678 + 2j])
     check([0.70710678, np.complex128(0.70710678 + 2j)])
     check([0.70710678, np.complex64(0.70710678 + 2j)])
