@@ -38,7 +38,7 @@ inline bool isQuantumReferenceType(mlir::Type ty) {
   return mlir::isa<quake::RefType, quake::VeqType>(ty);
 }
 
-/// A quake value type is a linear type.
+/// A quake wire type is a linear type.
 inline bool isLinearType(mlir::Type ty) {
   return mlir::isa<quake::WireType>(ty);
 }
