@@ -296,7 +296,6 @@ py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
   // We'll loop through all the arguments and increment the
   // offset for the argument type. Then we'll be at our return type location.
   auto unwrapped = unwrap(returnType);
-
   // Extract the return value from the rawArgs pointer.
   return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
       .Case([&](IntegerType ty) -> py::object {

@@ -43,11 +43,11 @@ static constexpr const char stdvecBoolUnpackToInitList[] =
 static constexpr const char getNumQubitsFromCudaqState[] =
     "__nvqpp_cudaq_state_numberOfQubits";
 
-/// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
-/// the transformation of both quantum and classical computation. Different
-/// features of the CUDA-Q programming model are lowered into different dialects
-/// of MLIR. This builder makes heavy use of the Quake (QUAntum Kernel
-/// Execution) and CC (Classical Computation) dialects.
+/// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering
+/// includes the transformation of both quantum and classical computation.
+/// Different features of the CUDA-Q programming model are lowered into
+/// different dialects of MLIR. This builder makes heavy use of the Quake
+/// (QUAntum Kernel Execution) and CC (Classical Computation) dialects.
 ///
 /// This builder also allows for the inclusion of predefined intrinsics into
 /// the `ModuleOp` on demand. Intrinsics exist in a map accessed by a symbol

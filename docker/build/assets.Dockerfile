@@ -151,7 +151,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcublas.so.11 \
         --exclude libcublasLt.so.11 \
         --exclude libcusolver.so.11 \
-        --exclude libcutensor.so.1 \
+        --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
         --exclude libcudart.so.11.0 

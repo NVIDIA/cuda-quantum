@@ -18,16 +18,14 @@ int deviceFromPointer(void *ptr) {
   return attributes.device;
 }
 std::size_t MPSSimulationState::getNumQubits() const {
-  return state->getNumQubits() - m_auxTensorIds.size();
+  return state->getNumQubits();
 }
 
-MPSSimulationState::MPSSimulationState(
-    std::unique_ptr<TensorNetState> inState,
-    const std::vector<MPSTensor> &mpsTensors,
-    const std::vector<std::size_t> &auxTensorIds,
-    cutensornetHandle_t cutnHandle)
+MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
+                                       const std::vector<MPSTensor> &mpsTensors,
+                                       cutensornetHandle_t cutnHandle)
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
-      m_mpsTensors(mpsTensors), m_auxTensorIds(auxTensorIds) {}
+      m_mpsTensors(mpsTensors) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
@@ -235,11 +233,7 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
         "[tensornet-state] getAmplitude with an invalid basis state: only "
         "qubit state (0 or 1) is supported.");
   if (getNumQubits() > 1) {
-    auto extendedBasisState = basisState;
-    for (std::size_t i = 0; i < m_auxTensorIds.size(); ++i)
-      extendedBasisState.emplace_back(0);
-
-    TensorNetState basisTensorNetState(extendedBasisState,
+    TensorNetState basisTensorNetState(basisState,
                                        state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors =
@@ -433,7 +427,7 @@ MPSSimulationState::toSimulationState() const {
       m_mpsTensors, state->getInternalContext(), tensors);
 
   return std::make_unique<MPSSimulationState>(std::move(cloneState), tensors,
-                                              m_auxTensorIds, m_cutnHandle);
+                                              m_cutnHandle);
 }
 
 static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
@@ -474,8 +468,7 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
     stateTensor.extents = std::vector<int64_t>{2};
 
     return std::make_unique<MPSSimulationState>(
-        std::move(state), std::vector<MPSTensor>{stateTensor},
-        std::vector<std::size_t>{}, m_cutnHandle);
+        std::move(state), std::vector<MPSTensor>{stateTensor}, m_cutnHandle);
   }
 
   // Recursively factor the state vector from left to right.
@@ -525,7 +518,7 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
   stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
-  return std::make_unique<MPSSimulationState>(
-      std::move(state), mpsTensors, std::vector<std::size_t>{}, m_cutnHandle);
+  return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
+                                              m_cutnHandle);
 }
 } // namespace nvqir

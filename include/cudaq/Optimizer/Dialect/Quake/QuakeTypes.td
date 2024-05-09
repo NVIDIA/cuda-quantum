@@ -194,6 +194,7 @@ def AnyRefType : Type<AnyRefTypeLike.predicate, "quantum reference type">;
 def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
         ControlType.predicate]>, "quake quantum value types">;
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
+def AnyQLinearType : Type<WireType.predicate, "linear quantum value type">;
 
 def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
 
