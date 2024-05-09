@@ -44,7 +44,7 @@ inline bool isLinearType(mlir::Type ty) {
 }
 
 inline bool isQuantumValueType(mlir::Type ty) {
-   return isLinearType(ty) || mlir::isa<quake::ControlType>(ty);
+  return isLinearType(ty) || mlir::isa<quake::ControlType>(ty);
 }
 
 } // namespace quake
