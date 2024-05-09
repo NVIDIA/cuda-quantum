@@ -16,7 +16,6 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-
 #include "PyTypes.h"
 
 #include <chrono>
