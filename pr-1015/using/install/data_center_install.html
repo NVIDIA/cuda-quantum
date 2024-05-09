@@ -562,7 +562,7 @@ Make sure that the version on the host system is the same one
 or newer than the version on the build system. Our own builds
 use version 2.28.</p></li>
 <li><p>CPU with either x86-64 (x86-64-v3 architecture and newer) or ARM64
-architecture. Other architectures may work but are not tested and may require
+(ARM v8-A architecture and newer). Other architectures may work but are not tested and may require
 adjustments to the build instructions.</p></li>
 <li><p>Needed <strong>only on the host</strong> system: NVIDIA GPU with Volta, Turing, Ampere, Ada, or
 Hopper architecture and <a class="reference external" href="https://developer.nvidia.com/cuda-gpus">Compute Capability</a> 7+. Make sure you have the latest
@@ -684,11 +684,11 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 </div>
 <p>Independent on which compiler toolchain you installed, set the following
 environment variables to point to the respective compilers on your build system:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GCC_INSTALL_PREFIX</span><span class="o">=</span>/opt/rh/gcc-toolset-11
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GCC_INSTALL_PREFIX</span><span class="o">=</span>/opt/rh/gcc-toolset-11/root
 <span class="nb">export</span><span class="w"> </span><span class="nv">CUDAQ_GCC_INSTALL_PREFIX</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root/usr/bin/g++&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root/usr/bin/gcc&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">FC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/root/usr/bin/gfortran&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/usr/bin/g++&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/usr/bin/gcc&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FC</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GCC_INSTALL_PREFIX</span><span class="si">}</span><span class="s2">/usr/bin/gfortran&quot;</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">CUDACXX</span><span class="o">=</span>/usr/local/cuda/bin/nvcc
 </pre></div>
 </div>
