@@ -1469,6 +1469,24 @@ class PyASTBridge(ast.NodeVisitor):
                 opCtor([], [], [], [qubitA, qubitB])
                 return
 
+            if node.func.id == 'reset':
+                target = self.popValue()
+                # single qubit
+                if not quake.VeqType.isinstance(target.type):
+                    quake.ResetOp([], target)
+                    return
+                # target is a VeqType
+                def bodyBuilder(iterVal):
+                    q = quake.ExtractRefOp(self.getRefType(),
+                                           target,
+                                           -1,
+                                           index=iterVal).result
+                    quake.ResetOp([], q)
+
+                veqSize = quake.VeqSizeOp(self.getIntegerType(), target).result
+                self.createInvariantForLoop(veqSize, bodyBuilder)
+                return
+
             if node.func.id == 'u3':
                 # Single target, three parameters `u3(θ,φ,λ)`
                 all_args = [
