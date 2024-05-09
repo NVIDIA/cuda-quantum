@@ -84,13 +84,35 @@ class PyObjectiveFunctionDecorator(object):
         if the objective function is already compiled. 
         """
 
+        s = inspect.currentframe()
+        while s:
+            if s == self.parentFrame:
+                # We found the parent frame, now
+                # see if any of the variables we depend
+                # on have changed.
+                self.globalScopedVars = {
+                    k: v
+                    for k, v in dict(inspect.getmembers(s))['f_locals'].items()
+                }
+                if self.dependentCaptures != None:
+                    for k, v in self.dependentCaptures.items():
+                        if self.globalScopedVars[k] != v:
+                            # Need to recompile
+                            self.module = None
+                            break
+                break
+            s = s.f_back
+
+        if self.module != None:
+            return
+
         self.compiled_bytecode = compile(
             self.parsed_ast,
             '',
             mode = 'exec'
         )
 
-    def __call__(self):
+    def __call__(self, *args):
         """
         Invoke the CUDA-Q objective function. 
         """
