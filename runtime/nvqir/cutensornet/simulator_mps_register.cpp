@@ -109,8 +109,8 @@ public:
     if (m_state->getNumQubits() > 1) {
       std::vector<MPSTensor> tensors =
           m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
-      return std::make_unique<MPSSimulationState>(
-          std::move(m_state), tensors, m_cutnHandle);
+      return std::make_unique<MPSSimulationState>(std::move(m_state), tensors,
+                                                  m_cutnHandle);
     }
 
     auto [d_tensor, numElements] = m_state->contractStateVectorInternal({});

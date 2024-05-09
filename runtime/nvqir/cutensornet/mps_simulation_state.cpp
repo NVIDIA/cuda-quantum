@@ -233,8 +233,7 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
         "[tensornet-state] getAmplitude with an invalid basis state: only "
         "qubit state (0 or 1) is supported.");
   if (getNumQubits() > 1) {
-    TensorNetState basisTensorNetState(basisState,
-                                       state->getInternalContext());
+    TensorNetState basisTensorNetState(basisState, state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors =
         basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
