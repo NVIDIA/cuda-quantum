@@ -753,7 +753,7 @@ Given a parameterized quantum kernel, a system spin Hamiltonian, and one of CUDA
     <span class="c1"># function. If you were using a gradient-free optimizer,</span>
     <span class="c1"># you could purely define `cost = cudaq.observe().expectation()`.</span>
     <span class="n">get_result</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parameter_vector</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span>
-        <span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+        <span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
     <span class="c1"># `cudaq.observe` returns a `cudaq.ObserveResult` that holds the</span>
     <span class="c1"># counts dictionary and the `expectation`.</span>
     <span class="n">cost</span> <span class="o">=</span> <span class="n">get_result</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
