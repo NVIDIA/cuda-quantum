@@ -311,7 +311,7 @@ def mlirTypeToPyType(argType):
             return getListType(np.float32)
         if ComplexType.isinstance(eleTy):
             ty = complex if F64Type.isinstance(
-                ComplexType(argType).element_type) else np.complex64
+                ComplexType(eleTy).element_type) else np.complex64
             return getListType(ty)
 
     emitFatalError(

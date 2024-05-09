@@ -340,6 +340,23 @@ class PyASTBridge(ast.NodeVisitor):
 
         return operand
 
+    def simulationPrecision(self):
+        """
+        Return precision for the current simulation backend,
+        see `cudaq_runtime.SimulationPrecision`.
+        """
+        target = cudaq_runtime.get_target()
+        return target.get_precision()
+
+    def simulationDType(self):
+        """
+        Return the data type for the current simulation backend,
+        either `numpy.complex128` or `numpy.complex64`.
+        """
+        if self.simulationPrecision() == cudaq_runtime.SimulationPrecision.fp64:
+            return self.getComplexType(width=64)
+        return self.getComplexType(width=32)
+
     def pushValue(self, value):
         """
         Push an MLIR Value onto the stack for usage in a subsequent AST node visit method.
@@ -412,7 +429,7 @@ class PyASTBridge(ast.NodeVisitor):
         Return True if the given type is an integer, float, or complex type. 
         """
         return IntegerType.isinstance(type) or F64Type.isinstance(
-            type) or ComplexType.isinstance(type)
+            type) or F32Type.isinstance(type) or ComplexType.isinstance(type)
 
     def ifPointerThenLoad(self, value):
         """
@@ -421,6 +438,19 @@ class PyASTBridge(ast.NodeVisitor):
         """
         if cc.PointerType.isinstance(value.type):
             return cc.LoadOp(value).result
+        return value
+
+    def ifNotPointerThenStore(self, value):
+        """
+        If the given value is not of a pointer type, allocate a
+        slot on the stack, store the the value in the slot, and
+        return the slot address.
+        """
+        if not cc.PointerType.isinstance(value.type):
+            slot = cc.AllocaOp(cc.PointerType.get(self.ctx, value.type),
+                               TypeAttr.get(value.type)).result
+            cc.StoreOp(value, slot)
+            return slot
         return value
 
     def __createStdvecWithKnownValues(self, size, listElementValues):
@@ -915,6 +945,7 @@ class PyASTBridge(ast.NodeVisitor):
                     ast.Name) and node.targets[0].value.id in self.symbolTable:
                 # Visit_Subscript will try to load any pointer and return it
                 # but here we want the pointer, so flip that flag
+                # FIXME: move loading from Visit_Subscript to the user instead.
                 self.subscriptPushPointerValue = True
                 # Visit the subscript node, get the pointer value
                 self.visit(node.targets[0])
@@ -1039,6 +1070,15 @@ class PyASTBridge(ast.NodeVisitor):
         ] and node.attr == 'pi':
             self.pushValue(self.getConstantFloat(np.pi))
             return
+
+        if isinstance(node.value,
+                      ast.Name) and node.value.id in ['np', 'numpy']:
+            if node.attr == 'complex64':
+                self.pushValue(self.getComplexType(width=32))
+                return
+            if node.attr == 'complex128':
+                self.pushValue(self.getComplexType(width=64))
+                return
 
     def visit_Call(self, node):
         """
@@ -1555,12 +1595,82 @@ class PyASTBridge(ast.NodeVisitor):
                         node.func.id, globalKernelRegistry.keys()), node)
 
         elif isinstance(node.func, ast.Attribute):
-            self.generic_visit(node)
             if node.func.value.id in ['numpy', 'np']:
-                if node.func.attr == 'array':
-                    return
+                [self.visit(arg) for arg in node.args]
+
+                namedArgs = {}
+                for keyword in node.keywords:
+                    self.visit(keyword.value)
+                    namedArgs[keyword.arg] = self.popValue()
 
                 value = self.popValue()
+
+                if node.func.attr == 'array':
+                    # np.array(vec, <dtype = ty>)
+                    arrayPtrValue = value
+                    if not cc.PointerType.isinstance(value.type):
+                        arrayPtrValue = self.ifNotPointerThenStore(value)
+
+                    arrayType = cc.PointerType.getElementType(
+                        arrayPtrValue.type)
+                    if cc.StdvecType.isinstance(arrayType):
+                        eleTy = cc.StdvecType.getElementType(arrayType)
+
+                        dTy = eleTy
+                        if len(namedArgs) > 0:
+                            dTy = namedArgs['dtype']
+
+                        if (eleTy != dTy):
+                            # We have a different dtype. Need to transform the vec.
+
+                            # source
+                            arrayEleTy = eleTy
+                            arrayElePtrTy = cc.PointerType.get(
+                                self.ctx, arrayEleTy)
+                            arrayValue = self.ifPointerThenLoad(value)
+                            arrayPtr = cc.StdvecDataOp(arrayElePtrTy,
+                                                       arrayValue).result
+                            #arrayTy = value.type
+
+                            arraySize = cc.StdvecSizeOp(self.getIntegerType(),
+                                                        arrayValue).result
+
+                            # target
+                            listEleTy = dTy
+                            listElePtrType = cc.PointerType.get(
+                                self.ctx, listEleTy)
+                            listTy = cc.ArrayType.get(self.ctx, listEleTy)
+                            listVecTy = cc.StdvecType.get(self.ctx, listEleTy)
+                            listValue = cc.AllocaOp(cc.PointerType.get(
+                                self.ctx, listTy),
+                                                    TypeAttr.get(listEleTy),
+                                                    seqSize=arraySize).result
+
+                            #listValue = cc.CastOp(listElePtrType, listValue).result
+                            rawIndex = DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                             context=self.ctx)
+
+                            def bodyBuilder(iterVar):
+                                eleAddr = cc.ComputePtrOp(
+                                    arrayElePtrTy, arrayPtr, [iterVar],
+                                    rawIndex).result
+                                loadedEle = cc.LoadOp(eleAddr).result
+                                castedEle = self.promoteOperandType(
+                                    listEleTy, loadedEle)
+                                listValueAddr = cc.ComputePtrOp(
+                                    listElePtrType, listValue, [iterVar],
+                                    rawIndex).result
+                                cc.StoreOp(castedEle, listValueAddr)
+
+                            self.createInvariantForLoop(arraySize, bodyBuilder)
+                            self.pushValue(
+                                cc.StdvecInitOp(listVecTy, listValue,
+                                                arraySize).result)
+                            return
+
+                    self.pushValue(arrayPtrValue)
+                    return
+
                 value = self.ifPointerThenLoad(value)
 
                 if node.func.attr in ['complex128', 'complex64']:
@@ -1655,52 +1765,79 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(
                     f"unsupported NumPy call ({node.func.attr})", node)
 
+            self.generic_visit(node)
+
             if node.func.value.id == 'cudaq':
+                if node.func.attr == 'complex':
+                    self.pushValue(self.simulationDType())
+                    return
+
                 if node.func.attr == 'qvector':
-                    print('popping vector arg')
                     value = self.popValue()
-                    print(dir(value))
                     if hasattr(value, "literal_value"):
+                        # non-existent case?
                         value = value.literal_value
-                        if (isinstance(value, int)):
-                            print('integer literal')
-                            # Handle `cudaq.qvector(N)`
-                            ty = self.getVeqType(value)
-                            qubits = quake.AllocaOp(ty)
-                            self.pushValue(qubits.results[0]) 
-                        else:
-                                print('non-integer literal')
-                                self.emitFatalError(
-                                    f"unsupported qvector argument: {value} (expected integer)", node)
+                        # if (isinstance(value, int)):
+                        #     print('integer literal')
+                        #     # Handle `cudaq.qvector(N)`
+                        #     ty = self.getVeqType(value)
+                        #     qubits = quake.AllocaOp(ty)
+                        #     self.pushValue(qubits.results[0])
+                        #     return
+                        # else:
+                        #     print('non-integer literal')
+                        self.emitFatalError(
+                            f"unsupported qvector argument: {value} (expected integer)",
+                            node)
                     else:
                         value = self.ifPointerThenLoad(value)
-                        print(f'non-literal: {value.type}')
                         if (IntegerType.isinstance(value.type)):
                             # handle `cudaq.qvector(n)`
-                            print('integer non-literal')
                             ty = self.getVeqType()
-                            qubits = quake.AllocaOp(ty, size=value)
-                            self.pushValue(qubits.results[0]) 
+                            qubits = quake.AllocaOp(ty, size=value).result
+                            self.pushValue(qubits)
+                            return
                         elif cc.StdvecType.isinstance(value.type):
                             # handle `cudaq.qvector([1.0+0j, ...])`
-                            size = cc.StdvecSizeOp(self.getIntegerType(), value).result
-                            print(f'stdvec of size {size}: {value}')
-
-                            numQubits =  math.CountTrailingZerosOp(size).result
+                            size = cc.StdvecSizeOp(self.getIntegerType(),
+                                                   value).result
+                            numQubits = math.CountTrailingZerosOp(size).result
                             eleTy = cc.StdvecType.getElementType(value.type)
-                            ptrTy = cc.PointerType.get(self.ctx, eleTy)
-                            vecTy = quake.VeqType.get(self.ctx)
-                            qubits = quake.AllocaOp(vecTy, size=numQubits)
-                            initials = cc.StdvecDataOp(ptrTy, value).result
-                            initState = quake.InitializeStateOp(vecTy, qubits, initials)
-                            self.pushValue(qubits.results[0]) 
 
-                            if (numQubits == None):
-                                self.emitFatalError(
-                                    "internal error: could not determine the number of qubits")
-                    
+                            if not ComplexType.isinstance(eleTy):
+                                raise RuntimeError(
+                                    "qvector initialization data must be of complex dtype."
+                                )
+
+                            simulationPrecision = self.simulationPrecision()
+                            floatType = ComplexType(eleTy).element_type
+                            if F64Type.isinstance(floatType):
+                                if simulationPrecision == cudaq_runtime.SimulationPrecision.fp32:
+                                    raise RuntimeError(
+                                        "qvector initialization state is complex128 but simulator is on complex64 floating point type."
+                                    )
+
+                            if F32Type.isinstance(floatType):
+                                if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
+                                    raise RuntimeError(
+                                        "qvector initialization state is complex64 but simulator is on complex128 floating point type."
+                                    )
+                            # TODO: check if values are normalized
+
+                            ptrTy = cc.PointerType.get(self.ctx, eleTy)
+                            veqTy = quake.VeqType.get(self.ctx)
+
+                            qubits = quake.AllocaOp(veqTy,
+                                                    size=numQubits).result
+                            initials = cc.StdvecDataOp(ptrTy, value).result
+                            quake.InitializeStateOp(veqTy, qubits,
+                                                    initials).result
+                            self.pushValue(qubits)
+                            return
+
                         self.emitFatalError(
-                            f"unsupported qvector argument type: {value} (unknown)", node)
+                            f"unsupported qvector argument type: {value} (unknown)",
+                            node)
                     return
 
                 if node.func.attr == "qubit":
@@ -2166,7 +2303,9 @@ class PyASTBridge(ast.NodeVisitor):
                 # Find the "superior type" (int < float < complex)
                 superiorType = self.getIntegerType()
                 for t in [v.type for v in listElementValues]:
-                    if F64Type.isinstance(t) or F32Type.isinstance(t):
+                    if F32Type.isinstance(t):
+                        superiorType = t
+                    if F64Type.isinstance(t):
                         superiorType = t
                     if ComplexType.isinstance(t):
                         superiorType = t
@@ -3063,6 +3202,15 @@ class PyASTBridge(ast.NodeVisitor):
         if node.id in globalKernelRegistry:
             return
 
+        # For nd.array `dtype`s
+        if node.id == 'complex':
+            self.pushValue(self.getComplexType())
+            return
+
+        if node.id == 'float':
+            self.pushValue(self.getFloatType())
+            return
+
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
             if cc.PointerType.isinstance(value.type):
@@ -3073,6 +3221,9 @@ class PyASTBridge(ast.NodeVisitor):
                 # Retain `ptr<i8>`
                 if IntegerType.isinstance(eleTy) and IntegerType(
                         eleTy).width == 8:
+                    self.pushValue(value)
+                    return
+                if cc.StdvecType.isinstance(eleTy):
                     self.pushValue(value)
                     return
                 loaded = cc.LoadOp(value).result
@@ -3088,7 +3239,7 @@ class PyASTBridge(ast.NodeVisitor):
             # Only support a small subset of types here
             complexType = type(1j)
             value = self.capturedVars[node.id]
-            if isinstance(value, list) and isinstance(
+            if isinstance(value, (list, np.ndarray)) and isinstance(
                     value[0], (int, bool, float, np.float32, np.float64,
                                complexType, np.complex64, np.complex128)):
                 elementValues = None
@@ -3155,7 +3306,7 @@ class PyASTBridge(ast.NodeVisitor):
                 errorType = f"{errorType}[{type(value[0]).__name__}]"
 
             self.emitFatalError(
-                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, and list[int|bool|float|complex] accepted, type was {errorType}).",
+                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
                 node)
 
         # Throw an exception for the case that the name is not
