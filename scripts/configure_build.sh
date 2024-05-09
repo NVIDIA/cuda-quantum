@@ -99,7 +99,7 @@ fi
 
 # [>ToolchainConfiguration]
 GCC_INSTALL_PREFIX=/opt/rh/gcc-toolset-11/root
-export CUDAQ_GCC_INSTALL_PREFIX="${GCC_INSTALL_PREFIX}"
+export CUDAQ_GCC_INSTALL_PREFIX="${GCC_INSTALL_PREFIX}/usr"
 export CXX="${GCC_INSTALL_PREFIX}/usr/bin/g++"
 export CC="${GCC_INSTALL_PREFIX}/usr/bin/gcc"
 export FC="${GCC_INSTALL_PREFIX}/usr/bin/gfortran"
