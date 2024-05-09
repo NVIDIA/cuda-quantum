@@ -22,7 +22,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
 ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-11.8
 ENV COMMON_COMPILER_FLAGS="-march=x86-64-v3 -mtune=generic -O2 -pipe"
-ENV COMMON_COMPILER_FLAGS_ARM="-march=native -mtune=generic -O2 -pipe"
+ENV COMMON_COMPILER_FLAGS_ARM="-march=armv8-a -mtune=generic -O2 -pipe"
 
 # 1 - Install basic tools needed for the builds
 
@@ -165,4 +165,5 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Debug
+RUN lscpu
 RUN objdump -S /usr/local/pmix/lib/libpmix.so.2 | grep stlur
