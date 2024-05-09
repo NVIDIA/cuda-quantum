@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -968,7 +969,7 @@ ParseResult cudaq::cc::ScopeOp::parse(OpAsmParser &parser,
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
   auto *body = result.addRegion();
-  if (parser.parseRegion(*body, /*arguments=*/{}, /*argTypes=*/{}) ||
+  if (parser.parseRegion(*body, /*arguments=*/{}) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
   OpBuilder opBuilder(parser.getContext());
@@ -1099,6 +1100,13 @@ LogicalResult cudaq::cc::IfOp::verify() {
 
 void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
   p << '(' << getCondition() << ')';
+  if (!getLinearArgs().empty()) {
+    p << " ((";
+    llvm::interleaveComma(
+        llvm::zip(getThenEntryArguments(), getLinearArgs()), p,
+        [&](auto it) { p << std::get<0>(it) << " = " << std::get<1>(it); });
+    p << "))";
+  }
   p.printOptionalArrowTypeList(getResultTypes());
   p << ' ';
   const bool printBlockTerminators =
@@ -1143,16 +1151,43 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
       parser.parseRParen() ||
       parser.resolveOperand(cond, i1Type, result.operands))
     return failure();
+  SmallVector<OpAsmParser::Argument, 4> regionArgs;
+  if (succeeded(parser.parseOptionalLParen())) {
+    // Linear type arguments.
+    SmallVector<OpAsmParser::UnresolvedOperand, 4> linearOperands;
+    if (parser.parseAssignmentList(regionArgs, linearOperands) ||
+        parser.parseRParen())
+      return failure();
+    Type wireTy = quake::WireType::get(builder.getContext());
+    for (auto argOperand : llvm::zip(regionArgs, linearOperands)) {
+      std::get<0>(argOperand).type = wireTy;
+      if (parser.resolveOperand(std::get<1>(argOperand), wireTy,
+                                result.operands))
+        return failure();
+    }
+  }
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
-  if (parser.parseRegion(*thenRegion, /*arguments=*/{}, /*argTypes=*/{}))
+  if (!regionArgs.empty()) {
+    // Check that the result.types is compatible with the regionArgs. To be
+    // compatible, it must have at least as many linear types as there are
+    // region arguments. (It can have more.)
+    std::int64_t numRegionArgs = regionArgs.size();
+    std::for_each(result.types.begin(), result.types.end(), [&](Type t) {
+      if (quake::isLinearType(t))
+        --numRegionArgs;
+    });
+    if (numRegionArgs > 0)
+      return failure();
+  }
+  if (parser.parseRegion(*thenRegion, regionArgs))
     return failure();
   OpBuilder opBuilder(parser.getContext());
   ensureIfRegionTerminator(opBuilder, result, thenRegion);
 
   // If we find an 'else' keyword then parse the 'else' region.
   if (!parser.parseOptionalKeyword("else")) {
-    if (parser.parseRegion(*elseRegion, /*arguments=*/{}, /*argTypes=*/{}))
+    if (parser.parseRegion(*elseRegion, regionArgs))
       return failure();
     ensureIfRegionTerminator(opBuilder, result, elseRegion);
   }
@@ -1180,6 +1215,42 @@ void cudaq::cc::IfOp::getSuccessorRegions(
   regions.push_back(RegionSuccessor(&getThenRegion()));
   if (!getElseRegion().empty())
     regions.push_back(RegionSuccessor(&getElseRegion()));
+}
+
+template <typename A>
+long countLinearArgs(const A &iterable) {
+  return std::count_if(iterable.begin(), iterable.end(),
+                       [](Type t) { return quake::isLinearType(t); });
+}
+
+LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
+  auto regionOp = dyn_cast_if_present<RegionBranchOpInterface>(op);
+  if (!regionOp)
+    return failure();
+  SmallVector<RegionSuccessor> successors;
+  regionOp.getSuccessorRegions(std::nullopt, {}, successors);
+  // For each region successor, determine the number of distinct linear-typed
+  // definitions in the region.
+  long linearMax = -1;
+  for (auto iter : successors)
+    if (iter.getSuccessor())
+      for (Block &block : *iter.getSuccessor())
+        if (auto term = dyn_cast<cc::ContinueOp>(block.getTerminator())) {
+          auto numLinearArgs = countLinearArgs(term.getOperands().getTypes());
+          if (numLinearArgs > linearMax)
+            linearMax = numLinearArgs;
+        }
+
+  // All regions must have the same number of linear-type arguments and the
+  // region with the maximal number of distinct linear-typed definitions.
+  for (auto iter : successors)
+    if (iter.getSuccessor()) {
+      auto *block = &iter.getSuccessor()->front();
+      if (static_cast<long>(block->getNumArguments()) != linearMax)
+        return failure();
+    }
+
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -1218,7 +1289,7 @@ ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
                                              OperationState &result) {
   auto *body = result.addRegion();
   Type lambdaTy;
-  if (parser.parseRegion(*body, /*arguments=*/{}, /*argTypes=*/{}) ||
+  if (parser.parseRegion(*body, /*arguments=*/{}) ||
       parser.parseColonType(lambdaTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();

@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_QUAKE_INTERFACES
-#define CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_QUAKE_INTERFACES
+#ifndef CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_INTERFACES
+#define CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_INTERFACES
 
 include "mlir/IR/OpBase.td"
 
@@ -133,4 +133,4 @@ def MeasurementInterface : OpInterface<"MeasurementInterface"> {
   ];
 }
 
-#endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_QUAKE_INTERFACES
+#endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_IR_INTERFACES
