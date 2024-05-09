@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Optimizer/Dialect/CC/CCInterfaces.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Common/Traits.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
