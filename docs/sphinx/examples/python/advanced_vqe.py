@@ -51,7 +51,7 @@ def objective_function(parameter_vector: List[float],
     # function. If you were using a gradient-free optimizer,
     # you could purely define `cost = cudaq.observe().expectation()`.
     get_result = lambda parameter_vector: cudaq.observe(
-        kernel, hamiltonian, parameter_vector, shots_count=100).expectation()
+        kernel, hamiltonian, parameter_vector).expectation()
     # `cudaq.observe` returns a `cudaq.ObserveResult` that holds the
     # counts dictionary and the `expectation`.
     cost = get_result(parameter_vector)
