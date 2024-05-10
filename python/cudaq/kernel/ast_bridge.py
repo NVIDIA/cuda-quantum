@@ -2726,7 +2726,7 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType(left.type).width < IntegerType(
                     comparator.type).width:
                 if IntegerType(left.type).width == 1:
-                    # For i1 (bool), always performs an unsigned extension.
+                    # For i1 (`bool`), always performs an unsigned extension.
                     left = arith.ExtUIOp(comparator.type, left).result
                 else:
                     left = arith.ExtSIOp(comparator.type, left).result
@@ -2742,7 +2742,7 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType(left.type).width < IntegerType(
                     comparator.type).width:
                 if IntegerType(left.type).width == 1:
-                    # For i1 (bool), always performs an unsigned extension.
+                    # For i1 (`bool`), always performs an unsigned extension.
                     left = arith.ExtUIOp(comparator.type, left).result
                 else:
                     left = arith.ExtSIOp(comparator.type, left).result
