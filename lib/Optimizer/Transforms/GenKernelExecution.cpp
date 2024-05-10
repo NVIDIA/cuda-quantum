@@ -1368,10 +1368,10 @@ public:
   /// must be called via other quantum code.
   bool hasLegalType(FunctionType funTy) {
     for (auto ty : funTy.getInputs())
-      if (quake::isaQuantumType(ty))
+      if (quake::isQuantumType(ty))
         return false;
     for (auto ty : funTy.getResults())
-      if (quake::isaQuantumType(ty))
+      if (quake::isQuantumType(ty))
         return false;
     return true;
   }
