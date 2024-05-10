@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Executing Quantum Circuits &mdash; NVIDIA CUDA Quantum  documentation</title>
+  <title>Executing Quantum Circuits &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -45,7 +45,7 @@
           
           
           <a href="../../../index.html" class="icon icon-home">
-            NVIDIA CUDA Quantum
+            NVIDIA CUDA-Q
           </a>
               <div class="version">
                 amd64-pr-1564
@@ -102,14 +102,14 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../../using/quick_start.html">   Quick Start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/quick_start.html#install-cuda-quantum">Install CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/quick_start.html#validate-your-installation">Validate your Installation</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/basics/basics.html">   Basics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/kernel_intro.html">   What is a CUDA Quantum Kernel?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/build_kernel.html">   Building your first CUDA Quantum Program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/run_kernel.html">   Running your first CUDA Quantum Program</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/kernel_intro.html">   What is a CUDA-Q Kernel?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/basics/run_kernel.html#sample">Sample</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
@@ -180,7 +180,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Quantum-Optimizers">Using CUDA Quantum Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
 </ul>
 </li>
@@ -283,7 +283,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#updating-cuda-quantum">Updating CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
@@ -295,7 +295,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../using/install/data_center_install.html#toolchain">Toolchain</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#building-cuda-quantum">Building CUDA Quantum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#building-cuda-q">Building CUDA-Q</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#c-support">C++ Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#python-support">Python Support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../using/install/data_center_install.html#installation-on-the-host">Installation on the Host</a><ul>
@@ -308,7 +308,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/integration/integration.html">   Integration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/integration/cuda_gpu.html">Combining CUDA with CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/integration/cuda_gpu.html">Combining CUDA with CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../using/integration/cmake_app.html">Downstream CMake Integration</a></li>
 </ul>
 </li>
@@ -318,8 +318,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/extending/cudaq_ir.html">Working with CUDA Quantum IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA Quantum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../specification/index.html">   Specifications</a><ul>
@@ -352,8 +352,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-quantum-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-quantum-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA Quantum libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -469,6 +469,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#s"><code class="code docutils literal notranslate"><span class="pre">s</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -491,7 +492,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">NVIDIA CUDA Quantum</a>
+          <a href="../../../index.html">NVIDIA CUDA-Q</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -499,7 +500,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA Quantum Tutorials</a></li>
+          <li class="breadcrumb-item"><a href="../../../using/tutorials.html">CUDA-Q Tutorials</a></li>
       <li class="breadcrumb-item active">Executing Quantum Circuits</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../../_sources/examples/python/tutorials/executing_circuits.ipynb.txt" rel="nofollow"> View page source</a>
@@ -515,10 +516,10 @@
              
   <section id="Executing-Quantum-Circuits">
 <h1>Executing Quantum Circuits<a class="headerlink" href="#Executing-Quantum-Circuits" title="Permalink to this heading">¶</a></h1>
-<p>In CUDA Quantum, quantum circuits are stored as quantum kernels. For estimating the probability distribution of a measured quantum state in a circuit, we use the <code class="docutils literal notranslate"><span class="pre">sample</span></code> function call, and for computing the expectation value of a quantum state with a given observable, we use the <code class="docutils literal notranslate"><span class="pre">observe</span></code> function call.</p>
+<p>In CUDA-Q, quantum circuits are stored as quantum kernels. For estimating the probability distribution of a measured quantum state in a circuit, we use the <code class="docutils literal notranslate"><span class="pre">sample</span></code> function call, and for computing the expectation value of a quantum state with a given observable, we use the <code class="docutils literal notranslate"><span class="pre">observe</span></code> function call.</p>
 <section id="Sample">
 <h2>Sample<a class="headerlink" href="#Sample" title="Permalink to this heading">¶</a></h2>
-<p>Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA Quantum <code class="docutils literal notranslate"><span class="pre">sample</span></code> call enables this:</p>
+<p>Quantum states collapse upon measurement and hence need to be sampled many times to gather statistics. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">sample</span></code> call enables this:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -698,7 +699,7 @@ q1 : ─────┤ x ├
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2024, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
