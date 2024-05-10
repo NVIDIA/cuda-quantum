@@ -123,27 +123,27 @@ public:
 };
 
 template <typename T>
-inline const char *typeName() {
+inline char const *typeName() {
   return typeid(T).name();
 }
 template <>
-inline const char *typeName<py_ext::Float>() {
+inline char const *typeName<py_ext::Float>() {
   return "float";
 }
 template <>
-inline const char *typeName<py_ext::Complex>() {
+inline char const *typeName<py_ext::Complex>() {
   return "complex";
 }
 template <>
-inline const char *typeName<pybind11::int_>() {
+inline char const *typeName<pybind11::int_>() {
   return "long";
 }
 template <>
-inline const char *typeName<pybind11::bool_>() {
+inline char const *typeName<pybind11::bool_>() {
   return "bool";
 }
 template <>
-inline const char *typeName<pybind11::list>() {
+inline char const *typeName<pybind11::list>() {
   return "list";
 }
 
