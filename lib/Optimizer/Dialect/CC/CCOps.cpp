@@ -40,7 +40,6 @@ cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   Operation *op = symbolTable.lookupSymbolIn(
       getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
 
-  // TODO: add globals?
   if (!isa_and_nonnull<func::FuncOp, GlobalOp>(op))
     return emitOpError("must reference a global defined by 'func.func'");
   return success();
