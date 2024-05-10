@@ -11,18 +11,18 @@
 # Usage:
 # Create a folder with the Python README, the tests, the python examples and snippets, 
 # and run this script passing the path to that folder as well as the path to 
-# the CUDA Quantum wheel to test with -f and -w respectively.
+# the CUDA-Q wheel to test with -f and -w respectively.
 # Check the output for any tests that were skipped.
 
 # E.g. run the command 
-#   source validate.sh -w /tmp/cuda_quantum-*.whl -f /tmp -p 3.10 
+#   source validate_wheel.sh -w /tmp/cuda_quantum-*.whl -f /tmp -p 3.10 
 # in a container (with GPU support) defined by:
 #
 # ARG base_image=ubuntu:22.04
 # FROM ${base_image}
 # ARG cuda_quantum_wheel=cuda_quantum-0.6.0-cp310-cp310-manylinux_2_28_x86_64.whl
 # COPY $cuda_quantum_wheel /tmp/$cuda_quantum_wheel
-# COPY scripts/validate_wheel.sh validate.sh
+# COPY scripts/validate_wheel.sh validate_wheel.sh
 # COPY docs/sphinx/examples/python /tmp/examples/
 # COPY docs/sphinx/snippets/python /tmp/snippets/
 # COPY python/tests /tmp/tests/
@@ -32,11 +32,14 @@
 __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
-while getopts ":f:p:w:" opt; do
+quick_test=false
+while getopts ":f:p:qw:" opt; do
   case $opt in
     f) root_folder="$OPTARG"
     ;;
     p) python_version="$OPTARG"
+    ;;
+    q) quick_test=true
     ;;
     w) cudaq_wheel="$OPTARG"
     ;;
@@ -85,6 +88,15 @@ while IFS= read -r line; do
 done <<< "$ompi_script"
 status_sum=0
 
+# Verify that the necessary GPU targets are installed and usable
+for tgt in nvidia nvidia-fp64 nvidia-mgpu tensornet; do
+    python3 -c "import cudaq; cudaq.set_target('${tgt}')"
+    if [ $? -ne 0 ]; then 
+        echo -e "\e[01;31mPython trivial test for target ${tgt} failed.\e[0m" >&2
+        status_sum=$((status_sum+1))
+    fi
+done
+
 # Run core tests
 echo "Running core tests."
 python3 -m pip install pytest numpy
@@ -96,6 +108,15 @@ if [ ! $? -eq 0 ]; then
     echo -e "\e[01;31mPython tests failed.\e[0m" >&2
     status_sum=$((status_sum+1))
 fi
+
+# If this is a quick test, we return here.
+if $quick_test; then
+    if [ ! $status_sum -eq 0 ]; then
+        echo -e "\e[01;31mValidation produced errors.\e[0m" >&2
+    fi
+    (return 0 2>/dev/null) && return $status_sum || exit $status_sum
+fi
+
 
 # Run backend tests
 echo "Running backend tests."
@@ -141,8 +162,12 @@ for ex in `find "$root_folder/examples" -name '*.py' -not -path '*/providers/*'`
 done
 
 # Run remote-mqpu platform test
+# Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
+# Note that a derivative of this code is in
+# docs/sphinx/using/backends/platform.rst, so if you update it here, you need to
+# check if any docs updates are needed.
 cudaq_location=`python3 -m pip show cuda-quantum | grep -e 'Location: .*$'`
-qpud_exe="${cudaq_location#Location: }/bin/cudaq-qpud"
+qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
 if [ -x "$(command -v nvidia-smi)" ]; 
 then nr_gpus=`nvidia-smi --list-gpus | wc -l`
 else nr_gpus=0
@@ -151,13 +176,14 @@ server1_devices=`echo $(seq $((nr_gpus >> 1)) $((nr_gpus - 1))) | tr ' ' ,`
 server2_devices=`echo $(seq 0 $((($nr_gpus >> 1) - 1))) | tr ' ' ,`
 echo "Launching server 1..."
 servers="localhost:12001"
-CUDA_VISIBLE_DEVICES=$server1_devices mpiexec --allow-run-as-root -np 2 "$qpud_exe" --port 12001 &
+CUDA_VISIBLE_DEVICES=$server1_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12001 &
 if [ -n "$server2_devices" ]; then
     echo "Launching server 2..."
     servers+=",localhost:12002"
-    CUDA_VISIBLE_DEVICES=$server2_devices mpiexec --allow-run-as-root -np 2 "$qpud_exe" --port 12002 &
+    CUDA_VISIBLE_DEVICES=$server2_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12002 &
 fi
 
+sleep 5 # wait for servers to launch
 python3 "$root_folder/snippets/using/cudaq/platform/sample_async_remote.py" \
     --backend nvidia-mgpu --servers "$servers"
 if [ ! $? -eq 0 ]; then

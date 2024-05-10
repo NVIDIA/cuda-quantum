@@ -9,7 +9,7 @@
 # ============================================================================ #
 
 # Usage:
-# Launch the NVIDIA CUDA Quantum Docker container, 
+# Launch the NVIDIA CUDA-Q Docker container, 
 # and run this script from the home directory.
 # Check the logged output.
 

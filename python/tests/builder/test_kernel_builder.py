@@ -1336,6 +1336,28 @@ def test_list_subscript():
     cudaq.sample(kernelAndArgs[0], False, [], [], [])
 
 
+def test_u3_op():
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(1)
+    kernel.u3(np.pi, np.pi, np.pi / 2, q)
+
+    counts = cudaq.sample(kernel)
+    assert counts["1"] == 1000
+
+
+def test_u3_ctrl():
+
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(2)
+    kernel.u3(np.pi / 2, 0., np.pi, qubits[0])
+    kernel.cu3(np.pi, np.pi, np.pi / 2, qubits[0], qubits[1])
+
+    counts = cudaq.sample(kernel)
+    assert (len(counts) == 2)
+    assert ('00' in counts)
+    assert ('11' in counts)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

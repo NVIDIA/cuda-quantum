@@ -103,11 +103,12 @@ public:
       };
       for (auto &op : casted->getAppliedTensors()) {
         if (op.isUnitary)
-          m_state->applyGate(mapQubitIdxs(op.qubitIds), op.deviceData,
+          m_state->applyGate(mapQubitIdxs(op.controlQubitIds),
+                             mapQubitIdxs(op.targetQubitIds), op.deviceData,
                              op.isAdjoint);
         else
           m_state->applyQubitProjector(op.deviceData,
-                                       mapQubitIdxs(op.qubitIds));
+                                       mapQubitIdxs(op.targetQubitIds));
       }
     }
   }

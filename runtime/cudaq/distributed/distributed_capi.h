@@ -11,11 +11,11 @@
 #include <stdint.h>
 
 /*! \file distributed_capi.h
-    \brief CUDA Quantum Shim C-API for MPI support
+    \brief CUDA-Q Shim C-API for MPI support
 
     This header file defines a wrapper interface for MPI functionalities that
-   CUDA Quantum and its backends need. The interface is defined in a
-   MPI-independent manner so that CUDA Quantum libraries doesn't need to be
+   CUDA-Q and its backends need. The interface is defined in a
+   MPI-independent manner so that CUDA-Q libraries doesn't need to be
    linked against a particular MPI implementation. MPI support will be provided
    at runtime via dynamical library loading.
 */
