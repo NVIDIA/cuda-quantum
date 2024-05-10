@@ -642,7 +642,7 @@ protected:
     // We only support MLIR payload on the NVCF server.
     if (in_request.format != cudaq::CodeFormat::MLIR) {
       outValidationMessage =
-          "Unsupported input format: only CUDA Quantum MLIR data is allowed.";
+          "Unsupported input format: only CUDA-Q MLIR data is allowed.";
       return false;
     }
 

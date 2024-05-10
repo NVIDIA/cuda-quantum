@@ -13,7 +13,7 @@
 
 #include <cudaq.h>
 
-// Here we demonstrate an algorithm expressed as a CUDA Quantum kernel
+// Here we demonstrate an algorithm expressed as a CUDA-Q kernel
 // that incorporates non-trivial control flow and conditional
 // quantum instruction invocation.
 

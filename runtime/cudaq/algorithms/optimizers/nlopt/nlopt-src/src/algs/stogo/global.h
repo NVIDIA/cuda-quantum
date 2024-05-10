@@ -1,12 +1,8 @@
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#pragma once
 
 #include "nlopt-util.h"
-
-#include <queue>
-// #include "function.h"
 #include "tools.h"
-using namespace std;
+#include <queue>
 
 extern "C" int stogo_verbose;
 
@@ -74,10 +70,10 @@ public:
   bool InTime();
 
 private:
-  list<Trial> SolSet;
-  list<Trial>::const_iterator titr;
-  priority_queue<TBox> CandSet;
-  priority_queue<TBox> Garbage;
+  std::list<Trial> SolSet;
+  std::list<Trial>::const_iterator titr;
+  std::priority_queue<TBox> CandSet;
+  std::priority_queue<TBox> Garbage;
 
   double fbound;
   TBox Domain;
@@ -87,4 +83,3 @@ private:
   double NewtonTest(RTBox, int, RCRVector, int *);
   void ReduceOrSubdivide(RTBox, int, RCRVector);
 };
-#endif

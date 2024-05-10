@@ -27,7 +27,7 @@ inline constexpr int defaultQpuIdValue = 0;
 enum class PyParType { thread, mpi };
 
 /// @brief Analyze the MLIR Module for the kernel and check for
-/// CUDA Quantum specification adherence. Check that the kernel
+/// CUDA-Q specification adherence. Check that the kernel
 /// returns void and does not contain measurements.
 std::tuple<bool, std::string> isValidObserveKernel(py::object &kernel) {
   if (py::hasattr(kernel, "compile"))

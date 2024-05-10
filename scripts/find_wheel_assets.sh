@@ -8,7 +8,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This script finds CUDA Quantum simulator assets and constructs the CMake
+# This script finds CUDA-Q simulator assets and constructs the CMake
 # string argument in the form "<simulator's .so>;<simulator's .config>;...",
 # suitable for wheel build.
 #

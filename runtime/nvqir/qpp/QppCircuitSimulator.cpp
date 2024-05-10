@@ -132,12 +132,12 @@ protected:
   /// @brief Convert internal qubit index to Q++ qubit index.
   ///
   /// In Q++, qubits are indexed from left to right, and thus q0 is the leftmost
-  /// qubit. Internally, in CUDA Quantum, qubits are index from right to left,
+  /// qubit. Internally, in CUDA-Q, qubits are index from right to left,
   /// hence q0 is the rightmost qubit. Example:
   /// ```
   ///   Q++ indices:  0  1  2  3
   ///                |0>|0>|0>|0>
-  ///                 3  2  1  0 : CUDA Quantum indices
+  ///                 3  2  1  0 : CUDA-Q indices
   /// ```
   std::size_t convertQubitIndex(std::size_t qubitIndex) {
     assert(stateDimension > 0 && "The state is empty, and thus has no qubits");
