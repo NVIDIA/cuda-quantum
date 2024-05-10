@@ -546,7 +546,7 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cudaq</span>
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">bell</span><span class="p">(</span><span class="n">num_iters</span> <span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">bell</span><span class="p">(</span><span class="n">num_iters</span> <span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="n">q</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">nCorrect</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_iters</span><span class="p">):</span>
@@ -559,8 +559,9 @@
         <span class="n">reset</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">nCorrect</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;N Correct = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span> <span class="n">bell</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
-<span class="k">assert</span> <span class="n">bell</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span> <span class="o">==</span> <span class="mi">100</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">bell</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;N Correct = </span><span class="si">{</span><span class="n">counts</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">counts</span> <span class="o">==</span> <span class="mi">100</span>
 </pre></div>
 </div>
 </div>
