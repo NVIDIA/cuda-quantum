@@ -5,7 +5,7 @@ Documentation][cuda_quantum_docs]. The page also contains [installation
 instructions][official_install] for released packages and nightly builds.
 
 [cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/latest
-[official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
+[official_install]: https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html#install-cuda-q
 [data_center_install]:
     https://nvidia.github.io/cuda-quantum/latest/data_center_install.html
 
