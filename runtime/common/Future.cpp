@@ -34,7 +34,9 @@ sample_result future::get() {
     cudaq::info("Future got job retrieval path as {}.", jobGetPath);
     auto resultResponse = client.get(jobGetPath, "", headers);
     while (!serverHelper->jobIsDone(resultResponse)) {
-      std::this_thread::sleep_for(std::chrono::microseconds(100));
+      auto polling_interval =
+          serverHelper->nextResultPollingInterval(resultResponse);
+      std::this_thread::sleep_for(polling_interval);
       resultResponse = client.get(jobGetPath, "", headers);
     }
     auto c = serverHelper->processResults(resultResponse, id.first);
@@ -56,7 +58,7 @@ sample_result future::get() {
   return sample_result(results);
 #else
   throw std::runtime_error("cudaq::details::future::get() requires REST Client "
-                           "but CUDA Quantum was built without it.");
+                           "but CUDA-Q was built without it.");
   return sample_result();
 #endif
 }

@@ -18,16 +18,14 @@ int deviceFromPointer(void *ptr) {
   return attributes.device;
 }
 std::size_t MPSSimulationState::getNumQubits() const {
-  return state->getNumQubits() - m_auxTensorIds.size();
+  return state->getNumQubits();
 }
 
-MPSSimulationState::MPSSimulationState(
-    std::unique_ptr<TensorNetState> inState,
-    const std::vector<MPSTensor> &mpsTensors,
-    const std::vector<std::size_t> &auxTensorIds,
-    cutensornetHandle_t cutnHandle)
+MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
+                                       const std::vector<MPSTensor> &mpsTensors,
+                                       cutensornetHandle_t cutnHandle)
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
-      m_mpsTensors(mpsTensors), m_auxTensorIds(auxTensorIds) {}
+      m_mpsTensors(mpsTensors) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
@@ -235,12 +233,7 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
         "[tensornet-state] getAmplitude with an invalid basis state: only "
         "qubit state (0 or 1) is supported.");
   if (getNumQubits() > 1) {
-    auto extendedBasisState = basisState;
-    for (std::size_t i = 0; i < m_auxTensorIds.size(); ++i)
-      extendedBasisState.emplace_back(0);
-
-    TensorNetState basisTensorNetState(extendedBasisState,
-                                       state->getInternalContext());
+    TensorNetState basisTensorNetState(basisState, state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors =
         basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
@@ -430,8 +423,8 @@ MPSSimulationState::toSimulationState() const {
   auto cloneState = nvqir::TensorNetState::createFromMpsTensors(
       m_mpsTensors, state->getInternalContext());
 
-  return std::make_unique<MPSSimulationState>(
-      std::move(cloneState), m_mpsTensors, m_auxTensorIds, m_cutnHandle);
+  return std::make_unique<MPSSimulationState>(std::move(cloneState),
+                                              m_mpsTensors, m_cutnHandle);
 }
 
 static Eigen::MatrixXcd reshapeMatrix(const Eigen::MatrixXcd &A) {

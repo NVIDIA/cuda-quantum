@@ -114,6 +114,13 @@ public:
   /// from the full server response message.
   virtual std::string constructGetJobPath(ServerMessage &postResponse) = 0;
 
+  /// @brief Get the jobs results polling interval.
+  /// @return
+  virtual std::chrono::microseconds
+  nextResultPollingInterval(ServerMessage &postResponse) {
+    return std::chrono::microseconds(100);
+  }
+
   /// @brief Return true if the job is done.
   virtual bool jobIsDone(ServerMessage &getJobResponse) = 0;
 

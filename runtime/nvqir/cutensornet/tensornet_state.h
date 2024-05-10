@@ -31,12 +31,13 @@ struct MPSTensor {
 /// Track gate tensors that were appended to the tensor network.
 struct AppliedTensorOp {
   void *deviceData = nullptr;
-  std::vector<int32_t> qubitIds;
+  std::vector<int32_t> targetQubitIds;
+  std::vector<int32_t> controlQubitIds;
   bool isAdjoint;
   bool isUnitary;
 };
 
-/// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDAQ
+/// @brief Wrapper of cutensornetState_t to provide convenient API's for CUDA-Q
 /// simulator implementation.
 class TensorNetState {
 
@@ -82,10 +83,12 @@ public:
                         cutensornetHandle_t handle);
 
   /// @brief Apply a unitary gate
-  /// @param qubitIds Qubit operands
+  /// @param controlQubits Controlled qubit operands
+  /// @param targetQubits Target qubit operands
   /// @param gateDeviceMem Gate unitary matrix in device memory
   /// @param adjoint Apply the adjoint of gate matrix if true
-  void applyGate(const std::vector<int32_t> &qubitIds, void *gateDeviceMem,
+  void applyGate(const std::vector<int32_t> &controlQubits,
+                 const std::vector<int32_t> &targetQubits, void *gateDeviceMem,
                  bool adjoint = false);
 
   /// @brief Apply a projector matrix (non-unitary)

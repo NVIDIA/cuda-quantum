@@ -26,15 +26,15 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 namespace cudaq {
 void setQuantumPlatformInternal(quantum_platform *p);
 
-constexpr static const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
-constexpr static const char NVQIR_SIMULATION_BACKEND[] =
+static constexpr const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
+static constexpr const char NVQIR_SIMULATION_BACKEND[] =
     "NVQIR_SIMULATION_BACKEND=";
-constexpr static const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
-constexpr static const char IS_FP64_SIMULATION[] =
+static constexpr const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
+static constexpr const char IS_FP64_SIMULATION[] =
     "CUDAQ_SIMULATION_SCALAR_FP64";
 
 /// @brief A utility function to check availability of Nvidia GPUs and return
-/// their count
+/// their count.
 int countGPUs() {
   int retCode = std::system("nvidia-smi >/dev/null 2>&1");
   if (0 != retCode) {

@@ -6,7 +6,7 @@ Machine Model
 
 :raw-html:`<a name="mm1"></a>`
 
-**[1]** CUDA Quantum presumes the existence of one or more classical host processors, 
+**[1]** CUDA-Q presumes the existence of one or more classical host processors, 
 zero or more NVIDIA graphics processing units (GPUs), and zero or more quantum processing units (QPUs). 
 
 **[2]** Each QPU is composed of a classical quantum control system (distributed FPGAs, GPUs, etc.) 
@@ -31,11 +31,11 @@ for fast-feedback and conditional circuit execution.
 **[6]** The quantum memory
 space on an individual QPU is modeled as an infinite register of 
 qubits and physical connectivity constraints are hidden from the
-programmer. Note that compiler implementations of the CUDA Quantum model
+programmer. Note that compiler implementations of the CUDA-Q model
 are free to enable developer access to the details of the QPU
 qubit connectivity for the purpose of developing novel placement strategies. 
 
-**[7]** CUDA Quantum considers general :math:`D`-level quantum information systems, e.g. qudits. Qudits
+**[7]** CUDA-Q considers general :math:`D`-level quantum information systems, e.g. qudits. Qudits
 are non-copyable, and can be allocated in chunks, via instantiation of 
 user-level quantum container types. Quantum containers come in two flavors - 
 quantum memory owning and non-owning (views). Moreover, the size of a quantum container 
@@ -46,9 +46,9 @@ thereof can only be passed by reference.
 **[8]** Each allocated qudit is unique and if  
 deallocated, is available for subsequent allocation. Deallocation occurs implicitly
 when the qudit goes out of scope. Uncomputation of qudit state should occur 
-automatically via compiler implementations of the CUDA Quantum model.
+automatically via compiler implementations of the CUDA-Q model.
 
-**[9]** The CUDA Quantum model considers both remotely hosted QPU execution models as well as
+**[9]** The CUDA-Q model considers both remotely hosted QPU execution models as well as
 tightly-coupled quantum-classical architectures. Remotely hosted models
 support batch circuit execution where each circuit may contain simple
 quantum-classical operation integration. Tightly-coupled execution models provide

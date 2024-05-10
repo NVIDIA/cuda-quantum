@@ -18,6 +18,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/MapVector.h"
 #include "mlir/IR/IRMapping.h"
@@ -67,6 +68,16 @@ static bool isFunctionBlock(Block *block) {
 static bool isFunctionEntryBlock(Block *block) {
   return isFunctionBlock(block) && block->isEntryBlock();
 }
+
+static bool neverTakesRegionArguments(Operation *op) {
+  return op->hasTrait<OpTrait::NoRegionArguments>();
+}
+
+static bool onlyTakesLinearTypeArguments(Operation *op) {
+  return op->hasTrait<cudaq::cc::LinearTypeArgsTrait>();
+}
+
+static bool isLinearType(Value v) { return quake::isLinearType(v.getType()); }
 
 template <typename T>
 void appendToWorklist(std::deque<Block *> &d, T collection) {
@@ -387,15 +398,20 @@ public:
   /// arguments. Replace any uses of the promoted loads to uses of block
   /// arguments and insert modified blocks and their preds on the worklist.
   void updatePromotedDefs(Operation *parent, std::deque<Block *> &worklist) {
-    if (liveOutSet.empty() || parent->hasTrait<OpTrait::NoRegionArguments>())
+    if (liveOutSet.empty() || neverTakesRegionArguments(parent))
       return;
+    const bool onlyLinearTypes = onlyTakesLinearTypeArguments(parent);
     assert(liveInArgs.empty() && "parent's live-in args should not be set");
     for (auto liveOut : liveOutSet) {
       assert(promotedDefs.count(liveOut));
+      if (onlyLinearTypes && !isLinearType(promotedDefs[liveOut]))
+        continue;
       liveInArgs.push_back(promotedDefs[liveOut]);
     }
     SmallPtrSet<Block *, 4> blockSet;
     for (auto [mr, val] : promotedDefs) {
+      if (onlyLinearTypes && !isLinearType(val))
+        continue;
       if (liveOutSet.count(mr)) {
         SmallVector<Operation *> users(val.getUsers().begin(),
                                        val.getUsers().end());
@@ -430,7 +446,7 @@ public:
   }
 
   SmallVector<MemRef> getLiveOutOfParent() const {
-    return SmallVector<MemRef>(liveOutSet.begin(), liveOutSet.end());
+    return {liveOutSet.begin(), liveOutSet.end()};
   }
 
   bool hasLiveOutOfParent() const { return !liveOutSet.empty(); }
@@ -932,14 +948,17 @@ public:
       worklist.push_back(term->getBlock());
     };
 
-    bool usePromo = parent->hasTrait<OpTrait::NoRegionArguments>();
+    const bool usePromo = neverTakesRegionArguments(parent);
+    const bool onlyLinear = onlyTakesLinearTypeArguments(parent);
     auto updateTerminator = [&](Operation *term, Block *target, auto bindings) {
       auto *block = term->getBlock();
       for (auto liveOut : bindings) {
         if (dataFlow.hasBinding(block, liveOut)) {
           auto oldVal = dataFlow.getBinding(block, liveOut);
           addTerminatorArgument(term, target, oldVal);
-        } else if (usePromo && dataFlow.isEntryBlock(block)) {
+        } else if ((usePromo ||
+                    (onlyLinear && !isa<quake::RefType>(liveOut.getType()))) &&
+                   dataFlow.isEntryBlock(block)) {
           auto newVal = dataFlow.getPromotedValue(liveOut);
           dataFlow.addBinding(block, liveOut, newVal);
           addTerminatorArgument(term, target, newVal);

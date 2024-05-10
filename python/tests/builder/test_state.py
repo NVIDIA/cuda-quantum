@@ -75,7 +75,7 @@ def test_state_vector_simple():
 
 def test_state_vector_integration():
     """
-    An integration test on the state vector class. Uses a CUDA Quantum
+    An integration test on the state vector class. Uses a CUDA-Q
     optimizer to find the correct kernel parameters for a Bell state.
     """
     cudaq.reset_target()
@@ -162,7 +162,7 @@ def test_state_density_matrix_simple():
 
 def test_state_density_matrix_integration():
     """
-    An integration test on the state density matrix class. Uses a CUDA Quantum
+    An integration test on the state density matrix class. Uses a CUDA-Q
     optimizer to find the correct kernel parameters for a Bell state.
     """
     cudaq.set_target('density-matrix-cpu')
