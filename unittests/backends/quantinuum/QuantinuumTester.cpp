@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,7 +13,7 @@
 #include <gtest/gtest.h>
 #include <regex>
 
-std::string mockPort = "62454";
+std::string mockPort = "62440";
 std::string backendStringTemplate =
     "quantinuum;emulate;false;url;http://localhost:{};credentials;{}";
 

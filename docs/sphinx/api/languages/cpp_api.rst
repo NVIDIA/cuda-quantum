@@ -1,4 +1,4 @@
-CUDA Quantum C++ API
+CUDA-Q C++ API
 ******************************
 
 Operators 
@@ -18,7 +18,13 @@ Quantum
 .. doxygenclass:: cudaq::qreg
     :members:
 
+.. doxygenclass:: cudaq::qvector
+    :members:
+
 .. doxygenclass:: cudaq::qspan
+    :members:
+
+.. doxygenclass:: cudaq::qview
     :members:
 
 .. doxygentypedef:: cudaq::qubit
@@ -52,6 +58,13 @@ Common
 
 .. doxygenclass:: cudaq::complex_matrix
     :members:
+
+.. doxygenclass:: cudaq::Trace
+
+.. doxygenfunction:: cudaq::range(ElementType total)
+.. doxygenfunction:: cudaq::range(ElementType begin, ElementType end, ElementType step)
+
+.. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenclass:: cudaq::Resources
 
@@ -129,6 +142,12 @@ Platform
 .. doxygenclass:: cudaq::QPU
     :members:
 
+.. doxygenclass:: cudaq::BaseRemoteRESTQPU
+
+.. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
+
+.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU    
+
 .. doxygenclass:: cudaq::quantum_platform
     :members:
 
@@ -140,6 +159,11 @@ Platform
 
 .. doxygentypedef:: cudaq::KernelExecutionTask
 
+Utilities
+=========
+
+.. doxygenfunction:: cudaq::range(std::size_t)
+    
 Namespaces 
 ===========
 
@@ -166,6 +190,9 @@ Namespaces
 .. doxygenfunction:: cudaq::mpi::finalize
 .. doxygenfunction:: cudaq::mpi::rank
 .. doxygenfunction:: cudaq::mpi::num_ranks
-.. doxygenfunction:: cudaq::mpi::all_gather
+.. doxygenfunction:: cudaq::mpi::all_gather(std::vector<double> &global, const std::vector<double> &local)
+.. doxygenfunction:: cudaq::mpi::all_gather(std::vector<int> &global, const std::vector<int> &local)
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T&, const Func&)
 .. doxygenfunction:: cudaq::mpi::all_reduce(const T &localValue, const BinaryFunction &function)
+.. doxygenfunction:: cudaq::mpi::broadcast(std::vector<double> &data, int rootRank)
+.. doxygenfunction:: cudaq::mpi::broadcast(std::string &data, int rootRank)

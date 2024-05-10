@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,35 +10,44 @@
 
 # This scripts builds the clang and mlir project from the source in the LLVM submodule.
 # The binaries will be installed in the folder defined by the LLVM_INSTALL_PREFIX environment
-# variable, or in $HOME/.llvm if LLVM_INSTALL_PREFIX is not defined. 
+# variable, or in $HOME/.llvm if LLVM_INSTALL_PREFIX is not defined.
+# If Python bindings are generated, pybind11 will be built and installed in the location 
+# defined by PYBIND11_INSTALL_PREFIX unless that folder already exists.
 #
 # Usage:
 # bash scripts/build_llvm.sh
 # -or-
-# bash scripts/build_llvm.sh -c DEBUG
+# bash scripts/build_llvm.sh -c Debug
 # -or-
 # LLVM_INSTALL_PREFIX=/installation/path/ bash scripts/build_llvm.sh
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
+LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'}
+PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
 build_configuration=Release
-llvm_projects="clang;lld;mlir"
 verbose=false
+compiler_rt=false
+llvm_runtimes=""
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:s:p:v" opt; do
+while getopts ":c:rs:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
+    r) compiler_rt=true
+    llvm_runtimes="compiler-rt"
+    ;;
     s) llvm_source="$OPTARG"
     ;;
-    p) llvm_projects="$OPTARG"
-    ;;
     v) verbose=true
+    ;;
+    :) echo "Option -$OPTARG requires an argument."
+    if $is_sourced; then return 1; else exit 1; fi
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     if $is_sourced; then return 1; else exit 1; fi
@@ -48,25 +57,44 @@ done
 OPTIND=$__optind__
 
 working_dir=`pwd`
-
-if [ "$llvm_source" = "" ]; then
-  cd $(git rev-parse --show-toplevel)
-  echo "Cloning LLVM submodule..."
-  git submodule update --init --recursive --recommend-shallow --single-branch tpls/llvm
-  llvm_source=tpls/llvm
-fi
-
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 echo "Configured C compiler: $CC"
 echo "Configured C++ compiler: $CXX"
 
-# Prepare the build directory
+# Check if we build python bindings and build pybind11 from source if necessary
+projects=(`echo $LLVM_PROJECTS | tr ';' ' '`)
+llvm_projects=`printf "%s;" "${projects[@]}"`
+if [ -z "${llvm_projects##*python-bindings;*}" ]; then
+  mlir_python_bindings=ON
+  projects=("${projects[@]/python-bindings}")
+
+  if [ ! -d "$PYBIND11_INSTALL_PREFIX" ] || [ -z "$(ls -A "$PYBIND11_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
+    echo "Building PyBind11..."
+    git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 
+    mkdir "tpls/pybind11/build" && cd "tpls/pybind11/build"
+    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX"
+    cmake --build . --target install --config Release
+  fi
+fi
+
+# Prepare the source and build directory
+if [ "$llvm_source" = "" ]; then
+  echo "Cloning LLVM submodule..."
+  cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
+  llvm_source=~/.llvm-project
+  llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
+  llvm_commit="$(git submodule | grep tpls/llvm | cut -c2- | cut -d ' ' -f1)"
+  git clone --filter=tree:0 "$llvm_repo" "$llvm_source"
+  cd "$llvm_source" && git checkout $llvm_commit
+fi
+
 mkdir -p "$LLVM_INSTALL_PREFIX"
 mkdir -p "$llvm_source/build" && cd "$llvm_source/build"
 mkdir -p logs && rm -rf logs/* 
 
 # Specify which components we need to keep the size of the LLVM build down
 echo "Preparing LLVM build..."
-projects=(`echo $llvm_projects | tr ';' ' '`)
 llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*clang;*}" ]; then
   echo "- including Clang components"
@@ -77,19 +105,20 @@ if [ -z "${llvm_projects##*mlir;*}" ]; then
   echo "- including MLIR components"
   llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
   projects=("${projects[@]/mlir}")
-  if [ -x "$(command -v "$Python3_EXECUTABLE")" ]; then
-    mlir_python_bindings=ON
+  if [ "$mlir_python_bindings" == "ON" ]; then
+    echo "- including MLIR Python bindings"
     llvm_components+="MLIRPythonModules;mlir-python-sources;"
   fi
 fi
 if [ -z "${llvm_projects##*lld;*}" ]; then
   echo "- including LLD components"
+  llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
   llvm_components+="lld;"
   projects=("${projects[@]/lld}")
 fi
 echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
-llvm_components+="llvm-config;llvm-ar;llc;FileCheck;count;not;"
+llvm_components+="llvm-config;llvm-ar;llvm-nm;llvm-symbolizer;llvm-profdata;llvm-cov;llc;FileCheck;count;not;"
 
 if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
   echo "- including additional projects "$(echo "${projects[*]}" | xargs | tr ' ' ',')
@@ -106,6 +135,7 @@ else
       echo "Cherry-pick failed."
       if $(git rev-parse --is-shallow-repository); then
         echo "Unshallow the repository and try again."
+        if $is_sourced; then return 1; else exit 1; fi
       fi
     fi
   fi
@@ -113,7 +143,7 @@ fi
 
 # A hack, since otherwise the build can fail due to line endings in the LLVM script:
 cat "../llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
-cat ~config.guess > "../llvm/cmake/config.guess" && rm ~config.guess
+cat ~config.guess > "../llvm/cmake/config.guess" && rm -rf ~config.guess
 
 # Generate CMake files
 cmake_args="-G Ninja ../llvm \
@@ -121,6 +151,7 @@ cmake_args="-G Ninja ../llvm \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
   -DLLVM_ENABLE_PROJECTS="$llvm_projects" \
+  -DLLVM_ENABLE_RUNTIMES="$llvm_runtimes" \
   -DLLVM_DISTRIBUTION_COMPONENTS=$llvm_components \
   -DLLVM_ENABLE_BINDINGS=OFF \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
@@ -129,8 +160,12 @@ cmake_args="-G Ninja ../llvm \
   -DLLVM_OPTIMIZED_TABLEGEN=ON \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DLLVM_BUILD_EXAMPLES=OFF \
+  -DLLVM_BUILD_TESTS=OFF \
   -DLLVM_ENABLE_OCAMLDOC=OFF \
-  -DLLVM_ENABLE_ZLIB=OFF \
+  -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
+  -DZLIB_ROOT=${ZLIB_INSTALL_PREFIX} \
+  -DZLIB_USE_STATIC_LIBS=TRUE \
+  -DLLVM_ENABLE_ZSTD=OFF \
   -DLLVM_INSTALL_UTILS=ON"
 if $verbose; then
   cmake $cmake_args
@@ -155,4 +190,15 @@ if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
 else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
   cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"
+fi
+
+if $compiler_rt; then
+  cd $llvm_source/build && ninja runtimes && ninja install-runtimes
+  status=$?
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo "Build failed. Please check the files in the `pwd`/logs directory."
+    cd "$working_dir" && if $is_sourced; then return 1; else exit 1; fi
+  else
+    cd "$working_dir" && echo "Successfully added runtime components."
+  fi
 fi

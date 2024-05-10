@@ -1,16 +1,17 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 #include <cudaq.h>
 
-// CHECK: module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__super{{.*}} = "_ZN5superclEd"}} {
+// CHECK-LABEL: module attributes {
+// CHECK-SAME:  quake.mangled_name_map = {__nvqpp__mlirgen__super{{.*}} = "_ZN5superclEd"}
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__super
 // CHECK-SAME: (%[[arg0:.*]]: f64{{.*}}) -> i1
 // CHECK:     %[[cst:.*]] = arith.constant 2.0{{.*}} : f64

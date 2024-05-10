@@ -100,13 +100,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
   branch_cleanup:
-    name: Clean up branch specific GitHub caches
+    name: Clean up branch specific caches
     if: (github.event_name == 'workflow_dispatch' && inputs.cache_type == 'branch' ) || (github.event_name == 'delete' && github.event.ref_type == 'branch')
     runs-on: ubuntu-latest
     permissions: write-all
 
     steps:        
-      - run: |
+      - name: Delete GitHub caches
+        run: |
           gh extension install actions/gh-actions-cache
           keys=$(gh actions-cache list -R ${{ github.repository }} -B ${{ github.event.ref }} | cut -f 1 )
           for key in $keys; do
@@ -115,6 +116,25 @@ jobs:
           done
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # For the installer validation, we push a cache for the minimal MPI build.
+      # This cache is pushed every time, and some caches are even shared between different branches.
+      # We can hence delete the entire build cache for all branches at any time without significant
+      # downsides, and do just that here to have some periodic clean up.
+
+      - name: Delete build caches for MPI asset (ARM64)
+        uses: actions/delete-package-versions@v4
+        with: 
+          package-name: buildcache-cuda-quantum-assets-openmpi-gcc11-arm64
+          package-type: 'container'
+          min-versions-to-keep: 1 # the used action does not support 0 here
+
+      - name: Delete build caches for MPI asset (AMD64)
+        uses: actions/delete-package-versions@v4
+        with: 
+          package-name: buildcache-cuda-quantum-assets-openmpi-gcc11-amd64
+          package-type: 'container'
+          min-versions-to-keep: 1 # the used action does not support 0 here
 
   pr_cleanup:
     name: Clean up PR related GitHub caches

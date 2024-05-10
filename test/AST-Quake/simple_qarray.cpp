@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,8 +8,8 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
-// RUN: FileCheck --check-prefixes=CHECK-LLVM %s < simple_qarray.ll
+// REQUIRES: c++20
+// RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s && FileCheck --check-prefix=LLVM %s < simple_qarray.ll
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -17,7 +17,7 @@
 // Define a quantum kernel
 struct ghz {
   auto operator()() __qpu__ {
-    cudaq::qreg<5> q;
+    cudaq::qarray<5> q;
     h(q[0]);
     for (int i = 0; i < 4; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
@@ -26,7 +26,7 @@ struct ghz {
   }
 };
 
-// CHECK-LLVM: define {{(dso_local )?}}noundef i32 @main
+// LLVM: define {{(dso_local )?}}noundef i32 @main
 
 int main() {
   // Run the kernel in NISQ mode (i.e. run and

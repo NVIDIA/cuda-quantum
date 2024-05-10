@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // RUN: cudaq-quake %s | cudaq-opt --unwind-lowering --canonicalize | FileCheck %s
 
 #include <cudaq.h>
@@ -20,7 +21,7 @@ void g4();
 
 struct C {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       g1();
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
@@ -43,9 +44,9 @@ struct C {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__C()
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 10 : i32
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
@@ -82,18 +83,18 @@ struct C {
 // CHECK:               cc.continue
 // CHECK:             ^bb4:
 // CHECK:               func.call @_Z2g3v() : () -> ()
-// CHECK:               %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (index)) {
-// CHECK:                 %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : index
-// CHECK:                 cc.condition %[[VAL_21]](%[[VAL_20]] : index)
+// CHECK:               %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (i64)) {
+// CHECK:                 %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : i64
+// CHECK:                 cc.condition %[[VAL_21]](%[[VAL_20]] : i64)
 // CHECK:               } do {
-// CHECK:               ^bb0(%[[VAL_22:.*]]: index):
-// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_22]]] : (!quake.veq<2>, index) -> !quake.ref
+// CHECK:               ^bb0(%[[VAL_22:.*]]: i64):
+// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_22]]] : (!quake.veq<2>, i64) -> !quake.ref
 // CHECK:                 quake.z %[[VAL_23]] : (!quake.ref) -> ()
-// CHECK:                 cc.continue %[[VAL_22]] : index
+// CHECK:                 cc.continue %[[VAL_22]] : i64
 // CHECK:               } step {
-// CHECK:               ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:                 %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : index
-// CHECK:                 cc.continue %[[VAL_25]] : index
+// CHECK:               ^bb0(%[[VAL_24:.*]]: i64):
+// CHECK:                 %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : i64
+// CHECK:                 cc.continue %[[VAL_25]] : i64
 // CHECK:               } {invariant}
 // CHECK:               cc.continue
 // CHECK:             } step {
@@ -109,7 +110,7 @@ struct C {
 
 struct D {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       g1();
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
@@ -132,9 +133,9 @@ struct D {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__D() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 10 : i32
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
@@ -171,18 +172,18 @@ struct D {
 // CHECK:               cc.break
 // CHECK:             ^bb4:
 // CHECK:               func.call @_Z2g3v() : () -> ()
-// CHECK:               %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (index)) {
-// CHECK:                 %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : index
-// CHECK:                 cc.condition %[[VAL_21]](%[[VAL_20]] : index)
+// CHECK:               %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (i64)) {
+// CHECK:                 %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : i64
+// CHECK:                 cc.condition %[[VAL_21]](%[[VAL_20]] : i64)
 // CHECK:               } do {
-// CHECK:               ^bb0(%[[VAL_22:.*]]: index):
-// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_22]]] : (!quake.veq<2>, index) -> !quake.ref
+// CHECK:               ^bb0(%[[VAL_22:.*]]: i64):
+// CHECK:                 %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_22]]] : (!quake.veq<2>, i64) -> !quake.ref
 // CHECK:                 quake.z %[[VAL_23]] : (!quake.ref) -> ()
-// CHECK:                 cc.continue %[[VAL_22]] : index
+// CHECK:                 cc.continue %[[VAL_22]] : i64
 // CHECK:               } step {
-// CHECK:               ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:                 %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : index
-// CHECK:                 cc.continue %[[VAL_25]] : index
+// CHECK:               ^bb0(%[[VAL_24:.*]]: i64):
+// CHECK:                 %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : i64
+// CHECK:                 cc.continue %[[VAL_25]] : i64
 // CHECK:               } {invariant}
 // CHECK:               cc.continue
 // CHECK:             } step {
@@ -198,7 +199,7 @@ struct D {
 
 struct E {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       g1();
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
@@ -221,9 +222,9 @@ struct E {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__E() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 10 : i32
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
@@ -261,18 +262,18 @@ struct E {
 // CHECK:           cf.br ^bb7
 // CHECK:         ^bb6:
 // CHECK:           call @_Z2g3v() : () -> ()
-// CHECK:           %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (index)) {
-// CHECK:             %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : index
-// CHECK:             cc.condition %[[VAL_21]](%[[VAL_20]] : index)
+// CHECK:           %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (i64)) {
+// CHECK:             %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : i64
+// CHECK:             cc.condition %[[VAL_21]](%[[VAL_20]] : i64)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_22:.*]]: index):
-// CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]][%[[VAL_22]]] : (!quake.veq<2>, index) -> !quake.ref
+// CHECK:           ^bb0(%[[VAL_22:.*]]: i64):
+// CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]][%[[VAL_22]]] : (!quake.veq<2>, i64) -> !quake.ref
 // CHECK:             quake.z %[[VAL_23]] : (!quake.ref) -> ()
-// CHECK:             cc.continue %[[VAL_22]] : index
+// CHECK:             cc.continue %[[VAL_22]] : i64
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:             %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : index
-// CHECK:             cc.continue %[[VAL_25]] : index
+// CHECK:           ^bb0(%[[VAL_24:.*]]: i64):
+// CHECK:             %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_25]] : i64
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_26:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : i32
@@ -286,7 +287,7 @@ struct E {
 
 struct F {
    void operator()() __qpu__ {
-      cudaq::qreg r(2);
+      cudaq::qvector r(2);
       g1();
       for (int i = 0; i < 10; ++i) {
 	 if (f1(i)) {
@@ -309,9 +310,9 @@ struct F {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__F() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : index
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 10 : i32
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
@@ -349,18 +350,18 @@ struct F {
 // CHECK:           return
 // CHECK:         ^bb6:
 // CHECK:           call @_Z2g3v() : () -> ()
-// CHECK:           %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (index)) {
-// CHECK:             %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : index
-// CHECK:             cc.condition %[[VAL_21]](%[[VAL_20]] : index)
+// CHECK:           %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %[[VAL_2]]) -> (i64)) {
+// CHECK:             %[[VAL_21:.*]] = arith.cmpi slt, %[[VAL_20]], %[[VAL_0]] : i64
+// CHECK:             cc.condition %[[VAL_21]](%[[VAL_20]] : i64)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_22:.*]]: index):
-// CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]][%[[VAL_22]]] : (!quake.veq<2>, index) -> !quake.ref
+// CHECK:           ^bb0(%[[VAL_22:.*]]: i64):
+// CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_6]][%[[VAL_22]]] : (!quake.veq<2>, i64) -> !quake.ref
 // CHECK:             quake.z %[[VAL_23]] : (!quake.ref) -> ()
-// CHECK:             cc.continue %[[VAL_22]] : index
+// CHECK:             cc.continue %[[VAL_22]] : i64
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_24:.*]]: index):
-// CHECK:             %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : index
-// CHECK:             cc.continue %[[VAL_25]] : index
+// CHECK:           ^bb0(%[[VAL_24:.*]]: i64):
+// CHECK:             %[[VAL_25:.*]] = arith.addi %[[VAL_24]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_25]] : i64
 // CHECK:           } {invariant}
 // CHECK:           cf.br ^bb7
 // CHECK:         ^bb7:

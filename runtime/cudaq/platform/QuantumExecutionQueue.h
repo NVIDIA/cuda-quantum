@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -25,7 +25,7 @@ namespace cudaq {
 using QuantumTask = std::function<void()>;
 
 /// The QuantumExecutionQueue provides a queue running on a
-/// separate thread from the main CUDA Quantum host thread that clients
+/// separate thread from the main CUDA-Q host thread that clients
 /// can submit execution tasks to, and these tasks will be executed
 /// (asynchronously from the calling thread) in the order they are submitted.
 class QuantumExecutionQueue {
@@ -37,6 +37,9 @@ public:
 
   /// Enqueue a Sampling task.
   void enqueue(QuantumTask &task);
+
+  /// Get id of the thread this queue executes on.
+  std::thread::id getExecutionThreadId() const;
 
 protected:
   /// The mutex, used for locking when adding to the queue

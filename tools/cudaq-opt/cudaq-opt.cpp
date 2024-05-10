@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -46,9 +46,9 @@ static void registerInlinerExtension(mlir::DialectRegistry &registry) {
 }
 
 /// @brief Add a command line flag for loading plugins
-static cl::list<std::string> CudaQPlugins(
-    "load-cudaq-plugin",
-    cl::desc("Load CUDA Quantum plugin by specifying its library"));
+static cl::list<std::string>
+    CudaQPlugins("load-cudaq-plugin",
+                 cl::desc("Load CUDA-Q plugin by specifying its library"));
 
 int main(int argc, char **argv) {
   // Set the bug report message to indicate users should file issues on

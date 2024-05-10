@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -23,7 +23,7 @@ namespace cudaq {
 class quantum_platform;
 
 /// @brief A RuntimeTarget encapsulates an available
-/// backend simulator and quantum_platform for CUDA Quantum
+/// backend simulator and quantum_platform for CUDA-Q
 /// kernel execution.
 struct RuntimeTarget {
   std::string name;
@@ -33,11 +33,13 @@ struct RuntimeTarget {
 
   /// @brief Return the number of QPUs this target exposes.
   std::size_t num_qpus();
+  bool is_remote();
+  bool is_emulated();
 };
 
 /// @brief The LinkedLibraryHolder provides a mechanism for
 /// dynamically loading and storing the required plugin libraries
-/// for the CUDA Quantum runtime within the Python runtime.
+/// for the CUDA-Q runtime within the Python runtime.
 class LinkedLibraryHolder {
 public:
   /// @brief Global boolean that disables target modification.
@@ -49,7 +51,7 @@ protected:
   // Store the library suffix
   std::string libSuffix = "";
 
-  /// @brief The path to the CUDA Quantum libraries
+  /// @brief The path to the CUDA-Q libraries
   std::filesystem::path cudaqLibPath;
 
   /// @brief Map of path strings to loaded library handles.

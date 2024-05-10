@@ -1,0 +1,108 @@
+{
+    "internal_images":
+    [
+        {
+            "name": "cuda-quantum",
+            "tags_to_keep": 6
+        },
+        {
+            "name": "cuda-quantum-dev",
+            "tags_to_keep": 50
+        },
+        {
+            "name": "cuda-quantum-assets",
+            "tags_to_keep": 20
+        },
+        {
+            "name": "cuda-quantum-devdeps",
+            "tags_to_keep": 100
+        },
+        {
+            "name": "open-mpi",
+            "tags_to_keep": 10
+        }
+    ],    
+    "external_images":
+    [
+        {
+            "source": "quay.io/pypa/manylinux_2_28_x86_64",
+            "platforms": "linux/amd64",
+            "tags": 
+            [
+                "latest"
+            ]
+        },
+        {
+            "source": "quay.io/pypa/manylinux_2_28_aarch64",
+            "platforms": "linux/arm64",
+            "tags": 
+            [
+                "latest"
+            ]
+        },
+        {
+            "source": "amd64/almalinux",
+            "platforms": "linux/amd64",
+            "tags": 
+            [
+                "8"
+            ]
+        },
+        {
+            "source": "arm64v8/almalinux",
+            "platforms": "linux/arm64",
+            "tags": 
+            [
+                "8"
+            ]
+        },
+        {
+            "source": "ubuntu",
+            "platforms": "linux/amd64,linux/arm64",
+            "tags": 
+            [
+                "22.04"
+            ]
+        },
+        {
+            "source": "debian",
+            "platforms": "linux/amd64,linux/arm64",
+            "tags": 
+            [
+                "11", "12"
+            ]
+        },
+        {
+            "source": "fedora",
+            "platforms": "linux/amd64,linux/arm64",
+            "tags": 
+            [
+                "38"
+            ]
+        },
+        {
+            "source": "redhat/ubi8",
+            "platforms": "linux/amd64,linux/arm64",
+            "tags": 
+            [
+                "8.0"
+            ]
+        },
+        {
+            "source": "redhat/ubi9",
+            "platforms": "linux/amd64,linux/arm64",
+            "tags": 
+            [
+                "9.2"
+            ]
+        },
+        {
+            "source": "opensuse/leap",
+            "platforms": "linux/amd64,linux/arm64",
+            "tags": 
+            [
+                "15.5"
+            ]
+        }
+    ]
+}

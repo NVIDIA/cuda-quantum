@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -28,9 +28,8 @@ public:
   QuditIdTracker() = default;
   QuditIdTracker(const QuditIdTracker &) = delete;
 
-  /// @brief Return the next available index,
-  /// take from the recycled qudit indentifiers
-  /// if possible.
+  /// @brief Return the next available index, take from the recycled qudit
+  /// identifiers if possible.
   std::size_t getNextIndex() {
     if (recycledQudits.empty()) {
       std::size_t ret = currentId;

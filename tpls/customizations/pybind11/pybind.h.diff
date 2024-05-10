@@ -1,8 +1,8 @@
 diff --git a/include/pybind11/pybind11.h b/include/pybind11/pybind11.h
-index 3bce1a01..852ce3b4 100644
+index b87fe66b..b5700db2 100644
 --- a/include/pybind11/pybind11.h
 +++ b/include/pybind11/pybind11.h
-@@ -23,6 +23,7 @@
+@@ -25,6 +25,7 @@
  #include <string>
  #include <utility>
  #include <vector>
@@ -10,7 +10,7 @@ index 3bce1a01..852ce3b4 100644
  
  #if defined(__cpp_lib_launder) && !(defined(_MSC_VER) && (_MSC_VER < 1914))
  #    define PYBIND11_STD_LAUNDER std::launder
-@@ -585,9 +586,27 @@ protected:
+@@ -628,9 +629,28 @@ protected:
                  if (chain) {
                      signatures += std::to_string(++index) + ". ";
                  }
@@ -27,6 +27,7 @@ index 3bce1a01..852ce3b4 100644
 +                formatted_string = std::regex_replace(formatted_string, std::regex("numpy.complex128"), "");
 +                formatted_string = std::regex_replace(formatted_string, std::regex(".ndarray[]"), ".ndarray");
 +                formatted_string = std::regex_replace(formatted_string, std::regex("buffer"), "numpy.ndarray");
++                formatted_string = std::regex_replace(formatted_string, std::regex("Buffer"), "numpy.ndarray");
 +                formatted_string = std::regex_replace(formatted_string, std::regex("::sample_result"), ".SampleResult");
 +                formatted_string = std::regex_replace(formatted_string, std::regex("::observe_result"), ".ObserveResult");
 +                formatted_string = std::regex_replace(formatted_string, std::regex("::async_result<cudaq.SampleResult>"), ".AsyncSampleResult");

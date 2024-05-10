@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,8 +13,7 @@ namespace {
 
 /// @brief The QppNoiseCircuitSimulator further specializes the
 /// QppCircuitSimulator to use a density matrix representation of the state.
-/// This class directly enables a simple noise modeling capability for CUDA
-/// Quantum.
+/// This class directly enables a simple noise modeling capability for CUDA-Q.
 class QppNoiseCircuitSimulator : public nvqir::QppCircuitSimulator<qpp::cmat> {
 
 protected:
@@ -34,6 +33,11 @@ protected:
 
     // Get the name as a string
     std::string gName(gateName);
+
+    std::vector<std::size_t> casted_qubits;
+    for (auto index : qubits) {
+      casted_qubits.push_back(convertQubitIndex(index));
+    }
 
     // Get the Kraus channels specified for this gate and qubits
     auto krausChannels =
@@ -56,25 +60,12 @@ protected:
           });
 
       // Apply K rho Kdag
-      state = qpp::apply(state, K, qubits);
+      state = qpp::apply(state, K, casted_qubits);
     }
   }
 
   /// @brief Grow the density matrix by one qubit.
-  void addQubitToState() override {
-    // Update the state vector
-    if (state.size() == 0) {
-      state = qpp::cmat::Zero(stateDimension, stateDimension);
-      state(0, 0) = 1.0;
-      return;
-    }
-
-    state.conservativeResize(stateDimension, stateDimension);
-    for (std::size_t i = previousStateDimension; i < stateDimension; i++) {
-      state.col(i).setZero();
-      state.row(i).setZero();
-    }
-  }
+  void addQubitToState() override { addQubitsToState(1); }
 
   void addQubitsToState(std::size_t count) override {
     if (count == 0)
@@ -87,13 +78,9 @@ protected:
       return;
     }
 
-    state.conservativeResize(stateDimension, stateDimension);
-    for (std::size_t i = previousStateDimension; i < stateDimension; i++) {
-      state.col(i).setZero();
-      state.row(i).setZero();
-    }
-
-    return;
+    qpp::cmat zero_state = qpp::cmat::Zero(1 << count, 1 << count);
+    zero_state(0, 0) = 1.0;
+    state = qpp::kron(zero_state, state);
   }
 
   void setToZeroState() override {

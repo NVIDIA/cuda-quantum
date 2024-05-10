@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,7 +11,7 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "NoiseModel.h"
-#include "Resources.h"
+#include "Trace.h"
 #include <optional>
 #include <string_view>
 
@@ -24,7 +24,7 @@ using State =
     std::tuple<std::vector<std::size_t>, std::vector<std::complex<double>>>;
 
 /// @brief The ExecutionContext is an abstraction to indicate
-/// how a CUDA Quantum kernel should be executed.
+/// how a CUDA-Q kernel should be executed.
 class ExecutionContext {
 public:
   /// @brief The name of the context ({basic, sampling, observe})
@@ -36,7 +36,7 @@ public:
   /// @brief An optional spin operator
   std::optional<cudaq::spin_op *> spin;
 
-  /// @brief Measurement counts for a CUDA Quantum kernel invocation
+  /// @brief Measurement counts for a CUDA-Q kernel invocation
   sample_result result;
 
   /// @brief A computed expectation value
@@ -68,7 +68,7 @@ public:
 
   /// @brief When run under the tracer context, persist the
   /// traced quantum resources here.
-  Resources kernelResources;
+  Trace kernelTrace;
 
   /// @brief The name of the kernel being executed.
   std::string kernelName = "";
@@ -84,6 +84,10 @@ public:
   /// @brief For mid-circuit measurements in library mode
   /// keep track of the register names.
   std::vector<std::string> registerNames;
+
+  /// @brief A vector containing information about how to reorder the global
+  /// register after execution. Empty means no reordering.
+  std::vector<std::size_t> reorderIdx;
 
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context

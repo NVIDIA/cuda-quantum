@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// This tool takes a snippet of CUDA Quantum code, translates it to the Quake
+/// This tool takes a snippet of CUDA-Q code, translates it to the Quake
 /// dialect, runs user-specified passes, and prints the result. (Note that Quake
 /// is a "minimalist" dialect, so translating to Quake can and does make use of
 /// other MLIR dialects as well. These other dialects are convenient but not the
@@ -39,8 +39,8 @@
 
 using namespace llvm;
 
-constexpr static const char toolName[] = "cudaq-quake";
-constexpr static const char mangledKernelNameMapAttrName[] =
+static constexpr const char toolName[] = "cudaq-quake";
+static constexpr const char mangledKernelNameMapAttrName[] =
     "quake.mangled_name_map";
 
 //===----------------------------------------------------------------------===//
@@ -81,10 +81,6 @@ static cl::opt<bool> noSimplify(
 static cl::opt<bool> astDump("ast-dump", cl::desc("Dump the ast."),
                              cl::init(false));
 
-static cl::opt<bool> showVersion("nvqpp-version",
-                                 cl::desc("Print the version."),
-                                 cl::init(false));
-
 static cl::opt<bool> verboseClang("v",
                                   cl::desc("Add -v to clang tool arguments."),
                                   cl::init(false));
@@ -110,6 +106,11 @@ static cl::list<std::string>
 
 static cl::list<std::string>
     extraClangArgs("Xcudaq", cl::desc("Extra options to pass to clang++"));
+
+static cl::opt<std::string> stdCpp(
+    "std",
+    cl::desc("Specify the C++ standard (c++17, c++20). The default is c++20."),
+    cl::init("c++20"));
 
 inline bool isStdinInput(StringRef str) { return str == "-"; }
 
@@ -192,7 +193,7 @@ private:
 };
 
 /// Action to create both the LLVM IR for the entire C++ compilation unit and to
-/// translate the CUDA Quantum kernels.
+/// translate the CUDA-Q kernels.
 class CudaQAction : public clang::EmitLLVMAction {
 public:
   using Base = clang::EmitLLVMAction;
@@ -299,8 +300,6 @@ int main(int argc, char **argv) {
   // Process the command-line options, including reading in a file.
   [[maybe_unused]] llvm::InitLLVM unused(argc, argv);
   cl::ParseCommandLineOptions(argc, argv, toolName);
-  if (showVersion)
-    llvm::errs() << "nvq++ Version " << cudaq::getVersion() << '\n';
   ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrError =
       MemoryBuffer::getFileOrSTDIN(inputFilename);
   if (auto ec = fileOrError.getError()) {
@@ -344,7 +343,7 @@ int main(int argc, char **argv) {
   });
 
   // Process arguments.
-  std::vector<std::string> clArgs = {"-std=c++20", "-resource-dir",
+  std::vector<std::string> clArgs = {"-std=" + stdCpp, "-resource-dir",
                                      resourceDirPath.string()};
   if (verboseClang)
     clArgs.push_back("-v");
@@ -372,20 +371,18 @@ int main(int argc, char **argv) {
     clArgs.push_back(LLVM_LIBCXX_INCLUDE_DIR);
   }
 
-  // If the cudaq.h does not exist in the installation directory,
-  // fallback onto the source install.
+  // If the cudaq.h does not exist in the installation directory, fallback onto
+  // the source install.
   std::filesystem::path cudaqIncludeDir = cudaqInstallPath / "include";
   auto cudaqHeader = cudaqIncludeDir / "cudaq.h";
   if (!std::filesystem::exists(cudaqHeader))
     // need to fall back to the build environment.
     cudaqIncludeDir = std::string(FALLBACK_CUDAQ_INCLUDE_DIR);
 
-  // One final check here, do we have this header,
-  // if not we cannot proceed.
+  // One final check here, do we have this header, if not we cannot proceed.
   if (!std::filesystem::exists(cudaqIncludeDir / "cudaq.h")) {
-    llvm::errs() << "Invalid CUDA Quantum install configuration, cannot find "
-                    "CUDA Quantum "
-                    "include directory.\n";
+    llvm::errs() << "Invalid CUDA-Q install configuration, cannot find "
+                    "CUDA-Q include directory.\n";
     return 1;
   }
 
@@ -419,8 +416,7 @@ int main(int argc, char **argv) {
   for (auto &xtra : extraClangArgs)
     clArgs.push_back(xtra);
 
-  // Allow a user to specify extra args for clang via
-  // an environment variable.
+  // Allow a user to specify extra args for clang via an environment variable.
   if (auto extraArgs = std::getenv("CUDAQ_CLANG_EXTRA_ARGS")) {
     std::stringstream ss;
     ss << extraArgs;

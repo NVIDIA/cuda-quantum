@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -60,26 +60,41 @@ randomValues(uint64_t num_samples, double max_value,
   return rs;
 }
 
-/// @brief Util struct to allocate and clean up device memory scratch space.
+/// @brief Struct to allocate and clean up device memory scratch space.
 struct ScratchDeviceMem {
   void *d_scratch = nullptr;
   std::size_t scratchSize = 0;
-  ScratchDeviceMem() {
+  // Compute the scratch size to allocate.
+  void computeScratchSize() {
     // Query the free memory on Device
     std::size_t freeSize{0}, totalSize{0};
     HANDLE_CUDA_ERROR(cudaMemGetInfo(&freeSize, &totalSize));
     scratchSize = (freeSize - (freeSize % 4096)) /
                   2; // use half of available memory with alignment
-    HANDLE_CUDA_ERROR(cudaMalloc(&d_scratch, scratchSize));
+  }
+
+  ScratchDeviceMem() {
+    computeScratchSize();
+    // Try allocate device memory
+    auto errCode = cudaMalloc(&d_scratch, scratchSize);
+    if (errCode == cudaErrorMemoryAllocation) {
+      // This indicates race condition whereby other GPU code is allocating
+      // memory while we are calling cudaMemGetInfo.
+      // Attempt to redo the allocation with an updated cudaMemGetInfo data.
+      computeScratchSize();
+      HANDLE_CUDA_ERROR(cudaMalloc(&d_scratch, scratchSize));
+    } else {
+      HANDLE_CUDA_ERROR(errCode);
+    }
   }
   ~ScratchDeviceMem() { HANDLE_CUDA_ERROR(cudaFree(d_scratch)); }
 };
 
-/// Initialize cutensornet MPI Comm
+/// Initialize `cutensornet` MPI Comm
 /// If MPI is not available, fallback to an empty implementation.
 void initCuTensornetComm(cutensornetHandle_t cutnHandle);
 
-/// Reset cutensornet MPI Comm, e.g., in preparation for shutdown.
-/// Note: this will make sure no further MPI activities from cutensornet can
-/// occur once MPI has been finalized by CUDAQ.
+/// Reset `cutensornet` MPI Comm, e.g., in preparation for shutdown.
+/// Note: this will make sure no further MPI activities from `cutensornet` can
+/// occur once MPI has been finalized by CUDA-Q.
 void resetCuTensornetComm(cutensornetHandle_t cutnHandle);

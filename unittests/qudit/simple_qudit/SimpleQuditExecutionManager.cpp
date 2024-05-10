@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -78,7 +78,8 @@ protected:
     operation(instruction);
   }
 
-  int measureQudit(const cudaq::QuditInfo &q) override {
+  int measureQudit(const cudaq::QuditInfo &q,
+                   const std::string &regName) override {
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;
@@ -108,7 +109,7 @@ public:
       auto &[gateName, params, controls, qudits, op] = inst;
       auto target = qudits[0];
       cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
-      state = qpp::applyCTRL(state, u, {}, {target.id}, target.levels);
+      state = qpp::apply(state, u, {target.id}, target.levels);
     });
   }
   virtual ~SimpleQuditExecutionManager() = default;

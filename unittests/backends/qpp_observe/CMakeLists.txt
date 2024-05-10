@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -20,11 +20,12 @@ target_include_directories(nvqir-qpp-observe-test
            ${CMAKE_SOURCE_DIR}/runtime/common 
            ${CMAKE_SOURCE_DIR}/runtime/nvqir 
            ${CMAKE_SOURCE_DIR}/tpls/eigen
-           ${CMAKE_SOURCE_DIR}/tpls/qpp/include)
+)
+
 target_link_libraries(nvqir-qpp-observe-test
   PUBLIC fmt::fmt-header-only
           cudaq-common
-          cudaq-spin ${QPP_DEPENDENCIES})
+          cudaq-spin ${QPP_DEPENDENCIES} libqpp)
 
 add_executable(test_observe_backend QppObserveTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)

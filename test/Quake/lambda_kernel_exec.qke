@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -46,6 +46,10 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
     return
   }
 
+  func.func @_ZZ4mainENK3$_0clEv() {
+    return
+  }
+
 // CHECK: %[[VAL_3:.*]] = llvm.mlir.addressof @lambda.main.canHaveMultiple.lambdaName : !llvm.ptr<array<10 x i8>>
 // CHECK-NEXT: %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!llvm.ptr<array<10 x i8>>) -> !llvm.ptr<i8>
 // CHECK: llvm.call @cudaqRegisterLambdaName(%[[VAL_4]], %{{.*}}) : (!llvm.ptr<i8>, !llvm.ptr<i8>) -> ()
@@ -78,6 +82,11 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__lambda.main.canHa
     %8 = arith.extsi %c1_i32 : i32 to i64
     %9 = quake.extract_ref %1[%8] : (!quake.veq<?>,i64) -> !quake.ref
     quake.mz %9 : (!quake.ref) -> !quake.measure
+    return
+  }
+
+
+  func.func @_ZZ4mainENK3$_1clEv() {
     return
   }
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -71,29 +71,25 @@ void SimulatorTensorNetBase::applyGate(const GateApplicationTask &task) {
   const auto &controls = task.controls;
   const auto &targets = task.targets;
   // Cache name lookup key:
-  // <GateName>_<num control>_<Param>
-  const std::string gateKey =
-      task.operationName + "_" + std::to_string(controls.size()) + "_" + [&]() {
-        std::stringstream paramsSs;
-        for (const auto &param : task.parameters) {
-          paramsSs << param << "_";
-        }
-        return paramsSs.str();
-      }();
+  // <GateName>_<Param>
+  const std::string gateKey = task.operationName + "_" + [&]() {
+    std::stringstream paramsSs;
+    for (const auto &param : task.parameters) {
+      paramsSs << param << "_";
+    }
+    return paramsSs.str();
+  }();
   const auto iter = m_gateDeviceMemCache.find(gateKey);
 
   // This is the first time we see this gate, allocate device mem and cache it.
   if (iter == m_gateDeviceMemCache.end()) {
-    void *dMem = allocateGateMatrix(
-        generateFullGateTensor(controls.size(), task.matrix));
+    void *dMem = allocateGateMatrix(task.matrix);
     m_gateDeviceMemCache[gateKey] = dMem;
   }
-  std::vector<int32_t> qubits;
-  for (const auto &qId : controls)
-    qubits.emplace_back(qId);
-  for (const auto &qId : targets)
-    qubits.emplace_back(qId);
-  m_state->applyGate(qubits, m_gateDeviceMemCache[gateKey]);
+  // Type conversion
+  const std::vector<std::int32_t> ctrlQubits(controls.begin(), controls.end());
+  const std::vector<std::int32_t> targetQubits(targets.begin(), targets.end());
+  m_state->applyGate(ctrlQubits, targetQubits, m_gateDeviceMemCache[gateKey]);
 }
 
 /// @brief Reset the state of a given qubit to zero
@@ -135,6 +131,11 @@ void SimulatorTensorNetBase::resetQubit(const std::size_t qubitIdx) {
   }
 
   m_state->applyQubitProjector(m_gateDeviceMemCache[projKey], qubitIdx);
+}
+
+/// @brief Device synchronization
+void SimulatorTensorNetBase::synchronize() {
+  HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
 }
 
 /// @brief Perform a measurement on a given qubit
@@ -186,7 +187,7 @@ SimulatorTensorNetBase::sample(const std::vector<std::size_t> &measuredBits,
       allZTerm.at(m_state->getNumQubits() + m) = 1;
     cudaq::spin_op allZ(allZTerm, 1.0);
     // Just compute the expected value on <Z...Z>
-    return observe(allZ);
+    return cudaq::ExecutionResult({}, observe(allZ).expectation());
   }
 
   prepareQubitTensorState();
@@ -224,7 +225,7 @@ static nvqir::CutensornetExecutor *getPluginInstance() {
   return fcn();
 }
 /// @brief Evaluate the expectation value of a given observable
-cudaq::ExecutionResult
+cudaq::observe_result
 SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
   LOG_API_TIME();
   prepareQubitTensorState();
@@ -238,13 +239,17 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
     for (std::size_t i = 0; i < terms.size(); ++i) {
       expVal += (coeffs[i] * termExpVals[i]);
     }
-    return cudaq::ExecutionResult({}, expVal.real());
+    return cudaq::observe_result(expVal.real(), ham,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, ham.to_string(false), expVal.real())));
   } else {
     TensorNetworkSpinOp spinOp(ham, m_cutnHandle);
     std::complex<double> expVal =
         m_state->computeExpVal(spinOp.getNetworkOperator());
     expVal += spinOp.getIdentityTermOffset();
-    return cudaq::ExecutionResult({}, expVal.real());
+    return cudaq::observe_result(expVal.real(), ham,
+                                 cudaq::sample_result(cudaq::ExecutionResult(
+                                     {}, ham.to_string(false), expVal.real())));
   }
 }
 
@@ -284,6 +289,32 @@ void SimulatorTensorNetBase::setToZeroState() {
   m_state.reset();
   // Re-create a zero state of the same size
   m_state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
+}
+
+void SimulatorTensorNetBase::swap(const std::vector<std::size_t> &ctrlBits,
+                                  const std::size_t srcIdx,
+                                  const std::size_t tgtIdx) {
+  if (ctrlBits.empty())
+    return nvqir::CircuitSimulatorBase<double>::swap(ctrlBits, srcIdx, tgtIdx);
+  // Controlled swap gate: using cnot decomposition of swap gate to perform
+  // decomposition.
+  // Note: cutensornetStateApplyControlledTensorOperator can only handle
+  // single-target.
+  const auto size = ctrlBits.size();
+  std::vector<std::size_t> ctls(size + 1);
+  std::copy(ctrlBits.begin(), ctrlBits.end(), ctls.begin());
+  {
+    ctls[size] = tgtIdx;
+    nvqir::CircuitSimulatorBase<double>::x(ctls, srcIdx);
+  }
+  {
+    ctls[size] = srcIdx;
+    nvqir::CircuitSimulatorBase<double>::x(ctls, tgtIdx);
+  }
+  {
+    ctls[size] = tgtIdx;
+    nvqir::CircuitSimulatorBase<double>::x(ctls, srcIdx);
+  }
 }
 
 SimulatorTensorNetBase::~SimulatorTensorNetBase() {

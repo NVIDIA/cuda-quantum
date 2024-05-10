@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,7 +9,9 @@
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
      "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
-
+# clear any flags for static linking
+SET(CMAKE_EXE_LINKER_FLAGS "")
+SET(CMAKE_SHARED_LINKER_FLAGS "")
 
 set(CUDAQ_RUNTIME_TEST_SOURCES 
   # Integration tests
@@ -17,6 +19,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/builder_tester.cpp
   integration/ccnot_tester.cpp
   integration/deuteron_variational_tester.cpp
+  integration/draw_tester.cpp
   integration/ghz_nisq_tester.cpp
   integration/gradient_tester.cpp
   integration/grover_test.cpp
@@ -33,6 +36,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/observe_result_tester.cpp
   integration/noise_tester.cpp
   integration/get_state_tester.cpp
+  integration/measure_reset_tester.cpp
   qir/NVQIRTester.cpp
   qis/QubitQISTester.cpp
   integration/kernels_tester.cpp
@@ -67,25 +71,36 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     cudaq-platform-default
     cudaq-builder
     gtest_main)
+  set(TEST_LABELS "")
   if (${NVQIR_BACKEND} STREQUAL "dm")
-     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_DM)
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet")
-     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+    set(TEST_LABELS "gpu_required")
   endif()
   if (${NVQIR_BACKEND} STREQUAL "tensornet-mps")
-     target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET -DCUDAQ_BACKEND_TENSORNET_MPS)
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_TENSORNET)
+    set(TEST_LABELS "gpu_required")
   endif()
-  gtest_discover_tests(${TEST_EXE_NAME})
+  if (${NVQIR_BACKEND} STREQUAL "custatevec-fp32")
+    target_compile_definitions(${TEST_EXE_NAME} PRIVATE -DCUDAQ_BACKEND_CUSTATEVEC_FP32)
+    set(TEST_LABELS "gpu_required")
+  endif()
+  if (${NVQIR_BACKEND} STREQUAL "custatevec-fp64")
+    set(TEST_LABELS "gpu_required")
+  endif()
+  if ("${TEST_LABELS}" STREQUAL "")
+    gtest_discover_tests(${TEST_EXE_NAME})
+  else()
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}")
+  endif()
 endmacro()
 
 # We will always have the QPP backend, create a tester for it
 create_tests_with_backend(qpp backends/QPPTester.cpp)
-create_tests_with_backend(dm "")
+create_tests_with_backend(dm backends/QPPDMTester.cpp)
 
-# FIXME Check that we have GPUs. Could be in a 
-# Docker environment built with CUDA, but no --gpus flag
-# or no gpus on the system.
 if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
   create_tests_with_backend(custatevec-fp32 "")
   # Given that the fp32 and fp64 difference is largely inherited
@@ -105,7 +120,30 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
     gtest_main)
-    gtest_discover_tests(test_mqpu)
+  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required")
+
+  # Test CUDAQ_OBSERVE_FROM_SAMPLING=ON mode.
+  # (term-by-term expectation value calculation by applying change-of-basis gates then reverting them)
+  add_executable(test_custatevec_observe_from_sampling 
+    integration/builder_tester.cpp  
+    integration/deuteron_variational_tester.cpp
+    integration/gradient_tester.cpp
+    integration/nlopt_tester.cpp
+  )
+  target_include_directories(test_custatevec_observe_from_sampling PRIVATE .)
+  target_compile_definitions(test_custatevec_observe_from_sampling PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_custatevec_observe_from_sampling PRIVATE -Wl,--no-as-needed)
+  endif()
+  target_link_libraries(test_custatevec_observe_from_sampling
+    PRIVATE 
+    cudaq
+    cudaq-builder
+    cudaq-platform-default
+    nvqir-custatevec-fp32
+    gtest_main)
+  # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
+  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required")
 
     if (MPI_CXX_FOUND)
       # Count the number of GPUs
@@ -127,6 +165,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
             configure_file("mqpu/run_mpi.sh.in"
                       "${CMAKE_BINARY_DIR}/unittests/run_mpi.sh" @ONLY)
           add_test(NAME MPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 bash ${CMAKE_BINARY_DIR}/unittests/run_mpi.sh)
+          set_tests_properties(MPITest PROPERTIES LABELS "gpu_required;mgpus_required")
         endif()
       endif()
     endif() 
@@ -180,12 +219,53 @@ target_link_libraries(test_photonics
   gtest_main)
 gtest_discover_tests(test_photonics)
 
+add_executable(test_utils main.cpp utils/UtilsTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_utils PRIVATE -Wl,--no-as-needed)
+endif()
+target_link_libraries(test_utils
+  PRIVATE 
+  cudaq
+  cudaq-platform-default
+  cudaq-em-photonics
+  nvqir-qpp fmt::fmt-header-only
+  gtest_main)
+gtest_discover_tests(test_utils)
+
+# Create an executable for MPI UnitTests
+# (only if MPI was found, i.e., the builtin plugin is available)
+if (MPI_CXX_FOUND)
+  set(CUDAQ_MPI_TEST_SOURCES 
+    mpi/mpi_tester.cpp
+  )
+  add_executable(test_mpi_plugin ${CUDAQ_MPI_TEST_SOURCES})
+  set(NUM_PROCS 4)
+  target_compile_definitions(test_mpi_plugin PRIVATE -DNUM_PROCS=${NUM_PROCS})
+  target_link_libraries(test_mpi_plugin
+    PRIVATE 
+    cudaq
+    cudaq-platform-default
+    nvqir-qpp
+    gtest
+  )
+  target_link_options(test_mpi_plugin PRIVATE -Wl,--no-as-needed)
+  # Check if `--allow-run-as-root` is supported (OpenMPI)
+  # Note: MPICH doesn't need `--allow-run-as-root`.
+  execute_process(COMMAND ${MPIEXEC} --allow-run-as-root -np ${NUM_PROCS} hostname ERROR_VARIABLE CHECK_ALLOW_RUN_AS_ROOT_RESULTS ERROR_STRIP_TRAILING_WHITESPACE OUTPUT_QUIET)
+  if ("${CHECK_ALLOW_RUN_AS_ROOT_RESULTS}" STREQUAL "")
+    set(MPI_EXEC_CMD_ARGS "--allow-run-as-root")
+  endif()
+  
+  add_test(NAME MPIApiTest COMMAND ${MPIEXEC} ${MPI_EXEC_CMD_ARGS} -np ${NUM_PROCS} ${CMAKE_BINARY_DIR}/unittests/test_mpi_plugin)
+endif()
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
 
 if (CUDAQ_ENABLE_PYTHON)
-  find_package(Python COMPONENTS Interpreter)
+  if (NOT Python_FOUND)
+    message(FATAL_ERROR "find_package(Python) not run?")
+  endif()
   execute_process(COMMAND ${Python_EXECUTABLE} -c "import openfermionpyscf"
     OUTPUT_VARIABLE PYSCF_output
     ERROR_VARIABLE  PYSCF_error

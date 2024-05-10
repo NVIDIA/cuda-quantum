@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,7 +10,7 @@
 #include "common/Logger.h"
 
 #ifndef NTIMING
-#define LOG_API_TIME() cudaq::ScopedTrace trace(__FUNCTION__);
+#define LOG_API_TIME() ScopedTraceWithContext(__FUNCTION__);
 #else
 #define LOG_API_TIME()
 #endif

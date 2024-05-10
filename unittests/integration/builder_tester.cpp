@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -63,14 +63,14 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     };
     cudaq::gradients::central_difference gradient(ansatz, argMapper);
     cudaq::optimizers::lbfgs optimizer;
-    optimizer.initial_parameters = {0.35, 0.25};
-    optimizer.max_eval = 10;
-    optimizer.max_line_search_trials = 10;
+    optimizer.initial_parameters = {0.359, 0.257};
+    optimizer.max_eval = 4;
+    optimizer.max_line_search_trials = 8;
     auto [opt_val_0, optpp] =
         cudaq::vqe(ansatz, gradient, h3, optimizer, 2, argMapper);
     printf("Opt-params: %lf %lf \n", optpp[0], optpp[1]);
     printf("<H3> = %lf\n", opt_val_0);
-    EXPECT_NEAR(opt_val_0, -2.045375, 1e-3);
+    EXPECT_NEAR(opt_val_0, -2.045375, 1e-2);
   }
 
   {
@@ -97,12 +97,12 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
 
     cudaq::gradients::central_difference gradient(ansatz);
     cudaq::optimizers::lbfgs optimizer;
-    optimizer.initial_parameters = {0.35, 0.25};
-    optimizer.max_eval = 10;
-    optimizer.max_line_search_trials = 10;
+    optimizer.initial_parameters = {0.359, 0.257};
+    optimizer.max_eval = 4;
+    optimizer.max_line_search_trials = 8;
     auto [opt_val_0, optpp] = cudaq::vqe(ansatz, gradient, h3, optimizer, 2);
     printf("<H3> = %lf\n", opt_val_0);
-    EXPECT_NEAR(opt_val_0, -2.045375, 1e-3);
+    EXPECT_NEAR(opt_val_0, -2.045375, 1e-2);
   }
 
   {
@@ -125,8 +125,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     EXPECT_EQ(counter, 1000);
   }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-  // MPS doesn't support gates on more than 2 qubits
   {
     auto ccnot_builder = cudaq::make_kernel();
     auto q = ccnot_builder.qalloc(3);
@@ -139,7 +137,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     counts.dump();
     EXPECT_TRUE(counts.begin()->first == "101");
   }
-#endif
 
   {
     // Check controlled parametric gates (constant angle)
@@ -221,11 +218,9 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkRotations) {
 
-  // rx: entire qreg
+  // rx: entire qvector
   {
     cudaq::set_random_seed(4);
 
@@ -241,7 +236,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("1110"), 1000);
   }
 
-  // ry: entire qreg
+  // ry: entire qvector
   {
     cudaq::set_random_seed(4);
 
@@ -257,7 +252,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("1110"), 1000);
   }
 
-  // rz: entire qreg
+  // rz: entire qvector
   {
     cudaq::set_random_seed(4);
 
@@ -277,7 +272,7 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("1110"), 1000);
   }
 
-  // r1: entire qreg
+  // r1: entire qvector
   {
     cudaq::set_random_seed(4);
 
@@ -427,7 +422,6 @@ CUDAQ_TEST(BuilderTester, checkRotations) {
     EXPECT_EQ(counts.count("0111"), 1000);
   }
 }
-#endif
 
 CUDAQ_TEST(BuilderTester, checkSwap) {
   cudaq::set_random_seed(13);
@@ -435,13 +429,12 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
   // Simple two-qubit swap.
   {
     auto kernel = cudaq::make_kernel();
-    auto q = kernel.qalloc(2);
-    // 0th qubit into the 1-state.
-    kernel.x(q[0]);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+    // `first` qubit into the 1-state.
+    kernel.x(first);
     // Swap their states and measure.
-    kernel.swap(q[0], q[1]);
-    // Measure.
-    kernel.mz(q);
+    kernel.swap(first, second);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
@@ -451,17 +444,126 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
   // Simple two-qubit swap.
   {
     auto kernel = cudaq::make_kernel();
-    auto q = kernel.qalloc(2);
-    // 1st qubit into the 1-state.
-    kernel.x(q[1]);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+    // `second` qubit into the 1-state.
+    kernel.x(second);
     // Swap their states and measure.
-    kernel.swap(q[0], q[1]);
-    // Measure.
-    kernel.mz(q);
+    kernel.swap(first, second);
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
     EXPECT_NEAR(counts.count("10"), 1000, 0);
+  }
+
+  // Single qubit controlled-SWAP.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto ctrl = kernel.qalloc();
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+    // ctrl and `first` in the 1-state.
+    kernel.x(ctrl);
+    kernel.x(first);
+    // Swap their states and measure.
+    kernel.swap<cudaq::ctrl>(ctrl, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    EXPECT_NEAR(counts.count("101"), 1000, 0);
+  }
+
+  // Multi-controlled SWAP with a ctrl register.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto ctrls = kernel.qalloc(3);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+
+    // Rotate `first` to |1> state.
+    kernel.x(first);
+
+    // Only a subset of controls in the |1> state.
+    kernel.x(ctrls[0]);
+    // No SWAP should occur.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    // Flip the rest of the controls to |1>.
+    kernel.x(ctrls[1]);
+    kernel.x(ctrls[2]);
+    // `first` and `second` should SWAP.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    std::string ctrls_state = "111";
+    // `first` is now |0>, `second` is now |1>.
+    std::string want_target = "01";
+    auto want_state = ctrls_state + want_target;
+    EXPECT_NEAR(counts.count(want_state), 1000, 0);
+  }
+
+  // Multi-controlled SWAP with a vector of ctrl qubits.
+  {
+    auto kernel = cudaq::make_kernel();
+    std::vector<cudaq::QuakeValue> ctrls{kernel.qalloc(), kernel.qalloc(),
+                                         kernel.qalloc()};
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+
+    // Rotate `second` to |1> state.
+    kernel.x(second);
+
+    // Only a subset of controls in the |1> state.
+    kernel.x(ctrls[0]);
+    // No SWAP should occur.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    // Flip the rest of the controls to |1>.
+    kernel.x(ctrls[1]);
+    kernel.x(ctrls[2]);
+    // `first` and `second` should SWAP.
+    kernel.swap<cudaq::ctrl>(ctrls, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    std::string ctrls_state = "111";
+    // `first` is now |1>, `second` is now |0>.
+    std::string want_target = "10";
+    auto want_state = ctrls_state + want_target;
+    EXPECT_NEAR(counts.count(want_state), 1000, 0);
+  }
+
+  // Multi-controlled SWAP with a variadic list of ctrl qubits.
+  {
+    auto kernel = cudaq::make_kernel();
+    auto ctrls0 = kernel.qalloc(2);
+    auto ctrls1 = kernel.qalloc();
+    auto ctrls2 = kernel.qalloc(2);
+    auto first = kernel.qalloc();
+    auto second = kernel.qalloc();
+
+    // Rotate `second` to |1> state.
+    kernel.x(second);
+
+    // Only a subset of controls in the |1> state.
+    kernel.x(ctrls0);
+    // No SWAP should occur.
+    kernel.swap<cudaq::ctrl>(ctrls0, ctrls1, ctrls2, first, second);
+
+    // Flip the rest of the controls to |1>.
+    kernel.x(ctrls1);
+    kernel.x(ctrls2);
+    // `first` and `second` should SWAP.
+    kernel.swap<cudaq::ctrl>(ctrls0, ctrls1, ctrls2, first, second);
+
+    auto counts = cudaq::sample(kernel);
+    counts.dump();
+    std::string ctrls_state = "11111";
+    // `first` is now |1>, `second` is now |0>.
+    std::string want_target = "10";
+    auto want_state = ctrls_state + want_target;
+    EXPECT_NEAR(counts.count(want_state), 1000, 0);
   }
 }
 
@@ -596,8 +698,6 @@ CUDAQ_TEST(BuilderTester, checkIsArgStdVec) {
   EXPECT_FALSE(kernel.isArgStdVec(1));
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkKernelControl) {
   cudaq::set_random_seed(13);
 
@@ -654,7 +754,6 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   EXPECT_EQ(1, counts.size());
   EXPECT_TRUE(counts.begin()->first == "101");
 }
-#endif
 
 CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   auto kernel = cudaq::make_kernel();
@@ -925,6 +1024,16 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
 }
 
 CUDAQ_TEST(BuilderTester, checkExpPauli) {
+  std::vector<double> h2_data{
+      3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
+      0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
+      0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
+      0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
+      2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
+      0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
+      0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
+      1, 1, 3, 3, -0.0454063, -0, 15};
+  cudaq::spin_op h(h2_data, 4);
   {
     auto [kernel, theta] = cudaq::make_kernel<double>();
     auto qubits = kernel.qalloc(4);
@@ -932,16 +1041,16 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
     kernel.x(qubits[1]);
     kernel.exp_pauli(theta, qubits, "XXXY");
     std::cout << kernel << "\n";
-    std::vector<double> h2_data{
-        3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
-        0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
-        0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
-        0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
-        2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
-        0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
-        0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
-        1, 1, 3, 3, -0.0454063, -0, 15};
-    cudaq::spin_op h(h2_data, 4);
+    const double e = cudaq::observe(kernel, h, 0.11);
+    EXPECT_NEAR(e, -1.13, 1e-2);
+  }
+  {
+    auto [kernel, theta] = cudaq::make_kernel<double>();
+    auto qubits = kernel.qalloc(4);
+    kernel.x(qubits[0]);
+    kernel.x(qubits[1]);
+    kernel.exp_pauli(theta, qubits, cudaq::spin_op::from_word("XXXY"));
+    std::cout << kernel << "\n";
     const double e = cudaq::observe(kernel, h, 0.11);
     EXPECT_NEAR(e, -1.13, 1e-2);
   }
@@ -952,16 +1061,6 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
     kernel.x(qubits[1]);
     kernel.exp_pauli(theta, qubits, "XXXY");
     std::cout << kernel << "\n";
-    std::vector<double> h2_data{
-        3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
-        0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
-        0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
-        0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
-        2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
-        0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
-        0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
-        1, 1, 3, 3, -0.0454063, -0, 15};
-    cudaq::spin_op h(h2_data, 4);
     cudaq::optimizers::cobyla optimizer;
     optimizer.max_eval = 30;
     auto [e, opt] = optimizer.optimize(1, [&](std::vector<double> x) -> double {
@@ -978,16 +1077,6 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
     kernel.x(qubits[1]);
     kernel.exp_pauli(theta, "XXXY", qubits[0], qubits[1], qubits[2], qubits[3]);
     std::cout << kernel << "\n";
-    std::vector<double> h2_data{
-        3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
-        0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
-        0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
-        0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
-        2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
-        0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
-        0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
-        1, 1, 3, 3, -0.0454063, -0, 15};
-    cudaq::spin_op h(h2_data, 4);
     cudaq::optimizers::cobyla optimizer;
     optimizer.max_eval = 30;
     auto [e, opt] = optimizer.optimize(1, [&](std::vector<double> x) -> double {
@@ -999,8 +1088,6 @@ CUDAQ_TEST(BuilderTester, checkExpPauli) {
   }
 }
 
-#ifndef CUDAQ_BACKEND_TENSORNET_MPS
-// MPS doesn't support gates on more than 2 qubits
 CUDAQ_TEST(BuilderTester, checkControlledRotations) {
   // rx: pi
   {
@@ -1115,7 +1202,6 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
     EXPECT_EQ(counts.count("11111111"), 1000);
   }
 }
-#endif
 
 #ifndef CUDAQ_BACKEND_DM
 

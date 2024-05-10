@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,3 +11,23 @@
 #include "cudaq/Optimizer/Dialect/Common/InlinerInterface.h"
 
 using CCInlinerInterface = cudaq::EnableInlinerInterface;
+
+namespace cudaq::cc {
+
+mlir::LogicalResult verifyConvergentLinearTypesInRegions(mlir::Operation *op);
+
+template <typename ConcreteType>
+class LinearTypeArgsTrait
+    : public mlir::OpTrait::TraitBase<ConcreteType, LinearTypeArgsTrait> {
+public:
+  static mlir::LogicalResult verifyRegionTrait(mlir::Operation *op) {
+    return verifyConvergentLinearTypesInRegions(op);
+  }
+};
+} // namespace cudaq::cc
+
+//===----------------------------------------------------------------------===//
+// Generated logic
+//===----------------------------------------------------------------------===//
+
+#include "cudaq/Optimizer/Dialect/CC/CCInterfaces.h.inc"

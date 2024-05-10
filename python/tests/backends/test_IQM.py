@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -17,14 +17,14 @@ import pytest
 
 iqm_client = pytest.importorskip("iqm.iqm_client")
 try:
+    from utils.mock_qpu.iqm import startServer
     from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
-    from utils.mock_qpu.iqm.mock_iqm_server import startServer
 except:
     pytest.skip("Mock qpu not available, skipping IQM tests.",
                 allow_module_level=True)
 
 # Define the port for the mock server
-port = 9100
+port = 62443
 
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
@@ -44,9 +44,18 @@ def startUpMockServer():
 
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    cudaq.set_target("iqm",
-                     url="http://localhost:{}".format(port),
-                     **{"qpu-architecture": "Apollo"})
+    kwargs = dict()
+    kwargs["qpu-architecture"] = "Apollo"
+    # If we're in a git repo, test that we can provide a filename with spaces.
+    # If we are not in a git repo, then simply test without overriding
+    # mapping_file. (Testing a mapping_file with spaces is done elsewhere, and
+    # that isn't the main point of these tests.)
+    with os.popen("git rev-parse --show-toplevel") as f:
+        git_top = f.read().strip()
+        if os.path.isdir(git_top):
+            mapping_file = f"{git_top}/targettests/Supplemental/Apollo Variant.txt"
+            kwargs["mapping_file"] = mapping_file
+    cudaq.set_target("iqm", url="http://localhost:{}".format(port), **kwargs)
 
     yield "Running the tests."
 

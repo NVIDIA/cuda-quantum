@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
+#include "common/Timing.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -19,8 +20,6 @@
 /// This file defines the default, library mode, quantum platform.
 /// Its goal is to create a single QPU that is added to the quantum_platform
 /// which delegates kernel execution to the current Execution Manager.
-
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace {
 /// The DefaultQPU models a simulated QPU by specifically
@@ -35,14 +34,14 @@ public:
 
   void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                     void *args, std::uint64_t, std::uint64_t) override {
-    cudaq::ScopedTrace trace("QPU::launchKernel");
+    ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
     kernelFunc(args);
   }
 
   /// Overrides setExecutionContext to forward it to the ExecutionManager
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-    cudaq::ScopedTrace trace("DefaultPlatform::setExecutionContext",
-                             context->name);
+    ScopedTraceWithContext("DefaultPlatform::setExecutionContext",
+                           context->name);
     executionContext = context;
     if (noiseModel)
       executionContext->noiseModel = noiseModel;
@@ -53,8 +52,9 @@ public:
   /// Overrides resetExecutionContext to forward to
   /// the ExecutionManager. Also handles observe post-processing
   void resetExecutionContext() override {
-    cudaq::ScopedTrace trace("DefaultPlatform::resetExecutionContext",
-                             executionContext->name);
+    ScopedTraceWithContext(
+        executionContext->name == "observe" ? cudaq::TIMING_OBSERVE : 0,
+        "DefaultPlatform::resetExecutionContext", executionContext->name);
     handleObservation(executionContext);
     cudaq::getExecutionManager()->resetExecutionContext();
     executionContext = nullptr;
@@ -84,9 +84,13 @@ public:
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
     cudaq::info("Backend string is {}", backend);
+    std::map<std::string, std::string> configMap;
     auto mutableBackend = backend;
     if (mutableBackend.find(";") != std::string::npos) {
-      mutableBackend = cudaq::split(mutableBackend, ';')[0];
+      auto keyVals = cudaq::split(mutableBackend, ';');
+      mutableBackend = keyVals[0];
+      for (std::size_t i = 1; i < keyVals.size(); i += 2)
+        configMap.insert({keyVals[i], keyVals[i + 1]});
     }
 
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};

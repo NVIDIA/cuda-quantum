@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -80,30 +80,34 @@ public:
           m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
   }
 
-  virtual void applyGate(const GateApplicationTask &task) override {
-    // Check that we don't apply gates on 3+ qubits (not supported in MPS)
-    if (task.controls.size() + task.targets.size() > 2) {
-      const std::string gateDesc = task.operationName +
-                                   containerToString(task.controls) +
-                                   containerToString(task.targets);
-      throw std::runtime_error("MPS simulator: Gates on 3 or more qubits are "
-                               "unsupported. Encountered: " +
-                               gateDesc);
-    }
-    SimulatorTensorNetBase::applyGate(task);
-  }
-
   virtual std::size_t calculateStateDim(const std::size_t numQubits) override {
     return numQubits;
   }
 
   virtual std::string name() const override { return "tensornet-mps"; }
-
+  CircuitSimulator *clone() override {
+    thread_local static auto simulator = std::make_unique<SimulatorMPS>();
+    return simulator.get();
+  }
   virtual ~SimulatorMPS() noexcept {
     for (auto &tensor : m_mpsTensors_d) {
       HANDLE_CUDA_ERROR(cudaFree(tensor));
     }
     m_mpsTensors_d.clear();
+  }
+
+  /// @brief Return the state vector data
+  cudaq::State getStateData() override {
+    LOG_API_TIME();
+    if (m_state->getNumQubits() > 64)
+      throw std::runtime_error("State vector data is too large.");
+    // Handle empty state (e.g., no qubit allocation)
+    if (!m_state)
+      return cudaq::State{{0}, {}};
+    const std::uint64_t svDim = (1ull << m_state->getNumQubits());
+    // Returns the main qubit register state (auxiliary qubits are projected to
+    // zero state)
+    return cudaq::State{{svDim}, m_state->getStateVector()};
   }
 };
 } // end namespace nvqir

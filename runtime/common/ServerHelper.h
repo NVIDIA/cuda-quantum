@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,6 +14,7 @@
 #include "Future.h"
 #include "MeasureCounts.h"
 #include "Registry.h"
+#include <filesystem>
 
 namespace cudaq {
 
@@ -28,8 +29,10 @@ struct KernelExecution {
   std::string name;
   std::string code;
   nlohmann::json output_names;
-  KernelExecution(std::string &n, std::string &c, nlohmann::json &o)
-      : name(n), code(c), output_names(o) {}
+  std::vector<std::size_t> mapping_reorder_idx;
+  KernelExecution(std::string &n, std::string &c, nlohmann::json &o,
+                  std::vector<std::size_t> &m)
+      : name(n), code(c), output_names(o), mapping_reorder_idx(m) {}
 };
 
 /// @brief Responses / Submissions to the Server are modeled via JSON
@@ -59,12 +62,22 @@ using OutputNamesType = std::map<std::size_t, ResultInfoType>;
 /// provides a hook for extracting results from a server response.
 class ServerHelper : public registry::RegisteredType<ServerHelper> {
 protected:
-  /// @brief All ServerHelpers can be configured at the nvq++ command line.
+  /// @brief All ServerHelpers can be configured at the `nvq++` command line.
   /// This map holds those configuration key-values
   BackendConfig backendConfig;
 
   /// @brief The number of shots to execute
   std::size_t shots = 100;
+
+  /// @brief Parse a `config` for common parameters in a server helper (i.e.
+  /// `outputNames` and `reorderIdx`)
+  void parseConfigForCommonParams(const BackendConfig &config);
+
+  /// @brief Output names indexed by jobID/taskID
+  std::map<std::string, OutputNamesType> outputNames;
+
+  /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
+  std::map<std::string, std::vector<std::size_t>> reorderIdx;
 
 public:
   ServerHelper() = default;
@@ -100,6 +113,13 @@ public:
   /// @brief Get the specific path required to retrieve job results. Construct
   /// from the full server response message.
   virtual std::string constructGetJobPath(ServerMessage &postResponse) = 0;
+
+  /// @brief Get the jobs results polling interval.
+  /// @return
+  virtual std::chrono::microseconds
+  nextResultPollingInterval(ServerMessage &postResponse) {
+    return std::chrono::microseconds(100);
+  }
 
   /// @brief Return true if the job is done.
   virtual bool jobIsDone(ServerMessage &getJobResponse) = 0;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -20,6 +20,8 @@
 #include <stdio.h>
 #include <string>
 #include <thread>
+
+LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace cudaq {
 
@@ -139,12 +141,17 @@ void quantum_platform::launchKernel(std::string kernelName,
   qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize, resultOffset);
 }
 
+void quantum_platform::onRandomSeedSet(std::size_t seed) {
+  // Send on the notification to all QPUs.
+  for (auto &qpu : platformQPUs)
+    qpu->onRandomSeedSet(seed);
+}
 } // namespace cudaq
 
 void cudaq::altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
                             void *kernelArgs, std::uint64_t argsSize,
                             std::uint64_t resultOffset) {
-  ScopedTrace trace("altLaunchKernel", kernelName, argsSize);
+  ScopedTraceWithContext("altLaunchKernel", kernelName, argsSize);
   auto &platform = *cudaq::getQuantumPlatformInternal();
   std::string kernName = kernelName;
   platform.launchKernel(kernName, kernelFunc, kernelArgs, argsSize,

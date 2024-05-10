@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -19,8 +19,8 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
 
   py::class_<cudaq::RuntimeTarget>(
       mod, "Target",
-      "The `cudaq.Target` represents the underlying infrastructure that CUDA "
-      "Quantum kernels will execute on. Instances of `cudaq.Target` describe "
+      "The `cudaq.Target` represents the underlying infrastructure that "
+      "CUDA-Q kernels will execute on. Instances of `cudaq.Target` describe "
       "what simulator they may leverage, the quantum_platform required for "
       "execution, and a description for the target.")
       .def_readonly("name", &cudaq::RuntimeTarget::name,
@@ -35,6 +35,11 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
                     "A string describing the features for this `cudaq.Target`.")
       .def("num_qpus", &cudaq::RuntimeTarget::num_qpus,
            "Return the number of QPUs available in this `cudaq.Target`.")
+      .def("is_remote", &cudaq::RuntimeTarget::is_remote,
+           "Returns true if the target consists of a remote REST QPU.")
+      .def("is_emulated", &cudaq::RuntimeTarget::is_emulated,
+           "Returns true if the emulation mode for the target has been "
+           "activated.")
       .def(
           "__str__",
           [](cudaq::RuntimeTarget &self) {
@@ -74,15 +79,19 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             strValue = value.cast<py::bool_>() ? "true" : "false";
           else if (py::isinstance<py::str>(value))
             strValue = value.cast<std::string>();
+          else if (py::isinstance<py::int_>(value))
+            strValue = std::to_string(value.cast<int>());
           else
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), strValue);
+          // Ignore empty parameter values
+          if (!strValue.empty())
+            config.emplace(key.cast<std::string>(), strValue);
         }
         holder.setTarget(target.name, config);
       },
-      "Set the `cudaq.Target` to be used for CUDA Quantum kernel execution. "
+      "Set the `cudaq.Target` to be used for CUDA-Q kernel execution. "
       "Can provide optional, target-specific configuration data via Python "
       "kwargs.");
   mod.def(
@@ -95,15 +104,19 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
             strValue = value.cast<py::bool_>() ? "true" : "false";
           else if (py::isinstance<py::str>(value))
             strValue = value.cast<std::string>();
+          else if (py::isinstance<py::int_>(value))
+            strValue = std::to_string(value.cast<int>());
           else
             throw std::runtime_error(
                 "QPU kwargs config value must be cast-able to a string.");
 
-          config.emplace(key.cast<std::string>(), strValue);
+          // Ignore empty parameter values
+          if (!strValue.empty())
+            config.emplace(key.cast<std::string>(), strValue);
         }
         holder.setTarget(name, config);
       },
-      "Set the `cudaq.Target` with given name to be used for CUDA Quantum "
+      "Set the `cudaq.Target` with given name to be used for CUDA-Q "
       "kernel execution. Can provide optional, target-specific configuration "
       "data via Python kwargs.");
 }

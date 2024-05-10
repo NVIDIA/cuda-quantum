@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 // Test lambdas that are created within kernels and passed to both predefined
 // kernels and user-defined kernels.
@@ -15,7 +15,7 @@
 
 struct test0 {
   void operator()() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     auto lz = [](cudaq::qubit &q) __qpu__ { x(q); };
     cudaq::control(lz, q[0], q[1]);
   }
@@ -41,7 +41,7 @@ struct test0 {
 
 struct test1 {
   void operator()() __qpu__ {
-    cudaq::qreg<2> q;
+    cudaq::qarray<2> q;
     cudaq::control([](cudaq::qubit &q) __qpu__ { x(q); }, q[0], q[1]);
   }
 };
@@ -66,7 +66,7 @@ struct test1 {
 
 struct test2a {
   template <typename C>
-  void operator()(C &&callme, cudaq::qreg<> &q) __qpu__ {
+  void operator()(C &&callme, cudaq::qvector<> &q) __qpu__ {
     callme(q[0]);
     callme(q[1]);
   }
@@ -74,7 +74,7 @@ struct test2a {
 
 struct test2b {
   void operator()() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     test2a{}(
         [](cudaq::qubit &q) __qpu__ {
           h(q);
@@ -87,7 +87,7 @@ struct test2b {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2b() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test2a" {}>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test2a" {} [8,1]>
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
 // CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref{{.*}}):
 // CHECK:             quake.h %[[VAL_4]] : (!quake.ref) -> ()
@@ -106,9 +106,7 @@ struct test2b {
 
 struct test2a_c {
   template <typename C>
-  void operator()(C &&callme, cudaq::qreg<> &q) __qpu__ {
-    // void operator()(std::function<void(cudaq::qubit &)> &&callme,
-    //            cudaq::qreg<> &q) __qpu__ {
+  void operator()(C &&callme, cudaq::qvector<> &q) __qpu__ {
     callme(q[0]);
     callme(q[1]);
   }
@@ -116,7 +114,7 @@ struct test2a_c {
 
 struct test2c {
   void operator()() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     auto lz = [](cudaq::qubit &q) __qpu__ {
       h(q);
       z(q);
@@ -135,7 +133,7 @@ struct test2c {
 // CHECK:             quake.z %[[VAL_3]] : (!quake.ref) -> ()
 // CHECK:             quake.h %[[VAL_3]] : (!quake.ref) -> ()
 // CHECK:           } : !cc.callable<(!quake.ref) -> ()>
-// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.struct<"test2a_c" {}>
+// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.struct<"test2a_c" {} [8,1]>
 // CHECK:           call @__nvqpp__mlirgen__instance_test2a_cRZN6test2c[[LAM2C:.*]](%[[VAL_5:.*]], %[[VAL_1]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
@@ -150,7 +148,7 @@ struct test2c {
 
 struct test3a {
   void operator()(std::function<void(cudaq::qubit &)> &&callme,
-		  cudaq::qreg<> &q) __qpu__ {
+		  cudaq::qvector<> &q) __qpu__ {
     callme(q[0]);
     callme(q[1]);
   }
@@ -158,7 +156,7 @@ struct test3a {
 
 struct test3 {
   void operator()() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     auto lz = [](cudaq::qubit &q) __qpu__ {
       h(q);
       z(q);
@@ -186,7 +184,7 @@ struct test3 {
 // CHECK:             quake.z %[[VAL_3]] : (!quake.ref) -> ()
 // CHECK:             quake.h %[[VAL_3]] : (!quake.ref) -> ()
 // CHECK:           } : !cc.callable<(!quake.ref) -> ()>
-// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.struct<"test3a" {}>
+// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.struct<"test3a" {} [8,1]>
 // CHECK:           call @__nvqpp__mlirgen__test3a(%[[VAL_5:.*]], %[[VAL_1]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
@@ -201,7 +199,7 @@ struct test3 {
 
 struct test4x2 {
   template <typename C>
-  void operator()(C &&callme, cudaq::qreg<> &q) __qpu__ {
+  void operator()(C &&callme, cudaq::qvector<> &q) __qpu__ {
     callme(q[0]);
     callme(q[1]);
   }
@@ -211,7 +209,7 @@ struct test4x2 {
 
 struct test4x4 {
   void operator()() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     test4x2{}(
         [](cudaq::qubit &q) __qpu__ {
           h(q);
@@ -224,7 +222,7 @@ struct test4x4 {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4x4() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test4x2" {}>
+// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"test4x2" {} [8,1]>
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
 // CHECK:           ^bb0(%[[VAL_4:.*]]: !quake.ref{{.*}}):
 // CHECK:             quake.h %[[VAL_4]] : (!quake.ref) -> ()
@@ -243,7 +241,7 @@ struct test4x4 {
 
 struct test4x8 {
   void operator()() __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     auto lz = [](cudaq::qubit &q) __qpu__ {
       h(q);
       z(q);
@@ -262,7 +260,7 @@ struct test4x8 {
 // CHECK:             quake.z %[[VAL_3]] : (!quake.ref) -> ()
 // CHECK:             quake.h %[[VAL_3]] : (!quake.ref) -> ()
 // CHECK:           } : !cc.callable<(!quake.ref) -> ()>
-// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.struct<"test4x2" {}>
+// CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.struct<"test4x2" {} [8,1]>
 // CHECK:           call @__nvqpp__mlirgen__instance_test4x2R[[LAM42b:.*]](%[[VAL_5:.*]], %[[VAL_1]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -82,7 +82,7 @@ protected:
   /// @brief The kraus_ops that make up this channel
   std::vector<kraus_op> ops;
 
-  /// @brief Validate that Sum Ki^ Ki = I
+  /// @brief Validate that Sum K_i^† K_i = I
   void validateCompleteness();
 
 public:

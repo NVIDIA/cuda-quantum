@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,7 +13,7 @@
 
 #include <cudaq.h>
 
-// Here we demonstrate an algorithm expressed as a CUDA Quantum kernel
+// Here we demonstrate an algorithm expressed as a CUDA-Q kernel
 // that incorporates non-trivial control flow and conditional
 // quantum instruction invocation.
 
@@ -22,7 +22,7 @@ struct rwpe {
     int iteration = 0;
 
     // Allocate the qubits
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
 
     // Alias them
     auto &aux = q.front();

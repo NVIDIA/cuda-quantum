@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -106,13 +106,13 @@ std::string getCxxMangledDeclName(clang::GlobalDecl decl,
 std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler);
 
-/// Use this helper to convert a tag name to a nvqpp mangled name.
+/// Use this helper to convert a tag name to an `nvq++` mangled name.
 inline std::string getCudaqKernelName(const std::string &tag) {
   return runtime::cudaqGenPrefixName + tag;
 }
 
 /// Creates the tag name for a quantum kernel. The tag name is a name by which
-/// one can lookup a kernel at runtime. This name does not include the nvq++
+/// one can lookup a kernel at runtime. This name does not include the `nvq++`
 /// prefix nor the unique (C++ mangled) suffix.
 std::string getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
                                      clang::ItaniumMangleContext *mangler);
@@ -131,10 +131,11 @@ bool ignoredClass(clang::RecordDecl *x);
 /// The general design is to walk the tree in a post-order traversal and
 /// assemble the IR from the leaves back down the tree. Traversals over types
 /// should push Type values to the type stack. Traversals over expressions
-/// should create IR in the ModuleOp as well as push subexpressions on the stack
-/// for parent nodes. A parent node always knows how many children it needs to
-/// be constructed correctly. The types of expressions are carried along with
-/// the expressions in the IR and need not be duplicated on the type stack.
+/// should create IR in the ModuleOp as well as push subexpressions on the
+/// stack for parent nodes. A parent node always knows how many children it
+/// needs to be constructed correctly. The types of expressions are carried
+/// along with the expressions in the IR and need not be duplicated on the type
+/// stack.
 ///
 /// Unfortunately, clang's RecursiveASTVisitor doesn't always visit nodes in the
 /// AST and can skip visiting types or even some expressions.
@@ -156,7 +157,7 @@ public:
         reachableFunctions(reachableFuncs), namesMap(namesMap),
         compilerInstance(ci), mangler(mangler) {}
 
-  /// nvq++ renames quantum kernels to differentiate them from classical C++
+  /// `nvq++` renames quantum kernels to differentiate them from classical C++
   /// code. This renaming is done on function names. \p tag makes it easier
   /// to identify the kernel class from which the function was extracted.
   std::string generateCudaqKernelName(const clang::FunctionDecl *func) {
@@ -306,6 +307,7 @@ public:
 
   bool TraverseMemberExpr(clang::MemberExpr *x,
                           DataRecursionQueue *q = nullptr);
+  bool VisitMemberExpr(clang::MemberExpr *x);
   bool TraverseBinaryOperator(clang::BinaryOperator *x,
                               DataRecursionQueue *q = nullptr);
   bool TraverseLambdaExpr(clang::LambdaExpr *x,
@@ -341,6 +343,20 @@ public:
   }
   bool TraverseDecltypeType(clang::DecltypeType *t) {
     return TraverseType(t->desugar());
+  }
+
+  // When processing a record type, visit the type of all the field decls. This
+  // will push 1 new type on the stack for each field. These types will be the
+  // member types of the StructType.
+  bool TraverseFieldDecl(clang::FieldDecl *x) {
+    if (inRecType)
+      return TraverseType(x->getType());
+    return Base::TraverseFieldDecl(x);
+  }
+  bool WalkUpFromFieldDecl(clang::FieldDecl *x) {
+    if (inRecType)
+      return true;
+    return Base::WalkUpFromFieldDecl(x);
   }
 
   bool TraverseRecordType(clang::RecordType *t);
@@ -439,6 +455,8 @@ public:
                                    const clang::FunctionDecl *x);
   bool doSyntaxChecks(const clang::FunctionDecl *x);
 
+  bool isItaniumCXXABI();
+
 private:
   /// Map the block arguments to the names of the function parameters.
   void addArgumentSymbols(mlir::Block *entryBlock,
@@ -456,7 +474,7 @@ private:
   /// Returns true if \p decl is a function to lower to Quake.
   bool needToLowerFunction(const clang::FunctionDecl *decl);
 
-  // Helpers to convert an AST node's clang source range to an MLIR Location.
+  /// Helpers to convert an AST node's clang source range to an MLIR Location.
   template <typename A>
   mlir::Location toLocation(const A *x) {
     return toLocation(x->getSourceRange());
@@ -542,12 +560,6 @@ private:
   clang::ItaniumMangleContext *mangler;
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
-  bool skipCompoundScope : 1 = false;
-  bool isEntry : 1 = false;
-  /// If there is a catastrophic error in the bridge (there is no rational way
-  /// to proceed to emit correct code), emit an error using the diagnostic
-  /// engine, set this flag, and return false.
-  bool raisedError : 1 = false;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
@@ -565,6 +577,15 @@ private:
   /// Stack of Types built by the visitor. (right-to-left ordering)
   llvm::SmallVector<mlir::Type> typeStack;
   llvm::DenseMap<clang::RecordType *, mlir::Type> records;
+
+  // State Flags
+
+  bool skipCompoundScope : 1 = false;
+  bool isEntry : 1 = false;
+  /// If there is a catastrophic error in the bridge (there is no rational way
+  /// to proceed to emit correct code), emit an error using the diagnostic
+  /// engine, set this flag, and return false.
+  bool raisedError : 1 = false;
   bool visitImplicitCode : 1 = false;
   bool inRecType : 1 = false;
   bool allowUnknownRecordType : 1 = false;
@@ -579,8 +600,7 @@ private:
 /// Clang AST analysis / processing workflow. The nested ASTBridgeConsumer
 /// drives the process of walking the Clang AST and translate pertinent nodes to
 /// an MLIR Op tree containing Quake, CC, and other MLIR dialect operations.
-/// This Action will generate this MLIR Module and rewrite the input source code
-/// (using the Clang Rewriter system) to define quantum kernels as extern.
+/// In short, this Action generates the MLIR Module.
 class ASTBridgeAction : public clang::ASTFrontendAction {
 public:
   using MangledKernelNamesMap = cudaq::MangledKernelNamesMap;
@@ -626,13 +646,18 @@ public:
     // The mangler is constructed and owned by `this`.
     clang::ItaniumMangleContext *mangler;
 
-    mlir::Value getConstantInt(mlir::Location loc, const uint64_t value,
-                               const int bitwidth = 64);
-
-    /// Add a declaration to the module for the function, \p funcDecl.
+    /// Add a placeholder definition to the module in \p visitor for the
+    /// function, \p funcDecl. This is used for adding the host-side function
+    /// corresponding to the kernel. The code for this function will be
+    /// automatically generated by the GenKernelExecution pass. \p funcTy is the
+    /// type of \p funcDecl. \p devFuncName is the name of the device-side
+    /// kernel. The placeholder definition lets any argument attributes be
+    /// properly communicated through the pass pipeline and prevents lossy
+    /// pipelines which erase private declarations.
     void addFunctionDecl(const clang::FunctionDecl *funcDecl,
                          details::QuakeBridgeVisitor &visitor,
-                         mlir::FunctionType funcTy);
+                         mlir::FunctionType funcTy,
+                         mlir::StringRef devFuncName);
 
   public:
     ASTBridgeConsumer(clang::CompilerInstance &compiler,
@@ -705,7 +730,7 @@ inline bool isCallOperator(clang::OverloadedOperatorKind kindValue) {
   return kindValue == clang::OverloadedOperatorKind::OO_Call;
 }
 
-// Is \p t of type `char *`?
+/// Is \p t of type `char *`?
 inline bool isCharPointerType(mlir::Type t) {
   if (auto ptrTy = dyn_cast<cc::PointerType>(t)) {
     mlir::Type eleTy = ptrTy.getElementType();

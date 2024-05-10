@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // RUN: cudaq-quake %s | FileCheck %s
 
 #include <cudaq.h>
@@ -14,7 +15,7 @@
 
 struct kernel {
   __qpu__ int operator()(bool flag) {
-    cudaq::qreg reg(2);
+    cudaq::qvector reg(2);
     if (flag) {
       h<cudaq::ctrl>(reg[0], reg[1]);
     }
@@ -38,7 +39,7 @@ struct kernel {
 
 struct kernel_else {
   __qpu__ int operator()(bool flag) {
-    cudaq::qreg reg(2);
+    cudaq::qvector reg(2);
     if (flag) {
       h<cudaq::ctrl>(reg[0], reg[1]);
     } else {
@@ -68,7 +69,7 @@ struct kernel_else {
 
 struct kernel_short_circuit_and {
   __qpu__ int operator()() {
-    cudaq::qreg reg(3);
+    cudaq::qvector reg(3);
     if (mz(reg[0]) && mz(reg[1]))
       x(reg[2]);
     return 0;
@@ -100,7 +101,7 @@ struct kernel_short_circuit_and {
 
 struct kernel_short_circuit_or {
   __qpu__ int operator()() {
-    cudaq::qreg reg(3);
+    cudaq::qvector reg(3);
     if (mz(reg[0]) || mz(reg[1]))
       x(reg[2]);
     return 0;
@@ -132,7 +133,7 @@ struct kernel_short_circuit_or {
 
 struct kernel_ternary {
   __qpu__ int operator()() {
-    cudaq::qreg q(3);
+    cudaq::qvector q(3);
     auto measureResult = mz(q[0]) ? mz(q[1]) : mz(q[2]);
     return 0;
   }

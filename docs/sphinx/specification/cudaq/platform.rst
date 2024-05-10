@@ -1,21 +1,21 @@
 
 Quantum Platform
 ****************
-CUDA Quantum provides an abstraction describing the underlying quantum computing
-resource(s). The underlying quantum platform can contain one or many quantum
-processing units (QPUs) each with its own qubit connectivity and noise
-configuration. 
 
-CUDA Quantum defines a :code:`cudaq::quantum_platform` in an effort to expose 
-relevant system information and enable asynchronous quantum kernel invocations. 
+**[1]** CUDA-Q provides an abstraction describing the underlying quantum computing resource(s). 
+The underlying quantum platform can contain one or many quantum processing units (QPUs) each with 
+its own qubit connectivity and noise configuration.
 
-The :code:`cudaq::quantum_platform` provides an API for querying the number
-of available quantum processing units (QPUs), with each QPU assigned a
-logical integer index (:code:`{0,1,2,...}`). Programmers can specify the
-ID of the desired QPU and all subsequent CUDA Quantum kernel executions will
-target that QPU. 
+**[2]** CUDA-Q defines a :code:`cudaq::quantum_platform` in an effort to expose relevant system 
+information and enable asynchronous quantum kernel invocations.
 
-The :code:`cudaq::quantum_platform` should take the following structure
+**[3]** The :code:`cudaq::quantum_platform` provides an API for querying the number of available 
+quantum processing units (QPUs), with each QPU assigned a logical integer index (:code:`{0,1,2,...}`). 
+
+**[4]** Programmers can specify the ID of the desired QPU and all subsequent CUDA-Q 
+kernel executions will target that QPU.
+
+The :code:`cudaq::quantum_platform`  should take the following structure
 
 .. code-block:: cpp
 
@@ -43,7 +43,7 @@ The :code:`cudaq::quantum_platform` should take the following structure
     };
   }
 
-CUDA Quantum provides the following public functions to interact with the current
+CUDA-Q provides the following public functions to interact with the current
 :code:`cudaq::quantum_platform`
 
 .. code-block:: cpp

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -140,8 +140,8 @@ std::vector<double> getAlphaZ(const std::span<double> data,
 std::vector<double> getAlphaY(const std::span<double> data,
                               std::size_t numQubits, std::size_t k) {
   std::vector<std::vector<std::size_t>> inNum, inDenom;
-  auto twoNmK = (1ULL << (numQubits - k)), twoK = (1ULL << k),
-       twoKmOne = (1ULL << (k - 1));
+  auto twoNmK = (1LL << (numQubits - k)), twoK = (1LL << k),
+       twoKmOne = (1LL << (k - 1));
   for (auto j : cudaq::range(twoNmK)) {
     std::vector<std::size_t> local;
     for (auto l : cudaq::range(twoKmOne))

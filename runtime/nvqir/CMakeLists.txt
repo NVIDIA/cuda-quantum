@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -22,6 +22,8 @@ target_include_directories(${LIBRARY_NAME}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime> 
          $<INSTALL_INTERFACE:include> 
   PRIVATE .)
+
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
 # Private link to nvqir-qpp, it will always be here, 
 # and by keeping it private, others can specify the

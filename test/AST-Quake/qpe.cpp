@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 // This is an end-to-end test, so we probably want to put it in a different
@@ -20,7 +21,7 @@
 
 // Can define this as a free function since it is a pure device quantum kernel
 // (cannot be called from host code)
-__qpu__ void iqft(cudaq::qspan<> q) {
+__qpu__ void iqft(cudaq::qview<> q) {
   int N = q.size();
   // Swap qubits
   for (int i = 0; i < N / 2; ++i) {
@@ -39,13 +40,13 @@ __qpu__ void iqft(cudaq::qspan<> q) {
   h(q[N - 1]);
 }
 
-// Define an oracle CUDA Quantum kernel
+// Define an oracle CUDA-Q kernel
 struct tgate {
   // We do not own the qubits here, so just use a qspan.
-  void operator()(cudaq::qspan<> &q) __qpu__ { t(q); }
+  void operator()(cudaq::qview<> &q) __qpu__ { t(q); }
 };
 
-// CUDA Quantum Kernel call operators can be templated on input kernel
+// CUDA-Q Kernel call operators can be templated on input kernel
 // expressions. Here we define a general Phase Estimation algorithm that is
 // generic on the eigenstate preparation and unitary evolution steps.
 struct qpe {
@@ -57,7 +58,7 @@ struct qpe {
   void operator()(const int nCountingQubits, const int nStateQubits,
                   StatePrep &&state_prep, Unitary &&oracle) __qpu__ {
     // Allocate a register of qubits
-    cudaq::qreg q(nCountingQubits + nStateQubits);
+    cudaq::qvector q(nCountingQubits + nStateQubits);
 
     // Extract sub-registers, one for the counting qubits another for the
     // eigenstate register
@@ -91,7 +92,7 @@ int main() {
   // Sample the QPE kernel for 3 counting qubits, 1 state qubit, a |1>
   // eigenstate preparation kernel, and a T gate unitary.
   auto counts = cudaq::sample(
-      qpe{}, 3, 1, [](cudaq::qspan<> &q) __qpu__ { x(q); }, tgate{});
+      qpe{}, 3, 1, [](cudaq::qview<> &q) __qpu__ { x(q); }, tgate{});
 
   // Fine grain access to the bits and counts
   for (auto &[bits, count] : counts) {
@@ -209,56 +210,52 @@ int main() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__tgate(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
-// CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
-// CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (index)) {
-// CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
-// CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : index)
+// CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (i64)) {
+// CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_3]] : i64
+// CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : i64)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_8:.*]]: index):
-// CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, index) -> !quake.ref
+// CHECK:           ^bb0(%[[VAL_8:.*]]: i64):
+// CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:             quake.t %[[VAL_9]] : (!quake.ref) -> ()
-// CHECK:             cc.continue %[[VAL_8]] : index
+// CHECK:             cc.continue %[[VAL_8]] : i64
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_10:.*]]: index):
-// CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
-// CHECK:             cc.continue %[[VAL_11]] : index
+// CHECK:           ^bb0(%[[VAL_10:.*]]: i64):
+// CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_11]] : i64
 // CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : index
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : index
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
-// CHECK:           %[[VAL_4:.*]] = arith.index_cast %[[VAL_3]] : i64 to index
-// CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (index)) {
-// CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_4]] : index
-// CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : index)
+// CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_2]]) -> (i64)) {
+// CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_3]] : i64
+// CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : i64)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_8:.*]]: index):
-// CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, index) -> !quake.ref
+// CHECK:           ^bb0(%[[VAL_8:.*]]: i64):
+// CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:             quake.x %[[VAL_9]] : (!quake.ref) -> ()
-// CHECK:             cc.continue %[[VAL_8]] : index
+// CHECK:             cc.continue %[[VAL_8]] : i64
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_10:.*]]: index):
-// CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : index
-// CHECK:             cc.continue %[[VAL_11]] : index
+// CHECK:           ^bb0(%[[VAL_10:.*]]: i64):
+// CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_1]] : i64
+// CHECK:             cc.continue %[[VAL_11]] : i64
 // CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_qpeZ4mainE3$_0tgate.
-// CHECK-SAME:      (%[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32, %[[VAL_2:.*]]: !cc.callable<(!quake.veq<?>) -> ()>, %[[VAL_3:.*]]: !cc.struct<"tgate" {}>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-SAME:      (%[[VAL_0:.*]]: i32, %[[VAL_1:.*]]: i32, %[[VAL_2:.*]]: !cc.callable<(!quake.veq<?>) -> ()>, %[[VAL_3:.*]]: !cc.struct<"tgate" {} [8,1]>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i32
-// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1 : index
-// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : index
-// CHECK-DAG:       %[[VAL_8:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_9:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_10:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_10]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_11:.*]] = cc.alloca i32
@@ -270,29 +267,28 @@ int main() {
 // CHECK:           %[[VAL_16:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_15]] : i64]
 // CHECK:           %[[VAL_17:.*]] = cc.load %[[VAL_10]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_18:.*]] = arith.extsi %[[VAL_17]] : i32 to i64
-// CHECK:           %[[VAL_19:.*]] = arith.subi %[[VAL_18]], %[[VAL_8]] : i64
-// CHECK:           %[[VAL_20:.*]] = quake.subveq %[[VAL_16]], %[[VAL_9]], %[[VAL_19]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
+// CHECK:           %[[VAL_19:.*]] = arith.subi %[[VAL_18]], %[[VAL_6]] : i64
+// CHECK:           %[[VAL_20:.*]] = quake.subveq %[[VAL_16]], %[[VAL_7]], %[[VAL_19]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
 // CHECK:           %[[VAL_21:.*]] = cc.load %[[VAL_11]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_22:.*]] = arith.extsi %[[VAL_21]] : i32 to i64
 // CHECK:           %[[VAL_23:.*]] = quake.veq_size %[[VAL_16]] : (!quake.veq<?>) -> i64
-// CHECK:           %[[VAL_24:.*]] = arith.subi %[[VAL_23]], %[[VAL_8]] : i64
+// CHECK:           %[[VAL_24:.*]] = arith.subi %[[VAL_23]], %[[VAL_6]] : i64
 // CHECK:           %[[VAL_25:.*]] = arith.subi %[[VAL_23]], %[[VAL_22]] : i64
 // CHECK:           %[[VAL_26:.*]] = quake.subveq %[[VAL_16]], %[[VAL_25]], %[[VAL_24]] : (!quake.veq<?>, i64, i64) -> !quake.veq<?>
 // CHECK:           call @__nvqpp__mlirgen__Z4mainE3$_0(%[[VAL_26]]) : (!quake.veq<?>) -> ()
 // CHECK:           %[[VAL_27:.*]] = quake.veq_size %[[VAL_20]] : (!quake.veq<?>) -> i64
-// CHECK:           %[[VAL_28:.*]] = arith.index_cast %[[VAL_27]] : i64 to index
-// CHECK:           %[[VAL_29:.*]] = cc.loop while ((%[[VAL_30:.*]] = %[[VAL_7]]) -> (index)) {
-// CHECK:             %[[VAL_31:.*]] = arith.cmpi slt, %[[VAL_30]], %[[VAL_28]] : index
-// CHECK:             cc.condition %[[VAL_31]](%[[VAL_30]] : index)
+// CHECK:           %[[VAL_29:.*]] = cc.loop while ((%[[VAL_30:.*]] = %[[VAL_7]]) -> (i64)) {
+// CHECK:             %[[VAL_31:.*]] = arith.cmpi slt, %[[VAL_30]], %[[VAL_27]] : i64
+// CHECK:             cc.condition %[[VAL_31]](%[[VAL_30]] : i64)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_32:.*]]: index):
-// CHECK:             %[[VAL_33:.*]] = quake.extract_ref %[[VAL_20]]{{\[}}%[[VAL_32]]] : (!quake.veq<?>, index) -> !quake.ref
+// CHECK:           ^bb0(%[[VAL_32:.*]]: i64):
+// CHECK:             %[[VAL_33:.*]] = quake.extract_ref %[[VAL_20]]{{\[}}%[[VAL_32]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:             quake.h %[[VAL_33]] : (!quake.ref) -> ()
-// CHECK:             cc.continue %[[VAL_32]] : index
+// CHECK:             cc.continue %[[VAL_32]] : i64
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_34:.*]]: index):
-// CHECK:             %[[VAL_35:.*]] = arith.addi %[[VAL_34]], %[[VAL_6]] : index
-// CHECK:             cc.continue %[[VAL_35]] : index
+// CHECK:           ^bb0(%[[VAL_34:.*]]: i64):
+// CHECK:             %[[VAL_35:.*]] = arith.addi %[[VAL_34]], %[[VAL_6]] : i64
+// CHECK:             cc.continue %[[VAL_35]] : i64
 // CHECK:           } {invariant}
 // CHECK:           cc.scope {
 // CHECK:             %[[VAL_36:.*]] = cc.alloca i32
@@ -312,7 +308,7 @@ int main() {
 // CHECK:                     %[[VAL_42:.*]] = arith.extsi %[[VAL_41]] : i32 to i64
 // CHECK:                     %[[VAL_43:.*]] = cc.load %[[VAL_36]] : !cc.ptr<i32>
 // CHECK:                     %[[VAL_44:.*]] = arith.extsi %[[VAL_43]] : i32 to i64
-// CHECK:                     %[[VAL_45:.*]] = arith.shli %[[VAL_8]], %[[VAL_44]] : i64
+// CHECK:                     %[[VAL_45:.*]] = arith.shli %[[VAL_6]], %[[VAL_44]] : i64
 // CHECK:                     %[[VAL_46:.*]] = arith.cmpi ult, %[[VAL_42]], %[[VAL_45]] : i64
 // CHECK:                     cc.condition %[[VAL_46]]
 // CHECK:                   } do {

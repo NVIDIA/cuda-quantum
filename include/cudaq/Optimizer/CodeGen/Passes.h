@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -29,9 +29,14 @@ void registerConvertToQIRPass();
 
 /// Convert (generic) QIR to the profile-specific QIR for a specific target.
 /// @param pm Pass Manager to add QIR passes to
-/// @param convertTo Expected to be "qir-base" or "qir-adaptive" (comes from the
+/// @param convertTo Expected to be `qir-base` or `qir-adaptive` (comes from the
 /// cudaq-translate command line `--convert-to` parameter)
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
+
+/// @brief Verify that all `CallOp` targets are QIR- or NVQIR-defined functions
+/// or in the provided allowed list.
+std::unique_ptr<mlir::Pass>
+createVerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &allowedFuncs);
 
 // Use the addQIRProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass>
@@ -40,9 +45,6 @@ std::unique_ptr<mlir::Pass> verifyQIRProfilePass(llvm::StringRef convertTo);
 std::unique_ptr<mlir::Pass> createQIRProfilePreparationPass();
 std::unique_ptr<mlir::Pass>
 createConvertToQIRFuncPass(llvm::StringRef convertTo);
-
-// Functions to support removing measurements from QIR
-std::unique_ptr<mlir::Pass> createRemoveMeasurementsPass();
 
 /// Register target pipelines.
 void registerTargetPipelines();

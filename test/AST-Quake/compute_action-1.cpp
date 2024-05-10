@@ -1,13 +1,13 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
-// RUN: cudaq-quake -D DAGGER %s | FileCheck --check-prefixes=DAGGER %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std -D DAGGER %s | FileCheck --check-prefixes=DAGGER %s
 
 #include <cudaq.h>
 
@@ -18,7 +18,7 @@
 #endif
 
 void t() __qpu__ {
-	cudaq::qreg r(5);
+	cudaq::qvector r(5);
 	cudaq:: CALL (
 		[&](){ t(r[0]); x(r[1]); },
 		[&](){ h(r[2]); });

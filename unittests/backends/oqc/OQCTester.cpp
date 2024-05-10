@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,7 +12,7 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
-std::string mockPort = "62453";
+std::string mockPort = "62442";
 std::string email = "test@test.com";
 std::string password = "password";
 std::string backendStringTemplate =

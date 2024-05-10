@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 find_package(Python COMPONENTS Interpreter)
-if (OPENSSL_FOUND AND Python_FOUND AND CUDAQ_TEST_MOCK_SERVERS)
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
   add_subdirectory(oqc)
   add_subdirectory(quantinuum)
   add_subdirectory(ionq)

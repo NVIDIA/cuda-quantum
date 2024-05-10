@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // RUN: cudaq-quake %s | FileCheck %s
 
 #include <cudaq.h>
@@ -13,13 +14,13 @@
 struct MyKernel {
   template <typename StatePrep>
   void operator()(StatePrep &&statePrep) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     statePrep(q);
   }
 };
 
 int main() {
-  auto bell = [](cudaq::qreg<> &q) __qpu__ {
+  auto bell = [](cudaq::qvector<> &q) __qpu__ {
     h(q[0]);
     x<cudaq::ctrl>(q[0], q[1]);
   };

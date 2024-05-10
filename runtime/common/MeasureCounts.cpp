@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -43,7 +43,7 @@ ExecutionResult::ExecutionResult(const ExecutionResult &other)
     : counts(other.counts), expectationValue(other.expectationValue),
       registerName(other.registerName), sequentialData(other.sequentialData) {}
 
-ExecutionResult &ExecutionResult::operator=(ExecutionResult &other) {
+ExecutionResult &ExecutionResult::operator=(const ExecutionResult &other) {
   counts = other.counts;
   expectationValue = other.expectationValue;
   registerName = other.registerName;
@@ -69,7 +69,7 @@ bool ExecutionResult::operator==(const ExecutionResult &result) const {
 // represent register name, number of bitstrings M, then for each bit string
 // {l, bs.length, count}
 /// @return
-std::vector<std::size_t> ExecutionResult::serialize() {
+std::vector<std::size_t> ExecutionResult::serialize() const {
   std::vector<std::size_t> retData;
 
   // Encode the classical register name
@@ -116,7 +116,7 @@ void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
   }
 }
 
-std::vector<std::size_t> sample_result::serialize() {
+std::vector<std::size_t> sample_result::serialize() const {
   std::vector<std::size_t> retData;
   for (auto &result : sampleResults) {
     auto serialized = result.second.serialize();
@@ -155,18 +155,22 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
   }
 }
 
-sample_result::sample_result(ExecutionResult &result) {
-  sampleResults.insert({result.registerName, std::move(result)});
+sample_result::sample_result(ExecutionResult &&result) {
+  sampleResults.insert({result.registerName, result});
   for (auto &[bits, count] : result.counts)
     totalShots += count;
 }
+
+sample_result::sample_result(ExecutionResult &result)
+    : sample_result(std::move(result)) {}
 
 sample_result::sample_result(std::vector<ExecutionResult> &results) {
   for (auto &result : results) {
     sampleResults.insert({result.registerName, result});
   }
-  for (auto &[bits, count] : results[0].counts)
-    totalShots += count;
+  if (!results.empty())
+    for (auto &[bits, count] : results[0].counts)
+      totalShots += count;
 }
 
 sample_result::sample_result(double preComputedExp,
@@ -186,7 +190,13 @@ sample_result::sample_result(double preComputedExp,
 }
 
 void sample_result::append(ExecutionResult &result) {
-  sampleResults.insert({result.registerName, result});
+  // If given a result corresponding to the same register name,
+  // replace the existing one if in the map.
+  auto iter = sampleResults.find(result.registerName);
+  if (iter != sampleResults.end())
+    iter->second = result;
+  else
+    sampleResults.insert({result.registerName, result});
   if (!totalShots)
     for (auto &[bits, count] : result.counts)
       totalShots += count;
@@ -216,7 +226,7 @@ bool sample_result::operator==(const sample_result &counts) const {
   return sampleResults == counts.sampleResults;
 }
 
-sample_result &sample_result::operator+=(sample_result &other) {
+sample_result &sample_result::operator+=(const sample_result &other) {
 
   for (auto &otherResults : other.sampleResults) {
     auto regName = otherResults.first;
@@ -246,7 +256,7 @@ sample_result &sample_result::operator+=(sample_result &other) {
 }
 
 std::vector<std::string>
-sample_result::sequential_data(const std::string_view registerName) {
+sample_result::sequential_data(const std::string_view registerName) const {
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
     throw std::runtime_error(
@@ -306,12 +316,15 @@ std::size_t sample_result::size(const std::string_view registerName) noexcept {
 }
 
 double sample_result::probability(std::string_view bitStr,
-                                  const std::string_view registerName) {
+                                  const std::string_view registerName) const {
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
     return 0.0;
 
-  return (double)iter->second.counts[bitStr.data()] / totalShots;
+  const auto countIter = iter->second.counts.find(bitStr.data());
+  return (countIter == iter->second.counts.end())
+             ? 0.0
+             : (double)countIter->second / totalShots;
 }
 
 std::size_t sample_result::count(std::string_view bitStr,
@@ -337,7 +350,7 @@ std::string sample_result::most_probable(const std::string_view registerName) {
       ->first;
 }
 
-bool sample_result::has_expectation(const std::string_view registerName) {
+bool sample_result::has_expectation(const std::string_view registerName) const {
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
     return false;
@@ -345,7 +358,7 @@ bool sample_result::has_expectation(const std::string_view registerName) {
   return iter->second.expectationValue.has_value();
 }
 
-double sample_result::expectation(const std::string_view registerName) {
+double sample_result::expectation(const std::string_view registerName) const {
   double aver = 0.0;
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
@@ -389,7 +402,7 @@ double sample_result::exp_val_z(const std::string_view registerName) {
   return aver;
 }
 
-std::vector<std::string> sample_result::register_names() {
+std::vector<std::string> sample_result::register_names() const {
   std::vector<std::string> ret;
   for (auto &kv : sampleResults)
     ret.push_back(kv.first);
@@ -397,7 +410,8 @@ std::vector<std::string> sample_result::register_names() {
   return ret;
 }
 
-CountsDictionary sample_result::to_map(const std::string_view registerName) {
+CountsDictionary
+sample_result::to_map(const std::string_view registerName) const {
   auto iter = sampleResults.find(registerName.data());
   if (iter == sampleResults.end())
     return CountsDictionary();

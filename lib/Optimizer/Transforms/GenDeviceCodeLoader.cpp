@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,15 +10,53 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"
+#include "mlir/Analysis/CallGraph.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Transforms/Passes.h"
 
 #define DEBUG_TYPE "device-code-loader"
 
 using namespace mlir;
+
+namespace llvm {
+// FIXME: `GraphTraits` specialization for `const mlir::CallGraphNode *` in
+// "mlir/Analysis/CallGraph.h" has a bug.
+// In particular, `GraphTraits<const mlir::CallGraphNode *>` typedef'ed `NodeRef
+// -> mlir::CallGraphNode *`, (without `const`), causing problems when using
+// `mlir::CallGraphNode` with graph iterator (e.g., `llvm::df_iterator`). The
+// entry node getter has the signature `NodeRef getEntryNode(NodeRef node)`,
+// i.e., `mlir::CallGraphNode * getEntryNode(mlir::CallGraphNode * node)`; but a
+// graph iterator for `const mlir::CallGraphNode *` will pass a `const
+// mlir::CallGraphNode *` to that `getEntryNode` function => compile error.
+// Here, we define a non-const overload, which hasn't been defined, to work
+// around that issue.
+//
+// Note: this isn't an issue for the whole `mlir::CallGraph` graph, i.e.,
+// `GraphTraits<const mlir::CallGraph *>`. `getEntryNode` is defined as
+// `getExternalCallerNode`, which is a const method of `mlir::CallGraph`.
+
+template <>
+struct GraphTraits<mlir::CallGraphNode *> {
+  using NodeRef = mlir::CallGraphNode *;
+  static NodeRef getEntryNode(NodeRef node) { return node; }
+
+  static NodeRef unwrap(const mlir::CallGraphNode::Edge &edge) {
+    return edge.getTarget();
+  }
+  using ChildIteratorType =
+      mapped_iterator<mlir::CallGraphNode::iterator, decltype(&unwrap)>;
+  static ChildIteratorType child_begin(NodeRef node) {
+    return {node->begin(), &unwrap};
+  }
+  static ChildIteratorType child_end(NodeRef node) {
+    return {node->end(), &unwrap};
+  }
+};
+} // namespace llvm
 
 namespace {
 class GenerateDeviceCodeLoader
@@ -68,6 +106,8 @@ public:
       }
     }
 
+    // Create a call graph to track kernel dependency.
+    mlir::CallGraph callGraph(module);
     for (auto &op : *module.getBody()) {
       // FIXME: May not be a FuncOp in the future.
       if (auto funcOp = dyn_cast<func::FuncOp>(op)) {
@@ -75,7 +115,7 @@ public:
           continue;
         auto className =
             funcOp.getName().drop_front(cudaq::runtime::cudaqGenPrefixLength);
-        LLVM_DEBUG(llvm::dbgs() << "processing function" << className << '\n');
+        LLVM_DEBUG(llvm::dbgs() << "processing function " << className << '\n');
         // Generate LLVM-IR dialect to register the device code loading.
         std::string thunkName = className.str() + ".thunk";
         std::string funcCode;
@@ -83,23 +123,28 @@ public:
         OpPrintingFlags opf;
         opf.enableDebugInfo(/*enable=*/true,
                             /*pretty=*/false);
-        strOut << "module { ";
-        funcOp.print(strOut, opf);
-        strOut << '\n';
+        strOut << "module attributes " << module->getAttrDictionary() << " { ";
 
         // We'll also need any non-inlined functions that are
         // called by our cudaq kernel
-        funcOp.walk([&](func::CallOp callOp) {
-          if (auto neededFunc =
-                  module.lookupSymbol<func::FuncOp>(callOp.getCallee())) {
-            if (neededFunc.empty())
-              return WalkResult::skip();
-            neededFunc.print(strOut, opf);
+        // Set of dependent kernels that we've included.
+        // Note: the `CallGraphNode` does include 'this' function.
+        mlir::CallGraphNode *node =
+            callGraph.lookupNode(funcOp.getCallableRegion());
+        // Iterate over all dependent kernels starting at this node.
+        for (auto it = llvm::df_begin(node), itEnd = llvm::df_end(node);
+             it != itEnd; ++it) {
+          // Only consider those that are defined in this module.
+          if (!it->isExternal()) {
+            auto *callableRegion = it->getCallableRegion();
+            auto parentFuncOp =
+                callableRegion->getParentOfType<mlir::func::FuncOp>();
+            LLVM_DEBUG(llvm::dbgs() << "  Adding dependent function "
+                                    << parentFuncOp->getName() << '\n');
+            parentFuncOp.print(strOut, opf);
             strOut << '\n';
-            return WalkResult::advance();
           }
-          return WalkResult::advance();
-        });
+        }
 
         // Include the generated kernel thunk if present since it is on the
         // callee side of the launchKernel() callback.

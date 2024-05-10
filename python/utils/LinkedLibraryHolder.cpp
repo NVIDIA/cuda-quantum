@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -25,38 +25,54 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 namespace cudaq {
 void setQuantumPlatformInternal(quantum_platform *p);
 
-constexpr static const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
-constexpr static const char NVQIR_SIMULATION_BACKEND[] =
+static constexpr const char PLATFORM_LIBRARY[] = "PLATFORM_LIBRARY=";
+static constexpr const char NVQIR_SIMULATION_BACKEND[] =
     "NVQIR_SIMULATION_BACKEND=";
-constexpr static const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
+static constexpr const char TARGET_DESCRIPTION[] = "TARGET_DESCRIPTION=";
 
+/// @brief A utility function to check availability of Nvidia GPUs and return
+/// their count
 int countGPUs() {
-  char buffer[1024];
-  std::string output;
-  FILE *fp1, *fp2;
-
-  fp1 = popen("nvidia-smi", "r");
-  if (!fp1) {
+  int retCode = std::system("nvidia-smi >/dev/null 2>&1");
+  if (0 != retCode) {
     cudaq::info("nvidia-smi: command not found");
     return -1;
   }
-  pclose(fp1);
 
-  fp2 = popen("nvidia-smi -L | wc -l", "r");
-  if (!fp2) {
-    cudaq::info("nvidia-smi: command not working");
+  char tmpFile[] = "/tmp/.cmd.capture.XXXXXX";
+  int fileDescriptor = mkstemp(tmpFile);
+  if (-1 == fileDescriptor) {
+    cudaq::info("Failed to create a temporary file to capture output");
     return -1;
   }
-  while (fgets(buffer, sizeof buffer, fp2)) {
-    output += buffer;
+
+  std::string command = "nvidia-smi -L 2>/dev/null | wc -l >> ";
+  command.append(tmpFile);
+  retCode = std::system(command.c_str());
+  if (0 != retCode) {
+    cudaq::info("Encountered error while invoking 'nvidia-smi'");
+    return -1;
   }
-  pclose(fp2);
-  return std::stoi(output);
+
+  std::stringstream buffer;
+  buffer << std::ifstream(tmpFile).rdbuf();
+  close(fileDescriptor);
+  unlink(tmpFile);
+  return std::stoi(buffer.str());
 }
 
 std::size_t RuntimeTarget::num_qpus() {
   auto &platform = cudaq::get_platform();
   return platform.num_qpus();
+}
+
+bool RuntimeTarget::is_remote() {
+  auto &platform = cudaq::get_platform();
+  return platform.is_remote();
+}
+bool RuntimeTarget::is_emulated() {
+  auto &platform = cudaq::get_platform();
+  return platform.is_emulated();
 }
 
 /// @brief Search the targets folder in the install for available targets.
@@ -174,14 +190,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
     libHandles.emplace(p.string(),
                        dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
 
-  // We will always load the RemoteRestQPU plugin in Python.
-  auto potentialPath =
-      cudaqLibPath / fmt::format("libcudaq-rest-qpu.{}", libSuffix);
-  void *restQpuLibHandle =
-      dlopen(potentialPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-  if (restQpuLibHandle)
-    libHandles.emplace(potentialPath.string(), restQpuLibHandle);
-
   // Search for all simulators and create / store them
   for (const auto &library :
        std::filesystem::directory_iterator{cudaqLibPath}) {
@@ -248,10 +256,27 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 
   // Set the default target
   // If environment variable set with a valid value, use it
-  // Otherwise, if GPU(s) available, set default to 'nvidia', else to 'qpp-cpu'
+  // Otherwise, if GPU(s) available and other dependencies are satisfied, set
+  // default to 'nvidia', else to 'qpp-cpu'
   defaultTarget = "qpp-cpu";
   if (countGPUs() > 0) {
-    defaultTarget = "nvidia";
+    // Before setting the defaultTarget to nvidia, make sure the simulator is
+    // available.
+    const std::string nvidiaTarget = "nvidia";
+    auto iter = targets.find(nvidiaTarget);
+    if (iter != targets.end()) {
+      auto target = iter->second;
+      if (std::find(availableSimulators.begin(), availableSimulators.end(),
+                    target.simulatorName) != availableSimulators.end())
+        defaultTarget = nvidiaTarget;
+      else
+        cudaq::info(
+            "GPU(s) found but cannot select nvidia target because simulator "
+            "is not available. Are all dependencies installed?");
+    } else {
+      cudaq::info("GPU(s) found but cannot select nvidia target because nvidia "
+                  "target not found.");
+    }
   }
   auto env = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
   if (env) {
@@ -351,6 +376,17 @@ void LinkedLibraryHolder::setTarget(
 
   // Pack the config into the backend string name
   std::string backendConfigStr = targetName;
+  auto potentialServerHelperPath =
+      cudaqLibPath /
+      fmt::format("libcudaq-serverhelper-{}.{}", targetName, libSuffix);
+  if (std::filesystem::exists(potentialServerHelperPath) &&
+      !libHandles.count(potentialServerHelperPath.string())) {
+    void *serverHelperHandle = dlopen(
+        potentialServerHelperPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+    if (serverHelperHandle)
+      libHandles.emplace(potentialServerHelperPath.string(),
+                         serverHelperHandle);
+  }
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
 

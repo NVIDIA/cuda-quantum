@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -28,20 +28,30 @@ class QuakeType<string name, string typeMnemonic, list<Trait> traits = [],
 
 def WireType : QuakeType<"Wire", "wire"> {
   let description = [{
-    A `wire` is a primitive "quantum value" that differs from a traditional
-    SSA value in that it can and will be modified when used in any target
-    position. That means "quantum values" are not SSA values. `wire`
-    values can only be used once and have somewhat similar properties to
-    volatile memory. An operation that uses a `wire` in a target position is
-    required to return a new `wire` value reflecting the updated/new state.
+    A `wire` is a primitive quantum "SSA-value" that differs from a traditional
+    SSA-value in that it can and will be modified when used in any target
+    position. That means quantum "SSA-values" are not true SSA values. To
+    enforce this property a `wire` type is a linear type. Therefore, `wire`
+    values must be used exactly once. A `wire` value might be thought of as
+    having somewhat similar properties to volatile memory. An operation that
+    uses a `wire` is required to return a new `wire` value reflecting the
+    updated/new state and propagating the linear type.
 
     The following is a simple example of using `wire` values.
 
     ```mlir
+      // Create two wires.
       %q0 = ... : !quake.wire
       %q1 = ... : !quake.wire
-      %q2 = quake.gate1 [%q0] %q1 : (!quake.wire, !quake.wire) -> !quake.wire
-      %q3 = quake.gate2 %q2 : (!quake.wire) -> !quake.wire
+
+      // Apply some quantum gates.
+      %q2:2 = quake.gate1 [%q0] %q1 : (!quake.wire, !quake.wire) ->
+                 (!quake.wire, !quake.wire)
+      %q3 = quake.gate2 %q2#0 : (!quake.wire) -> !quake.wire
+
+      // Final use of the wires.
+      quake.sink %q3 : !quake.wire
+      quake.wrap %q2#1 to %r0 : !quake.wire, !quake.ref
     ```
 
     See also the description of the `ref` type.
@@ -157,9 +167,9 @@ def MeasureType : QuakeType<"Measure", "measure"> {
   let summary = "a classical result produced by a quantum measurement";
   let description = [{
     A quantum measurement captures the state of a qubit and returns a classical
-    value from the measurement. Depending on the target system this value may
-    have two or more logical states. Typically, a value of type `measure` is
-    considered a binary bit.
+    regular (not linear) value from the measurement. Depending on the target
+    system this value may have two or more logical states. Typically, a value of
+    type `measure` will be discriminated into a binary bit.
 
     ```mlir
       %m = quake.mz %0 : (!quake.ref) -> !quake.measure
@@ -173,12 +183,16 @@ def MeasureType : QuakeType<"Measure", "measure"> {
 def AnyQTypeLike : TypeConstraint<Or<[WireType.predicate, VeqType.predicate,
         ControlType.predicate, RefType.predicate]>, "quake quantum types">;
 def AnyQType : Type<AnyQTypeLike.predicate, "quantum type">;
+def AnyQTargetTypeLike : TypeConstraint<Or<[WireType.predicate,
+        VeqType.predicate, RefType.predicate]>, "quake quantum target types">;
+def AnyQTargetType : Type<AnyQTargetTypeLike.predicate, "quantum target type">;
 def AnyRefTypeLike : TypeConstraint<Or<[VeqType.predicate,
         RefType.predicate]>, "quake quantum reference types">;
 def AnyRefType : Type<AnyRefTypeLike.predicate, "quantum reference type">;
 def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
         ControlType.predicate]>, "quake quantum value types">;
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
+def AnyQLinearType : Type<WireType.predicate, "linear quantum value type">;
 
 def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
 

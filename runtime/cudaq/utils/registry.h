@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,8 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
-#include "llvm/Support/Registry.h"
+#include <string>
 
 namespace cudaq {
 namespace registry {

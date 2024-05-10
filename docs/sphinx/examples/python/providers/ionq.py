@@ -6,11 +6,14 @@ import cudaq
 # it via another call to `cudaq.set_target()`
 cudaq.set_target("ionq")
 
+
 # Create the kernel we'd like to execute on IonQ.
-kernel = cudaq.make_kernel()
-qubits = kernel.qalloc(2)
-kernel.h(qubits[0])
-kernel.cx(qubits[0], qubits[1])
+@cudaq.kernel
+def kernel():
+    qvector = cudaq.qvector(2)
+    h(qvector[0])
+    x.ctrl(qvector[0], qvector[1])
+
 
 # Note: All qubits will be measured at the end upon performing
 # the sampling. You may encounter a pre-flight error on IonQ
@@ -30,7 +33,7 @@ async_results = cudaq.sample_async(kernel)
 # ```
 # async_counts = async_results.get()
 # ```
-# or wee can also write the job reference (`async_results`) to
+# or we can also write the job reference (`async_results`) to
 # a file and load it later or from a different process.
 file = open("future.txt", "w")
 file.write(str(async_results))

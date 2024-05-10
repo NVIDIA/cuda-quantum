@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,10 +12,17 @@ namespace cudaq {
 
 namespace internal {
 constexpr const char version[] = "@CUDA_QUANTUM_VERSION@";
-}
+constexpr const char fullRepositoryVersion[] =
+    "https://github.com/NVIDIA/cuda-quantum @CUDA_QUANTUM_COMMIT_SHA@";
+} // namespace internal
 
-/// Get the CUDA Quantum version.
+/// Get the CUDA-Q version.
 const char *getVersion() { return internal::version; }
+
+/// Get the CUDA-Q full repository revision info.
+const char *getFullRepositoryVersion() {
+  return internal::fullRepositoryVersion;
+}
 
 /// A generic bug report message.
 constexpr const char *bugReportMsg =

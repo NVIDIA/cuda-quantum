@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // RUN: cudaq-quake -verify %s
 
 #include <bitset>
@@ -37,7 +38,7 @@ std::bitset<nrOfBits> random_bits() {
 template <int nrOfBits>
 struct oracle {
   // expected-error@+1{{kernel argument type not supported}}
-  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs,
+  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qview<> qs,
                   cudaq::qubit &aux) __qpu__ {
 
     for (size_t i = 0; i < nrOfBits; i++) {
@@ -53,7 +54,7 @@ struct bernstein_vazirani {
   // expected-error@+1{{kernel argument type not supported}}
   auto operator()(std::bitset<nrOfBits> bitvector) __qpu__ {
 
-    cudaq::qreg<nrOfBits> qs;
+    cudaq::qarray<nrOfBits> qs;
     cudaq::qubit aux;
     h(aux);
     z(aux);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -130,13 +130,13 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   auto *body = x->getBody();
   auto *loopVar = x->getLoopVariable();
   auto i64Ty = builder.getI64Type();
-  auto idxTy = builder.getIndexType();
-  if (auto stdvecTy = dyn_cast<cc::StdvecType>(buffer.getType())) {
+  if (auto stdvecTy = dyn_cast<cc::SpanLikeType>(buffer.getType())) {
     auto eleTy = stdvecTy.getElementType();
     auto dataPtrTy = cc::PointerType::get(eleTy);
     auto dataArrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-    auto [iters, ptr] = [&]() -> std::pair<Value, Value> {
-      if (auto call = buffer.getDefiningOp<func::CallOp>())
+    auto [iters, ptr, initial,
+          stepBy] = [&]() -> std::tuple<Value, Value, Value, Value> {
+      if (auto call = buffer.getDefiningOp<func::CallOp>()) {
         if (call.getCallee().equals(setCudaqRangeVector)) {
           // The std::vector was produced by cudaq::range(). Optimize this
           // special case to use the loop control directly. Erase the transient
@@ -149,19 +149,37 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
             // shouldn't get here, but we can erase the call at minimum
             call->erase();
           }
-          return {i, {}};
+          return {i, {}, {}, {}};
+        } else if (call.getCallee().equals(setCudaqRangeVectorTriple)) {
+          Value i = call.getOperand(2);
+          if (auto alloc = call.getOperand(0).getDefiningOp<cc::AllocaOp>()) {
+            Operation *callGetSizeOp = nullptr;
+            if (auto seqSize = alloc.getSeqSize()) {
+              if (auto callSize = seqSize.getDefiningOp<func::CallOp>())
+                if (callSize.getCallee().equals(getCudaqSizeFromTriple))
+                  callGetSizeOp = callSize.getOperation();
+            }
+            call->erase(); // erase call must be first
+            alloc->erase();
+            if (callGetSizeOp)
+              callGetSizeOp->erase();
+          } else {
+            // shouldn't get here, but we can erase the call at minimum
+            call->erase();
+          }
+          return {i, {}, call.getOperand(1), call.getOperand(3)};
         }
+      }
       Value i = builder.create<cc::StdvecSizeOp>(loc, i64Ty, buffer);
       Value p = builder.create<cc::StdvecDataOp>(loc, dataArrPtrTy, buffer);
-      return {i, p};
+      return {i, p, {}, {}};
     }();
 
     auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
-      auto iterIdx = block.getArgument(0);
-      Value index = builder.create<arith::IndexCastOp>(loc, i64Ty, iterIdx);
+      Value index = block.getArgument(0);
       // May need to create a temporary for the loop variable. Create a new
       // scope.
       auto scopeBuilder = [&](OpBuilder &builder, Location loc) {
@@ -198,8 +216,16 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
       builder.create<cc::ScopeOp>(loc, scopeBuilder);
     };
 
-    auto idxIters = builder.create<arith::IndexCastOp>(loc, idxTy, iters);
-    opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
+    if (!initial) {
+      auto idxIters = builder.create<cudaq::cc::CastOp>(
+          loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
+      opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
+    } else {
+      auto idxIters = builder.create<cudaq::cc::CastOp>(
+          loc, i64Ty, iters, cudaq::cc::CastOpMode::Signed);
+      opt::factory::createMonotonicLoop(builder, loc, initial, idxIters, stepBy,
+                                        bodyBuilder);
+    }
   } else if (auto veqTy = dyn_cast<quake::VeqType>(buffer.getType());
              veqTy && veqTy.hasSpecifiedSize()) {
     Value iters =
@@ -208,14 +234,14 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
-      auto iterIdx = block.getArgument(0);
-      Value index = builder.create<arith::IndexCastOp>(loc, i64Ty, iterIdx);
+      Value index = block.getArgument(0);
       Value ref = builder.create<quake::ExtractRefOp>(loc, buffer, index);
       symbolTable.insert(loopVar->getName(), ref);
       if (!TraverseStmt(static_cast<clang::Stmt *>(body)))
         result = false;
     };
-    auto idxIters = builder.create<arith::IndexCastOp>(loc, idxTy, iters);
+    auto idxIters = builder.create<cudaq::cc::CastOp>(
+        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
     opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
   } else {
     TODO_x(toLocation(x), x, mangler, "ranged for statement");
@@ -283,7 +309,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
       // necessarily an explicit cast or promotion node in the AST.)
       result = builder.create<cc::LoadOp>(loc, result);
     }
-    if (auto vecTy = dyn_cast<cc::StdvecType>(resTy)) {
+    if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {
       // Returning vector data that was allocated on the stack is not valid.
       // Allocate space on the heap and make a copy of the vector instead. It
       // will be the responsibility of the calling side to free this memory.
@@ -296,8 +322,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *stmt) {
       std::size_t byteWidth = (eleTy.getIntOrFloatBitWidth() + 7) / 8;
       Value dynSize =
           builder.create<cc::StdvecSizeOp>(loc, builder.getI64Type(), result);
-      auto eleSize = builder.create<arith::ConstantOp>(
-          loc, builder.getI64Type(), builder.getI64IntegerAttr(byteWidth));
+      auto eleSize = builder.create<arith::ConstantIntOp>(loc, byteWidth, 64);
       Value heapCopy =
           builder
               .create<func::CallOp>(loc, ptrTy, "__nvqpp_vectorCopyCtor",
@@ -323,36 +348,32 @@ bool QuakeBridgeVisitor::TraverseCompoundStmt(clang::CompoundStmt *stmt,
                                               DataRecursionQueue *q) {
   auto loc = toLocation(stmt->getSourceRange());
   SymbolTableScope var_scope(symbolTable);
+  auto traverseAndCheck = [&](clang::Stmt *cs) {
+    LLVM_DEBUG(llvm::dbgs() << "[[[\n"; cs->dump());
+    if (!TraverseStmt(cs))
+      reportClangError(cs, mangler, "statement not supported in qpu kernel");
+    LLVM_DEBUG({
+      if (!typeStack.empty()) {
+        llvm::dbgs() << "\n\nERROR: type stack has garbage after stmt:\n";
+        for (auto t : llvm::reverse(typeStack))
+          t.dump();
+        typeStack.clear();
+      }
+      llvm::dbgs() << "]]]\n";
+    });
+  };
   if (skipCompoundScope) {
     skipCompoundScope = false;
-    for (auto *cs : stmt->body()) {
-      LLVM_DEBUG(llvm::dbgs() << "[[[\n"; cs->dump());
-      if (TraverseStmt(static_cast<clang::Stmt *>(cs))) {
-        LLVM_DEBUG({
-          if (!typeStack.empty()) {
-            llvm::dbgs() << "\n\nERROR: type stack has garbage after stmt:\n";
-            for (auto t : llvm::reverse(typeStack))
-              t.dump();
-            typeStack.clear();
-          }
-          llvm::dbgs() << "]]]\n";
-        });
-      } else {
-        reportClangError(cs, mangler, "statement not supported in qpu kernel");
-      }
-    }
+    for (auto *cs : stmt->body())
+      traverseAndCheck(static_cast<clang::Stmt *>(cs));
     return true;
   }
-  bool result = true;
   builder.create<cc::ScopeOp>(loc, [&](OpBuilder &builder, Location loc) {
     for (auto *cs : stmt->body())
-      if (!TraverseStmt(static_cast<clang::Stmt *>(cs))) {
-        result = false;
-        return;
-      }
+      traverseAndCheck(static_cast<clang::Stmt *>(cs));
     builder.create<cc::ContinueOp>(loc);
   });
-  return result;
+  return true;
 }
 
 // Shared implementation for lowering of `do while` and `while` loops.
@@ -449,6 +470,19 @@ bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
     // If there is no initialization expression, skip creating an `if` scope.
     if (!TraverseStmt(cond))
       return false;
+
+    // For something like an `operator[]` the TOS value (likely) is a
+    // pointer to the indexed element in a vector. Since there may not be a cast
+    // node in the AST to make that a RHS value, we must explicitly check here
+    // and add the required a load and cast.
+    if (auto ptrTy = dyn_cast<cc::PointerType>(peekValue().getType())) {
+      Value v = popValue();
+      pushValue(builder.create<cc::LoadOp>(loc, v));
+      if (ptrTy != builder.getI1Type()) {
+        reportClangError(x, mangler,
+                         "expression in condition not yet supported");
+      }
+    }
     if (x->getElse())
       builder.create<cc::IfOp>(loc, TypeRange{}, popValue(),
                                stmtBuilder(x->getThen()),
@@ -465,6 +499,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
   bool result = true;
   auto loc = toLocation(x);
   auto *cond = x->getCond();
+  const auto initialValueDepth = valueStack.size();
   auto whileBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
     if (!result)
       return;
@@ -524,6 +559,18 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     builder.create<cc::LoopOp>(loc, ValueRange{}, postCondition, whileBuilder,
                                bodyBuilder);
   }
+  const auto finalValueDepth = valueStack.size();
+  if (finalValueDepth > initialValueDepth) {
+    [[maybe_unused]] auto vals =
+        lastValues(finalValueDepth - initialValueDepth);
+    LLVM_DEBUG({
+      llvm::dbgs() << "Garbage left after loop:\n";
+      for (auto v : vals)
+        v.dump();
+      llvm::dbgs() << "\n";
+    });
+  }
+
   return result;
 }
 

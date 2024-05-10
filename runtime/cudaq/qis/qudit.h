@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,7 +17,7 @@ namespace cudaq {
 template <std::size_t Levels>
 class qudit {
   /// Every qudit has a logical index in the global qudit register,
-  /// idx is this logical index, it must be
+  /// `idx` is this logical index, it must be
   /// provided at construction and is immutable.
   const std::size_t idx = 0;
 
@@ -27,7 +27,7 @@ class qudit {
 
 public:
   /// Construct a qudit, will allocated a new unique index
-  qudit() : idx(getExecutionManager()->getAvailableIndex(n_levels())) {}
+  qudit() : idx(getExecutionManager()->allocateQudit(n_levels())) {}
 
   // Qudits cannot be copied
   qudit(const qudit &q) = delete;

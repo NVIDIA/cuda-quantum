@@ -11,7 +11,7 @@
 
 struct ansatz {
   auto operator()(double theta) __qpu__ {
-    cudaq::qreg q(2);
+    cudaq::qvector q(2);
     x(q[0]);
     ry(theta, q[1]);
     x<cudaq::ctrl>(q[1], q[0]);

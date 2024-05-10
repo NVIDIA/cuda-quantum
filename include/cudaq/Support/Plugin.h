@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -65,7 +65,7 @@ public:
 
 extern "C" ::cudaq::PluginLibraryInfo LLVM_ATTRIBUTE_WEAK cudaqGetPluginInfo();
 
-/// Register a general CUDA Quantum Plugin
+/// Register a general CUDA-Q Plugin
 #define CUDAQ_REGISTER_MLIR_PLUGIN(NAME, REGISTRATION_FUNCTOR)                 \
   extern "C" LLVM_ATTRIBUTE_WEAK ::cudaq::PluginLibraryInfo                    \
   cudaqGetPluginInfo() {                                                       \

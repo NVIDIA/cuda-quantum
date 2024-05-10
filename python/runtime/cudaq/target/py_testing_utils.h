@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -16,7 +16,7 @@ namespace cudaq {
 
 class LinkedLibraryHolder;
 
-/// @brief Bind test utilities needed for mock qpu QIR profile simulation
+/// @brief Bind test utilities needed for mock QPU QIR profile simulation
 void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder);
 
 } // namespace cudaq

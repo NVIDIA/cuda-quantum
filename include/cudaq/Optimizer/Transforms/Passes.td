@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,15 +11,15 @@
 
 include "mlir/Pass/PassBase.td"
 
-
-def ApplyControlNegations : Pass<"apply-control-negations", "mlir::func::FuncOp"> {
+def ApplyControlNegations :
+    Pass<"apply-control-negations", "mlir::func::FuncOp"> {
   let summary =
     "Replace all operations with negative controls with positive controls and X operations.";
 
   let description = [{
     For every quantum operation with a negative control, replace that operation 
-    with an X operation on the control qubit, the controlled operation with positive 
-    polarity, and a final X operation on the control qubit. 
+    with an X operation on the control qubit, the controlled operation with
+    positive polarity, and a final X operation on the control qubit. 
   }];
 }
 
@@ -45,6 +45,17 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
     Option<"computeActionOptimization", "compute-action-opt", "bool",
       /*default=*/"true", "Enable the compute-action control optimization.">
   ];
+}
+
+def PySynthCallableBlockArgs : Pass<"py-synth-callable-block-args", "mlir::func::FuncOp"> {
+  let summary = "Synthesize / Inline cc.callable_func on function block arguments.";
+  let description = [{
+    This pass is leveraged by the Python bindings to synthesize any 
+    cc.callable block arguments. By synthesis we mean replace all uses of the 
+    callable block argument with a specific in-Module function call (func.call) 
+    retrieved at runtime (the name of the function passed to the kernel at the 
+    cc.callable block argument index).
+  }];
 }
 
 def BasisConversionPass: Pass<"basis-conversion", "mlir::ModuleOp"> {
@@ -314,7 +325,7 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
 
     The signal-failure-if-any-loop-cannot-be-completely-unrolled option controls
     whether to signal a failure if all loops cannot be fully unrolled. This is
-    necessary when synthesizing quantum circuits from CUDA Quantum kernels, such
+    necessary when synthesizing quantum circuits from CUDA-Q kernels, such
     as when generating a QIR base profile. A quantum circuit requires all loops
     be completely unrolled.
   }];
@@ -378,9 +389,15 @@ def MappingPass: Pass<"qubit-mapping", "mlir::func::FuncOp"> {
     performs mapping of the qubits by inserting the necessary swap operations
     into the Quake IR.
 
-    Note: this pass requires strictly value semantics for any quantum
+    Note 1: this pass requires strictly value semantics for any quantum
     operations. It will throw an error if any memory reference semantics are
     present on quantum operations.
+
+    Note 2: this pass can introduce ancilla qubits.
+
+    Note 3: as a result of note 2, if the IR contains no measurements, this pass
+    will inject measurements so that the post-mapping measurements correspond
+    to all of the input (user) qubits.
   }];
 
   let options = [
@@ -515,7 +532,7 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let description = [{
    This pass provides a hook for adding various metadata to a Quake
    function's list of compile-time attributes. This type of metadata
-   exposure will enable quantum IR introspection in the CUDA Quantum
+   exposure will enable quantum IR introspection in the CUDA-Q
    runtime library.
   }];
 

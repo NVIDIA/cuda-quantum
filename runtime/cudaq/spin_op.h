@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,6 +14,7 @@
 #include <functional>
 #include <map>
 #include <random>
+#include <unordered_map>
 
 // Define friend functions for operations between spin_op and scalars.
 #define CUDAQ_SPIN_SCALAR_OPERATIONS(op, U)                                    \

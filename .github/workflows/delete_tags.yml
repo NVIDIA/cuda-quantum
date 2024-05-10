@@ -1,0 +1,93 @@
+on:
+  workflow_dispatch:
+    inputs:
+      ghcr_image:
+          type: string
+          description: The name of the GitHub image.
+          required: true
+      delete_tags:
+          type: string
+          description: A regex matching the tag(s) to delete.
+          required: true
+
+name: Delete tags
+
+jobs:
+  ghcr_images:
+    name: Clean up GHCR image tags
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Log in to the container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Gather tags
+        id: tags
+        run: |
+          gh api -X GET --paginate -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            /orgs/${{ github.repository_owner }}/packages/container/${{ inputs.ghcr_image }}/versions >> packages.json
+
+          existing_image_tags=`cat packages.json | jq -r ".[] | select(.metadata.package_type==\"container\").metadata.container.tags[]" | (egrep --invert-match '^sha256-\S+\.sig$' || true)`
+          for tag in $existing_image_tags; do
+            if [[ "$tag" =~ ^${{ inputs.delete_tags }}$ ]]; then 
+                delete+=", $tag"
+            fi
+          done
+          echo "Matched tags: ${delete:2}"
+          echo "tags_to_remove=${delete:2}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Look up version numbers
+        id: packages
+        run: |
+          tags_to_remove=(`echo "${{ steps.tags.outputs.tags_to_remove }}" | tr -d ,`)
+          for tag in ${{ steps.tags.outputs.tags_to_remove }}; do
+            echo "Finding version id for tag ${tag%,}."
+            version_ids=`cat packages.json | jq ".[] | select(.metadata.package_type==\"container\" and (.metadata.container.tags[] | contains(\"${tag%,}\")))" | jq '.id'`
+            if [ -n "$version_ids" ]; then
+
+              for version in $version_ids; do
+                version_tags=`cat packages.json | jq -r ".[] | select(.id==$version).metadata.container.tags[]"`
+                can_be_removed=true
+                for version_tag in $version_tags; do
+                  if ! [[ ${tags_to_remove[@]} =~ $version_tag ]]; then
+                    can_be_removed=false
+                  fi
+                done
+                if $can_be_removed; then
+                  echo "Marking version $version for deletion."
+                  delete+=", $version"
+                fi
+              done
+            fi
+          done
+          echo "Deleting versions: ${delete:2}"
+          echo "versions_to_remove=${delete:2}" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Delete matching images
+        if: steps.packages.outputs.versions_to_remove
+        uses: actions/delete-package-versions@v4
+        with: 
+          package-name: ${{ inputs.ghcr_image }}
+          package-type: 'container'
+          package-version-ids: '${{ steps.packages.outputs.versions_to_remove }}'
+
+      - name: List remaining tags
+        run: |
+          gh api -X GET --paginate -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
+            /orgs/${{ github.repository_owner }}/packages/container/${{ inputs.ghcr_image }}/versions >> packages.json
+
+          existing_image_tags=`cat packages.json | jq -r ".[] | select(.metadata.package_type==\"container\").metadata.container.tags[]" | (egrep --invert-match '^sha256-\S+\.sig$' || true)`
+          echo "# Remaining tags for ${{ inputs.ghcr_image }}" >> $GITHUB_STEP_SUMMARY
+          for tag in $existing_image_tags; do
+            echo $tag >> $GITHUB_STEP_SUMMARY
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}

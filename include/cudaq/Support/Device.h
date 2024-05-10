@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -244,7 +244,7 @@ private:
   /// Device nodes (qubits) and edges (connections)
   GraphCSR topology;
 
-  /// List of shortest path from/to every src/destination
+  /// List of shortest path from/to every source/destination
   mlir::SmallVector<PathRef> shortestPaths;
 
   /// Storage for `PathRef`'s in `shortestPaths`

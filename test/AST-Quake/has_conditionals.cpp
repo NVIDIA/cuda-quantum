@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: c++20
 // RUN: cudaq-quake %s | cudaq-opt --quake-add-metadata | FileCheck %s
 
 #include <cudaq.h>
@@ -15,7 +16,7 @@
 // CHECK-SAME: {{("cudaq-entrypoint".*qubitMeasurementFeedback = true.*[}])|([{].*qubitMeasurementFeedback = true.*"cudaq-entrypoint")}} {
 struct kernel {
     void operator()() __qpu__ {
-        cudaq::qreg<3> q;
+        cudaq::qarray<3> q;
         h(q[1]);
         x<cudaq::ctrl>(q[1],q[2]);
 
@@ -34,7 +35,7 @@ struct kernel {
 // CHECK-SAME: () attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
 struct kernelNoConditional {
     void operator()() __qpu__ {
-        cudaq::qreg<1> q;
+        cudaq::qarray<1> q;
         h(q[0]);
     }
 };
@@ -45,7 +46,7 @@ struct kernelNoConditional {
 struct kernelComplex {
   void operator()() __qpu__ {
     // Allocate the qubits
-    cudaq::qreg q(2), ancilla(2);
+    cudaq::qvector q(2), ancilla(2);
     h(q[0]);
     x<cudaq::ctrl>(q[0], q[1]);
 

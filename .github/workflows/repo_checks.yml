@@ -14,7 +14,7 @@ jobs:
     name: "Check links"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Convert reStructuredText files to Markdown
         run: |
@@ -31,7 +31,7 @@ jobs:
     name: Check license headers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: apache/skywalking-eyes/header@v0.4.0
         with:
           config: .licenserc.yaml
@@ -45,7 +45,7 @@ jobs:
       json: ${{ steps.files.outputs.json }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: ${{ (github.event_name == 'pull_request' && '0') || '1' }}
 
@@ -80,10 +80,10 @@ jobs:
             done
           }
 
-          create_output cxx '*.cpp *.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
-          create_output cxx_headers '*.h *.hpp :!:test :!:tpls :!:**/nlopt-src/*'
+          create_output cxx '*.cpp *.h *.hpp :!:test :!:targettests :!:tpls :!:**/nlopt-src/*'
+          create_output cxx_headers '*.h *.hpp :!:test :!:targettests :!:tpls :!:**/nlopt-src/*'
           create_output cxx_examples 'docs/sphinx/examples/**/*.cpp'
-          create_output python '*.py :!:python/tests :!:test :!:tpls :!:docs/sphinx/conf.py'
+          create_output python '*.py :!:python/tests :!:test :!:targettests :!:tpls :!:docs/sphinx/conf.py'
           create_output markdown '*.md :!:tpls'
           create_output rst '*.rst :!:tpls'
           echo "json=$(echo $json)" >> $GITHUB_OUTPUT
@@ -94,7 +94,7 @@ jobs:
     needs: filters
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: C++
         run: |
@@ -161,7 +161,7 @@ jobs:
     needs: filters
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Check spelling allowlist
         run: |
@@ -230,11 +230,12 @@ jobs:
 
           md_status=`create_summary Markdown markdown`
           rst_status=`create_summary reStructuredText rst`
-          cxx_status=`create_summary "C++ Headers" cxx_headers`
-          cxx_status=`create_summary "C++ Examples" cxx_examples`
+          cxx_h_status=`create_summary "C++ Headers" cxx_headers`
+          cxx_ex_status=`create_summary "C++ Examples" cxx_examples`
           py_status=`create_summary Python python`
 
           if [ ! "$md_status" -eq 0 ]; then exit 1; fi
           if [ ! "$rst_status" -eq 0 ]; then exit 2; fi
-          if [ ! "$cxx_status" -eq 0 ]; then exit 3; fi
-          if [ ! "$py_status" -eq 0 ]; then exit 4; fi
+          if [ ! "$cxx_h_status" -eq 0 ]; then exit 3; fi
+          if [ ! "$cxx_ex_status" -eq 0 ]; then exit 4; fi
+          if [ ! "$py_status" -eq 0 ]; then exit 5; fi

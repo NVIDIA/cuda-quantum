@@ -1,26 +1,26 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file builds an image that contains a CUDA Quantum installation and all necessary runtime 
-# dependencies for using CUDA Quantum.
+# This file builds an image that contains a CUDA-Q installation and all necessary runtime 
+# dependencies for using CUDA-Q.
 #
-# This image requires specifing an image as argument that contains a CUDA Quantum installation
+# This image requires specifing an image as argument that contains a CUDA-Q installation
 # along with its development dependencies. This file then copies that installation into a more
 # minimal runtime environment. 
-# A suitable dev image can be obtained by building docker/build/cudaq.dev.Dockerfile.
+# A suitable base image can be obtained by building docker/build/cudaq.dev.Dockerfile.
 #
 # Usage:
 # Must be built from the repo root with:
 #   docker build -t nvcr.io/nvidia/nightly/cuda-quantum:latest-base -f docker/release/cudaq.Dockerfile .
 # 
-# The build argument cudaqdev_image defines the CUDA Quantum dev image that contains the CUDA
+# The build argument cudaqdev_image defines the CUDA-Q dev image that contains the CUDA
 # Quantum build. This Dockerfile copies the built components into the base_image. The specified
-# base_image must contain the necessary CUDA Quantum runtime dependencies.
+# base_image must contain the necessary CUDA-Q runtime dependencies.
 
 ARG base_image=ubuntu:22.04
 ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
@@ -41,9 +41,6 @@ RUN mkdir /usr/local/cudaq_assets && cd /usr/local/cudaq_assets && \
     if [ -d "$CUQUANTUM_INSTALL_PREFIX" ]; then mv "$CUQUANTUM_INSTALL_PREFIX"/* "/usr/local/cudaq_assets/cuquantum"; fi && \
     if [ "$CUDAQ_INSTALL_PREFIX" != "/usr/local/cudaq" ]; then mv "$CUDAQ_INSTALL_PREFIX" "/usr/local/cudaq"; fi
 
-# We should be able to relocate this as long as we define the OPENSSL_ROOT_DIR environment variable.
-RUN if [ "$OPENSSL_INSTALL_PREFIX" != "/usr/local/openssl" ]; then mv "$OPENSSL_INSTALL_PREFIX" "/usr/local/openssl"; fi
-
 FROM $base_image
 SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -57,19 +54,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates wget git sudo vim \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-# Install CUDA Quantum runtime dependencies.
+# Install CUDA-Q runtime dependencies.
 
-ENV OPENSSL_ROOT_DIR="/opt/openssl"
-COPY --from=cudaqbuild "/usr/local/openssl/" "$OPENSSL_ROOT_DIR"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 python3-pip libpython3-dev \
-        libstdc++-12-dev \
-        libcurl4-openssl-dev \
+        python3 python3-pip libstdc++-12-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
+RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev \
+    && python3 -m pip install --no-cache-dir notebook==7.1.3 \
+    && apt-get remove -y gcc python3-dev \
+    && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy over the CUDA Quantum installation, and the necessary compiler tools.
+# Copy over the CUDA-Q installation, and the necessary compiler tools.
 
 ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
@@ -78,12 +75,12 @@ ENV CUDA_QUANTUM_PATH="/opt/nvidia/cudaq"
 COPY --from=cudaqbuild "/usr/local/cudaq/" "$CUDA_QUANTUM_PATH"
 COPY --from=cudaqbuild "/usr/local/cudaq_assets" "$CUDA_QUANTUM_PATH/assets"
 
-# For now, the CUDA Quantum build hardcodes certain paths and hence expects to find its 
-# dependencies in specific locations. While a relocatable installation of CUDA Quantum should 
+# For now, the CUDA-Q build hardcodes certain paths and hence expects to find its 
+# dependencies in specific locations. While a relocatable installation of CUDA-Q should 
 # be a good/better option in the future, for now we make sure to copy the dependencies to the 
 # expected locations. The CUDQ Quantum installation contains an xml file that lists these.
 ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
-RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" "$CUDA_QUANTUM_PATH/assets" \
+RUN bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$CUDA_QUANTUM_PATH/assets" \
     && rm -rf "$CUDA_QUANTUM_PATH/assets" \
     && rm "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
 
@@ -96,10 +93,10 @@ RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep 
 # Some tools related to shell handling.
 
 ARG COPYRIGHT_NOTICE="=========================\n\
-   NVIDIA CUDA Quantum   \n\
+      NVIDIA CUDA-Q      \n\
 =========================\n\n\
 Version: ${CUDA_QUANTUM_VERSION}\n\n\
-Copyright (c) 2023 NVIDIA Corporation & Affiliates \n\
+Copyright (c) 2024 NVIDIA Corporation & Affiliates \n\
 All rights reserved.\n\n\
 To run a command as administrator (user `root`), use `sudo <command>`.\n"
 RUN echo -e "$COPYRIGHT_NOTICE" > "$CUDA_QUANTUM_PATH/Copyright.txt"

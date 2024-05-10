@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -73,7 +73,7 @@ struct twoqbit_adjoint_test {
 };
 
 struct test_adjoint {
-  void operator()(cudaq::qspan<> q) __qpu__ {
+  void operator()(cudaq::qview<> q) __qpu__ {
     h(q[0]);
     t(q[1]);
     s(q[2]);
@@ -120,7 +120,7 @@ CUDAQ_TEST(AdjointTester, checkSimple) {
 CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
 
   struct xxxh_gates {
-    void operator()(cudaq::qspan<> &q) __qpu__ {
+    void operator()(cudaq::qview<> &q) __qpu__ {
       x(q[2]);
       x(q[0], q[1]);
       h(q[2]);
@@ -128,19 +128,19 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   };
 
   struct S_0 {
-    void operator()(cudaq::qspan<> q) __qpu__ {
+    void operator()(cudaq::qview<> q) __qpu__ {
 
       cudaq::compute_action([&]() { xxxh_gates{}(q); },
-                            [&] { x(q[0], q[1], q[2]); });
+                            [&]() { x(q[0], q[1], q[2]); });
     }
   };
 
   struct P {
-    void operator()(cudaq::qspan<> q) __qpu__ { h(q[0], q[1]); }
+    void operator()(cudaq::qview<> q) __qpu__ { h(q[0], q[1]); }
   };
 
   struct R {
-    void operator()(cudaq::qspan<> q) __qpu__ {
+    void operator()(cudaq::qview<> q) __qpu__ {
       ry(M_PI / 16.0, q[2]);
       ry<cudaq::ctrl>(M_PI / 8.0, q[0], q[2]);
       ry<cudaq::ctrl>(M_PI / 4.0, q[1], q[2]);
@@ -148,7 +148,7 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   };
 
   struct A {
-    void operator()(cudaq::qspan<> q) __qpu__ {
+    void operator()(cudaq::qview<> q) __qpu__ {
 
       P{}(q);
       R{}(q);
@@ -156,7 +156,7 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   };
 
   struct S_chi {
-    void operator()(cudaq::qspan<> q) __qpu__ { z(q[2]); }
+    void operator()(cudaq::qview<> q) __qpu__ { z(q[2]); }
   };
 
   struct run_circuit {
@@ -217,4 +217,60 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
   // ctrl ry pi / 8 0 2
   // ctrl ry pi / 4 1 2
   // }
+}
+
+// From issue: https://github.com/NVIDIA/cuda-quantum/issues/1215
+
+#ifdef CUDAQ_BACKEND_CUSTATEVEC_FP32
+#define EPSILON std::numeric_limits<float>::epsilon()
+#else
+#define EPSILON std::numeric_limits<double>::epsilon()
+#endif
+
+// This implementation is based on:
+// Knuth, D. E. (2014). Art of computer programming, volume 2: Seminumerical
+//                      algorithms. Addison-Wesley Professional.
+// (See page 233 for the discussion on floating points that was adapted here to
+// implement the comparison for std::complex<double>. Here we use the Euclidean
+// distance to compare the complex numbers.)
+static bool essentially_equal(std::complex<double> a, std::complex<double> b,
+                              double epsilon = EPSILON) {
+  double tmp = std::min(std::abs(b), std::abs(a));
+  return std::abs(a - b) <= (tmp * epsilon);
+}
+
+#undef EPSILON
+
+static __qpu__ void foo(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
+
+static __qpu__ void bar() {
+  cudaq::qubit q;
+  rz<cudaq::adj>(M_PI_2, q);
+  cudaq::adjoint(foo, q);
+}
+
+CUDAQ_TEST(AdjointTester, checkEvenAdjointNesting) {
+  auto result = cudaq::get_state(bar);
+  auto amplitudes = result.get_data();
+  std::array<std::complex<double>, 2> expected = {1., 0};
+  EXPECT_TRUE(essentially_equal(expected[0], amplitudes[0]));
+  EXPECT_TRUE(essentially_equal(expected[1], amplitudes[1]));
+}
+
+static __qpu__ void zaz(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
+
+static __qpu__ void foo_2(cudaq::qubit &q) { cudaq::adjoint(zaz, q); }
+
+static __qpu__ void bar_2() {
+  cudaq::qubit q;
+  rz(M_PI_2, q);
+  cudaq::adjoint(foo_2, q);
+}
+
+CUDAQ_TEST(AdjointTester, checkOddAdjointNesting) {
+  auto result = cudaq::get_state(bar_2);
+  auto amplitudes = result.get_data();
+  std::array<std::complex<double>, 2> expected = {1., 0};
+  EXPECT_TRUE(essentially_equal(expected[0], amplitudes[0]));
+  EXPECT_TRUE(essentially_equal(expected[1], amplitudes[1]));
 }

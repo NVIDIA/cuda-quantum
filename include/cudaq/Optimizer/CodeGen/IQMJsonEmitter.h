@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,7 +14,7 @@
 
 namespace cudaq {
 
-/// Translates the given operation to IQM's json format code.
+/// Translates the given operation to IQM's JSON format code.
 mlir::LogicalResult translateToIQMJson(mlir::Operation *op,
                                        llvm::raw_ostream &os);
 

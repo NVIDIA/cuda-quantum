@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -30,19 +30,12 @@
 # wget, unzip, make, flex, and bison (available via apt install) in addition to the requirements listed in the 
 # $CUDAQ_REPO_ROOT/docs/requirements.txt file.
 
-# To view docs in a browser from within a dev container you can use the desktop-lite feature:
-# https://github.com/devcontainers/features/tree/main/src/desktop-lite.
-# To do so, uncomment this feature in devcontainer.json, and rebuild the container.
-# Open a browser and enter the address `http://localhost:6080/`. In VS Code, this can be done by 
-# opening the Ports View, and clicking on the `Open in Browser` symbol for the Local Address 
-# `localhost:6080`.
-# Click connect and enter the default password "cuda-quantum" (without the quotes).
-# All GUI commands entered in the terminal of the dev container will now be shown in this minimal
-# desktop. A <url> can be opened in the Chrome browser by entering the command 
-#   google-chrome --no-sandbox <url>
-# 
 # The script prints the url to the index of the generated docs at the end. Open that url in
-# the browser to preview the docs.
+# the browser to preview the docs. If you are working within a dev container, you can use
+# the Live Server extension in VS Code to view the docs in a Browser:
+#   https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer
+# After building the docs, go to the build/docs/sphinx directory, right click on index.html, and 
+# select "Open With Live Server".
 
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 DOCS_INSTALL_PREFIX=${DOCS_INSTALL_PREFIX:-"$CUDAQ_INSTALL_PREFIX/docs"}
@@ -75,18 +68,21 @@ docs_build_output="$repo_root/build/docs"
 sphinx_output_dir="$docs_build_output/sphinx"
 doxygen_output_dir="$docs_build_output/doxygen"
 dialect_output_dir="$docs_build_output/Dialects"
+rm -rf "$docs_build_output"
 
 # Check if the cudaq Python package is installed and if not, build and install it
 build_include_dir="$repo_root/build/include"
 python3 -c "import cudaq" 2>/dev/null
 if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" = "python" ] || [ "${force_update,,}" = "py" ]; then
     echo "Building cudaq package."
-    CUDAQ_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" bash "$repo_root/scripts/build_cudaq.sh"
+    CUDAQ_INSTALL_PREFIX="$CUDAQ_INSTALL_PREFIX" \
+    CUDAQ_BUILD_TESTS=OFF \
+    bash "$repo_root/scripts/build_cudaq.sh"
     cudaq_build_exit_code=$?
 
     python3 -c "import cudaq" 2>/dev/null
     if [ ! "$?" -eq "0" ] || [ ! "$cudaq_build_exit_code" -eq "0" ]; then
-        echo "Failed to build and install the CUDA Quantum Python package needed for docs generation."
+        echo "Failed to build and install the CUDA-Q Python package needed for docs generation."
         cd "$working_dir" && if $is_sourced; then return 2; else exit 2; fi
     else 
         echo "Python package has been installed in $CUDAQ_INSTALL_PREFIX."
@@ -140,12 +136,13 @@ sed 's@${CUDAQ_REPO_ROOT}@'"${repo_root}"'@' > "${doxygen_output_dir}/Doxyfile"
 "$doxygen_exe" "${doxygen_output_dir}/Doxyfile" 2> "$logs_dir/doxygen_error.txt" 1> "$logs_dir/doxygen_output.txt"
 doxygen_exit_code=$?
 if [ ! "$doxygen_exit_code" -eq "0" ]; then
+    cat "$logs_dir/doxygen_output.txt" "$logs_dir/doxygen_error.txt"
     echo "Failed to generate documentation using doxygen."
     echo "Doxygen exit code: $doxygen_exit_code"
     docs_exit_code=11
 fi
 
-echo "Building CUDA Quantum documentation using Sphinx..."
+echo "Building CUDA-Q documentation using Sphinx..."
 cd "$repo_root/docs"
 # The docs build so far is fast such that we do not care about the cached outputs.
 # Revisit this when caching becomes necessary.

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,7 @@
 
 // Test for std::vector initializer_list constructor support
 
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
 
 #include "cudaq.h"
 

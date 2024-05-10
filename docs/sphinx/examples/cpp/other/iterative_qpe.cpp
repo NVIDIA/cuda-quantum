@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// [Begin Documentation]
 // Compile and run with:
 // ```
 // nvq++ iterative_qpe.cpp -o qpe.x && ./qpe.x
@@ -15,7 +16,7 @@
 
 struct iqpe {
   void operator()() __qpu__ {
-    cudaq::qreg<2> q;
+    cudaq::qarray<2> q;
     h(q[0]);
     x(q[1]);
     for (int i = 0; i < 8; i++)
@@ -72,3 +73,4 @@ int main() {
 
   return 0;
 }
+// [End Documentation]

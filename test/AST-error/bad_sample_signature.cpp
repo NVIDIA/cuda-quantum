@@ -1,18 +1,19 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s -verify
+// REQUIRES: c++20
+// RUN: cudaq-quake %cpp_std %s -verify
 
 #include <cudaq.h>
 
 struct bad {
   int operator()(int i) __qpu__ {
-    cudaq::qreg q(i);
+    cudaq::qvector q(i);
     h(q);
     mz(q);
     return i;

@@ -1,5 +1,5 @@
 /*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -33,7 +33,7 @@ public:
     }
   }
 
-  /// @brief Compute the `forward_difference` gradient for the arbitary
+  /// @brief Compute the `forward_difference` gradient for the arbitrary
   /// function, `func`, passed in by the user.
   std::vector<double>
   compute(const std::vector<double> &x,

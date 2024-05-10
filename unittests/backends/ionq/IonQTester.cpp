@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,7 +13,7 @@
 #include <gtest/gtest.h>
 #include <stdlib.h>
 
-std::string mockPort = "62455";
+std::string mockPort = "62441";
 std::string backendStringTemplate =
     "ionq;emulate;false;url;http://localhost:{}";
 

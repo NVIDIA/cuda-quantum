@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -103,7 +103,11 @@ void bindSpinOperator(py::module &mod) {
            "to the "
            "identity.")
       .def(
-          "to_string", [](cudaq::spin_op &op) { return op.to_string(); },
+          "to_string",
+          [](cudaq::spin_op &op, bool print_coefficient) {
+            return op.to_string(print_coefficient);
+          },
+          py::arg("print_coefficient") = true,
           "Return a string representation of this :class:`SpinOperator`.")
       .def(
           "__str__", [](cudaq::spin_op &op) { return op.to_string(); },

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,8 @@
 
 /// This file provides some common QIR function name string s
 /// for use throughout our MLIR lowering infrastructure.
+
+#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 
 namespace cudaq::opt {
 
@@ -29,6 +31,8 @@ constexpr static const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
 constexpr static const char NVQIRInvokeRotationWithControlBits[] =
     "invokeRotationWithControlQubits";
+constexpr static const char NVQIRInvokeU3RotationWithControlBits[] =
+    "invokeU3RotationWithControlQubits";
 constexpr static const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
 constexpr static const char NVQIRPackSingleQubitInArray[] =
@@ -36,7 +40,7 @@ constexpr static const char NVQIRPackSingleQubitInArray[] =
 constexpr static const char NVQIRReleasePackedQubitArray[] =
     "releasePackedQubitArray";
 
-/// QIR Array funciton name strings
+/// QIR Array function name strings
 constexpr static const char QIRArrayGetElementPtr1d[] =
     "__quantum__rt__array_get_element_ptr_1d";
 constexpr static const char QIRArrayQubitAllocateArray[] =
@@ -82,5 +86,7 @@ inline mlir::Type getResultType(mlir::MLIRContext *context) {
 inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
   return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
 }
+
+void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
 
 } // namespace cudaq::opt

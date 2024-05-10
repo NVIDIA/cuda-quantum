@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #pragma once
 
 namespace cudaq {
+
 // Default instruction modifier
 struct base;
 
@@ -17,4 +18,5 @@ struct ctrl;
 
 // Adjoint gate modifier
 struct adj;
+
 } // namespace cudaq

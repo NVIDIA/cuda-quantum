@@ -1,6 +1,6 @@
 
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -22,14 +22,19 @@
 #include "cudaq/spin_op.h"
 #include "orca_qpu.h"
 
+#include "llvm/Support/Base64.h"
+
 #include <fstream>
 #include <iostream>
+#include <netinet/in.h>
 #include <regex>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 namespace {
 
 /// @brief The OrcaRemoteRESTQPU is a subtype of QPU that enables the
-/// execution of CUDA Quantum kernels on remotely hosted quantum computing
+/// execution of CUDA-Q kernels on remotely hosted quantum computing
 /// services via a REST Client / Server interaction. This type is meant
 /// to be general enough to support any remotely hosted service.
 /// Moreover, this QPU handles launching kernels under the Execution Context
@@ -158,8 +163,21 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
           std::to_string(split.size()));
 
     // Add to the backend configuration map
-    for (std::size_t i = 1; i < split.size(); i += 2)
-      backendConfig.insert({split[i], split[i + 1]});
+    for (std::size_t i = 1; i < split.size(); i += 2) {
+      // No need to decode trivial true/false values
+      if (split[i + 1].starts_with("base64_")) {
+        split[i + 1].erase(0, 7); // erase "base64_"
+        std::vector<char> decoded_vec;
+        if (auto err = llvm::decodeBase64(split[i + 1], decoded_vec))
+          throw std::runtime_error("DecodeBase64 error");
+        std::string decodedStr(decoded_vec.data(), decoded_vec.size());
+        cudaq::info("Decoded {} parameter from '{}' to '{}'", split[i],
+                    split[i + 1], decodedStr);
+        backendConfig.insert({split[i], decodedStr});
+      } else {
+        backendConfig.insert({split[i], split[i + 1]});
+      }
+    }
   }
 
   /// Once we know the backend, we should search for the config file

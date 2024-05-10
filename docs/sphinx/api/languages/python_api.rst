@@ -1,4 +1,4 @@
-CUDA Quantum Python API
+CUDA-Q Python API
 ******************************
 
 .. automodule:: cudaq
@@ -7,7 +7,10 @@ Program Construction
 =============================
 
 .. autofunction:: cudaq::make_kernel
-.. autofunction:: cudaq::from_state
+.. [SKIP_TEST]: Reason - AttributeError: module 'cudaq' has no attribute 'from_state'
+.. .. autofunction:: cudaq::from_state
+
+.. autoclass:: cudaq::PyKernel
 .. autoclass:: cudaq::Kernel
 
     .. automethod:: qalloc
@@ -37,6 +40,7 @@ Program Construction
     .. automethod:: r1
     .. automethod:: cr1
     .. automethod:: swap
+    .. automethod:: cswap
     .. automethod:: exp_pauli
     .. automethod:: mx
     .. automethod:: my
@@ -46,6 +50,13 @@ Program Construction
     .. automethod:: adjoint
     .. automethod:: control
     .. automethod:: apply_call
+    .. automethod:: u3
+
+.. autoclass:: cudaq::PyKernelDecorator
+    :members:
+    :special-members: __str__, __call__
+
+.. autofunction:: kernel
     
 Kernel Execution
 =============================
@@ -57,6 +68,7 @@ Kernel Execution
 .. autofunction:: cudaq::get_state
 .. autofunction:: cudaq::get_state_async
 .. autofunction:: cudaq::vqe
+.. autofunction:: cudaq::draw    
 
 Backend Configuration
 =============================
@@ -68,7 +80,6 @@ Backend Configuration
 .. autofunction:: cudaq::reset_target
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
-
 .. automethod:: cudaq::initialize_cudaq
 .. automethod:: cudaq::num_available_gpus
 .. automethod:: cudaq::set_random_seed
@@ -96,6 +107,7 @@ Data Types
 
 .. autoclass:: cudaq::qubit
 .. autoclass:: cudaq::qreg
+.. autoclass:: cudaq::qvector
 
 .. autoclass:: cudaq::ComplexMatrix
     :members:
@@ -207,5 +219,6 @@ MPI Submodule
 .. automethod:: cudaq.mpi::rank
 .. automethod:: cudaq.mpi::num_ranks
 .. automethod:: cudaq.mpi::all_gather
+.. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
 .. automethod:: cudaq.mpi::finalize

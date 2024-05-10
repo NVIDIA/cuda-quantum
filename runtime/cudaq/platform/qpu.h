@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,7 +9,9 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
+#include "common/Logger.h"
 #include "common/Registry.h"
+#include "common/Timing.h"
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -21,7 +23,7 @@ namespace cudaq {
 /// Expose the function that will return the current ExecutionManager
 ExecutionManager *getExecutionManager();
 
-/// A CUDA Quantum QPU is an abstraction on the quantum processing
+/// A CUDA-Q QPU is an abstraction on the quantum processing
 /// unit which executes quantum kernel expressions. The QPU exposes
 /// certain information about the QPU being targeting, such as the
 /// number of available qubits, the logical ID for this QPU in a set
@@ -50,7 +52,17 @@ protected:
   /// observation and perform state-preparation circuit measurement
   /// based on the `spin_op` terms.
   void handleObservation(ExecutionContext *localContext) {
-    if (localContext && localContext->name == "observe") {
+    // The reason for the 2 if checks is simply to do a flushGateQueue() before
+    // initiating the trace.
+    bool execute = localContext && localContext->name == "observe";
+    if (execute) {
+      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
+                             "handleObservation flushGateQueue()");
+      getExecutionManager()->flushGateQueue();
+    }
+    if (execute) {
+      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
+                             "QPU::handleObservation (after flush)");
       double sum = 0.0;
       if (!localContext->spin.has_value())
         throw std::runtime_error("[QPU] Observe ExecutionContext specified "
@@ -65,9 +77,8 @@ protected:
       // and computing <ZZ..ZZZ>
       if (localContext->canHandleObserve) {
         auto [exp, data] = cudaq::measure(H);
-        results.emplace_back(data.to_map(), H.to_string(false), exp);
         localContext->expectationValue = exp;
-        localContext->result = cudaq::sample_result(results);
+        localContext->result = data;
       } else {
 
         // Loop over each term and compute coeff * <term>
@@ -75,6 +86,8 @@ protected:
           if (term.is_identity())
             sum += term.get_coefficient().real();
           else {
+            // This takes a longer time for the first iteration unless
+            // flushGateQueue() is called above.
             auto [exp, data] = cudaq::measure(term);
             results.emplace_back(data.to_map(), term.to_string(false), exp);
             sum += term.get_coefficient().real() * exp;
@@ -99,6 +112,16 @@ public:
   QPU(QPU &&) = default;
   /// The destructor
   virtual ~QPU() = default;
+  /// Set the current QPU Id
+  void setId(std::size_t _qpuId) { qpu_id = _qpuId; }
+
+  /// Get id of the thread this QPU's queue executes on.
+  // If no execution_queue has been constructed, returns a 'null' id (does not
+  // represent a thread of execution).
+  std::thread::id getExecutionThreadId() const {
+    return execution_queue ? execution_queue->getExecutionThreadId()
+                           : std::thread::id();
+  }
 
   virtual void setNoiseModel(const noise_model *model) { noiseModel = model; }
 
@@ -109,7 +132,7 @@ public:
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
 
-  /// @brief Return whether this qpu has conditional feedback support
+  /// @brief Return whether this QPU has conditional feedback support
   virtual bool supportsConditionalFeedback() { return false; }
 
   /// Base class handling of shots is do-nothing,
@@ -137,5 +160,9 @@ public:
   /// as a struct-packed void pointer and its corresponding size.
   virtual void launchKernel(const std::string &name, void (*kernelFunc)(void *),
                             void *args, std::uint64_t, std::uint64_t) = 0;
+
+  /// @brief Notify the QPU that a new random seed value is set.
+  /// By default do nothing, let subclasses override.
+  virtual void onRandomSeedSet(std::size_t seed) {}
 };
 } // namespace cudaq

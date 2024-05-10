@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   std::string line;
   std::vector<std::string> funcs;
   {
-    std::regex mapRegex{"quake\\.mangled_name_map[^\"]*"};
+    std::regex mapRegex{"quake\\.mangled_name_map = [{]"};
     std::regex stringRegex{"\"(.*?)\""};
     while (std::getline(modFile, line) && funcs.empty()) {
       auto funcsBegin =
@@ -56,23 +56,51 @@ int main(int argc, char *argv[]) {
   // symbols defined error from the linker.
   std::ifstream llFile(argv[2]);
   std::ofstream outFile(argv[3]);
-  std::regex filterRegex("^define (dso_local|internal) ");
+  std::regex filterRegex("^define ");
+  std::regex filterInternalRegex("^define internal ");
+  std::regex filterDsoLocalRegex("^define dso_local ");
   auto rgxEnd = std::sregex_iterator();
+  auto computeCutPosition =
+      [&](const std::string &matchStr) -> std::pair<bool, std::size_t> {
+    std::regex rex("^" + matchStr + " ");
+    auto iter = std::sregex_iterator(line.begin(), line.end(), rex);
+    if (iter == rgxEnd)
+      return {false, 0};
+    return {true, matchStr.size()};
+  };
   while (std::getline(llFile, line)) {
     auto iter = std::sregex_iterator(line.begin(), line.end(), filterRegex);
     if (iter == rgxEnd) {
       outFile << line << std::endl;
       continue;
     }
+    if (line.find(" linkonce_odr ") != std::string::npos ||
+        line.find(" weak dso_local ") != std::string::npos) {
+      outFile << line << std::endl;
+      continue;
+    }
+    // At this point, `line` starts with define but does not contain
+    // linkonce_odr. So it is a candidate for being rewritten.
     bool replaced = false;
     for (auto fn : funcs) {
+      // Check if this is defining one of our kernels.
       auto pos = line.find(fn);
       if (pos == std::string::npos)
         continue;
-      auto ms = (*iter)[1].str();
-      pos = (ms == "internal") ? sizeof("define internal")
-                               : sizeof("define dso_local");
-      outFile << "define linkonce_odr dso_preemptable " << line.substr(pos)
+      auto pair = computeCutPosition("define internal");
+      if (!pair.first) {
+        pair = computeCutPosition("define dso_local");
+        if (!pair.first) {
+          pair = computeCutPosition("define");
+          if (!pair.first) {
+            // This is a hard error because the line must have a define.
+            std::cerr << "internal error: line no longer matches.\n";
+            return 1;
+          }
+        }
+      }
+      pos = pair.second;
+      outFile << "define linkonce_odr dso_preemptable" << line.substr(pos)
               << std::endl;
       replaced = true;
       break;

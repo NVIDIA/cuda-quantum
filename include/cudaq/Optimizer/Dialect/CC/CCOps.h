@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Optimizer/Dialect/CC/CCInterfaces.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Common/Traits.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -60,7 +61,7 @@ public:
   /// Helper for callbacks when building a Region in a control-flow Op. This
   /// sets up the entry block, block arguments, and sets the insertion point of
   /// \p builder to the start of the new block. The calling context can get a
-  /// poiner to the new block by calling `builder.getBlock()`. Since this
+  /// pointer to the new block by calling `builder.getBlock()`. Since this
   /// extends InsertionGuard, an instance will preserve the insertion point of
   /// \p builder as a bonus.
   explicit RegionBuilderGuard(mlir::OpBuilder &builder, mlir::Location loc,

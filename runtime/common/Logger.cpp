@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,8 +7,10 @@
  ******************************************************************************/
 
 #include "Logger.h"
+#include "Timing.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <filesystem>
+#include <set>
 #include <spdlog/cfg/env.h>
 #include <spdlog/cfg/helpers.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -16,6 +18,23 @@
 #include <spdlog/spdlog.h>
 
 namespace cudaq {
+
+// This must be a function rather than a global variable to avoid a startup
+// ordering issue that would otherwise occur if we simply made this a global
+// variable and then accessed it in the initializeLogger function.
+// NOTE: the only time that this list should be modified is at startup time.
+static std::set<int> &g_timingList() {
+  static std::set<int> timingList;
+  return timingList;
+}
+
+bool isTimingTagEnabled(int tag) {
+  // Note: this function is called very frequently, so it needs to be fast. It
+  // is assumed that g_timingList() contains a small number of elements
+  // (typically less than 10).
+  return g_timingList().contains(tag);
+}
+
 /// @brief This function will run at startup and initialize
 /// the logger for the runtime to use. It will set the log
 /// level and optionally dump to file if specified.
@@ -37,6 +56,35 @@ __attribute__((constructor)) void initializeLogger() {
     spdlog::set_default_logger(fileLogger);
     spdlog::flush_on(spdlog::get_level());
   }
+
+  // Parse comma separated integers into g_timingList. Process integer values
+  // like this: "1,3,5,7-10,12".
+  if (auto *val = std::getenv("CUDAQ_TIMING_TAGS")) {
+    std::string valueStr(val);
+    std::stringstream ss(valueStr);
+    int tag = 0;
+    int priorTag = -1; // initialize invalid to invalid tag
+    while (ss >> tag) {
+      if (tag > cudaq::TIMING_MAX_VALUE)
+        fmt::print("WARNING: value in CUDAQ_TIMING_TAGS ({}) is too high and "
+                   "will be ignored!\n",
+                   tag);
+      else
+        g_timingList().insert(tag);
+
+      // Handle the A-B range (if necessary)
+      if (priorTag != -1)
+        for (int t = priorTag + 1; t < tag; t++)
+          g_timingList().insert(t);
+      if (ss.peek() == ',') {
+        priorTag = -1; // this is not a range
+        ss.ignore();
+      } else if (ss.peek() == '-') {
+        priorTag = tag; // save the lower end of the range
+        ss.ignore();
+      }
+    }
+  }
 }
 
 namespace details {
@@ -46,6 +94,19 @@ void debug(const std::string_view msg) {
 #ifdef CUDAQ_DEBUG
   spdlog::debug(msg);
 #endif
+}
+// These asserts are needed for should_log
+static_assert(static_cast<int>(LogLevel::debug) ==
+                  static_cast<int>(spdlog::level::debug),
+              "log level enum mismatch");
+static_assert(static_cast<int>(LogLevel::trace) ==
+                  static_cast<int>(spdlog::level::trace),
+              "log level enum mismatch");
+static_assert(static_cast<int>(LogLevel::info) ==
+                  static_cast<int>(spdlog::level::info),
+              "log level enum mismatch");
+bool should_log(const LogLevel logLevel) {
+  return spdlog::should_log(static_cast<spdlog::level::level_enum>(logLevel));
 }
 std::string pathToFileName(const std::string_view fullFilePath) {
   const std::filesystem::path file(fullFilePath);

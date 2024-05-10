@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -16,7 +16,7 @@ except:
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
-port = 62455
+port = 62441
 
 
 def assert_close(got) -> bool:
@@ -26,6 +26,9 @@ def assert_close(got) -> bool:
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
+
+    # Set the targeted QPU
+    cudaq.set_target("ionq", url="http://localhost:{}".format(port))
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -43,7 +46,6 @@ def configureTarget():
 
     # Set the targeted QPU
     cudaq.set_target("ionq", url="http://localhost:{}".format(port))
-
     yield "Running the test."
     cudaq.reset_target()
 

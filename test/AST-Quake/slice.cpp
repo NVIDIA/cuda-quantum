@@ -1,20 +1,20 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %cpp_std %s | FileCheck %s
 
 #include <cudaq.h>
 
-__qpu__ void other(cudaq::qspan<>);
+__qpu__ void other(cudaq::qview<>);
 
 struct SliceTest {
    void operator()(int i1, int i2) __qpu__ {
-      cudaq::qreg reg(10);
+      cudaq::qvector reg(10);
       auto s = reg.slice(i1, i2);
       other(s);
    }

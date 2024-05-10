@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,11 +11,14 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 add_cudaq_library(OptCodeGen
-  LowerToQIRProfile.cpp
-  LowerToQIR.cpp
+  ConvertToQIRProfile.cpp
+  ConvertToQIR.cpp
   Passes.cpp
+  Pipelines.cpp
+  RemoveMeasurements.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
+  VerifyNVQIRCalls.cpp
 
   DEPENDS
     CCDialect

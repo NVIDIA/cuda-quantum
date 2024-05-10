@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -29,6 +29,10 @@ void QuantumExecutionQueue::enqueue(QuantumTask &t) {
   queue.push(t);
   cv.notify_one();
   return;
+}
+
+std::thread::id QuantumExecutionQueue::getExecutionThreadId() const {
+  return thread.get_id();
 }
 
 void QuantumExecutionQueue::handler(void) {

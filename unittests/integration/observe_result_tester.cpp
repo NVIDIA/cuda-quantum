@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -84,7 +84,7 @@ CUDAQ_TEST(ObserveResult, checkSimple) {
 CUDAQ_TEST(ObserveResult, checkExpValBug) {
 
   auto kernel = []() __qpu__ {
-    cudaq::qreg qubits(3);
+    cudaq::qvector qubits(3);
     rx(0.531, qubits[0]);
     ry(0.9, qubits[1]);
     rx(0.3, qubits[2]);

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -23,4 +23,4 @@ install (FILES nvqir/CircuitSimulator.h
                nvqir/QIRTypes.h
                nvqir/Gates.h
         DESTINATION include/nvqir)
-install (FILES cudaq.h DESTINATION include)
+install (FILES cudaq.h host_config.h DESTINATION include)

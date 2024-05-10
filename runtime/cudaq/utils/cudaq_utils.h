@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 #include <algorithm>
+#include <cassert>
 #include <memory>
 #include <numeric>
 #include <random>
@@ -240,7 +241,50 @@ std::vector<double> random_vector(const double l_range, const double r_range,
                                   const std::size_t size,
                                   const uint32_t seed = std::random_device{}());
 
-inline std::vector<std::size_t> range(int N) {
+/// @brief Return a vector of integers. The first element is the
+/// user-specified `start` value. The remaining values are all values
+/// incremented by `step` (defaults to 1) until the `stop` value is reached
+/// (exclusive).
+#if CUDAQ_USE_STD20
+template <typename ElementType>
+  requires(std::signed_integral<ElementType>)
+#else
+template <typename ElementType,
+          typename = std::enable_if_t<std::is_integral_v<ElementType> &&
+                                      std::is_signed_v<ElementType>>>
+#endif
+inline std::vector<ElementType> range(ElementType start, ElementType stop,
+                                      ElementType step = 1) {
+  std::vector<ElementType> vec;
+  auto val = start;
+  while ((step > 0) ? (val < stop) : (val > stop)) {
+    vec.push_back(val);
+    val += step;
+  }
+  return vec;
+}
+
+/// @brief Return a vector of integers. The first element is zero, and
+/// the remaining elements are all values incremented by 1 to the total
+/// size value provided (exclusive).
+#if CUDAQ_USE_STD20
+template <typename ElementType>
+  requires(std::signed_integral<ElementType>)
+#else
+template <typename ElementType,
+          typename = std::enable_if_t<std::is_integral_v<ElementType> &&
+                                      std::is_signed_v<ElementType>>>
+#endif
+inline std::vector<ElementType> range(ElementType N) {
+  return range(ElementType(0), N);
+}
+
+/// @brief Return a vector of unsigned integers. The first element is zero, and
+/// the remaining elements are all values incremented by 1 to the total
+/// size value provided (exclusive).
+inline std::vector<std::size_t> range(std::size_t N) {
+  if (N > std::numeric_limits<std::make_signed_t<std::size_t>>::max())
+    throw std::runtime_error("invalid size value to cudaq::range()");
   std::vector<std::size_t> vec(N);
   std::iota(vec.begin(), vec.end(), 0);
   return vec;

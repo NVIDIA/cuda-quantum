@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
@@ -16,6 +17,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include <unordered_set>
 
 using namespace mlir;
 
@@ -23,10 +25,33 @@ namespace {
 #include "cudaq/Optimizer/Dialect/Quake/Canonical.inc"
 } // namespace
 
+// Is \p op in the Quake dialect?
+// TODO: Is this StringRef comparison faster than calling MLIRContext::
+// getLoadedDialect("quake")?
 static bool isQuakeOperation(Operation *op) {
   if (auto *dialect = op->getDialect())
     return dialect->getNamespace().equals("quake");
   return false;
+}
+
+static LogicalResult verifyWireResultsAreLinear(Operation *op) {
+  for (Value v : op->getOpResults())
+    if (isa<quake::WireType>(v.getType())) {
+      // Terminators can forward wire values, but they are not quantum
+      // operations.
+      if (v.hasOneUse() || v.use_empty())
+        continue;
+      // Allow a single cf.cond_br to use the value twice, once for each arm.
+      std::unordered_set<Operation *> uniqs;
+      for (auto *op : v.getUsers())
+        uniqs.insert(op);
+      if (uniqs.size() == 1 &&
+          (*uniqs.begin())->hasTrait<OpTrait::IsTerminator>())
+        continue;
+      return op->emitOpError(
+          "wires are a linear type and must have exactly one use");
+    }
+  return success();
 }
 
 /// When a quake operation is in value form, the number of wire arguments (wire
@@ -591,6 +616,8 @@ void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 static LogicalResult verifyMeasurements(Operation *const op,
                                         TypeRange targetsType,
                                         const Type bitsType) {
+  if (failed(verifyWireResultsAreLinear(op)))
+    return failure();
   bool mustBeStdvec =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<quake::VeqType>(targetsType[0]));
@@ -645,9 +672,9 @@ LogicalResult quake::DiscriminateOp::verify() {
 //===----------------------------------------------------------------------===//
 
 // The following methods return to the operator's unitary matrix as a
-// column-major array. For parametrizable operations, the matrix can only be
+// column-major array. For parameterizable operations, the matrix can only be
 // built if the parameter can be computed at compilation time. These methods
-// populate an empty array taken as a input. If the matrix was not successfuly
+// populate an empty array taken as a input. If the matrix was not successfully
 // computed, the array will be left empty.
 
 /// If the parameter is known at compilation-time, set the result value and
@@ -960,6 +987,8 @@ void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   MACRO(R1Op) MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
 #define QUANTUM_OPS(MACRO) MACRO(ResetOp) GATE_OPS(MACRO) MEASURE_OPS(MACRO)
+#define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullWireOp)  \
+  MACRO(UnwrapOp)
 // clang-format on
 #define INSTANTIATE_CALLBACKS(Op)                                              \
   void quake::Op::getEffects(                                                  \
@@ -969,6 +998,15 @@ void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   }
 
 QUANTUM_OPS(INSTANTIATE_CALLBACKS)
+
+#define INSTANTIATE_LINEAR_TYPE_VERIFY(Op)                                     \
+  LogicalResult quake::Op::verify() {                                          \
+    return verifyWireResultsAreLinear(getOperation());                         \
+  }
+
+#define VERIFY_OPS(MACRO) GATE_OPS(MACRO) WIRE_OPS(MACRO)
+
+VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 
 //===----------------------------------------------------------------------===//
 // Generated logic

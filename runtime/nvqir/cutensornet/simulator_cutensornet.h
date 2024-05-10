@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,7 +13,7 @@
 #include "tensornet_state.h"
 
 namespace nvqir {
-/// @brief Base class of cutensornet simulator backends
+/// @brief Base class of `cutensornet` simulator backends
 class SimulatorTensorNetBase : public nvqir::CircuitSimulatorBase<double> {
 
 public:
@@ -40,6 +40,9 @@ public:
   /// @brief Reset the state of a given qubit to zero
   virtual void resetQubit(const std::size_t qubitIdx) override;
 
+  /// @brief Device synchronization
+  virtual void synchronize() override;
+
   /// @brief Perform a measurement on a given qubit
   virtual bool measureQubit(const std::size_t qubitIdx) override;
 
@@ -49,7 +52,7 @@ public:
          const int shots) override;
 
   /// @brief Evaluate the expectation value of a given observable
-  virtual cudaq::ExecutionResult observe(const cudaq::spin_op &op) override;
+  virtual cudaq::observe_result observe(const cudaq::spin_op &op) override;
 
   /// @brief Add qubits to the underlying quantum state
   virtual void addQubitsToState(std::size_t count) override;
@@ -59,6 +62,12 @@ public:
 
   /// Clone API
   virtual nvqir::CircuitSimulator *clone() override;
+
+  /// Swap gate implementation
+  // Note: cutensornetStateApplyControlledTensorOperator can only handle
+  // single-target.
+  void swap(const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
+            const std::size_t tgtIdx) override;
 
 protected:
   // Sub-type need to implement

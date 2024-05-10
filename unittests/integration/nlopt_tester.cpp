@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,7 +13,11 @@
 #include <cudaq/algorithms/gradients/central_difference.h>
 #include <cudaq/optimizers.h>
 
-#ifndef CUDAQ_BACKEND_DM
+// Skip these Nlopt optimizer tests for slow backends to reduce test time.
+// Note: CUDA-Q API level tests (e.g., `cudaq::observe`) should cover all
+// backend-specific functionalities required to interface with optimizers.
+#if !defined CUDAQ_BACKEND_DM && !defined CUDAQ_BACKEND_TENSORNET
+
 struct deuteron_n3_ansatz {
   void operator()(double x0, double x1) __qpu__ {
     cudaq::qvector q(3);

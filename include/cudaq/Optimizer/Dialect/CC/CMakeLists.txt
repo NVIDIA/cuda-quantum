@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,4 +7,5 @@
 # ============================================================================ #
 
 add_cudaq_dialect(CC cc)
+add_cudaq_interface(CCInterfaces)
 add_cudaq_dialect_doc(CCDialect cc)

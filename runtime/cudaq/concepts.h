@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,8 +8,10 @@
 
 #pragma once
 
+#include "host_config.h"
 #include <type_traits>
 
+#if CUDAQ_USE_STD20
 namespace cudaq {
 
 /// @brief Sample or observe calls need to have valid trailing runtime arguments
@@ -23,3 +25,4 @@ template <typename ReturnType>
 concept HasVoidReturnType = std::is_void_v<ReturnType>;
 
 } // namespace cudaq
+#endif

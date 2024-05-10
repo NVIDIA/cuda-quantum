@@ -31,3 +31,16 @@
 	path = tpls/pybind11
 	url = https://github.com/pybind/pybind11
 	ignore = dirty
+[submodule "tpls/qpp"]
+	path = tpls/qpp
+	url = https://github.com/softwareQinc/qpp.git
+	shallow = true
+[submodule "tpls/cpr"]
+	path = tpls/cpr
+	url = https://github.com/libcpr/cpr.git
+[submodule "tpls/asio"]
+	path = tpls/asio
+	url = https://github.com/chriskohlhoff/asio.git
+[submodule "tpls/Crow"]
+	path = tpls/Crow
+	url = https://github.com/CrowCpp/Crow.git

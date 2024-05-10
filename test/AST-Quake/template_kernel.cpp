@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,11 +8,12 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
+// REQUIRES: c++20
 // RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
 
 // We should only have 2 kernels created even though we instantiate ghz<5> twice. 
-// CHECK-LABEL: module attributes {quake.mangled_name_map = {
-// CHECK-SAME: __nvqpp__mlirgen__ghzILm10EE = "_ZN3ghzILm10EEclEv", __nvqpp__mlirgen__ghzILm5EE = "_ZN3ghzILm5EEclEv"
+// CHECK-LABEL: module attributes {
+// CHECK-SAME:  quake.mangled_name_map = {__nvqpp__mlirgen__ghzILm10EE = "_ZN3ghzILm10EEclEv", __nvqpp__mlirgen__ghzILm5EE = "_ZN3ghzILm5EEclEv"}
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__ghzILm5EE
 // CHECK: quake.h
@@ -33,7 +34,7 @@
 // Define a quantum kernel
 template <std::size_t N> struct ghz {
   auto operator()() __qpu__ {
-    cudaq::qreg<N> q;
+    cudaq::qarray<N> q;
     h(q[0]);
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);

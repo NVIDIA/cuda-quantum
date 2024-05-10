@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,10 +17,10 @@
 namespace cudaq {
 namespace details {
 /// @brief The future type models the expected result of a
-/// CUDA Quantum kernel execution under a specific execution context.
+/// CUDA-Q kernel execution under a specific execution context.
 /// This type is returned from asynchronous execution calls. It
 /// encapsulates the job-specific circuit execution identifiers, the
-/// name of the qpu the job executed on, and any extra configuration
+/// name of the QPU the job executed on, and any extra configuration
 /// information needed to retrieve the results later from the server.
 /// This type can be persisted to file and read in later to retrieve
 /// execution results.
@@ -38,7 +38,7 @@ protected:
 
   // std::vector<std::string> jobNames;
 
-  /// @brief The name of the qpu this execution is targeting
+  /// @brief The name of the QPU this execution is targeting
   std::string qpuName;
 
   /// @brief Any pertinent server configuration this future
@@ -83,7 +83,7 @@ std::istream &operator>>(std::istream &os, future &f);
 } // namespace details
 
 /// @brief the async_result type is a user facing, future-like
-/// type that is returned from CUDA Quantum public asynchronous
+/// type that is returned from CUDA-Q public asynchronous
 /// API functions. It wraps a details::future type, which can
 /// itself be constructed from a std::future or a collection of
 /// data pertinent to remote QPU REST invocation.

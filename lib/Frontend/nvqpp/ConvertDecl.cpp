@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -90,10 +90,9 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       // Transform pass-by-value arguments to stack slots.
       auto loc = toLocation(argVal);
       auto parmTy = entryBlock->getArgument(index).getType();
-      if (isa<FunctionType, cc::ArrayType, cc::CallableType, cc::PointerType,
-              cc::StdvecType, cc::StructType, LLVM::LLVMStructType,
-              quake::ControlType, quake::RefType, quake::VeqType,
-              quake::WireType>(parmTy)) {
+      if (isa<FunctionType, cc::CallableType, cc::PointerType, cc::SpanLikeType,
+              LLVM::LLVMStructType, quake::ControlType, quake::RefType,
+              quake::VeqType, quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
@@ -219,16 +218,27 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return false;
     }
     if (name.equals("pair")) {
-      if (allowUnknownRecordType)
-        return true;
-      TODO_x(toLocation(x), x, mangler, "std::pair type");
-      return false;
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      SmallVector<Type> members;
+      for (unsigned i = 0; i < 2; ++i) {
+        if (!TraverseType(cts->getTemplateArgs()[i].getAsType()))
+          return false;
+        members.push_back(popType());
+      }
+      return pushType(cc::StructType::get(ctx, members));
     }
     if (name.equals("tuple")) {
-      if (allowUnknownRecordType)
-        return true;
-      TODO_x(toLocation(x), x, mangler, "std::tuple type");
-      return false;
+      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
+      auto &templateArg = cts->getTemplateArgs()[0];
+      if (templateArg.getKind() != clang::TemplateArgument::Pack)
+        return false;
+      SmallVector<Type> members;
+      for (auto &ta : templateArg.pack_elements()) {
+        if (!TraverseType(ta.getAsType()))
+          return false;
+        members.push_back(popType());
+      }
+      return pushType(cc::StructType::get(ctx, members));
     }
     if (ignoredClass(x))
       return true;
@@ -484,7 +494,7 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
 bool QuakeBridgeVisitor::VisitNamedDecl(clang::NamedDecl *x) {
   if (!builder.getBlock() || inRecType) {
     // This decl was reached walking a record type. We don't need to look up
-    // the symbol, it's just a field name in the type.
+    // the symbol, it's just a member name in the type.
     return true;
   }
   if (x->getIdentifier()) {

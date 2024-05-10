@@ -10,31 +10,31 @@
 // simulated using the multi-GPU backend. The amount of resources required for
 // the simulation doubles with with each additional qubit.
 
-#include <bitset>
 #include <cudaq.h>
 #include <iostream>
 #include <random>
+#include <vector>
 
 #ifndef SIZE
 #define SIZE 5
 #endif
 
 template <int nrOfBits>
-std::bitset<nrOfBits> random_bits(int seed) {
+std::vector<bool> random_bits(int seed) {
 
-  std::bitset<nrOfBits> randomBits;
+  std::vector<bool> randomBits(nrOfBits);
   std::default_random_engine generator(seed);
   std::uniform_real_distribution<float> distribution(0.0, 1.0);
 
   for (size_t i = 0; i < nrOfBits; i++) {
-    randomBits.set(i, distribution(generator) < 0.5 ? 0 : 1);
+    randomBits[i] = distribution(generator) >= 0.5;
   }
   return randomBits;
 }
 
 template <int nrOfBits>
 struct oracle {
-  auto operator()(std::bitset<nrOfBits> bitvector, cudaq::qspan<> qs,
+  auto operator()(std::vector<bool> bitvector, cudaq::qview<> qs,
                   cudaq::qubit &aux) __qpu__ {
 
     for (size_t i = 0; i < nrOfBits; i++) {
@@ -47,9 +47,9 @@ struct oracle {
 
 template <int nrOfBits>
 struct bernstein_vazirani {
-  auto operator()(std::bitset<nrOfBits> bitvector) __qpu__ {
+  auto operator()(std::vector<bool> bitvector) __qpu__ {
 
-    cudaq::qreg<nrOfBits> qs;
+    cudaq::qarray<nrOfBits> qs;
     cudaq::qubit aux;
     h(aux);
     z(aux);
@@ -60,6 +60,16 @@ struct bernstein_vazirani {
     mz(qs);
   }
 };
+
+// Construct the bit vector such that the last bit has highest significance.
+std::string asString(const std::vector<bool> &bitvector) {
+  char *buffer = static_cast<char *>(alloca(bitvector.size() + 1));
+  std::size_t N = bitvector.size();
+  buffer[N] = '\0';
+  for (std::size_t i = 0; i < N; ++i)
+    buffer[N - 1 - i] = '0' + bitvector[i];
+  return {buffer, N};
+}
 
 int main(int argc, char *argv[]) {
   auto seed = 1 < argc ? atoi(argv[1]) : time(NULL);
@@ -72,7 +82,7 @@ int main(int argc, char *argv[]) {
   auto counts = cudaq::sample(nr_shots, kernel, bitvector);
 
   if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
-    printf("Encoded bitstring:  %s\n", bitvector.to_string().c_str());
+    printf("Encoded bitstring:  %s\n", asString(bitvector).c_str());
     printf("Measured bitstring: %s\n\n", counts.most_probable().c_str());
 
     for (auto &[bits, count] : counts) {

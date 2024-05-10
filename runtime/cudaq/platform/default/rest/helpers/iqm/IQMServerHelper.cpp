@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -156,6 +156,10 @@ public:
   std::string constructGetJobPath(ServerMessage &postResponse) override;
   std::string constructGetJobPath(std::string &jobId) override;
 
+  /// @brief Return next results polling interval
+  std::chrono::microseconds
+  nextResultPollingInterval(ServerMessage &postResponse) override;
+
   /// @brief Return true if the job is done
   bool jobIsDone(ServerMessage &getJobResponse) override;
 
@@ -204,6 +208,11 @@ std::string IQMServerHelper::constructGetJobPath(std::string &jobId) {
   return iqmServerUrl + "jobs/" + jobId + "/counts";
 }
 
+std::chrono::microseconds
+IQMServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
+  return std::chrono::seconds(1); // jobs never take less than few seconds
+};
+
 bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   cudaq::debug("getJobResponse: {}", getJobResponse.dump());
 
@@ -240,7 +249,19 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
         counts["counts"].get<std::unordered_map<std::string, std::size_t>>()));
   }
 
-  return sample_result(srs);
+  sample_result sampleResult(srs);
+
+  // The original sampleResult is ordered by qubit number (FIXME: VERIFY THIS)
+  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
+  // original user qubit allocation order.
+  auto thisJobReorderIdxIt = reorderIdx.find(jobID);
+  if (thisJobReorderIdxIt != reorderIdx.end()) {
+    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
+    if (!thisJobReorderIdx.empty())
+      sampleResult.reorder(thisJobReorderIdx);
+  }
+
+  return sampleResult;
 }
 
 std::map<std::string, std::string>
@@ -259,9 +280,20 @@ IQMServerHelper::generateRequestHeader() const {
 
 void IQMServerHelper::updatePassPipeline(
     const std::filesystem::path &platformPath, std::string &passPipeline) {
-  std::string pathToFile =
-      platformPath / std::string("mapping/iqm") /
-      (backendConfig["qpu-architecture"] + std::string(".txt"));
+  // Note: the leading and trailing single quotes are needed in case there are
+  // spaces in the filename.
+  std::string pathToFile;
+  auto iter = backendConfig.find("mapping_file");
+  if (iter != backendConfig.end()) {
+    // Use provided path to file
+    pathToFile = std::string("'") + iter->second + std::string("'");
+  } else {
+    // Construct path to file
+    pathToFile =
+        std::string("'") +
+        std::string(platformPath / std::string("mapping/iqm") /
+                    (backendConfig["qpu-architecture"] + std::string(".txt'")));
+  }
   passPipeline =
       std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
 }

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -26,13 +26,13 @@ namespace cudaq {
 /// @param op MLIR operation
 /// @param output Output stream
 /// @param additionalPasses Additional passes to run at the end
-/// @param printIR Print IR to stderr
+/// @param printIR Print IR to `stderr`
 /// @param printIntermediateMLIR Print IR in between each pass
 using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
     mlir::Operation *, llvm::raw_string_ostream &, const std::string &, bool,
     bool)>;
 
-/// @brief Initialize MLIR with CUDA Quantum dialects and return the
+/// @brief Initialize MLIR with CUDA-Q dialects and return the
 /// MLIRContext.
 std::unique_ptr<mlir::MLIRContext> initializeMLIR();
 /// @brief Given an LLVM Module, set its target triple corresponding to the

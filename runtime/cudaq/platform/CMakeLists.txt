@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,6 +10,6 @@ add_subdirectory(default)
 if (OPENSSL_FOUND)
   add_subdirectory(orca)
 endif()
-if (CUDA_FOUND AND CUSTATEVEC_ROOT)
+if (CUDAQ_ENABLE_REST)
   add_subdirectory(mqpu)
 endif()

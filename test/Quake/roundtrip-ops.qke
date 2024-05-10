@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -97,10 +97,13 @@ func.func @quantum_ops() {
   %36 = quake.u3 (%f, %g, %h) %35 : (f32, f32, f32, !quake.wire) -> !quake.wire
 
   %37:2 = quake.mx %29#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %37#1 : !quake.wire
   %38:2 = quake.my %20 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %38#1 : !quake.wire
   %39:2 = quake.mz %36 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %39#1 : !quake.wire
 
-  // CUDA Quantum model support
+  // CUDA-Q model support
   %40 = quake.alloca !quake.ref { apply_variants = true }
   %41 = quake.alloca !quake.veq<2>
   %42 = arith.constant 0 : i32
@@ -148,7 +151,7 @@ func.func @quantum_ops() {
   // Exp Pauli and StringLiteral
   %f2 = arith.constant 12.0 : f64
   %48 = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
-  quake.exp_pauli (%f2) %46, %48 : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
+  quake.exp_pauli %f2, %46, %48 : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
   
   return
 }
@@ -261,7 +264,7 @@ func.func @quantum_ops() {
 // CHECK:           quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_53]]) {{\[}}%[[VAL_54]]] %[[VAL_10]] : (f32, f32, f64, !quake.veq<3>, !quake.ref) -> ()
 // CHECK:           %[[VAL_59:.*]] = arith.constant 1.200000e+01 : f64
 // CHECK:           %[[VAL_60:.*]] = cc.string_literal "XXY" : !cc.ptr<!cc.array<i8 x 4>>
-// CHECK:           quake.exp_pauli(%[[VAL_59]]) %[[VAL_54]], %[[VAL_60]] : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
+// CHECK:           quake.exp_pauli %[[VAL_59]], %[[VAL_54]], %[[VAL_60]] : (f64, !quake.veq<3>, !cc.ptr<!cc.array<i8 x 4>>) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -633,7 +636,7 @@ func.func @wire_type() -> !quake.wire {
 // CHECK:           %[[VAL_1:.*]] = quake.unwrap %[[VAL_0]] : (!quake.ref) -> !quake.wire
 // CHECK:           %[[VAL_2:.*]] = quake.null_wire
 // CHECK:           %[[VAL_3:.*]]:2 = quake.x [%[[VAL_2]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK:           quake.wrap %[[VAL_3]]#0 to %[[VAL_0]] : !quake.wire, !quake.ref
+// CHECK:           quake.wrap %[[VAL_3]]#1 to %[[VAL_0]] : !quake.wire, !quake.ref
 // CHECK:           return
 // CHECK:         }
 
@@ -641,7 +644,8 @@ func.func @unwrap_wrap(%0 : !quake.ref) {
   %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
   %3 = quake.null_wire
   %2:2 = quake.x [%3] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.wrap %2 to %0 : !quake.wire, !quake.ref
+  quake.wrap %2#1 to %0 : !quake.wire, !quake.ref
+  quake.sink %2#0 : !quake.wire
   return
 }
 
@@ -695,3 +699,34 @@ func.func @cc_indexing(%arg0 : !cc.struct<{i32, !cc.array<!cc.struct<{i8, i16, f
   %ele = cc.get_const_element %arr, %one : (!cc.array<f32 x 2>, i32) -> f32
   return
 }
+
+func.func @ssi_if(%arg0: i1) {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2:2 = cc.if (%arg0) ((%arg1 = %0, %arg2 = %1)) -> (!quake.wire, !quake.wire) {
+    %3:2 = quake.x [%arg1] %arg2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %3#0, %3#1 : !quake.wire, !quake.wire
+  } else {
+    %4:2 = quake.x [%arg1] %arg2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %4#0, %4#1 : !quake.wire, !quake.wire
+  }
+  quake.sink %2#1 : !quake.wire
+  quake.sink %2#0 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @ssi_if(
+// CHECK-SAME:      %[[VAL_0:.*]]: i1) {
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]]:2 = cc.if(%[[VAL_0]]) ((%[[VAL_4:.*]] = %[[VAL_1]], %[[VAL_5:.*]] = %[[VAL_2]])) -> (!quake.wire, !quake.wire) {
+// CHECK:             %[[VAL_6:.*]]:2 = quake.x [%[[VAL_4]]] %[[VAL_5]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[VAL_6]]#0, %[[VAL_6]]#1 : !quake.wire, !quake.wire
+// CHECK:           } else {
+// CHECK:             %[[VAL_7:.*]]:2 = quake.x [%[[VAL_8:.*]]] %[[VAL_9:.*]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[VAL_7]]#0, %[[VAL_7]]#1 : !quake.wire, !quake.wire
+// CHECK:           }
+// CHECK:           quake.sink %[[VAL_10:.*]]#1 : !quake.wire
+// CHECK:           quake.sink %[[VAL_10]]#0 : !quake.wire
+// CHECK:           return
+// CHECK:         }

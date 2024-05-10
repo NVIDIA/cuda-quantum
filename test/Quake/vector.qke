@@ -1,0 +1,138 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --lower-to-cfg --cse --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --lower-to-cfg --cse --canonicalize %s | \
+// RUN: cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
+
+// Blindly assume that %vecvec and %retval are ragged matrices with identical
+// structure and lengths. Convert ints from %vecvec to doubles and copy the
+// values into %retval. Does not create any new std::vectors.
+func.func @vector_vector(%vecvec : !cc.stdvec<!cc.stdvec<i32>>, %retval : !cc.stdvec<!cc.stdvec<f64>>) {
+  %0 = arith.constant 0 : i64
+  %one = arith.constant 1 : i64
+  %vecvecsz = cc.stdvec_size %vecvec : (!cc.stdvec<!cc.stdvec<i32>>) -> i64
+  %resvecs = cc.stdvec_data %retval : (!cc.stdvec<!cc.stdvec<f64>>) -> !cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>
+  cc.loop while ((%arg0 = %0) -> i64) {
+    %c = arith.cmpi ult, %arg0, %vecvecsz : i64
+    cc.condition %c (%arg0 : i64)
+  } do {
+   ^bb0(%arg0 : i64):
+    %vec = cc.stdvec_data %vecvec : (!cc.stdvec<!cc.stdvec<i32>>) -> !cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>
+    %vecpt = cc.compute_ptr %vec[%arg0] : (!cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>, i64) -> !cc.ptr<!cc.stdvec<i32>>
+    %inner = cc.load %vecpt : !cc.ptr<!cc.stdvec<i32>>
+    %ints = cc.stdvec_data %inner : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+    %vecsz = cc.stdvec_size %inner : (!cc.stdvec<i32>) -> i64
+    %resultvec = cc.compute_ptr %resvecs[%arg0] : (!cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>, i64) -> !cc.ptr<!cc.stdvec<f64>>
+    %resuvec = cc.load %resultvec : !cc.ptr<!cc.stdvec<f64>>
+    %dubs = cc.stdvec_data %resuvec : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+    cc.loop while ((%arg1 = %0) -> i64) {
+      %c = arith.cmpi ult, %arg1, %vecsz : i64
+      cc.condition %c (%arg1 : i64)
+    } do {
+     ^bb0(%arg1 : i64):
+      %ptr = cc.compute_ptr %ints[%arg1] : (!cc.ptr<!cc.array<i32 x ?>>, i64) -> !cc.ptr<i32>
+      %a_ij = cc.load %ptr : !cc.ptr<i32>
+      %dub = cc.cast signed %a_ij : (i32) -> f64
+      %dub_i = cc.compute_ptr %dubs[%arg1] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
+      cc.store %dub, %dub_i : !cc.ptr<f64>   
+      cc.continue %arg1 : i64
+    } step {
+     ^bb0(%arg1 : i64):
+      %next = arith.addi %arg1, %one : i64
+      cc.continue %next : i64
+    }
+    cc.continue %arg0 : i64
+  } step {
+   ^bb0(%arg0 : i64):
+    %next = arith.addi %arg0, %one : i64
+    cc.continue %next : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @vector_vector(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<!cc.stdvec<i32>>, %[[VAL_1:.*]]: !cc.stdvec<!cc.stdvec<f64>>) {
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_3:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_4:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<!cc.stdvec<i32>>) -> i64
+// CHECK:           %[[VAL_5:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<!cc.stdvec<f64>>) -> !cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>
+// CHECK:           cf.br ^bb1(%[[VAL_2]] : i64)
+// CHECK:         ^bb1(%[[VAL_6:.*]]: i64):
+// CHECK:           %[[VAL_7:.*]] = arith.cmpi ult, %[[VAL_6]], %[[VAL_4]] : i64
+// CHECK:           cf.cond_br %[[VAL_7]], ^bb2(%[[VAL_6]] : i64), ^bb6
+// CHECK:         ^bb2(%[[VAL_8:.*]]: i64):
+// CHECK:           %[[VAL_9:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<!cc.stdvec<i32>>) -> !cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>
+// CHECK:           %[[VAL_10:.*]] = cc.compute_ptr %[[VAL_9]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<!cc.stdvec<i32> x ?>>, i64) -> !cc.ptr<!cc.stdvec<i32>>
+// CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_10]] : !cc.ptr<!cc.stdvec<i32>>
+// CHECK:           %[[VAL_12:.*]] = cc.stdvec_data %[[VAL_11]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+// CHECK:           %[[VAL_13:.*]] = cc.stdvec_size %[[VAL_11]] : (!cc.stdvec<i32>) -> i64
+// CHECK:           %[[VAL_14:.*]] = cc.compute_ptr %[[VAL_5]]{{\[}}%[[VAL_8]]] : (!cc.ptr<!cc.array<!cc.stdvec<f64> x ?>>, i64) -> !cc.ptr<!cc.stdvec<f64>>
+// CHECK:           %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<!cc.stdvec<f64>>
+// CHECK:           %[[VAL_16:.*]] = cc.stdvec_data %[[VAL_15]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+// CHECK:           cf.br ^bb3(%[[VAL_2]] : i64)
+// CHECK:         ^bb3(%[[VAL_17:.*]]: i64):
+// CHECK:           %[[VAL_18:.*]] = arith.cmpi ult, %[[VAL_17]], %[[VAL_13]] : i64
+// CHECK:           cf.cond_br %[[VAL_18]], ^bb4(%[[VAL_17]] : i64), ^bb5(%[[VAL_8]] : i64)
+// CHECK:         ^bb4(%[[VAL_19:.*]]: i64):
+// CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_12]]{{\[}}%[[VAL_19]]] : (!cc.ptr<!cc.array<i32 x ?>>, i64) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_21:.*]] = cc.load %[[VAL_20]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_22:.*]] = cc.cast signed %[[VAL_21]] : (i32) -> f64
+// CHECK:           %[[VAL_23:.*]] = cc.compute_ptr %[[VAL_16]]{{\[}}%[[VAL_19]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
+// CHECK:           cc.store %[[VAL_22]], %[[VAL_23]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_24:.*]] = arith.addi %[[VAL_19]], %[[VAL_3]] : i64
+// CHECK:           cf.br ^bb3(%[[VAL_24]] : i64)
+// CHECK:         ^bb5(%[[VAL_25:.*]]: i64):
+// CHECK:           %[[VAL_26:.*]] = arith.addi %[[VAL_25]], %[[VAL_3]] : i64
+// CHECK:           cf.br ^bb1(%[[VAL_26]] : i64)
+// CHECK:         ^bb6:
+// CHECK:           return
+// CHECK:         }
+
+// QIR-LABEL: define void @vector_vector({ { i32*, i64 }*, i64 } 
+// QIR-SAME:    %[[VAL_0:.*]], { { double*, i64 }*, i64 } %[[VAL_1:.*]])
+// QIR:         %[[VAL_2:.*]] = extractvalue { { i32*, i64 }*, i64 } %[[VAL_0]], 1
+// QIR:         %[[VAL_3:.*]] = extractvalue { { double*, i64 }*, i64 } %[[VAL_1]], 0
+// QIR:         %[[VAL_4:.*]] = icmp eq i64 %[[VAL_2]], 0
+// QIR:         br i1 %[[VAL_4]], label %[[VAL_5:.*]], label %[[VAL_6:.*]]
+// QIR:       .{{.*}}:
+// QIR-SAME:  ; preds = %[[VAL_7:.*]]
+// QIR:         %[[VAL_8:.*]] = extractvalue { { i32*, i64 }*, i64 } %[[VAL_0]], 0
+// QIR:         br label %[[VAL_9:.*]]
+// QIR:       {{.*}}:
+// QIR-SAME:  ; preds = %[[VAL_6]], %[[VAL_10:.*]]
+// QIR:         %[[VAL_11:.*]] = phi i64 [ 0, %[[VAL_6]] ], [ %[[VAL_12:.*]], %[[VAL_10]] ]
+// QIR:         %[[VAL_13:.*]] = getelementptr { i32*, i64 }, { i32*, i64 }* %[[VAL_8]], i64 %[[VAL_11]], i32 0
+// QIR:         %[[VAL_14:.*]] = load i32*, i32** %[[VAL_13]], align 8
+// QIR:         %[[VAL_15:.*]] = getelementptr { i32*, i64 }, { i32*, i64 }* %[[VAL_8]], i64 %[[VAL_11]], i32 1
+// QIR:         %[[VAL_16:.*]] = load i64, i64* %[[VAL_15]], align 8
+// QIR:         %[[VAL_17:.*]] = getelementptr { double*, i64 }, { double*, i64 }* %[[VAL_3]], i64 %[[VAL_11]], i32 0
+// QIR:         %[[VAL_18:.*]] = load double*, double** %[[VAL_17]], align 8
+// QIR:         %[[VAL_19:.*]] = icmp eq i64 %[[VAL_16]], 0
+// QIR:         br i1 %[[VAL_19]], label %[[VAL_10]], label %[[VAL_20:.*]]
+// QIR:       .{{.*}}:
+// QIR-SAME:  ; preds = %[[VAL_9]], %[[VAL_20]]
+// QIR:         %[[VAL_21:.*]] = phi i64 [ %[[VAL_22:.*]], %[[VAL_20]] ], [ 0, %[[VAL_9]] ]
+// QIR:         %[[VAL_23:.*]] = getelementptr i32, i32* %[[VAL_14]], i64 %[[VAL_21]]
+// QIR:         %[[VAL_24:.*]] = load i32, i32* %[[VAL_23]], align 4
+// QIR:         %[[VAL_25:.*]] = sitofp i32 %[[VAL_24]] to double
+// QIR:         %[[VAL_26:.*]] = getelementptr double, double* %[[VAL_18]], i64 %[[VAL_21]]
+// QIR:         store double %[[VAL_25]], double* %[[VAL_26]], align 8
+// QIR:         %[[VAL_22]] = add nuw i64 %[[VAL_21]], 1
+// QIR:         %[[VAL_27:.*]] = icmp eq i64 %[[VAL_22]], %[[VAL_16]]
+// QIR:         br i1 %[[VAL_27]], label %[[VAL_10]], label %[[VAL_20]]
+// QIR:       .{{.*}}:
+// QIR-SAME:  ; preds = %[[VAL_20]], %[[VAL_9]]
+// QIR:         %[[VAL_12]] = add nuw i64 %[[VAL_11]], 1
+// QIR:         %[[VAL_28:.*]] = icmp eq i64 %[[VAL_12]], %[[VAL_2]]
+// QIR:         br i1 %[[VAL_28]], label %[[VAL_5]], label %[[VAL_9]]
+// QIR:       .{{.*}}:
+// QIR-SAME:  ; preds = %[[VAL_10]], %[[VAL_7]]
+// QIR:         ret void
+// QIR:       }
+

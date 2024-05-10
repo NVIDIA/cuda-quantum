@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -21,15 +21,13 @@
 
 namespace nvqir {
 
-using namespace std::complex_literals;
-
 template <typename Scalar = double>
 static constexpr std::complex<Scalar> im = std::complex<Scalar>(0, 1.);
 
 template <typename ScalarType = double>
 using ComplexT = std::complex<ScalarType>;
 
-/// @brief Enumeration of supported CUDA Quantum operations
+/// @brief Enumeration of supported CUDA-Q operations
 enum class GateName {
   X,
   Y,
@@ -115,8 +113,8 @@ getGateByName(GateName name, const std::vector<Scalar> angles = {}) {
     auto phi = angles[1];
     auto lambda = angles[2];
     return {{std::cos(theta / 2), 0.},
-            std::exp(nvqir::im<Scalar> * phi) * std::sin(theta / 2),
             -std::exp(nvqir::im<Scalar> * lambda) * std::sin(theta / 2),
+            std::exp(nvqir::im<Scalar> * phi) * std::sin(theta / 2),
             std::exp(nvqir::im<Scalar> * (phi + lambda)) * std::cos(theta / 2)};
   }
   case (GateName::PhasedRx): {
@@ -195,7 +193,7 @@ struct t {
   const std::string name() const { return "t"; }
 };
 
-/// The Sdg Gate
+/// The `Sdg` (S†) Gate
 template <typename ScalarType = double>
 struct sdg {
   std::vector<ComplexT<ScalarType>>
@@ -205,7 +203,7 @@ struct sdg {
   const std::string name() const { return "sdg"; }
 };
 
-/// The Tdg Gate
+/// The `Tdg` (T†) Gate
 template <typename ScalarType = double>
 struct tdg {
   std::vector<ComplexT<ScalarType>>
