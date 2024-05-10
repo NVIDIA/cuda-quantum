@@ -2720,6 +2720,16 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if isinstance(op, ast.NotEq):
+            if F64Type.isinstance(left.type) and IntegerType.isinstance(
+                    comparator.type):
+                left = arith.FPToSIOp(comparator.type, left).result
+            if IntegerType(left.type).width < IntegerType(
+                    comparator.type).width:
+                if IntegerType(left.type).width == 1:
+                    # For i1 (bool), always performs an unsigned extension.
+                    left = arith.ExtUIOp(comparator.type, left).result
+                else:
+                    left = arith.ExtSIOp(comparator.type, left).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 1), left,
                              comparator).result)
@@ -2731,7 +2741,11 @@ class PyASTBridge(ast.NodeVisitor):
                 left = arith.FPToSIOp(comparator.type, left).result
             if IntegerType(left.type).width < IntegerType(
                     comparator.type).width:
-                left = arith.ExtSIOp(comparator.type, left).result
+                if IntegerType(left.type).width == 1:
+                    # For i1 (bool), always performs an unsigned extension.
+                    left = arith.ExtUIOp(comparator.type, left).result
+                else:
+                    left = arith.ExtSIOp(comparator.type, left).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                              comparator).result)
