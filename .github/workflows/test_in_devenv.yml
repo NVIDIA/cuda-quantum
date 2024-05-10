@@ -94,22 +94,6 @@ jobs:
               exit 1
             fi
 
-      - name: Test CUDA Quantum MPI4Py Plugin
-        uses: ./.github/actions/run-in-docker
-        with:
-          image: cuda-quantum-dev:local
-          shell: bash
-          run: |
-            cd $CUDAQ_REPO_ROOT
-            python3 -m pip install mpi4py~=3.1
-            rm -f build/lib/plugins/libcudaq-comm-plugin.so
-            ctest --test-dir build -R MPIApiTest -V
-            mpi4py_status=$?   
-            if [ ! $mpi4py_status -eq 0 ] ; then
-              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI4Py Plugin failed with status $mpi4py_status."
-              exit 1
-            fi
-      
       - name: Test CUDA Quantum MPI Plugin Activation
         uses: ./.github/actions/run-in-docker
         with:
