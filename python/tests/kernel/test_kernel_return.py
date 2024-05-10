@@ -144,3 +144,21 @@ def test_return_np_complex64_definition():
         return np.complex64(complex(c, i))
 
     assert kernel(np.float32(1.0), np.float32(2.0)) == np.complex64(1.0 + 2.0j)
+
+
+def test_return_positive_int():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        return 1
+
+    assert (kernel() == 1)
+
+
+def test_return_negative_int():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        return -1
+
+    assert (kernel() == -1)

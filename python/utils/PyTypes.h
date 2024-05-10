@@ -11,23 +11,20 @@
 #include <complex>
 #include <pybind11/complex.h>
 #include <pybind11/pybind11.h>
-#include <iostream>
-
-namespace py = pybind11;
 
 namespace py_ext {
 
 /// Extended python complex object.
 ///
 /// Includes `complex`, `numpy.complex64`, `numpy.complex128`.
-class Complex : public py::object {
+class Complex : public pybind11::object {
 public:
   PYBIND11_OBJECT_CVT(Complex, object, isComplex_, convert_)
 
   Complex(double real, double imag)
       : object(PyComplex_FromDoubles(real, imag), stolen_t{}) {
     if (!m_ptr) {
-      py::pybind11_fail("Could not allocate complex object!");
+      pybind11::pybind11_fail("Could not allocate complex object!");
     }
   }
 
@@ -70,7 +67,7 @@ public:
       double imag = PyComplex_ImagAsDouble(o);
       ret = PyComplex_FromDoubles(real, imag);
     } else {
-      py::set_error(PyExc_TypeError, "Unexpected type");
+      pybind11::set_error(PyExc_TypeError, "Unexpected type");
     }
     return ret;
   }
@@ -79,7 +76,7 @@ public:
 /// Extended python float object.
 ///
 /// Includes `float`, `numpy.float64`, `numpy.float32`.
-class Float : public py::object {
+class Float : public pybind11::object {
 public:
   PYBIND11_OBJECT_CVT(Float, object, isFloat_, convert_)
 
@@ -87,14 +84,14 @@ public:
   // NOLINTNEXTLINE(google-explicit-constructor)
   Float(float value) : object(PyFloat_FromDouble((double)value), stolen_t{}) {
     if (!m_ptr) {
-      py::pybind11_fail("Could not allocate float object!");
+      pybind11::pybind11_fail("Could not allocate float object!");
     }
   }
   // NOLINTNEXTLINE(google-explicit-constructor)
   Float(double value = .0)
       : object(PyFloat_FromDouble((double)value), stolen_t{}) {
     if (!m_ptr) {
-      py::pybind11_fail("Could not allocate float object!");
+      pybind11::pybind11_fail("Could not allocate float object!");
     }
   }
   // NOLINTNEXTLINE(google-explicit-constructor)
@@ -119,49 +116,84 @@ public:
     if (isFloat_(o)) {
       ret = PyFloat_FromDouble(PyFloat_AsDouble(o));
     } else {
-      py::set_error(PyExc_TypeError, "Unexpected type");
+      pybind11::set_error(PyExc_TypeError, "Unexpected type");
     }
     return ret;
   }
 };
 
 template <typename T>
-inline std::string typeName() {
-  return {typeid(T).name()};
+inline const char *typeName() {
+  return typeid(T).name();
 }
 template <>
-inline std::string typeName<py_ext::Float>() {
+inline const char *typeName<py_ext::Float>() {
   return "float";
 }
 template <>
-inline std::string typeName<py_ext::Complex>() {
+inline const char *typeName<py_ext::Complex>() {
   return "complex";
 }
 template <>
-inline std::string typeName<py::int_>() {
-  return "int";
+inline const char *typeName<pybind11::int_>() {
+  return "long";
 }
 template <>
-inline std::string typeName<py::bool_>() {
+inline const char *typeName<pybind11::bool_>() {
   return "bool";
 }
 template <>
-inline std::string typeName<py::list>() {
+inline const char *typeName<pybind11::list>() {
   return "list";
 }
 
-template <typename T, py::detail::enable_if_t<
-                          std::is_base_of<py::object, T>::value, int> = 0>
-inline bool isConvertible(py::handle o) {
-  return py::isinstance<T>(o);
+template <typename T, pybind11::detail::enable_if_t<
+                          std::is_base_of<pybind11::object, T>::value, int> = 0>
+inline bool isConvertible(pybind11::handle o) {
+  return pybind11::isinstance<T>(o);
 }
 template <>
-inline bool isConvertible<Complex>(py::handle o) {
-  return py::isinstance<Complex>(o) || py::isinstance<Float>(o) ||
-         py::isinstance<py::int_>(o);
+inline bool isConvertible<Complex>(pybind11::handle o) {
+  return pybind11::isinstance<Complex>(o) || pybind11::isinstance<Float>(o) ||
+         pybind11::isinstance<pybind11::int_>(o);
 }
 template <>
-inline bool isConvertible<Float>(py::handle o) {
-  return py::isinstance<Float>(o) || py::isinstance<py::int_>(o);
+inline bool isConvertible<Float>(pybind11::handle o) {
+  return pybind11::isinstance<Float>(o) ||
+         pybind11::isinstance<pybind11::int_>(o);
 }
+
+template <typename T>
+inline pybind11::object convert(T value) = delete;
+
+template <>
+inline pybind11::object convert(bool value) {
+  return pybind11::bool_(value);
+}
+
+template <>
+inline pybind11::object convert(long value) {
+  return pybind11::int_(value);
+}
+
+template <>
+inline pybind11::object convert(float value) {
+  return Float(value);
+}
+
+template <>
+inline pybind11::object convert(double value) {
+  return Float(value);
+}
+
+template <>
+inline pybind11::object convert(std::complex<float> value) {
+  return Complex(value);
+}
+
+template <>
+inline pybind11::object convert(std::complex<double> value) {
+  return Complex(value);
+}
+
 } // namespace py_ext

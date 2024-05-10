@@ -13,10 +13,10 @@
 #include "cudaq/builder/kernel_builder.h"
 #include "cudaq/qis/pauli_word.h"
 
+#include "PyTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "PyTypes.h"
 
 #include <chrono>
 #include <complex>
@@ -144,23 +144,26 @@ inline mlir::func::FuncOp getKernelFuncOp(MlirModule module,
 
 template <typename T>
 void checkArgumentType(py::handle arg, int index) {
-  if (!py_ext::isConvertible<T>(arg))
+  if (!py_ext::isConvertible<T>(arg)) {
     throw std::runtime_error(
-        "kernel argument type is '" + py_ext::typeName<T>() + "'" +
+        "kernel argument type is '" + std::string(py_ext::typeName<T>()) + "'" +
         " but argument provided is not (argument " + std::to_string(index) +
         ", value=" + py::str(arg).cast<std::string>() +
         ", type=" + py::str(py::type::of(arg)).cast<std::string>() + ").");
+  }
 }
 
 template <typename T>
 void checkListElementType(py::handle arg, int index, int elementIndex) {
-  if (!py_ext::isConvertible<T>(arg))
+  if (!py_ext::isConvertible<T>(arg)) {
     throw std::runtime_error(
-        "kernel argument's element type is '" + py_ext::typeName<T>() + "'" +
+        "kernel argument's element type is '" +
+        std::string(py_ext::typeName<T>()) + "'" +
         " but argument provided is not (argument " + std::to_string(index) +
         ", element " + std::to_string(elementIndex) +
         ", value=" + py::str(arg).cast<std::string>() +
         ", type=" + py::str(py::type::of(arg)).cast<std::string>() + ").");
+  }
 }
 
 inline void
