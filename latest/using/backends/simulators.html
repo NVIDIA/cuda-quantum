@@ -720,10 +720,6 @@ See the section <a class="reference internal" href="../install/local_installatio
 <h3>Matrix product state<a class="headerlink" href="#matrix-product-state" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend is based on the matrix product state (MPS) representation of the state vector/wave function, exploiting the sparsity in the tensor network via tensor decomposition techniques such as QR and SVD. As such, this backend is an approximate simulator, whereby the number of singular values may be truncated to keep the MPS size tractable.
 The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend only supports single-GPU simulation. Its approximate nature allows the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> backend to handle a large number of qubits for certain classes of quantum circuits on a relatively small memory footprint.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>The <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> cannot handle quantum gates acting on more than two qubit operands. It will throw an error when this constraint is not satisfied.</p>
-</div>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> target, use the following commands:</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
