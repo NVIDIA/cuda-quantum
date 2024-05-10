@@ -248,6 +248,22 @@ do
     echo "============================="
 done
 
+if [ -n "$(find $(pwd) -name '*.ipynb')" ]; then
+    echo "Validating notebooks:"
+    echo "$available_backends" | python3 notebook_validation.py
+    if [ $? -eq 0 ]; then 
+        let "passed+=1"
+        echo ":white_check_mark: Notebooks validation passed." >> "${tmpFile}"
+    else
+        let "failed+=1"
+        echo ":x: Notebooks validation failed. See log for details." >> "${tmpFile}"
+    fi 
+else
+    let "skipped+=1"
+    echo "Skipped notebook validation.";
+    echo ":white_flag: Notebooks validation skipped." >> "${tmpFile}"
+fi
+
 if [ -f "$GITHUB_STEP_SUMMARY" ]; 
 then
     for t in $requested_backends
