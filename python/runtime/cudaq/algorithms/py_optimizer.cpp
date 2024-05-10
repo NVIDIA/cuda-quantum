@@ -16,6 +16,8 @@
 #include "cudaq/algorithms/optimizers/ensmallen/ensmallen.h"
 #include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
 
+#include <iostream>
+
 namespace cudaq {
 
 /// @brief Bind the `cudaq::optimization_result` typedef.
@@ -100,36 +102,47 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
       .def(
           "optimize",
           [](OptimizerT &opt, const int dim, py::function &func) {
-            return opt.optimize(dim, [&](std::vector<double> x,
-                                         std::vector<double> &grad) {
-              // Call the function.
-              auto ret = func(x);
-              // Does it return a tuple?
-              auto isTupleReturn = py::isinstance<py::tuple>(ret);
-              // If we don't need gradients, and it does, just grab the value
-              // and return.
-              if (!opt.requiresGradients() && isTupleReturn)
-                return ret.cast<py::tuple>()[0].cast<double>();
-              // If we dont need gradients and it doesn't return tuple, then
-              // just pass what we got.
-              if (!opt.requiresGradients() && !isTupleReturn)
-                return ret.cast<double>();
+            
+            py::list funcAttributes = py::reinterpret_borrow<py::list>(PyObject_Dir(func.ptr()));
+            
+            for (auto attr : funcAttributes) {
+              std::string attrName = attr.cast<std::string>();
+              py::object attrValue = func.attr(attrName.c_str());
+              std::cout << "Attribute: " << attrName << ", Value: " << py::str(attrValue) << std::endl;
+            }
 
-              // Throw an error if we need gradients and they weren't provided.
-              if (opt.requiresGradients() && !isTupleReturn)
-                throw std::runtime_error(
-                    "Invalid return type on objective function, must return "
-                    "(float,list[float]) for gradient-based optimizers");
+            return 0;
 
-              // If here, we require gradients, and the signature is right.
-              auto tuple = ret.cast<py::tuple>();
-              auto val = tuple[0];
-              auto gradIn = tuple[1].cast<py::list>();
-              for (std::size_t i = 0; i < gradIn.size(); i++)
-                grad[i] = gradIn[i].cast<double>();
+            // return opt.optimize(dim, [&](std::vector<double> x,
+            //                              std::vector<double> &grad) {
+            //   // Call the function.
+            //   auto ret = func(x);
+            //   // Does it return a tuple?
+            //   auto isTupleReturn = py::isinstance<py::tuple>(ret);
+            //   // If we don't need gradients, and it does, just grab the value
+            //   // and return.
+            //   if (!opt.requiresGradients() && isTupleReturn)
+            //     return ret.cast<py::tuple>()[0].cast<double>();
+            //   // If we dont need gradients and it doesn't return tuple, then
+            //   // just pass what we got.
+            //   if (!opt.requiresGradients() && !isTupleReturn)
+            //     return ret.cast<double>();
 
-              return val.cast<double>();
-            });
+            //   // Throw an error if we need gradients and they weren't provided.
+            //   if (opt.requiresGradients() && !isTupleReturn)
+            //     throw std::runtime_error(
+            //         "Invalid return type on objective function, must return "
+            //         "(float,list[float]) for gradient-based optimizers");
+
+            //   // If here, we require gradients, and the signature is right.
+            //   auto tuple = ret.cast<py::tuple>();
+            //   auto val = tuple[0];
+            //   auto gradIn = tuple[1].cast<py::list>();
+            //   for (std::size_t i = 0; i < gradIn.size(); i++)
+            //     grad[i] = gradIn[i].cast<double>();
+
+            //   return val.cast<double>();
+            // });
           },
           py::arg("dimensions"), py::arg("function"),
           "Run `cudaq.optimize()` on the provided objective function.");

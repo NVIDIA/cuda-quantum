@@ -31,7 +31,7 @@ optimizer = cudaq.optimizers.Adam()
 # routine.
 gradient = cudaq.gradients.CentralDifference()
 
-@cudaq.objective_function
+# @cudaq.objective_function
 def objective_function(parameter_vector: List[float],
                        hamiltonian=hamiltonian,
                        gradient_strategy=gradient,

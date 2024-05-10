@@ -3,6 +3,8 @@ from cudaq import spin
 
 from typing import List
 
+cudaq.set_target("nvqc")
+
 # We begin by defining the spin Hamiltonian for the system that we are working
 # with. This is achieved through the use of `cudaq.SpinOperator`'s, which allow
 # for the convenient creation of complex Hamiltonians out of Pauli spin operators.
