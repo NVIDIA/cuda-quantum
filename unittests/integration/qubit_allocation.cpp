@@ -48,7 +48,9 @@ CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecGeneral) {
   const auto stateVec = randomState(numQubits);
   auto counts = cudaq::sample(numShots, test_state_vector_init{}, stateVec);
   counts.dump();
-  for (const auto &[bitStr, count] : counts) {
+  for (const auto &[bitStrOrg, count] : counts) {
+    auto bitStr = bitStrOrg;
+    std::reverse(bitStr.begin(), bitStr.end());
     const int val = std::stoi(bitStr, nullptr, 2);
     const double prob = 1.0 * count / numShots;
     const double expectedProb = std::norm(stateVec[val]);

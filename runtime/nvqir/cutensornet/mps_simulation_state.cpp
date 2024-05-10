@@ -8,6 +8,7 @@
 
 #include "mps_simulation_state.h"
 #include "common/EigenDense.h"
+#include <bitset>
 #include <charconv>
 #include <cuComplex.h>
 
@@ -454,8 +455,16 @@ std::pair<std::unique_ptr<TensorNetState>, std::vector<MPSTensor>>
 MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
                                        std::size_t size,
                                        std::complex<double> *ptr, int bondDim) {
-  Eigen::VectorXcd stateVec = Eigen::Map<Eigen::VectorXcd>(ptr, size);
   const std::size_t numQubits = std::log2(size);
+  Eigen::VectorXcd stateVec(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    std::bitset<64> bs(i);
+    std::string bitStr = bs.to_string();
+    std::reverse(bitStr.begin(), bitStr.end());
+    bitStr = bitStr.substr(0, numQubits);
+    stateVec[std::stoull(bitStr, nullptr, 2)] = ptr[i];
+  }
+
   if (numQubits == 1) {
     void *d_tensor = nullptr;
     HANDLE_CUDA_ERROR(cudaMalloc(&d_tensor, 2 * sizeof(std::complex<double>)));

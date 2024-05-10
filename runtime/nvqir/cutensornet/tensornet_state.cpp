@@ -8,6 +8,7 @@
 
 #include "tensornet_state.h"
 #include "common/EigenDense.h"
+#include <bitset>
 #include <cassert>
 
 namespace nvqir {
@@ -549,8 +550,15 @@ TensorNetState::createFromStateVector(std::span<std::complex<double>> stateVec,
   // previous state should be in the tensor network form. Construct the state
   // projector matrix
   // FIXME: use CUDA toolkit, e.g., cuBlas, to construct this projector matrix.
-  auto ket =
-      Eigen::Map<const Eigen::VectorXcd>(stateVec.data(), stateVec.size());
+  Eigen::VectorXcd ket(stateVec.size());
+  for (std::size_t i = 0; i < stateVec.size(); ++i) {
+    std::bitset<64> bs(i);
+    std::string bitStr = bs.to_string();
+    std::reverse(bitStr.begin(), bitStr.end());
+    bitStr = bitStr.substr(0, numQubits);
+    ket[std::stoull(bitStr, nullptr, 2)] = stateVec[i];
+  }
+
   Eigen::VectorXcd initState = Eigen::VectorXcd::Zero(stateVec.size());
   initState(0) = std::complex<double>{1.0, 0.0};
   Eigen::MatrixXcd stateVecProj = ket * initState.transpose();
