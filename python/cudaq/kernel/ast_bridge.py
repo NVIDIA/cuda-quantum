@@ -2727,9 +2727,15 @@ class PyASTBridge(ast.NodeVisitor):
                     comparator.type).width:
                 if IntegerType(left.type).width == 1:
                     # For i1 (`bool`), always performs an unsigned extension.
-                    left = arith.ExtUIOp(comparator.type, left).result
+                    left = cc.CastOp(comparator.type,
+                                     left,
+                                     sint=False,
+                                     zint=True).result
                 else:
-                    left = arith.ExtSIOp(comparator.type, left).result
+                    left = cc.CastOp(comparator.type,
+                                     left,
+                                     sint=True,
+                                     zint=False).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 1), left,
                              comparator).result)
@@ -2743,9 +2749,15 @@ class PyASTBridge(ast.NodeVisitor):
                     comparator.type).width:
                 if IntegerType(left.type).width == 1:
                     # For i1 (`bool`), always performs an unsigned extension.
-                    left = arith.ExtUIOp(comparator.type, left).result
+                    left = cc.CastOp(comparator.type,
+                                     left,
+                                     sint=False,
+                                     zint=True).result
                 else:
-                    left = arith.ExtSIOp(comparator.type, left).result
+                    left = cc.CastOp(comparator.type,
+                                     left,
+                                     sint=True,
+                                     zint=False).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                              comparator).result)
