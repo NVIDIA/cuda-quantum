@@ -43,7 +43,7 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
     if (!op.isUnitary) {
       // For non-unitary ops, i.e., projectors, we need to do a transpose to
       // reverse the leg connection.
-      const auto dim = (1 << op.qubitIds.size());
+      const auto dim = (1 << op.targetQubitIds.size());
       // FIXME: perform this in device memory.
       Eigen::MatrixXcd mat(dim, dim);
       HANDLE_CUDA_ERROR(cudaMemcpy(mat.data(), op.deviceData,
@@ -71,12 +71,26 @@ TensorNetSimulationState::overlap(const cudaq::SimulationState &other) {
   auto allTensorOps = m_state->m_tensorOps;
   allTensorOps.insert(allTensorOps.end(), tensorOps.begin(), tensorOps.end());
 
-  for (auto &op : allTensorOps)
-    HANDLE_CUTN_ERROR(cutensornetStateApplyTensor(
-        cutnHandle, tempQuantumState, op.qubitIds.size(), op.qubitIds.data(),
-        op.deviceData, nullptr, /*immutable*/ 1,
-        /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
-        /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+  for (auto &op : allTensorOps) {
+    if (op.controlQubitIds.empty()) {
+      HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
+          cutnHandle, tempQuantumState, op.targetQubitIds.size(),
+          op.targetQubitIds.data(), op.deviceData, nullptr, /*immutable*/ 1,
+          /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+          /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+    } else {
+      HANDLE_CUTN_ERROR(cutensornetStateApplyControlledTensorOperator(
+          cutnHandle, tempQuantumState,
+          /*numControlModes=*/op.controlQubitIds.size(),
+          /*stateControlModes=*/op.controlQubitIds.data(),
+          /*stateControlValues=*/nullptr,
+          /*numTargetModes*/ op.targetQubitIds.size(),
+          /*stateTargetModes*/ op.targetQubitIds.data(), op.deviceData, nullptr,
+          /*immutable*/ 1,
+          /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+          /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+    }
+  }
 
   // Cap off with all zero projection (initial state of bra)
   std::vector<int32_t> projectedModes(nbQubits);
@@ -154,7 +168,7 @@ TensorNetSimulationState::getTensor(std::size_t tensorIdx) const {
   cudaq::SimulationState::Tensor tensor;
   auto &opTensor = m_state->m_tensorOps[tensorIdx];
   tensor.data = opTensor.deviceData;
-  std::vector<std::size_t> extents(2 * opTensor.qubitIds.size(), 2);
+  std::vector<std::size_t> extents(2 * opTensor.targetQubitIds.size(), 2);
   tensor.extents = extents;
   tensor.fp_precision = getPrecision();
   return tensor;
@@ -168,7 +182,7 @@ TensorNetSimulationState::getTensors() const {
   for (auto &op : m_state->m_tensorOps) {
     cudaq::SimulationState::Tensor tensor;
     tensor.data = op.deviceData;
-    std::vector<std::size_t> extents(2 * op.qubitIds.size(), 2);
+    std::vector<std::size_t> extents(2 * op.targetQubitIds.size(), 2);
     tensor.extents = extents;
     tensor.fp_precision = getPrecision();
     tensors.emplace_back(std::move(tensor));

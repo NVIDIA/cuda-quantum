@@ -31,7 +31,8 @@ struct MPSTensor {
 /// Track gate tensors that were appended to the tensor network.
 struct AppliedTensorOp {
   void *deviceData = nullptr;
-  std::vector<int32_t> qubitIds;
+  std::vector<int32_t> targetQubitIds;
+  std::vector<int32_t> controlQubitIds;
   bool isAdjoint;
   bool isUnitary;
 };

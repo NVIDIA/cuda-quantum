@@ -24,7 +24,6 @@ class MPSSimulationState : public cudaq::SimulationState,
 public:
   MPSSimulationState(std::unique_ptr<TensorNetState> inState,
                      const std::vector<MPSTensor> &mpsTensors,
-                     const std::vector<std::size_t> &auxTensorIds,
                      cutensornetHandle_t cutnHandle);
 
   MPSSimulationState(const MPSSimulationState &) = delete;
@@ -83,7 +82,6 @@ protected:
   std::unique_ptr<TensorNetState> state;
   std::vector<MPSTensor> m_mpsTensors;
   ScratchDeviceMem m_scratchPad;
-  std::vector<std::size_t> m_auxTensorIds;
 };
 
 } // namespace nvqir
