@@ -102,7 +102,6 @@ void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
       name += std::string(1, char(data[stride + i]));
 
     stride += nChars;
-    std::unordered_map<std::string, std::size_t> localCounts;
     auto nBs = data[stride];
     stride++;
     for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
