@@ -59,8 +59,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip libstdc++-12-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && python3 -m pip install --no-cache-dir numpy notebook \
+    && python3 -m pip install --no-cache-dir numpy \
     && ln -s /bin/python3 /bin/python
+RUN apt-get update && apt-get install -y --no-install-recommends gcc-12 \
+    && python3 -m pip install --no-cache-dir notebook \
+    && apt-get remove -y gcc-12 \
+    && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy over the CUDA-Q installation, and the necessary compiler tools.
 
