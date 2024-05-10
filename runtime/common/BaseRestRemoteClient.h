@@ -212,13 +212,14 @@ public:
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
     cudaq::RestRequest request(io_context, version());
-    request.entryPoint = kernelName;
+    cudaq::IRPayLoad irPayload;
+    irPayload.entryPoint = kernelName;
     if (cudaq::__internal__::isLibraryMode(kernelName)) {
       request.format = cudaq::CodeFormat::LLVM;
       if (kernelArgs && argsSize > 0) {
         cudaq::info("Serialize {} bytes of args.", argsSize);
-        request.args.resize(argsSize);
-        std::memcpy(request.args.data(), kernelArgs, argsSize);
+        irPayload.args.resize(argsSize);
+        std::memcpy(irPayload.args.data(), kernelArgs, argsSize);
       }
 
       if (kernelFunc) {
@@ -227,7 +228,7 @@ public:
         const auto funcName = cudaq::quantum_platform::demangle(info.dli_sname);
         cudaq::info("RemoteSimulatorQPU: retrieve name '{}' for kernel {}",
                     funcName, kernelName);
-        request.entryPoint = funcName;
+        irPayload.entryPoint = funcName;
       }
     } else {
       request.passes = serverPasses;
@@ -235,33 +236,31 @@ public:
     }
 
     if (io_context.name == "state-overlap") {
-      std::cout << "HERE\n";
-      if (io_context.overlapComputeStates.empty())
+      if (!io_context.overlapComputeStates.has_value())
         throw std::runtime_error("Invalid execution context: no input states");
-      std::vector<std::pair<std::string, std::string>> overlapKernels;
-      for (const auto &[state1, state2] : io_context.overlapComputeStates) {
-        const auto *castedState1 =
-            dynamic_cast<const RemoteSimulationState *>(state1);
-        const auto *castedState2 =
-            dynamic_cast<const RemoteSimulationState *>(state2);
-        if (!castedState1 || !castedState2)
-          throw std::runtime_error(
-              "Invalid execution context: input states are not compatible");
-        auto [kernelName1, args1, argsSize1] = castedState1->getKernelInfo();
-        auto [kernelName2, args2, argsSize2] = castedState2->getKernelInfo();
-        overlapKernels.emplace_back(std::make_pair(
-            kernelName1, constructKernelPayload(mlirContext, kernelName1,
-                                                nullptr, args1, argsSize1)));
-        overlapKernels.emplace_back(std::make_pair(
-            kernelName2, constructKernelPayload(mlirContext, kernelName2,
-                                                nullptr, args2, argsSize2)));
-      }
-      json overloadJs(overlapKernels);
-      request.code = overloadJs.dump();
-      std::cout << "HOWDY:\n" <<  request.code << "\n";
+      const auto *castedState1 = dynamic_cast<const RemoteSimulationState *>(
+          io_context.overlapComputeStates->first);
+      const auto *castedState2 = dynamic_cast<const RemoteSimulationState *>(
+          io_context.overlapComputeStates->second);
+      if (!castedState1 || !castedState2)
+        throw std::runtime_error(
+            "Invalid execution context: input states are not compatible");
+      auto [kernelName1, args1, argsSize1] = castedState1->getKernelInfo();
+      auto [kernelName2, args2, argsSize2] = castedState2->getKernelInfo();
+      cudaq::IRPayLoad stateIrPayload1, stateIrPayload2;
+
+      stateIrPayload1.entryPoint = kernelName1;
+      stateIrPayload1.ir = constructKernelPayload(mlirContext, kernelName1,
+                                                  nullptr, args1, argsSize1);
+      stateIrPayload2.entryPoint = kernelName2;
+      stateIrPayload2.ir = constructKernelPayload(mlirContext, kernelName2,
+                                                  nullptr, args2, argsSize2);
+
+      request.code = {stateIrPayload1, stateIrPayload2};
     } else {
-      request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
+      irPayload.ir = constructKernelPayload(mlirContext, kernelName, kernelFunc,
                                             kernelArgs, argsSize);
+      request.code = {irPayload};
     }
     request.simulator = backendSimName;
     // Remote server seed

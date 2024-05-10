@@ -62,11 +62,11 @@ public:
   std::unique_ptr<SimulationState> simulationState;
 
   /// @brief List of pairs of states to compute the overlap
-  std::vector<std::pair<const SimulationState *, const SimulationState *>>
+  std::optional<std::pair<const SimulationState *, const SimulationState *>>
       overlapComputeStates;
 
   /// @brief Overlap results
-  std::vector<std::complex<double>> overlapResults;
+  std::optional<std::complex<double>> overlapResult;
 
   /// @brief When run under the tracer context, persist the
   /// traced quantum resources here.

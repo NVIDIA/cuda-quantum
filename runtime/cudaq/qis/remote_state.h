@@ -33,6 +33,8 @@ public:
     kernelName = cudaq::getKernelName(kernel);
     argsBuffer = cudaq::serializeArgs(std::forward<Args>(args)...);
   }
+
+  /// @brief Triggers remote execution to resolve the state data.
   void execute() const;
 
   std::tuple<std::string, void *, std::size_t> getKernelInfo() const;

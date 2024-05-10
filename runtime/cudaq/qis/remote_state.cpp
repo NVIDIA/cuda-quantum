@@ -37,15 +37,14 @@ std::complex<double>
 RemoteSimulationState::overlap(const cudaq::SimulationState &other) {
   const auto &otherState = dynamic_cast<const RemoteSimulationState &>(other);
   auto &platform = cudaq::get_platform();
-  std::cout  << "RemoteSimulationState::overlap\n";
   ExecutionContext context("state-overlap");
-  context.overlapComputeStates.emplace_back(
+  context.overlapComputeStates =
       std::make_pair(static_cast<const cudaq::SimulationState *>(this),
-                     static_cast<const cudaq::SimulationState *>(&otherState)));
+                     static_cast<const cudaq::SimulationState *>(&otherState));
   platform.set_exec_ctx(&context);
   platform.launchKernel(kernelName, nullptr, nullptr, 0, 0);
   platform.reset_exec_ctx();
-  assert(!context.overlapResults.empty());
-  return context.overlapResults.front();
+  assert(context.overlapResult.has_value());
+  return context.overlapResult.value();
 }
 } // namespace cudaq

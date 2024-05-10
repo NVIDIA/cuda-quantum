@@ -123,8 +123,8 @@ inline void to_json(json &j, const ExecutionContext &context) {
     j["spin"]["data"] = spinOpRepr;
   }
   j["registerNames"] = context.registerNames;
-  if (!context.overlapResults.empty())
-    j["overlapResults"] = context.overlapResults;
+  if (context.overlapResult.has_value())
+    j["overlapResult"] = context.overlapResult.value();
 }
 
 inline void from_json(const json &j, ExecutionContext &context) {
@@ -169,11 +169,11 @@ inline void from_json(const json &j, ExecutionContext &context) {
           std::make_pair(stateData.data(), stateDim[0]));
     }
   }
-  
-  if (j.contains("overlapResults")) {
-    std::vector<std::complex<double>> overlapResults;
-    j.at("overlapResults").get_to(overlapResults);
-    context.overlapResults = overlapResults;
+
+  if (j.contains("overlapResult")) {
+    std::complex<double> overlapResult;
+    j.at("overlapResult").get_to(overlapResult);
+    context.overlapResult = overlapResult;
   }
 
   if (j.contains("registerNames"))
@@ -187,6 +187,18 @@ NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {
                                              {CodeFormat::MLIR, "MLIR"},
                                              {CodeFormat::LLVM, "LLVM"},
                                          });
+// Encapsulate the IR payload
+struct IRPayLoad {
+  // Underlying code (IR) payload as a Base64 string.
+  std::string ir;
+
+  // Name of the entry-point kernel.
+  std::string entryPoint;
+
+  // Serialized kernel arguments.
+  std::vector<uint8_t> args;
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(IRPayLoad, ir, entryPoint, args);
+};
 
 // Payload from client to server for a kernel execution.
 class RestRequest {
@@ -232,10 +244,7 @@ public:
       m_deserializedSpinOp.reset(executionContext.spin.value());
   }
 
-  // Underlying code (IR) payload as a Base64 string.
-  std::string code;
-  // Name of the entry-point kernel.
-  std::string entryPoint;
+  std::vector<IRPayLoad> code;
   // Name of the NVQIR simulator to use.
   std::string simulator;
   // The ExecutionContext to run the simulation.
@@ -248,16 +257,15 @@ public:
   std::size_t seed;
   // List of MLIR passes to be applied on the code before execution.
   std::vector<std::string> passes;
-  // Serialized kernel arguments.
-  std::vector<uint8_t> args;
+
   // Version of this schema for compatibility check.
   std::size_t version;
   // Version of the runtime client submitting the request.
   std::string clientVersion;
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
-                                 executionContext, code, args, format, seed,
-                                 passes, clientVersion);
+  NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, simulator,
+                                 executionContext, code, format, seed, passes,
+                                 clientVersion);
 };
 
 /// NVCF function version status
