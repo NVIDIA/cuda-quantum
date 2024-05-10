@@ -9,7 +9,6 @@
 #include "mps_simulation_state.h"
 #include "simulator_cutensornet.h"
 
-
 namespace nvqir {
 
 class SimulatorMPS : public SimulatorTensorNetBase {
@@ -28,8 +27,8 @@ public:
     m_mpsTensors_d.clear();
     // Factorize the state:
     if (m_state->getNumQubits() > 1)
-      m_mpsTensors_d =
-          m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+      m_mpsTensors_d = m_state->factorizeMPS(
+          m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
   }
 
   virtual std::size_t calculateStateDim(const std::size_t numQubits) override {
@@ -69,14 +68,15 @@ public:
       } else {
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
             m_cutnHandle, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)), m_settings.maxBond);
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
+            m_settings.maxBond);
         m_state = std::move(state);
       }
     } else {
       // FIXME: expand the MPS tensors to the max extent
       if (!ptr) {
-        auto tensors =
-            m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+        auto tensors = m_state->factorizeMPS(
+            m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
         // The right most MPS tensor needs to have one more extra leg (no longer
         // the boundary tensor).
         tensors.back().extents.emplace_back(1);
@@ -98,9 +98,10 @@ public:
         // Non-zero state needs to be factorized and appended.
         auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
             m_cutnHandle, 1ULL << numQubits,
-            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)), m_settings.maxBond);
-        auto tensors =
-            m_state->factorizeMPS(m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
+            m_settings.maxBond);
+        auto tensors = m_state->factorizeMPS(
+            m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
         // Adjust the extents of the last tensor in the original state
         tensors.back().extents.emplace_back(1);
 

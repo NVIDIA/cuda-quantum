@@ -555,8 +555,8 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
   auto [state, mpsTensors] = createFromStateVec(
       m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr),
       MPSSettings().maxBond);
-  return std::make_unique<MPSSimulationState>(
-      std::move(state), mpsTensors, std::vector<std::size_t>{}, m_cutnHandle);
+  return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
+                                              m_cutnHandle);
 }
 
 MPSSettings::MPSSettings() {
