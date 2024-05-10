@@ -38,7 +38,7 @@ RUN echo "Building wheel for python${python_version}." \
     && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \
     && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/assets" \
     && $python -m pip install --no-cache-dir \
-        auditwheel cuquantum-cu11==24.03.0 cutensor-cu11==2.0.1 \
+        auditwheel cuquantum-cu11==24.03.0.post1 cutensor-cu11==2.0.1 \
     && cuquantum_location=`$python -m pip show cuquantum-cu11 | grep -e 'Location: .*$'` \
     && export CUQUANTUM_INSTALL_PREFIX="${cuquantum_location#Location: }/cuquantum" \
     && cutensor_location=`$python -m pip show cutensor-cu11 | grep -e 'Location: .*$'` \
