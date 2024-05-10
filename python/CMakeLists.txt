@@ -152,7 +152,6 @@ if(APPLE)
   set(_origin_prefix "@loader_path")
 endif()
 
-add_subdirectory(runtime/cudaq/distributed)
 add_subdirectory(runtime/cudaq/domains/plugins)
 
 if (NOT SKBUILD)

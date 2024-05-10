@@ -1403,6 +1403,36 @@ def test_u3_parameterized():
     assert counts["1"] == 1000
 
 
+def test_reset():
+
+    @cudaq.kernel
+    def single_qubit():
+        q = cudaq.qubit()
+        x(q)
+        reset(q)
+
+    counts = cudaq.sample(single_qubit)
+    assert counts['0'] == 1000
+
+    @cudaq.kernel
+    def multiple_qubits(num_iters: int) -> int:
+        q = cudaq.qvector(2)
+        nCorrect = 0
+        for i in range(num_iters):
+            h(q[0])
+            x.ctrl(q[0], q[1])
+            results = mz(q)
+            if results[0] == results[1]:
+                nCorrect = nCorrect + 1
+
+            reset(q)
+        return nCorrect
+
+    counts = multiple_qubits(100)
+    print(f'N Correct = {counts}')
+    assert counts == 100
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
