@@ -872,7 +872,8 @@ jobs:
           status_sum=0
           set +e # Allow script to keep going through errors
           # Verify that the necessary GPU targets are installed and usable
-          for tgt in nvidia nvidia-fp64 tensornet nvidia-mgpu; do
+          # Note nvidia-mgpu requires MPI, so it is not available with this method.
+          for tgt in nvidia nvidia-fp64 tensornet; do
               echo "Running with target ${tgt}"
               python3 docs/sphinx/examples/python/intro.py --target ${tgt}
               if [ $? -ne 0 ]; then 
