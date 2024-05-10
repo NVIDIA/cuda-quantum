@@ -297,12 +297,12 @@ packArgs(OpaqueArguments &argData, py::args args,
                   return;
                 }
 
-                genericVecAllocator.template operator()<std::size_t>(
+                genericVecAllocator.template operator()<long>(
                     [](py::handle element, int index,
-                       int elementIndex) -> std::size_t {
+                       int elementIndex) -> long {
                       checkListElementType<py::int_>(element, index,
                                                      elementIndex);
-                      return element.cast<std::size_t>();
+                      return element.cast<long>();
                     });
                 return;
               })

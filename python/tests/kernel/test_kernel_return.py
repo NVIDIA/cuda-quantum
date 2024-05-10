@@ -6,15 +6,18 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os
-
 import pytest
 import numpy as np
-from typing import Callable, List
 import sys
 
 import cudaq
-from cudaq import spin
+
+## [PYTHON_VERSION_FIX]
+skipIfPythonLessThan39 = pytest.mark.skipif(
+    sys.version_info < (3, 9),
+    reason=
+    "built-in collection types such as `list` not supported or module 'ast' has no attribute 'unparse'"
+)
 
 
 def test_return_float_param():
@@ -146,13 +149,13 @@ def test_return_np_complex64_definition():
     assert kernel(np.float32(1.0), np.float32(2.0)) == np.complex64(1.0 + 2.0j)
 
 
-def test_return_positive_int():
+def test_return_int():
 
     @cudaq.kernel
     def kernel() -> int:
         return 1
 
-    assert (kernel() == 1)
+    assert kernel() == 1
 
 
 def test_return_negative_int():
@@ -161,4 +164,26 @@ def test_return_negative_int():
     def kernel() -> int:
         return -1
 
-    assert (kernel() == -1)
+    assert kernel() == -1
+
+
+def test_param_negative_int():
+
+    @cudaq.kernel
+    def kernel(i: int) -> int:
+        return i
+
+    assert kernel(1) == 1
+    assert kernel(-1) == -1
+
+
+@skipIfPythonLessThan39
+def test_param_negative_int_list():
+
+    @cudaq.kernel
+    def kernel(l: list[int], i: int) -> int:
+        return l[i]
+
+    lst = [0, 1, -1]
+    for i in range(len(lst)):
+        assert kernel(lst, i) == lst[i]
