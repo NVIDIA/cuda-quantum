@@ -53,7 +53,20 @@ public:
 
   virtual void
   addQubitsToState(const cudaq::SimulationState &in_state) override {
-    throw std::runtime_error("Not yet supported.");
+    LOG_API_TIME();
+    const MPSSimulationState *const casted =
+        dynamic_cast<const MPSSimulationState *>(&in_state);
+    if (!casted)
+      throw std::invalid_argument(
+          "[SimulatorMPS simulator] Incompatible state input");
+    if (!m_state) {
+      m_state = casted->reconstructBackendState();
+    } else {
+      // Expand an existing state:
+      // Append MPS tensors
+      throw std::runtime_error(
+          "[SimulatorMPS simulator] Expanding state is not supported");
+    }
   }
 
   virtual std::string name() const override { return "tensornet-mps"; }
