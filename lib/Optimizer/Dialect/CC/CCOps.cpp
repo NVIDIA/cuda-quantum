@@ -40,7 +40,6 @@ cudaq::cc::AddressOfOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   Operation *op = symbolTable.lookupSymbolIn(
       getParentOfType<ModuleOp>(getOperation()), getGlobalNameAttr());
 
-  // TODO: add globals?
   if (!isa_and_nonnull<func::FuncOp, GlobalOp>(op))
     return emitOpError("must reference a global defined by 'func.func'");
   return success();
@@ -489,6 +488,57 @@ void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
       (*this)->getAttrs(),
       {getSymNameAttrName(), getValueAttrName(), getGlobalTypeAttrName(),
        getConstantAttrName(), getExternalAttrName()});
+}
+
+//===----------------------------------------------------------------------===//
+// GlobalOp
+//===----------------------------------------------------------------------===//
+
+ParseResult cudaq::cc::GlobalOp::parse(OpAsmParser &parser,
+                                       OperationState &result) {
+  // Check for the `constant` optional keyword first.
+  if (succeeded(parser.parseOptionalKeyword("constant")))
+    result.addAttribute(getConstantAttrName(result.name),
+                        parser.getBuilder().getUnitAttr());
+
+  // Parse the rest of the global.
+  //   @<symbol> ( <initializer-attr> ) : <result-type>
+  StringAttr name;
+  if (parser.parseSymbolName(name, getSymNameAttrName(result.name),
+                             result.attributes))
+    return failure();
+  if (succeeded(parser.parseOptionalLParen())) {
+    Attribute value;
+    if (parser.parseAttribute(value, getValueAttrName(result.name),
+                              result.attributes) ||
+        parser.parseRParen())
+      return failure();
+  }
+  SmallVector<Type, 1> types;
+  if (parser.parseOptionalColonTypeList(types) ||
+      parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+  if (types.size() > 1)
+    return parser.emitError(parser.getNameLoc(), "expected zero or one type");
+  result.addAttribute(getGlobalTypeAttrName(result.name),
+                      TypeAttr::get(types[0]));
+  return success();
+}
+
+void cudaq::cc::GlobalOp::print(OpAsmPrinter &p) {
+  p << ' ';
+  if (getConstant())
+    p << "constant ";
+  p.printSymbolName(getSymName());
+  if (auto value = getValue()) {
+    p << " (";
+    p.printAttribute(*value);
+    p << ")";
+  }
+  p << " : " << getGlobalType();
+  p.printOptionalAttrDictWithKeyword(
+      (*this)->getAttrs(), {getSymNameAttrName(), getValueAttrName(),
+                            getGlobalTypeAttrName(), getConstantAttrName()});
 }
 
 //===----------------------------------------------------------------------===//
