@@ -66,8 +66,6 @@ Common
 
 .. doxygenclass:: cudaq::CusvState
 
-.. doxygenclass:: cudaq::TensorNetworkState
-
 .. doxygenclass:: nvqir::MPSSimulationState
 
 .. doxygenclass:: nvqir::TensorNetSimulationState
