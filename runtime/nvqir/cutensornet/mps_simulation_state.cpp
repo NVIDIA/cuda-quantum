@@ -413,21 +413,6 @@ void MPSSimulationState::dump(std::ostream &os) const {
     os << t << "\n";
 }
 
-std::unique_ptr<nvqir::TensorNetState>
-MPSSimulationState::reconstructBackendState() const {
-  return nvqir::TensorNetState::createFromMpsTensors(
-      m_mpsTensors, state->getInternalContext());
-}
-
-std::unique_ptr<cudaq::SimulationState>
-MPSSimulationState::toSimulationState() const {
-  auto cloneState = nvqir::TensorNetState::createFromMpsTensors(
-      m_mpsTensors, state->getInternalContext());
-
-  return std::make_unique<MPSSimulationState>(std::move(cloneState),
-                                              m_mpsTensors, m_cutnHandle);
-}
-
 static Eigen::MatrixXcd reshapeMatrix(const Eigen::MatrixXcd &A) {
   Eigen::MatrixXcd B, C;
   const std::size_t rows = A.rows();

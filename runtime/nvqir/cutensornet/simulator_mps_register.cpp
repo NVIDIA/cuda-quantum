@@ -44,7 +44,8 @@ public:
       throw std::invalid_argument(
           "[SimulatorMPS simulator] Incompatible state input");
     if (!m_state) {
-      m_state = casted->reconstructBackendState();
+      m_state = TensorNetState::createFromMpsTensors(casted->getMpsTensors(),
+                                                     m_cutnHandle);
     } else {
       // Expand an existing state:
       // Append MPS tensors

@@ -262,7 +262,14 @@ nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
 void SimulatorTensorNetBase::addQubitToState() { addQubitsToState(1); }
 
 /// @brief Destroy the entire qubit register
-void SimulatorTensorNetBase::deallocateStateImpl() { m_state.reset(); }
+void SimulatorTensorNetBase::deallocateStateImpl() {
+  if (m_state) {
+    m_state.reset();
+    // Reset cuTensorNet library
+    HANDLE_CUTN_ERROR(cutensornetDestroy(m_cutnHandle));
+    HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
+  }
+}
 
 /// @brief Reset all qubits to zero
 void SimulatorTensorNetBase::setToZeroState() {
