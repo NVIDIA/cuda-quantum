@@ -128,7 +128,7 @@ def schwefel_gradient(parameter_vector: List[float], delta_x=1e-4) -> float:
     gradient_vector = gradient_central_difference(schwefel_N_dimension,
                                                   parameter_vector,
                                                   dx=delta_x)
-    # Check the equivalent CUDA Quantum gradient strategy each time
+    # Check the equivalent CUDA-Q gradient strategy each time
     # this function is called:
     # cudaq_gradient = cudaq.gradients.CentralDifference()
     # cudaq_gradient_vector = cudaq_gradient.compute(parameter_vector,

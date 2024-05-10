@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -531,6 +532,7 @@ void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
   auto *whileRegion = result.addRegion();
   auto *bodyRegion = result.addRegion();
   auto *stepRegion = result.addRegion();
+  [[maybe_unused]] auto *elseRegion = result.addRegion();
   whileBuilder(builder, result.location, *whileRegion);
   bodyBuilder(builder, result.location, *bodyRegion);
   if (stepBuilder) {
@@ -547,36 +549,76 @@ void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
                               RegionBuilderFn whileBuilder,
                               RegionBuilderFn bodyBuilder,
                               RegionBuilderFn stepBuilder) {
-  build(builder, result, TypeRange{}, iterArgs, postCond, whileBuilder,
+  build(builder, result, iterArgs.getTypes(), iterArgs, postCond, whileBuilder,
         bodyBuilder, stepBuilder);
+}
+
+void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
+                              TypeRange resultTypes, ValueRange iterArgs,
+                              RegionBuilderFn whileBuilder,
+                              RegionBuilderFn bodyBuilder,
+                              RegionBuilderFn stepBuilder,
+                              RegionBuilderFn elseBuilder) {
+  auto *whileRegion = result.addRegion();
+  auto *bodyRegion = result.addRegion();
+  auto *stepRegion = result.addRegion();
+  auto *elseRegion = result.addRegion();
+  whileBuilder(builder, result.location, *whileRegion);
+  bodyBuilder(builder, result.location, *bodyRegion);
+  stepBuilder(builder, result.location, *stepRegion);
+  ensureStepTerminator(builder, result, stepRegion);
+  elseBuilder(builder, result.location, *elseRegion);
+  result.addAttribute(postCondAttrName(), builder.getBoolAttr(false));
+  result.addOperands(iterArgs);
+  result.addTypes(resultTypes);
+}
+
+void cudaq::cc::LoopOp::build(OpBuilder &builder, OperationState &result,
+                              ValueRange iterArgs, RegionBuilderFn whileBuilder,
+                              RegionBuilderFn bodyBuilder,
+                              RegionBuilderFn stepBuilder,
+                              RegionBuilderFn elseBuilder) {
+  build(builder, result, iterArgs.getTypes(), iterArgs, whileBuilder,
+        bodyBuilder, stepBuilder, elseBuilder);
 }
 
 LogicalResult cudaq::cc::LoopOp::verify() {
   const auto initArgsSize = getInitialArgs().size();
   if (getResults().size() != initArgsSize)
     return emitOpError("size of init args and outputs must be equal");
-  if (getWhileRegion().front().getArguments().size() != initArgsSize)
+  if (getWhileArguments().size() != initArgsSize)
     return emitOpError("size of init args and while region args must be equal");
-  if (auto condOp = dyn_cast<cudaq::cc::ConditionOp>(
-          getWhileRegion().front().getTerminator())) {
+  if (auto condOp =
+          dyn_cast<cudaq::cc::ConditionOp>(getWhileBlock()->getTerminator())) {
     if (condOp.getResults().size() != initArgsSize)
       return emitOpError("size of init args and condition op must be equal");
   } else {
     return emitOpError("while region must end with condition op");
   }
-  if (getBodyRegion().front().getArguments().size() != initArgsSize)
+  if (getDoEntryArguments().size() != initArgsSize)
     return emitOpError("size of init args and body region args must be equal");
-  if (!getStepRegion().empty()) {
-    if (getStepRegion().front().getArguments().size() != initArgsSize)
+  if (hasStep()) {
+    if (isPostConditional())
+      return emitOpError("post-conditional loop cannot have a step region");
+    if (getStepArguments().size() != initArgsSize)
       return emitOpError(
           "size of init args and step region args must be equal");
-    if (auto contOp = dyn_cast<cudaq::cc::ContinueOp>(
-            getStepRegion().front().getTerminator())) {
+    if (auto contOp =
+            dyn_cast<cudaq::cc::ContinueOp>(getStepBlock()->getTerminator())) {
       if (contOp.getOperands().size() != initArgsSize)
         return emitOpError("size of init args and continue op must be equal");
     } else {
       return emitOpError("step region must end with continue op");
     }
+  }
+  if (hasPythonElse()) {
+    if (isPostConditional())
+      return emitOpError("post-conditional loop cannot have an else region");
+    if (!hasStep())
+      return emitOpError("python for-else must have step region");
+    if (getElseEntryArguments().size() != initArgsSize)
+      return emitOpError(
+          "size of init args and else region args must be equal");
   }
   return success();
 }
@@ -599,8 +641,7 @@ static void printInitializationList(OpAsmPrinter &p,
 void cudaq::cc::LoopOp::print(OpAsmPrinter &p) {
   if (isPostConditional()) {
     p << " do ";
-    printInitializationList(p, getBodyRegion().front().getArguments(),
-                            getOperands());
+    printInitializationList(p, getDoEntryArguments(), getOperands());
     p.printRegion(getBodyRegion(), /*printEntryBlockArgs=*/false,
                   /*printBlockTerminators=*/true);
     p << " while ";
@@ -608,16 +649,20 @@ void cudaq::cc::LoopOp::print(OpAsmPrinter &p) {
                   /*printBlockTerminators=*/true);
   } else {
     p << " while ";
-    printInitializationList(p, getWhileRegion().front().getArguments(),
-                            getOperands());
+    printInitializationList(p, getWhileArguments(), getOperands());
     p.printRegion(getWhileRegion(), /*printEntryBlockArgs=*/false,
                   /*printBlockTerminators=*/true);
     p << " do ";
     p.printRegion(getBodyRegion(), /*printEntryBlockArgs=*/hasArguments(),
                   /*printBlockTerminators=*/true);
-    if (!getStepRegion().empty()) {
+    if (hasStep()) {
       p << " step ";
       p.printRegion(getStepRegion(), /*printEntryBlockArgs=*/hasArguments(),
+                    /*printBlockTerminators=*/hasArguments());
+    }
+    if (hasPythonElse()) {
+      p << " else ";
+      p.printRegion(getElseRegion(), /*printEntryBlockArgs=*/hasArguments(),
                     /*printBlockTerminators=*/hasArguments());
     }
   }
@@ -631,6 +676,7 @@ ParseResult cudaq::cc::LoopOp::parse(OpAsmParser &parser,
   auto *cond = result.addRegion();
   auto *body = result.addRegion();
   auto *step = result.addRegion();
+  auto *elseReg = result.addRegion();
   auto parseOptBlockArgs =
       [&](SmallVector<OpAsmParser::Argument, 4> &regionArgs) {
         SmallVector<OpAsmParser::UnresolvedOperand, 4> operands;
@@ -664,6 +710,10 @@ ParseResult cudaq::cc::LoopOp::parse(OpAsmParser &parser,
         return failure();
       OpBuilder opBuilder(builder.getContext());
       ensureStepTerminator(opBuilder, result, step);
+    }
+    if (succeeded(parser.parseOptionalKeyword("else"))) {
+      if (parser.parseRegion(*elseReg, emptyArgs))
+        return failure();
     }
   } else if (succeeded(parser.parseOptionalKeyword("do"))) {
     isPostCondition = true;
@@ -710,9 +760,14 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
   }
   switch (index.value()) {
   case 0:
-    // WHILE region, successors are the owning loop op and the DO region.
+    // WHILE region, successors are the DO region and either the owning loop op
+    // (if no else region is present) or the else region.
     regions.push_back(RegionSuccessor(&getBodyRegion(), getDoEntryArguments()));
-    regions.push_back(RegionSuccessor(getResults()));
+    if (hasPythonElse())
+      regions.push_back(
+          RegionSuccessor(&getElseRegion(), getElseEntryArguments()));
+    else
+      regions.push_back(RegionSuccessor(getResults()));
     break;
   case 1:
     // DO region, successor is STEP region (2) if present, or WHILE region (0)
@@ -731,6 +786,11 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
     if (hasStep())
       regions.push_back(
           RegionSuccessor(&getWhileRegion(), getWhileArguments()));
+    break;
+  case 3:
+    // ELSE region, successors are the owning loop op.
+    if (hasPythonElse())
+      regions.push_back(RegionSuccessor(getResults()));
     break;
   }
 }
@@ -769,6 +829,10 @@ namespace {
 //    ^bb1(%invariant : T):
 //      ...
 //      cc.continue %invariant : T
+//    } else {
+//    ^bb1(%invariant : T):
+//      ...
+//      cc.continue %invariant : T
 //    }
 //  ──────────────────────────────────────
 //    cc.loop while {
@@ -779,6 +843,10 @@ namespace {
 //      ...⟦%invariant := %1⟧...
 //      cc.continue
 //    } step {
+//    ^bb1:
+//      ...⟦%invariant := %1⟧...
+//      cc.continue
+//    } else {
 //    ^bb1:
 //      ...⟦%invariant := %1⟧...
 //      cc.continue
@@ -901,7 +969,7 @@ ParseResult cudaq::cc::ScopeOp::parse(OpAsmParser &parser,
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
   auto *body = result.addRegion();
-  if (parser.parseRegion(*body, /*arguments=*/{}, /*argTypes=*/{}) ||
+  if (parser.parseRegion(*body, /*arguments=*/{}) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
   OpBuilder opBuilder(parser.getContext());
@@ -1032,6 +1100,13 @@ LogicalResult cudaq::cc::IfOp::verify() {
 
 void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
   p << '(' << getCondition() << ')';
+  if (!getLinearArgs().empty()) {
+    p << " ((";
+    llvm::interleaveComma(
+        llvm::zip(getThenEntryArguments(), getLinearArgs()), p,
+        [&](auto it) { p << std::get<0>(it) << " = " << std::get<1>(it); });
+    p << "))";
+  }
   p.printOptionalArrowTypeList(getResultTypes());
   p << ' ';
   const bool printBlockTerminators =
@@ -1076,16 +1151,43 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
       parser.parseRParen() ||
       parser.resolveOperand(cond, i1Type, result.operands))
     return failure();
+  SmallVector<OpAsmParser::Argument, 4> regionArgs;
+  if (succeeded(parser.parseOptionalLParen())) {
+    // Linear type arguments.
+    SmallVector<OpAsmParser::UnresolvedOperand, 4> linearOperands;
+    if (parser.parseAssignmentList(regionArgs, linearOperands) ||
+        parser.parseRParen())
+      return failure();
+    Type wireTy = quake::WireType::get(builder.getContext());
+    for (auto argOperand : llvm::zip(regionArgs, linearOperands)) {
+      std::get<0>(argOperand).type = wireTy;
+      if (parser.resolveOperand(std::get<1>(argOperand), wireTy,
+                                result.operands))
+        return failure();
+    }
+  }
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
-  if (parser.parseRegion(*thenRegion, /*arguments=*/{}, /*argTypes=*/{}))
+  if (!regionArgs.empty()) {
+    // Check that the result.types is compatible with the regionArgs. To be
+    // compatible, it must have at least as many linear types as there are
+    // region arguments. (It can have more.)
+    std::int64_t numRegionArgs = regionArgs.size();
+    std::for_each(result.types.begin(), result.types.end(), [&](Type t) {
+      if (quake::isLinearType(t))
+        --numRegionArgs;
+    });
+    if (numRegionArgs > 0)
+      return failure();
+  }
+  if (parser.parseRegion(*thenRegion, regionArgs))
     return failure();
   OpBuilder opBuilder(parser.getContext());
   ensureIfRegionTerminator(opBuilder, result, thenRegion);
 
   // If we find an 'else' keyword then parse the 'else' region.
   if (!parser.parseOptionalKeyword("else")) {
-    if (parser.parseRegion(*elseRegion, /*arguments=*/{}, /*argTypes=*/{}))
+    if (parser.parseRegion(*elseRegion, regionArgs))
       return failure();
     ensureIfRegionTerminator(opBuilder, result, elseRegion);
   }
@@ -1113,6 +1215,42 @@ void cudaq::cc::IfOp::getSuccessorRegions(
   regions.push_back(RegionSuccessor(&getThenRegion()));
   if (!getElseRegion().empty())
     regions.push_back(RegionSuccessor(&getElseRegion()));
+}
+
+template <typename A>
+long countLinearArgs(const A &iterable) {
+  return std::count_if(iterable.begin(), iterable.end(),
+                       [](Type t) { return quake::isLinearType(t); });
+}
+
+LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
+  auto regionOp = dyn_cast_if_present<RegionBranchOpInterface>(op);
+  if (!regionOp)
+    return failure();
+  SmallVector<RegionSuccessor> successors;
+  regionOp.getSuccessorRegions(std::nullopt, {}, successors);
+  // For each region successor, determine the number of distinct linear-typed
+  // definitions in the region.
+  long linearMax = -1;
+  for (auto iter : successors)
+    if (iter.getSuccessor())
+      for (Block &block : *iter.getSuccessor())
+        if (auto term = dyn_cast<cc::ContinueOp>(block.getTerminator())) {
+          auto numLinearArgs = countLinearArgs(term.getOperands().getTypes());
+          if (numLinearArgs > linearMax)
+            linearMax = numLinearArgs;
+        }
+
+  // All regions must have the same number of linear-type arguments and the
+  // region with the maximal number of distinct linear-typed definitions.
+  for (auto iter : successors)
+    if (iter.getSuccessor()) {
+      auto *block = &iter.getSuccessor()->front();
+      if (static_cast<long>(block->getNumArguments()) != linearMax)
+        return failure();
+    }
+
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -1151,7 +1289,7 @@ ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
                                              OperationState &result) {
   auto *body = result.addRegion();
   Type lambdaTy;
-  if (parser.parseRegion(*body, /*arguments=*/{}, /*argTypes=*/{}) ||
+  if (parser.parseRegion(*body, /*arguments=*/{}) ||
       parser.parseColonType(lambdaTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();

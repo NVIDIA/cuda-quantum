@@ -19,7 +19,7 @@ def num_hwe_parameters(numQubits, numLayers):
 
 def hwe(kernel, qubits, numQubits, numLayers, parameters, cnotCoupling=None):
     """
-    Generate the hardware-efficient CUDA Quantum kernel.
+    Generate the hardware-efficient CUDA-Q kernel.
 
     Args:
         kernel (:class:`Kernel`): The existing `cudaq.Kernel` to append to

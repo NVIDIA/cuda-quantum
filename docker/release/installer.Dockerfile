@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file builds a self-extractable CUDA Quantum archive that can be installed
+# This file builds a self-extractable CUDA-Q archive that can be installed
 # on a compatible Linux host system; see also https://makeself.io/.
 # A suitable base image can be obtained by building docker/build/assets.Dockerfile.
 #
@@ -52,7 +52,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 ## [Self-extracting Archive]
 RUN bash /makeself/makeself.sh --gzip --sha256 --license /cuda-quantum/LICENSE \
         /cuda_quantum_assets install_cuda_quantum.$(uname -m) \
-        "CUDA Quantum toolkit for heterogeneous quantum-classical workflows" \
+        "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
         bash install.sh -t /opt/nvidia/cudaq
 
 FROM scratch
