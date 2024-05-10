@@ -7,7 +7,7 @@ CUDA-Q is a comprehensive framework for quantum programming. It features:
 - A high-performance quantum compiler, `nvq++`, based on the industry standard
   LLVM toolchain
 - Interoperability with all of the leading models and tools for accelerated
-computing, including CUDA, ISO standard parallelism, OpenMP, and OpenACC
+  computing, including CUDA, ISO standard parallelism, OpenMP, and OpenACC
 - The ability to utilize and seamlessly switch between different quantum
   technologies, including state-of-the-art simulator backends with NVIDIA
   cuQuantum and a number of different physical quantum processors (QPUs)
@@ -18,6 +18,9 @@ documentation and examples for each version can be found in the [release
 notes][cudaq_docs_releases]. System and compatibility requirements
 are listed in the Installation Guide of the linked documentation.
 
+**Note**: CUDA-Q is currently only supported on Linux operating systems using
+`x86_64` or `aarch64`/`arm64` processors.
+
 [cudaq_docs_releases]:
     https://nvidia.github.io/cuda-quantum/latest/releases.html
 
@@ -26,8 +29,13 @@ are listed in the Installation Guide of the linked documentation.
 [//]: # (Begin complete install)
 
 CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.
-If you have access to an NVIDIA GPU, you can enable GPU-acceleration within
-CUDA-Q by installing the CUDA as well as a CUDA-aware MPI implementation.
+
+Getting started with CUDA-Q on `x86_64` platforms simply requires
+`pip install cuda-quantum`. If you have an NVIDIA GPU on your host system, you
+will be able to use it without any further installation steps.
+
+However, if you want to perform multi-GPU simulations, or if you are using
+`aarch64`/`arm64` processors, additional components must be installed.
 We recommend using [Conda](https://docs.conda.io/en/latest/) to do so.
 If you are not already using Conda,
 you can install a minimal version following the instructions
