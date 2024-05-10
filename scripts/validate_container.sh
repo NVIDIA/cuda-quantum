@@ -250,16 +250,14 @@ done
 
 if [ -n "$(find $(pwd) -name '*.ipynb')" ]; then
     echo "Validating notebooks:"
-    echo "$available_backends" | python3 notebook_validation.py &> /tmp/cudaq_validation.out
+    echo "$available_backends" | python3 notebook_validation.py
     if [ $? -eq 0 ]; then 
         let "passed+=1"
         echo ":white_check_mark: Notebooks validation passed." >> "${tmpFile}"
     else
-        cat /tmp/cudaq_validation.out
         let "failed+=1"
         echo ":x: Notebooks validation failed. See log for details." >> "${tmpFile}"
     fi 
-    rm /tmp/cudaq_validation.out
 else
     let "skipped+=1"
     echo "Skipped notebook validation.";
