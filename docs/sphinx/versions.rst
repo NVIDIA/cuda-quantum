@@ -1,5 +1,5 @@
 ************************
-CUDA Quantum Versions
+CUDA-Q Versions
 ************************
 
 .. include:: releases.rst

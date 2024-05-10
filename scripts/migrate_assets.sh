@@ -8,7 +8,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This scripts moves CUDA Quantum assets to the correct locations.
+# This scripts moves CUDA-Q assets to the correct locations.
 #
 # Usage:
 # bash scripts/migrate_assets.sh -s "$assets"
@@ -175,12 +175,12 @@ if [ -d "$assets/cudaq" ]; then
     fi
     chmod a+rx "$(dirname "$CUDA_QUANTUM_PATH")"
 elif $install; then
-    echo -e "\e[01;31mError: Missing CUDA Quantum assets for installation.\e[0m" >&2
+    echo -e "\e[01;31mError: Missing CUDA-Q assets for installation.\e[0m" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
 function update_profile {
-    echo "Configuring CUDA Quantum environment variables in $1."
+    echo "Configuring CUDA-Q environment variables in $1."
     echo 'CUDAQ_INSTALL_PATH="'${CUDA_QUANTUM_PATH}'"' >> "$1"
     echo '. "${CUDAQ_INSTALL_PATH}/set_env.sh"' >> "$1"
     echo "sed -i '/^CUDAQ_INSTALL_PATH=/d' \"$1\"" >> "$remove_assets"
@@ -190,7 +190,7 @@ function update_profile {
 if $install; then
     . "${CUDA_QUANTUM_PATH}/set_env.sh"
     # Note: Generally, the idea is to set the necessary environment variables
-    # to make CUDA Quantum discoverable in login shells and for all users. 
+    # to make CUDA-Q discoverable in login shells and for all users. 
     # Non-login shells should inherit them from the original login shell. 
     # If we cannot modify /etc/profile, we instead modify ~/.bashrc, which 
     # is always executed by all interactive non-login shells.
@@ -225,7 +225,7 @@ if $install; then
     echo 'echo "Removing remaining configurationa and scripts in '$CUDA_QUANTUM_PATH' - "' >> "$remove_assets"
     echo "$confirmation_prompt" >> "$remove_assets"
     echo 'if $continue; then' >> "$remove_assets"
-    echo "  rm -rf \"$CUDA_QUANTUM_PATH\" && echo Uninstalled CUDA Quantum." >> "$remove_assets"
+    echo "  rm -rf \"$CUDA_QUANTUM_PATH\" && echo Uninstalled CUDA-Q." >> "$remove_assets"
     echo 'fi' >> "$remove_assets"
 fi
 

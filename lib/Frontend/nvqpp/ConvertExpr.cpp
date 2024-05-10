@@ -107,7 +107,7 @@ negatedControlsAttribute(MLIRContext *ctx, ValueRange ctrls,
   return {boolVecAttr};
 }
 
-// There are three basic overloads of the "single target" CUDA Quantum ops.
+// There are three basic overloads of the "single target" CUDA-Q ops.
 //
 // 1. op(qubit...)
 //    This form takes the last qubit as the target and all qubits to
@@ -126,12 +126,13 @@ template <typename A, typename P = void>
 bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
              SmallVector<Value> &negations,
              llvm::function_ref<void()> reportNegateError,
-             bool isAdjoint = false, bool isControl = false) {
+             bool isAdjoint = false, bool isControl = false,
+             size_t paramCount = 1) {
   if constexpr (std::is_same_v<P, Param>) {
     assert(operands.size() >= 2 && "must be at least 2 operands");
-    auto params = operands.take_front();
-    auto [target, ctrls] =
-        maybeUnpackOperands(builder, loc, operands.drop_front(1), isControl);
+    auto params = operands.take_front(paramCount);
+    auto [target, ctrls] = maybeUnpackOperands(
+        builder, loc, operands.drop_front(paramCount), isControl);
     for (auto v : target)
       if (std::find(negations.begin(), negations.end(), v) != negations.end())
         reportNegateError();
@@ -1585,6 +1586,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                          reportNegateError, isAdjoint,
                                          /*control=*/true);
 
+    if (funcName.equals("u3"))
+      return buildOp<quake::U3Op, Param>(builder, loc, args, negations,
+                                         reportNegateError, isAdjoint,
+                                         isControl, /*paramCount=*/3);
+
     if (funcName.equals("control")) {
       // Expect the first argument to be an instance of a Callable. Need to
       // construct the name of the operator() call to make here.
@@ -1967,6 +1973,31 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           loc, idxTy, iters, cudaq::cc::CastOpMode::Unsigned);
       opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
       return true;
+    }
+    if (funcName.equals("get")) {
+      auto *stdGetSpec = cast<clang::FunctionDecl>(callee);
+      auto &specArgs = *stdGetSpec->getTemplateSpecializationArgs();
+      auto resultTy = cc::PointerType::get(peekType());
+      // The first specialization arg is either a type or an integer value.
+      if (specArgs[0].getKind() == clang::TemplateArgument::ArgKind::Integral) {
+        auto ptr = builder.create<cc::ComputePtrOp>(
+            loc, resultTy, args[0],
+            ArrayRef<cc::ComputePtrArg>{
+                0, static_cast<std::int32_t>(
+                       specArgs[0].getAsIntegral().getExtValue())});
+        return pushValue(builder.create<cc::LoadOp>(loc, ptr));
+      }
+      auto *selectTy = specArgs[0].getAsType().getTypePtr();
+      assert(specArgs[1].getKind() == clang::TemplateArgument::ArgKind::Pack);
+      int i = 0;
+      for (auto &templateArg : specArgs[1].pack_elements()) {
+        if (templateArg.getAsType().getTypePtr() == selectTy) {
+          auto ptr = builder.create<cc::ComputePtrOp>(
+              loc, resultTy, args[0], ArrayRef<cc::ComputePtrArg>{0, i});
+          return pushValue(builder.create<cc::LoadOp>(loc, ptr));
+        }
+        ++i;
+      }
     }
   }
 
@@ -2657,10 +2688,19 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     return pushValue(builder.create<cc::LoadOp>(loc, fromStruct));
   }
 
+  if (ctor->isCopyConstructor() && ctor->isTrivial() &&
+      isa<cc::StructType>(ctorTy)) {
+    auto copyObj = builder.create<cc::AllocaOp>(loc, ctorTy);
+    auto fromStruct = popValue();
+    auto fromVal = builder.create<cc::LoadOp>(loc, fromStruct);
+    builder.create<cc::StoreOp>(loc, fromVal, copyObj);
+    return pushValue(builder.create<cc::LoadOp>(loc, copyObj));
+  }
+
   // TODO: remove this when we can handle ctors more generally.
   if (!ctor->isDefaultConstructor()) {
     LLVM_DEBUG(llvm::dbgs() << ctorName << " - unhandled ctor:\n"; x->dump());
-    TODO_x(loc, x, mangler, "C++ constructor (not-default)");
+    TODO_x(loc, x, mangler, "C++ constructor (non-default)");
   }
 
   // A regular C++ class constructor lowers as:

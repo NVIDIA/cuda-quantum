@@ -6,13 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file is used to build CUDA Quantum NVQC service container to be deployed to NVCF.
+# This file is used to build CUDA-Q NVQC service container to be deployed to NVCF.
 #
 # Usage:
 # Must be built from the repo root with:
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/cudaq.nvqc.Dockerfile . --output out
 
-# Base image is CUDA Quantum image 
+# Base image is CUDA-Q image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:latest
 FROM $base_image as nvcf_image
 
@@ -29,7 +29,7 @@ ADD scripts/nvqc_proxy.py /
 # to the RestRequest payload version with which `cudaq-qpud` in the deployment Docker image was compiled.
 # Failure to do so will result in early exits of the entry point command, thus deployment failure.
 RUN echo 'cat /opt/nvidia/cudaq/build_info.txt;' \
-    'EXPECTED_REST_PAYLOAD_VERSION="$(cudaq-qpud --type nvcf --schema-version | grep -o "CUDA Quantum REST API version: \S*" | cut -d ":" -f 2 | tr -d " ")" ;' \
+    'EXPECTED_REST_PAYLOAD_VERSION="$(cudaq-qpud --type nvcf --schema-version | grep -o "CUDA-Q REST API version: \S*" | cut -d ":" -f 2 | tr -d " ")" ;' \
     'if [[ "$NVQC_REST_PAYLOAD_VERSION" !=  "$EXPECTED_REST_PAYLOAD_VERSION" ]]; ' \
     '  then echo "Invalid Deployment: NVQC_REST_PAYLOAD_VERSION environment variable ($NVQC_REST_PAYLOAD_VERSION) does not match cudaq-qpud (expected $EXPECTED_REST_PAYLOAD_VERSION)." && exit 1; fi;' \
     'python3 /nvqc_proxy.py & ' \

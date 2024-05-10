@@ -96,7 +96,7 @@ def check_state_vector_integration(entity):
 @skipIfPythonLessThan39
 def test_state_vector_integration():
     """
-    An integration test on the state vector class. Uses a CUDA Quantum
+    An integration test on the state vector class. Uses a CUDA-Q
     optimizer to find the correct kernel parameters for a Bell state.
     """
     # Make a general 2 qubit SO4 rotation.
@@ -118,7 +118,7 @@ def test_state_vector_integration():
 
 def test_state_vector_integration_with_List():
     """
-    An integration test on the state vector class. Uses a CUDA Quantum
+    An integration test on the state vector class. Uses a CUDA-Q
     optimizer to find the correct kernel parameters for a Bell state.
     """
     # Make a general 2 qubit SO4 rotation.

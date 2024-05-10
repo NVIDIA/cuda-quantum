@@ -22,7 +22,7 @@
 #define __qpu__ __attribute__((annotate("quantum")))
 
 // This file describes the API for a default qubit logical instruction
-// set for CUDA Quantum kernels.
+// set for CUDA-Q kernels.
 
 namespace cudaq {
 
@@ -36,6 +36,7 @@ namespace qubit_op {
 ConcreteQubitOp(h) ConcreteQubitOp(x) ConcreteQubitOp(y) ConcreteQubitOp(z)
     ConcreteQubitOp(s) ConcreteQubitOp(t) ConcreteQubitOp(rx)
         ConcreteQubitOp(ry) ConcreteQubitOp(rz) ConcreteQubitOp(r1)
+            ConcreteQubitOp(u3)
 
 } // namespace qubit_op
 
@@ -487,6 +488,87 @@ CUDAQ_QIS_PARAM_ONE_TARGET_(ry)
 CUDAQ_QIS_PARAM_ONE_TARGET_(rz)
 CUDAQ_QIS_PARAM_ONE_TARGET_(r1)
 
+namespace types {
+struct u3 {
+  inline static const std::string name{"u3"};
+};
+} // namespace types
+
+#if CUDAQ_USE_STD20
+template <typename mod = base, typename ScalarAngle, typename... QubitArgs>
+void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
+        QubitArgs &...args) {
+  static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
+                "Cannot operate on a qudit with Levels != 2");
+
+  std::vector<ScalarAngle> parameters{theta, phi, lambda};
+
+  // Map the qubits to their unique ids and pack them into a std::array
+  constexpr std::size_t nArgs = sizeof...(QubitArgs);
+  std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
+
+  // If there are more than one qubits and mod == base, then
+  // we just want to apply the same gate to all qubits provided
+  if constexpr (nArgs > 1 && std::is_same_v<mod, base>) {
+    for (auto &targetId : targets)
+      getExecutionManager()->apply("u3", parameters, {}, {targetId});
+    return;
+  }
+
+  // If we are here, then mod must be control or adjoint
+  // Extract the controls and the target
+  std::vector<QuditInfo> controls(targets.begin(), targets.begin() + nArgs - 1);
+
+  // Apply the gate
+  getExecutionManager()->apply("u3", parameters, controls, {targets.back()},
+                               std::is_same_v<mod, adj>);
+}
+template <typename mod = ctrl, typename ScalarAngle, typename QubitRange>
+  requires(std::ranges::range<QubitRange>)
+void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
+        QubitRange &ctrls, qubit &target) {
+  std::vector<ScalarAngle> parameters{theta, phi, lambda};
+  // Map the input control register to a vector of QuditInfo
+  std::vector<QuditInfo> controls;
+  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(controls),
+                 [](const auto &q) { return qubitToQuditInfo(q); });
+
+  // Apply the gate
+  getExecutionManager()->apply("u3", parameters, controls,
+                               {qubitToQuditInfo(target)});
+}
+
+#else // not C++20
+
+template <typename ScalarAngle, typename... QubitArgs>
+void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
+        QubitArgs &...args) {
+  static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
+                "Cannot operate on a qudit with Levels != 2");
+  std::vector<ScalarAngle> parameters{theta, phi, lambda};
+
+  // Map the qubits to their unique ids and pack them into a std::array
+  constexpr std::size_t nArgs = sizeof...(QubitArgs);
+  std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
+
+  // Extract the controls and the target
+  std::vector<QuditInfo> controls(targets.begin(), targets.begin() + nArgs - 1);
+
+  // Apply the gate
+  getExecutionManager()->apply("u3", parameters, controls, {targets.back()});
+}
+
+template <typename ScalarAngle>
+void cu3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda, qubit &ctrl,
+         qubit &target) {
+  std::vector<ScalarAngle> parameters{theta, phi, lambda};
+  std::vector<QuditInfo> controls{qubitToQuditInfo(ctrl)};
+  std::vector<QuditInfo> targets{qubitToQuditInfo(target)};
+  getExecutionManager()->apply("u3", parameters, controls, targets);
+}
+
+#endif // not C++20
+
 // Define the swap gate instruction and control versions of it
 namespace types {
 struct swap {
@@ -894,7 +976,7 @@ void compute_dag_action(ComputeFunction &&c, ActionFunction &&a) {
 }
 
 /// Helper function to extract a slice of a `std::vector<T>` to be used within
-/// CUDA Quantum kernels.
+/// CUDA-Q kernels.
 #if CUDAQ_USE_STD20
 template <typename T>
   requires(std::is_arithmetic_v<T>)
