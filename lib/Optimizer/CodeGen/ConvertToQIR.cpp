@@ -16,6 +16,7 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
@@ -39,6 +40,9 @@
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+
+#define DEBUG_TYPE "lower-to-qir"
 
 using namespace mlir;
 
@@ -139,9 +143,9 @@ public:
         cudaq::opt::factory::createLLVMFunctionSymbol(
             qirQuantumDeallocateFunc, retType, {operandType}, parentModule);
 
-    rewriter.replaceOpWithNewOp<mlir::LLVM::CallOp>(
-        dealloc, ArrayRef<Type>({}), deallocSymbolRef,
-        adaptor.getOperands().front());
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(dealloc, ArrayRef<Type>({}),
+                                              deallocSymbolRef,
+                                              adaptor.getOperands().front());
     return success();
   }
 };
@@ -1731,8 +1735,8 @@ public:
   }
 };
 
-/// In case we still have a RelaxSizeOp, we can just remove it,
-/// since QIR works on Array * for all sized veqs.
+/// In case we still have a RelaxSizeOp, we can just remove it, since QIR works
+/// on `Array*` for all sized veqs.
 class RemoveRelaxSizeRewrite : public OpConversionPattern<quake::RelaxSizeOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
@@ -1818,7 +1822,18 @@ public:
     return ok ? success() : failure();
   }
 
+  /// Greedy pass to match subgraphs in the IR and replace them with codegen
+  /// ops. This step makes converting a DAG of nodes in the conversion step
+  /// simpler.
+  void fuseSubgraphPatterns() {
+    auto *ctx = &getContext();
+    RewritePatternSet patterns(ctx);
+    // TODO
+  }
+
   void runOnOperation() override final {
+    fuseSubgraphPatterns();
+
     auto *context = &getContext();
 
     // Ad hoc deal with ConstantArrayOp transformation.
@@ -1873,8 +1888,10 @@ public:
     target.addLegalDialect<LLVM::LLVMDialect>();
     target.addLegalOp<ModuleOp>();
 
-    if (failed(applyFullConversion(getModule(), target, std::move(patterns))))
+    if (failed(applyFullConversion(getModule(), target, std::move(patterns)))) {
+      LLVM_DEBUG(getModule().dump());
       signalPassFailure();
+    }
   }
 };
 
