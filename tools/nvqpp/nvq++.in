@@ -214,7 +214,7 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 	fi
 fi
 
-ECHO=false
+ECHO=true
 TOOLBIN="${install_dir}/bin/"
 LLVMBIN="${llvm_install_dir}/bin/"
 
@@ -272,7 +272,7 @@ if [[ -n "${GCC_INSTALL_PREFIX}" ]]; then
 	# The user may override the setting in their environment.
 	HOST_GCC_INSTALL_DIR="${GCC_INSTALL_PREFIX}"
 fi
-CUDAQ_QUAKE_ARGS=
+CUDAQ_QUAKE_ARGS="-Xcudaq -v"
 CUDAQ_OPT_ARGS=
 CUDAQ_TRANSLATE_ARGS=
 MAPPING_FILE=
@@ -382,6 +382,11 @@ while [ $# -ne 0 ]; do
 		llvm_suffix="${arg#*=}"
 		;;
 	--gcc-toolchain=*)
+		# clang is deprecating this option
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq \"$1\""
+		HOST_GCC_INSTALL_DIR=
+		;;
+	--gcc-install-dir=*)
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq \"$1\""
 		HOST_GCC_INSTALL_DIR=
 		;;
@@ -540,7 +545,7 @@ while [ $# -ne 0 ]; do
 		# Pass to linker, library mode, and cudaq-quake
 		LINKER_FLAGS="${LINKER_FLAGS} $1"
 		ARGS="${ARGS} $1"
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq $1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq $1"
 		;;
 	-c)
 		DO_LINK=false
@@ -575,10 +580,13 @@ while [ $# -ne 0 ]; do
 	*.a | *.dylib)
 		LINKLIBS="${LINKLIBS} $1"
 		;;
+	--Xcudaq|-Xcudaq)
+		# Next argument will be automatically prefixed as appropriate
+		;;
 	*)
 		# Pass any unrecognized options on to the clang++ tool.
 		ARGS="${ARGS} $1"
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq $1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq $1"
 		;;
 	esac
 	shift
@@ -658,7 +666,7 @@ LLC=${LLVMBIN}llc${llvm_suffix}
 if [[ -n "${HOST_GCC_INSTALL_DIR}" ]]; then
 	# Use the toolchain specified at build-time, if any, and the user has
 	# not overridden it already.
-	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq --gcc-toolchain=\"${HOST_GCC_INSTALL_DIR}\""
+	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq --gcc-install-dir=\"${HOST_GCC_INSTALL_DIR}\""
 fi
 if ${LIBRARY_MODE}; then
 	ENABLE_KERNEL_EXECUTION=false
