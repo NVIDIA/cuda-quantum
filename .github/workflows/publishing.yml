@@ -869,6 +869,7 @@ jobs:
           # Create clean python3 environment.
           apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
           pip install /tmp/install/cuda_quantum-*.whl
+          status_sum=0
           set +e # Allow script to keep going through errors
           # Verify that the necessary GPU targets are installed and usable
           for tgt in nvidia nvidia-fp64 tensornet; do
