@@ -247,7 +247,11 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            # Install openmpi and mpi4py by conda
+            # Uninstall pip-installed cuda-quantum in the `wheel_validation:local` image.
+            # In this step, we test the full installation workflow with conda; 
+            # hence we don't want to mix conda and pip packages.
+            python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum
+            # Install cuda-quantum wheel and all dependencies (including MPI) using conda (README instructions)
             # Install conda
             dnf install -y --nobest --setopt=install_weak_deps=False wget openssh-clients
             mkdir -p ~/miniconda3
