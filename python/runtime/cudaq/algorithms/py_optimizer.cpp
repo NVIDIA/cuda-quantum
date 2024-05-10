@@ -103,13 +103,24 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
           "optimize",
           [](OptimizerT &opt, const int dim, py::function &func) {
             
-            py::list funcAttributes = py::reinterpret_borrow<py::list>(PyObject_Dir(func.ptr()));
+            // py::list funcAttributes = py::reinterpret_borrow<py::list>(PyObject_Dir(func.ptr()));
             
-            for (auto attr : funcAttributes) {
-              std::string attrName = attr.cast<std::string>();
-              py::object attrValue = func.attr(attrName.c_str());
-              std::cout << "Attribute: " << attrName << ", Value: " << py::str(attrValue) << std::endl;
-            }
+            // for (auto attr : funcAttributes) {
+            //   std::string attrName = attr.cast<std::string>();
+            //   py::object attrValue = func.attr(attrName.c_str());
+            //   std::cout << "Attribute: " << attrName << ", Value: " << py::str(attrValue) << std::endl;
+            // }
+
+            py::object codeObj = func.attr("__code__");
+
+            py::object dis = py::module::import("dis");
+            py::object disassembled = dis.attr("disassemble")(codeObj);
+
+            std::ostringstream oss;
+            oss << py::str(disassembled);
+            std::string disassembly = oss.str();
+
+            std::cout << "Disassembled code:\n" << disassembly << std::endl;
 
             return 0;
 
