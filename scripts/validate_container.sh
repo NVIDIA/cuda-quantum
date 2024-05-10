@@ -267,4 +267,4 @@ echo "Skipped: $skipped"
 echo "============================="
 
 echo "$available_backends" | python3 notebook_validation.py
-if  [ $? -eq 0 ] && [ "$failed" -eq "0" ] && [ "$samples" != "0" ]; then exit 0; else exit 10; fi
+if [ $? -eq 0 ] && [ "$failed" -eq "0" ] && [ "$samples" != "0" ]; then exit 0; else exit 10; fi
