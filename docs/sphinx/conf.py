@@ -61,7 +61,7 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
-nb_execution_allow_errors=True # needed since some notebooks require having GPU support
+nbsphinx_allow_errors = True # needed since some notebooks require having GPU support
 nbsphinx_thumbnails = {
     # Default thumbnail if the notebook does not define a cell tag to specify the thumbnail.
     # See also: https://nbsphinx.readthedocs.io/en/latest/subdir/gallery.html
