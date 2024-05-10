@@ -570,7 +570,7 @@ struct Mapper : public cudaq::opt::impl::MappingPassBase<Mapper> {
         sources.push_back(qop);
       } else if (quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
-        if (!quake::isValueSSAForm(&op)) {
+        if (!quake::isLinearValueForm(&op)) {
           llvm::errs() << "This is not SSA form: " << op << '\n';
           llvm::errs() << "isa<quake::NullWireOp>() = "
                        << isa<quake::NullWireOp>(&op) << '\n';
