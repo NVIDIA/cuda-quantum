@@ -111,9 +111,7 @@ void ExecutionResult::deserialize(std::vector<std::size_t>& data) {
   while (stride < data.size()) {
     auto nChars = data[stride];
     stride++;
-    std::string name = "";
-    for (std::size_t i = 0; i < nChars; i++)
-      name += std::string(1, char(data[stride + i]));
+    std::string name(data.begin() + stride, data.begin() + stride + nChars);
 
     stride += nChars;
     
@@ -135,12 +133,12 @@ std::vector<std::size_t> sample_result::serialize() const {
 
 void sample_result::deserialize(std::vector<std::size_t> &data) {
   std::size_t stride = 0;
+  totalShots = 0;
+
   while (stride < data.size()) {
     auto nChars = data[stride];
     stride++;
-    std::string name = "";
-    for (std::size_t i = 0; i < nChars; i++)
-      name += std::string(1, char(data[stride + i]));
+    std::string name(data.begin() + stride, data.begin() + stride + nChars);
 
     stride += nChars;
 
@@ -148,7 +146,11 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
     deserializeCounts(data, stride, localCounts);
 
     sampleResults.insert({name, ExecutionResult{std::move(localCounts), name}});
-    stride += nChars * 3;
+    totalShots += std::accumulate(localCounts.begin(), localCounts.end(), 0,
+                                  [](std::size_t sum, const auto& pair) {
+                                    return sum + pair.second;
+                                  });
+    stride += localCounts.size() * 3;
   }
 }
 
