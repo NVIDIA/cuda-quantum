@@ -28,7 +28,8 @@ std::string longToBitString(int size, long x) {
   return s;
 }
 
-void deserializeCounts(std::vector<std::size_t>& data, std::size_t& stride, std::unordered_map<std::string, std::size_t>& counts) {
+void deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
+                       std::unordered_map<std::string, std::size_t> &counts) {
   auto nBs = data[stride];
   stride++;
 
@@ -100,15 +101,15 @@ std::vector<std::size_t> ExecutionResult::serialize() const {
     retData.push_back(bits.length());
     retData.push_back(count);
   }
-
   return retData;
 }
 
-void ExecutionResult::deserialize(std::vector<std::size_t>& data) {
+void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
   std::size_t stride = 0;
   while (stride < data.size()) {
     auto nChars = data[stride];
     stride++;
+
     std::string name(data.begin() + stride, data.begin() + stride + nChars);
 
     stride += nChars;
@@ -144,10 +145,9 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
     deserializeCounts(data, stride, localCounts);
 
     sampleResults.insert({name, ExecutionResult{std::move(localCounts), name}});
-    totalShots += std::accumulate(localCounts.begin(), localCounts.end(), 0,
-                                  [](std::size_t sum, const auto& pair) {
-                                    return sum + pair.second;
-                                  });
+    totalShots += std::accumulate(
+        localCounts.begin(), localCounts.end(), 0,
+        [](std::size_t sum, const auto& pair) { return sum + pair.second; });
     stride += localCounts.size() * 3;
   }
 }
