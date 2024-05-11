@@ -66,13 +66,11 @@ ExecutionResult &ExecutionResult::operator=(const ExecutionResult &other) {
 }
 
 void ExecutionResult::appendResult(std::string bitString, std::size_t count) {
-  auto iter = counts.find(bitString);
-  if (iter == counts.end())
-    counts.insert({bitString, count});
-  else
+  auto [iter, inserted] = counts.emplace(std::move(bitString), count);
+  if (!inserted)
     iter->second += count;
 
-  sequentialData.insert(sequentialData.end(), count, bitString);
+  sequentialData.insert(sequentialData.end(), count, iter->first);
 }
 
 bool ExecutionResult::operator==(const ExecutionResult &result) const {
