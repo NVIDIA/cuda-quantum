@@ -28,6 +28,20 @@ std::string longToBitString(int size, long x) {
   return s;
 }
 
+void deserializeCounts(std::vector<std::size_t>& data, std::size_t& stride, std::unordered_map<std::string, std::size_t>& counts) {
+  auto nBs = data[stride];
+  stride++;
+
+  for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
+    auto bitstring_as_long = data[j];
+    auto size_of_bitstring = data[j + 1];
+    auto count = data[j + 2];
+    auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
+    counts.insert({bs, count});
+  }
+  stride += nBs * 3;
+}
+
 ExecutionResult::ExecutionResult(CountsDictionary c) : counts(c) {}
 ExecutionResult::ExecutionResult(std::string name) : registerName(name) {}
 ExecutionResult::ExecutionResult(double e) : expectationValue(e) {}
@@ -92,7 +106,7 @@ std::vector<std::size_t> ExecutionResult::serialize() const {
   return retData;
 }
 
-void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
+void ExecutionResult::deserialize(std::vector<std::size_t>& data) {
   std::size_t stride = 0;
   while (stride < data.size()) {
     auto nChars = data[stride];
@@ -102,16 +116,11 @@ void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
       name += std::string(1, char(data[stride + i]));
 
     stride += nChars;
-    auto nBs = data[stride];
-    stride++;
-    for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
-      auto bitstring_as_long = data[j];
-      auto size_of_bitstring = data[j + 1];
-      auto count = data[j + 2];
-      auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
-      counts.insert({bs, count});
-    }
-    stride += nBs * 3;
+    
+    std::unordered_map<std::string, std::size_t> localCounts;
+    deserializeCounts(data, stride, localCounts);
+
+    counts = std::move(localCounts);
   }
 }
 
@@ -134,23 +143,12 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
       name += std::string(1, char(data[stride + i]));
 
     stride += nChars;
-    std::size_t localShots = 0;
+
     std::unordered_map<std::string, std::size_t> localCounts;
-    auto nBs = data[stride];
-    stride++;
-    for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
-      auto bitstring_as_long = data[j];
-      auto size_of_bitstring = data[j + 1];
-      auto count = data[j + 2];
-      auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
-      localShots += count;
-      localCounts.insert({bs, count});
-    }
+    deserializeCounts(data, stride, localCounts);
 
-    sampleResults.insert({name, ExecutionResult{localCounts, name}});
-
-    stride += nBs * 3;
-    totalShots = localShots;
+    sampleResults.insert({name, ExecutionResult{std::move(localCounts), name}});
+    stride += nChars * 3;
   }
 }
 
