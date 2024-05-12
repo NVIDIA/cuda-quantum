@@ -43,6 +43,16 @@ void deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
   stride += nBs * 3;
 }
 
+std::string extractNameFromData(std::vector<std::size_t> &data,
+                                std::size_t &stride) {
+  auto nChars = data[stride++];
+
+  std::string name(data.begin() + stride, data.begin() + stride + nChars);
+
+  stride += nChars;
+  return name;
+}
+
 ExecutionResult::ExecutionResult(CountsDictionary c) : counts(c) {}
 ExecutionResult::ExecutionResult(std::string name) : registerName(name) {}
 ExecutionResult::ExecutionResult(double e) : expectationValue(e) {}
@@ -109,12 +119,7 @@ std::vector<std::size_t> ExecutionResult::serialize() const {
 void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
   std::size_t stride = 0;
   while (stride < data.size()) {
-    auto nChars = data[stride];
-    stride++;
-
-    std::string name(data.begin() + stride, data.begin() + stride + nChars);
-
-    stride += nChars;
+    std::string name = extractNameFromData(data, stride);
 
     std::unordered_map<std::string, std::size_t> localCounts;
     deserializeCounts(data, stride, localCounts);
@@ -137,11 +142,7 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
   totalShots = 0;
 
   while (stride < data.size()) {
-    auto nChars = data[stride];
-    stride++;
-    std::string name(data.begin() + stride, data.begin() + stride + nChars);
-
-    stride += nChars;
+    std::string name = extractNameFromData(data, stride);
 
     std::unordered_map<std::string, std::size_t> localCounts;
     deserializeCounts(data, stride, localCounts);
