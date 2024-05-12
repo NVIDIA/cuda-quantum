@@ -4,21 +4,21 @@ Local Installation
 Introduction
 -------------------
 
-This guide walks through how to :ref:`install CUDA Quantum <install-cuda-quantum>` on your system, and how to set up :ref:`VS Code for local development <local-development-with-vscode>`.
+This guide walks through how to :ref:`install CUDA-Q <install-cuda-quantum>` on your system, and how to set up :ref:`VS Code for local development <local-development-with-vscode>`.
 The section on :ref:`connecting to a remote host <connect-to-remote>` contains some
-guidance for application development on a remote host where CUDA Quantum is installed.
+guidance for application development on a remote host where CUDA-Q is installed.
 
-The following sections contain instructions for how to install CUDA Quantum on your machine using
+The following sections contain instructions for how to install CUDA-Q on your machine using
 
-- :ref:`Docker <install-docker-image>`: A fully featured CUDA Quantum installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
+- :ref:`Docker <install-docker-image>`: A fully featured CUDA-Q installation including all C++ and Python tools is available as a `Docker <https://docs.docker.com/get-started/overview/>`__ image.
 - :ref:`Singularity <install-singularity-image>`: A `Singularity <https://docs.sylabs.io/guides/latest/user-guide/introduction.html>`__ container can easily be created based on our Docker images. 
 - :ref:`PyPI <install-python-wheels>`: Additionally, we distribute pre-built Python wheels via `PyPI <https://pypi.org>`__.
 - :ref:`Pre-built binaries <install-prebuilt-binaries>`: We also provide pre-built C++ binaries, bundled as `self-extracting archive <https://makeself.io/>`__, that work across a range of Linux operating systems.
 
-If you would like to build CUDA Quantum from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for :doc:`data_center_install`. 
-If, on the other hand, you want to contribute to the development of CUDA Quantum itself and hence want to 
-build a custom version of CUDA Quantum from source, follow the instructions on the 
-`CUDA Quantum GitHub repository <https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md>`__ instead.
+If you would like to build CUDA-Q from source to deploy on an HPC system without relying on a container runtime, please follow the instructions for :doc:`data_center_install`. 
+If, on the other hand, you want to contribute to the development of CUDA-Q itself and hence want to 
+build a custom version of CUDA-Q from source, follow the instructions on the 
+`CUDA-Q GitHub repository <https://github.com/NVIDIA/cuda-quantum/blob/main/Building.md>`__ instead.
 
 If you are unsure which option suits you best, we recommend using our :ref:`Docker image <install-docker-image>` to develop your applications in a controlled environment that does not depend on, or interfere with, other software
 that is installed on your system.
@@ -33,8 +33,8 @@ If you do not already have Docker installed on your system, you can get it by do
 If you do not have the necessary administrator permissions to install software on your machine,
 take a look at the section below on how to use `Singularity`_ instead.
 
-Docker images for all CUDA Quantum releases are available on the `NGC Container Registry`_.
-In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__, 
+Docker images for all CUDA-Q releases are available on the `NGC Container Registry`_.
+In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__, 
 we also publish Docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 These images are published in our `nightly channel on NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__.
 To download the latest version on the main branch of our GitHub repository, for example, use the command
@@ -43,7 +43,7 @@ To download the latest version on the main branch of our GitHub repository, for 
 
     docker pull nvcr.io/nvidia/nightly/cuda-quantum:latest
 
-.. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum
+.. _NGC Container Registry: https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum
 
 Early prototypes for features we are considering can be tried out by using the image tags starting 
 with `experimental`. The `README` in the `/home/cudaq` folder in the container gives more details 
@@ -102,7 +102,7 @@ You can then launch the container and connect to it via SSH by executing the fol
 Singularity
 ++++++++++++++++++++++++++++++++++++
 
-You can use `Singularity <https://github.com/sylabs/singularity>`__ to run a CUDA Quantum container in a folder without needing administrator permissions.
+You can use `Singularity <https://github.com/sylabs/singularity>`__ to run a CUDA-Q container in a folder without needing administrator permissions.
 If you do not already have Singularity installed, you can build a relocatable installation from source. 
 To do so on Linux or WSL, make sure you have the `necessary prerequisites <https://docs.sylabs.io/guides/4.0/user-guide/quick_start.html#prerequisites>`__ installed, download a suitable version of the `go toolchain <https://docs.sylabs.io/guides/4.0/user-guide/quick_start.html#install-go>`__, and make sure the `go` binaries are on your :code:`PATH`. You can then build Singularity with the commands
 
@@ -129,14 +129,14 @@ Once you have singularity installed, create a file `cuda-quantum.def` with the f
         bash
 
 Replace the image name and/or tag in the `From` line, if necessary, with the one you want to use;
-In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/containers/cuda-quantum/tags>`__, 
+In addition to publishing `stable releases <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__, 
 we also publish Docker images whenever we update certain branches on our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`_.
 These images are published in our `nightly channel on NGC <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__.
 Early prototypes for features we are considering can be tried out by using the image tags starting 
 with `experimental`. We welcome and appreciate your feedback about these early prototypes; 
 how popular they are will help inform whether we should include them in future releases.
 
-You can then create a CUDA Quantum container by running the following commands:
+You can then create a CUDA-Q container by running the following commands:
 
 .. code-block:: console
 
@@ -183,13 +183,13 @@ please take a look at the section on :ref:`Development with VS Code <singularity
 Python wheels
 ++++++++++++++++++++++++++++++++++++
 
-CUDA Quantum Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. 
+CUDA-Q Python wheels are available on `PyPI.org <https://pypi.org/project/cuda-quantum>`__. 
 Installation instructions can be found in the `project description <https://pypi.org/project/cuda-quantum/#description>`__.
 For more information about available versions and documentation,
 see :doc:`../../releases`.
 
 There are currently no source distributions available on PyPI, but you can download the 
-source code for the latest version of the CUDA Quantum Python wheels from our 
+source code for the latest version of the CUDA-Q Python wheels from our 
 `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__. 
 The source code for previous versions can be downloaded from the respective 
 `GitHub Release <https://github.com/NVIDIA/cuda-quantum/releases>`__.
@@ -199,7 +199,7 @@ If your platform is not :ref:`officially supported <dependencies-and-compatibili
 `pip` does not find a compatible wheel to install, you can build your own 
 wheel from source following the instructions here: :doc:`data_center_install`.
 
-To build the CUDA Quantum Python API for the purpose of contributing to
+To build the CUDA-Q Python API for the purpose of contributing to
 our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__,
 follow the instructions for 
 `Setting up your Environment <https://github.com/NVIDIA/cuda-quantum/blob/main/Dev_Setup.md>`__, 
@@ -216,7 +216,7 @@ Pre-built binaries
 ++++++++++++++++++++++++++++++++++++
 
 Starting with the 0.6.0 release, we provide pre-built binaries for using 
-CUDA Quantum with C++. Support for using CUDA Quantum with Python can be installed 
+CUDA-Q with C++. Support for using CUDA-Q with Python can be installed 
 side-by-side with the pre-built binaries for C++ by following the instructions on 
 `PyPI.org <https://pypi.org/project/cuda-quantum>`__.
 The pre-built binaries work across a range of Linux operating systems listed 
@@ -237,11 +237,11 @@ The installer is a `self-extracting archive <https://makeself.io/>`__ that conta
 pre-built binaries as well as a script to move them to the correct locations. You will need
 `bash`, `tar`, and `gzip` (usually already installed on most Linux distributions) to run 
 the installer.
-The installation location of CUDA Quantum is not currently configurable and using the installer
+The installation location of CUDA-Q is not currently configurable and using the installer
 hence requires admin privileges on the system. We may revise that in the future; please see and
 upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/1075>`__.
 
-To install CUDA Quantum, execute the command
+To install CUDA-Q, execute the command
 
 .. literalinclude:: ../../../../docker/test/installer/linux.Dockerfile
     :language: bash
@@ -254,15 +254,15 @@ To install CUDA Quantum, execute the command
   To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries. For more information see the corresponding section on :ref:`Additional CUDA Tools <cuda-dependencies-prebuilt-binaries>`.
 
 The installation ensures that the necessary environment variables for
-using the CUDA Quantum toolchain are set upon login for all POSIX shells.
+using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the `nvq++` command is found. If it is not, please make sure 
 to set the environment variables defined by the `set_env.sh` script in the 
-CUDA Quantum installation folder (usually `/opt/nvidia/cudaq`).
+CUDA-Q installation folder (usually `/opt/nvidia/cudaq`).
 
 If an MPI installation is available in the directory defined by `MPI_PATH`, 
-the installer automatically enables MPI support in CUDA Quantum.
+the installer automatically enables MPI support in CUDA-Q.
 If you do not have MPI installed on your system, you can simply
-leave that path empty, and CUDA Quantum will be installed without MPI support.
+leave that path empty, and CUDA-Q will be installed without MPI support.
 If you install MPI at a later point in time, you can activate the MPI support in CUDA 
 Quantum by setting the `MPI_PATH` variable to its installation location and 
 executing the commands
@@ -276,7 +276,7 @@ executing the commands
 
 To develop C++ code, you most likely also want to install the
 `C++ standard library <https://en.cppreference.com/w/cpp/standard_library>`__.
-CUDA Quantum supports the GNU C++ standard library (`libstdc++`), 
+CUDA-Q supports the GNU C++ standard library (`libstdc++`), 
 version 11 or newer. Other libraries may work but can cause issues in certain cases.
 The C++ standard library, including development headers, is almost certainly 
 available via the package manager for your system. To ensure the libraries and headers
@@ -293,7 +293,7 @@ we recommend using `VS Code <https://code.visualstudio.com/>`_. VS Code provides
 development experience on all platforms, and is also available without installation via web browser. 
 This sections describes how to connect VS Code to a running container on your machine.
 The section on :ref:`connecting to a remote host <connect-to-remote>` contains information on
-how to set up your development environment when accessing CUDA Quantum on a remote host instead.
+how to set up your development environment when accessing CUDA-Q on a remote host instead.
 
 .. _docker-in-vscode:
 
@@ -301,7 +301,7 @@ Using a Docker container
 ++++++++++++++++++++++++++++++++++++++++
 
 Before connecting VS Code, open a terminal/shell, 
-and start the CUDA Quantum Docker container following the 
+and start the CUDA-Q Docker container following the 
 instructions in the :ref:`section above <install-docker-image>`. 
 
 If you have a local installation of `VS Code <https://code.visualstudio.com/>`_ 
@@ -320,7 +320,7 @@ After the window reloaded, enter "File: Open Folder" in the Command Palette to o
 
 To run the examples, open the Command Palette and enter "View: Show Terminal"
 to launch an integrated terminal. You are now all set to 
-:ref:`get started <post-installation>` with CUDA Quantum development.
+:ref:`get started <post-installation>` with CUDA-Q development.
 
 .. _singularity-in-vscode:
 
@@ -328,7 +328,7 @@ Using a Singularity container
 ++++++++++++++++++++++++++++++++++++++++
 
 If you have a GitHub or Microsoft account, we recommend that you connect 
-to a CUDA Quantum container using tunnels. To do so, launch a CUDA Quantum Singularity 
+to a CUDA-Q container using tunnels. To do so, launch a CUDA-Q Singularity 
 container following the instructions in the :ref:`section above <install-singularity-image>`,
 and then follow the instructions in the section `Developing with Remote Tunnels`_.
 
@@ -339,7 +339,7 @@ Make sure you also have a suitable SSH key pair; if your `~/.ssh/` folder does n
 the files `id_rsa.pub` and `id.rsa`, follow the instructions for generating a new SSH key on 
 `this page <https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent>`__.
 
-To connect VS Code to a running CUDA Quantum container, 
+To connect VS Code to a running CUDA-Q container, 
 the most convenient setup is to install and run an SSH server 
 in the Singularity container. Open a terminal/shell in a separate window,
 and enter the following commands to create a suitable sandbox:
@@ -390,7 +390,7 @@ Command Palette to open the desired folder.
 
 To run the examples, open the Command Palette and enter "View: Show Terminal"
 to launch an integrated terminal. You are now all set to 
-:ref:`get started <post-installation>` with CUDA Quantum development.
+:ref:`get started <post-installation>` with CUDA-Q development.
 
 
 .. _connect-to-remote:
@@ -399,15 +399,15 @@ Connecting to a Remote Host
 ------------------------------------
 
 Depending on the setup on the remote host, there are a couple of different options 
-for developing CUDA Quantum applications.
+for developing CUDA-Q applications.
 
-- If a CUDA Quantum container is running on the remote host,
+- If a CUDA-Q container is running on the remote host,
   and you have a GitHub or Microsoft account, take a look at
   `Developing with Remote Tunnels`_. This works for both Docker
   and Singularity containers on the remote host, and should also
   work for other containers.
 - If you cannot use tunnels, or if you want to work with an
-  existing CUDA Quantum installation without using a container, 
+  existing CUDA-Q installation without using a container, 
   take a look at `Remote Access via SSH`_ instead.
 
 .. _connect-vscode-via-tunnel:
@@ -418,11 +418,11 @@ Developing with Remote Tunnels
 `Remote access via tunnel <https://code.visualstudio.com/blogs/2022/12/07/remote-even-better>`__
 can easily be enabled with the `VS Code CLI <https://code.visualstudio.com/docs/editor/command-line>`__.
 This allows to connect either a local installation of `VS Code <https://code.visualstudio.com/>`_, 
-or the `VS Code Web UI <https://vscode.dev/>`__, to a running CUDA Quantum container on the same or a different machine. 
+or the `VS Code Web UI <https://vscode.dev/>`__, to a running CUDA-Q container on the same or a different machine. 
 
 Creating a secure connection requires authenticating with the same GitHub or Microsoft account on each end.
 Once authenticated, an SSH connection over the tunnel provides end-to-end encryption. To download the VS Code CLI, if necessary, and create a tunnel, execute the 
-following command in the running CUDA Quantum container,
+following command in the running CUDA-Q container,
 and follow the instructions to authenticate:
 
 .. code-block:: console
@@ -448,7 +448,7 @@ you can connect a local installation of `VS Code <https://code.visualstudio.com/
 
 .. note:: 
 
-  For the best user experience, we recommend to launch a CUDA Quantum container on the remote host, 
+  For the best user experience, we recommend to launch a CUDA-Q container on the remote host, 
   and then connect :ref:`VS Code using tunnels <connect-vscode-via-tunnel>`.
   If a connection via tunnel is not possible, this section describes using SSH instead.
 
@@ -462,9 +462,9 @@ When prompted, choose Linux as the operating system, and enter your
 password. After the window reloaded, enter "File: Open Folder" in the 
 Command Palette to open the desired folder. Our GitHub repository contains
 a folder with VS Code configurations including a list of recommended extensions for
-working with CUDA Quantum; you can copy `these configurations <https://github.com/NVIDIA/cuda-quantum/tree/main/docker/release/config/.vscode>`__ into the a folder named `.vscode` in your workspace to use them.
+working with CUDA-Q; you can copy `these configurations <https://github.com/NVIDIA/cuda-quantum/tree/main/docker/release/config/.vscode>`__ into the a folder named `.vscode` in your workspace to use them.
 
-If you want to work with an existing CUDA Quantum installation on the remote host, you are all set.
+If you want to work with an existing CUDA-Q installation on the remote host, you are all set.
 Alternatively, you can use Singularity to build and run a container following the instructions in 
 :ref:`this section <install-singularity-image>`. Once the `cuda-quantum.sif` image is built and 
 available in your home directory on the remote host, you can update your VS Code configuration 
@@ -499,7 +499,7 @@ following configurations:
     },
 
 After saving the changes, you should now be able to select `cuda-quantum~remote-host` as the host
-when connecting via SSH, which will launch the CUDA Quantum container and connect VS Code to it.
+when connecting via SSH, which will launch the CUDA-Q container and connect VS Code to it.
 
 .. note::
 
@@ -511,11 +511,11 @@ DGX Cloud
 --------------------------------
 
 If you are using `DGX Cloud <https://www.nvidia.com/en-us/data-center/dgx-cloud/>`__, 
-you can easily use it to run CUDA Quantum applications.
-While submitting jobs to DGX Cloud directly from within CUDA Quantum is not (yet) supported,
+you can easily use it to run CUDA-Q applications.
+While submitting jobs to DGX Cloud directly from within CUDA-Q is not (yet) supported,
 you can use the NGC CLI to launch and interact with workloads in DGX Cloud.
 The following sections detail how to do that, and how to connect JupyterLab and/or VS Code
-to a running CUDA Quantum job in DGX Cloud.
+to a running CUDA-Q job in DGX Cloud.
 
 .. _dgx-cloud-setup:
 
@@ -589,7 +589,7 @@ Use JupyterLab
 +++++++++++++++++++++++++++++++
 
 Once you can :ref:`run jobs on DGX Cloud <dgx-cloud-setup>`, you can launch an interactive job 
-to use CUDA Quantum with `JupyterLab <https://jupyterlab.readthedocs.io/en/latest/>`__ 
+to use CUDA-Q with `JupyterLab <https://jupyterlab.readthedocs.io/en/latest/>`__ 
 running on DGX Cloud:
 
 .. code-block:: console
@@ -611,14 +611,14 @@ under |:spellcheck-disable:|"URL/Hostname"|:spellcheck-enable:| in Service Mappe
   if you encounter a "404: Not Found" error, be patient and try again in a couple of minutes.
 
 Once this URL opens, you should see the JupyterLab authentication page; enter the 
-token you selected above to get access to the running CUDA Quantum container.
+token you selected above to get access to the running CUDA-Q container.
 On the left you should see a folder with tutorials. Happy coding!
 
 Use VS Code
 +++++++++++++++++++++++++++++++
 
 Once you can :ref:`run jobs on DGX Cloud <dgx-cloud-setup>`, you can launch an interactive job 
-to use CUDA Quantum with a local installation of `VS Code <https://code.visualstudio.com/>`_, 
+to use CUDA-Q with a local installation of `VS Code <https://code.visualstudio.com/>`_, 
 or the `VS Code Web UI <https://vscode.dev/>`__, running on DGX Cloud:
 
 .. code-block:: console
@@ -646,26 +646,26 @@ configure VS Code with extensions for working with C++, Python, and Jupyter.
 You can always see the list of recommended extensions that aren't installed yet by clicking on the "Extensions" icon in the sidebar and navigating to the "Recommended" tab.
 
 If you enter "View: Show Explorer" in the Command Palette, you should see a folder with tutorials and examples
-to help you get started. Take a look at `Next Steps`_ to dive into CUDA Quantum development.
+to help you get started. Take a look at `Next Steps`_ to dive into CUDA-Q development.
 
 .. _additional-cuda-tools:
 
 Additional CUDA Tools
 ------------------------------------
 
-CUDA Quantum makes use of GPU-acceleration in certain backends and components. 
-Depending on how you installed CUDA Quantum, you may need to install 
+CUDA-Q makes use of GPU-acceleration in certain backends and components. 
+Depending on how you installed CUDA-Q, you may need to install 
 certain CUDA libraries separately to take advantage of these.
 
 Installation via PyPI
 ++++++++++++++++++++++++++++++++++++
 
-If you installed CUDA Quantum via `PyPI <https://pypi.org/project/cuda-quantum>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
+If you installed CUDA-Q via `PyPI <https://pypi.org/project/cuda-quantum>`__, please follow the installation instructions there to install the necessary CUDA dependencies.
 
 Installation In Container Images
 ++++++++++++++++++++++++++++++++++++
 
-If you are using the CUDA Quantum container image, the image already contains all necessary runtime libraries to use all CUDA Quantum components. To take advantage of GPU-acceleration, make sure
+If you are using the CUDA-Q container image, the image already contains all necessary runtime libraries to use all CUDA-Q components. To take advantage of GPU-acceleration, make sure
 to enable GPU support when you launch the container, that is pass the `--gpus all` flag when launching 
 the container with Docker and the `--nv` flag when launching the container with Singularity.
 
@@ -686,8 +686,8 @@ inside the container. Most Python packages that use GPU-acceleration, such as fo
 Installing Pre-built Binaries
 ++++++++++++++++++++++++++++++++++++
 
-If you installed pre-built binaries for CUDA Quantum, you will need to install 
-the necessary CUDA runtime libraries to use GPU-acceleration in CUDA Quantum. 
+If you installed pre-built binaries for CUDA-Q, you will need to install 
+the necessary CUDA runtime libraries to use GPU-acceleration in CUDA-Q. 
 If you prefer to only install the minimal set of runtime libraries, the following 
 commands, for example, install the necessary packages for RHEL 8:
 
@@ -701,7 +701,7 @@ More detailed instructions for your platform can be found in the online document
 of your selected `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
 Please make sure to install CUDA version 11.8 or newer, and confirm that your 
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
-While the above packages are sufficient to use GPU-acceleration within CUDA Quantum, 
+While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-11-8`) that also 
 includes the `nvcc` compiler.
 
@@ -710,13 +710,13 @@ includes the `nvcc` compiler.
 Distributed Computing with MPI
 ------------------------------------
 
-CUDA Quantum supports the Message Passing Interface (MPI) parallelism via a plugin interface.
-It is possible to activate or replace such an MPI plugin without re-installing or re-compiling CUDA Quantum.
-MPI calls via CUDA Quantum API for C++ and Python will be delegated to the currently activated plugin at runtime.
+CUDA-Q supports the Message Passing Interface (MPI) parallelism via a plugin interface.
+It is possible to activate or replace such an MPI plugin without re-installing or re-compiling CUDA-Q.
+MPI calls via CUDA-Q API for C++ and Python will be delegated to the currently activated plugin at runtime.
 
 .. tab:: Built-in MPI Support
 
-  The :ref:`CUDA Quantum Docker image <install-docker-image>` is shipped with a pre-built MPI plugin based on an 
+  The :ref:`CUDA-Q Docker image <install-docker-image>` is shipped with a pre-built MPI plugin based on an 
   optimized OpenMPI installation included in the image. No action is required to use this plugin. 
   We recommend using this plugin unless the container host has an existing MPI implementation other than OpenMPI.
 
@@ -727,13 +727,13 @@ MPI calls via CUDA Quantum API for C++ and Python will be delegated to the curre
 .. tab:: Custom MPI Support
 
   If you are not using the Docker image, or are using the image on a system that has a
-  vendor-optimized MPI library pre-installed, CUDA Quantum can be configured to use the local MPI installation by
+  vendor-optimized MPI library pre-installed, CUDA-Q can be configured to use the local MPI installation by
   manually activating a suitable plugin post-installation.
   To do so, 
 
-  - Make sure the environment variable `CUDA_QUANTUM_PATH` points to the CUDA Quantum installation directory. 
-    If you installed CUDA Quantum using the `installer <install-prebuilt-binaries>`, or if you are using the CUDA Quantum 
-    container image, this variable should already be defined. If you installed the CUDA Quantum 
+  - Make sure the environment variable `CUDA_QUANTUM_PATH` points to the CUDA-Q installation directory. 
+    If you installed CUDA-Q using the `installer <install-prebuilt-binaries>`, or if you are using the CUDA-Q 
+    container image, this variable should already be defined. If you installed the CUDA-Q 
     `Python wheels <install-python-wheels>`, set this variable to the directory listed under "Location" when you run the 
     command `pip show cuda-quantum`.
 
@@ -755,34 +755,34 @@ MPI calls via CUDA Quantum API for C++ and Python will be delegated to the curre
 
   Manually activating an MPI plugin replaces any existing plugin; After the initial activation, the newly built 
   `libcudaq_distributed_interface_mpi.so` in the installation directory will subsequently always be used to 
-  handle CUDA Quantum MPI calls.
+  handle CUDA-Q MPI calls.
 
   .. note::
 
-    Executing the activation script from the CUDA Quantum installation directory requires *write* permissions to that directory.
+    Executing the activation script from the CUDA-Q installation directory requires *write* permissions to that directory.
     If you do not have the necessary permissions, copy the `distributed_interfaces` sub-directory to a local location and execute the 
     activation script from there.
 
-    In this scenario, since the activated plugin (`libcudaq_distributed_interface_mpi.so`) is outside the CUDA Quantum installation,
+    In this scenario, since the activated plugin (`libcudaq_distributed_interface_mpi.so`) is outside the CUDA-Q installation,
     you must set the environment variable `$CUDAQ_MPI_COMM_LIB` to the path of that shared library.
     This is done automatically when executing that activation script, but you may wish to persist that environment variable 
     between bash sessions, e.g., by adding it to the `.bashrc` file.
 
 .. _updating-cuda-quantum:
 
-Updating CUDA Quantum
+Updating CUDA-Q
 --------------------------------
 
-If you installed the CUDA Quantum Python wheels, you can update to the latest release
+If you installed the CUDA-Q Python wheels, you can update to the latest release
 by running the command 
 
 .. code-block:: console
 
     python3 -m pip install --upgrade cuda-quantum
 
-If you previously installed the CUDA Quantum pre-built binaries, you should first uninstall your 
-current CUDA Quantum installation before installing the new version using the installer. 
-To uninstall your current CUDA Quantum version, run the command
+If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your 
+current CUDA-Q installation before installing the new version using the installer. 
+To uninstall your current CUDA-Q version, run the command
 
 .. code-block:: console
 
@@ -792,7 +792,7 @@ The `uninstall.sh` script is generated during installation, and will remove all 
 and folders that were created as part of the installation, whether they were modified 
 in the meantime or not. It does not remove any additional files that existed prior 
 to the installation or that you have added to the installation location since then. 
-You can then download and install the new version of CUDA Quantum following the
+You can then download and install the new version of CUDA-Q following the
 instructions :ref:`above <install-prebuilt-binaries>`.
 
 .. _dependencies-and-compatibility:
@@ -800,13 +800,13 @@ instructions :ref:`above <install-prebuilt-binaries>`.
 Dependencies and Compatibility
 --------------------------------
 
-CUDA Quantum can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also :doc:`../backends/simulators`.
+CUDA-Q can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also :doc:`../backends/simulators`.
 
-The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 architectures.
+The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).
 
 .. note:: 
 
-  Some of the components included in the CUDA Quantum Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA Quantum Python wheels, take a look at :ref:`this section <install-python-wheels>`.
+  Some of the components included in the CUDA-Q Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA-Q Python wheels, take a look at :ref:`this section <install-python-wheels>`.
 
 The following table summarizes the required components.
 
@@ -848,8 +848,8 @@ enter "View: Show Terminal".
 
 .. image:: ../../_static/getToWork.png 
 
-The CUDA Quantum image contains a folder with examples and tutorials in the :code:`/home/cudaq` directory. 
-These examples are provided to get you started with CUDA Quantum and understanding 
+The CUDA-Q image contains a folder with examples and tutorials in the :code:`/home/cudaq` directory. 
+These examples are provided to get you started with CUDA-Q and understanding 
 the programming and execution model. 
 If you are not using a container image, you can find these examples on our 
 `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__.
@@ -917,6 +917,6 @@ Let's compare that to using only your CPU:
 When you execute this command, the program simply seems to hang; that is because it takes
 a long time for the CPU-only backend to simulate 28+ qubits! Cancel the execution with `Ctrl+C`.
 
-You are now all set to start developing quantum applications using CUDA Quantum!
+You are now all set to start developing quantum applications using CUDA-Q!
 Please proceed to :doc:`Basics <../basics/basics>` for an introduction
-to the fundamental features of CUDA Quantum.
+to the fundamental features of CUDA-Q.

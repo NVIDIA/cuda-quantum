@@ -4,7 +4,7 @@ Sub-circuit Synthesis
 library calls that provide multi-qubit controlled application and adjoint,
 or circuit reversal, semantics. 
 
-**[2]** CUDA Quantum defines the following library functions
+**[2]** CUDA-Q defines the following library functions
 for enabling multi-controlled and adjoint operations on a general pure
 device kernel:
 
