@@ -55,14 +55,16 @@ ExecutionResult::ExecutionResult(CountsDictionary c, std::string name, double e)
 ExecutionResult::ExecutionResult(CountsDictionary c, double e)
     : counts(c), expectationValue(e) {}
 ExecutionResult::ExecutionResult(const ExecutionResult &other)
-    : counts(other.counts), expectationValue(other.expectationValue),
-      registerName(other.registerName), sequentialData(other.sequentialData) {}
+    : counts(std::move(other.counts)),
+      expectationValue(std::move(other.expectationValue)),
+      registerName(std::move(other.registerName)),
+      sequentialData(std::move(other.sequentialData)) {}
 
 ExecutionResult &ExecutionResult::operator=(const ExecutionResult &other) {
-  counts = other.counts;
-  expectationValue = other.expectationValue;
-  registerName = other.registerName;
-  sequentialData = other.sequentialData;
+  counts = std::move(other.counts);
+  expectationValue = std::move(other.expectationValue);
+  registerName = std::move(other.registerName);
+  sequentialData = std::move(other.sequentialData);
   return *this;
 }
 
