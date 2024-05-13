@@ -1469,6 +1469,29 @@ class PyASTBridge(ast.NodeVisitor):
                 opCtor([], [], [], [qubitA, qubitB])
                 return
 
+            if node.func.id == 'reset':
+                target = self.popValue()
+                if quake.RefType.isinstance(target.type):
+                    quake.ResetOp([], target)
+                    return
+                if quake.VeqType.isinstance(target.type):
+
+                    def bodyBuilder(iterVal):
+                        q = quake.ExtractRefOp(
+                            self.getRefType(),
+                            target,
+                            -1,  # `kDynamicIndex`
+                            index=iterVal).result
+                        quake.ResetOp([], q)
+
+                    veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                              target).result
+                    self.createInvariantForLoop(veqSize, bodyBuilder)
+                    return
+                self.emitFatalError(
+                    'reset quantum operation on incorrect type {}.'.format(
+                        target.type), node)
+
             if node.func.id == 'u3':
                 # Single target, three parameters `u3(θ,φ,λ)`
                 all_args = [
@@ -2720,6 +2743,16 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if isinstance(op, ast.NotEq):
+            if F64Type.isinstance(left.type) and IntegerType.isinstance(
+                    comparator.type):
+                left = arith.FPToSIOp(comparator.type, left).result
+            if IntegerType(left.type).width < IntegerType(
+                    comparator.type).width:
+                zeroext = IntegerType(left.type).width == 1
+                left = cc.CastOp(comparator.type,
+                                 left,
+                                 sint=not zeroext,
+                                 zint=zeroext).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 1), left,
                              comparator).result)
@@ -2731,7 +2764,11 @@ class PyASTBridge(ast.NodeVisitor):
                 left = arith.FPToSIOp(comparator.type, left).result
             if IntegerType(left.type).width < IntegerType(
                     comparator.type).width:
-                left = arith.ExtSIOp(comparator.type, left).result
+                zeroext = IntegerType(left.type).width == 1
+                left = cc.CastOp(comparator.type,
+                                 left,
+                                 sint=not zeroext,
+                                 zint=zeroext).result
             self.pushValue(
                 arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
                              comparator).result)
