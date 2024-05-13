@@ -8,16 +8,14 @@
 
 #pragma once
 
+#include "PyTypes.h"
 #include "common/FmtCore.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/builder/kernel_builder.h"
 #include "cudaq/qis/pauli_word.h"
-
-#include "PyTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-
 #include <chrono>
 #include <complex>
 #include <functional>
@@ -166,6 +164,12 @@ void checkListElementType(py::handle arg, int index, int elementIndex) {
   }
 }
 
+template <typename T>
+inline void addArgument(OpaqueArguments &argData, T *allocatedArg) {
+  argData.emplace_back(allocatedArg,
+                       [](void *ptr) { delete static_cast<T *>(ptr); });
+}
+
 inline void
 packArgs(OpaqueArguments &argData, py::args args,
          mlir::func::FuncOp kernelFuncOp,
@@ -184,62 +188,42 @@ packArgs(OpaqueArguments &argData, py::args args,
         .Case([&](mlir::ComplexType ty) {
           checkArgumentType<py_ext::Complex>(arg, i);
           if (isa<Float64Type>(ty.getElementType())) {
-            std::complex<double> *ourAllocatedArg = new std::complex<double>();
-            *ourAllocatedArg = arg.cast<std::complex<double>>();
-
-            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-              delete static_cast<std::complex<double> *>(ptr);
-            });
+            auto *ourAllocatedArg =
+                new std::complex<double>(arg.cast<std::complex<double>>());
+            addArgument<std::complex<double>>(argData, ourAllocatedArg);
           } else {
-            std::complex<float> *ourAllocatedArg = new std::complex<float>();
-            *ourAllocatedArg = arg.cast<std::complex<float>>();
-
-            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-              delete static_cast<std::complex<float> *>(ptr);
-            });
+            auto *ourAllocatedArg =
+                new std::complex<float>(arg.cast<std::complex<float>>());
+            addArgument<std::complex<float>>(argData, ourAllocatedArg);
           }
         })
         .Case([&](mlir::Float64Type ty) {
           checkArgumentType<py_ext::Float>(arg, i);
-          double *ourAllocatedArg = new double();
-          *ourAllocatedArg = arg.cast<double>();
-          argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<double *>(ptr);
-          });
+          auto *ourAllocatedArg = new double(arg.cast<double>());
+          addArgument<double>(argData, ourAllocatedArg);
         })
         .Case([&](mlir::Float32Type ty) {
           checkArgumentType<py_ext::Float>(arg, i);
-          float *ourAllocatedArg = new float();
-          *ourAllocatedArg = arg.cast<float>();
-          argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<float *>(ptr);
-          });
+          auto *ourAllocatedArg = new float(arg.cast<float>());
+          addArgument<float>(argData, ourAllocatedArg);
         })
         .Case([&](mlir::IntegerType ty) {
           if (ty.getIntOrFloatBitWidth() == 1) {
             checkArgumentType<py::bool_>(arg, i);
-            bool *ourAllocatedArg = new bool();
-            *ourAllocatedArg = arg.cast<bool>();
-            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-              delete static_cast<bool *>(ptr);
-            });
+            auto *ourAllocatedArg = new bool(arg.cast<bool>());
+            addArgument<bool>(argData, ourAllocatedArg);
             return;
           }
 
           checkArgumentType<py::int_>(arg, i);
-          long *ourAllocatedArg = new long();
-          *ourAllocatedArg = arg.cast<long>();
-          argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<long *>(ptr);
-          });
+          auto *ourAllocatedArg = new long(arg.cast<long>());
+          addArgument<long>(argData, ourAllocatedArg);
         })
         .Case([&](cudaq::cc::CharspanType ty) {
           // pauli word
-          cudaq::pauli_word *ourAllocatedArg =
+          auto *ourAllocatedArg =
               new cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str());
-          argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<cudaq::pauli_word *>(ptr);
-          });
+          addArgument<cudaq::pauli_word>(argData, ourAllocatedArg);
         })
         .Case([&](cudaq::cc::StdvecType ty) {
           checkArgumentType<py::list>(arg, i);
@@ -249,21 +233,16 @@ packArgs(OpaqueArguments &argData, py::args args,
             // Handle boolean different since C++ library implementation
             // for vectors of bool is different than other types.
             if (eleTy.isInteger(1)) {
-              std::vector<bool> *ourAllocatedArg = new std::vector<bool>();
-              argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-                delete static_cast<std::vector<bool> *>(ptr);
-              });
+              auto *ourAllocatedArg = new std::vector<bool>();
+              addArgument<std::vector<bool>>(argData, ourAllocatedArg);
               return;
             }
 
             // If its empty, just put any vector on the `argData`,
             // it won't matter since it is empty and all
             // vectors have the same memory footprint (span-like).
-            std::vector<std::size_t> *ourAllocatedArg =
-                new std::vector<std::size_t>();
-            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-              delete static_cast<std::vector<std::size_t> *>(ptr);
-            });
+            auto *ourAllocatedArg = new std::vector<std::size_t>();
+            addArgument<std::vector<std::size_t>>(argData, ourAllocatedArg);
             return;
           }
 
@@ -276,14 +255,10 @@ packArgs(OpaqueArguments &argData, py::args args,
               auto converted = converter(el, i, counter);
               (*ourAllocatedArg)[counter++] = converted;
             }
-            argData.emplace_back(ourAllocatedArg, [](void *ptr) {
-              delete static_cast<std::vector<VecTy> *>(ptr);
-            });
+            addArgument<std::vector<VecTy>>(argData, ourAllocatedArg);
           };
 
           // Switch on the vector element type.
-          // We don't type check the elements because
-          // they are not promoted yet at this stage.
           TypeSwitch<Type, void>(eleTy)
               .Case([&](IntegerType type) {
                 // Handle vec<bool> and vec<int>
