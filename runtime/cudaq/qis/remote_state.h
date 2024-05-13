@@ -47,13 +47,7 @@ public:
   std::complex<double> overlap(const cudaq::SimulationState &other) override;
 
   std::complex<double>
-  getAmplitude(const std::vector<int> &basisState) override {
-    // FIXME: handle amplitude access for extremely-large state vector (mgpu,
-    // mps, etc.)
-    // i.e., needs to forward getAmplitude as a REST API call.
-    execute();
-    return state->getAmplitude(basisState);
-  }
+  getAmplitude(const std::vector<int> &basisState) override;
 
   Tensor getTensor(std::size_t tensorIdx = 0) const override {
     execute();
@@ -85,9 +79,12 @@ public:
 
   precision getPrecision() const override {
     execute();
-    return state->getPrecision(); 
+    return state->getPrecision();
   }
 
   void destroyState() override { state.reset(); }
+
+private:
+  static std::size_t maxQubitCountForFullStateTransfer();
 };
 } // namespace cudaq

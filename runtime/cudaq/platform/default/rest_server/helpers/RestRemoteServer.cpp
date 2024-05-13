@@ -575,7 +575,6 @@ protected:
       json resultJson;
       if (request.executionContext.name == "state-overlap") {
         if (request.code.size() != 2)
-          // FIXME: lift this constraint
           throw std::runtime_error(
               "Only single overlap is currently supported.");
         std::vector<char> decodedCodeIr1, decodedCodeIr2;
@@ -609,7 +608,8 @@ protected:
         if (request.code.size() != 1)
           throw std::runtime_error("Only single kernel code is expected.");
         std::vector<char> decodedCodeIr;
-        auto errorCode = llvm::decodeBase64(request.code.front().ir, decodedCodeIr);
+        auto errorCode =
+            llvm::decodeBase64(request.code.front().ir, decodedCodeIr);
         if (errorCode) {
           LLVMConsumeError(llvm::wrap(std::move(errorCode)));
           throw std::runtime_error("Failed to decode input IR");
@@ -619,6 +619,19 @@ protected:
                       codeStr, request.code.front().entryPoint,
                       request.code.front().args.data(),
                       request.code.front().args.size(), request.seed);
+
+        // If specific amplitudes are requested.
+        // Note: this could be the case whereby the state vector is too large
+        // for full retrieval.
+        if (request.executionContext.name == "extract-state" &&
+            !request.executionContext.amplitudeMaps.empty()) {
+          // Acquire the state, no need to send the full state back
+          auto serverState =
+              std::move(request.executionContext.simulationState);
+          for (auto &[key, val] : request.executionContext.amplitudeMaps) {
+            val = serverState->getAmplitude(key);
+          }
+        }
 
         resultJson["executionContext"] = request.executionContext;
       }

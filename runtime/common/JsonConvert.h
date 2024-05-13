@@ -125,6 +125,8 @@ inline void to_json(json &j, const ExecutionContext &context) {
   j["registerNames"] = context.registerNames;
   if (context.overlapResult.has_value())
     j["overlapResult"] = context.overlapResult.value();
+  if (!context.amplitudeMaps.empty())
+    j["amplitudeMaps"] = context.amplitudeMaps;
 }
 
 inline void from_json(const json &j, ExecutionContext &context) {
@@ -174,6 +176,10 @@ inline void from_json(const json &j, ExecutionContext &context) {
     std::complex<double> overlapResult;
     j.at("overlapResult").get_to(overlapResult);
     context.overlapResult = overlapResult;
+  }
+
+  if (j.contains("amplitudeMaps")) {
+    j.at("amplitudeMaps").get_to(context.amplitudeMaps);
   }
 
   if (j.contains("registerNames"))

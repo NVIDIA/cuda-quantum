@@ -61,6 +61,11 @@ public:
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;
 
+  /// @brief A map of basis-state amplitudes
+  // The list of basis state is set before kernel launch and the map is filled
+  // by the executor platform.
+  std::map<std::vector<int>, std::complex<double>> amplitudeMaps;
+
   /// @brief List of pairs of states to compute the overlap
   std::optional<std::pair<const SimulationState *, const SimulationState *>>
       overlapComputeStates;
