@@ -75,7 +75,7 @@ namespace quake {
 /// `!quake.veq`.
 inline bool hasReference(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
-    if (isa<quake::RefType, quake::VeqType>(opnd.getType()))
+    if (isQuantumReferenceType(opnd.getType()))
       return true;
   return false;
 }
@@ -92,7 +92,16 @@ inline bool hasNonVectorReference(mlir::Operation *op) {
 /// `!quake.wire` or `!quake.control`.
 inline bool isAllReferences(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
-    if (isa<quake::WireType, quake::ControlType>(opnd.getType()))
+    if (isQuantumValueType(opnd.getType()))
+      return false;
+  return true;
+}
+
+/// Returns true if and only if all quantum operands have type `!quake.wire` or
+/// `!quake.control`.
+inline bool isAllValues(mlir::Operation *op) {
+  for (mlir::Value opnd : op->getOperands())
+    if (isQuantumReferenceType(opnd.getType()))
       return false;
   return true;
 }
@@ -112,16 +121,17 @@ inline bool isWrapped(mlir::Operation *op) {
   return true;
 }
 
-/// Returns true if and only if \p op is in value-SSA form. Value-SSA form is
-/// defined such that the Op, \p op, is neither fully in memory-SSA form nor in
-/// the intermediate QLS form.
-inline bool isValueSSAForm(mlir::Operation *op) {
-  return isa<quake::NullWireOp>(op) || (!isAllReferences(op) && !isWrapped(op));
+/// Returns true if and only if \p op is fully in linear-value form.
+/// Linear-value form is defined such that the Op, \p op, is not in full (or
+/// partial) memory-SSA form and is not in the intermediate QLS form.
+inline bool isLinearValueForm(mlir::Operation *op) {
+  return isa<quake::NullWireOp, quake::SinkOp>(op) ||
+         (isAllValues(op) && !isWrapped(op));
 }
-inline bool isValueSSAForm(mlir::Value val) {
+inline bool isLinearValueForm(mlir::Value val) {
   if (auto *op = val.getDefiningOp())
-    return isValueSSAForm(op);
-  return true;
+    return isLinearValueForm(op);
+  return isQuantumValueType(val.getType());
 }
 
 template <typename OP>
