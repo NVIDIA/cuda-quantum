@@ -28,8 +28,9 @@ std::string longToBitString(int size, long x) {
   return s;
 }
 
-void deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
-                       std::unordered_map<std::string, std::size_t> &counts) {
+void deserializeCounts(
+    std::vector<std::size_t> &data, std::size_t &stride,
+    std::unordered_map<std::string, std::size_t> &localCounts) {
   auto nBs = data[stride];
   stride++;
 
@@ -38,7 +39,7 @@ void deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
     auto size_of_bitstring = data[j + 1];
     auto count = data[j + 2];
     auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
-    counts.insert({bs, count});
+    localCounts.insert({bs, count});
   }
   stride += nBs * 3;
 }
@@ -65,10 +66,8 @@ ExecutionResult::ExecutionResult(CountsDictionary c, std::string name, double e)
 ExecutionResult::ExecutionResult(CountsDictionary c, double e)
     : counts(c), expectationValue(e) {}
 ExecutionResult::ExecutionResult(const ExecutionResult &other)
-    : counts(other.counts),
-      expectationValue(other.expectationValue),
-      registerName(other.registerName),
-      sequentialData(other.sequentialData) {}
+    : counts(other.counts), expectationValue(other.expectationValue),
+      registerName(other.registerName), sequentialData(other.sequentialData) {}
 
 ExecutionResult &ExecutionResult::operator=(const ExecutionResult &other) {
   counts = other.counts;
@@ -118,13 +117,16 @@ std::vector<std::size_t> ExecutionResult::serialize() const {
 
 void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
   std::size_t stride = 0;
-  std::unordered_map<std::string, std::size_t> localCounts;
   while (stride < data.size()) {
     std::string name = extractNameFromData(data, stride);
 
+    std::unordered_map<std::string, std::size_t> localCounts;
     deserializeCounts(data, stride, localCounts);
+
+    for (const auto &entry : localCounts) {
+      counts.insert_or_assign(entry.first, entry.second);
+    }
   }
-  counts = std::move(localCounts);
 }
 
 std::vector<std::size_t> sample_result::serialize() const {
@@ -146,11 +148,10 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
     std::unordered_map<std::string, std::size_t> localCounts;
     deserializeCounts(data, stride, localCounts);
 
-    sampleResults.insert({name, ExecutionResult{std::move(localCounts), name}});
+    sampleResults.insert({name, ExecutionResult{localCounts, name}});
     totalShots += std::accumulate(
         localCounts.begin(), localCounts.end(), 0,
         [](std::size_t sum, const auto &pair) { return sum + pair.second; });
-    stride += localCounts.size() * 3;
   }
 }
 
