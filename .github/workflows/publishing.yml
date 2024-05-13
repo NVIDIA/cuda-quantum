@@ -931,6 +931,7 @@ jobs:
               done`
 
           rm -rf examples && mv github-repo/docs/sphinx/examples examples
+          mv github-repo/docs/notebook_validation.py .
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
           bash github-repo/scripts/validate_container.sh $backends_to_test | tee /tmp/validation.out
 
