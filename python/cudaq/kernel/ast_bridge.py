@@ -15,7 +15,7 @@ from .analysis import FindDepKernelsVisitor
 from .utils import globalAstRegistry, globalKernelRegistry, nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType, Color, mlirTypeToPyType
 from ..mlir.ir import *
 from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc
+from ..mlir.dialects import quake, cc, codegen
 from ..mlir.dialects import builtin, func, arith, math, complex
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic
 

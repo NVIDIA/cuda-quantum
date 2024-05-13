@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
  
-#ifndef PYTHON_BINDINGS_CC_OPS
-#define PYTHON_BINDINGS_CC_OPS
+#ifndef PYTHON_BINDINGS_CODEGEN_OPS
+#define PYTHON_BINDINGS_CODEGEN_OPS
 
 include "mlir/Bindings/Python/Attributes.td"
-include "cudaq/Optimizer/Dialect/CC/CCOps.td"
+include "cudaq/Optimizer/CodeGen/CodeGenOps.td"
 
 #endif
