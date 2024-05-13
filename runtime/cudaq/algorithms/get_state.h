@@ -12,11 +12,11 @@
 #include "common/KernelWrapper.h"
 
 #include "cudaq/concepts.h"
+#include "cudaq/host_config.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
-#include "cudaq/qis/state.h"
 #include "cudaq/qis/remote_state.h"
-#include "cudaq/host_config.h"
+#include "cudaq/qis/state.h"
 
 #include <complex>
 #include <vector>
