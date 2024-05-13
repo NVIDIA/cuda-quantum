@@ -27,13 +27,13 @@ static bool results_are_close(const cudaq::sample_result &f1,
 
 // This example demonstrates various uses for the `cudaq::builder`
 // type. This type enables one to dynamically construct callable
-// CUDA Quantum kernels via just-in-time compilation. The typical workflow
-// starts by creating a `cudaq::builder` and any CUDA Quantum kernel runtime
+// CUDA-Q kernels via just-in-time compilation. The typical workflow
+// starts by creating a `cudaq::builder` and any CUDA-Q kernel runtime
 // arguments via the `cudaq::make_kernel<ParameterTypes...>()` function.
 // Programmers get reference to the builder and the concrete runtime
 // parameters for the kernel function, and can then begin building up
-// the CUDA Quantum kernel. Once done adding gates, the builder itself is
-// callable, and can be used just like any other CUDA Quantum kernel.
+// the CUDA-Q kernel. Once done adding gates, the builder itself is
+// callable, and can be used just like any other CUDA-Q kernel.
 
 int main() {
   {
@@ -56,7 +56,7 @@ int main() {
     ansatz.ry(theta, q[1]);
     ansatz.x<cudaq::ctrl>(q[1], q[0]); // Need to get rid of ::
 
-    // The buildable kernel can be passed to CUDA Quantum functions
+    // The buildable kernel can be passed to CUDA-Q functions
     // just like a declared kernel type.
     ansatz(.59);
     double exp = cudaq::observe(ansatz, h, .59);
@@ -65,7 +65,7 @@ int main() {
 
   {
     // Build up a 2 parameter circuit using a vector<double> parameter
-    // Run the CUDA Quantum optimizer to find optimal value.
+    // Run the CUDA-Q optimizer to find optimal value.
     using namespace cudaq::spin;
     cudaq::spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
                        .21829 * z(0) - 6.125 * z(1);
