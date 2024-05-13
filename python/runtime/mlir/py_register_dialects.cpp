@@ -225,9 +225,31 @@ void registerCCDialectAndTypes(py::module &m) {
           });
 }
 
+void registerCodeGenDialectAndTypes(py::module &m) {
+  auto quakeMod = m.def_submodule("codegen");
+
+  quakeMod.def(
+      "register_dialect",
+      [](MlirContext context, bool load) {
+        MlirDialectHandle handle = mlirGetDialectHandle__quake__();
+        mlirDialectHandleRegisterDialect(handle, context);
+        if (load) {
+          mlirDialectHandleLoadDialect(handle, context);
+        }
+
+        if (!registered) {
+          registered = true;
+        }
+      },
+      py::arg("context") = py::none(), py::arg("load") = true);
+
+  // No types to register.
+}
+
 void bindRegisterDialects(py::module &mod) {
   registerQuakeDialectAndTypes(mod);
   registerCCDialectAndTypes(mod);
+  registerCodeGenDialectAndTypes(mod);
 
   mod.def("load_intrinsic", [](MlirModule module, std::string name) {
     auto unwrapped = unwrap(module);
