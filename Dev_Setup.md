@@ -117,4 +117,4 @@ can be omitted as needed, and additional tools and flags for debugging purposes
 may be beneficial.
 
 [data_center_install]:
-    https://nvidia.github.io/cuda-quantum/latest/data_center_install.html
+    https://nvidia.github.io/cuda-quantum/latest/using/install/data_center_install.html

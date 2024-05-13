@@ -170,15 +170,6 @@ COPY --from=prereqs /usr/local/zlib "$ZLIB_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/curl "$CURL_INSTALL_PREFIX"
 
-# Install additional tools for CUDA-Q documentation generation.
-COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
-ENV PATH="${PATH}:/usr/local/bin"
-RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc aspell aspell-en \
-    && python3 -m pip install --no-cache-dir \
-        ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
-        sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 nbsphinx==0.9.2 sphinx_gallery==0.13.0 \
-     myst-parser==1.0.0
-
 # Install additional dependencies required to build and test CUDA-Q.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
     && wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).tar.gz \
@@ -198,3 +189,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         pyspelling pymdown-extensions \
         scipy==1.10.1 openfermionpyscf==0.5 'h5py<3.11' \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install additional tools for CUDA-Q documentation generation.
+COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
+ENV PATH="${PATH}:/usr/local/bin"
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc aspell aspell-en \
+    && python3 -m pip install --no-cache-dir \
+        ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
+        sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 \
+        nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0 ipykernel==6.29.4 notebook==7.1.3
