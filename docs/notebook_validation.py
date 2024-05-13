@@ -20,6 +20,7 @@ if which('jupyter') is None:
 
 def read_available_backends():
     available_backends = sys.stdin.readlines()
+    available_backends = ' '.join(available_backends).split()
     return [backend.strip() for backend in available_backends]
 
 
