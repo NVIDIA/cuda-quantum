@@ -65,16 +65,16 @@ ExecutionResult::ExecutionResult(CountsDictionary c, std::string name, double e)
 ExecutionResult::ExecutionResult(CountsDictionary c, double e)
     : counts(c), expectationValue(e) {}
 ExecutionResult::ExecutionResult(const ExecutionResult &other)
-    : counts(std::move(other.counts)),
-      expectationValue(std::move(other.expectationValue)),
-      registerName(std::move(other.registerName)),
-      sequentialData(std::move(other.sequentialData)) {}
+    : counts(other.counts),
+      expectationValue(other.expectationValue),
+      registerName(other.registerName),
+      sequentialData(other.sequentialData) {}
 
 ExecutionResult &ExecutionResult::operator=(const ExecutionResult &other) {
-  counts = std::move(other.counts);
-  expectationValue = std::move(other.expectationValue);
-  registerName = std::move(other.registerName);
-  sequentialData = std::move(other.sequentialData);
+  counts = other.counts;
+  expectationValue = other.expectationValue;
+  registerName = other.registerName;
+  sequentialData = other.sequentialData;
   return *this;
 }
 
@@ -118,14 +118,13 @@ std::vector<std::size_t> ExecutionResult::serialize() const {
 
 void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
   std::size_t stride = 0;
+  std::unordered_map<std::string, std::size_t> localCounts;
   while (stride < data.size()) {
     std::string name = extractNameFromData(data, stride);
 
-    std::unordered_map<std::string, std::size_t> localCounts;
     deserializeCounts(data, stride, localCounts);
-
-    counts = std::move(localCounts);
   }
+  counts = std::move(localCounts);
 }
 
 std::vector<std::size_t> sample_result::serialize() const {
