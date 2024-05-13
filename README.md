@@ -39,7 +39,7 @@ information about building CUDA-Q from source, see [these
 instructions](./Building.md).
 
 [cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/latest
-[official_install]: https://nvidia.github.io/cuda-quantum/latest/install.html
+[official_install]: https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html#install-cuda-q
 [github_packages]:
     https://github.com/orgs/NVIDIA/packages?repo_name=cuda-quantum
 
