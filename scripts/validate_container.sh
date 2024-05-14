@@ -61,7 +61,6 @@ installed_backends=`\
 
 # remote_rest targets are automatically filtered, 
 # so is execution on the photonics backend
-# FIXME - remove items from $available_backends based on how many GPUs are installed?
 available_backends=`\
     echo "default"
     for file in $(ls $CUDA_QUANTUM_PATH/targets/*.config); \
