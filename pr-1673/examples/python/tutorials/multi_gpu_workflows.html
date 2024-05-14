@@ -767,14 +767,19 @@ We split this into 4 batches of 2500 , 2500 , 2500 , 2500
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>it
 
-<span class="c1"># Timing the execution on a single GPU vs 4 GPUs, users will see a 4x performance improvement</span>
+<span class="c1"># Timing the execution on a single GPU vs 4 GPUs,</span>
+<span class="c1"># one will see a 4x performance improvement if 4 GPUs are available.</span>
 
 <span class="n">asyncresults</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">num_gpus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span>
 
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xi</span><span class="p">)):</span>
     <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">xi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">num_gpus</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">xi</span><span class="p">)</span>
         <span class="n">asyncresults</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">,</span> <span class="p">:],</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
+            <span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">xi</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">,</span> <span class="p">:],</span> <span class="n">qpu_id</span><span class="o">=</span><span class="n">qpu_id</span><span class="p">))</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">asyncresults</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>
