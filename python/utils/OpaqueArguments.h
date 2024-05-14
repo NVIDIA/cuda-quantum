@@ -224,14 +224,14 @@ packArgs(OpaqueArguments &argData, py::args args,
             // Handle boolean different since C++ library implementation
             // for vectors of bool is different than other types.
             if (eleTy.isInteger(1)) {
-              addArgument(argData, std::move(std::vector<bool>()));
+              addArgument(argData, std::vector<bool>());
               return;
             }
 
             // If its empty, just put any vector on the `argData`,
             // it won't matter since it is empty and all
             // vectors have the same memory footprint (span-like).
-            addArgument(argData, std::move(std::vector<std::size_t>()));
+            addArgument(argData, std::vector<std::size_t>());
             return;
           }
 
