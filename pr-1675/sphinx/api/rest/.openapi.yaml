@@ -1,0 +1,216 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# OpenAPI description of CUDA-Q Remote Simulator REST API.
+# It is rendered into the API HTML docs, to be included in the full CUDA-Q documentation.
+swagger: "2.0"
+info:
+  title: CUDA-Q Remote Simulation Runtime REST API
+  version: "1.0.0"
+paths:
+  /job:
+    post:
+      summary: Create a quantum simulation job
+      description: |
+        Requests execution (simulation) of quantun kernels on the server. The server employs long polling, hence it will keep the request open until the simulation completed.
+      parameters:
+        - name: job request
+          in: body
+          schema:
+            $ref: '#/definitions/RestRequest'
+      responses:
+        200:
+          description: Execution results.
+          schema:
+            type: object
+            required:
+              - executionContext
+            properties:
+              executionContext:
+                $ref: '#/definitions/ResultExecutionContext'
+definitions:
+  RestRequest:
+    type: object
+    required:
+      - version
+      - entryPoint
+      - code
+      - format
+      - executionContext
+    properties:
+      version:
+        type: integer
+        format: int64
+        description: Version number of the payload. Each REST server version only supports a specific payload version. 
+        example: 1
+      clientVersion:
+        type: string
+        description: Version description of the CUDA-Q client generating the request.
+        example: CUDA-Q Version 0.7.0 (https://github.com/NVIDIA/cuda-quantum 8650fb9d79e7e780ea95d9506a513162daf84b80)
+      entryPoint:
+        type: string
+        description: Entry point kernel identifier as a fully-qualified name.
+        example: ns::ghz
+      simulator:
+        type: string
+        description: Name of the backend simulator to be used.
+        example: nvidia-mgpu
+      executionContext:
+        type: object
+        description: Context to indicate how the CUDA-Q kernel should be executed.
+        $ref: '#/definitions/RequestExecutionContext'
+      code:
+        type: string
+        format: binary
+        description: Base64 encoded CUDA-Q kernel IR (Intermediate Representation).
+      args:
+        type: string
+        format: binary
+        description: Base64 encoded kernel arguments.
+      format:
+        type: string
+        enum: [MLIR, LLVM]
+        description: Format of the code IR.
+      seed:
+        type: integer
+        format: int64
+        example: 123
+        description: Random seed value for the simulation.
+      passes:
+        type: array
+        items:
+            type: string
+        example: ["inline", "canonicalize", "quake-to-qir"]
+        description: List of IR passes to be applied on the server.
+  RequestExecutionContext:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        enum: [sample, observe, extract-state]
+        description: Name of the execution context.
+      shots:
+        type: integer
+        description: Number of measurement shots.
+        example: 1000
+      hasConditionalsOnMeasureResults:
+        type: boolean
+        description: Flag to indicate that the kernel being executed in this context has conditional statements on measure results.
+        example: "false"
+      registerNames:
+        type: array
+        items:
+          type: string 
+        description: For mid-circuit measurements in library mode keep track of the register names.
+      spin:
+        type: object
+        description: Optional spin operator. Required for "observe" execution context.
+        $ref: '#/definitions/spin_op'
+
+  ResultExecutionContext:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        enum: [sample, observe, extract-state]
+        description: Name of the execution context.
+      shots:
+        type: integer
+        description: Number of measurement shots.
+        example: 1000
+      hasConditionalsOnMeasureResults:
+        type: boolean
+        description: Flag to indicate that the kernel being executed in this context has conditional statements on measure results.
+        example: "false"
+      registerNames:
+        type: array
+        items:
+          type: string 
+        description: For mid-circuit measurements in library mode keep track of the register names.
+      spin:
+        type: object
+        description: Optional spin operator. Required for "observe" execution context.
+        $ref: '#/definitions/spin_op'
+      result:
+        type: array
+        items:
+            type: object 
+            $ref: '#/definitions/ExecutionResult'  
+        description: Execution result being populated by the server after execution.
+      expectationValue:
+        type: number
+        format: double
+        example: 0.1234
+        description: Optional computed expectation value.
+      simulationData:
+        type: object 
+        description: Underlying simulation data when using "extract-state" execution context.
+        properties: 
+          dim:
+            type: array
+            items:
+                type: integer
+                example: 8
+            description: Dimensions of the state representation (flattened multi-dimensional arrays).
+          data:
+            type: array 
+            items:
+                type: array 
+                example: [0.5, 0.5]
+                items: 
+                    type: number
+                    format: double   
+            description: State data as a vector of complex numbers. Each complex number is represented as an array of size 2 for the real and imaginary parts.
+
+  spin_op:
+    type: object
+    required:
+      - num_qubits
+      - data
+    properties:
+      num_qubits:
+        type: integer
+        description: Number of qubits (spins) represented.
+        example: 4
+      data:
+        type: array
+        items:
+          type: number
+          format: double 
+        description: Serialized representation of this spin_op (as an array of floating point numbers)
+ 
+  ExecutionResult:
+    type: object
+    properties:
+      counts:
+        type: object
+        additionalProperties:
+            type: integer
+        description: Measurements and times observed
+        example: 
+            "00": 500
+            "11": 500 
+      registerName:
+        type: string
+        description: Register name for the classical bits.
+        example: res0
+      sequentialData:
+        type: array
+        items:
+            type: string
+        description: Sequential bit strings observed (not collated into a map)
+        example: ["00", "10"]
+      expectationValue:
+        type: number 
+        format: double
+        description: Optional <Z...Z> expected value
+        example: 1.234
