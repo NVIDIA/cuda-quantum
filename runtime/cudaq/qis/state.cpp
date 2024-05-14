@@ -85,6 +85,12 @@ std::complex<double> state::amplitude(const std::vector<int> &basisState) {
   return internal->getAmplitude(basisState);
 }
 
+state &state::operator=(state other) {
+  // Copy and swap idiom
+  std::swap(internal, other.internal);
+  return *this;
+}
+
 state::~state() {
   // Make sure destroying the state is thread safe.
   std::lock_guard<std::mutex> lock(deleteStateMutex);
