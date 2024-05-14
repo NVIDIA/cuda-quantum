@@ -1797,79 +1797,54 @@ class PyASTBridge(ast.NodeVisitor):
 
                 if node.func.attr == 'qvector':
                     value = self.popValue()
-                    if hasattr(value, "literal_value"):
-                        # non-existent case?
-                        value = value.literal_value
-                        # if (isinstance(value, int)):
-                        #     print('integer literal')
-                        #     # Handle `cudaq.qvector(N)`
-                        #     ty = self.getVeqType(value)
-                        #     qubits = quake.AllocaOp(ty)
-                        #     self.pushValue(qubits.results[0])
-                        #     return
-                        # else:
-                        #     print('non-integer literal')
-                        self.emitFatalError(
-                            f"unsupported qvector argument: {value} (expected integer)",
-                            node)
-                    else:
-                        value = self.ifPointerThenLoad(value)
-                        if (IntegerType.isinstance(value.type)):
-                            # handle `cudaq.qvector(n)`
-                            ty = self.getVeqType()
-                            qubits = quake.AllocaOp(ty, size=value).result
-                            self.pushValue(qubits)
-                            return
-                        elif cc.StdvecType.isinstance(value.type):
-                            # handle `cudaq.qvector([1.0+0j, ...])`
-                            size = cc.StdvecSizeOp(self.getIntegerType(),
-                                                   value).result
-                            numQubits = math.CountTrailingZerosOp(size).result
-                            eleTy = cc.StdvecType.getElementType(value.type)
+                    value = self.ifPointerThenLoad(value)
+                    print(f"initializing qvector from {value}")
+                    if (IntegerType.isinstance(value.type)):
+                        # handle `cudaq.qvector(n)`
+                        ty = self.getVeqType()
+                        qubits = quake.AllocaOp(ty, size=value).result
+                        self.pushValue(qubits)
+                        return
+                    elif cc.StdvecType.isinstance(value.type):
+                        # handle `cudaq.qvector(initState)`
 
-                            # if not ComplexType.isinstance(eleTy):
-                            #     # TODO: convert
-                            #     raise RuntimeError(
-                            #         "qvector initialization data must be of complex dtype."
-                            #     )
+                        # Validate the length in case of constant initializer:
+                        arrNode = node.args[0]
+                        if isinstance(arrNode, ast.Call) and isinstance(
+                                arrNode.func, ast.Attribute):
+                            if arrNode.func.value.id in [
+                                    'numpy', 'np'
+                            ] and arrNode.func.attr == 'array':
+                                lst = node.args[0].args[0]
+                                if isinstance(lst, ast.List):
+                                    size = len(lst.elts)
+                                    numQubits = np.log2(size)
+                                    if not numQubits.is_integer():
+                                        raise RuntimeError(
+                                            "Invalid input state size for qvector init (not a power of 2)"
+                                        )
 
-                            simulationPrecision = self.simulationPrecision()
-                            # floatType = ComplexType(eleTy).element_type
-                            #if F64Type.isinstance(floatType):
-                            if simulationPrecision == cudaq_runtime.SimulationPrecision.fp32:
-                                # convert to f64 if needed
-                                value = self.__copyVectorAndCastElements(
-                                    value, self.getComplexType(width=32))
-                                # if simulationPrecision == cudaq_runtime.SimulationPrecision.fp32:
-                                #     raise RuntimeError(
-                                #         "qvector initialization state is complex128 but simulator is on complex64 floating point type."
-                                #     )
-                            if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
-                                #if F32Type.isinstance(floatType):
-                                value = self.__copyVectorAndCastElements(
-                                    value, self.getComplexType(width=64))
-                                # if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
-                                #     raise RuntimeError(
-                                #         "qvector initialization state is complex64 but simulator is on complex128 floating point type."
-                                #     )
+                        size = cc.StdvecSizeOp(self.getIntegerType(),
+                                               value).result
+                        numQubits = math.CountTrailingZerosOp(size).result
 
-                            # TODO: check if values are normalized
-                            # sum(e^2) = 1
+                        # TODO: Dynamically check if numQubits is power of 2 and if the state is normalized
 
-                            ptrTy = cc.PointerType.get(self.ctx, eleTy)
-                            veqTy = quake.VeqType.get(self.ctx)
+                        eleTy = self.simulationDType()
+                        value = self.__copyVectorAndCastElements(value, eleTy)
+                        ptrTy = cc.PointerType.get(self.ctx, eleTy)
+                        veqTy = quake.VeqType.get(self.ctx)
 
-                            qubits = quake.AllocaOp(veqTy,
-                                                    size=numQubits).result
-                            initials = cc.StdvecDataOp(ptrTy, value).result
-                            init = quake.InitializeStateOp(
-                                veqTy, qubits, initials).result
-                            self.pushValue(init)
-                            return
+                        qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                        initials = cc.StdvecDataOp(ptrTy, value).result
+                        init = quake.InitializeStateOp(veqTy, qubits,
+                                                       initials).result
+                        self.pushValue(init)
+                        return
 
-                        self.emitFatalError(
-                            f"unsupported qvector argument type: {value} (unknown)",
-                            node)
+                    self.emitFatalError(
+                        f"unsupported qvector argument type: {value.type} (unknown)",
+                        node)
                     return
 
                 if node.func.attr == "qubit":

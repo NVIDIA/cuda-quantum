@@ -414,37 +414,30 @@ def test_from_state_fp64():
     def kernel():
         qubits = cudaq.qvector(state)
 
-    #with pytest.raises(RuntimeError) as e:
-    # float data and not complex data
     counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
     assert '00' in counts
 
-    # state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
+    state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
 
-    # TODO: wrong simulator precision
-    # @cudaq.kernel
-    # def kernel():
-    #     qubits = cudaq.qvector(state)
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(state)
 
-    # #with pytest.raises(RuntimeError) as e:
-    #     # Wrong precision for fp64 simulator
-    # counts = cudaq.sample(kernel)
-    # print(counts)
-    # assert '11' in counts
-    # assert '00' in counts
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
 
-    # error: 'quake.alloca' op size operand required
-    # @cudaq.kernel
-    # def kernel():
-    #     qubits = cudaq.qvector(np.array([1., 0., 0.], dtype=complex))
+    @cudaq.kernel
+    def kernel():
+        qubits = cudaq.qvector(np.array([1., 0., 0.], dtype=complex))
 
-    # #with pytest.raises(RuntimeError) as e:
-    # counts = cudaq.sample(kernel)
-    # print(counts)
-    # assert '11' in counts
-    # assert '00' in counts
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel)
+    assert 'Invalid input state size for qvector init (not a power of 2)' in repr(
+        e)
 
 
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
@@ -463,8 +456,9 @@ def test_from_state_f32():
     def kernel():
         qubits = cudaq.qvector(state)
 
-    with pytest.raises(RuntimeError) as e:
-        counts = cudaq.sample(kernel)
+    counts = cudaq.sample(kernel)
+    assert '11' in counts
+    assert '00' in counts
 
     state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
 

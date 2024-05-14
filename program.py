@@ -229,7 +229,7 @@ def test_builder_params():
 
     cudaq.sample(kernel, v).dump()
 
-test_builder_params()
+# test_builder_params()
 
 def test_kernel_complex_params_rotate():
     cudaq.reset_target()
@@ -258,4 +258,48 @@ def test_kernel_complex_params_rotate():
     # TODO: error: 'quake.alloca' op init_state must be the only use
     cudaq.sample(kernel, c).dump()
 
-test_kernel_complex_params_rotate()
+#test_kernel_complex_params_rotate()
+
+def test_precision_f64():
+    cudaq.set_target('nvidia-fp64')
+    # TODO: wrong simulator precision
+    state = np.array([.70710678, 0., 0., 0.70710678], dtype=np.complex64)
+
+    @cudaq.kernel(verbose=True)
+    def kernel():
+        # should convert
+        qubits = cudaq.qvector(state)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+# test_precision_f64()
+
+def test_alloca():
+    cudaq.set_target('nvidia-fp64')
+    # error: 'quake.alloca' op size operand required
+    @cudaq.kernel(verbose=True)
+    def kernel():
+        qubits = cudaq.qvector(np.array([1., 0., 0.], dtype=complex))
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel)
+
+
+test_alloca()
+
+def test_alloca_builder():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+    
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(np.array([1., 0., 0.], dtype=complex))
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+test_alloca_builder()
