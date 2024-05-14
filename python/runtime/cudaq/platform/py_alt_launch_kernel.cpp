@@ -8,6 +8,7 @@
 
 #include "JITExecutionCache.h"
 #include "common/ArgumentWrapper.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
@@ -18,6 +19,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "utils/OpaqueArguments.h"
+#include "utils/PyTypes.h"
 
 #include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
@@ -147,6 +149,14 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
           *ourAllocatedArg = 0;
           runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
             delete static_cast<long *>(ptr);
+          });
+        })
+        .Case([&](ComplexType type) {
+          Py_complex *ourAllocatedArg = new Py_complex();
+          ourAllocatedArg->real = 0.0;
+          ourAllocatedArg->imag = 0.0;
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<Py_complex *>(ptr);
           });
         })
         .Case([&](Float64Type type) {
@@ -286,47 +296,78 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
   std::free(rawArgs);
 }
 
+inline unsigned int byteSize(mlir::Type ty) {
+  if (isa<ComplexType>(ty)) {
+    auto eleTy = cast<ComplexType>(ty).getElementType();
+    return 2 * cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
+  }
+  return cudaq::opt::convertBitsToBytes(ty.getIntOrFloatBitWidth());
+}
+
+template <typename T>
+py::object readPyObject(mlir::Type ty, char *arg) {
+  unsigned int bytes = byteSize(ty);
+  if (sizeof(T) != bytes) {
+    ty.dump();
+    throw std::runtime_error(
+        "Error reading return value of type (reading bytes: " +
+        std::to_string(sizeof(T)) +
+        ", bytes available to read: " + std::to_string(bytes) + ")");
+  }
+  T concrete;
+  std::memcpy(&concrete, arg, bytes);
+  return py_ext::convert<T>(concrete);
+}
+
 py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
                               const std::vector<std::string> &names) {
   auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
       name, module, unwrap(returnType), runtimeArgs, names);
-  // We first need to compute the offset for the return value.
-  // We'll loop through all the arguments and increment the
-  // offset for the argument type. Then we'll be at our return type location.
-  auto unwrapped = unwrap(returnType);
 
-  // Extract the return value from the rawArgs pointer.
-  return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
-      .Case([&](IntegerType ty) -> py::object {
-        if (ty.getIntOrFloatBitWidth() == 1) {
-          bool concrete = false;
-          std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 1);
-          std::free(rawArgs);
-          return py::bool_(concrete);
-        }
-        std::size_t concrete;
-        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
-        std::free(rawArgs);
-        return py::int_(concrete);
-      })
-      .Case([&](Float64Type ty) -> py::object {
-        double concrete;
-        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
-        std::free(rawArgs);
-        return py::float_(concrete);
-      })
-      .Case([&](Float32Type ty) -> py::object {
-        float concrete;
-        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 4);
-        std::free(rawArgs);
-        return py::float_(concrete);
-      })
-      .Default([](Type ty) -> py::object {
-        ty.dump();
-        throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
-      });
+  auto unwrapped = unwrap(returnType);
+  auto rawReturn = ((char *)rawArgs) + returnOffset;
+
+  // Extract the return value from the rawReturn pointer.
+  py::object returnValue =
+      llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
+          .Case([&](IntegerType ty) -> py::object {
+            if (ty.getIntOrFloatBitWidth() == 1) {
+              return readPyObject<bool>(ty, rawReturn);
+            }
+            return readPyObject<long>(ty, rawReturn);
+          })
+          .Case([&](ComplexType ty) -> py::object {
+            auto eleTy = ty.getElementType();
+            return llvm::TypeSwitch<mlir::Type, py::object>(eleTy)
+                .Case([&](Float64Type eTy) -> py::object {
+                  return readPyObject<std::complex<double>>(ty, rawReturn);
+                })
+                .Case([&](Float32Type eTy) -> py::object {
+                  return readPyObject<std::complex<float>>(ty, rawReturn);
+                })
+                .Default([](Type eTy) -> py::object {
+                  eTy.dump();
+                  throw std::runtime_error(
+                      "Invalid float element type for return "
+                      "complex type for pyAltLaunchKernel.");
+                });
+          })
+          .Case([&](Float64Type ty) -> py::object {
+            return readPyObject<double>(ty, rawReturn);
+          })
+          .Case([&](Float32Type ty) -> py::object {
+            return readPyObject<float>(ty, rawReturn);
+          })
+          .Default([](Type ty) -> py::object {
+            ty.dump();
+            throw std::runtime_error(
+                "Invalid return type for pyAltLaunchKernel.");
+          });
+
+  std::free(rawArgs);
+  return returnValue;
 }
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
