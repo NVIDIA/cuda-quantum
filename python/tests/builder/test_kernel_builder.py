@@ -877,10 +877,11 @@ def test_recursive_calls():
 
     print(kernel3)
 
-  
+
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-  not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
-  reason='Could not find nvidia-fp64 in installation')
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
+    reason='Could not find nvidia-fp64 in installation')
+
 
 @skipIfNvidiaFP64NotInstalled
 def test_from_state0():
@@ -944,10 +945,12 @@ def test_from_state0():
 
     cudaq.reset_target()
 
+
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
-  not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
-  reason='Could not find nvidia in installation')
-  
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    reason='Could not find nvidia in installation')
+
+
 @skipIfNvidiaNotInstalled
 def test_from_state1():
     cudaq.set_target('nvidia')
@@ -969,8 +972,7 @@ def test_from_state1():
 
     # Regardless of the target precision, use
     # cudaq.complex() or cudaq.amplitudes()
-    state = np.array([.70710678, 0., 0., 0.70710678],
-                     dtype=cudaq.complex()) 
+    state = np.array([.70710678, 0., 0., 0.70710678], dtype=cudaq.complex())
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
     counts = cudaq.sample(kernel2)
@@ -986,7 +988,7 @@ def test_from_state1():
     assert '11' in counts
     assert '00' in counts
 
-    state = cudaq.amplitudes(np.array([.5]*4))
+    state = cudaq.amplitudes(np.array([.5] * 4))
     kernel2 = cudaq.make_kernel()
     qubits = kernel2.qalloc(state)
     counts = cudaq.sample(kernel2)
@@ -1356,6 +1358,37 @@ def test_u3_ctrl():
     assert (len(counts) == 2)
     assert ('00' in counts)
     assert ('11' in counts)
+
+
+def test_builder_rotate_state():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+
+    c = [0., 0., 0., 1.]
+
+    # Our kernel will start with 2 qubits in `11`, then
+    # rotate each qubit back to `0` before applying a
+    # Hadamard gate.
+    kernel, state = cudaq.make_kernel(list[complex])
+    q = kernel.qalloc(state)
+
+    # Can now operate on the qvector as usual:
+    # Rotate state of the front qubit 180 degrees along X.
+    kernel.x(q[0])
+    # Rotate state of the back qubit 180 degrees along Y.
+    kernel.y(q[1])
+    # Put qubits into superposition state.
+    kernel.h(q)
+
+    # Measure.
+    kernel.mz(q)
+
+    counts = cudaq.sample(kernel, c)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+    assert '01' in counts
+    assert '10' in counts
 
 
 # leave for gdb debugging

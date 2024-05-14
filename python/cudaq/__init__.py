@@ -116,7 +116,7 @@ def complex():
     target = get_target()
     precision = target.get_precision()
     if precision == cudaq_runtime.SimulationPrecision.fp64:
-        return complex
+        return numpy.complex128
     return numpy.complex64
 
 

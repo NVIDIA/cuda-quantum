@@ -476,6 +476,56 @@ class PyASTBridge(ast.NodeVisitor):
         return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
                                arrSize).result
 
+    # Create a new vec with source elements casted to the target element type if needed.
+    def __copyVectorAndCastElements(self, source, targetEleType):
+        if not cc.PointerType.isinstance(source.type):
+            if cc.StdvecType.isinstance(source.type):
+                # Exit early if no copy is needed to avoid an unneeded store.
+                sourceEleType = cc.StdvecType.getElementType(source.type)
+                if (sourceEleType == targetEleType):
+                    return source
+
+        sourcePtr = source
+        if not cc.PointerType.isinstance(sourcePtr.type):
+            sourcePtr = self.ifNotPointerThenStore(sourcePtr)
+
+        sourceType = cc.PointerType.getElementType(sourcePtr.type)
+        if not cc.StdvecType.isinstance(sourceType):
+            raise RuntimeError(
+                f"expected vector type in __copyVectorAndCastElements but received {sourceType}"
+            )
+
+        sourceEleType = cc.StdvecType.getElementType(sourceType)
+        if (sourceEleType == targetEleType):
+            return sourcePtr
+
+        sourceElePtrTy = cc.PointerType.get(self.ctx, sourceEleType)
+        sourceValue = self.ifPointerThenLoad(sourcePtr)
+        sourceDataPtr = cc.StdvecDataOp(sourceElePtrTy, sourceValue).result
+        sourceSize = cc.StdvecSizeOp(self.getIntegerType(), sourceValue).result
+
+        targetElePtrType = cc.PointerType.get(self.ctx, targetEleType)
+        targetTy = cc.ArrayType.get(self.ctx, targetEleType)
+        targetVecTy = cc.StdvecType.get(self.ctx, targetEleType)
+        targetPtr = cc.AllocaOp(cc.PointerType.get(self.ctx, targetTy),
+                                TypeAttr.get(targetEleType),
+                                seqSize=sourceSize).result
+
+        #targetPtr = cc.CastOp(targetElePtrType, targetPtr).result
+        rawIndex = DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)
+
+        def bodyBuilder(iterVar):
+            eleAddr = cc.ComputePtrOp(sourceElePtrTy, sourceDataPtr, [iterVar],
+                                      rawIndex).result
+            loadedEle = cc.LoadOp(eleAddr).result
+            castedEle = self.promoteOperandType(targetEleType, loadedEle)
+            targetEleAddr = cc.ComputePtrOp(targetElePtrType, targetPtr,
+                                            [iterVar], rawIndex).result
+            cc.StoreOp(castedEle, targetEleAddr)
+
+        self.createInvariantForLoop(sourceSize, bodyBuilder)
+        return cc.StdvecInitOp(targetVecTy, targetPtr, sourceSize).result
+
     def __insertDbgStmt(self, value, dbgStmt):
         """
         Insert a debug print out statement if the programmer requested. Handles 
@@ -1624,70 +1674,25 @@ class PyASTBridge(ast.NodeVisitor):
                 value = self.popValue()
 
                 if node.func.attr == 'array':
-                    # np.array(vec, <dtype = ty>)
-                    arrayPtrValue = value
-                    if not cc.PointerType.isinstance(value.type):
-                        arrayPtrValue = self.ifNotPointerThenStore(value)
+                    # `np.array(vec, <dtype = ty>)`
+                    arrayType = value.type
+                    if cc.PointerType.isinstance(value.type):
+                        arrayType = cc.PointerType.getElementType(value.type)
 
-                    arrayType = cc.PointerType.getElementType(
-                        arrayPtrValue.type)
                     if cc.StdvecType.isinstance(arrayType):
                         eleTy = cc.StdvecType.getElementType(arrayType)
-
                         dTy = eleTy
                         if len(namedArgs) > 0:
                             dTy = namedArgs['dtype']
 
-                        if (eleTy != dTy):
-                            # We have a different dtype. Need to transform the vec.
+                        # Convert the vector to the provided data type if needed.
+                        self.pushValue(
+                            self.__copyVectorAndCastElements(value, dTy))
+                        return
 
-                            # source
-                            arrayEleTy = eleTy
-                            arrayElePtrTy = cc.PointerType.get(
-                                self.ctx, arrayEleTy)
-                            arrayValue = self.ifPointerThenLoad(value)
-                            arrayPtr = cc.StdvecDataOp(arrayElePtrTy,
-                                                       arrayValue).result
-                            #arrayTy = value.type
-
-                            arraySize = cc.StdvecSizeOp(self.getIntegerType(),
-                                                        arrayValue).result
-
-                            # target
-                            listEleTy = dTy
-                            listElePtrType = cc.PointerType.get(
-                                self.ctx, listEleTy)
-                            listTy = cc.ArrayType.get(self.ctx, listEleTy)
-                            listVecTy = cc.StdvecType.get(self.ctx, listEleTy)
-                            listValue = cc.AllocaOp(cc.PointerType.get(
-                                self.ctx, listTy),
-                                                    TypeAttr.get(listEleTy),
-                                                    seqSize=arraySize).result
-
-                            #listValue = cc.CastOp(listElePtrType, listValue).result
-                            rawIndex = DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                                             context=self.ctx)
-
-                            def bodyBuilder(iterVar):
-                                eleAddr = cc.ComputePtrOp(
-                                    arrayElePtrTy, arrayPtr, [iterVar],
-                                    rawIndex).result
-                                loadedEle = cc.LoadOp(eleAddr).result
-                                castedEle = self.promoteOperandType(
-                                    listEleTy, loadedEle)
-                                listValueAddr = cc.ComputePtrOp(
-                                    listElePtrType, listValue, [iterVar],
-                                    rawIndex).result
-                                cc.StoreOp(castedEle, listValueAddr)
-
-                            self.createInvariantForLoop(arraySize, bodyBuilder)
-                            self.pushValue(
-                                cc.StdvecInitOp(listVecTy, listValue,
-                                                arraySize).result)
-                            return
-
-                    self.pushValue(arrayPtrValue)
-                    return
+                    raise RuntimeError(
+                        f"unexpected numpy array initializer type: {value.type}"
+                    )
 
                 value = self.ifPointerThenLoad(value)
 
@@ -1822,25 +1827,34 @@ class PyASTBridge(ast.NodeVisitor):
                             numQubits = math.CountTrailingZerosOp(size).result
                             eleTy = cc.StdvecType.getElementType(value.type)
 
-                            if not ComplexType.isinstance(eleTy):
-                                raise RuntimeError(
-                                    "qvector initialization data must be of complex dtype."
-                                )
+                            # if not ComplexType.isinstance(eleTy):
+                            #     # TODO: convert
+                            #     raise RuntimeError(
+                            #         "qvector initialization data must be of complex dtype."
+                            #     )
 
                             simulationPrecision = self.simulationPrecision()
-                            floatType = ComplexType(eleTy).element_type
-                            if F64Type.isinstance(floatType):
-                                if simulationPrecision == cudaq_runtime.SimulationPrecision.fp32:
-                                    raise RuntimeError(
-                                        "qvector initialization state is complex128 but simulator is on complex64 floating point type."
-                                    )
+                            # floatType = ComplexType(eleTy).element_type
+                            #if F64Type.isinstance(floatType):
+                            if simulationPrecision == cudaq_runtime.SimulationPrecision.fp32:
+                                # convert to f64 if needed
+                                value = self.__copyVectorAndCastElements(
+                                    value, self.getComplexType(width=32))
+                                # if simulationPrecision == cudaq_runtime.SimulationPrecision.fp32:
+                                #     raise RuntimeError(
+                                #         "qvector initialization state is complex128 but simulator is on complex64 floating point type."
+                                #     )
+                            if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
+                                #if F32Type.isinstance(floatType):
+                                value = self.__copyVectorAndCastElements(
+                                    value, self.getComplexType(width=64))
+                                # if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
+                                #     raise RuntimeError(
+                                #         "qvector initialization state is complex64 but simulator is on complex128 floating point type."
+                                #     )
 
-                            if F32Type.isinstance(floatType):
-                                if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64:
-                                    raise RuntimeError(
-                                        "qvector initialization state is complex64 but simulator is on complex128 floating point type."
-                                    )
                             # TODO: check if values are normalized
+                            # sum(e^2) = 1
 
                             ptrTy = cc.PointerType.get(self.ctx, eleTy)
                             veqTy = quake.VeqType.get(self.ctx)
@@ -1848,9 +1862,9 @@ class PyASTBridge(ast.NodeVisitor):
                             qubits = quake.AllocaOp(veqTy,
                                                     size=numQubits).result
                             initials = cc.StdvecDataOp(ptrTy, value).result
-                            quake.InitializeStateOp(veqTy, qubits,
-                                                    initials).result
-                            self.pushValue(qubits)
+                            init = quake.InitializeStateOp(
+                                veqTy, qubits, initials).result
+                            self.pushValue(init)
                             return
 
                         self.emitFatalError(

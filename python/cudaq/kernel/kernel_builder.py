@@ -685,8 +685,10 @@ class PyKernel(object):
                         self.ctx,
                         cc.StdvecType.getElementType(
                             initializer.mlirValue.type))
-                    initials = cc.StdvecDataOp(ptrTy, initializer.mlirValue)
-                    quake.InitializeStateOp(veqTy, qubits, initials)
+                    initials = cc.StdvecDataOp(ptrTy,
+                                               initializer.mlirValue).result
+                    qubits = quake.InitializeStateOp(veqTy, qubits,
+                                                     initials).result
                     return self.__createQuakeValue(qubits)
 
             # If no initializer, create a single qubit
