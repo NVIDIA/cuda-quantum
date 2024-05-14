@@ -140,17 +140,19 @@ public:
 
     // Inspect the element type of the complex data, need to
     // know if its f32 or f64
-    Type eleTy = rewriter.getF64Type();
-    if (auto llvmPtrTy = dyn_cast<LLVM::LLVMPointerType>(ccState.getType())) {
-      auto ptrEleTy = llvmPtrTy.getElementType();
-      if (auto llvmStructTy = dyn_cast<LLVM::LLVMStructType>(ptrEleTy))
-        if (llvmStructTy.getBody().size() == 2 &&
-            llvmStructTy.getBody()[0] == llvmStructTy.getBody()[1] &&
-            llvmStructTy.getBody()[0].isF32())
-          eleTy = rewriter.getF32Type();
+    StringRef functionName;
+    if (Type eleTy = dyn_cast<LLVM::LLVMPointerType>(ccState.getType())
+                         .getElementType()) {
+      if (auto arrayTy = dyn_cast<LLVM::LLVMArrayType>(eleTy))
+        eleTy = arrayTy.getElementType();
+      if (auto complexTy = dyn_cast<LLVM::LLVMStructType>(eleTy))
+        eleTy = complexTy.getBody()[0];
+      if (eleTy == rewriter.getF64Type())
+        functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64;
+      if (eleTy == rewriter.getF32Type())
+        functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32;
     }
-
-    if (!isa<FloatType>(eleTy))
+    if (functionName.empty())
       return raii.emitOpError("invalid type on initialize state operation, "
                               "must be complex floating point.");
 
@@ -176,9 +178,6 @@ public:
     // Create QIR allocation with initializer function.
     auto *ctx = rewriter.getContext();
     auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
-    StringRef functionName =
-        eleTy.isF64() ? cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64
-                      : cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32;
     FlatSymbolRefAttr raiiSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
             functionName, array_qbit_type, {i64Ty, ptrTy}, parentModule);
