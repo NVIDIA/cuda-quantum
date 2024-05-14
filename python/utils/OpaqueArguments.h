@@ -165,7 +165,8 @@ void checkListElementType(py::handle arg, int index, int elementIndex) {
 }
 
 template <typename T>
-inline void addArgument(OpaqueArguments &argData, T *allocatedArg) {
+inline void addArgument(OpaqueArguments &argData, T &&arg) {
+  T *allocatedArg = new T(std::move(arg));
   argData.emplace_back(allocatedArg,
                        [](void *ptr) { delete static_cast<T *>(ptr); });
 }
@@ -188,42 +189,32 @@ packArgs(OpaqueArguments &argData, py::args args,
         .Case([&](mlir::ComplexType ty) {
           checkArgumentType<py_ext::Complex>(arg, i);
           if (isa<Float64Type>(ty.getElementType())) {
-            auto *ourAllocatedArg =
-                new std::complex<double>(arg.cast<std::complex<double>>());
-            addArgument<std::complex<double>>(argData, ourAllocatedArg);
+            addArgument(argData, arg.cast<std::complex<double>>());
           } else {
-            auto *ourAllocatedArg =
-                new std::complex<float>(arg.cast<std::complex<float>>());
-            addArgument<std::complex<float>>(argData, ourAllocatedArg);
+            addArgument(argData, arg.cast<std::complex<float>>());
           }
         })
         .Case([&](mlir::Float64Type ty) {
           checkArgumentType<py_ext::Float>(arg, i);
-          auto *ourAllocatedArg = new double(arg.cast<double>());
-          addArgument<double>(argData, ourAllocatedArg);
+          addArgument(argData, arg.cast<double>());
         })
         .Case([&](mlir::Float32Type ty) {
           checkArgumentType<py_ext::Float>(arg, i);
-          auto *ourAllocatedArg = new float(arg.cast<float>());
-          addArgument<float>(argData, ourAllocatedArg);
+          addArgument(argData, arg.cast<float>());
         })
         .Case([&](mlir::IntegerType ty) {
           if (ty.getIntOrFloatBitWidth() == 1) {
             checkArgumentType<py::bool_>(arg, i);
-            auto *ourAllocatedArg = new bool(arg.cast<bool>());
-            addArgument<bool>(argData, ourAllocatedArg);
+            addArgument(argData, arg.cast<bool>());
             return;
           }
 
           checkArgumentType<py::int_>(arg, i);
-          auto *ourAllocatedArg = new long(arg.cast<long>());
-          addArgument<long>(argData, ourAllocatedArg);
+          addArgument(argData, arg.cast<long>());
         })
         .Case([&](cudaq::cc::CharspanType ty) {
-          // pauli word
-          auto *ourAllocatedArg =
-              new cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str());
-          addArgument<cudaq::pauli_word>(argData, ourAllocatedArg);
+          addArgument(argData,
+                      cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str()));
         })
         .Case([&](cudaq::cc::StdvecType ty) {
           checkArgumentType<py::list>(arg, i);
@@ -233,29 +224,26 @@ packArgs(OpaqueArguments &argData, py::args args,
             // Handle boolean different since C++ library implementation
             // for vectors of bool is different than other types.
             if (eleTy.isInteger(1)) {
-              auto *ourAllocatedArg = new std::vector<bool>();
-              addArgument<std::vector<bool>>(argData, ourAllocatedArg);
+              addArgument(argData, std::move(std::vector<bool>()));
               return;
             }
 
             // If its empty, just put any vector on the `argData`,
             // it won't matter since it is empty and all
             // vectors have the same memory footprint (span-like).
-            auto *ourAllocatedArg = new std::vector<std::size_t>();
-            addArgument<std::vector<std::size_t>>(argData, ourAllocatedArg);
+            addArgument(argData, std::move(std::vector<std::size_t>()));
             return;
           }
 
           // Define a generic vector allocator as a
           // templated lambda so we can capture argData and casted.
           auto genericVecAllocator = [&]<typename VecTy>(auto &&converter) {
-            std::vector<VecTy> *ourAllocatedArg =
-                new std::vector<VecTy>(casted.size());
+            auto values = std::vector<VecTy>(casted.size());
             for (std::size_t counter = 0; auto el : casted) {
               auto converted = converter(el, i, counter);
-              (*ourAllocatedArg)[counter++] = converted;
+              values[counter++] = converted;
             }
-            addArgument<std::vector<VecTy>>(argData, ourAllocatedArg);
+            addArgument(argData, std::move(values));
           };
 
           // Switch on the vector element type.
