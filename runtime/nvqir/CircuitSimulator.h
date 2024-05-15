@@ -779,7 +779,7 @@ protected:
   }
 
   bool isSinglePrecision() const override {
-    return std::is_same_v<std::remove_cvref<ScalarType>, float>;
+    return std::is_same_v<ScalarType, float>;
   }
 
 public:
