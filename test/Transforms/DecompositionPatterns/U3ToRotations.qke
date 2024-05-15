@@ -1,0 +1,45 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations})' %s | CircuitCheck %s
+
+// The FileCheck part of this test only cares about the sequence of operations.
+// Correcteness is checked by CircuitCheck.
+
+// CHECK-LABEL: func.func @test
+func.func @test(%qubit: !quake.ref) {
+  %cst = arith.constant 3.141592653589793 : f64
+  %cst_0 = arith.constant 1.57079632679489660 : f64
+  %cst_1 = arith.constant 0.7853981633974483 : f64
+  %0 = quake.alloca !quake.veq<1>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
+  quake.u3 (%cst_1, %cst_0, %cst) %1 : (f64, f64, f64, !quake.ref) -> ()
+  // CHECK: quake.rz
+  // CHECK-NEXT: quake.rx
+  // CHECK-NEXT: quake.rz
+  // CHECK-NEXT: quake.rx
+  // CHECK-NEXT: quake.rz
+  return
+}
+
+// CHECK-LABEL: func.func @adj
+func.func @adj(%qubit: !quake.ref) {
+  %cst = arith.constant 3.141592653589793 : f64
+  %cst_0 = arith.constant 1.57079632679489660 : f64
+  %cst_1 = arith.constant 0.7853981633974483 : f64
+  %0 = quake.alloca !quake.veq<1>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
+  quake.u3<adj> (%cst_1, %cst_0, %cst) %1 : (f64, f64, f64, !quake.ref) -> ()
+  // CHECK: quake.rz<adj>
+  // CHECK-NEXT: quake.rx<adj>
+  // CHECK-NEXT: quake.rz<adj>
+  // CHECK-NEXT: quake.rx<adj>
+  // CHECK-NEXT: quake.rz<adj>
+  return
+}

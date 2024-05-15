@@ -1168,8 +1168,6 @@ struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
     Value negPi_2 = rewriter.create<arith::NegFOp>(loc, pi_2);
 
-    // This decomposition pattern was chosen due to testing showing
-    // it most accurately reproduces the u3 gate in simulation.
     rewriter.create<quake::RzOp>(loc, lam, op.getControls(), target);
     rewriter.create<quake::RxOp>(loc, pi_2, op.getControls(), target);
     rewriter.create<quake::RzOp>(loc, theta, op.getControls(), target);
