@@ -487,7 +487,7 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
       newV.leftCols(V.cols()) = V;
       Eigen::VectorXd newS(bondDim);
       newS.head(S.size()) = S;
-      return std::make_tuple(newU, newS, newV);
+      return {newU, newS, newV};
     }
     // Truncation
     Eigen::MatrixXcd newU(U.rows(), bondDim);
