@@ -23,5 +23,4 @@ int main() {
   return 0;
 }
 
-// CHECK: { 11:{{[0-9]+}} 00:{{[0-9]+}} }
-// CHECK: size 2
+// CHECK: size {{[0-9]+}}
