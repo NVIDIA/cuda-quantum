@@ -295,8 +295,8 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
     Type argType = otherFuncCloned.getArgumentTypes()[i++];
     Value value = v.getValue();
     Type inType = value.getType();
-    auto inAsVeqTy = inType.dyn_cast_or_null<quake::VeqType>();
-    auto argAsVeqTy = argType.dyn_cast_or_null<quake::VeqType>();
+    auto inAsVeqTy = dyn_cast_or_null<quake::VeqType>(inType);
+    auto argAsVeqTy = dyn_cast_or_null<quake::VeqType>(argType);
 
     // If both are veqs, make sure we dont have veq<N> -> veq<?>
     if (inAsVeqTy && argAsVeqTy) {
@@ -348,8 +348,8 @@ void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
     Type argType = otherFuncCloned.getArgumentTypes()[i];
     Value value = v.getValue();
     Type inType = value.getType();
-    auto inAsVeqTy = inType.dyn_cast_or_null<quake::VeqType>();
-    auto argAsVeqTy = argType.dyn_cast_or_null<quake::VeqType>();
+    auto inAsVeqTy = dyn_cast_or_null<quake::VeqType>(inType);
+    auto argAsVeqTy = dyn_cast_or_null<quake::VeqType>(argType);
 
     // If both are veqs, make sure we dont have veq<N> -> veq<?>
     if (inAsVeqTy && argAsVeqTy) {
@@ -511,7 +511,7 @@ void applyOneQubitOp(ImplicitLocOpBuilder &builder, auto &&params, auto &&ctrls,
     cudaq::info("kernel_builder apply {}", std::string(#NAME));                \
     auto value = target.getValue();                                            \
     auto type = value.getType();                                               \
-    if (type.isa<quake::VeqType>()) {                                          \
+    if (isa<quake::VeqType>(type)) {                                           \
       if (!ctrls.empty())                                                      \
         throw std::runtime_error(                                              \
             "Cannot specify controls for a veq broadcast.");                   \
@@ -539,7 +539,7 @@ CUDAQ_ONE_QUBIT_IMPL(z, ZOp)
     cudaq::info("kernel_builder apply {}", std::string(#NAME));                \
     Value value = target.getValue();                                           \
     auto type = value.getType();                                               \
-    if (type.isa<quake::VeqType>()) {                                          \
+    if (isa<quake::VeqType>(type)) {                                           \
       if (!ctrls.empty())                                                      \
         throw std::runtime_error(                                              \
             "Cannot specify controls for a veq broadcast.");                   \
@@ -585,7 +585,7 @@ template <typename QuakeMeasureOp>
 QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
                         std::string regName) {
   auto type = value.getType();
-  if (!type.isa<quake::RefType, quake::VeqType>())
+  if (!isa<quake::RefType, quake::VeqType>(type))
     throw std::runtime_error("Invalid parameter passed to mz.");
 
   cudaq::info("kernel_builder apply measurement");
@@ -593,7 +593,7 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   auto i1Ty = builder.getI1Type();
   auto strAttr = builder.getStringAttr(regName);
   auto measTy = quake::MeasureType::get(builder.getContext());
-  if (type.isa<quake::RefType>()) {
+  if (isa<quake::RefType>(type)) {
     Value measureResult =
         builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
             .getMeasOut();
@@ -703,7 +703,7 @@ void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
       checkAndUpdateRegName(measureOp);
 
   auto type = value.getType();
-  if (!type.isa<mlir::IntegerType>() || type.getIntOrFloatBitWidth() != 1)
+  if (!isa<mlir::IntegerType>(type) || type.getIntOrFloatBitWidth() != 1)
     throw std::runtime_error("Invalid result type passed to c_if.");
 
   builder.create<cc::IfOp>(TypeRange{}, value,
@@ -729,7 +729,7 @@ std::string name(std::string_view kernelName) {
 }
 
 bool isQubitType(Type ty) {
-  if (ty.isa<quake::RefType, quake::VeqType>())
+  if (isa<quake::RefType, quake::VeqType>(ty))
     return true;
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
     return isQubitType(vecTy.getElementType());

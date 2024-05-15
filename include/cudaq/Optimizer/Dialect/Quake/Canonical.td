@@ -15,17 +15,17 @@ include "mlir/Dialect/Arith/IR/ArithOps.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeOps.td"
 
 def KnownSizePred : Constraint<
-      CPred<"$0.getType().isa<quake::VeqType>() && "
-            "$0.getType().cast<quake::VeqType>().hasSpecifiedSize()">>;
+      CPred<"mlir::isa<quake::VeqType>($0.getType()) && "
+            "mlir::cast<quake::VeqType>($0.getType()).hasSpecifiedSize()">>;
 
 def UnknownSizePred : Constraint<
-      CPred<"$0.getType().isa<quake::VeqType>() && "
-            "!$0.getType().cast<quake::VeqType>().hasSpecifiedSize()">>;
+      CPred<"mlir::isa<quake::VeqType>($0.getType()) && "
+            "!mlir::cast<quake::VeqType>($0.getType()).hasSpecifiedSize()">>;
 
 def createConstantOp : NativeCodeCall<
       "$_builder.create<mlir::arith::ConstantOp>($_loc, $0.getType(),"
       "  $_builder.getIntegerAttr($0.getType(),"
-      "   $1.getType().cast<quake::VeqType>().getSize()))">;
+      "   mlir::cast<quake::VeqType>($1.getType()).getSize()))">;
 
 // %4 = quake.veq_size %3 : (!quake.veq<10>) -> 164
 // ────────────────────────────────────────────────
@@ -36,7 +36,7 @@ def ForwardConstantVeqSizePattern : Pat<
 
 def SizeIsPresentPred : Constraint<CPred<
       "$0.size() == 1 &&"
-      "isa<mlir::arith::ConstantIntOp, mlir::arith::ConstantIndexOp>("
+      "mlir::isa<mlir::arith::ConstantIntOp, mlir::arith::ConstantIndexOp>("
       "  $0[0].getDefiningOp())">>;
 
 def createAllocaOp : NativeCodeCall<
@@ -52,8 +52,8 @@ def FuseConstantToAllocaPattern : Pat<
 
 def createExtractRefOp : NativeCodeCall<
       "$_builder.create<quake::ExtractRefOp>($_loc, $0,"
-      " cast<mlir::arith::ConstantOp>($1[0].getDefiningOp()).getValue()."
-      " cast<mlir::IntegerAttr>().getInt())">;
+      " mlir::cast<mlir::IntegerAttr>("
+      "  $1[0].getDefiningOp<mlir::arith::ConstantOp>().getValue()).getInt())">;
 
 // %2 = constant 10 : i32
 // %3 = quake.extract_ref %1[%2] : (!quake.veq<?>, i32) -> !quake.ref
@@ -68,10 +68,10 @@ def createSizedSubVeqOp : NativeCodeCall<
       "quake::createSizedSubVeqOp($_builder, $_loc, $0, $1, $2, $3)">;
 
 def ArgIsConstantPred : Constraint<CPred<
-      "dyn_cast_or_null<mlir::arith::ConstantOp>($0.getDefiningOp())">>;
+      "mlir::dyn_cast_or_null<mlir::arith::ConstantOp>($0.getDefiningOp())">>;
 
 def IsUnknownVec : Constraint<CPred<
-      "dyn_cast_or_null<mlir::arith::ConstantOp>($0.getDefiningOp())">>;
+      "mlir::dyn_cast_or_null<mlir::arith::ConstantOp>($0.getDefiningOp())">>;
 
 // %1 = constant 4 : i64
 // %2 = constant 10 : i64

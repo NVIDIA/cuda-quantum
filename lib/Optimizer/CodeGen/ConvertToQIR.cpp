@@ -820,8 +820,9 @@ public:
 
     qirFunctionName += "__ctl";
 
+    // TODO: put this in the intrinsics table. Why is it here?
     // __quantum__qis__u3__ctl(double, double, double, Array*, Qubit*) Type
-    auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
+    [[maybe_unused]] auto instOpQISFunctionType = LLVM::LLVMFunctionType::get(
         LLVM::LLVMVoidType::get(context),
         {paramType, paramType, paramType, qubitArrayType, qubitIndexType});
 

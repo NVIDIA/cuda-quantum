@@ -119,7 +119,7 @@ private:
       SmallVector<std::size_t> mapping_v2p(mappingAttr.size());
       std::transform(
           mappingAttr.begin(), mappingAttr.end(), mapping_v2p.begin(),
-          [](Attribute attr) { return attr.cast<IntegerAttr>().getInt(); });
+          [](Attribute attr) { return cast<IntegerAttr>(attr).getInt(); });
 
       // Next create newQubitValues[]
       DenseMap<std::size_t, Value> newQubitValues;

@@ -75,7 +75,7 @@ namespace quake {
 /// `!quake.veq`.
 inline bool hasReference(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
-    if (isa<quake::RefType, quake::VeqType>(opnd.getType()))
+    if (mlir::isa<quake::RefType, quake::VeqType>(opnd.getType()))
       return true;
   return false;
 }
@@ -83,7 +83,7 @@ inline bool hasReference(mlir::Operation *op) {
 /// Returns true if and only if any quantum operand has type `!quake.ref`.
 inline bool hasNonVectorReference(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
-    if (isa<quake::RefType>(opnd.getType()))
+    if (mlir::isa<quake::RefType>(opnd.getType()))
       return true;
   return false;
 }
@@ -92,7 +92,7 @@ inline bool hasNonVectorReference(mlir::Operation *op) {
 /// `!quake.wire` or `!quake.control`.
 inline bool isAllReferences(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
-    if (isa<quake::WireType, quake::ControlType>(opnd.getType()))
+    if (mlir::isa<quake::WireType, quake::ControlType>(opnd.getType()))
       return false;
   return true;
 }
@@ -101,13 +101,13 @@ inline bool isAllReferences(mlir::Operation *op) {
 /// (QLS) form.
 inline bool isWrapped(mlir::Operation *op) {
   for (mlir::Value val : op->getOperands())
-    if (isa<quake::WireType>(val.getType()) &&
+    if (mlir::isa<quake::WireType>(val.getType()) &&
         !val.getDefiningOp<quake::UnwrapOp>())
       return false;
   for (mlir::Value val : op->getResults())
-    if (isa<quake::WireType>(val.getType()))
+    if (mlir::isa<quake::WireType>(val.getType()))
       for (auto *u : val.getUsers())
-        if (!isa<quake::WrapOp>(u))
+        if (!mlir::isa<quake::WrapOp>(u))
           return false;
   return true;
 }
@@ -116,7 +116,8 @@ inline bool isWrapped(mlir::Operation *op) {
 /// defined such that the Op, \p op, is neither fully in memory-SSA form nor in
 /// the intermediate QLS form.
 inline bool isValueSSAForm(mlir::Operation *op) {
-  return isa<quake::NullWireOp>(op) || (!isAllReferences(op) && !isWrapped(op));
+  return mlir::isa<quake::NullWireOp>(op) ||
+         (!isAllReferences(op) && !isWrapped(op));
 }
 inline bool isValueSSAForm(mlir::Value val) {
   if (auto *op = val.getDefiningOp())

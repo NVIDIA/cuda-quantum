@@ -16,9 +16,9 @@ using namespace mlir;
 LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   for (auto arg : func.getArguments()) {
     auto type = arg.getType();
-    if (type.isa<quake::RefType>() || type.isa<quake::VeqType>())
-      if (allocateQubits(arg) == WalkResult::interrupt())
-        return failure();
+    if (isa<quake::RefType, quake::VeqType>(type) &&
+        allocateQubits(arg) == WalkResult::interrupt())
+      return failure();
   }
   // We need to keep track of which qubits are ancillas. Hence, we save the
   // current number of qubits and consider any local allocations as ancillas.

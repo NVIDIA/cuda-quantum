@@ -41,7 +41,7 @@ static std::size_t getNumQubits(LLVM::CallOp callOp) {
   while (defOp && !dyn_cast<LLVM::ConstantOp>(defOp))
     defOp = defOp->getOperand(0).getDefiningOp();
   if (auto constOp = dyn_cast_or_null<LLVM::ConstantOp>(defOp))
-    return constOp.getValue().cast<IntegerAttr>().getValue().getLimitedValue();
+    return cast<IntegerAttr>(constOp.getValue()).getValue().getLimitedValue();
   TODO_loc(callOp.getLoc(), "cannot compute number of qubits allocated");
 }
 
@@ -56,7 +56,7 @@ static bool isQIRSliceCall(Operation *op) {
 static std::optional<std::int64_t> sliceLowerBound(Operation *op) {
   Value low = op->getOperand(2);
   if (auto con = low.getDefiningOp<LLVM::ConstantOp>())
-    return con.getValue().cast<IntegerAttr>().getInt();
+    return cast<IntegerAttr>(con.getValue()).getInt();
   return {};
 }
 
@@ -228,7 +228,7 @@ private:
             if (constVal)
               if (auto incr = constVal->getDefiningOp<LLVM::ConstantOp>())
                 optQb =
-                    allocOffset + incr.getValue().cast<IntegerAttr>().getInt();
+                    allocOffset + cast<IntegerAttr>(incr.getValue()).getInt();
           }
         }
         if (optQb) {
@@ -238,8 +238,8 @@ private:
           auto resIdx = IntegerAttr::get(intTy, data.nResults);
           callOp->setAttr(resultIndexName, resIdx);
           auto regName = [&]() -> StringAttr {
-            if (auto nameAttr = callOp->getAttr("registerName")
-                                    .dyn_cast_or_null<StringAttr>())
+            if (auto nameAttr = dyn_cast_or_null<StringAttr>(
+                    callOp->getAttr("registerName")))
               return nameAttr;
             return {};
           }();

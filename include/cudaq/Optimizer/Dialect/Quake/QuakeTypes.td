@@ -193,12 +193,12 @@ def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
         ControlType.predicate]>, "quake quantum value types">;
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
 
-def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
+def IsStdvecTypePred : CPred<"mlir::isa<::cudaq::cc::StdvecType>($_self)">;
 
 class StdvecOf<list<Type> allowedTypes> : Type<
     And<[IsStdvecTypePred, Concat<"[](::mlir::Type elementType) { return ",
       SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
-        "; }($_self.cast<::cudaq::cc::StdvecType>().getElementType())">]>,
+        "; }(mlir::cast<::cudaq::cc::StdvecType>($_self).getElementType())">]>,
     "stdvec of " # AnyTypeOf<allowedTypes>.summary # " values",
     "::cudaq::cc::StdvecType">;
 

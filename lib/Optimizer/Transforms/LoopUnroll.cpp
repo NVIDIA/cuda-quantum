@@ -284,7 +284,7 @@ public:
     DenseMap<StringRef, SmallVector<Operation *>> regOps;
     mod->walk([&](mlir::Operation *walkOp) {
       if (auto prevAttr = walkOp->getAttr("registerName")) {
-        auto registerName = prevAttr.cast<StringAttr>().getValue();
+        auto registerName = cast<StringAttr>(prevAttr).getValue();
         regOps[registerName].push_back(walkOp);
       }
       return WalkResult::advance();
