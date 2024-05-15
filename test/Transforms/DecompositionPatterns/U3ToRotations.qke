@@ -36,10 +36,10 @@ func.func @adj(%qubit: !quake.ref) {
   %0 = quake.alloca !quake.veq<1>
   %1 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
   quake.u3<adj> (%cst_1, %cst_0, %cst) %1 : (f64, f64, f64, !quake.ref) -> ()
-  // CHECK: quake.rz<adj>
-  // CHECK-NEXT: quake.rx<adj>
-  // CHECK-NEXT: quake.rz<adj>
-  // CHECK-NEXT: quake.rx<adj>
-  // CHECK-NEXT: quake.rz<adj>
+  // CHECK: quake.rz
+  // CHECK-NEXT: quake.rx
+  // CHECK-NEXT: quake.rz
+  // CHECK-NEXT: quake.rx
+  // CHECK-NEXT: quake.rz
   return
 }
