@@ -159,9 +159,8 @@ struct run_circuit {
 // ADJOINT:           %[[VAL_75:.*]] = arith.cmpi sgt, %[[VAL_74]], %[[VAL_68]] : i64
 // ADJOINT:           %[[VAL_76:.*]] = arith.select %[[VAL_75]], %[[VAL_74]], %[[VAL_68]] : i64
 // ADJOINT:           %[[VAL_77:.*]] = arith.subi %[[VAL_76]], %[[VAL_69]] : i64
-// ADJOINT:           %[[VAL_78:.*]] = arith.addi %[[VAL_77]], %[[VAL_6]] : i64
 // ADJOINT:           %[[VAL_79:.*]] = arith.constant 0 : i64
-// ADJOINT:           %[[VAL_80:.*]]:2 = cc.loop while ((%[[VAL_81:.*]] = %[[VAL_78]], %[[VAL_82:.*]] = %[[VAL_76]]) -> (i64, i64)) {
+// ADJOINT:           %[[VAL_80:.*]]:2 = cc.loop while ((%[[VAL_81:.*]] = %[[VAL_77]], %[[VAL_82:.*]] = %[[VAL_76]]) -> (i64, i64)) {
 // ADJOINT:             %[[VAL_83:.*]] = arith.cmpi slt, %[[VAL_81]], %[[VAL_14]] : i64
 // ADJOINT:             %[[VAL_84:.*]] = arith.cmpi sgt, %[[VAL_82]], %[[VAL_79]] : i64
 // ADJOINT:             cc.condition %[[VAL_84]](%[[VAL_81]], %[[VAL_82]] : i64, i64)
