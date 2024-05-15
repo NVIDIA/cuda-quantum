@@ -278,10 +278,9 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
   // structured return argument. Otherwise, if there is 1 result and it is an
   // aggregate type, then it is promoted to a structured return argument.
   auto numResults = funcTy.getNumResults();
-  return numResults > 1 ||
-         (numResults == 1 && funcTy.getResult(0)
-                                 .isa<cc::SpanLikeType, cc::StructType,
-                                      cc::ArrayType, cc::CallableType>());
+  return numResults > 1 || (numResults == 1 &&
+                            isa<cc::SpanLikeType, cc::StructType, cc::ArrayType,
+                                cc::CallableType>(funcTy.getResult(0)));
 }
 
 cc::StructType factory::stlStringType(MLIRContext *ctx) {

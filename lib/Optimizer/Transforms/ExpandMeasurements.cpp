@@ -39,13 +39,13 @@ public:
     // in.
     unsigned numQubits = 0u;
     for (auto v : measureOp.getTargets())
-      if (v.getType().template isa<quake::RefType>())
+      if (isa<quake::RefType>(v.getType()))
         ++numQubits;
     Value totalToRead =
         rewriter.template create<arith::ConstantIntOp>(loc, numQubits, 64);
     auto i64Ty = rewriter.getI64Type();
     for (auto v : measureOp.getTargets())
-      if (v.getType().template isa<quake::VeqType>()) {
+      if (isa<quake::VeqType>(v.getType())) {
         Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, i64Ty, v);
         totalToRead =
             rewriter.template create<arith::AddIOp>(loc, totalToRead, vecSz);

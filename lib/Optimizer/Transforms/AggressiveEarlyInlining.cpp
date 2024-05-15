@@ -38,7 +38,7 @@ getConversionMap(ModuleOp module) {
           module->getAttrOfType<DictionaryAttr>("quake.mangled_name_map")) {
     for (auto namedAttr : mangledNameMap) {
       auto key = namedAttr.getName();
-      auto val = namedAttr.getValue().cast<StringAttr>().getValue();
+      auto val = cast<StringAttr>(namedAttr.getValue()).getValue();
       result.insert({val, key});
     }
     return result;

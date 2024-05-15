@@ -82,7 +82,7 @@ struct RegToMemAnalysis {
       for (auto e = eqClasses.member_begin(i); e != eqClasses.member_end();
            ++e) {
         auto v = Value::getFromOpaquePointer(*e);
-        if (auto ba = v.dyn_cast_or_null<BlockArgument>())
+        if (auto ba = dyn_cast_or_null<BlockArgument>(v))
           result.push_back(ba);
       }
     }
@@ -93,7 +93,7 @@ private:
   void *toOpaque(Value v) const { return v.getAsOpaquePointer(); }
 
   void insertBlockArgumentToEqClass(Value v) {
-    if (auto arg = v.dyn_cast_or_null<BlockArgument>()) {
+    if (auto arg = dyn_cast_or_null<BlockArgument>(v)) {
       auto *block = arg.getOwner();
       auto argNum = arg.getArgNumber();
       for (auto *pred : block->getPredecessors()) {

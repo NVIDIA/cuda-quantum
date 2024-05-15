@@ -134,15 +134,15 @@ LogicalResult quake::setQuantumOperands(Operation *op, ValueRange quantumVals) {
 Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
                                   OpResult result, ValueRange args) {
   auto newAlloca = [&]() {
-    if (result.getType().isa<quake::VeqType>() &&
-        result.getType().cast<quake::VeqType>().hasSpecifiedSize()) {
+    if (isa<quake::VeqType>(result.getType()) &&
+        cast<quake::VeqType>(result.getType()).hasSpecifiedSize()) {
       return builder.create<quake::AllocaOp>(
-          loc, result.getType().cast<quake::VeqType>().getSize());
+          loc, cast<quake::VeqType>(result.getType()).getSize());
     }
     auto constOp = cast<arith::ConstantOp>(args[0].getDefiningOp());
     return builder.create<quake::AllocaOp>(
         loc, static_cast<std::size_t>(
-                 constOp.getValue().cast<IntegerAttr>().getInt()));
+                 cast<IntegerAttr>(constOp.getValue()).getInt()));
   }();
   return builder.create<quake::RelaxSizeOp>(
       loc, quake::VeqType::getUnsized(builder.getContext()), newAlloca);
@@ -158,7 +158,7 @@ LogicalResult quake::AllocaOp::verify() {
       if (auto size = getSize()) {
         if (auto cnt =
                 dyn_cast_or_null<arith::ConstantOp>(size.getDefiningOp())) {
-          std::int64_t argSize = cnt.getValue().cast<IntegerAttr>().getInt();
+          std::int64_t argSize = cast<IntegerAttr>(cnt.getValue()).getInt();
           // TODO: This is a questionable check. We could have a very large
           // unsigned value that appears to be negative because of two's
           // complement. On the other hand, allocating 2^64 - 1 qubits isn't
@@ -563,12 +563,12 @@ struct RemoveSubVeqNoOpPattern : public OpRewritePattern<quake::SubVeqOp> {
 Value quake::createSizedSubVeqOp(PatternRewriter &builder, Location loc,
                                  OpResult result, Value inVec, Value lo,
                                  Value hi) {
-  auto vecTy = result.getType().cast<quake::VeqType>();
+  auto vecTy = cast<quake::VeqType>(result.getType());
   auto *ctx = builder.getContext();
   auto getVal = [&](Value v) {
     auto vCon = cast<arith::ConstantOp>(v.getDefiningOp());
     return static_cast<std::size_t>(
-        vCon.getValue().cast<IntegerAttr>().getInt());
+        cast<IntegerAttr>(vCon.getValue()).getInt());
   };
   std::size_t size = getVal(hi) - getVal(lo) + 1u;
   auto szVecTy = quake::VeqType::get(ctx, size);

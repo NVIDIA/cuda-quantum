@@ -219,7 +219,7 @@ static void printComputePtrIndices(OpAsmPrinter &printer,
   llvm::interleaveComma(cudaq::cc::ComputePtrIndicesAdaptor<OperandRange>(
                             rawConstantIndices, indices),
                         printer, [&](PointerUnion<IntegerAttr, Value> cst) {
-                          if (Value val = cst.dyn_cast<Value>())
+                          if (Value val = dyn_cast<Value>(cst))
                             printer.printOperand(val);
                           else
                             printer << cst.get<IntegerAttr>().getInt();
@@ -1334,7 +1334,7 @@ void cudaq::cc::CreateLambdaOp::print(OpAsmPrinter &p) {
   p << ' ';
   bool hasArgs = getRegion().getNumArguments() != 0;
   bool hasRes =
-      getType().cast<cudaq::cc::CallableType>().getSignature().getNumResults();
+      cast<cudaq::cc::CallableType>(getType()).getSignature().getNumResults();
   p.printRegion(getRegion(), /*printEntryBlockArgs=*/hasArgs,
                 /*printBlockTerminators=*/hasRes);
   p << " : " << getType();

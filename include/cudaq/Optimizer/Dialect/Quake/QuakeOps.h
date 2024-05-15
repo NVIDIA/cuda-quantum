@@ -83,7 +83,7 @@ inline bool hasReference(mlir::Operation *op) {
 /// Returns true if and only if any quantum operand has type `!quake.ref`.
 inline bool hasNonVectorReference(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
-    if (isa<quake::RefType>(opnd.getType()))
+    if (mlir::isa<quake::RefType>(opnd.getType()))
       return true;
   return false;
 }
@@ -110,20 +110,20 @@ inline bool isAllValues(mlir::Operation *op) {
 /// (QLS) form.
 inline bool isWrapped(mlir::Operation *op) {
   for (mlir::Value val : op->getOperands())
-    if (isa<quake::WireType>(val.getType()) &&
+    if (mlir::isa<quake::WireType>(val.getType()) &&
         !val.getDefiningOp<quake::UnwrapOp>())
       return false;
   for (mlir::Value val : op->getResults())
-    if (isa<quake::WireType>(val.getType()))
+    if (mlir::isa<quake::WireType>(val.getType()))
       for (auto *u : val.getUsers())
-        if (!isa<quake::WrapOp>(u))
+        if (!mlir::isa<quake::WrapOp>(u))
           return false;
   return true;
 }
 
-/// Returns true if and only if \p op is fully in linear-value form.
-/// Linear-value form is defined such that the Op, \p op, is not in full (or
-/// partial) memory-SSA form and is not in the intermediate QLS form.
+/// Returns true if and only if \p op is in value-SSA form. Value-SSA form is
+/// defined such that the Op, \p op, is neither fully in memory-SSA form nor in
+/// the intermediate QLS form.
 inline bool isLinearValueForm(mlir::Operation *op) {
   return isa<quake::NullWireOp, quake::SinkOp>(op) ||
          (isAllValues(op) && !isWrapped(op));
