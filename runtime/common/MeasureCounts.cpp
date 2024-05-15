@@ -149,9 +149,12 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
     deserializeCounts(data, stride, localCounts);
 
     sampleResults.insert({name, ExecutionResult{localCounts, name}});
-    totalShots = std::accumulate(
-        localCounts.begin(), localCounts.end(), 0,
-        [](std::size_t sum, const auto &pair) { return sum + pair.second; });
+
+    if (stride >= data.size()) {
+      totalShots = std::accumulate(
+          localCounts.begin(), localCounts.end(), 0,
+          [](std::size_t sum, const auto &pair) { return sum + pair.second; });
+    }
   }
 }
 
