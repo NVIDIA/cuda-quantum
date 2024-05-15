@@ -8,7 +8,7 @@
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..kernel.kernel_builder import PyKernel
 from .utils import __isBroadcast, __createArgumentSet
-from ..mlir.dialects import quake, cc, codegen
+from ..mlir.dialects import quake, cc
 
 
 def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):

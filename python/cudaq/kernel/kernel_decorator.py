@@ -11,7 +11,7 @@ import inspect
 from typing import Callable
 from ..mlir.ir import *
 from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc, codegen
+from ..mlir.dialects import quake, cc
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .utils import mlirTypeFromPyType, nvqppPrefix, mlirTypeToPyType, globalAstRegistry, emitFatalError, emitErrorIfInvalidPauli
 from .analysis import MidCircuitMeasurementAnalyzer, RewriteMeasures, HasReturnNodeVisitor

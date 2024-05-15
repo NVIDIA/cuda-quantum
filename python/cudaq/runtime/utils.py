@@ -10,7 +10,7 @@ from __future__ import annotations
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from ..kernel.kernel_builder import PyKernel
 from ..kernel.kernel_decorator import PyKernelDecorator
-from ..mlir.dialects import quake, cc, codegen
+from ..mlir.dialects import quake, cc
 
 import numpy as np
 import sys

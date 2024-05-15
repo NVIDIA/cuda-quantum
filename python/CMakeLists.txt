@@ -54,14 +54,6 @@ declare_mlir_dialect_python_bindings(
     dialects/cc.py
   DIALECT_NAME cc)
 
-declare_mlir_dialect_python_bindings(
-  ADD_TO_PARENT CUDAQuantumPythonSources
-  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/mlir"
-  TD_FILE dialects/CodeGenOps.td
-  SOURCES
-    dialects/codegen.py
-  DIALECT_NAME codegen)
-
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   MODULE_NAME _quakeDialects
   ADD_TO_PARENT CUDAQuantumPythonSources

@@ -21,7 +21,7 @@ from .common.fermionic_swap import fermionic_swap_builder
 from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.execution_engine import *
-from ..mlir.dialects import quake, cc, codegen
+from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, register_all_dialects
 

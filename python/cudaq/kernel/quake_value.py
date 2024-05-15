@@ -15,7 +15,7 @@ import ctypes
 
 from ..mlir.ir import *
 from ..mlir.passmanager import *
-from ..mlir.dialects import quake, cc, codegen
+from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
 from .utils import mlirTypeFromPyType
