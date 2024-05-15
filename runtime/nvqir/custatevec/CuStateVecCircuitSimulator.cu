@@ -353,6 +353,7 @@ protected:
       // Create the memory and the handle
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
                                    stateDimension * sizeof(CudaDataType)));
+      ownsDeviceVector = true;
       HANDLE_ERROR(custatevecCreate(&handle));
       // First allocation, so just copy the user provided data (device mem) here
       HANDLE_CUDA_ERROR(cudaMemcpy(deviceStateVector, casted->getDevicePointer(),
