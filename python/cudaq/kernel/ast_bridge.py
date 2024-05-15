@@ -153,6 +153,25 @@ class PyASTBridge(ast.NodeVisitor):
         self.verbose = 'verbose' in kwargs and kwargs['verbose']
         self.currentNode = None
 
+    def emitWarning(self, msg, astNode=None):
+        """
+        Emit a warning, providing the user with source file information and
+        the offending code.
+        """
+        codeFile = os.path.basename(self.locationOffset[0])
+        if astNode == None:
+            astNode = self.currentNode
+        lineNumber = '' if astNode == None else astNode.lineno + self.locationOffset[
+            1] - 1
+
+        print(Color.BOLD, end='')
+        msg = codeFile + ":" + str(
+            lineNumber
+        ) + ": " + Color.YELLOW + "warning: " + Color.END + Color.BOLD + msg + (
+            "\n\t (offending source -> " + ast.unparse(astNode) + ")" if
+            hasattr(ast, 'unparse') and astNode is not None else '') + Color.END
+        print(msg)
+
     def emitFatalError(self, msg, astNode=None):
         """
         Emit a fatal error, providing the user with source file information and
@@ -479,7 +498,7 @@ class PyASTBridge(ast.NodeVisitor):
         return cc.StdvecInitOp(cc.StdvecType.get(self.ctx, vecTy), alloca,
                                arrSize).result
 
-    # Create a new vec with source elements casted to the target element type if needed.
+    # Create a new vector with source elements converted to the target element type if needed.
     def __copyVectorAndCastElements(self, source, targetEleType):
         if not cc.PointerType.isinstance(source.type):
             if cc.StdvecType.isinstance(source.type):
@@ -514,7 +533,6 @@ class PyASTBridge(ast.NodeVisitor):
                                 TypeAttr.get(targetEleType),
                                 seqSize=sourceSize).result
 
-        #targetPtr = cc.CastOp(targetElePtrType, targetPtr).result
         rawIndex = DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)
 
         def bodyBuilder(iterVar):
@@ -1694,9 +1712,9 @@ class PyASTBridge(ast.NodeVisitor):
                             self.__copyVectorAndCastElements(value, dTy))
                         return
 
-                    raise RuntimeError(
-                        f"unexpected numpy array initializer type: {value.type}"
-                    )
+                    raise self.emitFatalError(
+                        f"unexpected numpy array initializer type: {value.type}",
+                        node)
 
                 value = self.ifPointerThenLoad(value)
 
@@ -1800,9 +1818,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
                 if node.func.attr == 'qvector':
-                    value = self.popValue()
-                    value = self.ifPointerThenLoad(value)
-                    print(f"initializing qvector from {value}")
+                    value = self.ifPointerThenLoad(self.popValue())
                     if (IntegerType.isinstance(value.type)):
                         # handle `cudaq.qvector(n)`
                         ty = self.getVeqType()
@@ -1812,8 +1828,14 @@ class PyASTBridge(ast.NodeVisitor):
                     elif cc.StdvecType.isinstance(value.type):
                         # handle `cudaq.qvector(initState)`
 
-                        # Validate the length in case of constant initializer:
+                        # Validate the length in case of a constant initializer:
+                        # cudaq.qvector([1., 0., ...])
+                        # cudaq.qvector(np.array([1., 0., ...]))
+                        listScalar = None
                         arrNode = node.args[0]
+                        if isinstance(arrNode, ast.List):
+                            listScalar = arrNode.elts
+
                         if isinstance(arrNode, ast.Call) and isinstance(
                                 arrNode.func, ast.Attribute):
                             if arrNode.func.value.id in [
@@ -1821,20 +1843,33 @@ class PyASTBridge(ast.NodeVisitor):
                             ] and arrNode.func.attr == 'array':
                                 lst = node.args[0].args[0]
                                 if isinstance(lst, ast.List):
-                                    size = len(lst.elts)
-                                    numQubits = np.log2(size)
-                                    if not numQubits.is_integer():
-                                        raise RuntimeError(
-                                            "Invalid input state size for qvector init (not a power of 2)"
-                                        )
+                                    listScalar = lst.elts
 
+                        if listScalar != None:
+                            size = len(listScalar)
+                            numQubits = np.log2(size)
+                            if not numQubits.is_integer():
+                                self.emitFatalError(
+                                    "Invalid input state size for qvector init (not a power of 2)",
+                                    node)
+
+                        eleTy = cc.StdvecType.getElementType(value.type)
                         size = cc.StdvecSizeOp(self.getIntegerType(),
                                                value).result
                         numQubits = math.CountTrailingZerosOp(size).result
 
-                        # TODO: Dynamically check if numQubits is power of 2 and if the state is normalized
+                        # TODO: Dynamically check if number of qubits is power of 2
+                        # and if the state is normalized
 
-                        eleTy = self.simulationDType()
+                        simDTy = self.simulationDType()
+                        if (simDTy != eleTy):
+                            self.emitWarning(
+                                f"Extra copy is added to convert list[{mlirTypeToPyType(eleTy)}]"
+                                f"to list[{mlirTypeToPyType(simDTy)}]. "
+                                f"Consider using `cudaq.amplitudes` or `cudaq.complex` "
+                                f"in `qvector` initializers.", node)
+
+                        eleTy = simDTy
                         value = self.__copyVectorAndCastElements(value, eleTy)
                         ptrTy = cc.PointerType.get(self.ctx, eleTy)
                         veqTy = quake.VeqType.get(self.ctx)
@@ -2520,7 +2555,7 @@ class PyASTBridge(ast.NodeVisitor):
         assert len(self.valueStack) > 1
 
         # get the last name, should be name of var being subscripted
-        var = self.popValue()
+        var = self.ifPointerThenLoad(self.popValue())
         idx = self.popValue()
 
         # Support `VAR[-1]` as the last element of `VAR`
@@ -2637,7 +2672,7 @@ class PyASTBridge(ast.NodeVisitor):
         # the total size of the iterable, produced by range() / enumerate()
         if len(self.valueStack) == 1:
             # Get the iterable from the stack
-            iterable = self.popValue()
+            iterable = self.ifPointerThenLoad(self.popValue())
             # we currently handle `veq` and `stdvec` types
             if quake.VeqType.isinstance(iterable.type):
                 size = quake.VeqType.getSize(iterable.type)
@@ -3283,7 +3318,6 @@ class PyASTBridge(ast.NodeVisitor):
         if node.id in globalKernelRegistry:
             return
 
-        # For nd.array `dtype`s
         if node.id == 'complex':
             self.pushValue(self.getComplexType())
             return
