@@ -537,6 +537,20 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
   return state;
 }
 
+std::vector<std::complex<double>>
+TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
+  std::vector<std::complex<double>> ket(stateVec.size());
+  const std::size_t numQubits = std::log2(stateVec.size());
+  for (std::size_t i = 0; i < stateVec.size(); ++i) {
+    std::bitset<64> bs(i);
+    std::string bitStr = bs.to_string();
+    std::reverse(bitStr.begin(), bitStr.end());
+    bitStr = bitStr.substr(0, numQubits);
+    ket[std::stoull(bitStr, nullptr, 2)] = stateVec[i];
+  }
+  return ket;
+}
+
 std::unique_ptr<TensorNetState>
 TensorNetState::createFromStateVector(std::span<std::complex<double>> stateVec,
                                       cutensornetHandle_t handle) {
@@ -550,15 +564,10 @@ TensorNetState::createFromStateVector(std::span<std::complex<double>> stateVec,
   // previous state should be in the tensor network form. Construct the state
   // projector matrix
   // FIXME: use CUDA toolkit, e.g., cuBlas, to construct this projector matrix.
-  Eigen::VectorXcd ket(stateVec.size());
-  for (std::size_t i = 0; i < stateVec.size(); ++i) {
-    std::bitset<64> bs(i);
-    std::string bitStr = bs.to_string();
-    std::reverse(bitStr.begin(), bitStr.end());
-    bitStr = bitStr.substr(0, numQubits);
-    ket[std::stoull(bitStr, nullptr, 2)] = stateVec[i];
-  }
-
+  // Reverse the qubit order to match cutensornet convention
+  auto newStateVec = reverseQubitOrder(stateVec);
+  auto ket =
+      Eigen::Map<Eigen::VectorXcd>(newStateVec.data(), newStateVec.size());
   Eigen::VectorXcd initState = Eigen::VectorXcd::Zero(stateVec.size());
   initState(0) = std::complex<double>{1.0, 0.0};
   Eigen::MatrixXcd stateVecProj = ket * initState.transpose();

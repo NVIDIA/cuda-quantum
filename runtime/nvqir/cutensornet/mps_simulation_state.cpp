@@ -441,14 +441,11 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
                                        std::size_t size,
                                        std::complex<double> *ptr, int bondDim) {
   const std::size_t numQubits = std::log2(size);
-  Eigen::VectorXcd stateVec(size);
-  for (std::size_t i = 0; i < size; ++i) {
-    std::bitset<64> bs(i);
-    std::string bitStr = bs.to_string();
-    std::reverse(bitStr.begin(), bitStr.end());
-    bitStr = bitStr.substr(0, numQubits);
-    stateVec[std::stoull(bitStr, nullptr, 2)] = ptr[i];
-  }
+  // Reverse the qubit order to match cutensornet convention
+  auto newStateVec = TensorNetState::reverseQubitOrder(
+      std::span<std::complex<double>>{ptr, size});
+  auto stateVec =
+      Eigen::Map<Eigen::VectorXcd>(newStateVec.data(), newStateVec.size());
 
   if (numQubits == 1) {
     void *d_tensor = nullptr;
@@ -461,8 +458,7 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
     stateTensor.extents = std::vector<int64_t>{2};
     auto state =
         TensorNetState::createFromMpsTensors({stateTensor}, cutnHandle);
-    return {std::move(state),
-                          std::vector<MPSTensor>{stateTensor}};
+    return {std::move(state), std::vector<MPSTensor>{stateTensor}};
   }
 
   // Recursively factor the state vector from left to right.
@@ -477,7 +473,8 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
   std::vector<int64_t> numSingularValues;
   const auto enforceBondDim = [bondDim](const Eigen::MatrixXcd &U,
                                         const Eigen::VectorXd &S,
-                                        const Eigen::MatrixXcd &V) {
+                                        const Eigen::MatrixXcd &V)
+      -> std::tuple<Eigen::MatrixXcd, Eigen::VectorXd, Eigen::MatrixXcd> {
     assert(U.cols() == S.size());
     assert(V.cols() == S.size());
     if (S.size() <= bondDim) {
