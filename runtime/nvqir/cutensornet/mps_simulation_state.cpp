@@ -436,7 +436,7 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
   return reshapeMatrix(A);
 }
 
-std::pair<std::unique_ptr<TensorNetState>, std::vector<MPSTensor>>
+MPSSimulationState::MpsStateData
 MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
                                        std::size_t size,
                                        std::complex<double> *ptr, int bondDim) {
@@ -537,7 +537,7 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
   auto state = TensorNetState::createFromMpsTensors(mpsTensors, cutnHandle);
-  return std::make_pair(std::move(state), mpsTensors);
+  return {std::move(state), mpsTensors};
 }
 
 std::unique_ptr<cudaq::SimulationState>

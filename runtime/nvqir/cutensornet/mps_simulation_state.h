@@ -66,11 +66,19 @@ public:
   virtual std::unique_ptr<cudaq::SimulationState>
   createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override;
 
+  /// Encapsulate data needed to initialize an MPS state.
+  struct MpsStateData {
+    // Represents the tensor network state
+    std::unique_ptr<TensorNetState> networkState;
+    // Individual MPS tensors
+    std::vector<MPSTensor> tensors;
+  };
   /// Util method to create an MPS state from an input state vector.
   // For example, state vector from the user's input.
-  static std::pair<std::unique_ptr<TensorNetState>, std::vector<MPSTensor>>
-  createFromStateVec(cutensornetHandle_t cutnHandle, std::size_t size,
-                     std::complex<double> *data, int bondDim);
+  static MpsStateData createFromStateVec(cutensornetHandle_t cutnHandle,
+                                         std::size_t size,
+                                         std::complex<double> *data,
+                                         int bondDim);
 
   /// Retrieve the MPS tensors
   std::vector<MPSTensor> getMpsTensors() const { return m_mpsTensors; }
