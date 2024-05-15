@@ -38,9 +38,12 @@ std::complex<double> &one_body_integrals::operator()(std::size_t p,
 }
 
 void one_body_integrals::dump() {
+// FIXME: does not compile
+#if 0
   std::cerr << xt::adapt(data.get(), shape[0] * shape[1], xt::no_ownership(),
                          shape)
             << '\n';
+#endif
 }
 
 two_body_integals::two_body_integals(const std::vector<std::size_t> &shape)
@@ -59,9 +62,12 @@ std::complex<double> &two_body_integals::operator()(std::size_t p,
 }
 
 void two_body_integals::dump() {
+// FIXME: does not compile
+#if 0
   std::cerr << xt::adapt(data.get(), shape[0] * shape[1] * shape[2] * shape[3],
                          xt::no_ownership(), shape)
             << '\n';
+#endif
 }
 
 molecular_hamiltonian create_molecule(const molecular_geometry &geometry,
