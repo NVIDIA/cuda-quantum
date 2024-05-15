@@ -42,7 +42,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-#define DEBUG_TYPE "lower-to-qir"
+#define DEBUG_TYPE "convert-to-qir"
 
 using namespace mlir;
 
