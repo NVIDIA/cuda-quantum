@@ -47,8 +47,7 @@ public:
       m_state = TensorNetState::createFromMpsTensors(casted->getMpsTensors(),
                                                      m_cutnHandle);
     } else {
-      // Expand an existing state:
-      // Append MPS tensors
+      // Expand an existing state: Append MPS tensors
       throw std::runtime_error(
           "[SimulatorMPS simulator] Expanding state is not supported");
     }
