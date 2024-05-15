@@ -1829,8 +1829,8 @@ class PyASTBridge(ast.NodeVisitor):
                         # handle `cudaq.qvector(initState)`
 
                         # Validate the length in case of a constant initializer:
-                        # cudaq.qvector([1., 0., ...])
-                        # cudaq.qvector(np.array([1., 0., ...]))
+                        # `cudaq.qvector([1., 0., ...])`
+                        # `cudaq.qvector(np.array([1., 0., ...]))`
                         listScalar = None
                         arrNode = node.args[0]
                         if isinstance(arrNode, ast.List):
