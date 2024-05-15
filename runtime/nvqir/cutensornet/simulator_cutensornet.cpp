@@ -259,20 +259,17 @@ SimulatorTensorNetBase::observe(const cudaq::spin_op &ham) {
 
 nvqir::CircuitSimulator *SimulatorTensorNetBase::clone() { return nullptr; }
 
-void SimulatorTensorNetBase::addQubitsToState(std::size_t count, const void *) {
-  LOG_API_TIME();
-  if (!m_state)
-    m_state = std::make_unique<TensorNetState>(count, m_cutnHandle);
-  else if (gateQueue.empty())
-    m_state = std::make_unique<TensorNetState>(m_state->getNumQubits() + count,
-                                               m_cutnHandle);
-  else
-    throw std::runtime_error("Expand qubit register is not supported!");
-}
 void SimulatorTensorNetBase::addQubitToState() { addQubitsToState(1); }
 
 /// @brief Destroy the entire qubit register
-void SimulatorTensorNetBase::deallocateStateImpl() { m_state.reset(); }
+void SimulatorTensorNetBase::deallocateStateImpl() {
+  if (m_state) {
+    m_state.reset();
+    // Reset cuTensorNet library
+    HANDLE_CUTN_ERROR(cutensornetDestroy(m_cutnHandle));
+    HANDLE_CUTN_ERROR(cutensornetCreate(&m_cutnHandle));
+  }
+}
 
 /// @brief Reset all qubits to zero
 void SimulatorTensorNetBase::setToZeroState() {

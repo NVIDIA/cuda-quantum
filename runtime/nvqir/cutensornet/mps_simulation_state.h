@@ -17,9 +17,17 @@
 #include "common/SimulationState.h"
 
 namespace nvqir {
+struct MPSSettings {
+  // Default max bond dim
+  int64_t maxBond = 64;
+  // Default absolute cutoff
+  double absCutoff = 1e-5;
+  // Default relative cutoff
+  double relCutoff = 1e-5;
+  MPSSettings();
+};
 
-class MPSSimulationState : public cudaq::SimulationState,
-                           public cudaq::TensorNetworkState {
+class MPSSimulationState : public cudaq::SimulationState {
 
 public:
   MPSSimulationState(std::unique_ptr<TensorNetState> inState,
@@ -58,18 +66,22 @@ public:
   virtual std::unique_ptr<cudaq::SimulationState>
   createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override;
 
-  // Note: this API is intended for a simulate-observe-reinit use case on single
-  // state. For example, run a circuit, get the state to perform some
-  // computation (e.g., overlap, expectation), then reinit the state to continue
-  // the simulation. The resulting nvqir::TensorNetState should be able to be
-  // fed to the appropriate tensor network based simulator to continue the
-  // simulation.
-  // In this case (MPS), the initial state is set to the MPS tensor train, which
-  // has been factorized when the previous get_state was called (to get a handle
-  // to this MPSSimulationState).
-  std::unique_ptr<nvqir::TensorNetState>
-  reconstructBackendState() const override;
-  std::unique_ptr<cudaq::SimulationState> toSimulationState() const override;
+  /// Encapsulate data needed to initialize an MPS state.
+  struct MpsStateData {
+    // Represents the tensor network state
+    std::unique_ptr<TensorNetState> networkState;
+    // Individual MPS tensors
+    std::vector<MPSTensor> tensors;
+  };
+  /// Util method to create an MPS state from an input state vector.
+  // For example, state vector from the user's input.
+  static MpsStateData createFromStateVec(cutensornetHandle_t cutnHandle,
+                                         std::size_t size,
+                                         std::complex<double> *data,
+                                         int bondDim);
+
+  /// Retrieve the MPS tensors
+  std::vector<MPSTensor> getMpsTensors() const { return m_mpsTensors; }
 
 protected:
   void deallocate();
