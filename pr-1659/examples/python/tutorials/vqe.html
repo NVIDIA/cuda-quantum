@@ -532,59 +532,10 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Requirement already satisfied: openfermionpyscf==0.5 in /usr/local/lib/python3.10/dist-packages (0.5)
-Requirement already satisfied: matplotlib==3.8.4 in /usr/local/lib/python3.10/dist-packages (3.8.4)
-Collecting scipy==1.13.0
-  Downloading scipy-1.13.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (38.6 MB)
-     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">38.6/38.6 MB</span> <span class="ansi-red-fg">40.0 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
-Requirement already satisfied: pytest in /usr/local/lib/python3.10/dist-packages (from openfermionpyscf==0.5) (8.2.0)
-Requirement already satisfied: pyscf in /usr/local/lib/python3.10/dist-packages (from openfermionpyscf==0.5) (2.5.0)
-Requirement already satisfied: openfermion&gt;=0.5 in /usr/local/lib/python3.10/dist-packages (from openfermionpyscf==0.5) (1.6.1)
-Requirement already satisfied: pyparsing&gt;=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (3.1.2)
-Requirement already satisfied: packaging&gt;=20.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (24.0)
-Requirement already satisfied: pillow&gt;=8 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (10.3.0)
-Requirement already satisfied: fonttools&gt;=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (4.51.0)
-Requirement already satisfied: kiwisolver&gt;=1.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (1.4.5)
-Requirement already satisfied: contourpy&gt;=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (1.2.1)
-Requirement already satisfied: numpy&gt;=1.21 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (1.26.4)
-Requirement already satisfied: cycler&gt;=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (0.12.1)
-Requirement already satisfied: python-dateutil&gt;=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib==3.8.4) (2.9.0.post0)
-Requirement already satisfied: deprecation in /usr/local/lib/python3.10/dist-packages (from openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (2.1.0)
-Requirement already satisfied: cirq-core~=1.0 in /usr/local/lib/python3.10/dist-packages (from openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (1.3.0)
-Requirement already satisfied: sympy in /usr/local/lib/python3.10/dist-packages (from openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (1.12)
-Requirement already satisfied: h5py&gt;=2.8 in /usr/local/lib/python3.10/dist-packages (from openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (3.10.0)
-Requirement already satisfied: pubchempy in /usr/local/lib/python3.10/dist-packages (from openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (1.0.4)
-Requirement already satisfied: networkx in /usr/local/lib/python3.10/dist-packages (from openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (3.3)
-Requirement already satisfied: requests&gt;=2.18 in /usr/local/lib/python3.10/dist-packages (from openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (2.31.0)
-Requirement already satisfied: six&gt;=1.5 in /usr/local/lib/python3.10/dist-packages (from python-dateutil&gt;=2.7-&gt;matplotlib==3.8.4) (1.16.0)
-Requirement already satisfied: setuptools in /usr/lib/python3/dist-packages (from pyscf-&gt;openfermionpyscf==0.5) (59.6.0)
-Requirement already satisfied: tomli&gt;=1 in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;openfermionpyscf==0.5) (2.0.1)
-Requirement already satisfied: iniconfig in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;openfermionpyscf==0.5) (2.0.0)
-Requirement already satisfied: exceptiongroup&gt;=1.0.0rc8 in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;openfermionpyscf==0.5) (1.2.1)
-Requirement already satisfied: pluggy&lt;2.0,&gt;=1.5 in /usr/local/lib/python3.10/dist-packages (from pytest-&gt;openfermionpyscf==0.5) (1.5.0)
-Requirement already satisfied: tqdm in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (4.66.4)
-Requirement already satisfied: typing-extensions&gt;=4.2 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (4.11.0)
-Requirement already satisfied: duet~=0.2.8 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (0.2.9)
-Requirement already satisfied: pandas in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (2.2.2)
-Requirement already satisfied: sortedcontainers~=2.0 in /usr/local/lib/python3.10/dist-packages (from cirq-core~=1.0-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (2.4.0)
-Requirement already satisfied: urllib3&lt;3,&gt;=1.21.1 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (2.2.1)
-Requirement already satisfied: idna&lt;4,&gt;=2.5 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (3.7)
-Requirement already satisfied: charset-normalizer&lt;4,&gt;=2 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (3.3.2)
-Requirement already satisfied: certifi&gt;=2017.4.17 in /usr/local/lib/python3.10/dist-packages (from requests&gt;=2.18-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (2024.2.2)
-Requirement already satisfied: mpmath&gt;=0.19 in /usr/local/lib/python3.10/dist-packages (from sympy-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (1.3.0)
-Requirement already satisfied: tzdata&gt;=2022.7 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;cirq-core~=1.0-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (2024.1)
-Requirement already satisfied: pytz&gt;=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas-&gt;cirq-core~=1.0-&gt;openfermion&gt;=0.5-&gt;openfermionpyscf==0.5) (2024.1)
-Installing collected packages: scipy
-  Attempting uninstall: scipy
-    Found existing installation: scipy 1.10.1
-    Uninstalling scipy-1.10.1:
-      Successfully uninstalled scipy-1.10.1
-Successfully installed scipy-1.13.0
-<span class="ansi-yellow-fg">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span><span class="ansi-yellow-fg">
-</span>
+
 </pre></div></div>
 </div>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
@@ -599,23 +550,6 @@ Successfully installed scipy-1.13.0
 <span class="c1">#cudaq.set_target(&quot;nvidia-fp64&quot;)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">RuntimeError</span>                              Traceback (most recent call last)
-Cell <span class="ansi-green-fg">In[2], line 7</span>
-<span class="ansi-green-intense-fg ansi-bold">      4</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span> <span class="ansi-bold" style="color: rgb(0,0,255)">numpy</span> <span class="ansi-bold" style="color: rgb(0,135,0)">as</span> <span class="ansi-bold" style="color: rgb(0,0,255)">np</span>
-<span class="ansi-green-intense-fg ansi-bold">      6</span> <span style="color: rgb(95,135,135)"># Single precision</span>
-<span class="ansi-green-fg">----&gt; 7</span> <span class="ansi-yellow-bg">cudaq</span><span class="ansi-yellow-bg" style="color: rgb(98,98,98)">.</span><span class="ansi-yellow-bg">set_target</span><span class="ansi-yellow-bg">(</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">nvidia</span><span class="ansi-yellow-bg" style="color: rgb(175,0,0)">&#34;</span><span class="ansi-yellow-bg">)</span>
-<span class="ansi-green-intense-fg ansi-bold">      8</span> <span style="color: rgb(95,135,135)"># Double precision</span>
-<span class="ansi-green-intense-fg ansi-bold">      9</span> <span style="color: rgb(95,135,135)">#cudaq.set_target(&#34;nvidia-fp64&#34;)</span>
-
-<span class="ansi-red-fg">RuntimeError</span>: Invalid target name (nvidia).
-</pre></div></div>
 </div>
 <p>The problem of interest here is a chain of hydrogen atoms seperated along the z-axis at a fixed interval called the bond distance.</p>
 <p>The interatomic electrostatic forces due to the electrons and protons and the shielding by the neutrons creates a chemical system whose energy can be minimised to find a stable configuration.</p>
@@ -685,7 +619,7 @@ Cell <span class="ansi-green-fg">In[2], line 7</span>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
--1.1371756649403284
+-1.1371744305855904
 </pre></div></div>
 </div>
 </section>
