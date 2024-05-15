@@ -461,8 +461,8 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
     stateTensor.extents = std::vector<int64_t>{2};
     auto state =
         TensorNetState::createFromMpsTensors({stateTensor}, cutnHandle);
-    return std::make_pair(std::move(state),
-                          std::vector<MPSTensor>{stateTensor});
+    return {std::move(state),
+                          std::vector<MPSTensor>{stateTensor}};
   }
 
   // Recursively factor the state vector from left to right.
