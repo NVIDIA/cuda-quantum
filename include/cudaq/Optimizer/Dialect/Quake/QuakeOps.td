@@ -72,7 +72,9 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
   }];
 
   let arguments = (ins Optional<AnySignlessInteger>:$size);
-  let results = (outs AnyRefType:$ref_or_vec);
+  let results = (outs
+    AnyRefType:$ref_or_vec
+  );
 
   let builders = [
     OpBuilder<(ins ), [{
