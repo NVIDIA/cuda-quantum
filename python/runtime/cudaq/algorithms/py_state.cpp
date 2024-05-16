@@ -8,14 +8,14 @@
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
 
-#include "py_state.h"
-#include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-#include "mlir/CAPI/IR.h"
 #include "LinkedLibraryHolder.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Logger.h"
 #include "cudaq/algorithms/get_state.h"
+#include "py_state.h"
+#include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/CAPI/IR.h"
 
 namespace cudaq {
 
@@ -107,7 +107,7 @@ state pyGetStateRemote(py::object kernel, py::args args) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
-  auto kernelName = kernel.attr("name").cast<std::string>();  
+  auto kernelName = kernel.attr("name").cast<std::string>();
   args = simplifiedValidateInputArguments(args);
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
