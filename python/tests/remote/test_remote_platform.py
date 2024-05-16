@@ -245,13 +245,17 @@ def test_additional_spin_ops():
     energy = cudaq.observe(main_kernel, spin_ham).expectation()
     assert assert_close(energy, 1)
 
+
 def check_state(entity):
     state = cudaq.get_state(entity)
     state.dump()
-    assert assert_close(state[0], 1.0/np.sqrt(2))
-    assert assert_close(state[-1], 1.0/np.sqrt(2))
-    assert assert_close(state.amplitude([0] * state.num_qubits()), 1.0/np.sqrt(2))
-    assert assert_close(state.amplitude([1] * state.num_qubits()), 1.0/np.sqrt(2))
+    assert assert_close(state[0], 1.0 / np.sqrt(2))
+    assert assert_close(state[-1], 1.0 / np.sqrt(2))
+    assert assert_close(state.amplitude([0] * state.num_qubits()),
+                        1.0 / np.sqrt(2))
+    assert assert_close(state.amplitude([1] * state.num_qubits()),
+                        1.0 / np.sqrt(2))
+
 
 def test_state():
     kernel = cudaq.make_kernel()
@@ -271,17 +275,19 @@ def test_state_kernel():
         num_qubits = 5
         qreg = cudaq.qvector(num_qubits)
         h(qreg[0])
-        for i in range(num_qubits - 1): 
+        for i in range(num_qubits - 1):
             x.ctrl(qreg[i], qreg[i + 1])
 
     check_state(kernel)
+
 
 def check_overlap(entity_bell, entity_x):
     state1 = cudaq.get_state(entity_bell)
     state1.dump()
     state2 = cudaq.get_state(entity_x)
     state2.dump()
-    assert assert_close(state1.overlap(state2), 1.0/np.sqrt(2))
+    assert assert_close(state1.overlap(state2), 1.0 / np.sqrt(2))
+
 
 def test_overlap():
     kernel1 = cudaq.make_kernel()
@@ -294,6 +300,7 @@ def test_overlap():
     kernel2.x(qreg2[0])
     kernel2.x(qreg2[1])
     check_overlap(kernel1, kernel2)
+
 
 def test_overlap_kernel():
 
@@ -312,6 +319,44 @@ def test_overlap_kernel():
         x(qreg[1])
 
     check_overlap(kernel1, kernel2)
+
+
+def check_overlap_param(entity):
+    num_tests = 10
+    for i in range(num_tests):
+        angle1 = np.random.rand(
+        ) * 2.0 * np.pi  # random angle in [0, 2pi] range
+        state1 = cudaq.get_state(entity, angle1)
+        print("First angle =", angle1)
+        state1.dump()
+        angle2 = np.random.rand(
+        ) * 2.0 * np.pi  # random angle in [0, 2pi] range
+        print("Second angle =", angle2)
+        state2 = cudaq.get_state(entity, angle2)
+        state2.dump()
+        overlap = state1.overlap(state2)
+        expected = np.abs(np.cos(angle1 / 2) * np.cos(angle2 / 2)) + np.abs(
+            np.sin(angle1 / 2) * np.sin(angle2 / 2))
+        assert assert_close(overlap, expected)
+
+
+def test_overlap_param_kernel():
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        qreg = cudaq.qvector(1)
+        rx(theta, qreg[0])
+
+    check_overlap_param(kernel)
+
+
+def test_overlap_param():
+
+    kernel, theta = cudaq.make_kernel(float)
+    qreg = kernel.qalloc(1)
+    kernel.rx(theta, qreg[0])
+    check_overlap_param(kernel)
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
