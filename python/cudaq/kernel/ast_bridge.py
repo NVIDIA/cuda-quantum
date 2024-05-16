@@ -330,13 +330,6 @@ class PyASTBridge(ast.NodeVisitor):
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
 
-    def getLiteralValue(self, value):
-        if hasattr(value, "owner"):
-            if hasattr(value.owner, "opview"):
-                if hasattr(value.owner.opview, "literal_value"):
-                    return value.owner.opview.literal_value
-        return None
-
     def promoteOperandType(self, ty, operand):
         if ComplexType.isinstance(ty):
             complexType = ComplexType(ty)
@@ -1852,13 +1845,8 @@ class PyASTBridge(ast.NodeVisitor):
                     value = self.ifPointerThenLoad(self.popValue())
                     if (IntegerType.isinstance(value.type)):
                         # handle `cudaq.qvector(n)`
-                        constValue = self.getLiteralValue(value)
-                        if constValue != None:
-                            ty = self.getVeqType(constValue)
-                            qubits = quake.AllocaOp(ty).result
-                        else:
-                            ty = self.getVeqType()
-                            qubits = quake.AllocaOp(ty, size=value).result
+                        ty = self.getVeqType()
+                        qubits = quake.AllocaOp(ty, size=value).result
                         self.pushValue(qubits)
                         return
                     if cc.StdvecType.isinstance(value.type):
