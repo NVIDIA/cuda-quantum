@@ -276,6 +276,43 @@ def test_state_kernel():
 
     check_state(kernel)
 
+def check_overlap(entity_bell, entity_x):
+    state1 = cudaq.get_state(entity_bell)
+    state1.dump()
+    state2 = cudaq.get_state(entity_x)
+    state2.dump()
+    assert assert_close(state1.overlap(state2), 1.0/np.sqrt(2))
+
+def test_overlap():
+    kernel1 = cudaq.make_kernel()
+    num_qubits = 2
+    qreg1 = kernel1.qalloc(num_qubits)
+    kernel1.h(qreg1[0])
+    kernel1.cx(qreg1[0], qreg1[1])
+    kernel2 = cudaq.make_kernel()
+    qreg2 = kernel2.qalloc(num_qubits)
+    kernel2.x(qreg2[0])
+    kernel2.x(qreg2[1])
+    check_overlap(kernel1, kernel2)
+
+def test_overlap_kernel():
+
+    @cudaq.kernel
+    def kernel1():
+        num_qubits = 2
+        qreg = cudaq.qvector(num_qubits)
+        h(qreg[0])
+        x.ctrl(qreg[0], qreg[1])
+
+    @cudaq.kernel
+    def kernel2():
+        num_qubits = 2
+        qreg = cudaq.qvector(num_qubits)
+        x(qreg[0])
+        x(qreg[1])
+
+    check_overlap(kernel1, kernel2)
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

@@ -47,7 +47,8 @@ state pyGetState(py::object kernel, py::args args) {
 class PyRemoteSimulationState : public RemoteSimulationState {
   cudaq::ArgWrapper argsWrapper;
   std::size_t argsSize;
-  cudaq::OpaqueArguments* argsData;
+  cudaq::OpaqueArguments *argsData;
+
 public:
   PyRemoteSimulationState(const std::string &in_kernelName,
                           cudaq::ArgWrapper args,
@@ -57,7 +58,7 @@ public:
     this->kernelName = in_kernelName;
   }
 
-  virtual void execute() const override {
+  void execute() const override {
     if (!state) {
       auto &platform = cudaq::get_platform();
       // Create an execution context, indicate this is for
@@ -74,6 +75,29 @@ public:
       state = std::move(context.simulationState);
     }
   }
+
+  std::tuple<std::string, void *, std::size_t> getKernelInfo() const override {
+    return {kernelName, argsWrapper.rawArgs, argsSize};
+  }
+
+  std::complex<double> overlap(const cudaq::SimulationState &other) override {
+    const auto &otherState =
+        dynamic_cast<const PyRemoteSimulationState &>(other);
+    auto &platform = cudaq::get_platform();
+    ExecutionContext context("state-overlap");
+    context.overlapComputeStates = std::make_pair(
+        static_cast<const cudaq::SimulationState *>(this),
+        static_cast<const cudaq::SimulationState *>(&otherState));
+    platform.set_exec_ctx(&context);
+    platform.launchKernel(
+        kernelName, nullptr,
+        reinterpret_cast<void *>(const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
+        0, 0);
+    platform.reset_exec_ctx();
+    assert(context.overlapResult.has_value());
+    return context.overlapResult.value();
+  }
+
   ~PyRemoteSimulationState() { delete argsData; }
 };
 

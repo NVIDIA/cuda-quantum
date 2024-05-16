@@ -37,7 +37,7 @@ public:
   /// @brief Triggers remote execution to resolve the state data.
   virtual void execute() const;
 
-  std::tuple<std::string, void *, std::size_t> getKernelInfo() const;
+  virtual std::tuple<std::string, void *, std::size_t> getKernelInfo() const;
 
   std::size_t getNumQubits() const override {
     execute();
