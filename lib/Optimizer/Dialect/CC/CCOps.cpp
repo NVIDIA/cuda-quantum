@@ -811,10 +811,9 @@ void cudaq::cc::LoopOp::getSuccessorRegions(
     // WHILE region, successors are the owning loop op and the DO region.
     regions.emplace_back(&getBodyRegion(), getDoEntryArguments());
     if (hasPythonElse())
-      regions.emplace_back(
-          &getElseRegion(), getElseEntryArguments());
+      regions.emplace_back(&getElseRegion(), getElseEntryArguments());
     else
-    regions.emplace_back(getResults());
+      regions.emplace_back(getResults());
   } else if (region == &getBodyRegion()) {
     // DO region, successor is STEP region (2) if present, or WHILE region (0)
     // if STEP is absent.
@@ -1284,7 +1283,7 @@ LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {
   if (!regionOp)
     return failure();
   SmallVector<RegionSuccessor> successors;
-  regionOp.getSuccessorRegions(std::nullopt, {}, successors);
+  regionOp.getSuccessorRegions(RegionBranchPoint::parent(), successors);
   // For each region successor, determine the number of distinct linear-typed
   // definitions in the region.
   long linearMax = -1;
