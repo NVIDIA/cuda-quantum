@@ -464,7 +464,7 @@ def test_kernel_amplitudes_complex_from_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = cudaq.amplitudes([.70710678, 0., 0., 0.70710678])
+    c = [.70710678, 0., 0., 0.70710678]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
