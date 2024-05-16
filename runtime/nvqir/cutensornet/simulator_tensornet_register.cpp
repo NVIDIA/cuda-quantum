@@ -83,7 +83,8 @@ public:
       throw std::invalid_argument(
           "[Tensornet simulator] Incompatible state input");
     if (!m_state) {
-      m_state = casted->reconstructBackendState();
+      m_state = TensorNetState::createFromOpTensors(
+          in_state.getNumQubits(), casted->getAppliedTensors(), m_cutnHandle);
     } else {
       // Expand an existing state:
       //  (1) Create a blank tensor network with combined number of qubits
@@ -103,11 +104,12 @@ public:
       };
       for (auto &op : casted->getAppliedTensors()) {
         if (op.isUnitary)
-          m_state->applyGate(mapQubitIdxs(op.qubitIds), op.deviceData,
+          m_state->applyGate(mapQubitIdxs(op.controlQubitIds),
+                             mapQubitIdxs(op.targetQubitIds), op.deviceData,
                              op.isAdjoint);
         else
           m_state->applyQubitProjector(op.deviceData,
-                                       mapQubitIdxs(op.qubitIds));
+                                       mapQubitIdxs(op.targetQubitIds));
       }
     }
   }

@@ -8,6 +8,7 @@
 
 #include "JITExecutionCache.h"
 #include "common/ArgumentWrapper.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
@@ -18,6 +19,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "utils/OpaqueArguments.h"
+#include "utils/PyTypes.h"
 
 #include "llvm/Support/Error.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
@@ -36,6 +38,9 @@ namespace py = pybind11;
 using namespace mlir;
 
 namespace cudaq {
+// TODO: unify with the definition in GenKernelExec.cpp
+static constexpr std::int32_t NoResultOffset =
+    std::numeric_limits<std::int32_t>::max();
 static std::unique_ptr<JITExecutionCache> jitCache;
 
 struct PyStateVectorData {
@@ -48,7 +53,7 @@ using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
 static std::unique_ptr<PyStateVectorStorage> stateStorage =
     std::make_unique<PyStateVectorStorage>();
 
-std::tuple<ExecutionEngine *, void *, std::size_t>
+std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
                  cudaq::OpaqueArguments &runtimeArgs,
                  const std::vector<std::string> &names, Type returnType) {
@@ -77,7 +82,7 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader(/*genAsQuake=*/true));
     pm.addPass(cudaq::opt::createGenerateKernelExecution());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    cudaq::opt::addPipelineToQIR<>(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
 
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
@@ -146,6 +151,14 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             delete static_cast<long *>(ptr);
           });
         })
+        .Case([&](ComplexType type) {
+          Py_complex *ourAllocatedArg = new Py_complex();
+          ourAllocatedArg->real = 0.0;
+          ourAllocatedArg->imag = 0.0;
+          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
+            delete static_cast<Py_complex *>(ptr);
+          });
+        })
         .Case([&](Float64Type type) {
           double *ourAllocatedArg = new double();
           *ourAllocatedArg = 0.;
@@ -166,8 +179,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
             llvm::raw_string_ostream os(msg);
             ty.print(os);
           }
-          throw std::runtime_error(
-              "Unsupported CUDA Quantum kernel return type - " + msg + ".\n");
+          throw std::runtime_error("Unsupported CUDA-Q kernel return type - " +
+                                   msg + ".\n");
         });
 
   void *rawArgs = nullptr;
@@ -183,14 +196,29 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
     rawArgs = nullptr;
     size = argsCreator(runtimeArgs.data(), &rawArgs);
   }
-  return std::make_tuple(jit, rawArgs, size);
+
+  std::int32_t returnOffset = 0;
+  if (runtimeArgs.size()) {
+    auto expectedPtr = jit->lookup(name + ".returnOffset");
+    if (!expectedPtr) {
+      throw std::runtime_error(
+          "cudaq::builder failed to get returnOffset function.");
+    }
+    auto returnOffsetCalculator =
+        reinterpret_cast<std::int64_t (*)()>(*expectedPtr);
+    returnOffset = (std::int32_t)returnOffsetCalculator();
+    if (returnOffset == NoResultOffset) {
+      returnOffset = 0;
+    }
+  }
+  return {jit, rawArgs, size, returnOffset};
 }
 
-std::tuple<void *, std::size_t>
+std::tuple<void *, std::size_t, std::int32_t>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                       Type returnType, cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names) {
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, names, returnType);
 
   auto mod = unwrap(module);
@@ -249,86 +277,97 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
   if (platform.is_remote() || platform.is_emulated()) {
     auto *wrapper = new cudaq::ArgWrapper{mod, names, rawArgs};
     cudaq::altLaunchKernel(name.c_str(), thunk,
-                           reinterpret_cast<void *>(wrapper), size, 0);
+                           reinterpret_cast<void *>(wrapper), size,
+                           (uint64_t)returnOffset);
     delete wrapper;
   } else
-    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size, 0);
+    cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
+                           (uint64_t)returnOffset);
 
-  return std::make_tuple(rawArgs, size);
+  return std::make_tuple(rawArgs, size, returnOffset);
 }
 
 void pyAltLaunchKernel(const std::string &name, MlirModule module,
                        cudaq::OpaqueArguments &runtimeArgs,
                        const std::vector<std::string> &names) {
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
-  auto [rawArgs, size] =
+  auto [rawArgs, size, returnOffset] =
       pyAltLaunchKernelBase(name, module, noneType, runtimeArgs, names);
   std::free(rawArgs);
+}
+
+inline unsigned int byteSize(mlir::Type ty) {
+  if (isa<ComplexType>(ty)) {
+    auto eleTy = cast<ComplexType>(ty).getElementType();
+    return 2 * cudaq::opt::convertBitsToBytes(eleTy.getIntOrFloatBitWidth());
+  }
+  return cudaq::opt::convertBitsToBytes(ty.getIntOrFloatBitWidth());
+}
+
+template <typename T>
+py::object readPyObject(mlir::Type ty, char *arg) {
+  unsigned int bytes = byteSize(ty);
+  if (sizeof(T) != bytes) {
+    ty.dump();
+    throw std::runtime_error(
+        "Error reading return value of type (reading bytes: " +
+        std::to_string(sizeof(T)) +
+        ", bytes available to read: " + std::to_string(bytes) + ")");
+  }
+  T concrete;
+  std::memcpy(&concrete, arg, bytes);
+  return py_ext::convert<T>(concrete);
 }
 
 py::object pyAltLaunchKernelR(const std::string &name, MlirModule module,
                               MlirType returnType,
                               cudaq::OpaqueArguments &runtimeArgs,
                               const std::vector<std::string> &names) {
-  auto [rawArgs, size] = pyAltLaunchKernelBase(name, module, unwrap(returnType),
-                                               runtimeArgs, names);
+  auto [rawArgs, size, returnOffset] = pyAltLaunchKernelBase(
+      name, module, unwrap(returnType), runtimeArgs, names);
+
   auto unwrapped = unwrap(returnType);
+  auto rawReturn = ((char *)rawArgs) + returnOffset;
 
-  // We first need to compute the offset for the return value.
-  // We'll loop through all the arguments and increment the
-  // offset for the argument type. Then we'll be at our return type location.
-  auto returnOffset = [&]() {
-    std::size_t offset = 0;
-    auto kernelFunc = getKernelFuncOp(module, name);
-    for (auto argType : kernelFunc.getArgumentTypes())
-      llvm::TypeSwitch<mlir::Type, void>(argType)
-          .Case([&](IntegerType ty) {
+  // Extract the return value from the rawReturn pointer.
+  py::object returnValue =
+      llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
+          .Case([&](IntegerType ty) -> py::object {
             if (ty.getIntOrFloatBitWidth() == 1) {
-              offset += 1;
-              return;
+              return readPyObject<bool>(ty, rawReturn);
             }
-
-            offset += 8;
-            return;
+            return readPyObject<long>(ty, rawReturn);
           })
-          .Case([&](cc::StdvecType ty) { offset += 8; })
-          .Case([&](Float64Type ty) { offset += 8; })
-          .Case([&](Float32Type ty) { offset += 4; })
-          .Default([](Type) {});
+          .Case([&](ComplexType ty) -> py::object {
+            auto eleTy = ty.getElementType();
+            return llvm::TypeSwitch<mlir::Type, py::object>(eleTy)
+                .Case([&](Float64Type eTy) -> py::object {
+                  return readPyObject<std::complex<double>>(ty, rawReturn);
+                })
+                .Case([&](Float32Type eTy) -> py::object {
+                  return readPyObject<std::complex<float>>(ty, rawReturn);
+                })
+                .Default([](Type eTy) -> py::object {
+                  eTy.dump();
+                  throw std::runtime_error(
+                      "Invalid float element type for return "
+                      "complex type for pyAltLaunchKernel.");
+                });
+          })
+          .Case([&](Float64Type ty) -> py::object {
+            return readPyObject<double>(ty, rawReturn);
+          })
+          .Case([&](Float32Type ty) -> py::object {
+            return readPyObject<float>(ty, rawReturn);
+          })
+          .Default([](Type ty) -> py::object {
+            ty.dump();
+            throw std::runtime_error(
+                "Invalid return type for pyAltLaunchKernel.");
+          });
 
-    return offset;
-  }();
-
-  // Extract the return value from the rawArgs pointer.
-  return llvm::TypeSwitch<mlir::Type, py::object>(unwrapped)
-      .Case([&](IntegerType ty) -> py::object {
-        if (ty.getIntOrFloatBitWidth() == 1) {
-          bool concrete = false;
-          std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 1);
-          std::free(rawArgs);
-          return py::bool_(concrete);
-        }
-        std::size_t concrete;
-        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
-        std::free(rawArgs);
-        return py::int_(concrete);
-      })
-      .Case([&](Float64Type ty) -> py::object {
-        double concrete;
-        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 8);
-        std::free(rawArgs);
-        return py::float_(concrete);
-      })
-      .Case([&](Float32Type ty) -> py::object {
-        float concrete;
-        std::memcpy(&concrete, ((char *)rawArgs) + returnOffset, 4);
-        std::free(rawArgs);
-        return py::float_(concrete);
-      })
-      .Default([](Type ty) -> py::object {
-        ty.dump();
-        throw std::runtime_error("Invalid return type for pyAltLaunchKernel.");
-      });
+  std::free(rawArgs);
+  return returnValue;
 }
 
 MlirModule synthesizeKernel(const std::string &name, MlirModule module,
@@ -336,7 +375,7 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
@@ -369,16 +408,16 @@ std::string getQIRLL(const std::string &name, MlirModule module,
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIRLL", name);
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
-  auto [jit, rawArgs, size] =
+  auto [jit, rawArgs, size, returnOffset] =
       jitAndCreateArgs(name, module, runtimeArgs, {}, noneType);
   auto cloned = unwrap(module).clone();
   auto context = cloned.getContext();
 
   PassManager pm(context);
   if (profile.empty())
-    cudaq::opt::addPipelineToQIR<>(pm);
+    cudaq::opt::addPipelineConvertToQIR(pm);
   else
-    cudaq::opt::addPipelineToQIR<true>(pm, profile);
+    cudaq::opt::addPipelineConvertToQIR(pm, profile);
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer

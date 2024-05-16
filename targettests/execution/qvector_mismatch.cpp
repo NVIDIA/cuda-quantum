@@ -6,27 +6,21 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std -verify %s
+// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
-#include <string>
-#include <tuple>
 
-// expected-error@+1{{kernel argument type not supported}}
-void prepQubit(std::pair<int, double> basis, cudaq::qubit &q) __qpu__ {}
-
-// expected-error@+1{{kernel argument type not supported}}
-void RzArcTan2(bool input, std::pair<int, double> basis) __qpu__ {
-  cudaq::qubit aux;
-  cudaq::qubit resource;
-  cudaq::qubit target;
-  if (input) {
-    x(target);
-  }
-  prepQubit(basis, target);
+__qpu__ void test(std::vector<double> inState) {
+  cudaq::qvector q = inState;
 }
 
 int main() {
-  RzArcTan2(true, {});
+  std::vector<double> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+  auto counts = cudaq::sample(test, vec);
+  counts.dump();
+
+  printf("size %zu\n", counts.size());
   return 0;
 }
+
+// CHECK: size {{[0-9]+}}

@@ -19,22 +19,15 @@ class TensorNetState;
 
 namespace cudaq {
 class SimulationState;
-class TensorNetworkState {
-public:
-  virtual ~TensorNetworkState() = default;
-  virtual std::unique_ptr<nvqir::TensorNetState>
-  reconstructBackendState() const = 0;
-  virtual std::unique_ptr<cudaq::SimulationState> toSimulationState() const = 0;
-};
 
 /// @brief state_data is a variant type
 /// encoding different forms of user state vector data
 /// we support.
-using state_data = std::variant<
-    std::vector<std::complex<double>>, std::vector<std::complex<float>>,
-    std::pair<std::complex<double> *, std::size_t>,
-    std::pair<std::complex<float> *, std::size_t>,
-    std::vector<std::complex<double> *>, std::shared_ptr<TensorNetworkState>>;
+using state_data = std::variant<std::vector<std::complex<double>>,
+                                std::vector<std::complex<float>>,
+                                std::pair<std::complex<double> *, std::size_t>,
+                                std::pair<std::complex<float> *, std::size_t>,
+                                std::vector<std::complex<double> *>>;
 
 /// @brief The `SimulationState` interface provides and extension point
 /// for concrete circuit simulation sub-types to describe their
@@ -122,13 +115,6 @@ public:
   /// from the user provided data set.
   virtual std::unique_ptr<cudaq::SimulationState>
   createFromData(const state_data &data) {
-    if (std::holds_alternative<std::shared_ptr<TensorNetworkState>>(data)) {
-      auto tensorNetState = std::get<std::shared_ptr<TensorNetworkState>>(data);
-      if (tensorNetState)
-        return tensorNetState->toSimulationState();
-      return nullptr;
-    }
-
     // Flat array state data
     // Check the precision first. Get the size and
     // data pointer from the input data.

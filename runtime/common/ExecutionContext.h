@@ -20,7 +20,7 @@ namespace cudaq {
 class spin_op;
 
 /// @brief The ExecutionContext is an abstraction to indicate
-/// how a CUDA Quantum kernel should be executed.
+/// how a CUDA-Q kernel should be executed.
 class ExecutionContext {
 public:
   /// @brief The name of the context ({basic, sampling, observe})
@@ -32,7 +32,7 @@ public:
   /// @brief An optional spin operator
   std::optional<cudaq::spin_op *> spin;
 
-  /// @brief Measurement counts for a CUDA Quantum kernel invocation
+  /// @brief Measurement counts for a CUDA-Q kernel invocation
   sample_result result;
 
   /// @brief A computed expectation value

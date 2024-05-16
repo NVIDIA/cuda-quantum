@@ -1,4 +1,4 @@
-CUDA Quantum C++ API
+CUDA-Q C++ API
 ******************************
 
 Operators 
@@ -65,8 +65,6 @@ Common
 .. doxygentypedef:: cudaq::state_data
 
 .. doxygenclass:: cudaq::CusvState
-
-.. doxygenclass:: cudaq::TensorNetworkState
 
 .. doxygenclass:: nvqir::MPSSimulationState
 
