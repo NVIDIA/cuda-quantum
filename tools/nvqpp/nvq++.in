@@ -381,12 +381,8 @@ while [ $# -ne 0 ]; do
 	--llvm-version=*)
 		llvm_suffix="${arg#*=}"
 		;;
-	--gcc-toolchain=*)
-		# clang is deprecating this option
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq \"$1\""
-		HOST_GCC_INSTALL_DIR=
-		;;
-	--gcc-install-dir=*)
+	--gcc-toolchain=*|--gcc-install-dir=*)
+		# clang is deprecating the --gcc-toolchain option
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq \"$1\""
 		HOST_GCC_INSTALL_DIR=
 		;;
@@ -580,8 +576,14 @@ while [ $# -ne 0 ]; do
 	*.a | *.dylib)
 		LINKLIBS="${LINKLIBS} $1"
 		;;
-	--Xcudaq|-Xcudaq)
-		# Next argument will be automatically prefixed as appropriate
+	--Xcudaq)
+		echo "unknown argument: did you mean -Xcudaq?" >&2
+		;;
+	-Xcudaq)
+		# Next argument is prefixed as appropriate.
+		ARGS="${ARGS} $2"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq $2"
+		shift
 		;;
 	*)
 		# Pass any unrecognized options on to the clang++ tool.
