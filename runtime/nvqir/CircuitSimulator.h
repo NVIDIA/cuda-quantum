@@ -345,6 +345,10 @@ public:
 
   /// @brief Return a thread_local pointer to this CircuitSimulator
   virtual CircuitSimulator *clone() = 0;
+
+  /// Determine the (preferred) precision of the simulator.
+  virtual bool isSinglePrecision() const = 0;
+  bool isDoublePrecision() const { return !isSinglePrecision(); }
 };
 
 /// @brief The CircuitSimulatorBase is the type that is meant to
@@ -772,6 +776,10 @@ protected:
     }
 
     return defaultConfig;
+  }
+
+  bool isSinglePrecision() const override {
+    return std::is_same_v<ScalarType, float>;
   }
 
 public:

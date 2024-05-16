@@ -184,13 +184,50 @@ Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
   return vectorSizetToArray(qubitIdxs);
 }
 
-Array *__quantum__rt__qubit_allocate_array_with_state_fp64(
+Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
+    uint64_t size, std::complex<float> *data);
+
+Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
     uint64_t size, std::complex<double> *data) {
-  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp64", size);
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex64",
+                         size);
   __quantum__rt__initialize(0, nullptr);
+  if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
+    auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+        size, data, cudaq::simulation_precision::fp64);
+    return vectorSizetToArray(qubitIdxs);
+  }
+  // Input was complex<double> but we prefer complex<float>. Make a copy,
+  // truncating the values.
+  cudaq::info("copying {} complex values from double to float.", size);
+  auto convertData = std::make_unique<std::complex<float>[]>(size);
+  for (uint64_t i = 0; i < size; ++i)
+    convertData[i] = std::complex<float>{static_cast<float>(data[i].real()),
+                                         static_cast<float>(data[i].imag())};
   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
-      size, data, cudaq::simulation_precision::fp64);
+      size, convertData.get(), cudaq::simulation_precision::fp32);
   return vectorSizetToArray(qubitIdxs);
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_state_fp64(uint64_t size,
+                                                           double *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp64", size);
+  if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
+    cudaq::info("copying {} double values to complex<double>.", size);
+    auto convertData = std::make_unique<std::complex<double>[]>(size);
+    for (uint64_t i = 0; i < size; ++i)
+      convertData[i] = std::complex<double>{data[i], 0.0};
+    return __quantum__rt__qubit_allocate_array_with_state_complex64(
+        size, convertData.get());
+  }
+  // Input was double but we prefer complex<float>. Make a copy, truncating the
+  // values.
+  cudaq::info("copying {} double values to complex<float>.", size);
+  auto convertData = std::make_unique<std::complex<float>[]>(size);
+  for (uint64_t i = 0; i < size; ++i)
+    convertData[i] = std::complex<float>{static_cast<float>(data[i]), 0.0f};
+  return __quantum__rt__qubit_allocate_array_with_state_complex32(
+      size, convertData.get());
 }
 
 Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
@@ -208,14 +245,47 @@ Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
   return vectorSizetToArray(qubitIdxs);
 }
 
-Array *
-__quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t size,
-                                                    std::complex<float> *data) {
-  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp32", size);
+Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
+    uint64_t size, std::complex<float> *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex32",
+                         size);
   __quantum__rt__initialize(0, nullptr);
+  if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
+    auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+        size, data, cudaq::simulation_precision::fp32);
+    return vectorSizetToArray(qubitIdxs);
+  }
+  // Input was complex<float> but we prefer complex<double>. Make a copy,
+  // extending the values.
+  cudaq::info("copying {} complex values from float to double.", size);
+  auto convertData = std::make_unique<std::complex<double>[]>(size);
+  for (uint64_t i = 0; i < size; ++i)
+    convertData[i] = std::complex<double>{static_cast<double>(data[i].real()),
+                                          static_cast<double>(data[i].imag())};
   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
-      size, data, cudaq::simulation_precision::fp32);
+      size, convertData.get(), cudaq::simulation_precision::fp64);
   return vectorSizetToArray(qubitIdxs);
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t size,
+                                                           float *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp32", size);
+  if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
+    cudaq::info("copying {} float values to complex<float>.", size);
+    auto convertData = std::make_unique<std::complex<float>[]>(size);
+    for (uint64_t i = 0; i < size; ++i)
+      convertData[i] = std::complex<float>{data[i], 0.0};
+    return __quantum__rt__qubit_allocate_array_with_state_complex32(
+        size, convertData.get());
+  }
+  // Input was float but we prefer complex<double>. Make a copy, extending the
+  // values.
+  cudaq::info("copying {} float values to complex<double>.", size);
+  auto convertData = std::make_unique<std::complex<double>[]>(size);
+  for (uint64_t i = 0; i < size; ++i)
+    convertData[i] = std::complex<double>{static_cast<double>(data[i]), 0.0};
+  return __quantum__rt__qubit_allocate_array_with_state_complex64(
+      size, convertData.get());
 }
 
 /// @brief Once done, release the QIR qubit array
