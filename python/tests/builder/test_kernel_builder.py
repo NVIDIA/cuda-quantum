@@ -1360,6 +1360,7 @@ def test_u3_ctrl():
     assert ('11' in counts)
 
 
+@skipIfNvidiaFP64NotInstalled
 def test_builder_rotate_state():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
