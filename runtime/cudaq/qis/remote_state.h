@@ -13,7 +13,6 @@
 #include "cudaq.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <algorithm>
-#include <iostream>
 #include <numeric>
 namespace cudaq {
 /// Implementation of `SimulationState` for remote simulator backends.
@@ -23,6 +22,7 @@ namespace cudaq {
 // can send both kernels to the remote backend for execution and compute the
 // overlap.
 class RemoteSimulationState : public cudaq::SimulationState {
+protected:
   std::string kernelName;
   mutable std::unique_ptr<cudaq::SimulationState> state;
   mutable std::vector<char> argsBuffer;
@@ -33,15 +33,15 @@ public:
     kernelName = cudaq::getKernelName(kernel);
     argsBuffer = cudaq::serializeArgs(std::forward<Args>(args)...);
   }
-
+  RemoteSimulationState() = default;
   /// @brief Triggers remote execution to resolve the state data.
-  void execute() const;
+  virtual void execute() const;
 
   std::tuple<std::string, void *, std::size_t> getKernelInfo() const;
 
   std::size_t getNumQubits() const override {
     execute();
-    return std::log2(state->getNumQubits());
+    return state->getNumQubits();
   }
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override;

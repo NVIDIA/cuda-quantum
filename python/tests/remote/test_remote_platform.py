@@ -245,6 +245,36 @@ def test_additional_spin_ops():
     energy = cudaq.observe(main_kernel, spin_ham).expectation()
     assert assert_close(energy, 1)
 
+def check_state(entity):
+    state = cudaq.get_state(entity)
+    state.dump()
+    assert assert_close(state[0], 1.0/np.sqrt(2))
+    assert assert_close(state[-1], 1.0/np.sqrt(2))
+    assert assert_close(state.amplitude([0] * state.num_qubits()), 1.0/np.sqrt(2))
+    assert assert_close(state.amplitude([1] * state.num_qubits()), 1.0/np.sqrt(2))
+
+def test_state():
+    kernel = cudaq.make_kernel()
+    num_qubits = 5
+    qreg = kernel.qalloc(num_qubits)
+    kernel.h(qreg[0])
+    for i in range(num_qubits - 1):
+        kernel.cx(qreg[i], qreg[i + 1])
+
+    check_state(kernel)
+
+
+def test_state_kernel():
+
+    @cudaq.kernel
+    def kernel():
+        num_qubits = 5
+        qreg = cudaq.qvector(num_qubits)
+        h(qreg[0])
+        for i in range(num_qubits - 1): 
+            x.ctrl(qreg[i], qreg[i + 1])
+
+    check_state(kernel)
 
 # leave for gdb debugging
 if __name__ == "__main__":
