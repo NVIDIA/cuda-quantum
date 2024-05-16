@@ -9,66 +9,14 @@
 #include "mps_simulation_state.h"
 #include "simulator_cutensornet.h"
 
-#include <charconv>
-
 namespace nvqir {
 
 class SimulatorMPS : public SimulatorTensorNetBase {
-  // Default max bond dim
-  int64_t m_maxBond = 64;
-  // Default absolute cutoff
-  double m_absCutoff = 1e-5;
-  // Default relative cutoff
-  double m_relCutoff = 1e-5;
+  MPSSettings m_settings;
   std::vector<MPSTensor> m_mpsTensors_d;
 
 public:
-  SimulatorMPS() : SimulatorTensorNetBase() {
-    if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
-      const std::string maxBondStr(maxBondEnvVar);
-      int maxBond;
-      auto [ptr, ec] = std::from_chars(
-          maxBondStr.data(), maxBondStr.data() + maxBondStr.size(), maxBond);
-      if (ec != std::errc{} || maxBond < 1)
-        throw std::runtime_error("Invalid CUDAQ_MPS_MAX_BOND setting. Expected "
-                                 "a positive number. Got: " +
-                                 maxBondStr);
-
-      m_maxBond = maxBond;
-      cudaq::info("Setting MPS max bond dimension to {}.", m_maxBond);
-    }
-    // Cutoff values
-    if (auto *absCutoffEnvVar = std::getenv("CUDAQ_MPS_ABS_CUTOFF")) {
-      const std::string absCutoffStr(absCutoffEnvVar);
-      double absCutoff;
-      auto [ptr, ec] =
-          std::from_chars(absCutoffStr.data(),
-                          absCutoffStr.data() + absCutoffStr.size(), absCutoff);
-      if (ec != std::errc{} || absCutoff <= 0.0 || absCutoff >= 1.0)
-        throw std::runtime_error(
-            "Invalid CUDAQ_MPS_ABS_CUTOFF setting. Expected "
-            "a number in range (0.0, 1.0). Got: " +
-            absCutoffStr);
-
-      m_absCutoff = absCutoff;
-      cudaq::info("Setting MPS absolute cutoff to {}.", m_absCutoff);
-    }
-    if (auto *relCutoffEnvVar = std::getenv("CUDAQ_MPS_RELATIVE_CUTOFF")) {
-      const std::string relCutoffStr(relCutoffEnvVar);
-      double relCutoff;
-      auto [ptr, ec] =
-          std::from_chars(relCutoffStr.data(),
-                          relCutoffStr.data() + relCutoffStr.size(), relCutoff);
-      if (ec != std::errc{} || relCutoff <= 0.0 || relCutoff >= 1.0)
-        throw std::runtime_error(
-            "Invalid CUDAQ_MPS_RELATIVE_CUTOFF setting. Expected "
-            "a number in range (0.0, 1.0). Got: " +
-            relCutoffStr);
-
-      m_relCutoff = relCutoff;
-      cudaq::info("Setting MPS relative cutoff to {}.", m_relCutoff);
-    }
-  }
+  SimulatorMPS() : SimulatorTensorNetBase() {}
 
   virtual void prepareQubitTensorState() override {
     LOG_API_TIME();
@@ -79,8 +27,8 @@ public:
     m_mpsTensors_d.clear();
     // Factorize the state:
     if (m_state->getNumQubits() > 1)
-      m_mpsTensors_d =
-          m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+      m_mpsTensors_d = m_state->factorizeMPS(
+          m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
   }
 
   virtual std::size_t calculateStateDim(const std::size_t numQubits) override {
@@ -89,7 +37,20 @@ public:
 
   virtual void
   addQubitsToState(const cudaq::SimulationState &in_state) override {
-    throw std::runtime_error("Not yet supported.");
+    LOG_API_TIME();
+    const MPSSimulationState *const casted =
+        dynamic_cast<const MPSSimulationState *>(&in_state);
+    if (!casted)
+      throw std::invalid_argument(
+          "[SimulatorMPS simulator] Incompatible state input");
+    if (!m_state) {
+      m_state = TensorNetState::createFromMpsTensors(casted->getMpsTensors(),
+                                                     m_cutnHandle);
+    } else {
+      // Expand an existing state: Append MPS tensors
+      throw std::runtime_error(
+          "[SimulatorMPS simulator] Expanding state is not supported");
+    }
   }
 
   virtual std::string name() const override { return "tensornet-mps"; }
@@ -97,6 +58,62 @@ public:
   CircuitSimulator *clone() override {
     thread_local static auto simulator = std::make_unique<SimulatorMPS>();
     return simulator.get();
+  }
+
+  void addQubitsToState(std::size_t numQubits, const void *ptr) override {
+    LOG_API_TIME();
+    if (!m_state) {
+      if (!ptr) {
+        m_state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
+      } else {
+        auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
+            m_cutnHandle, 1ULL << numQubits,
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
+            m_settings.maxBond);
+        m_state = std::move(state);
+      }
+    } else {
+      // FIXME: expand the MPS tensors to the max extent
+      if (!ptr) {
+        auto tensors = m_state->factorizeMPS(
+            m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+        // The right most MPS tensor needs to have one more extra leg (no longer
+        // the boundary tensor).
+        tensors.back().extents.emplace_back(1);
+        // The newly added MPS tensors are in zero state
+        constexpr std::complex<double> tensorBody[2]{1.0, 0.0};
+        constexpr auto tensorSizeBytes = 2 * sizeof(std::complex<double>);
+        for (std::size_t i = 0; i < numQubits; ++i) {
+          const std::vector<int64_t> extents =
+              (i != numQubits - 1) ? std::vector<int64_t>{1, 2, 1}
+                                   : std::vector<int64_t>{1, 2};
+          void *mpsTensor{nullptr};
+          HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensor, tensorSizeBytes));
+          HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensor, tensorBody, tensorSizeBytes,
+                                       cudaMemcpyHostToDevice));
+          tensors.emplace_back(MPSTensor(mpsTensor, extents));
+        }
+        m_state = TensorNetState::createFromMpsTensors(tensors, m_cutnHandle);
+      } else {
+        // Non-zero state needs to be factorized and appended.
+        auto [state, mpsTensors] = MPSSimulationState::createFromStateVec(
+            m_cutnHandle, 1ULL << numQubits,
+            reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr)),
+            m_settings.maxBond);
+        auto tensors = m_state->factorizeMPS(
+            m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
+        // Adjust the extents of the last tensor in the original state
+        tensors.back().extents.emplace_back(1);
+
+        // Adjust the extents of the first tensor in the state to be appended.
+        auto extents = mpsTensors.front().extents;
+        extents.insert(extents.begin(), 1);
+        mpsTensors.front().extents = extents;
+        // Combine the list
+        tensors.insert(tensors.end(), mpsTensors.begin(), mpsTensors.end());
+        m_state = TensorNetState::createFromMpsTensors(tensors, m_cutnHandle);
+      }
+    }
   }
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
@@ -107,8 +124,8 @@ public:
           std::move(m_state), std::vector<MPSTensor>{}, m_cutnHandle);
 
     if (m_state->getNumQubits() > 1) {
-      std::vector<MPSTensor> tensors =
-          m_state->factorizeMPS(m_maxBond, m_absCutoff, m_relCutoff);
+      std::vector<MPSTensor> tensors = m_state->factorizeMPS(
+          m_settings.maxBond, m_settings.absCutoff, m_settings.relCutoff);
       return std::make_unique<MPSSimulationState>(std::move(m_state), tensors,
                                                   m_cutnHandle);
     }
@@ -130,7 +147,6 @@ public:
     m_mpsTensors_d.clear();
   }
 };
-
 } // end namespace nvqir
 
 NVQIR_REGISTER_SIMULATOR(nvqir::SimulatorMPS, tensornet_mps)
