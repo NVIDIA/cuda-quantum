@@ -1265,7 +1265,7 @@ class PyASTBridge(ast.NodeVisitor):
                 namedArgs[keyword.arg] = self.popValue()
 
             if node.func.id == "len":
-                listVal = self.popValue()
+                listVal = self.ifPointerThenLoad(self.popValue())
                 if cc.StdvecType.isinstance(listVal.type):
                     self.pushValue(
                         cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
@@ -1343,7 +1343,7 @@ class PyASTBridge(ast.NodeVisitor):
                 extractFunctor = None
                 if len(self.valueStack) == 1:
                     # `qreg`-like or `stdvec`-like thing thing
-                    iterable = self.popValue()
+                    iterable = self.ifPointerThenLoad(self.popValue())
                     # Create a new iterable, `alloca cc.struct<i64, T>`
                     totalSize = None
                     if quake.VeqType.isinstance(iterable.type):
@@ -1668,9 +1668,12 @@ class PyASTBridge(ast.NodeVisitor):
                                 self.pushValue(maybeIterableSize)
                                 return
                 if len(self.valueStack) == 1:
-                    if cc.StdvecType.isinstance(self.valueStack[0].type):
+                    arrayTy = self.valueStack[0].type
+                    if cc.PointerType.isinstance(arrayTy):
+                        arrayTy = cc.PointerType.getElementType(arrayTy)
+                    if cc.StdvecType.isinstance(arrayTy):
                         return
-                    if cc.ArrayType.isinstance(self.valueStack[0].type):
+                    if cc.ArrayType.isinstance(arrayTy):
                         return
 
                 self.emitFatalError('Invalid list() cast requested.', node)
@@ -2518,7 +2521,7 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.slice, ast.Slice):
 
             self.visit(node.value)
-            var = self.popValue()
+            var = self.ifPointerThenLoad(self.popValue())
 
             lowerVal, upperVal, stepVal = (None, None, None)
             if node.slice.lower is not None:
@@ -3079,7 +3082,7 @@ class PyASTBridge(ast.NodeVisitor):
         if len(self.valueStack) == 0:
             return
 
-        result = self.popValue()
+        result = self.ifPointerThenLoad(self.popValue())
         if cc.StdvecType.isinstance(result.type):
             symName = '__nvqpp_vectorCopyCtor'
             load_intrinsic(self.module, symName)
