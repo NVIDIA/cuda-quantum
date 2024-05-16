@@ -408,6 +408,23 @@ def test_kernel_simulation_dtype_complex_params_f64():
     assert '00' in counts
 
 
+@skipIfNvidiaNotInstalled
+def test_kernel_simulation_dtype_complex_params_f32():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia')
+
+    c = [.70710678 + 0j, 0., 0., 0.70710678]
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        q = cudaq.qvector(np.array(vec, dtype=cudaq.complex()))
+
+    counts = cudaq.sample(kernel, c)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+
 @skipIfNvidiaFP64NotInstalled
 def test_kernel_amplitudes_complex_params_f64():
     cudaq.reset_target()
@@ -426,23 +443,6 @@ def test_kernel_amplitudes_complex_params_f64():
 
 
 @skipIfNvidiaNotInstalled
-def test_kernel_simulation_dtype_complex_params_f32():
-    cudaq.reset_target()
-    cudaq.set_target('nvidia')
-
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
-
-    @cudaq.kernel
-    def kernel(vec: list[complex]):
-        q = cudaq.qvector(np.array(vec, dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, c)
-    print(counts)
-    assert '11' in counts
-    assert '00' in counts
-
-
-@skipIfNvidiaNotInstalled
 def test_kernel_amplitudes_complex_params_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
@@ -452,6 +452,40 @@ def test_kernel_amplitudes_complex_params_f32():
     @cudaq.kernel
     def kernel(vec: list[complex]):
         q = cudaq.qvector(vec)
+
+    counts = cudaq.sample(kernel, c)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+
+@skipIfNvidiaFP64NotInstalled
+def test_kernel_amplitudes_complex_from_capture_f64():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+
+    c = cudaq.amplitudes([.70710678, 0., 0., 0.70710678])
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        q = cudaq.qvector(cudaq.amplitudes(vec))
+
+    counts = cudaq.sample(kernel, c)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+
+@skipIfNvidiaNotInstalled
+def test_kernel_amplitudes_complex_from_capture_f32():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia')
+
+    c = [.70710678, 0., 0., 0.70710678]
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        q = cudaq.qvector(cudaq.amplitudes(vec))
 
     counts = cudaq.sample(kernel, c)
     print(counts)

@@ -1817,6 +1817,27 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(self.simulationDType())
                     return
 
+                if node.func.attr == 'amplitudes':
+                    value = self.popValue()
+                    arrayType = value.type
+                    if cc.PointerType.isinstance(value.type):
+                        arrayType = cc.PointerType.getElementType(value.type)
+
+                    if cc.StdvecType.isinstance(arrayType):
+                        eleTy = cc.StdvecType.getElementType(arrayType)
+                        simDTy = self.simulationDType()
+                        if (simDTy != eleTy):
+                            self.emitWarning(
+                                f"Extra copy is added to convert list[{mlirTypeToPyType(eleTy)}]"
+                                f"to list[{mlirTypeToPyType(simDTy)}]. "
+                                f"Consider moving `cudaq.amplitudes` or `cudaq.complex` "
+                                f"outside kernels.", node)
+
+                        # Convert the vector to the simulation data type if needed.
+                        self.pushValue(
+                            self.__copyVectorAndCastElements(value, simDTy))
+                        return
+
                 if node.func.attr == 'qvector':
                     value = self.ifPointerThenLoad(self.popValue())
                     if (IntegerType.isinstance(value.type)):
