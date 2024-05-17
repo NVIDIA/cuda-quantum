@@ -2993,7 +2993,8 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
 
         if self.isInIfStmtBlock():
-            inArgs = [b for b in self.inForBodyStack[0]]
+            # Get the innermost enclosing `for` or `while` loop
+            inArgs = [b for b in self.inForBodyStack[-1]]
             cc.UnwindBreakOp(inArgs)
         else:
             cc.BreakOp([])
@@ -3011,7 +3012,8 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
 
         if self.isInIfStmtBlock():
-            inArgs = [b for b in self.inForBodyStack[0]]
+            # Get the innermost enclosing `for` or `while` loop
+            inArgs = [b for b in self.inForBodyStack[-1]]
             cc.UnwindContinueOp(inArgs)
         else:
             cc.ContinueOp([])
