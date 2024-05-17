@@ -94,6 +94,8 @@ protected:
       "func.func(combine-quantum-alloc)",
       "canonicalize",
       "cse",
+      "convert-math-to-llvm",
+      "convert-math-to-funcs",
       "quake-to-qir"};
   static inline const std::vector<std::string> serverPasses = {};
   // Random number generator.
