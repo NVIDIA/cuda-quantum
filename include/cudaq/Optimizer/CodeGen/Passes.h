@@ -49,6 +49,9 @@ createConvertToQIRFuncPass(llvm::StringRef convertTo);
 /// Register target pipelines.
 void registerTargetPipelines();
 
+/// Register CodeGenDialect with the provided DialectRegistry.
+void registerCodeGenDialect(mlir::DialectRegistry &registry);
+
 // declarative passes
 #define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
