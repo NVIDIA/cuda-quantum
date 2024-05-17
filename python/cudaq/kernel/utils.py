@@ -15,6 +15,7 @@ import numpy as np
 from typing import Callable, List
 import ast, sys, traceback
 
+State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
 qubit = cudaq_runtime.qubit
 pauli_word = cudaq_runtime.pauli_word
@@ -87,6 +88,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         if annotation.value.id == 'cudaq':
             if annotation.attr in ['qview', 'qvector']:
                 return quake.VeqType.get(ctx)
+            if annotation.attr in ['State']:
+                 return cc.StdvecType.get(ctx, ComplexType.get(F64Type.get()))
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
             if annotation.attr == 'pauli_word':
@@ -193,6 +196,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return ComplexType.get(mlirTypeFromPyType(np.float32, ctx))
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
+
+    if argType in [State]:
+        # TODO: do we have a cudaq_runtime.State type instead? Or do we need to create one from this vec in opaque arguments? 
+        # What does c++ do?
+        return cc.StdvecType.get(ctx, mlirTypeFromPyType(complex, ctx))
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:

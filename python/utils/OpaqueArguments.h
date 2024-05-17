@@ -151,6 +151,10 @@ void checkArgumentType(py::handle arg, int index) {
   }
 }
 
+// TODO: handle 'cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State'
+// Add a py object for state that can be created from a vector? Or do we have an mlir matching type instead of a vector?
+// 
+
 template <typename T>
 void checkListElementType(py::handle arg, int index, int elementIndex) {
   if (!py_ext::isConvertible<T>(arg)) {

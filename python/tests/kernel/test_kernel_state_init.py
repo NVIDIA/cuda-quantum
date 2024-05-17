@@ -669,3 +669,29 @@ def test_kernel_qvector_init_from_int():
     assert not '10' in counts
     assert not '01' in counts
     assert '00' in counts
+
+def test_state():
+    # Get the quantum state, which should be a vector.
+    @cudaq.kernel
+    def bell():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        cx(qubits[0], qubits[1])
+
+    state = cudaq.get_state(bell)
+
+    # Data type needs to be the same as the internal state vector
+    #state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
+    #                      dtype=float)
+
+    @cudaq.kernel
+    def kernel(initialState: cudaq.State):
+        qubits = cudaq.qvector(initialState)
+    
+    
+    counts = cudaq.sample(kernel, state)
+    print(counts)
+    assert not '11' in counts
+    assert not '10' in counts
+    assert not '01' in counts
+    assert '00' in counts
