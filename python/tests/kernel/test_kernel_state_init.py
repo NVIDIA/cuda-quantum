@@ -26,7 +26,7 @@ def test_kernel_float_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    f = [1., 0., 0., 1.]
+    f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[float]):
@@ -43,7 +43,7 @@ def test_kernel_float_params_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    f = [1., 0., 0., 1.]
+    f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[float]):
@@ -60,7 +60,7 @@ def test_kernel_float_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    f = [1., 0., 0., 1.]
+    f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -77,7 +77,7 @@ def test_kernel_float_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    f = [1., 0., 0., 1.]
+    f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -94,7 +94,7 @@ def test_kernel_float_np_array_from_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    f = [1., 0., 0., 1.]
+    f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -111,7 +111,7 @@ def test_kernel_float_np_array_from_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    f = [1., 0., 0., 1.]
+    f = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -130,7 +130,7 @@ def test_kernel_float_definition_f64():
 
     @cudaq.kernel
     def kernel():
-        q = cudaq.qvector([1.0, 0., 0., 1.])
+        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -145,7 +145,7 @@ def test_kernel_float_definition_f32():
 
     @cudaq.kernel
     def kernel():
-        q = cudaq.qvector([1.0, 0., 0., 1.])
+        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -207,7 +207,7 @@ def test_kernel_complex_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -224,7 +224,7 @@ def test_kernel_complex_params_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -241,7 +241,7 @@ def test_kernel_complex_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -258,7 +258,7 @@ def test_kernel_complex_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -275,7 +275,7 @@ def test_kernel_complex_np_array_from_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -292,7 +292,7 @@ def test_kernel_complex_np_array_from_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -311,7 +311,7 @@ def test_kernel_complex_definition_f64():
 
     @cudaq.kernel
     def kernel():
-        q = cudaq.qvector([1.0 + 0j, 0., 0., 1.])
+        q = cudaq.qvector([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)])
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -326,7 +326,7 @@ def test_kernel_complex_definition_f32():
 
     @cudaq.kernel
     def kernel():
-        q = cudaq.qvector([1.0 + 0j, 0., 0., 1.])
+        q = cudaq.qvector([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)])
 
     counts = cudaq.sample(kernel)
     print(counts)
@@ -342,7 +342,7 @@ def test_kernel_dtype_complex_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -359,7 +359,7 @@ def test_kernel_dtype_complex128_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -376,7 +376,7 @@ def test_kernel_dtype_complex64_params_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -396,7 +396,7 @@ def test_kernel_simulation_dtype_complex_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -413,7 +413,7 @@ def test_kernel_simulation_dtype_complex_params_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -430,7 +430,7 @@ def test_kernel_amplitudes_complex_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = cudaq.amplitudes([.70710678, 0., 0., 0.70710678])
+    c = cudaq.amplitudes([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -447,7 +447,7 @@ def test_kernel_amplitudes_complex_params_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    c = cudaq.amplitudes([.70710678, 0., 0., 0.70710678])
+    c = cudaq.amplitudes([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -464,7 +464,7 @@ def test_kernel_amplitudes_complex_from_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = [.70710678, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -481,7 +481,7 @@ def test_kernel_amplitudes_complex_from_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    c = [.70710678, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -498,7 +498,7 @@ def test_kernel_simulation_dtype_np_array_from_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -515,7 +515,7 @@ def test_kernel_simulation_dtype_np_array_from_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     @cudaq.kernel
     def kernel():
@@ -532,7 +532,7 @@ def test_kernel_simulation_dtype_np_array_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia-fp64')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     state = np.array(c, dtype=cudaq.complex())
 
@@ -551,7 +551,7 @@ def test_kernel_simulation_dtype_np_array_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
-    c = [.70710678 + 0j, 0., 0., 0.70710678]
+    c = [1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)]
 
     state = np.array(c, dtype=cudaq.complex())
 
