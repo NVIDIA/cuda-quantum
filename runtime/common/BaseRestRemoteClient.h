@@ -19,6 +19,7 @@
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -74,29 +75,7 @@ namespace cudaq {
 class BaseRemoteRestRuntimeClient : public cudaq::RemoteRuntimeClient {
 protected:
   std::string m_url;
-  static inline const std::vector<std::string> clientPasses = {
-      "func.func(unwind-lowering)",
-      "func.func(indirect-to-direct-calls)",
-      "inline",
-      "canonicalize",
-      "apply-op-specialization",
-      "func.func(apply-control-negations)",
-      "func.func(memtoreg{quantum=0})",
-      "canonicalize",
-      "expand-measurements",
-      "cc-loop-normalize",
-      "cc-loop-unroll",
-      "canonicalize",
-      "func.func(add-dealloc)",
-      "func.func(quake-add-metadata)",
-      "canonicalize",
-      "func.func(lower-to-cfg)",
-      "func.func(combine-quantum-alloc)",
-      "canonicalize",
-      "cse",
-      "convert-math-to-llvm",
-      "convert-math-to-funcs",
-      "quake-to-qir"};
+  static inline const std::vector<std::string> clientPasses = {};
   static inline const std::vector<std::string> serverPasses = {};
   // Random number generator.
   std::mt19937 randEngine{std::random_device{}()};
@@ -179,25 +158,27 @@ public:
           throw std::runtime_error("Could not successfully apply quake-synth.");
       }
 
-      // Client-side passes
-      if (!clientPasses.empty()) {
-        mlir::PassManager pm(&mlirContext);
-        std::string errMsg;
-        llvm::raw_string_ostream os(errMsg);
-        const std::string pipeline =
-            std::accumulate(clientPasses.begin(), clientPasses.end(),
-                            std::string(), [](const auto &ss, const auto &s) {
-                              return ss.empty() ? s : ss + "," + s;
-                            });
-        if (failed(parsePassPipeline(pipeline, pm, os)))
-          throw std::runtime_error(
-              "Remote rest platform failed to add passes to pipeline (" +
-              errMsg + ").");
+      // Run client-side passes. `clientPasses` is empty right now, but the code
+      // below accommodates putting passes into it.
+      mlir::PassManager pm(&mlirContext);
+      std::string errMsg;
+      llvm::raw_string_ostream os(errMsg);
+      const std::string pipeline =
+          std::accumulate(clientPasses.begin(), clientPasses.end(),
+                          std::string(), [](const auto &ss, const auto &s) {
+                            return ss.empty() ? s : ss + "," + s;
+                          });
+      if (failed(parsePassPipeline(pipeline, pm, os)))
+        throw std::runtime_error(
+            "Remote rest platform failed to add passes to pipeline (" + errMsg +
+            ").");
 
-        if (failed(pm.run(moduleOp)))
-          throw std::runtime_error(
-              "Remote rest platform: applying IR passes failed.");
-      }
+      cudaq::opt::addPipelineConvertToQIR(pm);
+
+      if (failed(pm.run(moduleOp)))
+        throw std::runtime_error(
+            "Remote rest platform: applying IR passes failed.");
+
       std::string mlirCode;
       llvm::raw_string_ostream outStr(mlirCode);
       mlir::OpPrintingFlags opf;
