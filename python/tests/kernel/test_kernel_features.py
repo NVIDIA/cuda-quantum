@@ -1476,6 +1476,93 @@ def test_reset():
     assert counts == 100
 
 
+def test_nested_loops_with_break():
+
+    @cudaq.kernel
+    def prog(theta: float):
+        q = cudaq.qvector(2)
+
+        for _ in range(5):
+            while True:
+                x(q)
+                ry.ctrl(theta, q[1])
+                res = mz(q[1])
+
+                if res:
+                    x(q[1])
+                    break
+        mz(q)
+
+    # The test here is that this compiles.
+    prog.compile()
+    print(prog)
+
+
+def test_nested_loops_with_continue():
+
+    @cudaq.kernel
+    def prog():
+        q = cudaq.qvector(10)
+        j = 0
+        for num in range(2, 10):
+            while j < num:
+                if num % 2 == 0:
+                    h(q[num])
+                    continue
+                x(q[num])
+            j += 1
+
+    # The test here is that this compiles.
+    prog.compile()
+    print(prog)
+
+
+@skipIfPythonLessThan39
+def test_issue_1682():
+
+    @cudaq.kernel
+    def qrbm_reuse_ancilla(v_nodes: int, h_nodes: int, theta: list[float],
+                           coupling: list[float]):
+
+        qubits_num = v_nodes + h_nodes
+        qubits = cudaq.qvector(qubits_num)
+        ancilla = cudaq.qubit()
+
+        count = 0
+        for i in range(v_nodes + h_nodes):
+            ry(theta[count], qubits[i])
+            count += 1
+
+        count = 0
+
+        for v in range(v_nodes):
+            for h in range(v_nodes, v_nodes + h_nodes):
+
+                while True:
+                    ry.ctrl(coupling[count], qubits[v], qubits[h], ancilla)
+                    x(qubits[v])
+                    ry.ctrl(coupling[count + 1], qubits[v], qubits[h], ancilla)
+                    x(qubits[v])
+                    x(qubits[h])
+                    ry.ctrl(coupling[count + 1], qubits[v], qubits[h], ancilla)
+                    x(qubits[v])
+                    ry.ctrl(coupling[count], qubits[v], qubits[h], ancilla)
+                    x(qubits[v])
+                    x(qubits[h])
+
+                    res = mz(ancilla)
+
+                    if res:
+                        x(ancilla)
+                        break
+
+                count += 2
+
+        mz(qubits)
+
+    qrbm_reuse_ancilla.compile()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
