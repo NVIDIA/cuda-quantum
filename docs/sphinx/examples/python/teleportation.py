@@ -45,11 +45,11 @@ q1 : ┤ h ├──●──┤ x ├──●────┼──
 q2 : ─────┤ x ├─────┤ x ├┤ z ├
           ╰───╯     ╰───╯╰───╯
 '''
-# if you don't choose to alter Alice's data, the pauli-z gate on q0 will not be applied
+# if you don't choose to alter Alice's data, the x-gate on q0 will not be applied
 
 result = cudaq.sample(protocol, shots_count=1024)
 print(result)
 # sample result: { 001:242 101:263 011:250 111:269 }
-# teleportation protocol is successfully implemented since all bob's state is always 1 which is expected
-# if you don't choose to alter Alice's data in the protocol, then you should expect result like this:
+# teleportation protocol is successfully implemented since all Bob's state is always 1 which is expected
+# if you don't choose to alter Alice's data in the protocol, all Bob's state will be 0:
 # { 000:257 010:273 100:255 110:239 }
