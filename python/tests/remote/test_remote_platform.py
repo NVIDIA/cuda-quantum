@@ -246,6 +246,35 @@ def test_additional_spin_ops():
     assert assert_close(energy, 1)
 
 
+def test_math_exp():
+
+    @cudaq.kernel
+    def iqft(register: cudaq.qview):
+        N = register.size()
+        for i in range(N / 2):
+            swap(register[i], register[N - i - 1])
+
+        for i in range(N - 1):
+            h(register[i])
+            j = i + 1
+            for y in range(i, -1, -1):
+                # The test is to make sure this lowers and runs correctly
+                denom = 2**(j - y)
+                theta = -np.pi / denom
+                r1.ctrl(theta, register[j], register[y])
+
+        h(register[N - 1])
+
+    @cudaq.kernel
+    def exp_kernel():
+        counting_qubits = cudaq.qvector(4)
+        h(counting_qubits)
+        iqft(counting_qubits)
+        mz(counting_qubits)
+
+    count = cudaq.sample(exp_kernel)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
