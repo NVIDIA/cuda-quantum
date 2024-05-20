@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations})' %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations})' %s | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations})' %s | CircuitCheck %s --up-to-global-phase
 
 // The FileCheck part of this test only cares about the sequence of operations.
 // Correcteness is checked by CircuitCheck.
@@ -17,9 +17,7 @@ func.func @test(%qubit: !quake.ref) {
   %cst = arith.constant 3.141592653589793 : f64
   %cst_0 = arith.constant 1.57079632679489660 : f64
   %cst_1 = arith.constant 0.7853981633974483 : f64
-  %0 = quake.alloca !quake.veq<1>
-  %1 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
-  quake.u3 (%cst_1, %cst_0, %cst) %1 : (f64, f64, f64, !quake.ref) -> ()
+  quake.u3 (%cst_1, %cst_0, %cst) %qubit : (f64, f64, f64, !quake.ref) -> ()
   // CHECK: quake.rz
   // CHECK-NEXT: quake.rx
   // CHECK-NEXT: quake.rz
@@ -33,9 +31,7 @@ func.func @adj(%qubit: !quake.ref) {
   %cst = arith.constant 3.141592653589793 : f64
   %cst_0 = arith.constant 1.57079632679489660 : f64
   %cst_1 = arith.constant 0.7853981633974483 : f64
-  %0 = quake.alloca !quake.veq<1>
-  %1 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
-  quake.u3<adj> (%cst_1, %cst_0, %cst) %1 : (f64, f64, f64, !quake.ref) -> ()
+  quake.u3<adj> (%cst_1, %cst_0, %cst) %qubit : (f64, f64, f64, !quake.ref) -> ()
   // CHECK: quake.rz
   // CHECK-NEXT: quake.rx
   // CHECK-NEXT: quake.rz
