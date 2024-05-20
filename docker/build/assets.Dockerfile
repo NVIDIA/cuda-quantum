@@ -162,17 +162,11 @@ FROM cpp_build
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \
     fi && \
-    clang_triple=$(${LLVM_INSTALL_PREFIX}/bin/clang -print-target-triple) \
-    gcc_triple=$(${CC} -dumpmachine) \
-    if [[ ${clang_triple} != ${gcc_triple} ]]; then \
-      cd ${CUDAQ_GCC_INSTALL_PREFIX}/../.. && \
-      echo "Clang built with ${clang_triple} which is not ${gcc_triple}" && \
-      ln -s ${gcc_triple} ${clang_triple}; \
-    else true; fi && \
+    mv /opt/rh/gcc-toolset-11/root/usr/lib/gcc/x86_64-redhat-linux/11/32 /opt/rh/gcc-toolset-11/root/usr/lib/gcc/x86_64-redhat-linux/11/notthirtytwo ; \
     cd /cuda-quantum && \
     # FIXME: Disabled nlopt doesn't seem to work properly
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1103
-    excludes+=" --exclude-regex nvqpp|NloptTester|ctest-nvqpp|ctest-targettests" && \
+    excludes+=" --exclude-regex NloptTester|ctest-nvqpp|ctest-targettests" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV CUDAQ_CPP_STD="c++17"
