@@ -1520,6 +1520,20 @@ def test_issue_1682():
     qrbm_reuse_ancilla.compile()
 
 
+def test_subtract():
+
+    @cudaq.kernel
+    def bug_subtract():
+        qubits = cudaq.qvector(4)
+        x(qubits[0:2])
+        mu = 0.7951
+        sigma = 0.6065
+        rz(1.0 - (mu / sigma), qubits[1])
+        mz(qubits)
+
+    cudaq.sample(bug_subtract)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
