@@ -257,7 +257,7 @@ class PyKernel(object):
         """
         if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
             return ty, None
-        if get_origin(ty) == list or isinstance(ty(), list):
+        if get_origin(ty) == list or isinstance(ty, list):
             if '[' in str(ty) and ']' in str(ty):
                 allowedTypeMap = {
                     'int': int,
@@ -685,8 +685,10 @@ class PyKernel(object):
                         self.ctx,
                         cc.StdvecType.getElementType(
                             initializer.mlirValue.type))
-                    initials = cc.StdvecDataOp(ptrTy, initializer.mlirValue)
-                    quake.InitializeStateOp(veqTy, qubits, initials)
+                    initials = cc.StdvecDataOp(ptrTy,
+                                               initializer.mlirValue).result
+                    qubits = quake.InitializeStateOp(veqTy, qubits,
+                                                     initials).result
                     return self.__createQuakeValue(qubits)
 
             # If no initializer, create a single qubit

@@ -34,6 +34,7 @@ globalAstRegistry = {}
 
 
 class Color:
+    YELLOW = '\033[93m'
     RED = '\033[91m'
     BOLD = '\033[1m'
     END = '\033[0m'
@@ -92,7 +93,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 return cc.CharspanType.get(ctx)
 
         if annotation.value.id in ['numpy', 'np']:
-            if annotation.attr == 'ndarray':
+            if annotation.attr in ['array', 'ndarray']:
                 return cc.StdvecType.get(ctx, F64Type.get())
             if annotation.attr == 'complex128':
                 return ComplexType.get(F64Type.get())
@@ -176,7 +177,6 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
-
     if argType == int:
         return IntegerType.get_signless(64, ctx)
     if argType in [float, np.float64]:
