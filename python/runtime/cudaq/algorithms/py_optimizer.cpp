@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include <pybind11/embed.h>
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
 #include "nlohmann/json.hpp"
@@ -254,6 +255,7 @@ json call_rest_api(const json &serialize_data_object) {
   json response;
 
   // TODO Implement the client request
+  
 
   return response;
 }
@@ -352,7 +354,10 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
               py::object source_code = get_source_code(inspect, func);
             
               // Combine the function source and its call
-              std::string combined_code = source_code.cast<std::string>() + "\n" + func_call;
+              std::ostringstream code;
+              code << R"()" << source_code.cast<std::string>() + "\n" + func_call << R"()";
+              std::string combined_code = code.str();
+              std::cout << combined_code << std::endl;
 
               // Get the parent frame info
               py::object parent_frame_info = get_parent_frame_info(inspect);
@@ -360,13 +365,17 @@ py::class_<OptimizerT> addPyOptimizer(py::module &mod, std::string &&name) {
               // Get locals and globals for the current frame
               auto [locals, globals] = get_locals_and_globals(parent_frame_info);
               
-              py::object builtins = py::module::import("builtins");
+              // Use for compiling the source code
+              // py::object builtins = py::module::import("builtins");
+              std::cout << "Executing python code" << std::endl;
+              py::exec(combined_code, globals, locals);
+              std::cout << "Finished executing python code" << std::endl;
 
               // Serialize the compiled code, locals, and globals
               json serialized_data_object = get_serialized_code(combined_code, locals, globals);
 
               // Call the REST API to /job
-              json response = call_rest_api(serialized_data_object);
+              // json response = call_rest_api(serialized_data_object);
 
               // return a empty tuple to suppress the compile error for now
               // TODO Need to return the proper value from response
