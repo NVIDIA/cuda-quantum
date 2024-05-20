@@ -39,6 +39,23 @@ CUDAQ_TEST(IonQTester, checkSampleSync) {
   EXPECT_EQ(counts.size(), 2);
 }
 
+CUDAQ_TEST(IonQTester, checkU3Lowering) {
+  auto backendString =
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort);
+
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(backendString);
+
+  auto kernel = []() __qpu__ {
+    cudaq::qubit q;
+    u3(3.14159, 1.5709, 0.78539, q);
+  };
+
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(counts.size(), 2);
+}
+
 CUDAQ_TEST(IonQTester, checkSampleAsync) {
   auto backendString =
       fmt::format(fmt::runtime(backendStringTemplate), mockPort);
