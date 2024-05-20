@@ -6,7 +6,7 @@ Quick Start
 CUDA-Q streamlines hybrid application development and promotes productivity and scalability
 in quantum computing. It offers a unified programming model designed for a hybrid
 setting |---| that is, CPUs, GPUs, and QPUs working together. CUDA-Q contains support for 
-programming in Python and in C++. Learn more about the `key benefits of CUDA-Q <https://developer.nvidia.com/cuda-q>__`.
+programming in Python and in C++. Learn more about the `key benefits of CUDA-Q <https://developer.nvidia.com/cuda-q>`_.
 
 This Quick Start page guides you through installing CUDA-Q and running your first program.
 If you have already installed and configured CUDA-Q, or if you are using our 
