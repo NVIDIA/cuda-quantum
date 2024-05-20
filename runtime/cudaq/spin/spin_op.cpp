@@ -552,8 +552,8 @@ std::string spin_op::to_string(bool printCoeffs) const {
   std::stringstream ss;
   std::vector<std::string> printOut;
   for (auto &[term, coeff] : terms) {
-    if (printCoeffs and terms.size() != 1)
-      throw std::runtime_error("spin_op::to_string with printCoeffs=true "
+    if (not printCoeffs and terms.size() != 1)
+      throw std::runtime_error("spin_op::to_string with printCoeffs=false "
                                "called on spin_op with > 1 terms.");
 
     for (std::size_t i = 0; i < term.size() / 2; i++) {
