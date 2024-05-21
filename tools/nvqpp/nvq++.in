@@ -668,7 +668,7 @@ LLC=${LLVMBIN}llc${llvm_suffix}
 if [[ -n "${HOST_GCC_INSTALL_DIR}" ]]; then
 	# Use the toolchain specified at build-time, if any, and the user has
 	# not overridden it already.
-	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq --gcc-install-dir=\"${HOST_GCC_INSTALL_DIR}\""
+	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -Xcudaq --gcc-install-dir=${HOST_GCC_INSTALL_DIR}"
 fi
 if ${LIBRARY_MODE}; then
 	ENABLE_KERNEL_EXECUTION=false
