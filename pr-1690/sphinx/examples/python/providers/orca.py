@@ -19,7 +19,6 @@ ps_angles = [np.pi / 4, np.pi / 5]
 input_state = [1, 1, 1]
 loop_lengths = [1]
 
-counts = cudaq.orca.sample(bs_angles, ps_angles, input_state, loop_lengths,
-                           10000)
+counts = cudaq.orca.sample(bs_angles, ps_angles, input_state, loop_lengths)
 
 print(counts)
