@@ -144,9 +144,8 @@ initializeBuilder(MLIRContext *context,
 
   cudaq::info("kernel_builder has {} arguments", arguments.size());
 
-  // Every Kernel should have a ReturnOp terminator,
-  // then we'll set the insertion point to right
-  // before it.
+  // Every Kernel should have a ReturnOp terminator, then we'll set the
+  // insertion point to right before it.
   opBuilder->setInsertionPointToStart(entryBlock);
   auto terminator = opBuilder->create<func::ReturnOp>();
   opBuilder->setInsertionPoint(terminator);
@@ -192,10 +191,9 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
 }
 
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
-/// If found, see if the called function is in the current `ModuleOp`
-/// for this `kernel_builder`, if so do nothing. If it is not found,
-/// then find it in the other `ModuleOp`, clone it, and add it to this
-/// `ModuleOp`.
+/// If found, see if the called function is in the current `ModuleOp` for this
+/// `kernel_builder`, if so do nothing. If it is not found, then find it in the
+/// other `ModuleOp`, clone it, and add it to this `ModuleOp`.
 void addAllCalledFunctionRecursively(
     func::FuncOp &function, ModuleOp &currentModule,
     mlir::OwningOpRef<mlir::ModuleOp> &otherModule) {
@@ -244,10 +242,10 @@ void addAllCalledFunctionRecursively(
   visitAllCallOps(function);
 }
 
-/// @brief Get a the function with the given name. First look in the
-/// current `ModuleOp` for this `kernel_builder`, if found return it as is. If
-/// not found, find it in the other `kernel_builder` `ModuleOp` and return a
-/// clone of it. Throw an exception if no kernel with the given name is found
+/// @brief Get a the function with the given name. First look in the current
+/// `ModuleOp` for this `kernel_builder`, if found return it as is. If not
+/// found, find it in the other `kernel_builder` `ModuleOp` and return a clone
+/// of it. Throw an exception if no kernel with the given name is found
 func::FuncOp
 cloneOrGetFunction(StringRef name, ModuleOp &currentModule,
                    mlir::OwningOpRef<mlir::ModuleOp> &otherModule) {
@@ -276,8 +274,8 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
   auto function = block->getParentOp();
   auto currentModule = function->getParentOfType<ModuleOp>();
 
-  // We need to clone the function we care about, we need
-  // any other functions it calls, so store it in a vector
+  // We need to clone the function we care about, we need any other functions it
+  // calls, so store it in a vector
   std::vector<func::FuncOp> functions;
 
   // Get the function with the kernel name we care about.
@@ -285,8 +283,8 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
   auto otherFuncCloned =
       cloneOrGetFunction(properName, currentModule, otherModule);
 
-  // We need to recursively find all CallOps and
-  // add their Callee FuncOps to the current Module
+  // We need to recursively find all CallOps and add their Callee FuncOps to the
+  // current Module
   addAllCalledFunctionRecursively(otherFuncCloned, currentModule, otherModule);
 
   // Map the QuakeValues to MLIR Values
@@ -339,8 +337,8 @@ void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
   auto otherFuncCloned =
       cloneOrGetFunction(properName, currentModule, otherModule);
 
-  // We need to recursively find all CallOps and
-  // add their Callee FuncOps to the current Module
+  // We need to recursively find all CallOps and add their Callee FuncOps to the
+  // current Module
   addAllCalledFunctionRecursively(otherFuncCloned, currentModule, otherModule);
 
   SmallVector<Value> mlirValues;
@@ -779,10 +777,8 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto moduleHash = static_cast<size_t>(hash);
 
   if (jit) {
-    // Have we added more instructions
-    // since the last time we jit the code?
-    // If so, we need to delete this JIT engine
-    // and create a new one.
+    // Have we added more instructions since the last time we jit the code? If
+    // so, we need to delete this JIT engine and create a new one.
     if (moduleHash == jitHash[jit])
       return std::make_tuple(false, jit);
     else {
@@ -821,9 +817,8 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 
-  // For some reason I get CFG ops from the LowerToCFGPass
-  // instead of the unrolled cc loop if I don't run
-  // the above manually.
+  // For some reason I get CFG ops from the LowerToCFGPass instead of the
+  // unrolled cc loop if I don't run the above manually.
   if (failed(pm.run(module)))
     throw std::runtime_error(
         "cudaq::builder failed to JIT compile the Quake representation.");
@@ -883,8 +878,8 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   cudaq::info("- JIT Engine created successfully.");
 
-  // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR
-  // for the following we want the proper name, BuilderKernelPTRST
+  // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR for the following we
+  // want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
 
   // Need to first invoke the init_func()
@@ -923,8 +918,8 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   // for the following we want the proper name, BuilderKernelPTRST
   std::string properName = name(kernelName);
 
-  // Incoming Args... have been converted to void **,
-  // now we convert to void * altLaunchKernel args.
+  // Incoming Args... have been converted to void **, now we convert to void *
+  // altLaunchKernel args.
   auto argCreatorName = properName + ".argsCreator";
   auto expectedPtr = jit->lookup(argCreatorName);
   if (!expectedPtr) {

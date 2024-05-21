@@ -8,19 +8,14 @@
 
 #pragma once
 
-#include "CodeGenDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
-#include "mlir/Dialect/OpenACC/OpenACC.h"
-#include "mlir/Dialect/OpenMP/OpenMPDialect.h"
-#include "mlir/Pass/Pass.h"
-#include "mlir/Pass/PassRegistry.h"
+namespace mlir {
+class LLVMTypeConverter;
+class RewritePatternSet;
+} // namespace mlir
 
 namespace cudaq::opt {
 
-#define GEN_PASS_CLASSES
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+void populateCCToLLVMPatterns(mlir::LLVMTypeConverter &typeConverter,
+                              mlir::RewritePatternSet &patterns);
 
 } // namespace cudaq::opt

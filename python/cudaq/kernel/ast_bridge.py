@@ -17,7 +17,7 @@ from ..mlir.ir import *
 from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
 
 # This file implements the CUDA-Q Python AST to MLIR conversion.
 # It provides a `PyASTBridge` class that implements the `ast.NodeVisitor` type
@@ -115,6 +115,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.loc = Location.unknown(context=self.ctx)
         else:
             self.ctx = Context()
+            register_all_dialects(self.ctx)
             quake.register_dialect(self.ctx)
             cc.register_dialect(self.ctx)
             cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
@@ -2992,7 +2993,8 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
 
         if self.isInIfStmtBlock():
-            inArgs = [b for b in self.inForBodyStack[0]]
+            # Get the innermost enclosing `for` or `while` loop
+            inArgs = [b for b in self.inForBodyStack[-1]]
             cc.UnwindBreakOp(inArgs)
         else:
             cc.BreakOp([])
@@ -3010,7 +3012,8 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
 
         if self.isInIfStmtBlock():
-            inArgs = [b for b in self.inForBodyStack[0]]
+            # Get the innermost enclosing `for` or `while` loop
+            inArgs = [b for b in self.inForBodyStack[-1]]
             cc.UnwindContinueOp(inArgs)
         else:
             cc.ContinueOp([])
