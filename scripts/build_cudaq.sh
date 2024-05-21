@@ -122,8 +122,9 @@ fi
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
-cuda_flags='-allow-unsupported-compiler --compiler-options --stdlib=libstdc++ --compiler-options -static-libgcc --compiler-options -static-libstdc++ --linker-options --as-needed'
+cuda_flags='-allow-unsupported-compiler --compiler-options --stdlib=libstdc++ --linker-options --as-needed'
 if [ -d "$GCC_TOOLCHAIN" ]; then 
+  # e.g. GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
   cuda_flags+=" --compiler-options --gcc-toolchain=\"$GCC_TOOLCHAIN\""
 fi
 cmake_args="-G Ninja '"$repo_root"' \
