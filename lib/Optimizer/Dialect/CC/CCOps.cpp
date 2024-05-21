@@ -1436,6 +1436,25 @@ LogicalResult cudaq::cc::CallCallableOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// ConditionOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::ConditionOp::verify() {
+  Operation *self = getOperation();
+  Region *region = self->getBlock()->getParent();
+  auto parentOp = self->getParentOfType<LoopOp>();
+  assert(parentOp); // checked by tablegen constraints
+  if (&parentOp.getWhileRegion() != region)
+    return emitOpError("only valid in the while region of a loop");
+  return success();
+}
+
+MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
+    std::optional<unsigned> index) {
+  return getResultsMutable();
+}
+
+//===----------------------------------------------------------------------===//
 // ReturnOp
 //===----------------------------------------------------------------------===//
 
@@ -1492,22 +1511,37 @@ void cudaq::cc::ReturnOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
-// ConditionOp
+// SizeOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult cudaq::cc::ConditionOp::verify() {
-  Operation *self = getOperation();
-  Region *region = self->getBlock()->getParent();
-  auto parentOp = self->getParentOfType<LoopOp>();
-  assert(parentOp); // checked by tablegen constraints
-  if (&parentOp.getWhileRegion() != region)
-    return emitOpError("only valid in the while region of a loop");
-  return success();
-}
+namespace {
+struct ReplaceConstantSizes : public OpRewritePattern<cudaq::cc::SizeOfOp> {
+  using Base = OpRewritePattern<cudaq::cc::SizeOfOp>;
+  using Base::Base;
 
-MutableOperandRange cudaq::cc::ConditionOp::getMutableSuccessorOperands(
-    std::optional<unsigned> index) {
-  return getResultsMutable();
+  LogicalResult matchAndRewrite(cudaq::cc::SizeOfOp sizeOp,
+                                PatternRewriter &rewriter) const override {
+    // TODO: Add handling of more types.
+    auto inpTy = sizeOp.getInputType();
+    std::optional<unsigned> bitsize;
+    if (isa<IntegerType, FloatType>(inpTy)) {
+      bitsize = inpTy.getIntOrFloatBitWidth();
+    } else if (auto strTy = dyn_cast<cudaq::cc::StructType>(inpTy)) {
+      if (auto bits = strTy.getBitSize())
+        bitsize = bits;
+    }
+    if (!bitsize)
+      return failure();
+    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
+        sizeOp, cudaq::opt::convertBitsToBytes(*bitsize), sizeOp.getType());
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::SizeOfOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ReplaceConstantSizes>(context);
 }
 
 //===----------------------------------------------------------------------===//

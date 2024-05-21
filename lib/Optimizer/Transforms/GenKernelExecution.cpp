@@ -449,11 +449,8 @@ public:
     }
 
     // Compute the struct size
-    auto nullSt = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, zero);
-    auto computedOffset = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, structPtrTy, nullSt, SmallVector<cudaq::cc::ComputePtrArg>{1});
     Value structSize =
-        builder.create<cudaq::cc::CastOp>(loc, i64Ty, computedOffset);
+        builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, msgStructTy);
 
     // Here we do have vector args
     Value extendedStructSize =
@@ -784,14 +781,8 @@ public:
     auto i64Ty = builder.getI64Type();
 
     // Compute the struct size without the trailing bytes, structSize.
-    auto ptrArrayStructTy = cudaq::opt::factory::getIndexedObjectType(structTy);
-    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
-    auto nullSt =
-        builder.create<cudaq::cc::CastOp>(loc, ptrArrayStructTy, zero);
-    auto computedOffset = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, structPtrTy, nullSt, SmallVector<cudaq::cc::ComputePtrArg>{1});
     Value structSize =
-        builder.create<cudaq::cc::CastOp>(loc, i64Ty, computedOffset);
+        builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, structTy);
 
     // Compute location of trailing bytes.
     auto bufferPtrTy =
@@ -1227,10 +1218,8 @@ public:
     // Compute the struct size without the trailing bytes, structSize, and with
     // the trailing bytes, extendedStructSize.
     auto nullSt = builder.create<cudaq::cc::CastOp>(loc, structPtrTy, zero);
-    auto computedOffset = builder.create<cudaq::cc::ComputePtrOp>(
-        loc, structPtrTy, nullSt, SmallVector<cudaq::cc::ComputePtrArg>{1});
     Value structSize =
-        builder.create<cudaq::cc::CastOp>(loc, i64Ty, computedOffset);
+        builder.create<cudaq::cc::SizeOfOp>(loc, i64Ty, structTy);
     Value extendedStructSize =
         builder.create<arith::AddIOp>(loc, structSize, extraBytes);
 
