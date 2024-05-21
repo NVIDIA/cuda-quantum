@@ -30,6 +30,6 @@ cudaq::sample_result sample(std::vector<double> &bs_angles,
                             std::vector<double> &ps_angles,
                             std::vector<std::size_t> &input_state,
                             std::vector<std::size_t> &loop_lengths,
-                            int n_samples = 1000000);
+                            int n_samples = 10000);
 
 }; // namespace cudaq::orca

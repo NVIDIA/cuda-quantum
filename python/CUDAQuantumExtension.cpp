@@ -164,7 +164,10 @@ PYBIND11_MODULE(_quakeDialects, m) {
       "finalize", []() { cudaq::mpi::finalize(); }, "Finalize MPI.");
 
   auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
-  orcaSubmodule.def("sample", &cudaq::orca::sample, "[Documentation TODO]");
+  orcaSubmodule.def("sample", &cudaq::orca::sample, "[Documentation TODO]",
+                    py::arg("bs_angles"), py::arg("ps_angles"),
+                    py::arg("input_state"), py::arg("loop_lengths"),
+                    py::arg("n_samples") = 10000);
 
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
