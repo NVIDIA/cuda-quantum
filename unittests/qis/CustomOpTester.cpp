@@ -98,6 +98,8 @@ CUDAQ_TEST(CustomOpTester, checkTwoQubitOp) {
   }
 }
 
+#ifndef CUDAQ_BACKEND_TENSORNET_MPS
+// SKIP_TEST: Reason - "Gates on 3 or more qubits are unsupported."
 CUDAQ_TEST(CustomOpTester, checkToffoli) {
   auto test_toffoli_be = []() {
     cudaq::qvector q(3);
@@ -110,3 +112,4 @@ CUDAQ_TEST(CustomOpTester, checkToffoli) {
     EXPECT_TRUE(bits == "011");
   }
 }
+#endif
