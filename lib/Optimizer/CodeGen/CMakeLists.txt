@@ -11,6 +11,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 add_cudaq_library(OptCodeGen
+  CCToLLVM.cpp
   CodeGenDialect.cpp
   CodeGenOps.cpp
   CodeGenTypes.cpp
@@ -18,6 +19,7 @@ add_cudaq_library(OptCodeGen
   ConvertToQIR.cpp
   Passes.cpp
   Pipelines.cpp
+  QuakeToLLVM.cpp
   RemoveMeasurements.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
