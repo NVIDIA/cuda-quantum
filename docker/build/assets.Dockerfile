@@ -161,6 +161,6 @@ RUN echo "Patching up wheel using auditwheel..." && \
 FROM cpp_build
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \
-    fi && cd /cuda-quantum
+    fi && cd /cuda-quantum && /cuda-quantum/build/bin/cudaq-quake -I /cuda-quantum/tpls/fmt/include -Xcudaq -v -Xcudaq --gcc-install-dir="/opt/rh/gcc-toolset-11/root/usr/lib/gcc/x86_64-redhat-linux/11" --emit-llvm-file /cuda-quantum/docs/sphinx/snippets/cpp/using/time.cpp -o time.qke
 
 # TEMP - stop here for debug.
