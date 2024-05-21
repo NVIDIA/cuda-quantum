@@ -1527,6 +1527,35 @@ public:
   }
 };
 
+class SizeOfOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::SizeOfOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  // Use the GEP approach for now. LLVM is planning to remove support for this
+  // at some point. See: https://github.com/llvm/llvm-project/issues/71507
+  LogicalResult
+  matchAndRewrite(cudaq::cc::SizeOfOp sizeOfOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto inputTy = sizeOfOp.getInputType();
+    auto resultTy = sizeOfOp.getType();
+    if (quake::isQuakeType(inputTy) || cudaq::cc::isDynamicType(inputTy)) {
+      // Types that cannot be reified produce the poison op.
+      rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(sizeOfOp, resultTy);
+      return success();
+    }
+    auto loc = sizeOfOp.getLoc();
+    // TODO: replace this with some target-specific memory layout computation
+    // when we upgrade to a newer MLIR.
+    auto zero = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto ptrTy = cudaq::cc::PointerType::get(inputTy);
+    auto nullCast = rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, zero);
+    Value nextPtr = rewriter.create<cudaq::cc::ComputePtrOp>(
+        loc, ptrTy, nullCast, ArrayRef<cudaq::cc::ComputePtrArg>{1});
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(sizeOfOp, resultTy, nextPtr);
+    return success();
+  }
+};
+
 class StdvecDataOpPattern
     : public ConvertOpToLLVMPattern<cudaq::cc::StdvecDataOp> {
 public:
@@ -1826,9 +1855,14 @@ public:
   /// ops. This step makes converting a DAG of nodes in the conversion step
   /// simpler.
   void fuseSubgraphPatterns() {
+#if 0
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    // TODO
+    // TODO: Patterns to be added.
+    patterns.insert<...>(ctx);
+    if (failed(applyPatternsAndFoldGreedily(getModule(), std::move(patterns))))
+      signalPassFailure();
+#endif
   }
 
   void runOnOperation() override final {
@@ -1880,9 +1914,9 @@ public:
         OneTargetOneParamRewrite<quake::RzOp>,
         OneTargetTwoParamRewrite<quake::U2Op>,
         OneTargetThreeParamRewrite<quake::U3Op>, PoisonOpPattern, ResetRewrite,
-        StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-        StoreOpPattern, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>,
-        UndefOpPattern>(typeConverter);
+        SizeOfOpPattern, StdvecDataOpPattern, StdvecInitOpPattern,
+        StdvecSizeOpPattern, StoreOpPattern, SubveqOpRewrite,
+        TwoTargetRewrite<quake::SwapOp>, UndefOpPattern>(typeConverter);
     patterns.insert<MeasureRewrite<quake::MzOp>>(typeConverter, measureCounter);
 
     target.addLegalDialect<LLVM::LLVMDialect>();
