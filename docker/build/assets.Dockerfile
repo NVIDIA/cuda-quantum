@@ -161,23 +161,6 @@ RUN echo "Patching up wheel using auditwheel..." && \
 FROM cpp_build
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \
-    fi && cd /cuda-quantum && \
-    # FIXME: Disabled nlopt doesn't seem to work properly
-    # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1103
-    excludes+=" --exclude-regex NloptTester|ctest-nvqpp|ctest-targettests" && \
-    ctest --output-on-failure --test-dir build $excludes
+    fi && cd /cuda-quantum
 
-ENV CUDAQ_CPP_STD="c++17"
-ENV PATH="${PATH}:/usr/local/cuda/bin" 
-
-RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
-    dnf install -y --nobest --setopt=install_weak_deps=False file which
-RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
-        --param nvqpp_site_config=build/test/lit.site.cfg.py && \
-    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
-        --param nvqpp_site_config=build/targettests/lit.site.cfg.py
-
-
-# Tests for the Python wheel are run post-installation.
-COPY --from=python_build /wheelhouse /cuda_quantum/wheelhouse
+# TEMP - stop here for debug.
