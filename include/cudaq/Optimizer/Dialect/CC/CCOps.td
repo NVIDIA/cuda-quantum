@@ -1033,6 +1033,32 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
   }];
 }
 
+def cc_SizeOfOp : CCOp<"sizeof", [Pure]> {
+  let summary = "Return the size, in bytes, of a type.";
+  let description = [{
+    This operation is the size, in bytes, of a type that can be reified. It can
+    be used to determine how many bytes to allocate or move when a value is in
+    memory, for example. If the type cannot be reified, it returns a size of
+    poison.
+
+    Example:
+
+    ```mlir
+      %0 = cc.sizeof i32 : i64   // same as: arith.constant 4 : i64
+      %1 = cc.sizeof !cc.struct<"a_thing" ...> : i64
+    ```
+  }];
+
+  let arguments = (ins TypeAttr:$inputType);
+  let results = (outs AnySignlessInteger);
+
+  let hasCanonicalizer = 1;
+
+  let assemblyFormat = [{
+    $inputType `:` qualified(type(results)) attr-dict
+  }];
+}
+
 def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
   let summary = "A one dimensional array of constant values.";
   let description = [{
