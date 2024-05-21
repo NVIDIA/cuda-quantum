@@ -61,7 +61,6 @@ RUN cd /cuda-quantum && git init && \
         fi; \
     done && git submodule init && git submodule
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    CUDAHOSTCXX="$CXX" \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/install_prerequisites.sh -t llvm
 
@@ -116,7 +115,6 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantumBuild]
     CUDAQ_WERROR=false \
     CUDAQ_PYTHON_SUPPORT=OFF \
-    CUDAHOSTCXX="$CXX" \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/build_cudaq.sh -t llvm -v
     ## [<CUDAQuantumBuild]
@@ -160,7 +158,6 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_INSTALL_PREFIX="$(mktemp -d)" && \
     ## [>CUDAQuantumPythonBuild]
     bash scripts/install_prerequisites.sh -t llvm && \
-    CUDAHOSTCXX="$CXX" \
     python3 -m build --wheel
     ## [<CUDAQuantumPythonBuild]
 

@@ -120,16 +120,6 @@ if [ -z "${llvm_projects##*runtimes;*}" ]; then
   llvm_runtimes+="libcxx;libcxxabi;libunwind;compiler-rt;"
   projects=("${projects[@]/runtimes}")
 fi
-# FIXME: THIS WORKS PERFECTLY FINE THE THIRD TIME BUILDING...
-# LOOKS LIKE WE FIRST NEED TO COMPLETE THE INSTALL OF THE OTHER RT LIBRARIES,
-# THEN BUILD THE OPENMP SUPPORT...
-if [ -z "${llvm_projects##*openmp;*}" ]; then
-  # Enabled separately from other runtimes, since we need to build the other
-  # runtime libraries first before being able to build openmp.
-  echo "- including OpenMP runtime"
-  llvm_runtimes+="openmp;"
-  projects=("${projects[@]/openmp}")
-fi
 
 llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*clang;*}" ]; then
@@ -162,7 +152,7 @@ llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
 llvm_components+="llvm-config;llc;llvm-ar;llvm-as;llvm-nm;llvm-symbolizer;llvm-profdata;llvm-cov;"
 llvm_components+="FileCheck;count;not;"
 
-if [ "$(echo ${projects[*]} | xargs)" != "" ]; then
+if [ "$(echo ${projects[@]/openmp} | xargs)" != "" ]; then
   echo "- including additional project(s) "$(echo "${projects[*]}" | xargs | tr ' ' ',')
   unset llvm_components
   install_target=install
@@ -251,9 +241,14 @@ fi
 # Build and install runtimes using the newly built toolchain.
 if [ -n "$llvm_runtimes" ]; then
   echo "Building runtime components..."
-  ninja runtimes
-  ninja install-runtimes
-  status=$?
+  if $verbose; then
+    ninja install-runtimes
+    status=$?
+  else
+    ninja install-runtimes 2>> logs/ninja_error.txt 1>> logs/ninja_output.txt
+    status=$?
+  fi
+
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
     cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
@@ -269,6 +264,33 @@ if [ -n "$llvm_runtimes" ]; then
       echo '-Wl,-rpath,"'$libdir'"' >> "$clang_config_file"
     done
     echo "Added default configuration $clang_config_file."
+  fi
+fi
+
+# Build OpenMP support.
+# Enabled separately from other runtimes, since we need to build the other
+# runtime libraries first before being able to build openmp.
+if [ -z "${llvm_projects##*openmp;*}" ]; then
+  cmake_args=$(echo $cmake_args | sed "s/LLVM_ENABLE_RUNTIMES='/LLVM_ENABLE_RUNTIME='openmp;/")
+  if $verbose; then
+    cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache
+  else
+    cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache \
+      2> logs/cmake_error.txt 1> logs/cmake_output.txt
+  fi
+
+  echo "Building OpenMP support..."
+  if $verbose; then
+    ninja install-runtimes
+    status=$?
+  else
+    ninja install-runtimes 2>> logs/ninja_error.txt 1>> logs/ninja_output.txt
+    status=$?
+  fi
+
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo "Failed to build OpenMP components. Please check the files in the `pwd`/logs directory."
+    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
   fi
 fi
 
