@@ -95,11 +95,6 @@ inline mlir::Type getResultType(mlir::MLIRContext *context) {
       getQuantumTypeByName("Result", context));
 }
 
-inline mlir::Type getStateType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("State", context));
-}
-
 inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
   return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
 }

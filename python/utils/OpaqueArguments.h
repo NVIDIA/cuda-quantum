@@ -233,18 +233,7 @@ packArgs(OpaqueArguments &argData, py::args args,
         })
         .Case([&](cudaq::cc::PointerType ty) {
           if (isa<cudaq::cc::StateType>(ty.getElementType())) {
-            std::cout << "Reading cudaq::state *" << std::endl;
             addArgument(argData, arg.cast<cudaq::state *>());
-            // auto allocatedArg = new cudaq::state(*arg.cast<cudaq::state
-            // *>());
-            //  allocatedArg->dump();
-            // argData.emplace_back(allocatedArg,
-            //             [](void *ptr) { delete static_cast<cudaq::state
-            //             *>(ptr); });
-
-            // arg.cast<cudaq::state *>()->dump();
-            std::cout << "Read cudaq::state *: "
-                      << py::str(arg).cast<std::string>() << std::endl;
           } else {
             throw std::runtime_error("Invalid pointer type argument: " +
                                      py::str(arg).cast<std::string>() +
