@@ -1850,7 +1850,7 @@ class PyASTBridge(ast.NodeVisitor):
                         self.pushValue(qubits)
                         return
                     if cc.StdvecType.isinstance(value.type):
-                        # handle `cudaq.qvector(list)`
+                        # handle `cudaq.qvector(initState)`
 
                         # Validate the length in case of a constant initializer:
                         # `cudaq.qvector([1., 0., ...])`
