@@ -55,6 +55,8 @@ static constexpr const char QIRArrayQubitAllocateArrayWithStateComplex32[] =
     "__quantum__rt__qubit_allocate_array_with_state_complex32";
 static constexpr const char QIRArrayQubitAllocateArrayWithStatePtr[] =
     "__quantum__rt__qubit_allocate_array_with_state_ptr";
+static constexpr const char QIRArrayQubitAllocateArrayWithCudaqStatePtr[] =
+    "__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr";
 static constexpr const char QIRQubitAllocate[] =
     "__quantum__rt__qubit_allocate";
 static constexpr const char QIRArrayQubitReleaseArray[] =
@@ -91,6 +93,11 @@ inline mlir::Type getArrayType(mlir::MLIRContext *context) {
 inline mlir::Type getResultType(mlir::MLIRContext *context) {
   return mlir::LLVM::LLVMPointerType::get(
       getQuantumTypeByName("Result", context));
+}
+
+inline mlir::Type getStateType(mlir::MLIRContext *context) {
+  return mlir::LLVM::LLVMPointerType::get(
+      getQuantumTypeByName("State", context));
 }
 
 inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {

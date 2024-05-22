@@ -124,7 +124,8 @@ void bindPyState(py::module &mod) {
                                   dataTypeSize}, /* strides */
                                  true            /* readonly */
           );
-
+        py::print("data ptr");
+        py::print(dataPtr);
         return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
                                desc, 1,               /* ndim */
                                {shape[0]},            /* shape */

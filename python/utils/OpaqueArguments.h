@@ -24,6 +24,8 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
+#include <iostream>
+
 namespace py = pybind11;
 using namespace std::chrono_literals;
 using namespace mlir;
@@ -151,10 +153,6 @@ void checkArgumentType(py::handle arg, int index) {
   }
 }
 
-// TODO: handle 'cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State'
-// Add a py object for state that can be created from a vector? Or do we have an mlir matching type instead of a vector?
-// 
-
 template <typename T>
 void checkListElementType(py::handle arg, int index, int elementIndex) {
   if (!py_ext::isConvertible<T>(arg)) {
@@ -173,6 +171,15 @@ inline void addArgument(OpaqueArguments &argData, T &&arg) {
   T *allocatedArg = new T(std::move(arg));
   argData.emplace_back(allocatedArg,
                        [](void *ptr) { delete static_cast<T *>(ptr); });
+}
+
+inline std::string mlirTypeToString(mlir::Type ty) {
+  std::string msg;
+  {
+    llvm::raw_string_ostream os(msg);
+    ty.print(os);
+  }
+  return msg;
 }
 
 inline void
@@ -194,8 +201,12 @@ packArgs(OpaqueArguments &argData, py::args args,
           checkArgumentType<py_ext::Complex>(arg, i);
           if (isa<Float64Type>(ty.getElementType())) {
             addArgument(argData, arg.cast<std::complex<double>>());
-          } else {
+          } else if (isa<Float32Type>(ty.getElementType())) {
             addArgument(argData, arg.cast<std::complex<float>>());
+          } else  {
+            throw std::runtime_error("Invalid complex type argument: " +
+                                    py::str(args).cast<std::string>() +
+                                    " Type: " + mlirTypeToString(ty));
           }
         })
         .Case([&](mlir::Float64Type ty) {
@@ -219,6 +230,23 @@ packArgs(OpaqueArguments &argData, py::args args,
         .Case([&](cudaq::cc::CharspanType ty) {
           addArgument(argData,
                       cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str()));
+        })
+        .Case([&](cudaq::cc::PointerType ty) {
+          if (isa<cudaq::cc::StateType>(ty.getElementType())) {
+            std::cout << "Reading cudaq::state *" << std::endl;
+            addArgument(argData, arg.cast<cudaq::state *>());
+            //auto allocatedArg = new cudaq::state(*arg.cast<cudaq::state *>());
+            // allocatedArg->dump();
+            //argData.emplace_back(allocatedArg,
+            //            [](void *ptr) { delete static_cast<cudaq::state *>(ptr); });
+
+            //arg.cast<cudaq::state *>()->dump();
+            std::cout << "Read cudaq::state *: " << py::str(arg).cast<std::string>() << std::endl;
+          } else {
+            throw std::runtime_error("Invalid pointer type argument: " +
+                                    py::str(arg).cast<std::string>() +
+                                    " Type: " + mlirTypeToString(ty));
+          }
         })
         .Case([&](cudaq::cc::StdvecType ty) {
           checkArgumentType<py::list>(arg, i);
@@ -320,21 +348,19 @@ packArgs(OpaqueArguments &argData, py::args args,
                 return;
               })
               .Default([](Type ty) {
-                std::string msg;
-                {
-                  llvm::raw_string_ostream os(msg);
-                  ty.print(os);
-                }
-                throw std::runtime_error("invalid list element type (" + msg +
+                throw std::runtime_error("invalid list element type (" + mlirTypeToString(ty) +
                                          ").");
+                                  
               });
         })
-        .Default([&](Type) {
+        .Default([&](Type ty) {
           // See if we have a backup type handler.
           auto worked = backupHandler(argData, arg);
-          if (!worked)
+          if (!worked) {
             throw std::runtime_error("Could not pack argument: " +
-                                     py::str(args).cast<std::string>());
+                                     py::str(arg).cast<std::string>() +
+                                     " Type: " + mlirTypeToString(ty));
+          }
         });
   }
 }

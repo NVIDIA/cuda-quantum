@@ -11,6 +11,7 @@
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "cudaq/spin_op.h"
+#include "cudaq/qis/state.h"
 #include <cmath>
 #include <complex>
 #include <string>
@@ -243,6 +244,33 @@ Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
       state->getNumQubits(), state);
   return vectorSizetToArray(qubitIdxs);
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(
+    cudaq::state* state) {
+  if (!state)
+    throw std::invalid_argument("[NVQIR] Invalid state encountered "
+                                "in qubit array allocation.");
+  ScopedTraceWithContext(
+      "NVQIR::__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr",
+      state->get_num_qubits());
+
+  void *dataPtr = nullptr;
+  auto stateVector = state->get_tensor();
+  if (state->is_on_gpu()) {
+    auto numElements = stateVector.get_num_elements();
+    auto *hostData = new std::complex<double>[numElements];
+    state->to_host(hostData, numElements);
+    dataPtr = reinterpret_cast<void *>(hostData);
+    // TODO: delete dataPtr when done
+  } else {
+    dataPtr = stateVector.data;
+  }
+
+  __quantum__rt__initialize(0, nullptr);
+   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+       state->get_num_qubits(), dataPtr);
+   return vectorSizetToArray(qubitIdxs);
 }
 
 Array *__quantum__rt__qubit_allocate_array_with_state_complex32(

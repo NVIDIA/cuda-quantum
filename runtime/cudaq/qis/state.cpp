@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2023 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2024 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -104,14 +104,41 @@ state::~state() {
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
-  throw std::runtime_error(
-      "not yet implemented: getting number of qubits from state");
+  // throw std::runtime_error(
+  //     "not yet implemented: getting number of qubits from state");
+  return obj->get_num_qubits();
 }
 
-double *__nvqpp_cudaq_state_vectorData(state *obj) {
-  throw std::runtime_error(
-      "not yet implemented: getting vector data from state");
-}
+void *__nvqpp_cudaq_state_vectorData(state *obj) {
+  // throw std::runtime_error(
+  //     "not yet implemented: getting vector data from state");
+
+  auto num = obj->get_num_qubits();
+  std::cout << "Num of qubits from state: " << num << std::endl;
+  std::cout << "State is on gpu: " << obj->is_on_gpu() << std::endl;
+
+  void *dataPtr = nullptr;
+  auto stateVector = obj->get_tensor();
+  if (obj->is_on_gpu()) {
+    std::cout << "Getting Data from state tensor: " << std::endl;
+    auto numElements = stateVector.get_num_elements();
+    auto *hostData = new std::complex<double>[numElements];
+    obj->to_host(hostData, numElements);
+    dataPtr = reinterpret_cast<void *>(hostData);
+  } else {
+    dataPtr = stateVector.data;
+  }
+  {
+    auto data = reinterpret_cast<std::complex<double>*>(dataPtr);
+    auto vec = std::vector<std::complex<double>>(data, data + num);
+    std::cout << "Data from state: ";
+    for (auto& e :vec) {
+      std::cout << e << ", ";
+    }
+    std::cout << std::endl;
+  }
+  return dataPtr;
+ }
 }
 
 } // namespace cudaq

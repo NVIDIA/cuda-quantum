@@ -43,6 +43,9 @@ static constexpr const char stdvecBoolUnpackToInitList[] =
 static constexpr const char getNumQubitsFromCudaqState[] =
     "__nvqpp_cudaq_state_numberOfQubits";
 
+static constexpr const char getDataFromCudaqState[] =
+    "__nvqpp_cudaq_state_vectorData";
+
 /// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
 /// the transformation of both quantum and classical computation. Different
 /// features of the CUDA-Q programming model are lowered into different dialects

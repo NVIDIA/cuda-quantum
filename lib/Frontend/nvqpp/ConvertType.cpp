@@ -30,6 +30,7 @@ static bool isQuantumType(Type t) {
 
 /// Allow `array of [array of]* T`, where `T` is arithmetic.
 static bool isStaticArithmeticSequenceType(Type t) {
+  std::cout << "isStaticArithmeticSequenceType" <<std::endl;
   if (auto vec = dyn_cast<cudaq::cc::ArrayType>(t)) {
     auto eleTy = vec.getElementType();
     return isArithmeticType(eleTy) || isStaticArithmeticSequenceType(eleTy);

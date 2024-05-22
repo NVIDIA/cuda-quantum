@@ -34,6 +34,8 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
+#include <iostream>
+
 namespace py = pybind11;
 using namespace mlir;
 
@@ -280,9 +282,11 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                            reinterpret_cast<void *>(wrapper), size,
                            (uint64_t)returnOffset);
     delete wrapper;
-  } else
+  } else {
+    std::cout << "Launching kernel" << std::endl;
     cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
                            (uint64_t)returnOffset);
+  }
 
   return std::make_tuple(rawArgs, size, returnOffset);
 }
