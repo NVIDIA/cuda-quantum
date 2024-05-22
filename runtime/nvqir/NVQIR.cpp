@@ -10,8 +10,8 @@
 #include "QIRTypes.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
-#include "cudaq/spin_op.h"
 #include "cudaq/qis/state.h"
+#include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
 #include <string>
@@ -246,8 +246,9 @@ Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
   return vectorSizetToArray(qubitIdxs);
 }
 
-Array *__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(
-    cudaq::state* state) {
+Array *
+__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(int size,
+                                                         cudaq::state *state) {
   if (!state)
     throw std::invalid_argument("[NVQIR] Invalid state encountered "
                                 "in qubit array allocation.");
@@ -257,20 +258,32 @@ Array *__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(
 
   void *dataPtr = nullptr;
   auto stateVector = state->get_tensor();
+  auto precision = state->get_precision();
   if (state->is_on_gpu()) {
     auto numElements = stateVector.get_num_elements();
-    auto *hostData = new std::complex<double>[numElements];
-    state->to_host(hostData, numElements);
-    dataPtr = reinterpret_cast<void *>(hostData);
+    if (precision == cudaq::SimulationState::precision::fp32) {
+      auto *hostData = new std::complex<float>[numElements];
+      state->to_host(hostData, numElements);
+      dataPtr = reinterpret_cast<void *>(hostData);
+    } else {
+      auto *hostData = new std::complex<double>[numElements];
+      state->to_host(hostData, numElements);
+      dataPtr = reinterpret_cast<void *>(hostData);
+    }
     // TODO: delete dataPtr when done
   } else {
     dataPtr = stateVector.data;
   }
 
   __quantum__rt__initialize(0, nullptr);
-   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
-       state->get_num_qubits(), dataPtr);
-   return vectorSizetToArray(qubitIdxs);
+
+  auto simPrecision = precision == cudaq::SimulationState::precision::fp32
+                          ? cudaq::simulation_precision::fp32
+                          : cudaq::simulation_precision::fp64;
+
+  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+      state->get_num_qubits(), dataPtr, simPrecision);
+  return vectorSizetToArray(qubitIdxs);
 }
 
 Array *__quantum__rt__qubit_allocate_array_with_state_complex32(

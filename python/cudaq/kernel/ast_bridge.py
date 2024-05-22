@@ -1908,9 +1908,6 @@ class PyASTBridge(ast.NodeVisitor):
                     if cc.StateType.isinstance(value.type):
                         valuePtr = self.ifNotPointerThenStore(value)
                         # handle `cudaq.qvector(state)`
-                        numQubits = self.getConstantInt(2)
-                        eleTy = self.simulationDType()
-                        elePtrTy = cc.PointerType.get(self.ctx, eleTy)
 
                         symName = '__nvqpp_cudaq_state_numberOfQubits'
                         load_intrinsic(self.module, symName)
@@ -1919,6 +1916,8 @@ class PyASTBridge(ast.NodeVisitor):
 
                         # Option 1: call intrinsic to get the data
                         # Note: this copies the data from the gpu
+                        # eleTy = self.simulationDType()
+                        # elePtrTy = cc.PointerType.get(self.ctx, eleTy)
                         # symName = '__nvqpp_cudaq_state_vectorData'
                         # load_intrinsic(self.module, symName)
                         # data = func.CallOp([elePtrTy], symName, [valuePtr]).result
@@ -1929,8 +1928,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                         veqTy = quake.VeqType.get(self.ctx)
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result
-                        init = quake.InitializeStateOp(veqTy, qubits,
-                                                       data).result
+                        init = quake.InitializeStateOp(veqTy, qubits, data).result
 
                         self.pushValue(init)
                         return

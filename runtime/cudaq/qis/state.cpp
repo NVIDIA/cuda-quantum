@@ -119,26 +119,32 @@ void *__nvqpp_cudaq_state_vectorData(state *obj) {
 
   void *dataPtr = nullptr;
   auto stateVector = obj->get_tensor();
+  auto precision = obj->get_precision();
   if (obj->is_on_gpu()) {
-    std::cout << "Getting Data from state tensor: " << std::endl;
     auto numElements = stateVector.get_num_elements();
-    auto *hostData = new std::complex<double>[numElements];
-    obj->to_host(hostData, numElements);
-    dataPtr = reinterpret_cast<void *>(hostData);
+    if (precision == SimulationState::precision::fp32) {
+      auto *hostData = new std::complex<float>[numElements];
+      obj->to_host(hostData, numElements);
+      dataPtr = reinterpret_cast<void *>(hostData);
+    } else {
+      auto *hostData = new std::complex<double>[numElements];
+      obj->to_host(hostData, numElements);
+      dataPtr = reinterpret_cast<void *>(hostData);
+    }
   } else {
     dataPtr = stateVector.data;
   }
-  {
-    auto data = reinterpret_cast<std::complex<double>*>(dataPtr);
-    auto vec = std::vector<std::complex<double>>(data, data + num);
-    std::cout << "Data from state: ";
-    for (auto& e :vec) {
-      std::cout << e << ", ";
-    }
-    std::cout << std::endl;
-  }
+  // {
+  //   auto data = reinterpret_cast<std::complex<double>*>(dataPtr);
+  //   auto vec = std::vector<std::complex<double>>(data, data + num);
+  //   std::cout << "Data from state: ";
+  //   for (auto& e :vec) {
+  //     std::cout << e << ", ";
+  //   }
+  //   std::cout << std::endl;
+  // }
   return dataPtr;
- }
+}
 }
 
 } // namespace cudaq

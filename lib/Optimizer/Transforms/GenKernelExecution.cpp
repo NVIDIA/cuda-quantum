@@ -434,7 +434,8 @@ public:
         hasTrailingData = true;
         continue;
       }
-      if (isa<cudaq::cc::PointerType>(currEleTy) && !isStatePointerType(currEleTy)) {
+      if (isa<cudaq::cc::PointerType>(currEleTy) &&
+          !isStatePointerType(currEleTy)) {
         continue;
       }
 
@@ -949,7 +950,8 @@ public:
         cudaq::cc::numberOfHiddenArgs(hasThisPointer, hiddenSRet);
     if (count > 0 && args.size() >= count &&
         std::all_of(args.begin(), args.begin() + count, [](auto i) {
-          return isa<cudaq::cc::PointerType>(i.getType()) && !isStatePointerType(i.getType());
+          return isa<cudaq::cc::PointerType>(i.getType()) &&
+                 !isStatePointerType(i.getType());
         }))
       return args.drop_front(count);
     return args;

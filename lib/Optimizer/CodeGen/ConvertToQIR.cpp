@@ -145,9 +145,7 @@ public:
                          .getElementType()) {
       // Option 2: call a function to allocate qubits from state
 
-      std::cout << "state type" << std::endl;
-      eleTy.dump();
-      if (auto elePtrTy = dyn_cast<LLVM::LLVMPointerType>(eleTy)) 
+      if (auto elePtrTy = dyn_cast<LLVM::LLVMPointerType>(eleTy))
         eleTy = elePtrTy.getElementType();
       if (auto arrayTy = dyn_cast<LLVM::LLVMArrayType>(eleTy))
         eleTy = arrayTy.getElementType();
@@ -156,9 +154,9 @@ public:
         fromComplex = true;
         eleTy = complexTy.getBody()[0];
       }
-      if (eleTy == rewriter.getI8Type()) 
-          // Initializing from cudaq::state
-          functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
+      if (eleTy == rewriter.getI8Type())
+        // Initializing from cudaq::state
+        functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
       if (eleTy == rewriter.getF64Type()) {
         functionName =
             fromComplex
@@ -198,6 +196,7 @@ public:
     // Create QIR allocation with initializer function.
     auto *ctx = rewriter.getContext();
     auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
+
     FlatSymbolRefAttr raiiSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
             functionName, array_qbit_type, {i64Ty, ptrTy}, parentModule);
@@ -2012,7 +2011,6 @@ public:
       LLVM_DEBUG(getModule().dump());
       signalPassFailure();
     }
-    getModule().dump();
   }
 };
 

@@ -283,7 +283,6 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                            (uint64_t)returnOffset);
     delete wrapper;
   } else {
-    std::cout << "Launching kernel" << std::endl;
     cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
                            (uint64_t)returnOffset);
   }

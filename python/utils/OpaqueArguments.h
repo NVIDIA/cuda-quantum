@@ -203,10 +203,10 @@ packArgs(OpaqueArguments &argData, py::args args,
             addArgument(argData, arg.cast<std::complex<double>>());
           } else if (isa<Float32Type>(ty.getElementType())) {
             addArgument(argData, arg.cast<std::complex<float>>());
-          } else  {
+          } else {
             throw std::runtime_error("Invalid complex type argument: " +
-                                    py::str(args).cast<std::string>() +
-                                    " Type: " + mlirTypeToString(ty));
+                                     py::str(args).cast<std::string>() +
+                                     " Type: " + mlirTypeToString(ty));
           }
         })
         .Case([&](mlir::Float64Type ty) {
@@ -235,17 +235,20 @@ packArgs(OpaqueArguments &argData, py::args args,
           if (isa<cudaq::cc::StateType>(ty.getElementType())) {
             std::cout << "Reading cudaq::state *" << std::endl;
             addArgument(argData, arg.cast<cudaq::state *>());
-            //auto allocatedArg = new cudaq::state(*arg.cast<cudaq::state *>());
-            // allocatedArg->dump();
-            //argData.emplace_back(allocatedArg,
-            //            [](void *ptr) { delete static_cast<cudaq::state *>(ptr); });
+            // auto allocatedArg = new cudaq::state(*arg.cast<cudaq::state
+            // *>());
+            //  allocatedArg->dump();
+            // argData.emplace_back(allocatedArg,
+            //             [](void *ptr) { delete static_cast<cudaq::state
+            //             *>(ptr); });
 
-            //arg.cast<cudaq::state *>()->dump();
-            std::cout << "Read cudaq::state *: " << py::str(arg).cast<std::string>() << std::endl;
+            // arg.cast<cudaq::state *>()->dump();
+            std::cout << "Read cudaq::state *: "
+                      << py::str(arg).cast<std::string>() << std::endl;
           } else {
             throw std::runtime_error("Invalid pointer type argument: " +
-                                    py::str(arg).cast<std::string>() +
-                                    " Type: " + mlirTypeToString(ty));
+                                     py::str(arg).cast<std::string>() +
+                                     " Type: " + mlirTypeToString(ty));
           }
         })
         .Case([&](cudaq::cc::StdvecType ty) {
@@ -348,18 +351,17 @@ packArgs(OpaqueArguments &argData, py::args args,
                 return;
               })
               .Default([](Type ty) {
-                throw std::runtime_error("invalid list element type (" + mlirTypeToString(ty) +
-                                         ").");
-                                  
+                throw std::runtime_error("invalid list element type (" +
+                                         mlirTypeToString(ty) + ").");
               });
         })
         .Default([&](Type ty) {
           // See if we have a backup type handler.
           auto worked = backupHandler(argData, arg);
           if (!worked) {
-            throw std::runtime_error("Could not pack argument: " +
-                                     py::str(arg).cast<std::string>() +
-                                     " Type: " + mlirTypeToString(ty));
+            throw std::runtime_error(
+                "Could not pack argument: " + py::str(arg).cast<std::string>() +
+                " Type: " + mlirTypeToString(ty));
           }
         });
   }
