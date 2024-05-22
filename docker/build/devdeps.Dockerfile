@@ -104,7 +104,7 @@ ENV HOME=/home SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
 
 # Copy over the llvm build dependencies.
-COPY --from=llvmbuild /usr/local/llvm /opt/llvm
+COPY --from=prereqs /usr/local/llvm /opt/llvm
 ENV LLVM_INSTALL_PREFIX=/opt/llvm
 ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 
