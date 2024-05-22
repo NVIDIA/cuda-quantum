@@ -19,6 +19,9 @@ ARG base_image=amd64/almalinux:8
 FROM ${base_image} as prereqs
 SHELL ["/bin/bash", "-c"]
 
+# When a dialogue box would be needed during install, assume default configurations.
+# Set here to avoid setting it for all install commands. 
+# Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         'dnf-command(config-manager)' && \
@@ -37,8 +40,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
 ## [Compiler Toolchain]
 RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
-# [CUDA-Q]
-ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
+# [CUDA-Q Dependencies]
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
@@ -152,10 +154,12 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_STAGE1_BUILD=/tmp/tmp.*/llvm \
+    # Needed to retrigger the LLVM build, since the MLIR Python bindings
+    # are not built in the prereqs stage.
+    LLVM_INSTALL_PREFIX="$(mktemp -d)" && \
     # IMPORTANT:
     # Make sure that the invocation of the install_prerequisites.sh script here matches
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
-    LLVM_INSTALL_PREFIX="$(mktemp -d)" && \
     ## [>CUDAQuantumPythonBuild]
     bash scripts/install_prerequisites.sh -t llvm && \
     python3 -m build --wheel
