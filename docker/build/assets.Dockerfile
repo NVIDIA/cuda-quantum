@@ -70,6 +70,11 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 RUN source /cuda-quantum/scripts/configure_build.sh && \
     shared_libraries=$(find "${LLVM_INSTALL_PREFIX}" -name '*.so') && \
     executables=$(find "${LLVM_INSTALL_PREFIX}" -executable -type f) && \
+    for binary in ${shared_libraries} ${executables}; do \
+        if [ -n "$(ldd "${binary}" 2>/dev/null | grep gcc)" ]; then \
+            echo -e "\e[01;31mError: ${binary} depends on gcc libraries.\e[0m" >&2; \
+        fi \
+    done && \
     if [ -n "$(ldd ${shared_libraries} ${executables} | grep gcc)" ]; then \
         echo -e "\e[01;31mThe produced toolchain and libraries depend on GCC libraries.\e[0m" >&2; \
         exit 1; \
