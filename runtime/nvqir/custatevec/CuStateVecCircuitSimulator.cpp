@@ -188,7 +188,7 @@ protected:
           (stateDimension + threads_per_block - 1) / threads_per_block;
       nvqir::setFirstNElements<CudaDataType>(n_blocks, threads_per_block,
                                              newDeviceStateVector, deviceStateVector,
-          previousStateDimension);
+                                             previousStateDimension);
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
       deviceStateVector = newDeviceStateVector;
     }
@@ -217,7 +217,7 @@ protected:
           (stateDimension + threads_per_block - 1) / threads_per_block;
       nvqir::setFirstNElements<CudaDataType>(n_blocks, threads_per_block,
                                              newDeviceStateVector, deviceStateVector,
-          previousStateDimension);
+                                             previousStateDimension);
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
       deviceStateVector = newDeviceStateVector;
     }
@@ -433,6 +433,12 @@ public:
     // Use batched custatevecComputeExpectationsOnPauliBasis to compute all term
     // expectation values in one go
     uint32_t nPauliOperatorArrays = op.num_terms();
+
+    // custatevecComputeExpectationsOnPauliBasis will throw errors if
+    // nPauliOperatorArrays is 0, so catch that case early.
+    if (nPauliOperatorArrays == 0)
+      return cudaq::observe_result{};
+
     // Stable holders of vectors since we need to send vectors of pointers to
     // custatevec
     std::deque<std::vector<custatevecPauli_t>> pauliOperatorsArrayHolder;
