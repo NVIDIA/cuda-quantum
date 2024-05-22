@@ -61,7 +61,8 @@ public:
                          : simulation_precision::fp64;
     getExecutionManager()->initializeState(targets, vector.data(), precision);
   }
-  qvector(const std::vector<complex> &vector) : qvector(vector, /*validate=*/false){};
+  qvector(const std::vector<complex> &vector)
+      : qvector(vector, /*validate=*/false){};
 
   qvector(const std::vector<double> &vector)
       : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}
