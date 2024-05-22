@@ -6,8 +6,34 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys, os
+import sys, os, platform
 from ._packages import *
+
+# CUDAQ_DYNLIBS must be set before any other imports that would initialize
+# LinkedLibraryHolder.
+if not "CUDAQ_DYNLIBS" in os.environ:
+    try:
+        custatevec_libs = get_library_path("custatevec-cu11")
+        custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
+
+        cutensornet_libs = get_library_path("cutensornet-cu11")
+        cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
+
+        os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
+
+        # The following package is only available on `x86_64` (not `aarch64`). For
+        # `aarch64`, the library must be provided another way (likely with
+        # LD_LIBRARY_PATH).
+        if platform.processor() == "x86_64":
+            cudart_libs = get_library_path("nvidia-cuda_runtime-cu11")
+            cudart_path = os.path.join(cudart_libs, "libcudart.so.11.0")
+            os.environ["CUDAQ_DYNLIBS"] += f":{cudart_path}"
+    except:
+        import importlib.util
+        if not importlib.util.find_spec("cuda-quantum") is None:
+            print("Could not find a suitable cuQuantum Python package.")
+        pass
+
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry
@@ -97,21 +123,6 @@ def __clearKernelRegistries():
 from .domains import chemistry
 from .kernels import uccsd
 from .dbg import ast
-
-if not "CUDAQ_DYNLIBS" in os.environ:
-    try:
-        custatevec_libs = get_library_path("custatevec-cu11")
-        custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
-
-        cutensornet_libs = get_library_path("cutensornet-cu11")
-        cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
-
-        os.environ["CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}"
-    except:
-        import importlib.util
-        if not importlib.util.find_spec("cuda-quantum") is None:
-            print("Could not find a suitable cuQuantum Python package.")
-        pass
 
 initKwargs = {}
 

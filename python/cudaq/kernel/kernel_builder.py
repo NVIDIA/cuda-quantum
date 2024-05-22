@@ -23,7 +23,7 @@ from ..mlir.passmanager import *
 from ..mlir.execution_engine import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith
-from ..mlir._mlir_libs._quakeDialects import cudaq_runtime
+from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, register_all_dialects
 
 
 ## [PYTHON_VERSION_FIX]
@@ -188,6 +188,7 @@ class PyKernel(object):
 
     def __init__(self, argTypeList):
         self.ctx = Context()
+        register_all_dialects(self.ctx)
         quake.register_dialect(self.ctx)
         cc.register_dialect(self.ctx)
         cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
@@ -1035,7 +1036,7 @@ class PyKernel(object):
                 conditional = arith.CmpIOp(condPred, condition,
                                            self.getConstantInt(0)).result
 
-            ifOp = cc.IfOp([], conditional)
+            ifOp = cc.IfOp([], conditional, [])
             thenBlock = Block.create_at_start(ifOp.thenRegion, [])
             with InsertionPoint(thenBlock):
                 tmpIp = self.insertPoint
@@ -1158,6 +1159,7 @@ class PyKernel(object):
             )
 
         def getListType(eleType: type):
+            ## [PYTHON_VERSION_FIX]
             if sys.version_info < (3, 9):
                 return List[eleType]
             else:

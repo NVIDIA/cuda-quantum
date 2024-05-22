@@ -17,6 +17,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include <unordered_set>
 
 using namespace mlir;
 
@@ -33,31 +34,19 @@ static bool isQuakeOperation(Operation *op) {
   return false;
 }
 
-// If a wire value is used more than once but in distinct blocks, assume that
-// the uses are dynamically mutually exclusive. This is an approximation and not
-// sufficient to prove the value has a linear type.
-// TODO: implement an analysis that proves the control-flow to the blocks is
-// mutually exclusive (a then and an else block, for example).
-inline static bool allUsesInDistinctBlocks(Operation *defOp, Value v) {
-  SmallPtrSet<Block *, 4> blockSet;
-  for (Operation *u : v.getUsers()) {
-    // If `u` is not in quake, then it is not a quantum operation. Skip it.
-    if (!isQuakeOperation(u))
-      continue;
-    Block *b = u->getBlock();
-    if (blockSet.count(b))
-      return false;
-    blockSet.insert(b);
-  }
-  return true;
-}
-
 static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   for (Value v : op->getOpResults())
     if (isa<quake::WireType>(v.getType())) {
       // Terminators can forward wire values, but they are not quantum
       // operations.
-      if (v.hasOneUse() || allUsesInDistinctBlocks(op, v))
+      if (v.hasOneUse() || v.use_empty())
+        continue;
+      // Allow a single cf.cond_br to use the value twice, once for each arm.
+      std::unordered_set<Operation *> uniqs;
+      for (auto *op : v.getUsers())
+        uniqs.insert(op);
+      if (uniqs.size() == 1 &&
+          (*uniqs.begin())->hasTrait<OpTrait::IsTerminator>())
         continue;
       return op->emitOpError(
           "wires are a linear type and must have exactly one use");
@@ -94,7 +83,7 @@ bool quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, SinkOp>(op);
 }
 
-mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
+ValueRange quake::getQuantumTypesFromRange(ValueRange range) {
 
   // Skip over classical types at the beginning
   int numClassical = 0;
@@ -105,7 +94,7 @@ mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
       break;
   }
 
-  mlir::ValueRange retVals = range.drop_front(numClassical);
+  ValueRange retVals = range.drop_front(numClassical);
 
   // Make sure all remaining operands are quantum
   for (auto operand : retVals)
@@ -115,17 +104,16 @@ mlir::ValueRange quake::getQuantumTypesFromRange(mlir::ValueRange range) {
   return retVals;
 }
 
-mlir::ValueRange quake::getQuantumResults(Operation *op) {
+ValueRange quake::getQuantumResults(Operation *op) {
   return getQuantumTypesFromRange(op->getResults());
 }
 
-mlir::ValueRange quake::getQuantumOperands(Operation *op) {
+ValueRange quake::getQuantumOperands(Operation *op) {
   return getQuantumTypesFromRange(op->getOperands());
 }
 
 LogicalResult quake::setQuantumOperands(Operation *op, ValueRange quantumVals) {
-  mlir::ValueRange quantumOperands =
-      getQuantumTypesFromRange(op->getOperands());
+  ValueRange quantumOperands = getQuantumTypesFromRange(op->getOperands());
 
   if (quantumOperands.size() != quantumVals.size())
     return failure();
@@ -694,8 +682,8 @@ static LogicalResult getParameterAsDouble(Value parameter, double &result) {
   auto paramDefOp = parameter.getDefiningOp();
   if (!paramDefOp)
     return failure();
-  if (auto constOp = mlir::dyn_cast<mlir::arith::ConstantOp>(paramDefOp)) {
-    if (auto value = dyn_cast<mlir::FloatAttr>(constOp.getValue())) {
+  if (auto constOp = dyn_cast<arith::ConstantOp>(paramDefOp)) {
+    if (auto value = dyn_cast<FloatAttr>(constOp.getValue())) {
       result = value.getValueAsDouble();
       return success();
     }

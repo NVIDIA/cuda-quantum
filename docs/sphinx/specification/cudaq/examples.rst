@@ -37,7 +37,7 @@ Hello World - Simple Bell State
     import cudaq 
 
     @cudaq.kernel()
-    def bell(num_iters : int):
+    def bell(num_iters : int) -> int:
         q = cudaq.qvector(2)
         nCorrect = 0
         for i in range(num_iters):
@@ -49,9 +49,10 @@ Hello World - Simple Bell State
             
             reset(q)
         return nCorrect 
-    
-    print('N Correct = {}'. bell(100))
-    assert bell(100) == 100
+
+    counts = bell(100)
+    print(f'N Correct = {counts}')
+    assert counts == 100
 
 GHZ State Preparation and Sampling
 ----------------------------------
