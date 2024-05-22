@@ -23,6 +23,8 @@ saved in a file with the :code:`.cpp` extension. Again for our
 example, let's assume that we've written quantum kernels and saved
 them in the file :code:`my_proj_quantum.cpp`.
 
+.. FIXME: UPDATE THIS
+
 There is a bit of a wrinkle to be aware of before we compile these two
 compilation units. Version 11 (and earlier) of CUDA :code:`nvcc`
 supports the C++ 11, 14, and 17 standards and the default standard is
