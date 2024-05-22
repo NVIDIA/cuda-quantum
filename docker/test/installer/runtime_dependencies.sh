@@ -43,9 +43,6 @@ if [ "$pkg_manager" == "apt-get" ]; then
         sudo wget ca-certificates
     echo "apt-get install -y --no-install-recommends openssh-client" > install_sshclient.sh
 
-    ## [C++ standard library]
-    apt-get install -y --no-install-recommends ${LIBSTDCPP_PACKAGE:-'libstdc++-11-dev'}
-
     ## [CUDA runtime libraries]
     wget "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-keyring_1.1-1_all.deb"
     dpkg -i cuda-keyring_1.1-1_all.deb && apt-get update 
@@ -58,15 +55,6 @@ elif [ "$pkg_manager" == "dnf" ]; then
         sudo 'dnf-command(config-manager)'
     echo "dnf install -y --nobest --setopt=install_weak_deps=False openssh-clients" > install_sshclient.sh
 
-    ## [C++ standard library]
-    LIBSTDCPP_PACKAGE=${LIBSTDCPP_PACKAGE:-'gcc-c++'}
-    GCC_VERSION=`echo $LIBSTDCPP_PACKAGE | (egrep -o '[0-9]+' || true)`
-    dnf install -y --nobest --setopt=install_weak_deps=False ${LIBSTDCPP_PACKAGE}
-    enable_script=`find / -path '*gcc*' -path '*'$GCC_VERSIONS'*' -name enable`
-    if [ -n "$enable_script" ]; then
-        . "$enable_script"
-    fi
-
     ## [CUDA runtime libraries]
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False ${CUDA_PACKAGES}
@@ -76,9 +64,6 @@ elif [ "$pkg_manager" == "zypper" ]; then
     zypper clean --all && zypper --non-interactive up --no-recommends
     zypper --non-interactive in --no-recommends sudo gzip tar
     echo "zypper --non-interactive in --no-recommends openssh-clients" > install_sshclient.sh
-
-    ## [C++ standard library]
-    zypper --non-interactive in --no-recommends ${LIBSTDCPP_PACKAGE:-'gcc13-c++'}
 
     ## [CUDA runtime libraries]
     zypper ar "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"

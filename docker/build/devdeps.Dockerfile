@@ -152,7 +152,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA-Q documentation generation.
-COPY --from=doxygenbuild /usr/local/bin/doxygen /usr/local/bin/doxygen
+COPY --from=prereqs /usr/local/bin/doxygen /usr/local/bin/doxygen
 ENV PATH="${PATH}:/usr/local/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc aspell aspell-en \
     && python3 -m pip install --no-cache-dir \
