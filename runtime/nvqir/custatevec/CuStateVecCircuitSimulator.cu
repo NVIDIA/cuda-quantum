@@ -284,7 +284,7 @@ protected:
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
                                    stateDimension * sizeof(CudaDataType)));
       HANDLE_ERROR(custatevecCreate(&handle));
-
+      ownsDeviceVector = true;
       // If no state provided, initialize to the zero state
       if (state == nullptr) {
         initializeDeviceStateVector<<<n_blocks, threads_per_block>>>(
