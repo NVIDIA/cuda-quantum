@@ -17,7 +17,7 @@
 #include <vector>
 
 /// This file implements the primary QIR quantum-classical runtime API used
-/// by the CUDA Quantum compilation platform.
+/// by the CUDA-Q compilation platform.
 
 // Useful preprocessor defines for building up the
 // NVQIR quantum instruction functions
@@ -184,13 +184,50 @@ Array *__quantum__rt__qubit_allocate_array(uint64_t size) {
   return vectorSizetToArray(qubitIdxs);
 }
 
-Array *__quantum__rt__qubit_allocate_array_with_state_fp64(
+Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
+    uint64_t size, std::complex<float> *data);
+
+Array *__quantum__rt__qubit_allocate_array_with_state_complex64(
     uint64_t size, std::complex<double> *data) {
-  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp64", size);
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex64",
+                         size);
   __quantum__rt__initialize(0, nullptr);
+  if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
+    auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+        size, data, cudaq::simulation_precision::fp64);
+    return vectorSizetToArray(qubitIdxs);
+  }
+  // Input was complex<double> but we prefer complex<float>. Make a copy,
+  // truncating the values.
+  cudaq::info("copying {} complex values from double to float.", size);
+  auto convertData = std::make_unique<std::complex<float>[]>(size);
+  for (uint64_t i = 0; i < size; ++i)
+    convertData[i] = std::complex<float>{static_cast<float>(data[i].real()),
+                                         static_cast<float>(data[i].imag())};
   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
-      size, data, cudaq::simulation_precision::fp64);
+      size, convertData.get(), cudaq::simulation_precision::fp32);
   return vectorSizetToArray(qubitIdxs);
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_state_fp64(uint64_t size,
+                                                           double *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp64", size);
+  if (nvqir::getCircuitSimulatorInternal()->isDoublePrecision()) {
+    cudaq::info("copying {} double values to complex<double>.", size);
+    auto convertData = std::make_unique<std::complex<double>[]>(size);
+    for (uint64_t i = 0; i < size; ++i)
+      convertData[i] = std::complex<double>{data[i], 0.0};
+    return __quantum__rt__qubit_allocate_array_with_state_complex64(
+        size, convertData.get());
+  }
+  // Input was double but we prefer complex<float>. Make a copy, truncating the
+  // values.
+  cudaq::info("copying {} double values to complex<float>.", size);
+  auto convertData = std::make_unique<std::complex<float>[]>(size);
+  for (uint64_t i = 0; i < size; ++i)
+    convertData[i] = std::complex<float>{static_cast<float>(data[i]), 0.0f};
+  return __quantum__rt__qubit_allocate_array_with_state_complex32(
+      size, convertData.get());
 }
 
 Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
@@ -208,14 +245,47 @@ Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
   return vectorSizetToArray(qubitIdxs);
 }
 
-Array *
-__quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t size,
-                                                    std::complex<float> *data) {
-  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp32", size);
+Array *__quantum__rt__qubit_allocate_array_with_state_complex32(
+    uint64_t size, std::complex<float> *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_complex32",
+                         size);
   __quantum__rt__initialize(0, nullptr);
+  if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
+    auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
+        size, data, cudaq::simulation_precision::fp32);
+    return vectorSizetToArray(qubitIdxs);
+  }
+  // Input was complex<float> but we prefer complex<double>. Make a copy,
+  // extending the values.
+  cudaq::info("copying {} complex values from float to double.", size);
+  auto convertData = std::make_unique<std::complex<double>[]>(size);
+  for (uint64_t i = 0; i < size; ++i)
+    convertData[i] = std::complex<double>{static_cast<double>(data[i].real()),
+                                          static_cast<double>(data[i].imag())};
   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
-      size, data, cudaq::simulation_precision::fp32);
+      size, convertData.get(), cudaq::simulation_precision::fp64);
   return vectorSizetToArray(qubitIdxs);
+}
+
+Array *__quantum__rt__qubit_allocate_array_with_state_fp32(uint64_t size,
+                                                           float *data) {
+  ScopedTraceWithContext("NVQIR::qubit_allocate_array_with_data_fp32", size);
+  if (nvqir::getCircuitSimulatorInternal()->isSinglePrecision()) {
+    cudaq::info("copying {} float values to complex<float>.", size);
+    auto convertData = std::make_unique<std::complex<float>[]>(size);
+    for (uint64_t i = 0; i < size; ++i)
+      convertData[i] = std::complex<float>{data[i], 0.0};
+    return __quantum__rt__qubit_allocate_array_with_state_complex32(
+        size, convertData.get());
+  }
+  // Input was float but we prefer complex<double>. Make a copy, extending the
+  // values.
+  cudaq::info("copying {} float values to complex<double>.", size);
+  auto convertData = std::make_unique<std::complex<double>[]>(size);
+  for (uint64_t i = 0; i < size; ++i)
+    convertData[i] = std::complex<double>{static_cast<double>(data[i]), 0.0};
+  return __quantum__rt__qubit_allocate_array_with_state_complex64(
+      size, convertData.get());
 }
 
 /// @brief Once done, release the QIR qubit array
@@ -359,6 +429,31 @@ void __quantum__qis__phased_rx(double theta, double phi, Qubit *q) {
       -i * std::exp(i * phi) * std::sin(theta / 2.), std::cos(theta / 2.)};
   nvqir::getCircuitSimulatorInternal()->applyCustomOperation(matrix, {}, {qI});
 }
+
+auto u3_matrix = [](double theta, double phi, double lambda) {
+  std::complex<double> i(0, 1.);
+  std::vector<std::complex<double>> matrix{
+      std::cos(theta / 2.), -std::exp(i * lambda) * std::sin(theta / 2.),
+      std::exp(i * phi) * std::sin(theta / 2.),
+      std::exp(i * (lambda + phi)) * std::cos(theta / 2.)};
+  return matrix;
+};
+
+void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q) {
+  auto qI = qubitToSizeT(q);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      u3_matrix(theta, phi, lambda), {}, {qI});
+}
+
+void __quantum__qis__u3__ctl(double theta, double phi, double lambda,
+                             Array *ctrls, Qubit *q) {
+  auto ctrlIdxs = arrayToVectorSizeT(ctrls);
+  auto qI = qubitToSizeT(q);
+  nvqir::getCircuitSimulatorInternal()->applyCustomOperation(
+      u3_matrix(theta, phi, lambda), ctrlIdxs, {qI});
+}
+
+// ASKME: Do we need `__quantum__qis__u3__body(...)`?
 
 void __quantum__qis__cnot(Qubit *q, Qubit *r) {
   auto qI = qubitToSizeT(q);
@@ -686,7 +781,7 @@ static void commonInvokeWithRotationsControlsTargets(
     std::size_t numControlOperands, std::size_t *isArrayAndLength,
     Qubit **controls, std::size_t numTargetOperands, Qubit **targets,
     void (*QISFunction)()) {
-  if (numRotationOperands > 2)
+  if (numRotationOperands > 3)
     throw std::runtime_error("Invoke has invalid number of rotations.");
   if (numTargetOperands < 1 || numTargetOperands > 2)
     throw std::runtime_error("Invoke has invalid number of targets.");
@@ -751,6 +846,17 @@ static void commonInvokeWithRotationsControlsTargets(
       reinterpret_cast<void (*)(double, double, Array *, Qubit *, Qubit *)>(
           QISFunction)(params[0], params[1], ctrlArray.get(), targets[0],
                        targets[1]);
+    break;
+  case 3: // Three rotations.
+    if (numTargetOperands == 1)
+      reinterpret_cast<void (*)(double, double, double, Array *, Qubit *)>(
+          QISFunction)(params[0], params[1], params[2], ctrlArray.get(),
+                       targets[0]);
+    else
+      reinterpret_cast<void (*)(double, double, double, Array *, Qubit *,
+                                Qubit *)>(QISFunction)(
+          params[0], params[1], params[2], ctrlArray.get(), targets[0],
+          targets[1]);
     break;
   }
 }
@@ -825,6 +931,27 @@ void invokeRotationWithControlQubits(
   va_end(args);
   commonInvokeWithRotationsControlsTargets(
       /*rotations=*/1, params, numControlOperands, isArrayAndLength, controls,
+      /*targets=*/1, targets, reinterpret_cast<void (*)()>(QISFunction));
+}
+
+/// @brief Utility function same as `invokeRotationWithControlQubits`, but used
+/// for U3 controlled rotations.
+void invokeU3RotationWithControlQubits(
+    double theta, double phi, double lambda,
+    const std::size_t numControlOperands, std::size_t *isArrayAndLength,
+    void (*QISFunction)(double, double, double, Array *, Qubit *), ...) {
+  va_list args;
+  va_start(args, QISFunction);
+  double params[3] = {theta, phi, lambda};
+  Qubit *targets[1];
+  auto **controls =
+      reinterpret_cast<Qubit **>(alloca(numControlOperands * sizeof(Qubit *)));
+  for (std::size_t i = 0; i < numControlOperands; ++i)
+    controls[i] = va_arg(args, Qubit *);
+  targets[0] = va_arg(args, Qubit *);
+  va_end(args);
+  commonInvokeWithRotationsControlsTargets(
+      /*rotations=*/3, params, numControlOperands, isArrayAndLength, controls,
       /*targets=*/1, targets, reinterpret_cast<void (*)()>(QISFunction));
 }
 }

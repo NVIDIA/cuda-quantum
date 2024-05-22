@@ -75,7 +75,7 @@ struct SummaryData {
 };
 
 /// @brief The CircuitSimulator defines a base class for all
-/// simulators that are available to CUDAQ via the NVQIR library.
+/// simulators that are available to CUDA-Q via the NVQIR library.
 /// This base class handles Qubit allocation and deallocation,
 /// execution context handling, and defines all quantum operations pure
 /// virtual methods that subtypes must implement. Subtypes should be responsible
@@ -153,16 +153,16 @@ public:
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
     op.for_each_pauli([&](cudaq::pauli type, std::size_t qubitIdx) {
+      auto qId = qubitIds[qubitIdx];
       if (type != cudaq::pauli::I)
-        qubitSupport.push_back(qubitIds[qubitIdx]);
+        qubitSupport.push_back(qId);
 
       if (type == cudaq::pauli::Y)
-        basisChange.emplace_back([&, qubitIdx](bool reverse) {
-          rx(!reverse ? M_PI_2 : -M_PI_2, qubitIds[qubitIdx]);
+        basisChange.emplace_back([this, qId](bool reverse) {
+          rx(!reverse ? M_PI_2 : -M_PI_2, qId);
         });
       else if (type == cudaq::pauli::X)
-        basisChange.emplace_back(
-            [&, qubitIdx](bool) { h(qubitIds[qubitIdx]); });
+        basisChange.emplace_back([this, qId](bool) { h(qId); });
     });
 
     if (!basisChange.empty())
@@ -345,6 +345,10 @@ public:
 
   /// @brief Return a thread_local pointer to this CircuitSimulator
   virtual CircuitSimulator *clone() = 0;
+
+  /// Determine the (preferred) precision of the simulator.
+  virtual bool isSinglePrecision() const = 0;
+  bool isDoublePrecision() const { return !isSinglePrecision(); }
 };
 
 /// @brief The CircuitSimulatorBase is the type that is meant to
@@ -412,7 +416,7 @@ protected:
   /// @brief Environment variable name that allows a programmer to
   /// specify how expectation values should be computed. This
   /// defaults to true.
-  constexpr static const char observeSamplingEnvVar[] =
+  static constexpr const char observeSamplingEnvVar[] =
       "CUDAQ_OBSERVE_FROM_SAMPLING";
 
   /// @brief A GateApplicationTask consists of a
@@ -778,6 +782,10 @@ protected:
     }
 
     return defaultConfig;
+  }
+
+  bool isSinglePrecision() const override {
+    return std::is_same_v<ScalarType, float>;
   }
 
 public:
@@ -1264,7 +1272,7 @@ public:
     auto measureResult = measureQubit(qubitIdx);
     auto bitResult = measureResult == true ? "1" : "0";
 
-    // If this CUDAQ kernel has conditional statements on measure results
+    // If this CUDA-Q kernel has conditional statements on measure results
     // then we want to handle the sampling a bit differently.
     handleSamplingWithConditionals(qubitIdx, bitResult, registerName);
 

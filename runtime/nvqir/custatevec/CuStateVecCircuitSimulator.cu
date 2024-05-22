@@ -359,6 +359,7 @@ protected:
       // Create the memory and the handle
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
                                    stateDimension * sizeof(CudaDataType)));
+      ownsDeviceVector = true;
       HANDLE_ERROR(custatevecCreate(&handle));
       ScopedTraceWithContext(
           "CuStateVecCircuitSimulator::addQubitsToState cudaMemcpy");
@@ -634,6 +635,12 @@ public:
     // Use batched custatevecComputeExpectationsOnPauliBasis to compute all term
     // expectation values in one go
     uint32_t nPauliOperatorArrays = op.num_terms();
+
+    // custatevecComputeExpectationsOnPauliBasis will throw errors if
+    // nPauliOperatorArrays is 0, so catch that case early.
+    if (nPauliOperatorArrays == 0)
+      return cudaq::observe_result{};
+
     // Stable holders of vectors since we need to send vectors of pointers to
     // custatevec
     std::deque<std::vector<custatevecPauli_t>> pauliOperatorsArrayHolder;

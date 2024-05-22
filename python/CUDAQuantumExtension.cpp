@@ -85,7 +85,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
             holder->setTarget(value, extraConfig);
         }
       },
-      "Initialize the CUDA Quantum environment.");
+      "Initialize the CUDA-Q environment.");
 
   cudaq::bindRuntimeTarget(cudaqRuntime, *holder.get());
   cudaq::bindMeasureCounts(cudaqRuntime);
@@ -111,7 +111,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
                    "The number of available GPUs detected on the system.");
 
   std::stringstream ss;
-  ss << "CUDA Quantum Version " << cudaq::getVersion() << " ("
+  ss << "CUDA-Q Version " << cudaq::getVersion() << " ("
      << cudaq::getFullRepositoryVersion() << ")";
   cudaqRuntime.attr("__version__") = ss.str();
 

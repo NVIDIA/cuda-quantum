@@ -22,6 +22,7 @@ skipIfPythonLessThan39 = pytest.mark.skipif(
 def is_close(expected, actual) -> bool:
     return np.isclose(expected, actual, atol=1e-6)
 
+
 @skipIfPythonLessThan39
 def test_float_params():
     """Test that we can pass float lists to kernel functions."""
@@ -77,6 +78,7 @@ def test_float_use():
 
 
 # np.float64
+
 
 @skipIfPythonLessThan39
 def test_float64_params():
@@ -167,6 +169,7 @@ def test_float64_use():
 
 # np.float32
 
+
 @skipIfPythonLessThan39
 def test_float32_params():
     """Test that we can pass float lists to kernel functions."""
@@ -252,3 +255,69 @@ def test_float32_use():
 
     t = np.exp(np.float32(np.pi / 2 + 1))
     assert is_close(t, float_np_use())
+
+
+@skipIfPythonLessThan39
+def test_float_list_parameter_promotion():
+
+    @cudaq.kernel
+    def kernel(c: list[float], i: int) -> float:
+        return c[i]
+
+    def non_kernel(c: list[float], i: int) -> float:
+        return c[i]
+
+    def check(c: any):
+        for i in range(len(c)):
+            is_close(kernel(c, i), non_kernel(c, i))
+
+    check([np.pi / 2, 0])
+    check([0, np.pi / 2])
+    check([np.float64(np.pi / 2), 0])
+    check([np.float32(np.pi / 2), 0])
+    check([1, 0])
+    check([np.float32(np.pi / 2), True])
+
+
+@skipIfPythonLessThan39
+def test_float64_list_parameter_promotion():
+
+    @cudaq.kernel
+    def kernel(c: list[np.float64], i: int) -> np.float64:
+        return c[i]
+
+    def non_kernel(c: list[np.float64], i: int) -> np.float64:
+        return c[i]
+
+    def check(c: any):
+        for i in range(len(c)):
+            is_close(kernel(c, i), non_kernel(c, i))
+
+    check([np.pi / 2, 0])
+    check([0, np.pi / 2])
+    check([np.float64(np.pi / 2), 0])
+    check([np.float32(np.pi / 2), 0])
+    check([1, 0])
+    check([np.float32(np.pi / 2), 0, True])
+
+
+@skipIfPythonLessThan39
+def test_float32_list_parameter_promotion():
+
+    @cudaq.kernel
+    def kernel(c: list[np.float32], i: int) -> np.float32:
+        return c[i]
+
+    def non_kernel(c: list[np.float32], i: int) -> np.float32:
+        return c[i]
+
+    def check(c: any):
+        for i in range(len(c)):
+            is_close(kernel(c, i), non_kernel(c, i))
+
+    check([np.pi / 2, 0])
+    check([0, np.pi / 2])
+    check([np.float64(np.pi / 2), 0])
+    check([np.float32(np.pi / 2), 0])
+    check([1, 0])
+    check([np.pi / 2, 0, True])

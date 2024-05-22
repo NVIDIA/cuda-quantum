@@ -8,8 +8,9 @@
 
 #include "mps_simulation_state.h"
 #include "common/EigenDense.h"
+#include <bitset>
+#include <charconv>
 #include <cuComplex.h>
-#include <iostream>
 
 namespace nvqir {
 int deviceFromPointer(void *ptr) {
@@ -18,16 +19,14 @@ int deviceFromPointer(void *ptr) {
   return attributes.device;
 }
 std::size_t MPSSimulationState::getNumQubits() const {
-  return state->getNumQubits() - m_auxTensorIds.size();
+  return state->getNumQubits();
 }
 
-MPSSimulationState::MPSSimulationState(
-    std::unique_ptr<TensorNetState> inState,
-    const std::vector<MPSTensor> &mpsTensors,
-    const std::vector<std::size_t> &auxTensorIds,
-    cutensornetHandle_t cutnHandle)
+MPSSimulationState::MPSSimulationState(std::unique_ptr<TensorNetState> inState,
+                                       const std::vector<MPSTensor> &mpsTensors,
+                                       cutensornetHandle_t cutnHandle)
     : m_cutnHandle(cutnHandle), state(std::move(inState)),
-      m_mpsTensors(mpsTensors), m_auxTensorIds(auxTensorIds) {}
+      m_mpsTensors(mpsTensors) {}
 
 MPSSimulationState::~MPSSimulationState() { deallocate(); }
 
@@ -235,12 +234,7 @@ MPSSimulationState::getAmplitude(const std::vector<int> &basisState) {
         "[tensornet-state] getAmplitude with an invalid basis state: only "
         "qubit state (0 or 1) is supported.");
   if (getNumQubits() > 1) {
-    auto extendedBasisState = basisState;
-    for (std::size_t i = 0; i < m_auxTensorIds.size(); ++i)
-      extendedBasisState.emplace_back(0);
-
-    TensorNetState basisTensorNetState(extendedBasisState,
-                                       state->getInternalContext());
+    TensorNetState basisTensorNetState(basisState, state->getInternalContext());
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors =
         basisTensorNetState.factorizeMPS(1, std::numeric_limits<double>::min(),
@@ -419,26 +413,7 @@ void MPSSimulationState::dump(std::ostream &os) const {
     os << t << "\n";
 }
 
-std::unique_ptr<nvqir::TensorNetState>
-MPSSimulationState::reconstructBackendState() const {
-  [[maybe_unused]] std::vector<MPSTensor> tensors;
-  return nvqir::TensorNetState::createFromMpsTensors(
-      m_mpsTensors, state->getInternalContext(), tensors);
-}
-
-std::unique_ptr<cudaq::SimulationState>
-MPSSimulationState::toSimulationState() const {
-  std::vector<MPSTensor> tensors;
-  auto cloneState = nvqir::TensorNetState::createFromMpsTensors(
-      m_mpsTensors, state->getInternalContext(), tensors);
-
-  return std::make_unique<MPSSimulationState>(std::move(cloneState), tensors,
-                                              m_auxTensorIds, m_cutnHandle);
-}
-
-static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
-  Eigen::MatrixXcd A = stateVec;
-  A.transposeInPlace();
+static Eigen::MatrixXcd reshapeMatrix(const Eigen::MatrixXcd &A) {
   Eigen::MatrixXcd B, C;
   const std::size_t rows = A.rows();
   const std::size_t cols = A.cols();
@@ -455,15 +430,24 @@ static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
   return stacked;
 }
 
-std::unique_ptr<cudaq::SimulationState>
-MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
-                                         std::size_t dataType) {
-  Eigen::VectorXcd stateVec = Eigen::Map<Eigen::VectorXcd>(
-      reinterpret_cast<std::complex<double> *>(ptr), size);
+static Eigen::MatrixXcd reshapeStateVec(const Eigen::VectorXcd &stateVec) {
+  Eigen::MatrixXcd A = stateVec;
+  A.transposeInPlace();
+  return reshapeMatrix(A);
+}
+
+MPSSimulationState::MpsStateData
+MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
+                                       std::size_t size,
+                                       std::complex<double> *ptr, int bondDim) {
   const std::size_t numQubits = std::log2(size);
-  auto state = std::make_unique<TensorNetState>(numQubits, m_cutnHandle);
+  // Reverse the qubit order to match cutensornet convention
+  auto newStateVec = TensorNetState::reverseQubitOrder(
+      std::span<std::complex<double>>{ptr, size});
+  auto stateVec =
+      Eigen::Map<Eigen::VectorXcd>(newStateVec.data(), newStateVec.size());
+
   if (numQubits == 1) {
-    // Easy case: construct the the tensor
     void *d_tensor = nullptr;
     HANDLE_CUDA_ERROR(cudaMalloc(&d_tensor, 2 * sizeof(std::complex<double>)));
     HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, ptr,
@@ -472,10 +456,9 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
     MPSTensor stateTensor;
     stateTensor.deviceData = d_tensor;
     stateTensor.extents = std::vector<int64_t>{2};
-
-    return std::make_unique<MPSSimulationState>(
-        std::move(state), std::vector<MPSTensor>{stateTensor},
-        std::vector<std::size_t>{}, m_cutnHandle);
+    auto state =
+        TensorNetState::createFromMpsTensors({stateTensor}, cutnHandle);
+    return {std::move(state), std::vector<MPSTensor>{stateTensor}};
   }
 
   // Recursively factor the state vector from left to right.
@@ -488,14 +471,42 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
   Eigen::MatrixXcd reshapedMat = reshapeStateVec(stateVec);
   std::vector<MPSTensor> mpsTensors;
   std::vector<int64_t> numSingularValues;
+  const auto enforceBondDim = [bondDim](const Eigen::MatrixXcd &U,
+                                        const Eigen::VectorXd &S,
+                                        const Eigen::MatrixXcd &V)
+      -> std::tuple<Eigen::MatrixXcd, Eigen::VectorXd, Eigen::MatrixXcd> {
+    assert(U.cols() == S.size());
+    assert(V.cols() == S.size());
+    if (S.size() <= bondDim) {
+      Eigen::MatrixXcd newU(U.rows(), bondDim);
+      newU.leftCols(U.cols()) = U;
+      Eigen::MatrixXcd newV(V.rows(), bondDim);
+      newV.leftCols(V.cols()) = V;
+      Eigen::VectorXd newS(bondDim);
+      newS.head(S.size()) = S;
+      return {newU, newS, newV};
+    }
+    // Truncation
+    Eigen::MatrixXcd newU(U.rows(), bondDim);
+    newU = U.leftCols(bondDim);
+    Eigen::MatrixXcd newV(V.rows(), bondDim);
+    newV = V.leftCols(bondDim);
+    Eigen::VectorXd newS(bondDim);
+    newS = S.head(bondDim);
+    return std::make_tuple(newU, newS, newV);
+  };
   for (std::size_t i = 0; i < numQubits - 1; ++i) {
     Eigen::BDCSVD<Eigen::MatrixXcd, Eigen::ComputeThinU | Eigen::ComputeThinV>
         svd(reshapedMat);
-    const Eigen::MatrixXcd U = svd.matrixU();
-    const Eigen::MatrixXcd V = svd.matrixV();
-    const Eigen::VectorXd S = svd.singularValues();
+    const Eigen::MatrixXcd U_orig = svd.matrixU();
+    const Eigen::MatrixXcd V_orig = svd.matrixV();
+    const Eigen::VectorXd S_orig = svd.singularValues();
+    const auto [U, S, V] = enforceBondDim(U_orig, S_orig, V_orig);
+    assert(S.size() == bondDim);
     numSingularValues.emplace_back(S.size());
-    reshapedMat = S.asDiagonal() * V;
+    reshapedMat = (i != (numQubits - 2))
+                      ? reshapeMatrix(S.asDiagonal() * V.adjoint())
+                      : (S.asDiagonal() * V.adjoint());
     void *d_tensor = nullptr;
     HANDLE_CUDA_ERROR(
         cudaMalloc(&d_tensor, U.size() * sizeof(std::complex<double>)));
@@ -525,7 +536,57 @@ MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
   stateTensor.extents = std::vector<int64_t>{numSingularValues.back(), 2};
   mpsTensors.emplace_back(stateTensor);
   assert(mpsTensors.size() == numQubits);
-  return std::make_unique<MPSSimulationState>(
-      std::move(state), mpsTensors, std::vector<std::size_t>{}, m_cutnHandle);
+  auto state = TensorNetState::createFromMpsTensors(mpsTensors, cutnHandle);
+  return {std::move(state), mpsTensors};
+}
+
+std::unique_ptr<cudaq::SimulationState>
+MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
+                                         std::size_t dataType) {
+  auto [state, mpsTensors] = createFromStateVec(
+      m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr),
+      MPSSettings().maxBond);
+  return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
+                                              m_cutnHandle);
+}
+
+MPSSettings::MPSSettings() {
+  if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
+    const std::string maxBondStr(maxBondEnvVar);
+    auto [ptr, ec] = std::from_chars(
+        maxBondStr.data(), maxBondStr.data() + maxBondStr.size(), maxBond);
+    if (ec != std::errc{} || maxBond < 1)
+      throw std::runtime_error("Invalid CUDAQ_MPS_MAX_BOND setting. Expected "
+                               "a positive number. Got: " +
+                               maxBondStr);
+
+    cudaq::info("Setting MPS max bond dimension to {}.", maxBond);
+  }
+  // Cutoff values
+  if (auto *absCutoffEnvVar = std::getenv("CUDAQ_MPS_ABS_CUTOFF")) {
+    const std::string absCutoffStr(absCutoffEnvVar);
+    auto [ptr, ec] =
+        std::from_chars(absCutoffStr.data(),
+                        absCutoffStr.data() + absCutoffStr.size(), absCutoff);
+    if (ec != std::errc{} || absCutoff <= 0.0 || absCutoff >= 1.0)
+      throw std::runtime_error("Invalid CUDAQ_MPS_ABS_CUTOFF setting. Expected "
+                               "a number in range (0.0, 1.0). Got: " +
+                               absCutoffStr);
+
+    cudaq::info("Setting MPS absolute cutoff to {}.", absCutoff);
+  }
+  if (auto *relCutoffEnvVar = std::getenv("CUDAQ_MPS_RELATIVE_CUTOFF")) {
+    const std::string relCutoffStr(relCutoffEnvVar);
+    auto [ptr, ec] =
+        std::from_chars(relCutoffStr.data(),
+                        relCutoffStr.data() + relCutoffStr.size(), relCutoff);
+    if (ec != std::errc{} || relCutoff <= 0.0 || relCutoff >= 1.0)
+      throw std::runtime_error(
+          "Invalid CUDAQ_MPS_RELATIVE_CUTOFF setting. Expected "
+          "a number in range (0.0, 1.0). Got: " +
+          relCutoffStr);
+
+    cudaq::info("Setting MPS relative cutoff to {}.", relCutoff);
+  }
 }
 } // namespace nvqir

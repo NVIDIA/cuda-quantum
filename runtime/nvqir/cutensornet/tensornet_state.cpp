@@ -8,6 +8,7 @@
 
 #include "tensornet_state.h"
 #include "common/EigenDense.h"
+#include <bitset>
 #include <cassert>
 
 namespace nvqir {
@@ -33,7 +34,7 @@ TensorNetState::TensorNetState(const std::vector<int> &basisState,
   m_tempDevicePtrs.emplace_back(d_gate);
   for (int32_t qId = 0; const auto &bit : basisState) {
     if (bit == 1) {
-      applyGate({qId}, d_gate);
+      applyGate({}, {qId}, d_gate);
     }
     ++qId;
   }
@@ -43,24 +44,36 @@ std::unique_ptr<TensorNetState> TensorNetState::clone() const {
   return createFromOpTensors(m_numQubits, m_tensorOps, m_cutnHandle);
 }
 
-void TensorNetState::applyGate(const std::vector<int32_t> &qubitIds,
+void TensorNetState::applyGate(const std::vector<int32_t> &controlQubits,
+                               const std::vector<int32_t> &targetQubits,
                                void *gateDeviceMem, bool adjoint) {
-
-  HANDLE_CUTN_ERROR(cutensornetStateApplyTensor(
-      m_cutnHandle, m_quantumState, qubitIds.size(), qubitIds.data(),
-      gateDeviceMem, nullptr, /*immutable*/ 1,
-      /*adjoint*/ static_cast<int32_t>(adjoint), /*unitary*/ 1, &m_tensorId));
-  m_tensorOps.emplace_back(
-      AppliedTensorOp{gateDeviceMem, qubitIds, adjoint, true});
+  if (controlQubits.empty()) {
+    HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
+        m_cutnHandle, m_quantumState, targetQubits.size(), targetQubits.data(),
+        gateDeviceMem, nullptr, /*immutable*/ 1,
+        /*adjoint*/ static_cast<int32_t>(adjoint), /*unitary*/ 1, &m_tensorId));
+  } else {
+    HANDLE_CUTN_ERROR(cutensornetStateApplyControlledTensorOperator(
+        m_cutnHandle, m_quantumState, /*numControlModes=*/controlQubits.size(),
+        /*stateControlModes=*/controlQubits.data(),
+        /*stateControlValues=*/nullptr,
+        /*numTargetModes*/ targetQubits.size(),
+        /*stateTargetModes*/ targetQubits.data(), gateDeviceMem, nullptr,
+        /*immutable*/ 1,
+        /*adjoint*/ static_cast<int32_t>(adjoint), /*unitary*/ 1, &m_tensorId));
+  }
+  m_tensorOps.emplace_back(AppliedTensorOp{gateDeviceMem, targetQubits,
+                                           controlQubits, adjoint, true});
 }
 
 void TensorNetState::applyQubitProjector(void *proj_d,
                                          const std::vector<int32_t> &qubitIdx) {
-  HANDLE_CUTN_ERROR(cutensornetStateApplyTensor(
+  HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
       m_cutnHandle, m_quantumState, qubitIdx.size(), qubitIdx.data(), proj_d,
-      nullptr, /*immutable*/ 1,
+      nullptr,
+      /*immutable*/ 1,
       /*adjoint*/ 0, /*unitary*/ 0, &m_tensorId));
-  m_tensorOps.emplace_back(AppliedTensorOp{proj_d, qubitIdx, false, false});
+  m_tensorOps.emplace_back(AppliedTensorOp{proj_d, qubitIdx, {}, false, false});
 }
 
 void TensorNetState::addQubits(std::size_t numQubits) {
@@ -76,11 +89,24 @@ void TensorNetState::addQubits(std::size_t numQubits) {
   // the new wires are all empty (zero state).
   int64_t tensorId = 0;
   for (auto &op : m_tensorOps)
-    HANDLE_CUTN_ERROR(cutensornetStateApplyTensor(
-        m_cutnHandle, m_quantumState, op.qubitIds.size(), op.qubitIds.data(),
-        op.deviceData, nullptr, /*immutable*/ 1,
-        /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
-        /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+    if (op.controlQubitIds.empty()) {
+      HANDLE_CUTN_ERROR(cutensornetStateApplyTensorOperator(
+          m_cutnHandle, m_quantumState, op.targetQubitIds.size(),
+          op.targetQubitIds.data(), op.deviceData, nullptr, /*immutable*/ 1,
+          /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+          /*unitary*/ static_cast<int32_t>(op.isUnitary), &tensorId));
+    } else {
+      HANDLE_CUTN_ERROR(cutensornetStateApplyControlledTensorOperator(
+          m_cutnHandle, m_quantumState,
+          /*numControlModes=*/op.controlQubitIds.size(),
+          /*stateControlModes=*/op.controlQubitIds.data(),
+          /*stateControlValues=*/nullptr,
+          /*numTargetModes*/ op.targetQubitIds.size(),
+          /*stateTargetModes*/ op.targetQubitIds.data(), op.deviceData, nullptr,
+          /*immutable*/ 1,
+          /*adjoint*/ static_cast<int32_t>(op.isAdjoint),
+          /*unitary*/ static_cast<int32_t>(op.isUnitary), &m_tensorId));
+    }
 }
 
 void TensorNetState::addQubits(std::span<std::complex<double>> stateVec) {
@@ -378,13 +404,13 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
       extentsPtr.data(), /*strides=*/nullptr));
   // Set up the SVD method for truncation.
   HANDLE_CUTN_ERROR(cutensornetStateConfigure(
-      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_MPS_SVD_CONFIG_ALGO,
+      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_ALGO,
       &algo, sizeof(algo)));
   HANDLE_CUTN_ERROR(cutensornetStateConfigure(
-      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_MPS_SVD_CONFIG_ABS_CUTOFF,
+      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_ABS_CUTOFF,
       &absCutoff, sizeof(absCutoff)));
   HANDLE_CUTN_ERROR(cutensornetStateConfigure(
-      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_MPS_SVD_CONFIG_REL_CUTOFF,
+      m_cutnHandle, m_quantumState, CUTENSORNET_STATE_CONFIG_MPS_SVD_REL_CUTOFF,
       &relCutoff, sizeof(relCutoff)));
 
   // Prepare the MPS computation and attach workspace
@@ -479,49 +505,19 @@ std::complex<double> TensorNetState::computeExpVal(
 }
 
 std::unique_ptr<TensorNetState> TensorNetState::createFromMpsTensors(
-    const std::vector<MPSTensor> &in_mpsTensors, cutensornetHandle_t handle,
-    std::vector<MPSTensor> &outTensors) {
+    const std::vector<MPSTensor> &in_mpsTensors, cutensornetHandle_t handle) {
   if (in_mpsTensors.empty())
     throw std::invalid_argument("Empty MPS tensor list");
-  if (in_mpsTensors.size() == 1) {
-    auto state = std::make_unique<TensorNetState>(in_mpsTensors.size(), handle);
-    // This is a single-qubit tensor. Just apply it as a projector to the zero
-    // state qubit.
-    std::complex<double> proj[4] = {0.0, 0.0, 0.0, 0.0};
-    // The first column is the state that we want to project |0> state to.
-    HANDLE_CUDA_ERROR(cudaMemcpy(&proj, in_mpsTensors[0].deviceData,
-                                 2 * sizeof(std::complex<double>),
-                                 cudaMemcpyDeviceToHost));
-    // Make it agnostic to column/row major
-    proj[2] = proj[1];
-    void *d_proj{nullptr};
-    HANDLE_CUDA_ERROR(cudaMalloc(&d_proj, 4 * sizeof(std::complex<double>)));
-    HANDLE_CUDA_ERROR(cudaMemcpy(d_proj, proj, 4 * sizeof(std::complex<double>),
-                                 cudaMemcpyHostToDevice));
-    state->m_tempDevicePtrs.emplace_back(d_proj);
-
-    state->applyQubitProjector(d_proj, {0});
-    return state;
-  }
-  const auto maxExtent = in_mpsTensors[0].extents[1];
   auto state = std::make_unique<TensorNetState>(in_mpsTensors.size(), handle);
-  // Factorize the initial state into placeholder MPS tensors
-  // FIXME: switch to `cutensornetStateInitializeMPS` once upgraded to
-  // cutensornet 24.03
-  auto mpsTensors =
-      state->factorizeMPS(maxExtent, std::numeric_limits<double>::min(),
-                          std::numeric_limits<double>::min());
-  // Load the MPS tensors in
-  for (std::size_t i = 0; i < mpsTensors.size(); ++i) {
-    const auto transferSize = std::accumulate(in_mpsTensors[i].extents.begin(),
-                                              in_mpsTensors[i].extents.begin(),
-                                              1, std::multiplies<int64_t>()) *
-                              sizeof(std::complex<double>);
-    HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensors[i].deviceData,
-                                 in_mpsTensors[i].deviceData, transferSize,
-                                 cudaMemcpyDeviceToDevice));
+  std::vector<const int64_t *> extents;
+  std::vector<void *> tensorData;
+  for (const auto &tensor : in_mpsTensors) {
+    extents.emplace_back(tensor.extents.data());
+    tensorData.emplace_back(tensor.deviceData);
   }
-  outTensors = mpsTensors;
+  HANDLE_CUTN_ERROR(cutensornetStateInitializeMPS(
+      handle, state->m_quantumState, CUTENSORNET_BOUNDARY_CONDITION_OPEN,
+      extents.data(), nullptr, tensorData.data()));
   return state;
 }
 
@@ -533,11 +529,26 @@ std::unique_ptr<TensorNetState> TensorNetState::createFromOpTensors(
   auto state = std::make_unique<TensorNetState>(numQubits, handle);
   for (const auto &op : opTensors)
     if (op.isUnitary)
-      state->applyGate(op.qubitIds, op.deviceData, op.isAdjoint);
+      state->applyGate(op.controlQubitIds, op.targetQubitIds, op.deviceData,
+                       op.isAdjoint);
     else
-      state->applyQubitProjector(op.deviceData, op.qubitIds);
+      state->applyQubitProjector(op.deviceData, op.targetQubitIds);
 
   return state;
+}
+
+std::vector<std::complex<double>>
+TensorNetState::reverseQubitOrder(std::span<std::complex<double>> stateVec) {
+  std::vector<std::complex<double>> ket(stateVec.size());
+  const std::size_t numQubits = std::log2(stateVec.size());
+  for (std::size_t i = 0; i < stateVec.size(); ++i) {
+    std::bitset<64> bs(i);
+    std::string bitStr = bs.to_string();
+    std::reverse(bitStr.begin(), bitStr.end());
+    bitStr = bitStr.substr(0, numQubits);
+    ket[std::stoull(bitStr, nullptr, 2)] = stateVec[i];
+  }
+  return ket;
 }
 
 std::unique_ptr<TensorNetState>
@@ -553,8 +564,10 @@ TensorNetState::createFromStateVector(std::span<std::complex<double>> stateVec,
   // previous state should be in the tensor network form. Construct the state
   // projector matrix
   // FIXME: use CUDA toolkit, e.g., cuBlas, to construct this projector matrix.
+  // Reverse the qubit order to match cutensornet convention
+  auto newStateVec = reverseQubitOrder(stateVec);
   auto ket =
-      Eigen::Map<const Eigen::VectorXcd>(stateVec.data(), stateVec.size());
+      Eigen::Map<Eigen::VectorXcd>(newStateVec.data(), newStateVec.size());
   Eigen::VectorXcd initState = Eigen::VectorXcd::Zero(stateVec.size());
   initState(0) = std::complex<double>{1.0, 0.0};
   Eigen::MatrixXcd stateVecProj = ket * initState.transpose();
