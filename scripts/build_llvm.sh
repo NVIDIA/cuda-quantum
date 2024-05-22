@@ -253,6 +253,12 @@ if [ -n "$llvm_runtimes" ]; then
     echo "Failed to build runtime components. Please check the files in the `pwd`/logs directory."
     cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
   else
+    # Depending on the exact build configuration, 
+    # no install step is defined for builtins when compiler-rt is built
+    # as runtime rather than as project. Invoking the installation manually.
+    cmake -P runtimes/builtins-bins/cmake_install.cmake
+    echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
+
     # We can use a default config file to set specific clang configurations.
     # See https://clang.llvm.org/docs/UsersManual.html#configuration-files
     clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
