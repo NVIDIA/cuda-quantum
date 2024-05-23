@@ -70,6 +70,8 @@ Common
 
 .. doxygenclass:: nvqir::TensorNetSimulationState
 
+.. doxygenclass:: cudaq::RemoteSimulationState
+
 .. doxygenclass:: cudaq::registry::RegisteredType
     :members:
 
