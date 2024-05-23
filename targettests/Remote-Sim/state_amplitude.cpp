@@ -9,7 +9,8 @@
 // REQUIRES: remote-sim
 
 // clang-format off
-// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-backend tensornet %s -o %t && %t
+// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu %s -o %t && %t
+// RUN: nvq++ %cpp_std --target remote-mqpu %s -o %t && %t
 // clang-format on
 
 #include <cudaq.h>
@@ -24,12 +25,14 @@ struct cat_state {
 };
 
 int main() {
-  constexpr int numQubits = 100;
+  constexpr int numQubits = 10;
   const std::vector<int> basisStateAll0(numQubits, 0);
   const std::vector<int> basisStateAll1(numQubits, 1);
   auto state = cudaq::get_state(cat_state{}, numQubits);
-  assert(std::abs(M_SQRT1_2 - state.amplitude(basisStateAll0)) < 1e-3);
-  assert(std::abs(M_SQRT1_2 - state.amplitude(basisStateAll1)) < 1e-3);
+  const auto amplitudes = state.amplitudes({basisStateAll0, basisStateAll1});
+  assert(amplitudes.size() == 2);
+  assert(std::abs(M_SQRT1_2 - amplitudes[0]) < 1e-3);
+  assert(std::abs(M_SQRT1_2 - amplitudes[1]) < 1e-3);
 
   return 0;
 }

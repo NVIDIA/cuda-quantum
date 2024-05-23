@@ -99,10 +99,17 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
 /// runtime arguments.
 template <typename QuantumKernel, typename... Args>
 auto get_state(QuantumKernel &&kernel, Args &&...args) {
-#if defined(CUDAQ_REMOTE_SIM)
+#if defined(CUDAQ_REMOTE_SIM) && !defined(CUDAQ_LIBRARY_MODE)
   return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
                                          std::forward<Args>(args)...));
 #else
+#if defined(CUDAQ_REMOTE_SIM)
+  // Kernel builder is MLIR-based kernel.
+  if constexpr (has_name<QuantumKernel>::value) {
+    return state(new RemoteSimulationState(std::forward<QuantumKernel>(kernel),
+                                           std::forward<Args>(args)...));
+  }
+#endif
   return details::extractState([&]() mutable {
     cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
                         std::forward<Args>(args)...);

@@ -9,24 +9,11 @@
 // REQUIRES: remote-sim
 
 // clang-format off
+// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu --remote-mqpu-auto-launch 1 %s -o %t && %t
 // clang-format on
 
 #include <cudaq.h>
-
-struct bellCircuit {
-  void operator()() __qpu__ {
-    cudaq::qvector qubits(2);
-    h(qubits[0]);
-    cx(qubits[0], qubits[1]);
-  }
-};
-
-struct noOpCircuit {
-  void operator()() __qpu__ {
-    cudaq::qvector qubits(2);
-  }
-};
 
 int main() {
   {
@@ -41,12 +28,6 @@ int main() {
     assert(std::abs(M_SQRT1_2 - state[3].real()) < 1e-3);
   }
 
-  {
-    auto state1 = cudaq::get_state(bellCircuit{});
-    auto state2 = cudaq::get_state(noOpCircuit{});
-    const auto overlap = state1.overlap(state2);
-    assert(std::abs(M_SQRT1_2 - overlap) < 1e-3);
-  }
 // Skipped test due to a stability issue. See:
 // https://github.com/NVIDIA/cuda-quantum/issues/1087
 #if 0

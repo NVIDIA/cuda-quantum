@@ -8,12 +8,10 @@
 
 #pragma once
 
-#include "common/FmtCore.h"
 #include "common/SimulationState.h"
 #include "cudaq.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <algorithm>
-#include <numeric>
+
 namespace cudaq {
 /// Implementation of `SimulationState` for remote simulator backends.
 // The state is represented by a quantum kernel.
@@ -28,63 +26,78 @@ protected:
   mutable std::vector<char> argsBuffer;
 
 public:
+  /// @brief Constructor
   template <typename QuantumKernel, typename... Args>
   RemoteSimulationState(QuantumKernel &&kernel, Args &&...args) {
-    kernelName = cudaq::getKernelName(kernel);
+    if constexpr (has_name<QuantumKernel>::value) {
+      // kernel_builder kernel: need to JIT code to get it registered.
+      static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+      kernelName = kernel.name();
+    } else {
+      kernelName = cudaq::getKernelName(kernel);
+    }
+
     argsBuffer = cudaq::serializeArgs(std::forward<Args>(args)...);
   }
   RemoteSimulationState() = default;
+
   /// @brief Triggers remote execution to resolve the state data.
   virtual void execute() const;
 
+  /// @brief Helper to retrieve (kernel name, `args` pointer and `args` size)
   virtual std::tuple<std::string, void *, std::size_t> getKernelInfo() const;
 
-  std::size_t getNumQubits() const override {
-    execute();
-    return state->getNumQubits();
-  }
+  /// @brief Return the number of qubits this state represents.
+  std::size_t getNumQubits() const override;
 
+  /// @brief Compute the overlap of this state representation with
+  /// the provided `other` state, e.g. `<this | other>`.
   std::complex<double> overlap(const cudaq::SimulationState &other) override;
 
+  /// @brief Return the amplitude of the given computational
+  /// basis state.
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override;
 
-  Tensor getTensor(std::size_t tensorIdx = 0) const override {
-    execute();
-    return state->getTensor(tensorIdx);
-  }
+  /// @brief Return the amplitudes of the given list of computational
+  /// basis states.
+  std::vector<std::complex<double>>
+  getAmplitudes(const std::vector<std::vector<int>> &basisState) override;
+
+  /// @brief Return the tensor at the given index. Throws
+  /// for an invalid tensor index.
+  Tensor getTensor(std::size_t tensorIdx = 0) const override;
 
   /// @brief Return all tensors that represent this state
-  std::vector<Tensor> getTensors() const override { return {getTensor()}; }
+  std::vector<Tensor> getTensors() const override;
 
   /// @brief Return the number of tensors that represent this state.
-  std::size_t getNumTensors() const override { return 1; }
+  std::size_t getNumTensors() const override;
 
+  /// @brief Return the element from the tensor at the
+  /// given tensor index and at the given indices.
   std::complex<double>
   operator()(std::size_t tensorIdx,
-             const std::vector<std::size_t> &indices) override {
-    execute();
-    return state->operator()(tensorIdx, indices);
-  }
+             const std::vector<std::size_t> &indices) override;
 
+  /// @brief Create a new subclass specific SimulationState
+  /// from the user provided data set.
   std::unique_ptr<SimulationState>
-  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
-    throw std::runtime_error("Unsupported");
-  }
+  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override;
 
-  void dump(std::ostream &os) const override {
-    execute();
-    state->dump(os);
-  }
+  /// @brief Dump a representation of the state to the
+  /// given output stream.
+  void dump(std::ostream &os) const override;
 
-  precision getPrecision() const override {
-    execute();
-    return state->getPrecision();
-  }
+  /// @brief Return the floating point precision used by the simulation state.
+  precision getPrecision() const override;
 
-  void destroyState() override { state.reset(); }
+  /// @brief Destroy the state representation, frees all associated memory.
+  void destroyState() override;
 
 private:
+  /// @brief Return the qubit count threshold where the full remote state should
+  /// be flattened and returned.
   static std::size_t maxQubitCountForFullStateTransfer();
 };
 } // namespace cudaq
