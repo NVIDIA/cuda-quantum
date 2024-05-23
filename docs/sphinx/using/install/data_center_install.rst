@@ -170,13 +170,10 @@ install CUDA 11.8:
 Toolchain
 ~~~~~~~~~~
 
-.. FIXME: THIS SECTION NEEDS TO BE UPDATED...
-
-The compiler toolchain used for the build needs to support C++17 and must be a supported 
+The compiler toolchain used for the build must be a supported 
 `CUDA host compiler <https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#supported-host-compilers>`__
 for the installed CUDA version.
 The following instructions have been tested with `GCC-11 <https://gcc.gnu.org/index.html>`__.
-At this time, we actively test building with GCC 11 and 12, as well as with Clang 16. 
 Other toolchains may be supported but have not been tested.
 
 Within the tested AlmaLinux 8 environment, for example, the following commands
@@ -198,12 +195,9 @@ environment variables to point to the respective compilers on your build system:
     :end-before: [<ToolchainConfiguration]
 
 - The variables `CC` and `CXX` *must* be set for the CUDA-Q build.
-- A Fortran compiler is needed (only) to build the Blas dependency; 
-  if you have an existing OpenSSL installation that you set the
-  `BLAS_INSTALL_PREFIX` variable to, you can omit setting the `FC` 
-  environment variable.
 - To use GPU-acceleration in CUDA-Q, make sure to set `CUDACXX` to 
-  your CUDA compiler. If the CUDA compiler is not found when building
+  your CUDA compiler, and `CUDAHOSTCXX` to the CUDA compatible host 
+  compiler you are using. If the CUDA compiler is not found when building
   CUDA-Q, some components and backends will be omitted automatically 
   during the build.
 

@@ -45,7 +45,6 @@ ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
-ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
@@ -114,8 +113,7 @@ ARG release_version=
 ENV CUDA_QUANTUM_VERSION=$release_version
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    # FIXME: DOESN'T WORK - AND MAKE THE INSTALL PREREQS SCRIPT FIND THIS AUTOMATICALLY...
-    LLVM_STAGE1_BUILD=/tmp/tmp.*/llvm \
+    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # IMPORTANT:
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
@@ -158,7 +156,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
     ${PYTHON} -m pip install numpy build auditwheel patchelf
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_STAGE1_BUILD=/tmp/tmp.*/llvm \
+    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
     LLVM_INSTALL_PREFIX="$(mktemp -d)" && \
@@ -199,6 +197,7 @@ RUN if [ -z "$(ls /cuda-quantum/_skbuild/targets/nvidia.config)" ]; then \
 
 ## [Tests]
 FROM cpp_build
+# FIXME: REMOVE GCC, ANY SEPARATELY INSTALLED C++ LIB, AND CLANG AS WELL...
 RUN dnf remove -y gcc && dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \

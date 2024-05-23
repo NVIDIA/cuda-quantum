@@ -129,8 +129,6 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
     bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
     rm -rf cmake-install.sh 
-    # FIXME: SYMLINK TO WHERE CMAKE WAS BEFORE (INSTALLED VIA PACKAGE MANAGER)
-    # ln -s /usr/local/bin/cmake /usr/bin/cmake
   fi
   if [ ! -x "$(command -v ninja)" ]; then
     echo "Installing Ninja..."
@@ -145,8 +143,6 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     cmake --build build
     mv build/ninja /usr/local/bin/
     cd .. && rm -rf v1.11.1.tar.gz ninja-1.11.1
-    # FIXME: SYMLINK TO WHERE CMAKE WAS BEFORE (INSTALLED VIA PACKAGE MANAGER)
-    # ln -s /usr/local/bin/ninja /usr/bin/ninja-build
   fi
 fi
 

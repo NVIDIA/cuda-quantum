@@ -91,20 +91,22 @@ fi
 
 if [ "$1" == "install-gcc" ]; then
 # [>gccInstall]
-    dnf install -y --nobest --setopt=install_weak_deps=False gcc gcc-c++
+    GCC_VERSION=11
+    dnf install -y --nobest --setopt=install_weak_deps=False \
+        gcc-toolset-${GCC_VERSION}
 # [<gccInstall]
 fi
 
 # [>ToolchainConfiguration]
-#GCC_INSTALL_PREFIX=/opt/rh/gcc-toolset-11
-#export CXX="${GCC_INSTALL_PREFIX}/root/usr/bin/g++"
-#export CC="${GCC_INSTALL_PREFIX}/root/usr/bin/gcc"
-#export FC="${GCC_INSTALL_PREFIX}/root/usr/bin/gfortran"
-#export CUDACXX=/usr/local/cuda/bin/nvcc
+export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
+export CXX="${GCC_TOOLCHAIN}/bin/g++"
+export CC="${GCC_TOOLCHAIN}/bin/gcc"
+export CUDACXX=/usr/local/cuda/bin/nvcc
+export CUDAHOSTCXX="${GCC_TOOLCHAIN}/bin/g++"
 # [<ToolchainConfiguration]
 
 if [ "$1" == "build-openmpi" ]; then
-    source /opt/rh/gcc-toolset-11/enable
+    source "${GCC_TOOLCHAIN}/../../enable"
 
 # [>OpenMPIBuild]
     OPENMPI_VERSION=4.1.4

@@ -14,6 +14,7 @@
 # Must be built from the repo root with:
 #   DOCKER_BUILDKIT=1 docker build -f docker/release/installer.Dockerfile . --output out
 
+# FIXME: NEED TO UPDATE BUILD PIPELINES TO MATCH THE CHANGES (NOT GCC HERE IN THE TAG...)
 ARG base_image=ghcr.io/nvidia/cuda-quantum-assets:amd64-gcc11-main
 ARG additional_components=none
 

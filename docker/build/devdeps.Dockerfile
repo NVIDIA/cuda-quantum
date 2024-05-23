@@ -57,7 +57,6 @@ ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
-ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD

@@ -108,13 +108,12 @@ elif [ "$toolchain" = "llvm" ]; then
     if [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang++" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
 
         if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-            # Using clang to build the toolchain is both more efficient and also necessary,
-            # since using a different compiler tends to cause issues with a customized llvm build.
+            # We use the clang to bootstrap the llvm build since it is faster than gcc.
             source "$(readlink -f "${BASH_SOURCE[0]}")" -t clang16 || \
             echo -e "\e[01;31mError: Failed to install clang compiler for bootstrapping.\e[0m" >&2
             toolchain=llvm
             if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-                echo -e "\e[01;31mError: No clang compiler set for bootstrapping. Please define the environment variables CC and CXX.\e[0m" >&2
+                echo -e "\e[01;31mError: No compiler set for bootstrapping. Please define the environment variables CC and CXX.\e[0m" >&2
                 (return 0 2>/dev/null) && return 2 || exit 2
             fi
         fi

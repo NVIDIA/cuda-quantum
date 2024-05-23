@@ -87,7 +87,6 @@ if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; t
   git clone --filter=tree:0 "$llvm_repo" "$LLVM_SOURCE"
   cd "$LLVM_SOURCE" && git checkout $llvm_commit
 
-  LLVM_CMAKE_PATCHES=${LLVM_CMAKE_PATCHES:-"$this_file_dir/../tpls/customizations/llvm"}
   if [ -d "$LLVM_CMAKE_PATCHES" ]; then 
     echo "Applying LLVM patches in $LLVM_CMAKE_PATCHES..."
     for patch in `find "$LLVM_CMAKE_PATCHES"/* -maxdepth 0 -type f -name '*.diff'`; do
@@ -181,6 +180,7 @@ cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.gue
 targets_to_build="host;NVPTX"
 # FIXME: 
 #  -DLLVM_TARGETS_TO_BUILD='"$targets_to_build"' \
+#  -DLIBOMPTARGET_DEVICE_ARCHITECTURES=sm_70,sm_75,sm_80
 # maybe:  -DLLVM_RUNTIME_TARGETS='nvptx64-nvidia-cuda' \
 cmake_args=" \
   -DLLVM_DEFAULT_TARGET_TRIPLE='"$(bash $LLVM_SOURCE/llvm/cmake/config.guess)"' \
@@ -214,9 +214,9 @@ else
 fi
 
 if $verbose; then
-  cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache
+  echo $cmake_args $cmake_cache | xargs cmake -G Ninja $LLVM_SOURCE/llvm
 else
-  cmake -G Ninja $LLVM_SOURCE/llvm $cmake_args $cmake_cache \
+  echo $cmake_args $cmake_cache | xargs cmake -G Ninja $LLVM_SOURCE/llvm \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
 fi
 

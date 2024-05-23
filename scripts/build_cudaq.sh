@@ -132,7 +132,7 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DNVQPP_LD_PATH='"$NVQPP_LD_PATH"' \
   -DCMAKE_CUDA_COMPILER='"${CUDA_HOME:-/usr/local/cuda}/bin/nvcc"' \
   -DCMAKE_CUDA_FLAGS='"$cuda_flags"' \
-  -DCMAKE_CUDA_HOST_COMPILER='"$CXX"' \
+  -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   -DLLVM_ENABLE_LIBCXX=$([ "$install_toolchain" == "llvm" ] && echo ON || echo OFF) \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \

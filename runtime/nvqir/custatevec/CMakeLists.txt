@@ -28,14 +28,6 @@ SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUSTATEVEC_LIB_DIR}")
 macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
   add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILENAME})
 
-  # Compiling from command line:
-  # This command fails for older CUDA versions due to missing support for clang 16, 
-  # but/and with CUDA 12.4 we get a very descriptive error 
-  # "libc++ is not supported on x86 system" ...
-  # It looks like this is generally the case, rather than a just not yet implemented.
-  # The check can be bypassed with -D_ALLOW_UNSUPPORTED_LIBCPP, but that leads to errors.
-  # /usr/local/cuda/bin/nvcc -allow-unsupported-compiler -ccbin=/usr/local/llvm/bin/clang++ ../runtime/nvqir/custatevec/CuStateVecCircuitSimulator.cu -I ../runtime/nvqir/ -I ../runtime/ -I ../tpls/spdlog/include/spdlog/ -I ../tpls/spdlog/include/ -I ../tpls/fmt/include/ -I ../runtime/common/ -I /usr/local/cuquantum/include/
-
   target_include_directories(${LIBRARY_NAME}
     PRIVATE 
       . .. 
