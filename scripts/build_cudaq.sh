@@ -41,7 +41,7 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
-build_configuration=${CMAKE_BUILD_TYPE:-Release}
+build_configuration=Debug
 verbose=false
 install_prereqs=false
 

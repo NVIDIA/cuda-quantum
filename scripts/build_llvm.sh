@@ -28,7 +28,7 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
 # Process command line arguments
 (return 0 2>/dev/null) && is_sourced=true || is_sourced=false
-build_configuration=Release
+build_configuration=RelWithDebInfo
 verbose=false
 compiler_rt=false
 llvm_runtimes=""
