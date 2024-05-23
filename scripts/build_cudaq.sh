@@ -119,9 +119,7 @@ if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
 fi
 
-# Generate CMake files 
-# (utils are needed for custom testing tools, e.g. CircuitCheck)
-echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
+# Determin CUDA flags
 if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
   CUDAFLAGS='-allow-unsupported-compiler --compiler-options --stdlib=libstdc++ --linker-options --as-needed'
   if [ -d "$GCC_TOOLCHAIN" ]; then 
@@ -129,13 +127,16 @@ if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
     CUDAFLAGS+=" --compiler-options --gcc-toolchain=\"$GCC_TOOLCHAIN\""
   fi
 fi
+
+# Generate CMake files 
+# (utils are needed for custom testing tools, e.g. CircuitCheck)
+echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_INSTALL_PREFIX='"$CUDAQ_INSTALL_PREFIX"' \
   -DNVQPP_LD_PATH='"$NVQPP_LD_PATH"' \
   -DCMAKE_CUDA_COMPILER='"${CUDA_HOME:-/usr/local/cuda}/bin/nvcc"' \
   -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
   -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
-  -DLLVM_ENABLE_LIBCXX=$([ "$install_toolchain" == "llvm" ] && echo ON || echo OFF) \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \

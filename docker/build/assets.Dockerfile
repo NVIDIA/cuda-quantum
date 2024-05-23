@@ -75,7 +75,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         fi \
     done && \
     if [ -n "$(ldd ${shared_libraries} ${executables} | grep gcc)" ]; then \
-        echo -e "\e[01;31mThe produced toolchain and libraries depend on GCC libraries.\e[0m" >&2; \
+        echo -e "\e[01;31mThe produced Clang toolchain and libraries depend on GCC libraries.\e[0m" >&2; \
         exit 1; \
     fi
 
@@ -128,6 +128,27 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 RUN source /cuda-quantum/scripts/configure_build.sh && \
     if [ -z "$(ls $CUDAQ_INSTALL_PREFIX/targets/nvidia.config)" ]; then \
         echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
+        exit 1; \
+    fi
+
+# Validate that the built toolchain and libraries have no GCC dependencies.
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    shared_libraries=$(find "${CUDAQ_INSTALL_PREFIX}" -name '*.so') && \
+    executables=$(find "${CUDAQ_INSTALL_PREFIX}" -executable -type f) && \
+    has_gcc_dependencies=false && \
+    for binary in ${shared_libraries} ${executables}; do \
+        libname="$(basename "$binary")" && \
+        # Linking cublas dynamically necessarily adds a libgcc_s dependency to the GPU-based simulators.
+        # The same holds for a range of CUDA libraries, whereas libcudart.so does not have any GCC dependencies.
+        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ]; then \
+            echo "Skipping validation of $libname."; \
+        elif [ -n "$(ldd "${binary}" 2>/dev/null | grep gcc)" ]; then \
+            has_gcc_dependencies=true && \
+            echo -e "\e[01;31mError: ${binary} depends on gcc libraries.\e[0m" >&2; \
+        fi \
+    done && \
+    if $has_gcc_dependencies; then \
+        echo -e "\e[01;31mThe produced CUDA-Q toolchain and libraries depend on GCC libraries.\e[0m" >&2; \
         exit 1; \
     fi
 

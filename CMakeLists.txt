@@ -326,7 +326,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
 include(TableGen)
 include(AddLLVM)
 include(AddMLIR)
-include(HandleLLVMOptions)
 
 # Add LLVM, Clang and MLIR headers to the include path
 include_directories(SYSTEM
