@@ -145,12 +145,21 @@ public:
                          .getElementType()) {
       if (auto arrayTy = dyn_cast<LLVM::LLVMArrayType>(eleTy))
         eleTy = arrayTy.getElementType();
-      if (auto complexTy = dyn_cast<LLVM::LLVMStructType>(eleTy))
+      bool fromComplex = false;
+      if (auto complexTy = dyn_cast<LLVM::LLVMStructType>(eleTy)) {
+        fromComplex = true;
         eleTy = complexTy.getBody()[0];
+      }
       if (eleTy == rewriter.getF64Type())
-        functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64;
+        functionName =
+            fromComplex
+                ? cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64
+                : cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64;
       if (eleTy == rewriter.getF32Type())
-        functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32;
+        functionName =
+            fromComplex
+                ? cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32
+                : cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32;
     }
     if (functionName.empty())
       return raii.emitOpError("invalid type on initialize state operation, "

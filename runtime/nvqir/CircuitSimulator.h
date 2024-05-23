@@ -345,6 +345,10 @@ public:
 
   /// @brief Return a thread_local pointer to this CircuitSimulator
   virtual CircuitSimulator *clone() = 0;
+
+  /// Determine the (preferred) precision of the simulator.
+  virtual bool isSinglePrecision() const = 0;
+  bool isDoublePrecision() const { return !isSinglePrecision(); }
 };
 
 /// @brief The CircuitSimulatorBase is the type that is meant to
@@ -356,6 +360,12 @@ class CircuitSimulatorBase : public CircuitSimulator {
 private:
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
+
+private:
+  /// @brief Return true if the simulator is in the tracer mode.
+  bool isInTracerMode() const {
+    return executionContext && executionContext->name == "tracer";
+  }
 
 protected:
   /// @brief The current Execution Context (typically this is null,
@@ -689,7 +699,7 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
-    if (executionContext && executionContext->name == "tracer") {
+    if (isInTracerMode()) {
       std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
       for (auto &c : controls)
         controlsInfo.emplace_back(2, c);
@@ -774,6 +784,10 @@ protected:
     return defaultConfig;
   }
 
+  bool isSinglePrecision() const override {
+    return std::is_same_v<ScalarType, float>;
+  }
+
 public:
   /// @brief The constructor
   CircuitSimulatorBase() = default;
@@ -807,7 +821,6 @@ public:
   std::size_t allocateQubit() override {
     // Get a new qubit index
     auto newIdx = tracker.getNextIndex();
-
     if (isInBatchMode()) {
       batchModeCurrentNumQubits++;
       // In batch mode, we might already have an allocated state that
@@ -826,8 +839,9 @@ public:
     nQubitsAllocated++;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    // Tell the subtype to grow the state representation
-    addQubitToState();
+    if (!isInTracerMode())
+      // Tell the subtype to grow the state representation
+      addQubitToState();
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -882,8 +896,9 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    // Tell the subtype to allocate more qubits
-    addQubitsToState(count, state);
+    if (!isInTracerMode())
+      // Tell the subtype to allocate more qubits
+      addQubitsToState(count, state);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -900,7 +915,7 @@ public:
     if (!state)
       return allocateQubits(count);
 
-    if (count != state->getNumQubits())
+    if (!isInTracerMode() && count != state->getNumQubits())
       throw std::invalid_argument("Dimension mismatch: the input state doesn't "
                                   "match the number of qubits");
 
@@ -927,8 +942,9 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    // Tell the subtype to allocate more qubits
-    addQubitsToState(*state);
+    if (!isInTracerMode())
+      // Tell the subtype to allocate more qubits
+      addQubitsToState(*state);
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -949,7 +965,8 @@ public:
     cudaq::info("Deallocating qubit {}", qubitIdx);
 
     // Reset the qubit
-    resetQubit(qubitIdx);
+    if (!isInTracerMode())
+      resetQubit(qubitIdx);
 
     // Return the index to the tracker
     tracker.returnIndex(qubitIdx);
@@ -1246,6 +1263,9 @@ public:
 
     // If sampling, just store the bit, do nothing else.
     if (handleBasicSampling(qubitIdx, registerName))
+      return true;
+
+    if (isInTracerMode())
       return true;
 
     // Get the actual measurement from the subtype measureQubit implementation

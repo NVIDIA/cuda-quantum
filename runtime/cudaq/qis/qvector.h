@@ -33,7 +33,8 @@ public:
 
   /// @brief Construct a `qvector` from an input state vector.
   /// The number of qubits is determined by the size of the input vector.
-  qvector(const std::vector<complex> &vector)
+  /// If `validate` is set, it will check the norm of input state vector.
+  explicit qvector(const std::vector<complex> &vector, bool validate)
       : qudits(std::log2(vector.size())) {
     if (Levels == 2) {
       auto numElements = std::log2(vector.size());
@@ -42,15 +43,15 @@ public:
             "Invalid state vector passed to qvector initialization - number of "
             "elements must be power of 2.");
     }
-
-    auto norm = std::inner_product(
-                    vector.begin(), vector.end(), vector.begin(),
-                    complex{0., 0.}, [](auto a, auto b) { return a + b; },
-                    [](auto a, auto b) { return std::conj(a) * b; })
-                    .real();
-    if (std::fabs(1.0 - norm) > 1e-4)
-      throw std::runtime_error("Invalid vector norm for qudit allocation.");
-
+    if (validate) {
+      auto norm = std::inner_product(
+                      vector.begin(), vector.end(), vector.begin(),
+                      complex{0., 0.}, [](auto a, auto b) { return a + b; },
+                      [](auto a, auto b) { return std::conj(a) * b; })
+                      .real();
+      if (std::fabs(1.0 - norm) > 1e-4)
+        throw std::runtime_error("Invalid vector norm for qudit allocation.");
+    }
     std::vector<QuditInfo> targets;
     for (auto &q : qudits)
       targets.emplace_back(QuditInfo{Levels, q.id()});
@@ -60,6 +61,8 @@ public:
                          : simulation_precision::fp64;
     getExecutionManager()->initializeState(targets, vector.data(), precision);
   }
+  qvector(const std::vector<complex> &vector)
+      : qvector(vector, /*validate=*/false){};
 
   qvector(const std::vector<double> &vector)
       : qvector(std::vector<complex>{vector.begin(), vector.end()}) {}
