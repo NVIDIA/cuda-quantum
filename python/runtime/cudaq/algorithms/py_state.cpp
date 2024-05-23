@@ -44,9 +44,13 @@ state pyGetState(py::object kernel, py::args args) {
   });
 }
 
+/// @brief Python implementation of the `RemoteSimulationState`.
+// Note: Python kernel arguments are wrapped hence need to be unwrapped
+// accordingly.
 class PyRemoteSimulationState : public RemoteSimulationState {
   cudaq::ArgWrapper argsWrapper;
   std::size_t argsSize;
+  // Holder of args data for clean-up.
   cudaq::OpaqueArguments *argsData;
 
 public:
@@ -67,6 +71,8 @@ public:
       // Perform the usual pattern set the context,
       // execute and then reset
       platform.set_exec_ctx(&context);
+      // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
+      // ArgWrapper pointer.
       platform.launchKernel(kernelName, nullptr,
                             reinterpret_cast<void *>(
                                 const_cast<cudaq::ArgWrapper *>(&argsWrapper)),
@@ -492,7 +498,8 @@ index pair.
   mod.def(
       "get_state",
       [&](py::object kernel, py::args args) {
-        if (holder.getTarget().name == "remote-mqpu")
+        if (holder.getTarget().name == "remote-mqpu" ||
+            holder.getTarget().name == "nvqc")
           return pyGetStateRemote(kernel, args);
         return pyGetState(kernel, args);
       },

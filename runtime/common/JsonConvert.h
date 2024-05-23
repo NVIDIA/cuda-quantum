@@ -236,7 +236,12 @@ public:
   //     QIR functions, etc.
   // IMPORTANT: When a new version is defined, a new NVQC deployment will be
   // needed.
-  static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
+  // Version history:
+  // 1. First NVQC release (CUDA-Q v0.7)
+  // 2. CUDA-Q v0.8
+  //   - Support CUDA-Q state handling: overlap and amplitude data; multiple
+  //   kernel IR payloads.
+  static constexpr std::size_t REST_PAYLOAD_VERSION = 2;
   RestRequest(ExecutionContext &context, int versionNumber)
       : executionContext(context), version(versionNumber),
         clientVersion(CUDA_QUANTUM_VERSION) {}
