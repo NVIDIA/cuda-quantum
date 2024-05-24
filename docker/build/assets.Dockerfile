@@ -290,3 +290,9 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda_quantum/wheelhouse
+
+# Removing the CUDA compiler and libstdc++ with it
+RUN dnf remove -y \
+        cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
+        cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) && \
+    dnf clean all
