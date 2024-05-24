@@ -50,11 +50,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 RUN source /scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
 
 ## [Source Dependencies]
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
-ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
 ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
