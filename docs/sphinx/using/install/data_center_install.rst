@@ -268,8 +268,6 @@ command to build the CUDA-Q Python wheel:
   by setting the environment variable `SETUPTOOLS_SCM_PRETEND_VERSION` to the desired
   value before building the wheel.
 
-.. FIXME: CHECK THE INSTRUCTIONS REGARDING CUDA DEPS HERE...
-
 After the initial build, `auditwheel <https://github.com/pypa/auditwheel>`__ is used to 
 include dependencies in the wheel, if necessary, and correctly label the wheel.
 We recommend not including the CUDA runtime libraries and instead install them separately
