@@ -92,9 +92,7 @@ master_doc = 'index'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-# They 2 ipynb files excluded because they have LaTeX and our Sphinx doesn't
-# support LateX, so it it renders very poorly.
-exclude_patterns = ['**/_*', '.DS_Store', '**/qaoa.ipynb*', '**/quantum_fourier_transform.ipynb*']
+exclude_patterns = ['**/_*', '.DS_Store']
 
 # Generate OpenAPI spec for the REST API
 import ruamel.yaml
