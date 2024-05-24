@@ -44,7 +44,7 @@ RUN git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project
 # a wrapper script so that the path that we set CC and CXX to is independent 
 # on the installed toolchain. Unfortunately, a symbolic link won't work.
 # Using update-alternatives for c++ and cc could maybe be a better option.
-ENV LLVM_INSTALL_PREFIX=/opt/llvm
+ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
         gcc_version=`echo $toolchain | grep -o '[0-9]*'` && \
         if [ -z "$(which gcc 2> /dev/null | grep $gcc_version)" ]; then \

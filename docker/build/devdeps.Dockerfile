@@ -26,9 +26,8 @@
 ARG base_image=ubuntu:22.04
 
 # [CUDA-Q Dependencies]
-# FIXME: ASIDE FROM DOXYGEN, WE REALLY DON'T NEED THIS 
-# - WE CAN USE THE PREREQS ASSETS INSTEAD
-# - BUT WE NEED THE ADDITIONAL PYTHON DEV DEPENDENCIES AS WELL...
+# FIXME: KEEP a pipeline building against libstdc++?
+# -> If not, then we can just replace the prereqs here with the assets prereqs + Python prereqs + doxygen
 FROM ${base_image} as prereqs
 SHELL ["/bin/bash", "-c"]
 ARG toolchain=gcc11
@@ -104,8 +103,8 @@ ENV HOME=/home SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
 
 # Copy over the llvm build dependencies.
-COPY --from=prereqs /usr/local/llvm /opt/llvm
-ENV LLVM_INSTALL_PREFIX=/opt/llvm
+COPY --from=prereqs /usr/local/llvm /usr/local/llvm
+ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 
 # Install the C/C++ compiler toolchain with which the LLVM dependencies have

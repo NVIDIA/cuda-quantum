@@ -178,10 +178,10 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
     ${PYTHON} -m pip install numpy build auditwheel patchelf
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
     LLVM_INSTALL_PREFIX="$(mktemp -d)" && \
+    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # IMPORTANT:
     # Make sure that the invocation of the install_prerequisites.sh script here matches
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
@@ -199,7 +199,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
     ## [>CUDAQuantumWheel]
     CUDAQ_WHEEL="$(find . -name 'cuda_quantum*.whl')" && \
     MANYLINUX_PLATFORM="$(echo ${CUDAQ_WHEEL} | grep -o '[a-z]*linux_[^\.]*' | sed -re 's/^linux_/manylinux_2_28_/')" && \
-    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/cuda-quantum/_skbuild/lib" \ 
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/_skbuild/lib" \ 
     python3 -m auditwheel -v repair ${CUDAQ_WHEEL} \
         --plat ${MANYLINUX_PLATFORM} \
         --exclude libcublas.so.11 \
@@ -219,18 +219,27 @@ RUN if [ -z "$(ls /cuda-quantum/_skbuild/targets/nvidia.config)" ]; then \
 
 ## [Tests]
 FROM cpp_build
-# FIXME: REMOVE GCC, ANY SEPARATELY INSTALLED C++ LIB, AND CLANG AS WELL...
-RUN dnf remove -y gcc && dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
+RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut -d ' ' -f1) && \
+    dnf remove -y $gcc_packages && dnf clean all && \
+    dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
+
 RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         excludes="--label-exclude gpu_required"; \
+    else \
+        # Removing gcc packages remove the CUDA toolkit since it depends on them
+        source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
     # FIXME: Disabled nlopt doesn't seem to work properly
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1103
     excludes+=" --exclude-regex NloptTester|ctest-nvqpp|ctest-targettests" && \
     ctest --output-on-failure --test-dir build $excludes
 
-#ENV CUDAQ_CPP_STD="c++17"
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
+RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
+        source /cuda-quantum/scripts/configure_build.sh install-cudart && \
+        # Installing the CUDA compiler will install libstdc++ as well
+        dnf install -y --nobest --setopt=install_weak_deps=False cuda-compiler-$(echo ${CUDA_VERSION} | tr . -); \
+    fi
 
 RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
     dnf install -y --nobest --setopt=install_weak_deps=False file which
