@@ -72,8 +72,40 @@ def test_kernel_complex_params_f64():
     assert '00' in counts
 
 
+@skipIfNvidiaFP64NotInstalled
+def test_kernel_complex128_params_f64():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=np.complex128)
+    state = cudaq.State.from_data(c)
+
+    @cudaq.kernel
+    def kernel(vec: cudaq.State):
+        q = cudaq.qvector(vec)
+
+    counts = cudaq.sample(kernel, state)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+
+@skipIfNvidiaFP64NotInstalled
+def test_kernel_complex64_params_f64():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=np.complex64)
+
+    with pytest.raises(RuntimeError) as e:
+        state = cudaq.State.from_data(c)
+    assert '[sim-state] invalid data precision.' in repr(e)
+
+
 @skipIfNvidiaNotInstalled
-def test_kernel_complex_params_f32():
+def test_kernel_complex64_params_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
@@ -89,6 +121,32 @@ def test_kernel_complex_params_f32():
     print(counts)
     assert '11' in counts
     assert '00' in counts
+
+
+@skipIfNvidiaNotInstalled
+def test_kernel_complex128_params_f32():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=np.complex128)
+
+    with pytest.raises(RuntimeError) as e:
+        state = cudaq.State.from_data(c)
+    assert '[sim-state] invalid data precision.' in repr(e)
+
+
+@skipIfNvidiaNotInstalled
+def test_kernel_complex_params_f32():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=complex)
+
+    with pytest.raises(RuntimeError) as e:
+        state = cudaq.State.from_data(c)
+    assert '[sim-state] invalid data precision.' in repr(e)
 
 
 @skipIfNvidiaFP64NotInstalled
@@ -110,8 +168,40 @@ def test_kernel_complex_capture_f64():
     assert '00' in counts
 
 
+@skipIfNvidiaFP64NotInstalled
+def test_kernel_complex128_capture_f64():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=np.complex128)
+    state = cudaq.State.from_data(c)
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(state)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+
+@skipIfNvidiaFP64NotInstalled
+def test_kernel_complex128_capture_f64():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=np.complex64)
+
+    with pytest.raises(RuntimeError) as e:
+        state = cudaq.State.from_data(c)
+    assert '[sim-state] invalid data precision.' in repr(e)
+
+
 @skipIfNvidiaNotInstalled
-def test_kernel_complex_capture_f32():
+def test_kernel_complex64_capture_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')
 
@@ -120,13 +210,39 @@ def test_kernel_complex_capture_f32():
     state = cudaq.State.from_data(c)
 
     @cudaq.kernel
-    def kernel2():
+    def kernel():
         q = cudaq.qvector(state)
 
-    counts = cudaq.sample(kernel2)
+    counts = cudaq.sample(kernel)
     print(counts)
     assert '11' in counts
     assert '00' in counts
+
+
+@skipIfNvidiaNotInstalled
+def test_kernel_complex128_capture_f32():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=np.complex128)
+
+    with pytest.raises(RuntimeError) as e:
+        state = cudaq.State.from_data(c)
+    assert '[sim-state] invalid data precision.' in repr(e)
+
+
+@skipIfNvidiaNotInstalled
+def test_kernel_complex_capture_f32():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=complex)
+
+    with pytest.raises(RuntimeError) as e:
+        state = cudaq.State.from_data(c)
+    assert '[sim-state] invalid data precision.' in repr(e)
 
 
 # simulation dtype
@@ -168,6 +284,47 @@ def test_kernel_simulation_dtype_complex_params_f32():
     print(counts)
     assert '11' in counts
     assert '00' in counts
+
+
+@skipIfNvidiaFP64NotInstalled
+def test_kernel_simulation_dtype_capture_f64():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia-fp64')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=cudaq.complex())
+    state = cudaq.State.from_data(c)
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(state)
+
+    counts = cudaq.sample(kernel)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+
+@skipIfNvidiaNotInstalled
+def test_kernel_simulation_dtype_capture_f32():
+    cudaq.reset_target()
+    cudaq.set_target('nvidia')
+
+    c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
+                 dtype=cudaq.complex())
+    state = cudaq.State.from_data(c)
+
+    @cudaq.kernel
+    def kernel2():
+        q = cudaq.qvector(state)
+
+    counts = cudaq.sample(kernel2)
+    print(counts)
+    assert '11' in counts
+    assert '00' in counts
+
+
+# Initializing from state from another kernel
 
 
 @skipIfNvidiaFP64NotInstalled

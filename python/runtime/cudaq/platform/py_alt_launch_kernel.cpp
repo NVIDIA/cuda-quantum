@@ -314,7 +314,7 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
                            reinterpret_cast<void *>(wrapper), size,
                            (uint64_t)returnOffset);
     delete wrapper;
-  } else 
+  } else
     cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
                            (uint64_t)returnOffset);
 
