@@ -113,8 +113,9 @@ class PyASTBridge(ast.NodeVisitor):
         symbol table, which maps variable names to constructed `mlir.Values`. 
         """
         self.valueStack = deque()
-        self.cudaqStateHashes = kwargs[
-            'cudaqStateHashes'] if 'cudaqStateHashes' in kwargs else None
+        self.cudaqStateID = 0
+        self.cudaqStateIDs = kwargs[
+            'cudaqStateIDs'] if 'cudaqStateIDs' in kwargs else None
         self.knownResultType = kwargs[
             'knownResultType'] if 'knownResultType' in kwargs else None
         if 'existingModule' in kwargs:
@@ -195,6 +196,10 @@ class PyASTBridge(ast.NodeVisitor):
             "\n\t (offending source -> " + ast.unparse(astNode) + ")" if
             hasattr(ast, 'unparse') and astNode is not None else '') + Color.END
         raise CompilerError(msg)
+
+    def getNewCudaqStateID(self):
+        self.cudaqStateID += 1
+        return self.name + str(self.cudaqStateID)
 
     def validateArgumentAnnotations(self, astModule):
         """
@@ -3362,18 +3367,15 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError(f"unhandled binary operator - {node.op}", node)
 
     def __store_state(self, value: State):
-        # Compute a unique hash string for the state data
-        hashValue = hashlib.sha1(value).hexdigest(
-        )[:10] + self.name.removeprefix('__nvqppBuilderKernel_')
-        print(f'state has value for {self.name}: {hashValue}')
-
+        # Compute a unique ID for the state data
+        stateID = self.getNewCudaqStateID()
         stateTy = cc.StateType.get(self.ctx)
         statePtrTy = cc.PointerType.get(self.ctx, stateTy)
 
         # Generate a function that stores the state value in a global
         globalTy = statePtrTy
-        globalName = f'nvqpp.cudaq.state.{hashValue}'
-        setStateName = f'nvqpp.set.cudaq.state.{hashValue}'
+        globalName = f'nvqpp.cudaq.state.{stateID}'
+        setStateName = f'nvqpp.set.cudaq.state.{stateID}'
         with InsertionPoint.at_block_begin(self.module.body):
             cc.GlobalOp(TypeAttr.get(globalTy), globalName, external=True)
             setStateFunc = func.FuncOp(setStateName,
@@ -3393,13 +3395,13 @@ class PyASTBridge(ast.NodeVisitor):
                 func.ReturnOp([])
 
         # Record the unique hash value
-        if hashValue not in self.cudaqStateHashes:
-            self.cudaqStateHashes.append(hashValue)
+        if stateID not in self.cudaqStateIDs:
+            self.cudaqStateIDs.append(stateID)
 
         # Store the state into a global variable
-        cudaq_runtime.storePointerToCudaqState(self.name, hashValue, value)
+        cudaq_runtime.storePointerToCudaqState(self.name, stateID, value)
 
-        # Return the pointer to stored state
+        # Return the pointer to the stored state
         zero = self.getConstantInt(0)
         address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
                                  FlatSymbolRefAttr.get(globalName)).result
@@ -3558,11 +3560,11 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
     parentVariables = kwargs[
         'parentVariables'] if 'parentVariables' in kwargs else {}
-    cudaqStateHashes = kwargs['cudaqStateHashes']
+    cudaqStateIDs = kwargs['cudaqStateIDs']
 
     # Create the AST Bridge
     bridge = PyASTBridge(verbose=verbose,
-                         cudaqStateHashes=cudaqStateHashes,
+                         cudaqStateIDs=cudaqStateIDs,
                          knownResultType=returnType,
                          returnTypeIsFromPython=True,
                          locationOffset=lineNumberOffset,
