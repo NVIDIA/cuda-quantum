@@ -318,9 +318,6 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
     cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs, size,
                            (uint64_t)returnOffset);
 
-  // TODO: can we delete the kernel's state hashes now?
-  // Currently we delete then when kernel decorator is destructed,
-  // which can be at the end of the execution of the program.
   return std::make_tuple(rawArgs, size, returnOffset);
 }
 
