@@ -166,7 +166,6 @@ async_state_result get_state_async(QuantumKernel &&kernel, Args &&...args) {
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *);
-void *__nvqpp_cudaq_state_vectorData(state *);
 }
 
 } // namespace cudaq

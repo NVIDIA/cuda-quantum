@@ -39,6 +39,7 @@ class PyKernelDecorator(object):
 
     def __init__(self, function, verbose=False, module=None, kernelName=None):
         self.kernelFunction = function
+        self.cudaqStateHashes = []
         self.module = None if module == None else module
         self.verbose = verbose
         self.name = kernelName if kernelName != None else self.kernelFunction.__name__
@@ -163,7 +164,8 @@ class PyKernelDecorator(object):
             verbose=self.verbose,
             returnType=self.returnType,
             location=self.location,
-            parentVariables=self.globalScopedVars)
+            parentVariables=self.globalScopedVars,
+            cudaqStateHashes=self.cudaqStateHashes)
 
         # Grab the dependent capture variables, if any
         self.dependentCaptures = extraMetadata[
@@ -294,13 +296,16 @@ class PyKernelDecorator(object):
                                             self.module,
                                             *processedArgs,
                                             callable_names=callableNames)
+            cudaq_runtime.deletePointersToCudaqState(self.cudaqStateHashes)
         else:
-            return cudaq_runtime.pyAltLaunchKernelR(
+            result = cudaq_runtime.pyAltLaunchKernelR(
                 self.name,
                 self.module,
                 mlirTypeFromPyType(self.returnType, self.module.context),
                 *processedArgs,
                 callable_names=callableNames)
+            cudaq_runtime.deletePointersToCudaqState(self.cudaqStateHashes)
+            return result
 
 
 def kernel(function=None, **kwargs):

@@ -247,7 +247,7 @@ Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
 }
 
 Array *
-__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(int size,
+__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(int _,
                                                          cudaq::state *state) {
   if (!state)
     throw std::invalid_argument("[NVQIR] Invalid state encountered "
@@ -256,34 +256,8 @@ __quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(int size,
       "NVQIR::__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr",
       state->get_num_qubits());
 
-  void *dataPtr = nullptr;
-  auto stateVector = state->get_tensor();
-  auto precision = state->get_precision();
-  if (state->is_on_gpu()) {
-    auto numElements = stateVector.get_num_elements();
-    if (precision == cudaq::SimulationState::precision::fp32) {
-      auto *hostData = new std::complex<float>[numElements];
-      state->to_host(hostData, numElements);
-      dataPtr = reinterpret_cast<void *>(hostData);
-    } else {
-      auto *hostData = new std::complex<double>[numElements];
-      state->to_host(hostData, numElements);
-      dataPtr = reinterpret_cast<void *>(hostData);
-    }
-    // TODO: delete dataPtr when done
-  } else {
-    dataPtr = stateVector.data;
-  }
-
-  __quantum__rt__initialize(0, nullptr);
-
-  auto simPrecision = precision == cudaq::SimulationState::precision::fp32
-                          ? cudaq::simulation_precision::fp32
-                          : cudaq::simulation_precision::fp64;
-
-  auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
-      state->get_num_qubits(), dataPtr, simPrecision);
-  return vectorSizetToArray(qubitIdxs);
+  auto simStatePtr = cudaq::state_helper::getSimulationState(state);
+  return __quantum__rt__qubit_allocate_array_with_state_ptr(simStatePtr);
 }
 
 Array *__quantum__rt__qubit_allocate_array_with_state_complex32(

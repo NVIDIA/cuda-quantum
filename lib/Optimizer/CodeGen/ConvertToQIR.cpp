@@ -143,8 +143,6 @@ public:
     StringRef functionName;
     if (Type eleTy = dyn_cast<LLVM::LLVMPointerType>(ccState.getType())
                          .getElementType()) {
-      // Option 2: call a function to allocate qubits from state
-
       if (auto elePtrTy = dyn_cast<LLVM::LLVMPointerType>(eleTy))
         eleTy = elePtrTy.getElementType();
       if (auto arrayTy = dyn_cast<LLVM::LLVMArrayType>(eleTy))
@@ -155,20 +153,17 @@ public:
         eleTy = complexTy.getBody()[0];
       }
       if (eleTy == rewriter.getI8Type())
-        // Initializing from cudaq::state
         functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
-      if (eleTy == rewriter.getF64Type()) {
+      if (eleTy == rewriter.getF64Type())
         functionName =
             fromComplex
                 ? cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64
                 : cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP64;
-      }
-      if (eleTy == rewriter.getF32Type()) {
+      if (eleTy == rewriter.getF32Type())
         functionName =
             fromComplex
                 ? cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32
                 : cudaq::opt::QIRArrayQubitAllocateArrayWithStateFP32;
-      }
     }
     if (functionName.empty())
       return raii.emitOpError("invalid type on initialize state operation, "
@@ -2021,12 +2016,8 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
       [](quake::VeqType type) { return getArrayType(type.getContext()); });
   typeConverter.addConversion(
       [](quake::RefType type) { return getQubitType(type.getContext()); });
-  typeConverter.addConversion([](cc::StateType type) {
-    // Option 1: call an intrinsic to get state data
-    // return factory::stateImplType(type);
-    // Option 2: call a function to allocate qubits from state
-    return factory::stateImplType2(type);
-  });
+  typeConverter.addConversion(
+      [](cc::StateType type) { return factory::stateImplType(type); });
   typeConverter.addConversion([](cc::CallableType type) {
     return lambdaAsPairOfPointers(type.getContext());
   });

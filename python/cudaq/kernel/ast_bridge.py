@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 import ast
+import hashlib
 import graphlib
 import sys, os
 from typing import Callable
@@ -18,6 +19,8 @@ from ..mlir.passmanager import *
 from ..mlir.dialects import quake, cc
 from ..mlir.dialects import builtin, func, arith, math, complex
 from ..mlir._mlir_libs._quakeDialects import cudaq_runtime, load_intrinsic, register_all_dialects
+
+State = cudaq_runtime.State
 
 # This file implements the CUDA-Q Python AST to MLIR conversion.
 # It provides a `PyASTBridge` class that implements the `ast.NodeVisitor` type
@@ -110,6 +113,8 @@ class PyASTBridge(ast.NodeVisitor):
         symbol table, which maps variable names to constructed `mlir.Values`. 
         """
         self.valueStack = deque()
+        self.cudaqStateHashes = kwargs[
+            'cudaqStateHashes'] if 'cudaqStateHashes' in kwargs else None
         self.knownResultType = kwargs[
             'knownResultType'] if 'knownResultType' in kwargs else None
         if 'existingModule' in kwargs:
@@ -1842,19 +1847,27 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
                 if node.func.attr == 'qvector':
-                    value = self.ifPointerThenLoad(self.popValue())
-                    if (IntegerType.isinstance(value.type)):
+                    valueOrPtr = self.popValue()
+                    initializerTy = valueOrPtr.type
+
+                    if cc.PointerType.isinstance(initializerTy):
+                        initializerTy = cc.PointerType.getElementType(
+                            initializerTy)
+
+                    if (IntegerType.isinstance(initializerTy)):
                         # handle `cudaq.qvector(n)`
+                        value = self.ifPointerThenLoad(valueOrPtr)
                         ty = self.getVeqType()
                         qubits = quake.AllocaOp(ty, size=value).result
                         self.pushValue(qubits)
                         return
-                    if cc.StdvecType.isinstance(value.type):
+                    if cc.StdvecType.isinstance(initializerTy):
                         # handle `cudaq.qvector(initState)`
 
                         # Validate the length in case of a constant initializer:
                         # `cudaq.qvector([1., 0., ...])`
                         # `cudaq.qvector(np.array([1., 0., ...]))`
+                        value = self.ifPointerThenLoad(valueOrPtr)
                         listScalar = None
                         arrNode = node.args[0]
                         if isinstance(arrNode, ast.List):
@@ -1899,42 +1912,32 @@ class PyASTBridge(ast.NodeVisitor):
                         veqTy = quake.VeqType.get(self.ctx)
 
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result
-                        initials = cc.StdvecDataOp(ptrTy, value).result
+                        data = cc.StdvecDataOp(ptrTy, value).result
                         init = quake.InitializeStateOp(veqTy, qubits,
-                                                       initials).result
+                                                       data).result
                         self.pushValue(init)
                         return
-                    
-                    if cc.StateType.isinstance(value.type):
-                        valuePtr = self.ifNotPointerThenStore(value)
+
+                    if cc.StateType.isinstance(initializerTy):
                         # handle `cudaq.qvector(state)`
+                        statePtr = self.ifNotPointerThenStore(valueOrPtr)
 
                         symName = '__nvqpp_cudaq_state_numberOfQubits'
                         load_intrinsic(self.module, symName)
                         i64Ty = self.getIntegerType()
-                        numQubits = func.CallOp([i64Ty], symName, [valuePtr]).result
-
-                        # Option 1: call intrinsic to get the data
-                        # Note: this copies the data from the gpu
-                        # eleTy = self.simulationDType()
-                        # elePtrTy = cc.PointerType.get(self.ctx, eleTy)
-                        # symName = '__nvqpp_cudaq_state_vectorData'
-                        # load_intrinsic(self.module, symName)
-                        # data = func.CallOp([elePtrTy], symName, [valuePtr]).result
-                        # print(f'data: {data}')
-
-                        # Option 2: pass the state to quake.InitializeStateOp (needs opts update)
-                        data = valuePtr
+                        numQubits = func.CallOp([i64Ty], symName,
+                                                [statePtr]).result
 
                         veqTy = quake.VeqType.get(self.ctx)
                         qubits = quake.AllocaOp(veqTy, size=numQubits).result
-                        init = quake.InitializeStateOp(veqTy, qubits, data).result
+                        init = quake.InitializeStateOp(veqTy, qubits,
+                                                       statePtr).result
 
                         self.pushValue(init)
                         return
 
                     self.emitFatalError(
-                        f"unsupported qvector argument type: {value.type} (unknown)",
+                        f"unsupported qvector argument type: {value.type}",
                         node)
                     return
 
@@ -3358,6 +3361,54 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             self.emitFatalError(f"unhandled binary operator - {node.op}", node)
 
+    def __store_state(self, value: State):
+        # Compute a unique hash string for the state data
+        hashValue = hashlib.sha1(value).hexdigest(
+        )[:10] + self.name.removeprefix('__nvqppBuilderKernel_')
+        print(f'state has value for {self.name}: {hashValue}')
+
+        stateTy = cc.StateType.get(self.ctx)
+        statePtrTy = cc.PointerType.get(self.ctx, stateTy)
+
+        # Generate a function that stores the state value in a global
+        globalTy = statePtrTy
+        globalName = f'nvqpp.cudaq.state.{hashValue}'
+        setStateName = f'nvqpp.set.cudaq.state.{hashValue}'
+        with InsertionPoint.at_block_begin(self.module.body):
+            cc.GlobalOp(TypeAttr.get(globalTy), globalName, external=True)
+            setStateFunc = func.FuncOp(setStateName,
+                                       FunctionType.get(inputs=[statePtrTy],
+                                                        results=[]),
+                                       loc=self.loc)
+            entry = setStateFunc.add_entry_block()
+            with InsertionPoint(entry):
+                zero = self.getConstantInt(0)
+                address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
+                                         FlatSymbolRefAttr.get(globalName))
+                ptr = cc.ComputePtrOp(
+                    cc.PointerType.get(self.ctx, statePtrTy), address, [zero],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
+
+                cc.StoreOp(entry.arguments[0], ptr)
+                func.ReturnOp([])
+
+        # Record the unique hash value
+        if hashValue not in self.cudaqStateHashes:
+            self.cudaqStateHashes.append(hashValue)
+
+        # Store the state into a global variable
+        cudaq_runtime.storePointerToCudaqState(self.name, hashValue, value)
+
+        # Return the pointer to stored state
+        zero = self.getConstantInt(0)
+        address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
+                                 FlatSymbolRefAttr.get(globalName)).result
+        ptr = cc.ComputePtrOp(
+            cc.PointerType.get(self.ctx, statePtrTy), address, [zero],
+            DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)).result
+        statePtr = cc.LoadOp(ptr).result
+        return statePtr
+
     def visit_Name(self, node):
         """
         Visit `ast.Name` nodes and extract the correct value from the symbol table.
@@ -3406,6 +3457,11 @@ class PyASTBridge(ast.NodeVisitor):
             # Only support a small subset of types here
             complexType = type(1j)
             value = self.capturedVars[node.id]
+
+            if isinstance(value, State):
+                self.pushValue(self.__store_state(value))
+                return
+
             if isinstance(value, (list, np.ndarray)) and isinstance(
                     value[0], (int, bool, float, np.float32, np.float64,
                                complexType, np.complex64, np.complex128)):
@@ -3473,7 +3529,7 @@ class PyASTBridge(ast.NodeVisitor):
                 errorType = f"{errorType}[{type(value[0]).__name__}]"
 
             self.emitFatalError(
-                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
+                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
                 node)
 
         # Throw an exception for the case that the name is not
@@ -3502,9 +3558,11 @@ def compile_to_mlir(astModule, metadata, **kwargs):
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
     parentVariables = kwargs[
         'parentVariables'] if 'parentVariables' in kwargs else {}
+    cudaqStateHashes = kwargs['cudaqStateHashes']
 
     # Create the AST Bridge
     bridge = PyASTBridge(verbose=verbose,
+                         cudaqStateHashes=cudaqStateHashes,
                          knownResultType=returnType,
                          returnTypeIsFromPython=True,
                          locationOffset=lineNumberOffset,

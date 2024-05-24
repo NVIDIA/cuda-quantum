@@ -121,17 +121,6 @@ inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
 
 inline mlir::Type stateImplType(mlir::Type eleTy) {
   auto *ctx = eleTy.getContext();
-  // TODO: use simulation precision?
-  // State is a wrapper for a pointer to data
-  auto floatTy = mlir::Float64Type::get(ctx);
-  llvm::SmallVector<mlir::Type> types = {floatTy, floatTy};
-  eleTy = mlir::LLVM::LLVMStructType::getLiteral(ctx, types);
-
-  return cudaq::opt::factory::getPointerType(eleTy);
-}
-
-inline mlir::Type stateImplType2(mlir::Type eleTy) {
-  auto *ctx = eleTy.getContext();
   auto eTy = cudaq::opt::factory::getCharType(ctx);
   return cudaq::opt::factory::getPointerType(eTy);
 }

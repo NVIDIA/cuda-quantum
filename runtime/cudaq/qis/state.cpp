@@ -104,46 +104,7 @@ state::~state() {
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
-  // throw std::runtime_error(
-  //     "not yet implemented: getting number of qubits from state");
   return obj->get_num_qubits();
-}
-
-void *__nvqpp_cudaq_state_vectorData(state *obj) {
-  // throw std::runtime_error(
-  //     "not yet implemented: getting vector data from state");
-
-  auto num = obj->get_num_qubits();
-  std::cout << "Num of qubits from state: " << num << std::endl;
-  std::cout << "State is on gpu: " << obj->is_on_gpu() << std::endl;
-
-  void *dataPtr = nullptr;
-  auto stateVector = obj->get_tensor();
-  auto precision = obj->get_precision();
-  if (obj->is_on_gpu()) {
-    auto numElements = stateVector.get_num_elements();
-    if (precision == SimulationState::precision::fp32) {
-      auto *hostData = new std::complex<float>[numElements];
-      obj->to_host(hostData, numElements);
-      dataPtr = reinterpret_cast<void *>(hostData);
-    } else {
-      auto *hostData = new std::complex<double>[numElements];
-      obj->to_host(hostData, numElements);
-      dataPtr = reinterpret_cast<void *>(hostData);
-    }
-  } else {
-    dataPtr = stateVector.data;
-  }
-  // {
-  //   auto data = reinterpret_cast<std::complex<double>*>(dataPtr);
-  //   auto vec = std::vector<std::complex<double>>(data, data + num);
-  //   std::cout << "Data from state: ";
-  //   for (auto& e :vec) {
-  //     std::cout << e << ", ";
-  //   }
-  //   std::cout << std::endl;
-  // }
-  return dataPtr;
 }
 }
 

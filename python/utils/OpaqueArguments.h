@@ -24,8 +24,6 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
-#include <iostream>
-
 namespace py = pybind11;
 using namespace std::chrono_literals;
 using namespace mlir;
@@ -347,11 +345,10 @@ packArgs(OpaqueArguments &argData, py::args args,
         .Default([&](Type ty) {
           // See if we have a backup type handler.
           auto worked = backupHandler(argData, arg);
-          if (!worked) {
+          if (!worked)
             throw std::runtime_error(
                 "Could not pack argument: " + py::str(arg).cast<std::string>() +
                 " Type: " + mlirTypeToString(ty));
-          }
         });
   }
 }
