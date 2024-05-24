@@ -228,44 +228,6 @@ components have been built.
   instructions for installing the necessary prerequisites and build dependencies, 
   and have set the necessary environment variables as described in this document.
 
-.. _cudaq-cpp-from-source:
-
-C++ Support
-+++++++++++++++++++++++++++++++
-
-From within the folder where you cloned the CUDA-Q repository, run the following
-command to build CUDA-Q:
-
-.. literalinclude:: ../../../../docker/build/assets.Dockerfile
-    :language: bash
-    :dedent:
-    :start-after: [>CUDAQuantumCppBuild]
-    :end-before: [<CUDAQuantumCppBuild]
-
-Note that `lld` is primarily needed when the build or host system does not already
-have an existing default linker on its path; CUDA-Q supports the same linkers as
-`clang` does.
-
-To easily migrate the built binaries to the host system, we recommend creating a
-`self-extracting archive <https://makeself.io/>`__. To do so, download the 
-`makeself script(s) <https://github.com/megastep/makeself>`__ and move the necessary 
-files to install into a separate folder using the command
-
-.. literalinclude:: ../../../../docker/release/installer.Dockerfile
-    :language: bash
-    :dedent:
-    :start-after: [>CUDAQuantumAssets]
-    :end-before: [<CUDAQuantumAssets]
-
-You can then create a self-extracting archive with the command
-
-.. code-block:: bash
-
-    ./makeself.sh --gzip --sha256 --license cuda_quantum_assets/cudaq/LICENSE \
-        cuda_quantum_assets install_cuda_quantum.$(uname -m) \
-        "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
-        bash cudaq/migrate_assets.sh -t /opt/nvidia/cudaq
-
 .. _cudaq-python-from-source:
 
 Python Support
@@ -287,7 +249,7 @@ Python-specific tools:
 - Pip package manager: Make sure the `pip` module is enable for your Python version.
   We refer to the Python `documentation <https://pip.pypa.io/en/stable/installation/>`__ for
   more information about installing/enabling `pip`.
-- Python modules: Install the additional modules `numpy`, `build`, `auditwheel`, and `patchelf` for your
+- Python modules: Install the additional modules `numpy`, `pytest`, `build`, `auditwheel`, and `patchelf` for your
   Python version, e.g. `python3 -m pip install numpy build auditwheel patchelf`.
 
 From within the folder where you cloned the CUDA-Q repository, run the following
@@ -328,6 +290,43 @@ installed on any `compatible platform <https://packaging.python.org/en/latest/sp
   checking that the wheel tag (i.e. the file name ending of the `.whl` file) is listed under
   "Compatible Tags" when running the command `python3 -m pip debug --verbose` on the host.
 
+.. _cudaq-cpp-from-source:
+
+C++ Support
++++++++++++++++++++++++++++++++
+
+From within the folder where you cloned the CUDA-Q repository, run the following
+command to build CUDA-Q:
+
+.. literalinclude:: ../../../../docker/build/assets.Dockerfile
+    :language: bash
+    :dedent:
+    :start-after: [>CUDAQuantumCppBuild]
+    :end-before: [<CUDAQuantumCppBuild]
+
+Note that `lld` is primarily needed when the build or host system does not already
+have an existing default linker on its path; CUDA-Q supports the same linkers as
+`clang` does.
+
+To easily migrate the built binaries to the host system, we recommend creating a
+`self-extracting archive <https://makeself.io/>`__. To do so, download the 
+`makeself script(s) <https://github.com/megastep/makeself>`__ and move the necessary 
+files to install into a separate folder using the command
+
+.. literalinclude:: ../../../../docker/release/installer.Dockerfile
+    :language: bash
+    :dedent:
+    :start-after: [>CUDAQuantumAssets]
+    :end-before: [<CUDAQuantumAssets]
+
+You can then create a self-extracting archive with the command
+
+.. code-block:: bash
+
+    ./makeself.sh --gzip --sha256 --license cuda_quantum_assets/cudaq/LICENSE \
+        cuda_quantum_assets install_cuda_quantum.$(uname -m) \
+        "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
+        bash cudaq/migrate_assets.sh -t /opt/nvidia/cudaq
 
 Installation on the Host
 ++++++++++++++++++++++++++++++++++++

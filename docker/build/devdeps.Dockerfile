@@ -38,11 +38,20 @@ ARG toolchain=gcc12
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 
 ## [Prerequisites]
 RUN apt-get update && apt-get install -y --no-install-recommends python3 && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+## [Environment Variables]
+ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
+ENV CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
+ENV CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
+ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
+ENV BLAS_INSTALL_PREFIX=/usr/local/blas
+ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
+ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
+ENV CURL_INSTALL_PREFIX=/usr/local/curl
 
 ## [Build Dependencies]
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -51,7 +60,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 -m pip install --no-cache-dir numpy && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
-RUN source /cuda-quantum/scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
+RUN source /cuda-quantum/scripts/install_toolchain.sh \
+        -e "$LLVM_INSTALL_PREFIX/bootstrap" -t ${toolchain}
 
 ## [Source Dependencies]
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
@@ -74,8 +84,7 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
-RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    bash scripts/install_prerequisites.sh -t ${toolchain}
+RUN bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}
 
 ## [Dev Dependencies]
 RUN if [ "$(uname -m)" == "x86_64" ]; then \

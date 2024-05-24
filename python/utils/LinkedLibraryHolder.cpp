@@ -12,6 +12,7 @@
 #include "common/PluginUtils.h"
 #include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
+#include <unistd.h>
 #include <fstream>
 #include <regex>
 #include <sstream>

@@ -175,18 +175,22 @@ ENV SETUPTOOLS_SCM_PRETEND_VERSION=$release_version
 ARG PYTHON=python3.11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && \
     ${PYTHON} -m ensurepip --upgrade && \
-    ${PYTHON} -m pip install numpy build auditwheel patchelf
+    ${PYTHON} -m pip install pytest numpy build auditwheel patchelf
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
-    LLVM_INSTALL_PREFIX="$(mktemp -d)" && \
+    rm -rf "${LLVM_INSTALL_PREFIX}" && \
     LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # IMPORTANT:
     # Make sure that the invocation of the install_prerequisites.sh script here matches
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
     ## [>CUDAQuantumPythonBuild]
+    LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
     bash scripts/install_prerequisites.sh -t llvm && \
+    CC="$LLVM_INSTALL_PREFIX/bin/clang" \
+    CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
+    FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
     python3 -m build --wheel
     ## [<CUDAQuantumPythonBuild]
 
@@ -217,8 +221,35 @@ RUN if [ -z "$(ls /cuda-quantum/_skbuild/targets/nvidia.config)" ]; then \
         exit 1; \
     fi
 
-## [Tests]
-FROM cpp_build
+# Validate that the built toolchain and libraries have no GCC dependencies.
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    shared_libraries=$(find "${LLVM_INSTALL_PREFIX}" -name '*.so') && \
+    executables=$(find "${LLVM_INSTALL_PREFIX}" -executable -type f) && \
+    for binary in ${shared_libraries} ${executables}; do \
+        if [ -n "$(ldd "${binary}" 2>/dev/null | grep gcc)" ]; then \
+            echo -e "\e[01;31mError: ${binary} depends on gcc libraries.\e[0m" >&2; \
+        fi \
+    done && \
+    if [ -n "$(ldd ${shared_libraries} ${executables} | grep gcc)" ]; then \
+        echo -e "\e[01;31mThe produced Clang toolchain and libraries depend on GCC libraries.\e[0m" >&2; \
+        exit 1; \
+    fi
+
+## [Python Tests]
+FROM python_build as python_tests
+RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut -d ' ' -f1) && \
+    dnf remove -y $gcc_packages && dnf clean all && \
+    dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
+
+## [Python MLIR tests]
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+    python3 -m pip install lit && \
+    "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
+        --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
+# The other tests for the Python wheel are run post-installation.
+
+## [C++ Tests]
+FROM cpp_build as cpp_tests
 RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut -d ' ' -f1) && \
     dnf remove -y $gcc_packages && dnf clean all && \
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
@@ -249,5 +280,5 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py
 
-# Tests for the Python wheel are run post-installation.
-COPY --from=python_build /wheelhouse /cuda_quantum/wheelhouse
+FROM cpp_tests
+COPY --from=python_tests /wheelhouse /cuda_quantum/wheelhouse
