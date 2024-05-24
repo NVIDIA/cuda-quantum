@@ -372,8 +372,31 @@ protected:
                          "", headers, /*enableSsl=*/true);
     const std::string cudaqNvcfFuncNamePrefix = "cuda_quantum";
     DeploymentInfo info;
+
+    // NCA ID Precedence order is:
+    // 1. CUDAQ_NCA_ID if it was specifically overriden
+    // 2. Dev org NCA ID if active dev functions are visible with selected key
+    // 3. Production NCA ID
+    const std::string ncaIdToSearch = [&]() {
+      // Check for override
+      if (isNvqcNcaIdOverridden())
+        return CUDAQ_NCA_ID;
+      // Check to see if dev NCA ID functions are available
+      for (auto funcInfo : allVisibleFunctions["functions"]) {
+        if (funcInfo["ncaId"].get<std::string>() ==
+                std::string(DEV_NVQC_NCA_ID) &&
+            funcInfo["status"].get<std::string>() == "ACTIVE" &&
+            funcInfo["name"].get<std::string>().starts_with(
+                cudaqNvcfFuncNamePrefix)) {
+          return std::string(DEV_NVQC_NCA_ID);
+        }
+      }
+      // Fallback on production NCA ID
+      return CUDAQ_NCA_ID;
+    }();
+
     for (auto funcInfo : allVisibleFunctions["functions"]) {
-      if (funcInfo["ncaId"].get<std::string>() == CUDAQ_NCA_ID &&
+      if (funcInfo["ncaId"].get<std::string>() == ncaIdToSearch &&
           funcInfo["status"].get<std::string>() == "ACTIVE" &&
           funcInfo["name"].get<std::string>().starts_with(
               cudaqNvcfFuncNamePrefix)) {
