@@ -30,7 +30,7 @@ ARG base_image=ubuntu:22.04
 # -> If not, then we can just replace the prereqs here with the assets prereqs + Python prereqs + doxygen
 FROM ${base_image} as prereqs
 SHELL ["/bin/bash", "-c"]
-ARG toolchain=gcc11
+ARG toolchain=gcc12
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
@@ -50,6 +50,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN source /scripts/install_toolchain.sh -e /opt/llvm/bootstrap -t ${toolchain}
 
 ## [Source Dependencies]
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh

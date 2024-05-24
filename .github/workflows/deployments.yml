@@ -238,7 +238,7 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/assets.Dockerfile
       build_target: prereqs
-      toolchain: gcc11
+      toolchain: llvm
       build_args: |
         base_image=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
@@ -408,5 +408,5 @@ jobs:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-installer', matrix.platform)] }}
-      toolchain: gcc11
+      toolchain: llvm
       environment: ghcr-deployment
