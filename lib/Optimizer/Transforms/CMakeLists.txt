@@ -37,11 +37,12 @@ add_cudaq_library(OptTransforms
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
   PruneCtrlRelations.cpp
+  PySynthCallableBlockArgs.cpp
   QuakeAddMetadata.cpp
   QuakeSynthesizer.cpp
   RefToVeqAlloc.cpp
-  RegToMem.cpp
-  PySynthCallableBlockArgs.cpp
+  RegToMem.cpp  
+  UnitarySynthesis.cpp
 
   DEPENDS
     OptTransformsPassIncGen

@@ -588,4 +588,11 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   }];
 }
 
+def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::func::FuncOp">{
+  let summary = "Decompose a custom operation defined with an arbitraty unitary matrix.";
+  let description = [{
+    TBD
+  }];
+}
+
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES
