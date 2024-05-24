@@ -6,13 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CircuitSimulator.h"
 #include "CuStateVecCircuitSimulator.h"
-#include "device_launch_parameters.h"
+#include "CircuitSimulator.h"
 #include "Gates.h"
 #include "Timing.h"
 #include "cuComplex.h"
 #include "custatevec.h"
+#include "device_launch_parameters.h"
 #include <bitset>
 #include <complex>
 #include <iostream>
@@ -161,7 +161,8 @@ protected:
 
   /// @brief Increase the state size by the given number of qubits.
   void addQubitsToState(std::size_t count) override {
-    ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitsToState", count);
+    ScopedTraceWithContext("CuStateVecCircuitSimulator::addQubitsToState",
+                           count);
     if (count == 0)
       return;
 
@@ -175,8 +176,8 @@ protected:
       constexpr int32_t threads_per_block = 256;
       uint32_t n_blocks =
           (stateDimension + threads_per_block - 1) / threads_per_block;
-      nvqir::initializeDeviceStateVector<CudaDataType>(n_blocks, threads_per_block, 
-                                                       deviceStateVector, stateDimension);
+      nvqir::initializeDeviceStateVector<CudaDataType>(
+          n_blocks, threads_per_block, deviceStateVector, stateDimension);
       HANDLE_ERROR(custatevecCreate(&handle));
     } else {
       // Allocate new state..
@@ -186,9 +187,9 @@ protected:
       constexpr int32_t threads_per_block = 256;
       uint32_t n_blocks =
           (stateDimension + threads_per_block - 1) / threads_per_block;
-      nvqir::setFirstNElements<CudaDataType>(n_blocks, threads_per_block,
-                                             newDeviceStateVector, deviceStateVector,
-                                             previousStateDimension);
+      nvqir::setFirstNElements<CudaDataType>(
+          n_blocks, threads_per_block, newDeviceStateVector, deviceStateVector,
+          previousStateDimension);
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
       deviceStateVector = newDeviceStateVector;
     }
@@ -204,8 +205,8 @@ protected:
       constexpr int32_t threads_per_block = 256;
       uint32_t n_blocks =
           (stateDimension + threads_per_block - 1) / threads_per_block;
-      nvqir::initializeDeviceStateVector<CudaDataType>(n_blocks, threads_per_block,
-                                                       deviceStateVector, stateDimension);
+      nvqir::initializeDeviceStateVector<CudaDataType>(
+          n_blocks, threads_per_block, deviceStateVector, stateDimension);
       HANDLE_ERROR(custatevecCreate(&handle));
     } else {
       // Allocate new state..
@@ -215,9 +216,9 @@ protected:
       constexpr int32_t threads_per_block = 256;
       uint32_t n_blocks =
           (stateDimension + threads_per_block - 1) / threads_per_block;
-      nvqir::setFirstNElements<CudaDataType>(n_blocks, threads_per_block,
-                                             newDeviceStateVector, deviceStateVector,
-                                             previousStateDimension);
+      nvqir::setFirstNElements<CudaDataType>(
+          n_blocks, threads_per_block, newDeviceStateVector, deviceStateVector,
+          previousStateDimension);
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
       deviceStateVector = newDeviceStateVector;
     }
@@ -276,8 +277,8 @@ protected:
     constexpr int32_t threads_per_block = 256;
     uint32_t n_blocks =
         (stateDimension + threads_per_block - 1) / threads_per_block;
-    nvqir::initializeDeviceStateVector<CudaDataType>(n_blocks, threads_per_block,
-                                                     deviceStateVector, stateDimension);
+    nvqir::initializeDeviceStateVector<CudaDataType>(
+        n_blocks, threads_per_block, deviceStateVector, stateDimension);
   }
 
 public:
@@ -304,9 +305,7 @@ public:
   }
 
   /// @brief Device synchronization
-  void synchronize() override {
-    HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
-  }
+  void synchronize() override { HANDLE_CUDA_ERROR(cudaDeviceSynchronize()); }
 
   /// @brief Measure operation
   /// @param qubitIdx
@@ -605,9 +604,10 @@ public:
       return cudaq::State{{stateDimension}, {}};
 
     std::vector<std::complex<ScalarType>> tmp(stateDimension);
-    HANDLE_CUDA_ERROR(cudaMemcpy(tmp.data(), deviceStateVector,
-               stateDimension * sizeof(std::complex<ScalarType>),
-               cudaMemcpyDeviceToHost));
+    HANDLE_CUDA_ERROR(
+        cudaMemcpy(tmp.data(), deviceStateVector,
+                   stateDimension * sizeof(std::complex<ScalarType>),
+                   cudaMemcpyDeviceToHost));
 
     if constexpr (std::is_same_v<ScalarType, float>) {
       std::vector<std::complex<double>> data;

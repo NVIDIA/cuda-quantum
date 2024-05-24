@@ -9,7 +9,7 @@
 #define __NVQIR_CUSTATEVEC_TOGGLE_CREATE
 #include "CuStateVecCircuitSimulator.cpp"
 /// Register this Simulator with NVQIR.
-template<>
+template <>
 std::string CuStateVecCircuitSimulator<float>::name() const {
   return "custatevec-fp32";
 }

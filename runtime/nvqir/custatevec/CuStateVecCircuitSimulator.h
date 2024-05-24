@@ -12,15 +12,12 @@
 namespace nvqir {
 
 template <typename CudaDataType>
-void setFirstNElements(uint32_t n_blocks,
-                       int32_t threads_per_block,
-                       void *newDeviceStateVector,
-                       void *deviceStateVector,
+void setFirstNElements(uint32_t n_blocks, int32_t threads_per_block,
+                       void *newDeviceStateVector, void *deviceStateVector,
                        size_t previousStateDimension);
 
 template <typename CudaDataType>
-void initializeDeviceStateVector(uint32_t n_blocks,
-                                 int32_t threads_per_block,
+void initializeDeviceStateVector(uint32_t n_blocks, int32_t threads_per_block,
                                  void *deviceStateVector,
                                  size_t stateDimension);
-}
+} // namespace nvqir

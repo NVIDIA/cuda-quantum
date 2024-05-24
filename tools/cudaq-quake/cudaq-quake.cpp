@@ -93,8 +93,8 @@ static cl::opt<bool> dumpToStderr("llvm-to-stderr",
                                   cl::init(false));
 
 static cl::opt<std::string>
-    resourceDir("resource-dir", cl::desc("Specify the clang resource directory"),
-                cl::init(""));
+    resourceDir("resource-dir",
+                cl::desc("Specify the clang resource directory"), cl::init(""));
 
 static cl::list<std::string>
     macroDefines("D", cl::desc("Define preprocessor macro."));
@@ -291,9 +291,11 @@ int main(int argc, char **argv) {
   std::filesystem::path llvmInstallPath{LLVM_ROOT};
   std::filesystem::path resourceDirPath{resourceDir.getValue()};
   if (!std::filesystem::exists(resourceDirPath))
-    resourceDirPath = llvmInstallPath / "lib" / "clang" / std::to_string(LLVM_VERSION_MAJOR);
+    resourceDirPath =
+        llvmInstallPath / "lib" / "clang" / std::to_string(LLVM_VERSION_MAJOR);
   if (!std::filesystem::exists(resourceDirPath))
-    resourceDirPath = cudaqInstallPath / "lib" / "clang" / std::to_string(LLVM_VERSION_MAJOR);
+    resourceDirPath =
+        cudaqInstallPath / "lib" / "clang" / std::to_string(LLVM_VERSION_MAJOR);
   if (!std::filesystem::exists(resourceDirPath)) {
     llvm::errs() << "Could not find a valid clang resource-dir.\n";
     return 1;
@@ -369,7 +371,8 @@ int main(int argc, char **argv) {
   // tool.  So the workaround involves checking whether
   // `${LLVM_ROOT}/include/c++/v1` exists, and forcing the tool to use it:
   auto libcxxIncludePath = llvmInstallPath / "include" / "c++" / "v1";
-  auto libcxxTargetIncludePath = llvmInstallPath / "include" / LLVM_TARGET_TRIPLE / "c++" / "v1";
+  auto libcxxTargetIncludePath =
+      llvmInstallPath / "include" / LLVM_TARGET_TRIPLE / "c++" / "v1";
   if (std::filesystem::exists(libcxxIncludePath)) {
     clArgs.push_back("-isystem");
     clArgs.push_back(libcxxIncludePath);

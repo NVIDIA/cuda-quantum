@@ -503,7 +503,8 @@ struct IfOpPattern : public OpRewritePattern<cudaq::cc::IfOp> {
 
   LogicalResult matchAndRewrite(cudaq::cc::IfOp ifOp,
                                 PatternRewriter &rewriter) const override {
-    assert(infoMap.opParentMap.find(ifOp.getOperation()) != infoMap.opParentMap.end());
+    assert(infoMap.opParentMap.find(ifOp.getOperation()) !=
+           infoMap.opParentMap.end());
     LLVM_DEBUG(llvm::dbgs() << "replacing if @" << ifOp.getLoc() << '\n');
 
     // Decompose the cc.if to a CFG.

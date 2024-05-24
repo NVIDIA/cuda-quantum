@@ -18,7 +18,7 @@ for using CUDA-Q with C++, and Python wheels for using CUDA-Q with Python.
 These binaries and wheels are built following the instructions 
 in this guide and should work for you as long as your system meets the compatibility 
 requirements listed under :ref:`Prerequisites <compatibility-prebuilt-binaries>`. 
-To install the prebuilt binaries, please follow the instructions 
+To install the pre-built binaries, please follow the instructions 
 :ref:`here <install-prebuilt-binaries>`. To install the Python wheels, please 
 follow the instructions :ref:`here <install-python-wheels>`.
 
