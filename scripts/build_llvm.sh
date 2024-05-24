@@ -87,6 +87,7 @@ if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; t
   git clone --filter=tree:0 "$llvm_repo" "$LLVM_SOURCE"
   cd "$LLVM_SOURCE" && git checkout $llvm_commit
 
+  LLVM_CMAKE_PATCHES=${LLVM_CMAKE_PATCHES:-"$this_file_dir/../tpls/customizations/llvm"}
   if [ -d "$LLVM_CMAKE_PATCHES" ]; then 
     echo "Applying LLVM patches in $LLVM_CMAKE_PATCHES..."
     for patch in `find "$LLVM_CMAKE_PATCHES"/* -maxdepth 0 -type f -name '*.diff'`; do

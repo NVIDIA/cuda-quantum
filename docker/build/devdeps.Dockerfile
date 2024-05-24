@@ -49,7 +49,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 && \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         wget git unzip \
         python3-dev python3-pip && \
-    python3 -m pip install --no-cache-dir numpy \
+    python3 -m pip install --no-cache-dir numpy && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ## [Source Dependencies]
@@ -57,6 +57,7 @@ ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
+ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
@@ -82,7 +83,7 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
         wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz && \
         tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7*; \
     else \
-        apt-get update && apt-get install -y make cmake flex bison g++ && \
+        apt-get update && apt-get install -y --no-install-recommends make cmake flex bison g++ && \
         # Fixed commit corresponding to release 1.9.7
         wget https://github.com/doxygen/doxygen/archive/6a2ce4d18b5af1ca501bcf585e4c8e2b2b353b0f.zip -q -O repo.zip && \
         unzip repo.zip && mv doxygen* repo && rm repo.zip && \
