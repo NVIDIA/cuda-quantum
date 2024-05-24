@@ -272,12 +272,16 @@ def cc_StateType : CCType<"State", "state"> {
     The CUDA-Q runtime will implement an ABI of intrinsic functions for the
     compiler generated code to interface with this information in a generic
     manner.
+
+    There are no legal operations in Quake/CC on a value of type `!cc.state`.
+    Only pointers to such values should exist in the IR for the purposes of
+    passing references to state objects to runtime functions at codegen.
   }];
   let genStorageClass = 0;
 }
 
-def AnyStateInitLike : TypeConstraint<Or<[cc_PointerType.predicate,
-        cc_StateType.predicate]>, "state initializer types">;
+def AnyStateInitLike : TypeConstraint<cc_PointerType.predicate,
+                         "state initializer types">;
 def AnyStateInitType : Type<AnyStateInitLike.predicate, "initial state type">;
 
 #endif // CUDAQ_DIALECT_CC_TYPES_TD
