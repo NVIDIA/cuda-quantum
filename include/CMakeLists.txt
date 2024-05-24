@@ -6,4 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
+               "${CUDAQ_BINARY_DIR}/include/nvqpp_config.h" 
+               @ONLY)
 add_subdirectory(cudaq)

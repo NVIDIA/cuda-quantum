@@ -12,10 +12,6 @@ if (APPLE)
 endif()
 
 add_custom_target(nvq++)
-
-configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
-               "${CUDAQ_BINARY_DIR}/include/nvqpp_config.h" 
-               @ONLY)
 configure_file("nvq++.in"
                "${CUDAQ_BINARY_DIR}/bin/nvq++" 
                FILE_PERMISSIONS
