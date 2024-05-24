@@ -26,8 +26,6 @@
 ARG base_image=ubuntu:22.04
 
 # [CUDA-Q Dependencies]
-# FIXME: KEEP a pipeline building against libstdc++?
-# -> If not, then we can just replace the prereqs here with the assets prereqs + Python prereqs + doxygen
 FROM ${base_image} as prereqs
 SHELL ["/bin/bash", "-c"]
 ARG toolchain=gcc12

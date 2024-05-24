@@ -177,9 +177,8 @@ fi
 cat "$LLVM_SOURCE/llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.guess
 
-# Generate CMake files.
-targets_to_build="host;NVPTX"
-# FIXME: 
+# Some flags that may be useful to build a GPU-offload-capable compiler: 
+# targets_to_build="host;NVPTX"
 #  -DLLVM_TARGETS_TO_BUILD='"$targets_to_build"' \
 #  -DLIBOMPTARGET_DEVICE_ARCHITECTURES=sm_70,sm_75,sm_80
 # maybe:  -DLLVM_RUNTIME_TARGETS='nvptx64-nvidia-cuda' \
@@ -214,6 +213,7 @@ else
   echo "No CMake file found to populate the initial cache with. Set LLVM_CMAKE_CACHE to define one."
 fi
 
+# Generate CMake files.
 if $verbose; then
   echo $cmake_args $cmake_cache | xargs cmake -G Ninja $LLVM_SOURCE/llvm
 else
