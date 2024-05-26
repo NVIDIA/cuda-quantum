@@ -12,6 +12,7 @@
 #include "common/PluginUtils.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"
+#include "common/RequestValidator.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -603,6 +604,12 @@ protected:
       outValidationMessage =
           "Unsupported input format: only CUDA-Q MLIR data is allowed.";
       return false;
+    }
+
+    cudaq::RequestValidator validator;
+
+    if (in_request.serializedCodeExecutionContext.code != NULL) {
+      return validator.validateRequest(in_request.serializedCodeExecutionContext, outValidationMessage);
     }
 
     return true;
