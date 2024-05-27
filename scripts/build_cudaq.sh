@@ -137,7 +137,7 @@ echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
 cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_INSTALL_PREFIX='"$CUDAQ_INSTALL_PREFIX"' \
   -DNVQPP_LD_PATH='"$NVQPP_LD_PATH"' \
-  -DCMAKE_CUDA_COMPILER='"$(nvcc_found && echo $cuda_driver || echo)"' \
+  -DCMAKE_CUDA_COMPILER='"$($nvcc_found && echo $cuda_driver || echo)"' \
   -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
   -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \
