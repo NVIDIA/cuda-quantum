@@ -74,7 +74,7 @@ elif [ "$pkg_manager" == "dnf" ]; then
 
 elif [ "$pkg_manager" == "zypper" ]; then
     ## [Prerequisites]
-    zypper clean --all && zypper --non-interactive up --no-recommends
+    zypper clean --all && zypper ref && zypper --non-interactive up --no-recommends
     zypper --non-interactive in --no-recommends sudo gzip tar
     echo "zypper --non-interactive in --no-recommends openssh-clients" > install_sshclient.sh
 

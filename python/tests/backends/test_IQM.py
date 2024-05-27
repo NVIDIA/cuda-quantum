@@ -98,8 +98,6 @@ def test_iqm_ghz():
     assert assert_close(counts["11"], shots / 2, 2)
 
 
-# FIXME: This test relies on the mock server to return the correct
-# expectation value. IQM Mock server doesn't do it yet.
 def test_iqm_observe():
     # Create the parameterized ansatz
     shots = 100000
