@@ -16,6 +16,8 @@
 namespace cudaq {
 class SimulationState;
 
+/// @brief Encapsulates a list of tensors (data pointer and dimensions).
+// Note: tensor data is expected in column-major.
 using TensorStateData =
     std::vector<std::pair<const void *, std::vector<std::size_t>>>;
 /// @brief state_data is a variant type
