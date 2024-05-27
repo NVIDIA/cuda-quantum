@@ -290,16 +290,20 @@ int main(int argc, char **argv) {
   // the one in the LLVM_BINARY_DIR
   std::filesystem::path llvmInstallPath{LLVM_ROOT};
   std::filesystem::path resourceDirPath{resourceDir.getValue()};
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
   if (!std::filesystem::exists(resourceDirPath))
     resourceDirPath =
-        llvmInstallPath / "lib" / "clang" / std::to_string(LLVM_VERSION_MAJOR);
+        llvmInstallPath / "lib" / "clang" / STR(LLVM_VERSION_MAJOR);
   if (!std::filesystem::exists(resourceDirPath))
     resourceDirPath =
-        cudaqInstallPath / "lib" / "clang" / std::to_string(LLVM_VERSION_MAJOR);
+        cudaqInstallPath / "lib" / "clang" / STR(LLVM_VERSION_MAJOR);
   if (!std::filesystem::exists(resourceDirPath)) {
     llvm::errs() << "Could not find a valid clang resource-dir.\n";
     return 1;
   }
+#undef STR
+#undef STR_HELPER
 
   // Process the command-line options, including reading in a file.
   [[maybe_unused]] llvm::InitLLVM unused(argc, argv);
