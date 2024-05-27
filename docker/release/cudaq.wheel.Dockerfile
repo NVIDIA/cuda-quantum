@@ -39,6 +39,7 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
 
 # Build the wheel
 RUN echo "Building wheel for python${python_version}." \
+    && rm ~/.cache/pip -rf \
     && cd cuda-quantum && python=python${python_version} \
     # Find any external NVQIR simulator assets to be pulled in during wheel packaging.
     && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \

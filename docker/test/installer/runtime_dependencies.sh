@@ -80,7 +80,7 @@ elif [ "$pkg_manager" == "zypper" ]; then
 
     ## [C development headers]
     if [ -n "${LIBCDEV_PACKAGE}" ]; then
-        zypper --non-interactive in --no-recommends ${LIBSTDCPP_PACKAGE}
+        zypper --non-interactive in --no-recommends ${LIBCDEV_PACKAGE}
     fi
 
     ## [CUDA runtime libraries]
