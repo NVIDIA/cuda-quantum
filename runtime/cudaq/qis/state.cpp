@@ -107,11 +107,6 @@ std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
   throw std::runtime_error(
       "not yet implemented: getting number of qubits from state");
 }
-
-double *__nvqpp_cudaq_state_vectorData(state *obj) {
-  throw std::runtime_error(
-      "not yet implemented: getting vector data from state");
-}
 }
 
 } // namespace cudaq

@@ -2432,11 +2432,11 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
             loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
       }
 
-      // lambda determines: is `t` a cudaq::state or cudaq::state* ?
+      // lambda determines: is `t` a cudaq::state* ?
       auto isStateType = [&](Type t) {
-        auto ptrTy = dyn_cast<cc::PointerType>(t);
-        return isCudaqStateType(t) ||
-               (ptrTy && isCudaqStateType(ptrTy.getElementType()));
+        if (auto ptrTy = dyn_cast<cc::PointerType>(t))
+          return isCudaqStateType(ptrTy.getElementType());
+        return false;
       };
 
       if (ctorName == "qudit") {
@@ -2469,6 +2469,10 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           return pushValue(builder.create<quake::AllocaOp>(
               loc, quake::VeqType::getUnsized(ctx), initials));
         }
+        if (isCudaqStateType(initials.getType())) {
+          if (auto load = initials.getDefiningOp<cudaq::cc::LoadOp>())
+            initials = load.getPtrvalue();
+        }
         if (isStateType(initials.getType())) {
           IRBuilder irBuilder(builder.getContext());
           auto mod =
@@ -2477,13 +2481,6 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
               irBuilder.loadIntrinsic(mod, getNumQubitsFromCudaqState);
           assert(succeeded(result) && "loading intrinsic should never fail");
           Value state = initials;
-          bool isMoved = false;
-          if (auto *op = state.getDefiningOp())
-            isMoved = isa<func::CallOp, func::CallIndirectOp>(op);
-          if (isa<cc::PointerType>(initials.getType())) {
-            // Add a LoadOp to eliminate the pointer dereference.
-            state = builder.create<cc::LoadOp>(loc, state);
-          }
           auto i64Ty = builder.getI64Type();
           auto numQubits = builder.create<func::CallOp>(
               loc, i64Ty, getNumQubitsFromCudaqState, ValueRange{state});
@@ -2491,7 +2488,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           Value alloc = builder.create<quake::AllocaOp>(loc, veqTy,
                                                         numQubits.getResult(0));
           return pushValue(builder.create<quake::InitializeStateOp>(
-              loc, veqTy, alloc, state, isMoved));
+              loc, veqTy, alloc, state));
         }
         // Otherwise, it is the cudaq::qvector(std::vector<complex>) ctor.
         Value numQubits;
