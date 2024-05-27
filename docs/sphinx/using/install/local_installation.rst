@@ -274,8 +274,15 @@ executing the commands
     MPI_PATH=/usr/local/openmpi # update this path as needed
     bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 
-.. _local-development-with-vscode:
+.. note::
 
+  Please make sure that you have the necessary development headers of the C standard 
+  library installed. You can check this by searching for `features.h`, commonly found
+  in `/usr/include/`. You can install the necessary headers via package manager 
+  (usually the package name is called something like `glibc-devel` or `libc6-devel`). 
+  These headers are also included with any installation of GCC.
+
+.. _local-development-with-vscode:
 
 Development with VS Code
 ------------------------------------

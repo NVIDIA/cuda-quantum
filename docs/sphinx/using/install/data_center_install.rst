@@ -330,6 +330,15 @@ Installation on the Host
 ++++++++++++++++++++++++++++++++++++
 
 Make sure your host system satisfies the `Prerequisites`_ listed above.
+
+- To use CUDA-Q with Python, you should have a working
+  Python installation on the host system, including the `pip` package manager.
+- To use CUDA-Q with C++, you should make sure that you have the necessary development
+  headers of the C standard library installed. You can check this by searching for
+  `features.h`, commonly found in `/usr/include/`. You can install the necessary headers
+  via package manager (usually the package name is called something like `glibc-devel`
+  or `libc6-devel`). These headers are also included with any installation of GCC.
+
 To use CUDA-Q with Python, you should have a working
 Python installation on the host system, including the `pip` package manager.
 

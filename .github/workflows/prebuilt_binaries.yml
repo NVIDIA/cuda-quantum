@@ -305,9 +305,11 @@ jobs:
         run: |
           config='${{ needs.create_test_config.outputs.json }}'
           system_config=`echo $config | jq -r '."${{ matrix.os_image }}"'`
-          additional_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
-          mv /tmp/install/* .
+          all_build_args=`echo $system_config | jq 'to_entries[] | .key + "=" + (.value | tostring)'`
+          # Don't install CUDA dependencies since/if we run on a non-GPU runner
+          additional_build_args=`echo $all_build_args | sed -e 's/"cuda_distribution=[^"]*"//g'`
 
+          mv /tmp/install/* .
           docker build -t validation:local -f "docker/test/installer/linux.Dockerfile" . \
             --cache-from ${{ needs.build_openmpi.outputs.build_cache }} \
             --build-arg cuda_quantum_installer=install_cuda_quantum.$(uname -m) \

@@ -27,6 +27,10 @@
 # - https://llvm.org/docs/AdvancedBuilds.html
 # - https://github.com/llvm/llvm-project/tree/main/clang/cmake/caches
 # - https://github.com/llvm/llvm-project/blob/main/openmp/docs/SupportAndFAQ.rst#q-how-to-build-an-openmp-gpu-offload-capable-compiler
+# 
+# Not directly relevant, but still interesting to know:
+# - https://www.linaro.org/blog/building-glibc-with-llvm-the-how-and-why/
+# - https://www.collabora.com/news-and-blog/blog/2023/01/17/a-brave-new-world-building-glibc-with-llvm/
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
 LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'}

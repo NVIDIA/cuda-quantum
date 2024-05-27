@@ -17,7 +17,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 ## [Prerequisites]
 ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
-RUN bash runtime_dependencies.sh ${base_image_mpibuild}
+RUN CUDA_DISTRIBUTION=rhel9 bash runtime_dependencies.sh ${base_image_mpibuild}
 RUN dnf install -y --nobest --setopt=install_weak_deps=False \
         autoconf libtool flex make wget \
         gcc-toolset-11 cuda-cudart-devel-11-8
@@ -32,12 +32,14 @@ SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 
 ARG base_image
+ARG libcdev_package
 ARG cudart_version
 ARG cuda_distribution
 
 ## [Runtime dependencies]
 ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
-RUN export CUDART_VERSION=${cudart_version} && \
+RUN export LIBCDEV_PACKAGE=${libcdev_package} && \
+    export CUDART_VERSION=${cudart_version} && \
     export CUDA_DISTRIBUTION=${cuda_distribution} && \
     . /runtime_dependencies.sh ${base_image} && \
     # working around the fact that the installation of the dependecies includes
