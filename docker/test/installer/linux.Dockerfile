@@ -58,7 +58,7 @@ USER cudaq
 WORKDIR /home/cudaq
 
 ## [Install]
-ARG cuda_quantum_installer='install_cuda_quantum.*'
+ARG cuda_quantum_installer='out/install_cuda_quantum.*'
 ADD "${cuda_quantum_installer}" .
 RUN source /etc/environment && \
     echo "Installing CUDA-Q..." && \

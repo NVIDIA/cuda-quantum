@@ -39,9 +39,13 @@ verbose=false
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:v" opt; do
+while getopts ":c:j:k:v" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
+    ;;
+    j) build_concurrency="-j $OPTARG"
+    ;;
+    k) ninja_keep_going="-k $OPTARG"
     ;;
     v) verbose=true
     ;;
@@ -224,11 +228,12 @@ fi
 # Build and install the defined distribution.
 echo "Building LLVM with configuration $build_configuration..."
 if $verbose; then
-  ninja $install_target
+  ninja $ninja_keep_going $build_concurrency $install_target
   status=$?
 else
   echo "The progress of the build is being logged to `pwd`/logs/ninja_output.txt."
-  ninja $install_target 2> logs/ninja_error.txt 1> logs/ninja_output.txt
+  ninja $ninja_keep_going $build_concurrency $install_target \
+    2> logs/ninja_error.txt 1> logs/ninja_output.txt
   status=$?
 fi
 
