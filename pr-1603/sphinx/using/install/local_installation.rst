@@ -279,7 +279,7 @@ executing the commands
   Please make sure that you have the necessary development headers of the C standard 
   library installed. You can check this by searching for `features.h`, commonly found
   in `/usr/include/`. You can install the necessary headers via package manager 
-  (usually the package name is called something like `glibc-devel` or `libc6-devel`). 
+  (usually the package name is called something like `glibc-devel` or `libc6-dev`). 
   These headers are also included with any installation of GCC.
 
 .. _local-development-with-vscode:
