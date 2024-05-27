@@ -118,12 +118,12 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     # IMPORTANT:
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
-    ## [>CUDAQuantumBuild]
+    ## [>CUDAQuantumCppBuild]
     CUDAQ_WERROR=false \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
     bash scripts/build_cudaq.sh -t llvm -v
-    ## [<CUDAQuantumBuild]
+    ## [<CUDAQuantumCppBuild]
 
 # Validate that the nvidia backend was built.
 RUN source /cuda-quantum/scripts/configure_build.sh && \

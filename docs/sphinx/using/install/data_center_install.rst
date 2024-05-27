@@ -150,7 +150,8 @@ CUDA
 Building CUDA-Q requires a full installation of the CUDA toolkit.
 **You can install the CUDA toolkit and use the CUDA compiler without having a GPU.**
 The instructions are tested using version 11.8, but any CUDA 11 or 12 version
-should work, as long as the installed driver on the host 
+should work, as long as the CUDA runtime version on the host system matches the 
+CUDA version used for the build, and the installed driver on the host 
 system supports that CUDA version. We recommend using the latest CUDA version
 that is supported by the driver on the host system.
 
@@ -385,17 +386,18 @@ the `/etc/profile` file:
   CUDA-Q, such as specific optimizers for example, have a C API to ensure compatibility
   across different versions of the C++ standard library and will work with CUDA-Q without 
   issues. The same is true for all distributed CUDA libraries. To build you own CUDA 
-  libraries that can be used with CUDA-Q, please take a look at :doc:`<../integration/cuda_gpu>`.
+  libraries that can be used with CUDA-Q, please take a look at :doc:`../integration/cuda_gpu`.
 
 The remaining sections in this document list additional runtime dependencies 
 that are not included in the migrated assets and are needed to use some of the 
 CUDA-Q features and components.
 
 CUDA Runtime Libraries
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To use GPU-acceleration in CUDA-Q you will need to install the necessary 
-CUDA runtime libraries. While not necessary, we recommend installing 
+CUDA runtime libraries. Their version (at least the version major) needs to match the version
+used for the build. While not necessary, we recommend installing 
 the complete CUDA toolkit like you did for the CUDA-Q build.
 If you prefer to only install the minimal set of runtime libraries, the following 
 commands, for example, install the necessary packages for the AlmaLinux 8 environment:

@@ -686,7 +686,7 @@ Installing Pre-built Binaries
 ++++++++++++++++++++++++++++++++++++
 
 If you installed pre-built binaries for CUDA-Q, you will need to install 
-the necessary CUDA runtime libraries to use GPU-acceleration in CUDA-Q. 
+the necessary CUDA 11 runtime libraries to use GPU-acceleration in CUDA-Q. 
 If you prefer to only install the minimal set of runtime libraries, the following 
 commands, for example, install the necessary packages for RHEL 8:
 
@@ -697,8 +697,8 @@ commands, for example, install the necessary packages for RHEL 8:
     :end-before: [<CUDARTInstall]
 
 More detailed instructions for your platform can be found in the online documentation
-of your selected `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
-Please make sure to install CUDA version 11.8 or newer, and confirm that your 
+linked for that `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
+Please make sure to install CUDA version 11.8, and confirm that your 
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-11-8`) that also 
