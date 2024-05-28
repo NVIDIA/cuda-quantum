@@ -163,6 +163,8 @@ protected:
     return measurement_result == 1 ? true : false;
   }
 
+  QubitOrdering getQubitOrdering() const override { return QubitOrdering::msb; }
+
 public:
   QppCircuitSimulator() {
     // Populate the correct name so it is printed correctly during

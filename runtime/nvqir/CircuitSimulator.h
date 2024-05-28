@@ -23,6 +23,8 @@
 
 namespace nvqir {
 
+enum class QubitOrdering { lsb, msb };
+
 // @brief Collect summary data and print upon simulator termination
 struct SummaryData {
   std::size_t gateCount = 0;
@@ -748,6 +750,8 @@ protected:
     return defaultConfig;
   }
 
+  virtual QubitOrdering getQubitOrdering() const { return QubitOrdering::lsb; }
+
 public:
   /// @brief The constructor
   CircuitSimulatorBase() = default;
@@ -1012,16 +1016,38 @@ public:
                             const std::vector<std::size_t> &controls,
                             const std::vector<std::size_t> &targets) override {
     flushAnySamplingTasks();
+    auto numRows = std::sqrt(matrix.size());
+    auto numQubits = std::log2(numRows);
     std::vector<std::complex<ScalarType>> actual;
-    std::transform(matrix.begin(), matrix.end(), std::back_inserter(actual),
-                   [](auto &&element) -> std::complex<ScalarType> {
-                     if (!std::is_same_v<double, ScalarType>) {
-                       return static_cast<std::complex<ScalarType>>(element);
-                     } else {
-                       return std::complex<ScalarType>(element.real(),
-                                                       element.imag());
-                     }
-                   });
+    if (numQubits > 1 && getQubitOrdering() != QubitOrdering::msb) {
+      // Convert the matrix to LSB qubit ordering
+      auto convertOrdering = [](std::size_t numQubits, std::size_t idx) {
+        std::size_t newIdx = 0;
+        for (std::size_t i = 0; i < numQubits; ++i)
+          if (idx & (1ULL << i))
+            newIdx |= (1ULL << ((numQubits - 1) - i));
+        return newIdx;
+      };
+      actual.resize(matrix.size());
+      for (std::size_t i = 0; i < numRows; i++) {
+        for (std::size_t j = 0; j < numRows; j++) {
+          auto k = convertOrdering(numQubits, i);
+          auto l = convertOrdering(numQubits, j);
+          actual[i * numRows + j] =
+              static_cast<std::complex<ScalarType>>(matrix[k * numRows + l]);
+        }
+      }
+    } else {
+      std::transform(matrix.begin(), matrix.end(), std::back_inserter(actual),
+                     [](auto &&element) -> std::complex<ScalarType> {
+                       if (!std::is_same_v<double, ScalarType>) {
+                         return static_cast<std::complex<ScalarType>>(element);
+                       } else {
+                         return std::complex<ScalarType>(element.real(),
+                                                         element.imag());
+                       }
+                     });
+    }
     cudaq::info(gateToString("custom_unitary", controls, {}, targets));
     enqueueGate("custom", actual, controls, targets, {});
   }
