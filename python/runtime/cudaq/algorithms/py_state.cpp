@@ -160,7 +160,7 @@ void bindPyState(py::module &mod) {
           "Return a state from data.")
       .def_static(
           "from_data",
-          [](std::vector<py::buffer> tensors) {
+          [](const std::vector<py::buffer> &tensors) {
             cudaq::TensorStateData tensorData;
             for (auto &tensor : tensors) {
               auto info = tensor.request();
@@ -175,7 +175,7 @@ void bindPyState(py::module &mod) {
           "Return a state from matrix product state tensor data.")
       .def_static(
           "from_data",
-          [](std::vector<SimulationState::Tensor> tensors) {
+          [](const std::vector<SimulationState::Tensor> &tensors) {
             cudaq::TensorStateData tensorData;
             for (auto &tensor : tensors) {
 
@@ -188,7 +188,7 @@ void bindPyState(py::module &mod) {
           "Return a state from matrix product state tensor data.")
       .def_static(
           "from_data",
-          [](std::vector<py::object> tensors) {
+          [](const std::vector<py::object> &tensors) {
             cudaq::TensorStateData tensorData;
             for (auto &tensor : tensors) {
               // Make sure this is a CuPy array
