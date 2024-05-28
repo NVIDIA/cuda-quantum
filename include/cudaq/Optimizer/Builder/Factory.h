@@ -119,6 +119,12 @@ inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   return mlir::LLVM::LLVMStructType::getLiteral(ctx, eleTys);
 }
 
+inline mlir::Type stateImplType(mlir::Type eleTy) {
+  auto *ctx = eleTy.getContext();
+  auto eTy = cudaq::opt::factory::getCharType(ctx);
+  return cudaq::opt::factory::getPointerType(eTy);
+}
+
 // Host side types for std::string and std::vector
 
 cudaq::cc::StructType stlStringType(mlir::MLIRContext *ctx);

@@ -15,6 +15,7 @@ import numpy as np
 from typing import Callable, List
 import ast, sys, traceback
 
+State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
 qubit = cudaq_runtime.qubit
 pauli_word = cudaq_runtime.pauli_word
@@ -87,6 +88,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         if annotation.value.id == 'cudaq':
             if annotation.attr in ['qview', 'qvector']:
                 return quake.VeqType.get(ctx)
+            if annotation.attr in ['State']:
+                return cc.PointerType.get(ctx, cc.StateType.get(ctx))
             if annotation.attr == 'qubit':
                 return quake.RefType.get(ctx)
             if annotation.attr == 'pauli_word':
@@ -193,6 +196,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return ComplexType.get(mlirTypeFromPyType(np.float32, ctx))
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
+    if argType == State:
+        return cc.PointerType.get(ctx, cc.StateType.get(ctx))
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:

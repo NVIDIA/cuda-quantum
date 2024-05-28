@@ -55,6 +55,8 @@ static constexpr const char QIRArrayQubitAllocateArrayWithStateComplex32[] =
     "__quantum__rt__qubit_allocate_array_with_state_complex32";
 static constexpr const char QIRArrayQubitAllocateArrayWithStatePtr[] =
     "__quantum__rt__qubit_allocate_array_with_state_ptr";
+static constexpr const char QIRArrayQubitAllocateArrayWithCudaqStatePtr[] =
+    "__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr";
 static constexpr const char QIRQubitAllocate[] =
     "__quantum__rt__qubit_allocate";
 static constexpr const char QIRArrayQubitReleaseArray[] =

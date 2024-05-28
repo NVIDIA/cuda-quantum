@@ -124,7 +124,6 @@ void bindPyState(py::module &mod) {
                                   dataTypeSize}, /* strides */
                                  true            /* readonly */
           );
-
         return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
                                desc, 1,               /* ndim */
                                {shape[0]},            /* shape */
@@ -153,9 +152,20 @@ void bindPyState(py::module &mod) {
                   reinterpret_cast<std::complex<float> *>(info.ptr),
                   info.size));
             }
-
-            return state::from_data(std::make_pair(
-                reinterpret_cast<std::complex<double> *>(info.ptr), info.size));
+            if (info.format ==
+                py::format_descriptor<std::complex<double>>::format()) {
+              return state::from_data(std::make_pair(
+                  reinterpret_cast<std::complex<double> *>(info.ptr),
+                  info.size));
+            }
+            throw std::runtime_error(
+                "A numpy array with only floating point elements passed to "
+                "state.from_data. input must be of complex float type, "
+                "please "
+                "add to your array creation `dtype=numpy.complex64` if "
+                "simulation is FP32 and `dtype=numpy.complex128` if "
+                "simulation if FP64, or dtype=cudaq.complex() for "
+                "precision-agnostic code");
           },
           "Return a state from data.")
       .def_static(
