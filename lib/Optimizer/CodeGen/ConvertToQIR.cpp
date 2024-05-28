@@ -52,6 +52,9 @@ static LLVM::LLVMStructType lambdaAsPairOfPointers(MLIRContext *context) {
   return LLVM::LLVMStructType::getLiteral(context, pairOfPointers);
 }
 
+static mlir::Type getStateType(mlir::MLIRContext *context) {
+  return mlir::LLVM::LLVMStructType::getOpaque("cudaq::state", context);
+}
 namespace {
 
 //===----------------------------------------------------------------------===//
@@ -138,6 +141,36 @@ public:
     // Get the CC Pointer for the state
     auto ccState = adaptor.getInitState();
 
+    auto stateTy = getStateType(rewriter.getContext());
+    // If this is a `state` input
+    if (ccState.getType() == mlir::LLVM::LLVMPointerType::get(stateTy)) {
+      auto *ctx = rewriter.getContext();
+      auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
+      FlatSymbolRefAttr getSimStateSymbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              "__nvqpp_cudaq_state_getSimulationState", ptrTy, {ptrTy},
+              parentModule);
+
+      FlatSymbolRefAttr allocateWithStateSymbolRef =
+          cudaq::opt::factory::createLLVMFunctionSymbol(
+              "__quantum__rt__qubit_allocate_array_with_state_ptr",
+              array_qbit_type, {ptrTy}, parentModule);
+
+      // Call the allocation function
+      Value castedInitState =
+          rewriter.create<LLVM::BitcastOp>(loc, ptrTy, ccState);
+      // Get the underlying `SimulationState`
+      Value initSimState =
+          rewriter
+              .create<LLVM::CallOp>(loc, ptrTy, getSimStateSymbolRef,
+                                    ArrayRef<Value>{castedInitState})
+              .getResults()[0];
+      rewriter.replaceOpWithNewOp<LLVM::CallOp>(raii, array_qbit_type,
+                                                allocateWithStateSymbolRef,
+                                                ArrayRef<Value>{initSimState});
+      return success();
+    }
+    // This is state vector input.
     // Inspect the element type of the complex data, need to
     // know if its f32 or f64
     StringRef functionName;
@@ -2025,6 +2058,8 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
     auto eleTy = type.getElementType();
     if (isa<NoneType>(eleTy))
       return factory::getPointerType(type.getContext());
+    if (isa<cc::StateType>(eleTy))
+      return factory::getPointerType(getStateType(type.getContext()));
     eleTy = typeConverter.convertType(eleTy);
     if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy)) {
       // If array has a static size, it becomes an LLVMArrayType.

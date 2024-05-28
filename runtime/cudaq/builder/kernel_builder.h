@@ -80,8 +80,9 @@ concept KernelBuilderArgTypeIsValid =
 namespace details {
 /// Use parametric type: `initializations` must be vectors of complex float or
 /// double. No other type is allowed.
-using StateVectorVariant = std::variant<std::vector<std::complex<float>> *,
-                                        std::vector<std::complex<double>> *>;
+using StateVectorVariant =
+    std::variant<std::vector<std::complex<float>> *,
+                 std::vector<std::complex<double>> *, cudaq::state *>;
 
 /// Type describing user-provided state vector data. This is a list of the state
 /// vector variables used in a kernel with at least one `qvector` with initial
@@ -182,6 +183,10 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, QuakeValue &size);
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder,
                   StateVectorStorage &stateVectorData,
                   StateVectorVariant &&state, simulation_precision precision);
+
+/// @brief Allocate a `qvector` from a user provided state.
+QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, cudaq::state *state,
+                  StateVectorStorage &stateVectorData);
 
 /// @brief Create a QuakeValue representing a constant floating-point number
 QuakeValue constantVal(mlir::ImplicitLocOpBuilder &builder, double val);
@@ -476,6 +481,12 @@ public:
     return details::qalloc(*opBuilder.get(), stateVectorStorage,
                            details::StateVectorVariant{&state},
                            simulation_precision::fp32);
+  }
+
+  // Overload for `cudaq::state`
+  QuakeValue qalloc(const cudaq::state &state) {
+    return details::qalloc(*opBuilder.get(), const_cast<cudaq::state *>(&state),
+                           stateVectorStorage);
   }
 
   /// @brief Return a `QuakeValue` representing the constant floating-point

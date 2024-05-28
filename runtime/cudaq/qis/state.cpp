@@ -104,8 +104,10 @@ state::~state() {
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
-  throw std::runtime_error(
-      "not yet implemented: getting number of qubits from state");
+  return obj->get_num_qubits();
+}
+SimulationState *__nvqpp_cudaq_state_getSimulationState(state *obj) {
+  return obj->get();
 }
 }
 
