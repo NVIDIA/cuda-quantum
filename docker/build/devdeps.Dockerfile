@@ -87,7 +87,7 @@ ENV LLVM_INSTALL_PREFIX=/opt/llvm
 
 # Enable compiler-rt in this build (-r)
 RUN source /opt/llvm/bootstrap/init_command.sh && \
-    LLVM_SOURCE=/llvm-project bash /scripts/build_llvm.sh -c Release -v -r \
+    bash /scripts/build_llvm.sh -s /llvm-project -c Release -v -r \
     && rm -rf /llvm-project 
 
 # Update bootstrap files to point to new installation
