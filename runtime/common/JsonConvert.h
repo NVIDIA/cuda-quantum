@@ -10,6 +10,7 @@
 #include "GPUInfo.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
+#include "common/SerializedCodeExecutionContext.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/simulators.h"
 #include "nlohmann/json.hpp"
@@ -214,13 +215,18 @@ public:
   // IMPORTANT: When a new version is defined, a new NVQC deployment will be
   // needed.
   static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
-  RestRequest(ExecutionContext &context, int versionNumber)
+  RestRequest(ExecutionContext &context, int versionNumber,
+              SerializedCodeExecutionContext &serializedCodeContext)
       : executionContext(context), version(versionNumber),
-        clientVersion(CUDA_QUANTUM_VERSION) {}
+        clientVersion(CUDA_QUANTUM_VERSION),
+        serializedCodeExecutionContext(serializedCodeContext) {}
   RestRequest(const json &j)
       : m_deserializedContext(
             std::make_unique<ExecutionContext>(j["executionContext"]["name"])),
-        executionContext(*m_deserializedContext) {
+        executionContext(*m_deserializedContext),
+        serializedCodeExecutionContext(
+            j.at("serializedCodeExecutionContext")
+                .get<SerializedCodeExecutionContext>()) {
     from_json(j, *this);
     // Take the ownership of the spin_op pointer for proper cleanup.
     if (executionContext.spin.has_value() && executionContext.spin.value())
@@ -249,10 +255,15 @@ public:
   std::size_t version;
   // Version of the runtime client submitting the request.
   std::string clientVersion;
+  // The SerializedCodeExecutionContext to compile and to execute
+  // the source code of the objective function.
+  // The server will execute serialized code in this context
+  SerializedCodeExecutionContext serializedCodeExecutionContext;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(RestRequest, version, entryPoint, simulator,
                                  executionContext, code, args, format, seed,
-                                 passes, clientVersion);
+                                 passes, clientVersion,
+                                 serializedCodeExecutionContext);
 };
 
 /// NVCF function version status
