@@ -285,7 +285,7 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
 
       x<cudaq::adj>(q[0], q[1]);
       cx(q[0], q[1]);
-      x(q[0]);
+
       mz(q);
     }
   };

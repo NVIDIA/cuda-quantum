@@ -750,6 +750,7 @@ protected:
     return defaultConfig;
   }
 
+  /// @brief Return this simulator's qubit ordering.
   virtual QubitOrdering getQubitOrdering() const { return QubitOrdering::lsb; }
 
 public:
@@ -1033,8 +1034,14 @@ public:
         for (std::size_t j = 0; j < numRows; j++) {
           auto k = convertOrdering(numQubits, i);
           auto l = convertOrdering(numQubits, j);
-          actual[i * numRows + j] =
-              static_cast<std::complex<ScalarType>>(matrix[k * numRows + l]);
+          if (!std::is_same_v<double, ScalarType>) {
+            actual[i * numRows + j] =
+                static_cast<std::complex<ScalarType>>(matrix[k * numRows + l]);
+          } else {
+            auto element = matrix[k * numRows + l];
+            actual[i * numRows + j] =
+                std::complex<ScalarType>(element.real(), element.imag());
+          }
         }
       }
     } else {
