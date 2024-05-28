@@ -97,9 +97,6 @@ jobs:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
-      build_args: |
-        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
-        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       create_local_cache: true
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
