@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "tn_simulation_state.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <cuComplex.h>
 
 namespace nvqir {
@@ -192,6 +193,24 @@ TensorNetSimulationState::getTensors() const {
 
 std::size_t TensorNetSimulationState::getNumTensors() const {
   return m_state->m_tensorOps.size();
+}
+
+std::unique_ptr<cudaq::SimulationState>
+TensorNetSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
+                                               std::size_t dataType) {
+  if (dataType == cudaq::detail::variant_index<cudaq::state_data,
+                                               cudaq::TensorStateData>()) {
+    throw std::runtime_error(
+        "Cannot create tensornet backend's simulation state with MPS tensors.");
+  }
+  std::vector<std::complex<double>> vec(
+      reinterpret_cast<std::complex<double> *>(ptr),
+      reinterpret_cast<std::complex<double> *>(ptr) + size);
+  auto tensorNetState =
+      TensorNetState::createFromStateVector(vec, m_cutnHandle);
+
+  return std::make_unique<TensorNetSimulationState>(std::move(tensorNetState),
+                                                    m_cutnHandle);
 }
 
 void TensorNetSimulationState::destroyState() {

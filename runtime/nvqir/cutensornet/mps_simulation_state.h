@@ -63,8 +63,10 @@ public:
 
   bool isArrayLike() const override { return false; }
 
-  virtual std::unique_ptr<cudaq::SimulationState>
+  std::unique_ptr<cudaq::SimulationState>
   createFromSizeAndPtr(std::size_t, void *, std::size_t dataType) override;
+  void toHost(std::complex<double> *clientAllocatedData,
+              std::size_t numElements) const override;
 
   /// Encapsulate data needed to initialize an MPS state.
   struct MpsStateData {
