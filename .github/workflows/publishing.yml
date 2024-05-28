@@ -652,12 +652,24 @@ jobs:
             python_version=${{ matrix.python_version }}
           outputs: ${{ steps.release_info.outputs.docker_output }}
 
+      - name: Set retention days
+        id: set_retention_days
+        run: |
+          # Save the x86_64-py3.10-wheels for longer because our some of our
+          # nightly jobs rely on them being present, even if we haven't done a
+          # fresh publishing in the last 24 hours.
+          if [ "${{ steps.release_info.outputs.platform_arch }}" == "x86_64" ] && [ "${{ matrix.python_version }}" == "3.10" ]; then
+            echo "retention_days=7" >> $GITHUB_OUTPUT
+          else
+            echo "retention_days=1" >> $GITHUB_OUTPUT
+          fi
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.release_info.outputs.platform_arch }}-py${{ matrix.python_version }}-wheels
           path: /tmp/wheels
-          retention-days: 1
+          retention-days: ${{ steps.set_retention_days.outputs.retention_days }}
           if-no-files-found: error
     
   cudaq_wheels_release_info:  
