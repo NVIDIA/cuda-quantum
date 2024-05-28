@@ -39,6 +39,7 @@ public:
   SerializedCodeExecutionContext() = default;
   SerializedCodeExecutionContext(std::string c, json l, json g)
       : code(std::move(c)), locals(std::move(l)), globals(std::move(g)) {}
+  ~SerializedCodeExecutionContext() = default;
 
   // Serialization
   NLOHMANN_DEFINE_TYPE_INTRUSIVE(SerializedCodeExecutionContext, code, locals,
