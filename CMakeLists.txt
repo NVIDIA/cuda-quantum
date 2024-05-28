@@ -572,6 +572,9 @@ if (CUDAQ_ENABLE_PYTHON)
     message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
   endif()
   
+  # Regarding the use of PyBind, we need to be careful that the same STL is used for any 
+  # Python bindings generated as part of the CUDA-Q build and bindings generated for 
+  # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
   add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()

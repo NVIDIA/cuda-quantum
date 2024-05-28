@@ -88,9 +88,6 @@ jobs:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
       toolchain: ${{ matrix.toolchain }}
-      build_args: |
-        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
-        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       # needed only for the cloudposse GitHub action

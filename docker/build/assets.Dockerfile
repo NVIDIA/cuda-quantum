@@ -294,7 +294,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
 FROM cpp_tests
-COPY --from=python_tests /wheelhouse /cuda_quantum/wheelhouse
+COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
 
 # Removing the CUDA compiler and libstdc++ with it
 RUN dnf remove -y \
