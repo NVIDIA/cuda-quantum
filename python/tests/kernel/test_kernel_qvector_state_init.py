@@ -314,10 +314,17 @@ def test_kernel_simulation_dtype_capture_f32():
     state = cudaq.State.from_data(c)
 
     @cudaq.kernel
+<<<<<<< HEAD
     def kernel():
         q = cudaq.qvector(state)
 
     counts = cudaq.sample(kernel)
+=======
+    def kernel2():
+        q = cudaq.qvector(state)
+
+    counts = cudaq.sample(kernel2)
+>>>>>>> b5ce9a754a477364f942c588394946379575bfb9
     print(counts)
     assert '11' in counts
     assert '00' in counts

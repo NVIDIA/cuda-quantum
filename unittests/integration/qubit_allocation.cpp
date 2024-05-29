@@ -230,3 +230,73 @@ CUDAQ_TEST(AllocationTester, checkChainingGetState) {
   EXPECT_NEAR(std::abs(overlap), 0.5, 1e-6);
 #endif
 }
+
+#ifdef CUDAQ_BACKEND_TENSORNET_MPS
+CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
+  {
+    const std::vector<std::complex<double>> mps1{1.0, 0.0};
+    const std::vector<std::size_t> mpsExtent1{2, 1};
+    const std::vector<std::complex<double>> mps2{1.0, 0.0};
+    const std::vector<std::size_t> mpsExtent2{1, 2};
+    cudaq::TensorStateData initData{{mps1.data(), mpsExtent1},
+                                    {mps2.data(), mpsExtent2}};
+    auto state = cudaq::state::from_data(initData);
+    state.dump();
+    std::vector<std::complex<double>> stateVec(4);
+    state.to_host(stateVec.data(), stateVec.size());
+    EXPECT_NEAR(std::abs(stateVec[0] - 1.0), 0.0, 1e-12);
+    EXPECT_NEAR(std::abs(stateVec[1]), 0.0, 1e-12);
+    EXPECT_NEAR(std::abs(stateVec[2]), 0.0, 1e-12);
+    EXPECT_NEAR(std::abs(stateVec[3]), 0.0, 1e-12);
+  }
+  {
+    const std::vector<std::complex<double>> mps1{1.0, 0.0};
+    const std::vector<std::size_t> mpsExtent1{2, 1};
+    const std::vector<std::complex<double>> mps2{1.0, 0.0};
+    const std::vector<std::size_t> mpsExtent2{1, 2};
+    cudaq::TensorStateData initData{{mps1.data(), mpsExtent1},
+                                    {mps2.data(), mpsExtent2}};
+    auto state = cudaq::state::from_data(initData);
+    state.dump();
+    auto state2 = cudaq::get_state(
+        [](cudaq::state state) __qpu__ {
+          cudaq::qvector q(state);
+          h(q[0]);
+          cx(q[0], q[1]);
+        },
+        state);
+    state2.dump();
+    EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), M_SQRT1_2, 1e-6);
+    EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+  }
+  {
+    constexpr int numQubits = 100;
+    auto state1 = cudaq::get_state([]() __qpu__ {
+      cudaq::qvector q(100);
+      // First half of the circuit
+      h(q[0]);
+    });
+    EXPECT_EQ(state1.get_num_tensors(), 100);
+    cudaq::TensorStateData tensors;
+    // Unpack the state to get the MPS tensors.
+    for (const auto &tensor : state1.get_tensors())
+      tensors.emplace_back(std::pair<const void *, std::vector<std::size_t>>{
+          tensor.data, tensor.extents});
+    auto reconstructedState = cudaq::state::from_data(tensors);
+    // Second half of the bell circuit
+    auto state2 = cudaq::get_state(
+        [](cudaq::state state) __qpu__ {
+          cudaq::qvector q(state);
+          for (std::size_t i = 0; i < q.size() - 1; ++i)
+            cx(q[i], q[i + 1]);
+        },
+        reconstructedState);
+    const std::vector<int> allZero(numQubits, 0);
+    const std::vector<int> allOne(numQubits, 1);
+    EXPECT_NEAR(std::abs(state2.amplitude(allZero)), M_SQRT1_2, 1e-6);
+    EXPECT_NEAR(std::abs(state2.amplitude(allOne)), M_SQRT1_2, 1e-6);
+    const auto overlap = state1.overlap(state2);
+    EXPECT_NEAR(std::abs(overlap), 0.5, 1e-6);
+  }
+}
+#endif
