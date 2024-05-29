@@ -66,6 +66,29 @@ def emitFatalError(msg):
     raise RuntimeError(msg)
 
 
+def emitWarning(msg):
+    """
+    Emit a warning, providing the user with source file information and
+    the offending code.
+    """
+    print(Color.BOLD, end='')
+    try:
+        # Raise the exception so we can get the
+        # stack trace to inspect
+        raise RuntimeError(msg)
+    except RuntimeError as e:
+        # Immediately grab the exception and
+        # analyze the stack trace, get the source location
+        # and construct a new error diagnostic
+        cached = sys.tracebacklimit
+        sys.tracebacklimit = None
+        offendingSrc = traceback.format_stack()
+        sys.tracebacklimit = cached
+        if len(offendingSrc):
+            msg = Color.YELLOW + "error: " + Color.END + Color.BOLD + msg + Color.END + '\n\nOffending code:\n' + offendingSrc[
+                0]
+
+
 def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     """
     Return the MLIR Type corresponding to the given kernel function argument type annotation.
