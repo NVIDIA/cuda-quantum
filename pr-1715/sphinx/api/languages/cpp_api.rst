@@ -62,6 +62,8 @@ Common
 
 .. doxygentypedef:: cudaq::tensor
 
+.. doxygentypedef:: cudaq::TensorStateData
+
 .. doxygentypedef:: cudaq::state_data
 
 .. doxygenclass:: cudaq::CusvState
