@@ -82,6 +82,87 @@ Sample
 
   See the :doc:`API specification <../../../api/languages/cpp_api>` for further information.
 
+Sample Async
+~~~~~~~~~~~~
+
+Asynchronous programming is a technique that enables your program to
+start a potentially long-running task and still be able to be responsive
+to other events while that task runs, rather than having to wait until
+that task has finished. Once that task has finished, your program is
+presented with the result.
+
+``sample`` can be a time intensive task. We can parallelize the
+execution of ``sample`` via the arguments it accepts.
+
+.. code:: python
+
+    # Parallelize over the various kernels one would like to execute.
+    
+    import cudaq
+    
+    qubit_count = 2
+    
+    # Set the simulation target.
+    cudaq.set_target("nvidia-mqpu")
+    
+    # Kernel 1
+    
+    
+    @cudaq.kernel
+    def kernel_1(qubit_count: int):
+        qvector = cudaq.qvector(qubit_count)
+    
+        # 2-qubit GHZ state.
+        h(qvector[0])
+        for i in range(1, qubit_count):
+            x.ctrl(qvector[0], qvector[i])
+    
+        # If we dont specify measurements, all qubits are measured in
+        # the Z-basis by default.
+        mz(qvector)
+    
+    
+    # Kernel 2
+    
+    
+    @cudaq.kernel
+    def kernel_2(qubit_count: int):
+        qvector = cudaq.qvector(qubit_count)
+    
+        # 2-qubit GHZ state.
+        h(qvector[0])
+        for i in range(1, qubit_count):
+            x.ctrl(qvector[0], qvector[i])
+    
+        # If we dont specify measurements, all qubits are measured in
+        # the Z-basis by default.
+        mz(qvector)
+    
+    
+    if cudaq.num_available_gpus() > 1:
+        # Asynchronous execution on multiple virtual QPUs, each simulated by an NVIDIA GPU.
+        result_1 = cudaq.sample_async(kernel_1, qubit_count, shots_count=1000, qpu_id=0)
+        result_2 = cudaq.sample_async(kernel_2, qubit_count, shots_count=1000, qpu_id=1)
+    else:
+        # Schedule for execution on the same virtual QPU.
+        result_1 = cudaq.sample_async(kernel_1, qubit_count, shots_count=1000, qpu_id=0)
+        result_2 = cudaq.sample_async(kernel_2, qubit_count, shots_count=1000, qpu_id=0)
+    
+    print(result_1.get())
+    print(result_2.get())
+
+
+.. parsed-literal::
+
+    { 00:493 11:507 }
+    
+    { 00:509 11:491 }
+    
+
+
+Similar to the above, one can also parallelize over the ``shots_count``
+or the variational parameters of a quantum circuit.
+
 Observe
 +++++++++
 
@@ -164,6 +245,15 @@ Observe
         :language: cpp
         :start-after: [Begin Observe3]
         :end-before: [End Observe3]
+
+Observe Async
+~~~~~~~~~~~~~
+
+Similar to ``sample_async`` above, ``observe`` also supports
+asynchronous execution for the `arguments it
+accepts <https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async:~:text=cudaq.observe_async(),%C2%B6>`__.
+One can parallelize over various kernels, spin operators, variational
+parameters or even noise models.
 
 Running on a GPU
 ++++++++++++++++++
