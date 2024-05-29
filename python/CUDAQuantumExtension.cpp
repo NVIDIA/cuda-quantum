@@ -8,12 +8,7 @@
 
 #include "common/Logger.h"
 #include "cudaq.h"
-
-#include <pybind11/complex.h>
-#include <pybind11/pytypes.h>
-#include <pybind11/stl.h>
-
-#include "cudaq/Optimizer/CAPI/Dialects.h"
+#include "cudaq/platform/orca/orca_qpu.h"
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
@@ -35,10 +30,12 @@
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
 
-#include "../runtime/cudaq/platform/orca/orca_qpu.h"
-
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+
+#include <pybind11/complex.h>
+#include <pybind11/pytypes.h>
+#include <pybind11/stl.h>
 
 namespace py = pybind11;
 
