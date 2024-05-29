@@ -96,6 +96,11 @@ protected:
   std::unique_ptr<TensorNetState> state;
   std::vector<MPSTensor> m_mpsTensors;
   ScratchDeviceMem m_scratchPad;
+  // Max number of qubits whereby the tensor network state should be contracted
+  // and cached into a state vector.
+  // This speeds up sequential state amplitude accessors for small states.
+  static inline constexpr std::size_t g_maxQubitsForStateContraction = 30;
+  std::vector<std::complex<double>> m_contractedStateVec;
 };
 
 } // namespace nvqir

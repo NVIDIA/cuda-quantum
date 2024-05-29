@@ -376,6 +376,26 @@ TensorNetState::factorizeMPS(int64_t maxExtent, double absCutoff,
                              double relCutoff,
                              cutensornetTensorSVDAlgo_t algo) {
   LOG_API_TIME();
+  if (m_numQubits == 0)
+    return {};
+  if (m_numQubits == 1) {
+    // Single tensor
+    MPSTensor tensor;
+    tensor.extents = {2};
+    HANDLE_CUDA_ERROR(
+        cudaMalloc(&tensor.deviceData, 2 * sizeof(std::complex<double>)));
+    // Just contract all the gates to the tensor.
+    // Note: if none gates, don't call `getStateVector`, which performs a
+    // contraction (`Flop count is zero` error).
+    const std::vector<std::complex<double>> stateVec =
+        isDirty() ? getStateVector()
+                  : std::vector<std::complex<double>>{1.0, 0.0};
+    assert(stateVec.size() == 2);
+    HANDLE_CUDA_ERROR(cudaMemcpy(tensor.deviceData, stateVec.data(),
+                                 2 * sizeof(std::complex<double>),
+                                 cudaMemcpyHostToDevice));
+    return {tensor};
+  }
   std::vector<MPSTensor> mpsTensors(m_numQubits);
   std::vector<int64_t *> extentsPtr(m_numQubits);
   for (std::size_t i = 0; i < m_numQubits; ++i) {

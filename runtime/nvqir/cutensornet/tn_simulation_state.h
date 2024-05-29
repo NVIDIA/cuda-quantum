@@ -60,7 +60,8 @@ public:
   std::size_t getNumTensors() const override;
 
   void destroyState() override;
-
+  void toHost(std::complex<double> *clientAllocatedData,
+              std::size_t numElements) const override;
   /// @brief Return a reference to all the tensors that have been applied to the
   /// state.
   const std::vector<AppliedTensorOp> &getAppliedTensors() const {
@@ -71,5 +72,10 @@ protected:
   std::unique_ptr<TensorNetState> m_state;
   cutensornetHandle_t m_cutnHandle;
   ScratchDeviceMem m_scratchPad;
+  // Max number of qubits whereby the tensor network state should be contracted
+  // and cached into a state vector.
+  // This speeds up sequential state amplitude accessors for small states.
+  static inline constexpr std::size_t g_maxQubitsForStateContraction = 30;
+  std::vector<std::complex<double>> m_contractedStateVec;
 };
 } // namespace nvqir
