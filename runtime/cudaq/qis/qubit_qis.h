@@ -992,7 +992,7 @@ std::vector<T> slice_vector(std::vector<T> &original, std::size_t start,
 
 } // namespace cudaq
 
-// TODO: Handle params
+/// TODO: Handle parameterized unitary operations
 #define cudaq_register_operation(OP_NAME, DATA)                                \
   template <typename mod = cudaq::base, typename... QubitArgs>                 \
   void OP_NAME(QubitArgs &...args) {                                           \
