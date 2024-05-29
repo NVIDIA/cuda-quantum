@@ -94,8 +94,6 @@ public:
   /// The data can be host or device data.
   static state from_data(const state_data &data);
 
-  /// @brief Retrieve the internal simulation state.
-  cudaq::SimulationState *get() { return internal.get(); }
   ~state();
 };
 

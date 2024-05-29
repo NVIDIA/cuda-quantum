@@ -106,9 +106,6 @@ extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
   return obj->get_num_qubits();
 }
-SimulationState *__nvqpp_cudaq_state_getSimulationState(state *obj) {
-  return obj->get();
-}
 }
 
 } // namespace cudaq

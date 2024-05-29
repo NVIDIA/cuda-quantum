@@ -560,6 +560,7 @@ __nvqpp_getStateVectorData_fp32(StateVectorStorage &stateVectorStorage,
   return getStateVectorData<float>(stateVectorStorage, index);
 }
 
+/// Runtime callback to get the state pointer of a captured `cudaq::state`.
 cudaq::state *__nvqpp_getStatePtr(StateVectorStorage &stateVectorStorage,
                                   std::intptr_t index) {
   return std::get<cudaq::state *>(stateVectorStorage[index]);
