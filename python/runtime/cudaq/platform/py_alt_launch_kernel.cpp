@@ -50,8 +50,17 @@ struct PyStateVectorData {
 };
 using PyStateVectorStorage = std::map<std::string, PyStateVectorData>;
 
+struct PyStateData {
+  cudaq::state data;
+  std::string kernelName;
+};
+using PyStateStorage = std::map<std::string, PyStateData>;
+
 static std::unique_ptr<PyStateVectorStorage> stateStorage =
     std::make_unique<PyStateVectorStorage>();
+
+static std::unique_ptr<PyStateStorage> cudaqStateStorage =
+    std::make_unique<PyStateStorage>();
 
 std::tuple<ExecutionEngine *, void *, std::size_t, std::int32_t>
 jitAndCreateArgs(const std::string &name, MlirModule module,
@@ -233,24 +242,49 @@ pyAltLaunchKernelBase(const std::string &name, MlirModule module,
 
   // If we have any state vector data, we need to extract the function pointer
   // to set that data, and then set it.
-  for (auto &[stateHash, svdata] : *stateStorage) {
-    if (svdata.kernelName != name)
+  for (auto &[stateHash, stateData] : *stateStorage) {
+    if (stateData.kernelName != name)
       continue;
-    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
-    if (!setStateFPtr)
-      throw std::runtime_error(
-          "python alt_launch_kernel failed to get set state function.");
 
-    if (svdata.precision == simulation_precision::fp64) {
+    auto setStateFPtr = jit->lookup("nvqpp.set.state." + stateHash);
+    if (auto error = setStateFPtr.takeError()) {
+      auto message = "python alt_launch_kernel failed to get set state "
+                     "function for kernel: " +
+                     name;
+      llvm::logAllUnhandledErrors(std::move(error), llvm::errs(), message);
+      throw std::runtime_error(message);
+    }
+
+    if (stateData.precision == simulation_precision::fp64) {
       auto setStateFunc =
           reinterpret_cast<void (*)(std::complex<double> *)>(*setStateFPtr);
-      setStateFunc(reinterpret_cast<std::complex<double> *>(svdata.data));
+      setStateFunc(reinterpret_cast<std::complex<double> *>(stateData.data));
       continue;
     }
 
     auto setStateFunc =
         reinterpret_cast<void (*)(std::complex<float> *)>(*setStateFPtr);
-    setStateFunc(reinterpret_cast<std::complex<float> *>(svdata.data));
+    setStateFunc(reinterpret_cast<std::complex<float> *>(stateData.data));
+  }
+
+  // If we have any cudaq state data, we need to extract the function pointer
+  // to set that data, and then set it.
+  for (auto &[stateHash, stateData] : *cudaqStateStorage) {
+    if (stateData.kernelName != name)
+      continue;
+
+    auto setStateFPtr = jit->lookup("nvqpp.set.cudaq.state." + stateHash);
+    if (auto error = setStateFPtr.takeError()) {
+      auto message = "python alt_launch_kernel failed to get set cudaq state "
+                     "function for kernel: " +
+                     name;
+      llvm::logAllUnhandledErrors(std::move(error), llvm::errs(), message);
+      throw std::runtime_error(message);
+    }
+
+    auto setStateFunc =
+        reinterpret_cast<void (*)(cudaq::state *)>(*setStateFPtr);
+    setStateFunc(&stateData.data);
   }
 
   // Need to first invoke the init_func()
@@ -535,5 +569,28 @@ void bindAltLaunchKernel(py::module &mod) {
         }
       },
       "Remove our pointers to the qalloc array data.");
+
+  mod.def(
+      "storePointerToCudaqState",
+      [](const std::string &name, const std::string &hash, py::object data) {
+        auto state = data.cast<cudaq::state>();
+        cudaqStateStorage->insert({hash, PyStateData{state, name}});
+      },
+      "Store qalloc state initialization states.");
+
+  mod.def(
+      "deletePointersToCudaqState",
+      [](const std::vector<std::string> &hashes) {
+        for (auto iter = cudaqStateStorage->cbegin();
+             iter != cudaqStateStorage->end();) {
+          if (std::find(hashes.begin(), hashes.end(), iter->first) !=
+              hashes.end()) {
+            cudaqStateStorage->erase(iter++);
+            continue;
+          }
+          iter++;
+        }
+      },
+      "Remove our pointers to the cudaq states.");
 }
 } // namespace cudaq
