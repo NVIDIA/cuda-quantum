@@ -11,7 +11,6 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
@@ -304,7 +303,7 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto parentModule = instOp->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
-    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     std::string instName = instOp->getName().stripDialect().str();
 
     // Get the reset QIR function name
@@ -336,7 +335,7 @@ public:
     auto loc = instOp->getLoc();
     auto parentModule = instOp->getParentOfType<ModuleOp>();
     auto *context = rewriter.getContext();
-    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     auto qirFunctionName = qirQisPrefix + "exp_pauli";
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
@@ -436,7 +435,7 @@ public:
     auto loc = instOp->getLoc();
     auto parentModule = instOp->template getParentOfType<ModuleOp>();
     auto *context = parentModule->getContext();
-    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     std::string instName = instOp->getName().stripDialect().str();
 
     // Handle the case where we have and S or T gate,
@@ -561,7 +560,7 @@ public:
     auto numControls = instOp.getControls().size();
     auto parentModule = instOp->template getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
-    std::string qirQisPrefix(cudaq::opt::QIRQISPrefix);
+    std::string qirQisPrefix{cudaq::opt::QIRQISPrefix};
     std::string instName = instOp->getName().stripDialect().str();
 
     if (numControls != 0) {
