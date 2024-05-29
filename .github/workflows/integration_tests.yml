@@ -21,6 +21,7 @@ on:
           - oqc
           - quantinuum
           - nvqc
+          - orca
       single_test_name:
         type: string
         required: false
@@ -413,6 +414,38 @@ jobs:
           fi
         shell: bash
 
+      - name: Submit to ORCA test server
+        if: (success() || failure()) && (inputs.target == 'orca' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        run: |
+          echo "### Submit to ORCA server" >> $GITHUB_STEP_SUMMARY
+          export ORCA_ACCESS_URL='${{ secrets.ORCA_ACCESS_URL }}'
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          testlist="docs/sphinx/examples/cpp/providers/orca.cpp"
+          for filename in $testlist; do
+            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"           
+            nvq++ --target orca --orca-url $ORCA_ACCESS_URL $filename
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              ./a.out
+              test_status=$?
+              if [ $test_status -eq 0 ]; then
+                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+              else
+                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                test_err_sum=$((test_err_sum+1))
+              fi
+            else
+              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi              
+          done
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+      
       - name: Submit to ${{ inputs.target }}
         # The full set of tests used by this step is currently only supported on
         # Quantinuum.  The other supported tests are tested by the step above.
