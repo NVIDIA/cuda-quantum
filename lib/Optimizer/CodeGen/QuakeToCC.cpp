@@ -372,8 +372,8 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = mzOp.getLoc();
     auto mod = mzOp->getParentOfType<ModuleOp>();
-    auto regName = createRegisterName(
-        loc, mod, rewriter, mzOp.getRegisterNameAttr());
+    auto regName =
+        createRegisterName(loc, mod, rewriter, mzOp.getRegisterNameAttr());
     auto i8Ty = rewriter.getI8Type();
     auto ptrI8Ty = cudaq::cc::PointerType::get(i8Ty);
     auto regTy = cudaq::cc::PointerType::get(regName.getType());
