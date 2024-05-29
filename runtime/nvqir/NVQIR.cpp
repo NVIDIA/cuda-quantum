@@ -10,6 +10,7 @@
 #include "QIRTypes.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
+#include "cudaq/qis/state.h"
 #include "cudaq/spin_op.h"
 #include <cmath>
 #include <complex>
@@ -243,6 +244,20 @@ Array *__quantum__rt__qubit_allocate_array_with_state_ptr(
   auto qubitIdxs = nvqir::getCircuitSimulatorInternal()->allocateQubits(
       state->getNumQubits(), state);
   return vectorSizetToArray(qubitIdxs);
+}
+
+Array *
+__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(int _,
+                                                         cudaq::state *state) {
+  if (!state)
+    throw std::invalid_argument("[NVQIR] Invalid state encountered "
+                                "in qubit array allocation.");
+  ScopedTraceWithContext(
+      "NVQIR::__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr",
+      state->get_num_qubits());
+
+  auto simStatePtr = cudaq::state_helper::getSimulationState(state);
+  return __quantum__rt__qubit_allocate_array_with_state_ptr(simStatePtr);
 }
 
 Array *__quantum__rt__qubit_allocate_array_with_state_complex32(

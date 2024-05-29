@@ -171,6 +171,15 @@ inline void addArgument(OpaqueArguments &argData, T &&arg) {
                        [](void *ptr) { delete static_cast<T *>(ptr); });
 }
 
+inline std::string mlirTypeToString(mlir::Type ty) {
+  std::string msg;
+  {
+    llvm::raw_string_ostream os(msg);
+    ty.print(os);
+  }
+  return msg;
+}
+
 inline void
 packArgs(OpaqueArguments &argData, py::args args,
          mlir::func::FuncOp kernelFuncOp,
@@ -190,8 +199,12 @@ packArgs(OpaqueArguments &argData, py::args args,
           checkArgumentType<py_ext::Complex>(arg, i);
           if (isa<Float64Type>(ty.getElementType())) {
             addArgument(argData, arg.cast<std::complex<double>>());
-          } else {
+          } else if (isa<Float32Type>(ty.getElementType())) {
             addArgument(argData, arg.cast<std::complex<float>>());
+          } else {
+            throw std::runtime_error("Invalid complex type argument: " +
+                                     py::str(args).cast<std::string>() +
+                                     " Type: " + mlirTypeToString(ty));
           }
         })
         .Case([&](mlir::Float64Type ty) {
@@ -215,6 +228,15 @@ packArgs(OpaqueArguments &argData, py::args args,
         .Case([&](cudaq::cc::CharspanType ty) {
           addArgument(argData,
                       cudaq::pauli_word(arg.cast<cudaq::pauli_word>().str()));
+        })
+        .Case([&](cudaq::cc::PointerType ty) {
+          if (isa<cudaq::cc::StateType>(ty.getElementType())) {
+            addArgument(argData, arg.cast<cudaq::state *>());
+          } else {
+            throw std::runtime_error("Invalid pointer type argument: " +
+                                     py::str(arg).cast<std::string>() +
+                                     " Type: " + mlirTypeToString(ty));
+          }
         })
         .Case([&](cudaq::cc::StdvecType ty) {
           checkArgumentType<py::list>(arg, i);
@@ -316,21 +338,17 @@ packArgs(OpaqueArguments &argData, py::args args,
                 return;
               })
               .Default([](Type ty) {
-                std::string msg;
-                {
-                  llvm::raw_string_ostream os(msg);
-                  ty.print(os);
-                }
-                throw std::runtime_error("invalid list element type (" + msg +
-                                         ").");
+                throw std::runtime_error("invalid list element type (" +
+                                         mlirTypeToString(ty) + ").");
               });
         })
-        .Default([&](Type) {
+        .Default([&](Type ty) {
           // See if we have a backup type handler.
           auto worked = backupHandler(argData, arg);
           if (!worked)
-            throw std::runtime_error("Could not pack argument: " +
-                                     py::str(args).cast<std::string>());
+            throw std::runtime_error(
+                "Could not pack argument: " + py::str(arg).cast<std::string>() +
+                " Type: " + mlirTypeToString(ty));
         });
   }
 }

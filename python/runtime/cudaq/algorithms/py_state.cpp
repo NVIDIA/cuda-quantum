@@ -124,7 +124,6 @@ void bindPyState(py::module &mod) {
                                   dataTypeSize}, /* strides */
                                  true            /* readonly */
           );
-
         return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
                                desc, 1,               /* ndim */
                                {shape[0]},            /* shape */
@@ -153,11 +152,86 @@ void bindPyState(py::module &mod) {
                   reinterpret_cast<std::complex<float> *>(info.ptr),
                   info.size));
             }
-
-            return state::from_data(std::make_pair(
-                reinterpret_cast<std::complex<double> *>(info.ptr), info.size));
+            if (info.format ==
+                py::format_descriptor<std::complex<double>>::format()) {
+              return state::from_data(std::make_pair(
+                  reinterpret_cast<std::complex<double> *>(info.ptr),
+                  info.size));
+            }
+            throw std::runtime_error(
+                "A numpy array with only floating point elements passed to "
+                "state.from_data. input must be of complex float type, "
+                "please "
+                "add to your array creation `dtype=numpy.complex64` if "
+                "simulation is FP32 and `dtype=numpy.complex128` if "
+                "simulation if FP64, or dtype=cudaq.complex() for "
+                "precision-agnostic code");
           },
           "Return a state from data.")
+      .def_static(
+          "from_data",
+          [](const std::vector<py::buffer> &tensors) {
+            cudaq::TensorStateData tensorData;
+            for (auto &tensor : tensors) {
+              auto info = tensor.request();
+              const std::vector<std::size_t> extents(info.shape.begin(),
+                                                     info.shape.end());
+              tensorData.emplace_back(
+                  std::pair<const void *, std::vector<std::size_t>>{info.ptr,
+                                                                    extents});
+            }
+            return state::from_data(tensorData);
+          },
+          "Return a state from matrix product state tensor data.")
+      .def_static(
+          "from_data",
+          [](const std::vector<SimulationState::Tensor> &tensors) {
+            cudaq::TensorStateData tensorData;
+            for (auto &tensor : tensors) {
+
+              tensorData.emplace_back(
+                  std::pair<const void *, std::vector<std::size_t>>{
+                      tensor.data, tensor.extents});
+            }
+            return state::from_data(tensorData);
+          },
+          "Return a state from matrix product state tensor data.")
+      .def_static(
+          "from_data",
+          [](const std::vector<py::object> &tensors) {
+            cudaq::TensorStateData tensorData;
+            for (auto &tensor : tensors) {
+              // Make sure this is a CuPy array
+              if (!py::hasattr(tensor, "data"))
+                throw std::runtime_error(
+                    "invalid from_data operation on py::object - "
+                    "only cupy array supported.");
+              auto data = tensor.attr("data");
+              if (!py::hasattr(data, "ptr"))
+                throw std::runtime_error(
+                    "invalid from_data operation on py::object tensors - "
+                    "only cupy array supported.");
+
+              // We know this is a cupy device pointer.
+              // Start by ensuring it is of proper complex type
+              auto typeStr = py::str(tensor.attr("dtype")).cast<std::string>();
+              if (typeStr != "complex128")
+                throw std::runtime_error(
+                    "invalid from_data operation on py::object tensors - "
+                    "only cupy complex128 tensors supported.");
+              auto shape = tensor.attr("shape").cast<py::tuple>();
+              std::vector<std::size_t> extents;
+              for (auto el : shape)
+                extents.emplace_back(el.cast<std::size_t>());
+              long ptr = data.attr("ptr").cast<long>();
+              tensorData.emplace_back(
+                  std::pair<const void *, std::vector<std::size_t>>{
+                      reinterpret_cast<std::complex<double> *>(ptr), extents});
+            }
+            return state::from_data(tensorData);
+          },
+          "Return a state from matrix product state tensor data (as CuPy "
+          "ndarray).")
       .def_static(
           "from_data",
           [](py::object opaqueData) {

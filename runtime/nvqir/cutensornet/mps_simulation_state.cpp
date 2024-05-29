@@ -8,6 +8,7 @@
 
 #include "mps_simulation_state.h"
 #include "common/EigenDense.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
 #include <charconv>
 #include <cuComplex.h>
@@ -543,6 +544,29 @@ MPSSimulationState::createFromStateVec(cutensornetHandle_t cutnHandle,
 std::unique_ptr<cudaq::SimulationState>
 MPSSimulationState::createFromSizeAndPtr(std::size_t size, void *ptr,
                                          std::size_t dataType) {
+  if (dataType == cudaq::detail::variant_index<cudaq::state_data,
+                                               cudaq::TensorStateData>()) {
+    std::vector<MPSTensor> mpsTensors;
+    auto *casted = reinterpret_cast<cudaq::TensorStateData::value_type *>(ptr);
+    for (std::size_t i = 0; i < size; ++i) {
+      auto [dataPtr, extents] = casted[i];
+      const auto numElements =
+          std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
+      void *d_tensor = nullptr;
+      HANDLE_CUDA_ERROR(
+          cudaMalloc(&d_tensor, numElements * sizeof(std::complex<double>)));
+      // Note: cudaMemcpyDefault to handle both device/host data
+      HANDLE_CUDA_ERROR(cudaMemcpy(d_tensor, dataPtr,
+                                   numElements * sizeof(std::complex<double>),
+                                   cudaMemcpyDefault));
+      std::vector<int64_t> mpsExtents(extents.begin(), extents.end());
+      MPSTensor stateTensor{d_tensor, mpsExtents};
+      mpsTensors.emplace_back(stateTensor);
+    }
+    auto state = TensorNetState::createFromMpsTensors(mpsTensors, m_cutnHandle);
+    return std::make_unique<MPSSimulationState>(std::move(state), mpsTensors,
+                                                m_cutnHandle);
+  }
   auto [state, mpsTensors] = createFromStateVec(
       m_cutnHandle, size, reinterpret_cast<std::complex<double> *>(ptr),
       MPSSettings().maxBond);
@@ -588,5 +612,17 @@ MPSSettings::MPSSettings() {
 
     cudaq::info("Setting MPS relative cutoff to {}.", relCutoff);
   }
+}
+
+void MPSSimulationState::toHost(std::complex<double> *clientAllocatedData,
+                                std::size_t numElements) const {
+  auto stateVec = state->getStateVector();
+  if (stateVec.size() != numElements)
+    throw std::runtime_error(
+        fmt::format("[MPSSimulationState] Dimension mismatch: expecting {} "
+                    "elements but providing an array of size {}.",
+                    stateVec.size(), numElements));
+  for (std::size_t i = 0; i < numElements; ++i)
+    clientAllocatedData[i] = stateVec[i];
 }
 } // namespace nvqir

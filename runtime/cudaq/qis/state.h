@@ -15,6 +15,8 @@
 
 namespace cudaq {
 
+class state_helper;
+
 using tensor = SimulationState::Tensor;
 
 /// @brief The cudaq::state encapsulate backend simulation state vector or
@@ -26,6 +28,7 @@ private:
   std::shared_ptr<SimulationState> internal;
   template <std::size_t Levels>
   friend class qvector;
+  friend class state_helper;
 
 public:
   /// @brief The constructor, takes the simulation data and owns it
@@ -93,6 +96,13 @@ public:
   static state from_data(const state_data &data);
 
   ~state();
+};
+
+class state_helper {
+public:
+  static SimulationState *getSimulationState(cudaq::state *state) {
+    return state->internal.get();
+  }
 };
 
 } // namespace cudaq
