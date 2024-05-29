@@ -122,7 +122,7 @@ if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
 fi
 
-# Determin CUDA flags
+# Determine CUDA flags
 if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
   CUDAFLAGS='-allow-unsupported-compiler --compiler-options --stdlib=libstdc++ --linker-options --as-needed'
   if [ -d "$GCC_TOOLCHAIN" ]; then 

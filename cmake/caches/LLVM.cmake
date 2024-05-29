@@ -15,13 +15,14 @@ set(LLVM_OPTIMIZED_TABLEGEN ON CACHE BOOL "")
 set(LLVM_INSTALL_UTILS ON CACHE BOOL "")
 set(ZLIB_USE_STATIC_LIBS ON CACHE BOOL "")
 set(LLVM_ENABLE_ZSTD OFF CACHE BOOL "")
-# If we want to build dynamic libraries for the unwinder,
-# we need to build support for exception handling.
-set(LLVM_ENABLE_EH ON CACHE BOOL "")
-set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
 
 if(DEFINED LLVM_ENABLE_RUNTIMES AND NOT LLVM_ENABLE_RUNTIMES STREQUAL "")
     message(STATUS "Setting defaults to use LLVM runtimes.")
+
+    # If we want to build dynamic libraries for the unwinder,
+    # we need to build support for exception handling.
+    set(LLVM_ENABLE_EH ON CACHE BOOL "")
+    set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
 
     # Path configurations
     set(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR ON CACHE BOOL "")
