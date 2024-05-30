@@ -111,7 +111,7 @@ in terminal:
 where 4 is the number of GPUs one has access to and ``test`` is the file
 name chosen.
 
-Multiple QPU’s
+Multiple QPUs
 ~~~~~~~~~~~~~~
 
 The ``nvidia-mqpu`` backend allows for future workflows made possible
