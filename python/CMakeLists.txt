@@ -84,6 +84,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    utils/LinkedLibraryHolder.cpp
    ../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
    ../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
+   ../runtime/cudaq/platform/orca/OrcaQPU.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
