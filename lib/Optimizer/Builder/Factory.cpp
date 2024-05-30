@@ -212,8 +212,8 @@ Value factory::createLLVMTemporary(Location loc, OpBuilder &builder, Type type,
   assert(entryBlock && "function must have an entry block");
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToStart(entryBlock);
-  Value one = genLlvmI64Constant(loc, builder, size);
-  return builder.create<LLVM::AllocaOp>(loc, type, ArrayRef<Value>{one});
+  Value len = genLlvmI64Constant(loc, builder, size);
+  return builder.create<LLVM::AllocaOp>(loc, type, ArrayRef<Value>{len});
 }
 
 // This builder will transform the monotonic loop into an invariant loop during
