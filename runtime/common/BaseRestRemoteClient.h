@@ -86,6 +86,7 @@ public:
     const auto urlIter = configs.find("url");
     if (urlIter != configs.end())
       m_url = urlIter->second;
+    std::cout << "URL: " << m_url << std::endl;
   }
 
   virtual int version() const override {
@@ -191,10 +192,11 @@ public:
 
   cudaq::RestRequest constructJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
+      cudaq::SerializedCodeExecutionContext &serializedCodeContext,
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), void *kernelArgs, std::uint64_t argsSize) {
 
-    cudaq::RestRequest request(io_context, version());
+    cudaq::RestRequest request(io_context, version(), serializedCodeContext);
     request.entryPoint = kernelName;
     if (cudaq::__internal__::isLibraryMode(kernelName)) {
       request.format = cudaq::CodeFormat::LLVM;
@@ -238,16 +240,16 @@ public:
     return request;
   }
 
-  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
-                           cudaq::ExecutionContext &io_context,
-                           const std::string &backendSimName,
-                           const std::string &kernelName,
-                           void (*kernelFunc)(void *), void *kernelArgs,
-                           std::uint64_t argsSize,
-                           std::string *optionalErrorMsg) override {
-    cudaq::RestRequest request =
-        constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
-                            kernelFunc, kernelArgs, argsSize);
+  virtual bool
+  sendRequest(mlir::MLIRContext &mlirContext,
+              cudaq::ExecutionContext &io_context,
+              cudaq::SerializedCodeExecutionContext &serializedCodeContext,
+              const std::string &backendSimName, const std::string &kernelName,
+              void (*kernelFunc)(void *), void *kernelArgs,
+              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
+    cudaq::RestRequest request = constructJobRequest(
+        mlirContext, io_context, serializedCodeContext, backendSimName,
+        kernelName, kernelFunc, kernelArgs, argsSize);
     if (request.code.empty()) {
       if (optionalErrorMsg)
         *optionalErrorMsg =
@@ -642,13 +644,13 @@ public:
       }
     }
   }
-  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
-                           cudaq::ExecutionContext &io_context,
-                           const std::string &backendSimName,
-                           const std::string &kernelName,
-                           void (*kernelFunc)(void *), void *kernelArgs,
-                           std::uint64_t argsSize,
-                           std::string *optionalErrorMsg) override {
+  virtual bool
+  sendRequest(mlir::MLIRContext &mlirContext,
+              cudaq::ExecutionContext &io_context,
+              cudaq::SerializedCodeExecutionContext &serializedCodeContext,
+              const std::string &backendSimName, const std::string &kernelName,
+              void (*kernelFunc)(void *), void *kernelArgs,
+              std::uint64_t argsSize, std::string *optionalErrorMsg) override {
     static const std::vector<std::string> MULTI_GPU_BACKENDS = {"tensornet",
                                                                 "nvidia-mgpu"};
     {
@@ -671,9 +673,9 @@ public:
       }
     }
     // Construct the base `cudaq-qpud` request payload.
-    cudaq::RestRequest request =
-        constructJobRequest(mlirContext, io_context, backendSimName, kernelName,
-                            kernelFunc, kernelArgs, argsSize);
+    cudaq::RestRequest request = constructJobRequest(
+        mlirContext, io_context, serializedCodeContext, backendSimName,
+        kernelName, kernelFunc, kernelArgs, argsSize);
 
     if (request.code.empty()) {
       if (optionalErrorMsg)

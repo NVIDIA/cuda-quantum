@@ -1,11 +1,17 @@
 import cudaq
 from cudaq import spin
+import os
 
 from typing import List, Tuple
 
 # We will be optimizing over a custom objective function that takes a vector
 # of parameters as input and returns either the cost as a single float,
 # or a tuple of (cost, gradient_vector) depending on the optimizer used.
+
+os.environ["NVQC_API_KEY"]="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"
+os.environ["NVQC_NCA_ID"]="mZraB3k06kOd8aPhD6MVXJwBVZ67aXDLsfmDo4MYXDs"
+
+cudaq.set_target("remote-mqpu",url="localhost:3030")
 
 # In this example, we will use the spin Hamiltonian and ansatz from `simple_vqe.py`
 # and find the `angles` that minimize the expectation value of the system.
@@ -31,7 +37,6 @@ optimizer = cudaq.optimizers.Adam()
 # routine.
 gradient = cudaq.gradients.CentralDifference()
 
-# @cudaq.objective_function
 def objective_function(parameter_vector: List[float],
                        hamiltonian=hamiltonian,
                        gradient_strategy=gradient,
@@ -63,10 +68,8 @@ def objective_function(parameter_vector: List[float],
     # Return the (cost, gradient_vector) tuple.
     return cost, gradient_vector
 
-
 cudaq.set_random_seed(13)  # make repeatable
-energy, parameter = optimizer.optimize(dimensions=1,
-                                       function=objective_function)
+energy, parameter = optimizer.optimize(dimensions=1, function=objective_function)
 
 print(f"\nminimized <H> = {round(energy,16)}")
 print(f"optimal theta = {round(parameter[0],16)}")

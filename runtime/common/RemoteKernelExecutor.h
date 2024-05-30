@@ -25,6 +25,8 @@ class MLIRContext;
 namespace cudaq {
 class ExecutionContext;
 
+class SerializedCodeExecutionContext;
+
 /// Base interface encapsulating a CUDA-Q runtime server capable of
 /// running kernel IR code.
 class RemoteRuntimeServer
@@ -44,6 +46,7 @@ public:
   virtual int version() const = 0;
   // Handle incoming kernel execution requests.
   virtual void handleRequest(std::size_t reqId, ExecutionContext &io_context,
+                             SerializedCodeExecutionContext &serializedCodeContext,
                              const std::string &backendSimName,
                              std::string_view ir, std::string_view kernelName,
                              void *kernelArgs, std::uint64_t argsSize,
@@ -75,13 +78,13 @@ public:
   // Subclass will implement necessary transport-layer serialization and
   // communication protocols. The `ExecutionContext` will be updated in-place as
   // if this was a local execution.
-  virtual bool sendRequest(mlir::MLIRContext &mlirContext,
-                           ExecutionContext &io_context,
-                           const std::string &backendSimName,
-                           const std::string &kernelName,
-                           void (*kernelFunc)(void *), void *kernelArgs,
-                           std::uint64_t argsSize,
-                           std::string *optionalErrorMsg = nullptr) = 0;
+  virtual bool
+  sendRequest(mlir::MLIRContext &mlirContext, ExecutionContext &io_context,
+              SerializedCodeExecutionContext &serializedCodeContext,
+              const std::string &backendSimName, const std::string &kernelName,
+              void (*kernelFunc)(void *), void *kernelArgs,
+              std::uint64_t argsSize,
+              std::string *optionalErrorMsg = nullptr) = 0;
   // Destructor
   virtual ~RemoteRuntimeClient() = default;
 };
